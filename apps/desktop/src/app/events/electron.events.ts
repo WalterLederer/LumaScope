@@ -317,7 +317,7 @@ const readUhdrGainmapMetadata = (image: Vips.Image) => {
     'gainmap-hdr-capacity-min',
     'gainmap-hdr-capacity-max'
   ];
-  const intFields = [ 'gainmap-use-base-cg' ];
+  const intFields = [ 'gainmap-use-base-cg', 'gainmap-scale-factor' ];
 
   const read = (field: string, method: string) => {
     if (!available.has(field)) {
@@ -330,9 +330,17 @@ const readUhdrGainmapMetadata = (image: Vips.Image) => {
         metadata[field] = { present: true, readError: method + ' is not exposed by wasm-vips' };
         return;
       }
+      const value = (getter as (name: string) => unknown).call(image, field);
       metadata[field] = {
         present: true,
-        value: (getter as (name: string) => unknown).call(image, field)
+        value: value && typeof value === 'object'
+          && typeof (value as { size?: unknown }).size === 'function'
+          && typeof (value as { get?: unknown }).get === 'function'
+          ? Array.from(
+            { length: (value as { size(): number }).size() },
+            (_, index) => (value as { get(index: number): unknown }).get(index)
+          )
+          : value
       };
     } catch (error) {
       metadata[field] = {
