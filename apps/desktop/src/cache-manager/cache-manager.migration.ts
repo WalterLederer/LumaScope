@@ -33,6 +33,12 @@ SELECT source_name, source_tag, target_path
 FROM cache_files;
 `;
 
+export const findCacheFilesForSource = `
+SELECT source_name, source_tag, target_path
+FROM cache_files
+WHERE source_name = :sourceName;
+`;
+
 export const deleteCacheFile = `
 DELETE FROM cache_files WHERE source_name = :sourceName AND source_tag = :sourceTag;
 `;
