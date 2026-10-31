@@ -41,7 +41,7 @@ interface JpegXrDecoder {
   decode: (data: Uint8Array) => {
     width: number;
     height: number;
-    pixelInfo: { bitDepth: string; channels: number; bgr: boolean };
+    pixelInfo: { bitDepth: string; channels: number; bgr: boolean; colorFormat?: string; bitsPerPixel?: number; hasAlpha?: boolean; premultipliedAlpha?: boolean };
     bytes: Uint8Array;
   };
 }
@@ -236,6 +236,44 @@ function halfFloatToFloat(half: number): number {
   }
 
   return sign * Math.pow(2, exponent - 15) * (1 + fraction / 1024);
+}
+
+
+function summarizeJxrPixels(values: ArrayLike<number>, channels: number, scale = 1) {
+  const channelNames = [ 'R', 'G', 'B', 'A' ];
+  const stats = Array.from({ length: channels }, (_, channel) => ({
+    channel: channelNames[channel] ?? String(channel),
+    min: Infinity,
+    max: -Infinity,
+    negative: 0,
+    zero: 0,
+    aboveOne: 0,
+    nonFinite: 0
+  }));
+
+  for (let index = 0; index + channels <= values.length; index += channels) {
+    for (let channel = 0; channel < channels; channel++) {
+      const value = Number(values[index + channel]) * scale;
+      const item = stats[channel];
+
+      if (!Number.isFinite(value)) {
+        item.nonFinite++;
+        continue;
+      }
+
+      item.min = Math.min(item.min, value);
+      item.max = Math.max(item.max, value);
+      if (value < 0) item.negative++;
+      if (value === 0) item.zero++;
+      if (value > 1) item.aboveOne++;
+    }
+  }
+
+  return stats.map(item => ({
+    ...item,
+    min: Number.isFinite(item.min) ? item.min : null,
+    max: Number.isFinite(item.max) ? item.max : null
+  }));
 }
 
 function getHeifColorProfile(data: Uint8Array): AvifColorProfile | null {
@@ -842,6 +880,14 @@ if (parentPort) {
           throw new Error(`Unsupported JPEG XR pixel format: ${decoded.pixelInfo.bitDepth}.`);
         }
 
+        const sampleScale = bitDepth === '8' ? 1 / 255 : bitDepth === '16' ? 1 / 65535 : 1;
+        console.info('[ThumbWorker] JXR decoded pixel diagnostics', {
+          source,
+          dimensions: { width: decoded.width, height: decoded.height },
+          pixelInfo: decoded.pixelInfo,
+          decodedSamples: summarizeJxrPixels(pixels, channels, sampleScale)
+        });
+
         if (channels < 1 || channels === 2) {
           throw new Error(`Unsupported JPEG XR channel count: ${channels}.`);
         }
@@ -870,6 +916,13 @@ if (parentPort) {
               floatImage.extractBand(0)
             ])
             : floatImage.extractBand(0, { n: 3 });
+
+        console.info('[ThumbWorker] JXR ordered RGB diagnostics', {
+          source,
+          dimensions: { width: decoded.width, height: decoded.height },
+          channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
+          orderedRgb: summarizeJxrPixels(orderedRgb.writeToMemory(), 3)
+        });
 
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
