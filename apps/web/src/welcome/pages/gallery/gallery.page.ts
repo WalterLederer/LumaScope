@@ -140,7 +140,15 @@ export class GalleryPage {
 
   constructor() {
     this.processManager.getAppVersion()
-      .then(version => this.processManager.setWindowTitle(`Light Matter - ${version}`))
+      .then(version => {
+        // Keep the native window title in sync with the active gallery directory.
+        this.selectedLocation$.subscribe(location => {
+          const title = location
+            ? `Light Matter - ${version} - ${location}`
+            : `Light Matter - ${version}`;
+          this.processManager.setWindowTitle(title).catch(() => undefined);
+        });
+      })
       .catch(() => undefined);
   }
 
