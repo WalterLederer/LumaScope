@@ -276,7 +276,7 @@ function summarizeJxrPixels(values: ArrayLike<number>, channels: number, scale =
   }));
 }
 
-function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250_000) {
+function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250_000, scale = 1) {
   const channels = 3;
   const pixelCount = Math.floor(values.length / channels);
   const sampleCount = Math.min(pixelCount, sampleLimit);
@@ -301,7 +301,7 @@ function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250
     let nonFinite = 0;
 
     for (let pixel = 0; pixel < pixelCount; pixel++) {
-      const value = Number(values[pixel * channels + channelIndex]);
+      const value = Number(values[pixel * channels + channelIndex]) * scale;
 
       if (!Number.isFinite(value)) {
         nonFinite++;
@@ -1096,16 +1096,7 @@ if (parentPort) {
               bands: encodedJpeg.bands,
               interpretation: encodedJpeg.interpretation,
               pixels: summarizeJxrPixels(encodedJpeg.writeToMemory(), encodedJpeg.bands, 1 / 255),
-              detailedRgb: summarizeDetailedRgbPixels(encodedJpeg.writeToMemory(), 250_000).channels.map(channel => ({
-                ...channel,
-                mean: channel.mean === null ? null : channel.mean / 255,
-                min: channel.min === null ? null : channel.min / 255,
-                max: channel.max === null ? null : channel.max / 255,
-                percentileSample: {
-                  ...channel.percentileSample,
-                  values: Object.fromEntries(Object.entries(channel.percentileSample.values).map(([key, value]) => [key, typeof value === 'number' ? value / 255 : value]))
-                }
-              }))
+              detailedRgb: summarizeDetailedRgbPixels(encodedJpeg.writeToMemory(), 250_000, 1 / 255)
             },
             gainmap: gainmapStats,
             gainmapMetadata: {
