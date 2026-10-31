@@ -9,6 +9,9 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly clearThumbnails = (): Promise<CacheClearResult> => window.desktop.CacheManager.clearThumbnails();
 
+  readonly deleteImage = (sourceName: string): Promise<CacheClearResult> =>
+    window.desktop.CacheManager.deleteImage(sourceName);
+
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 
   readonly cacheInfo = (): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo();
