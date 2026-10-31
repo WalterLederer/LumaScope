@@ -1011,14 +1011,24 @@ if (parentPort) {
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
           using resized = orderedRgb.resize(scale, { kernel: vips.Kernel.linear });
-          using cropped = resized.extractArea(
-            Math.max(0, Math.floor((resized.width - width) / 2)),
-            Math.max(0, Math.floor((resized.height - height) / 2)),
-            width,
-            height
-          );
+          const cropLeft = Math.max(0, Math.floor((resized.width - width) / 2));
+          const cropTop = Math.max(0, Math.floor((resized.height - height) / 2));
+          const resizedPixels = resized.writeToMemory();
+          console.info('[ThumbWorker] JXR resized RGB diagnostics\\n' + JSON.stringify({
+            source,
+            dimensions: { width: resized.width, height: resized.height },
+            scale,
+            detailedRgb: summarizeDetailedRgbPixels(resizedPixels)
+          }, null, 2));
+          using cropped = resized.extractArea(cropLeft, cropTop, width, height);
           using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
           const encoderInputPixels = scrgb.writeToMemory();
+          console.info('[ThumbWorker] JXR cropped RGB diagnostics\\n' + JSON.stringify({
+            source,
+            dimensions: { width: cropped.width, height: cropped.height },
+            crop: { left: cropLeft, top: cropTop, width, height },
+            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
+          }, null, 2));
           console.info('[ThumbWorker] JXR UHDR encoder input diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: scrgb.width, height: scrgb.height },
