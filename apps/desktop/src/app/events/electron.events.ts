@@ -244,6 +244,135 @@ const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   };
 };
 
+const summarizeVipsImageSamples = (image: Vips.Image) => {
+  const pixels = image.writeToMemory();
+  const channelCount = image.bands;
+  const channels = Array.from({ length: channelCount }, (_, channel) => ({
+    channel: [ 'R', 'G', 'B', 'A' ][channel] ?? String(channel),
+    min: Infinity,
+    max: -Infinity,
+    sum: 0,
+    samples: 0,
+    nonFinite: 0,
+    histogram16: new Array<number>(16).fill(0)
+  }));
+
+  for (let offset = 0; offset + channelCount <= pixels.length; offset += channelCount) {
+    for (let channel = 0; channel < channelCount; channel++) {
+      const value = Number(pixels[offset + channel]);
+      const stats = channels[channel];
+      if (!Number.isFinite(value)) {
+        stats.nonFinite++;
+        continue;
+      }
+      stats.min = Math.min(stats.min, value);
+      stats.max = Math.max(stats.max, value);
+      stats.sum += value;
+      stats.samples++;
+    }
+  }
+
+  for (let offset = 0; offset + channelCount <= pixels.length; offset += channelCount) {
+    for (let channel = 0; channel < channelCount; channel++) {
+      const value = Number(pixels[offset + channel]);
+      const stats = channels[channel];
+      if (!Number.isFinite(value) || stats.samples === 0) continue;
+      const range = stats.max - stats.min;
+      const bin = range === 0 ? 0 : Math.min(15, Math.max(0, Math.floor((value - stats.min) / range * 16)));
+      stats.histogram16[bin]++;
+    }
+  }
+
+  return {
+    width: image.width,
+    height: image.height,
+    bands: image.bands,
+    format: image.format,
+    interpretation: image.interpretation,
+    channels: channels.map(({ sum, ...stats }) => ({
+      ...stats,
+      min: Number.isFinite(stats.min) ? stats.min : null,
+      max: Number.isFinite(stats.max) ? stats.max : null,
+      mean: stats.samples > 0 ? sum / stats.samples : null
+    }))
+  };
+};
+
+const readUhdrGainmapMetadata = (image: Vips.Image) => {
+  const fields = image.getFields();
+  const available = new Set<string>();
+  for (let index = 0; index < fields.size(); index++) {
+    available.add(fields.get(index));
+  }
+
+  const metadata: Record<string, unknown> = {};
+  const arrayFields = [
+    'gainmap-max-content-boost',
+    'gainmap-min-content-boost',
+    'gainmap-gamma',
+    'gainmap-offset-sdr',
+    'gainmap-offset-hdr'
+  ];
+  const doubleFields = [
+    'gainmap-hdr-capacity-min',
+    'gainmap-hdr-capacity-max'
+  ];
+  const intFields = [ 'gainmap-use-base-cg' ];
+
+  const read = (field: string, method: string) => {
+    if (!available.has(field)) {
+      metadata[field] = { present: false };
+      return;
+    }
+    try {
+      const getter = (image as unknown as Record<string, unknown>)[method];
+      if (typeof getter !== 'function') {
+        metadata[field] = { present: true, readError: method + ' is not exposed by wasm-vips' };
+        return;
+      }
+      metadata[field] = {
+        present: true,
+        value: (getter as (name: string) => unknown).call(image, field)
+      };
+    } catch (error) {
+      metadata[field] = {
+        present: true,
+        readError: error instanceof Error ? error.message : String(error)
+      };
+    }
+  };
+
+  for (const field of arrayFields) read(field, 'getArrayDouble');
+  for (const field of doubleFields) read(field, 'getDouble');
+  for (const field of intFields) read(field, 'getInt');
+
+  return {
+    availableGainmapFields: Array.from(available).filter(field => field.startsWith('gainmap-') || field === 'gainmap-data'),
+    values: metadata
+  };
+};
+
+const logUhdrFileDiagnostics = (vips: typeof Vips, outputPath: string): void => {
+  try {
+    using encoded = vips.Image.newFromFile(outputPath, { access: 'random' });
+    using gainmap = encoded.gainmap;
+
+    console.info('[UHDR SDR Base]', summarizeVipsImageSamples(encoded));
+    console.info('[UHDR Gainmap Metadata]', readUhdrGainmapMetadata(encoded));
+
+    if (gainmap) {
+      console.info('[UHDR Gainmap]', summarizeVipsImageSamples(gainmap));
+    } else {
+      console.warn('[UHDR Gainmap] libvips did not expose a decoded gainmap image.');
+    }
+  } catch (error) {
+    console.error('[UHDR Diagnostic] Could not inspect the encoded Ultra HDR JPEG:', {
+      outputPath,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+};
+
 const getHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame> => {
   const key = captureTargetKey(target);
   if (cachedHdrFrame?.targetKey === key) {
@@ -897,6 +1026,8 @@ ipcMain.handle(
         logPhase('encode Ultra HDR JPEG with embedded gain map');
         scrgb.uhdrsave(outputPath, { Q: encoderQuality });
         logPhase('Ultra HDR JPEG written');
+        logPhase('read Ultra HDR SDR base, gainmap and metadata');
+        logUhdrFileDiagnostics(vips, outputPath);
 
       } else {
         let encoded: Buffer | Uint8Array;
