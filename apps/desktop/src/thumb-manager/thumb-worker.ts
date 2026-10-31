@@ -946,7 +946,7 @@ if (parentPort) {
           using encodedJpeg = vips.Image.newFromFile(target);
           using decodedHdr = encodedJpeg.uhdr2scRGB();
           using decodedRgb = decodedHdr.extractBand(0, { n: 3 });
-          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics', {
+          const diagnostics = {
             source,
             target,
             encoded: {
@@ -963,7 +963,9 @@ if (parentPort) {
               bands: decodedHdr.bands,
               rgb: summarizeJxrPixels(decodedRgb.writeToMemory(), 3)
             }
-          });
+          };
+          // Emit a JSON string so nested channel statistics are visible in every console.
+          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics\\n' + JSON.stringify(diagnostics, null, 2));
         } catch (diagnosticError) {
           console.error('[ThumbWorker] JXR UltraHDR derivative verification failed', {
             source,
