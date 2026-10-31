@@ -43,6 +43,7 @@ const api: Desktop = {
     clear: () => ipcRenderer.invoke('CacheManager.clear'),
     clearFullSize: () => ipcRenderer.invoke('CacheManager.clearFullSize'),
     clearThumbnails: () => ipcRenderer.invoke('CacheManager.clearThumbnails'),
+    deleteImage: (sourceName: string) => ipcRenderer.invoke('CacheManager.deleteImage', sourceName),
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     cacheInfo: () => ipcRenderer.invoke('CacheManager.cacheInfo'),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
