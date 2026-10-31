@@ -1008,7 +1008,6 @@ if (parentPort) {
           detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
         });
 
-        let encoderInput: Vips.Image;
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
           using resized = orderedRgb.resize(scale, { kernel: vips.Kernel.linear });
@@ -1018,23 +1017,24 @@ if (parentPort) {
             width,
             height
           );
-          encoderInput = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+          using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+          const encoderInputPixels = scrgb.writeToMemory();
           console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
             source,
-            dimensions: { width: encoderInput.width, height: encoderInput.height },
-            detailedRgb: summarizeDetailedRgbPixels(encoderInput.writeToMemory())
+            dimensions: { width: scrgb.width, height: scrgb.height },
+            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
           });
-          encoderInput.uhdrsave(target, { Q: 80 });
+          scrgb.uhdrsave(target, { Q: 80 });
         } else {
-          encoderInput = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
+          using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
+          const encoderInputPixels = scrgb.writeToMemory();
           console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
             source,
-            dimensions: { width: encoderInput.width, height: encoderInput.height },
-            detailedRgb: summarizeDetailedRgbPixels(encoderInput.writeToMemory())
+            dimensions: { width: scrgb.width, height: scrgb.height },
+            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
           });
-          encoderInput.uhdrsave(target, { Q: 90 });
+          scrgb.uhdrsave(target, { Q: 90 });
         }
-        encoderInput.delete();
 
         // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
         // This isolates the JXR decoder from libvips' UltraHDR encoder/decoder path.
