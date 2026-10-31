@@ -934,10 +934,10 @@ if (parentPort) {
             height
           );
           using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
-          scrgb.jpegsave(target, { Q: 80 });
+          scrgb.uhdrsave(target, { Q: 80 });
         } else {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
-          scrgb.jpegsave(target, { Q: 90 });
+          scrgb.uhdrsave(target, { Q: 90 });
         }
 
         // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
@@ -965,7 +965,7 @@ if (parentPort) {
             }
           };
           // Emit a JSON string so nested channel statistics are visible in every console.
-          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics\\n' + JSON.stringify(diagnostics, null, 2));
+          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics\n' + JSON.stringify(diagnostics, null, 2));
         } catch (diagnosticError) {
           console.error('[ThumbWorker] JXR UltraHDR derivative verification failed', {
             source,
