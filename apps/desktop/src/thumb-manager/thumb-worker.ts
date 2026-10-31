@@ -946,9 +946,66 @@ if (parentPort) {
           using encodedJpeg = vips.Image.newFromFile(target);
           using decodedHdr = encodedJpeg.uhdr2scRGB();
           using decodedRgb = decodedHdr.extractBand(0, { n: 3 });
+          const gainmap = encodedJpeg.gainmap;
+          const metadataFields = [
+            'gainmap-max-content-boost',
+            'gainmap-min-content-boost',
+            'gainmap-gamma',
+            'gainmap-offset-sdr',
+            'gainmap-offset-hdr',
+            'gainmap-hdr-capacity-min',
+            'gainmap-hdr-capacity-max',
+            'gainmap-use-base-cg'
+          ];
+          const gainmapMetadata: Record<string, unknown> = {};
+          for (const field of metadataFields) {
+            try {
+              const type = encodedJpeg.getTypeof(field);
+              if (type === 0) continue;
+              if (field.endsWith('content-boost') || field.endsWith('gamma')
+                || field.endsWith('offset-sdr') || field.endsWith('offset-hdr')) {
+                gainmapMetadata[field] = encodedJpeg.getArrayDouble(field);
+              } else {
+                try {
+                  gainmapMetadata[field] = encodedJpeg.getDouble(field);
+                } catch {
+                  gainmapMetadata[field] = encodedJpeg.getInt(field);
+                }
+              }
+            } catch (metadataError) {
+              gainmapMetadata[field] = {
+                readError: metadataError instanceof Error ? metadataError.message : String(metadataError)
+              };
+            }
+          }
+
+          const gainmapStats = gainmap
+            ? {
+              width: gainmap.width,
+              height: gainmap.height,
+              format: gainmap.format,
+              bands: gainmap.bands,
+              interpretation: gainmap.interpretation,
+              pixels: summarizeJxrPixels(gainmap.writeToMemory(), gainmap.bands)
+            }
+            : null;
+
           const diagnostics = {
             source,
             target,
+            sdrBase: {
+              width: encodedJpeg.width,
+              height: encodedJpeg.height,
+              format: encodedJpeg.format,
+              bands: encodedJpeg.bands,
+              interpretation: encodedJpeg.interpretation,
+              pixels: summarizeJxrPixels(encodedJpeg.writeToMemory(), encodedJpeg.bands, 1 / 255)
+            },
+            gainmap: gainmapStats,
+            gainmapMetadata: {
+              fields: metadataFields.filter(field => encodedJpeg.getTypeof(field) !== 0),
+              values: gainmapMetadata
+            },
             encoded: {
               width: encodedJpeg.width,
               height: encodedJpeg.height,
