@@ -49,6 +49,7 @@ export class TreeComponent<T> {
     target.label = node.label;
     target.closedIcon = node.closedIcon;
     target.openIcon = node.openIcon;
+    target.isSelected = node.isSelected;
     target.children = node.children;
     this.treeRoot.set(root);
   };
