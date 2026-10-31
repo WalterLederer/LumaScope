@@ -1119,7 +1119,7 @@ if (parentPort) {
             }
           };
           // Emit a JSON string so nested channel statistics are visible in every console.
-          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics\n' + JSON.stringify(diagnostics, null, 2));
+          console.info('[ThumbWorker] JXR FULL-SIZE UltraHDR JPEG diagnostics\n' + JSON.stringify(diagnostics, null, 2));
           } catch (diagnosticError) {
             console.error('[ThumbWorker] JXR FULL-SIZE UltraHDR derivative verification failed', {
               source,
