@@ -358,6 +358,91 @@ function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250
   return { pixelCount, sampleLimit, channels: results };
 }
 
+interface JxrContainerMetadata {
+  byteOrder: 'little-endian' | 'unknown';
+  version: number | null;
+  firstIfdOffset: number | null;
+  ifdEntries: number;
+  colorSpace: { tag: number; type: number; count: number; value: number | number[] | null } | null;
+  pixelFormat: { tag: number; type: number; count: number; hex: string } | null;
+  iccProfile: { offset: number; size: number; signature: string; version: string; deviceClass: string; dataColorSpace: string; connectionSpace: string; renderingIntent: number; xyzColorantTags: string[] } | null;
+  warnings: string[];
+}
+
+function inspectJxrContainer(data: Uint8Array): JxrContainerMetadata {
+  const result: JxrContainerMetadata = {
+    byteOrder: 'unknown', version: null, firstIfdOffset: null, ifdEntries: 0,
+    colorSpace: null, pixelFormat: null, iccProfile: null, warnings: []
+  };
+  if (data.length < 8 || data[0] !== 0x49 || data[1] !== 0x49 || data[2] !== 0xBC) {
+    result.warnings.push('Not a recognized little-endian JPEG XR tag-based container header.');
+    return result;
+  }
+  result.byteOrder = 'little-endian';
+  result.version = data[3];
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const ifdOffset = view.getUint32(4, true);
+  result.firstIfdOffset = ifdOffset;
+  if (ifdOffset < 8 || ifdOffset + 2 > data.length) {
+    result.warnings.push('First IFD offset is outside the file.');
+    return result;
+  }
+  const entryCount = view.getUint16(ifdOffset, true);
+  const entriesStart = ifdOffset + 2;
+  const entriesEnd = entriesStart + entryCount * 12;
+  if (entriesEnd + 4 > data.length) {
+    result.warnings.push('First IFD entries exceed the file boundary.');
+    return result;
+  }
+  result.ifdEntries = entryCount;
+  const typeSizes: Record<number, number> = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
+  for (let index = 0; index < entryCount; index++) {
+    const entryOffset = entriesStart + index * 12;
+    const tag = view.getUint16(entryOffset, true);
+    const type = view.getUint16(entryOffset + 2, true);
+    const count = view.getUint32(entryOffset + 4, true);
+    const typeSize = typeSizes[type];
+    if (!typeSize || count === 0) continue;
+    const byteLength = typeSize * count;
+    const valueOffset = byteLength <= 4 ? entryOffset + 8 : view.getUint32(entryOffset + 8, true);
+    if (valueOffset + byteLength > data.length) {
+      if (tag === 0xA001 || tag === 0xBC01 || tag === 34675) result.warnings.push(`Metadata tag 0x${tag.toString(16)} points outside the file.`);
+      continue;
+    }
+    if (tag === 0xA001) {
+      const values: number[] = [];
+      for (let item = 0; item < Math.min(count, 16); item++) values.push(type === 3 ? view.getUint16(valueOffset + item * 2, true) : data[valueOffset + item]);
+      result.colorSpace = { tag, type, count, value: values.length === 1 ? values[0] : values };
+    } else if (tag === 0xBC01) {
+      const bytes = data.subarray(valueOffset, valueOffset + Math.min(byteLength, 16));
+      result.pixelFormat = { tag, type, count, hex: Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('') };
+    } else if (tag === 34675 && type === 7 && byteLength >= 128) {
+      const profile = new DataView(data.buffer, data.byteOffset + valueOffset, byteLength);
+      const ascii = (offset: number, length: number) => String.fromCharCode(...data.subarray(valueOffset + offset, valueOffset + offset + length));
+      const declaredSize = profile.getUint32(0, false);
+      if (ascii(36, 4) !== 'acsp' || declaredSize < 128 || declaredSize > byteLength) {
+        result.warnings.push('ICC tag exists, but its profile header is invalid or truncated.');
+        continue;
+      }
+      const tagCount = declaredSize >= 132 ? profile.getUint32(128, false) : 0;
+      const xyzColorantTags: string[] = [];
+      if (132 + tagCount * 12 <= declaredSize) {
+        for (let tagIndex = 0; tagIndex < tagCount; tagIndex++) {
+          const tagOffset = 132 + tagIndex * 12, signature = ascii(tagOffset, 4);
+          if (['rXYZ', 'gXYZ', 'bXYZ'].includes(signature)) xyzColorantTags.push(signature);
+        }
+      }
+      result.iccProfile = {
+        offset: valueOffset, size: declaredSize, signature: ascii(36, 4),
+        version: `${profile.getUint8(8)}.${profile.getUint8(9) >> 4}`,
+        deviceClass: ascii(12, 4), dataColorSpace: ascii(16, 4), connectionSpace: ascii(20, 4),
+        renderingIntent: profile.getUint32(64, false), xyzColorantTags
+      };
+    }
+  }
+  return result;
+}
+
 function getHeifColorProfile(data: Uint8Array): AvifColorProfile | null {
   for (let index = 0; index <= data.length - 11; index++) {
     if (data[index] === 0x6e && data[index + 1] === 0x63 && data[index + 2] === 0x6c && data[index + 3] === 0x78) {
@@ -927,7 +1012,9 @@ if (parentPort) {
         }
       } else if (extname(source).toLowerCase() === '.jxr') {
         const [vips, jpegxr] = await Promise.all([ getVips(), getJpegXr() ]);
-        const decoded = jpegxr.decode(await readFile(source));
+        const jxrData = await readFile(source);
+        const containerMetadata = inspectJxrContainer(jxrData);
+        const decoded = jpegxr.decode(jxrData);
 
         const { bitDepth, channels, bgr } = decoded.pixelInfo;
         let pixels: Uint8Array | Uint16Array | Float32Array;
@@ -969,6 +1056,7 @@ if (parentPort) {
             source,
             dimensions: { width: decoded.width, height: decoded.height },
             pixelInfo: decoded.pixelInfo,
+            containerMetadata,
             decodedSamples: summarizeJxrPixels(pixels, channels, sampleScale)
           });
         }
