@@ -276,6 +276,74 @@ function summarizeJxrPixels(values: ArrayLike<number>, channels: number, scale =
   }));
 }
 
+function summarizePixelRegion(
+  values: ArrayLike<number>,
+  imageWidth: number,
+  imageHeight: number,
+  channels: number,
+  region: { left: number; top: number; width: number; height: number },
+  scale = 1
+) {
+  const left = Math.max(0, Math.min(imageWidth, Math.floor(region.left)));
+  const top = Math.max(0, Math.min(imageHeight, Math.floor(region.top)));
+  const right = Math.max(left, Math.min(imageWidth, Math.ceil(region.left + region.width)));
+  const bottom = Math.max(top, Math.min(imageHeight, Math.ceil(region.top + region.height)));
+  const channelNames = [ 'R', 'G', 'B', 'A' ];
+  const results = Array.from({ length: channels }, (_, channel) => ({
+    channel: channelNames[channel] ?? String(channel),
+    min: Infinity,
+    max: -Infinity,
+    sum: 0,
+    values: [] as number[],
+    maxPosition: null as { x: number; y: number } | null,
+    nonFinite: 0
+  }));
+
+  for (let y = top; y < bottom; y++) {
+    for (let x = left; x < right; x++) {
+      const pixelOffset = (y * imageWidth + x) * channels;
+      for (let channel = 0; channel < channels; channel++) {
+        const value = Number(values[pixelOffset + channel]) * scale;
+        const item = results[channel];
+        if (!Number.isFinite(value)) {
+          item.nonFinite++;
+          continue;
+        }
+        item.min = Math.min(item.min, value);
+        item.sum += value;
+        item.values.push(value);
+        if (value > item.max) {
+          item.max = value;
+          item.maxPosition = { x, y };
+        }
+      }
+    }
+  }
+
+  return {
+    region: { left, top, right, bottom, width: right - left, height: bottom - top },
+    pixelCount: (right - left) * (bottom - top),
+    channels: results.map(item => {
+      item.values.sort((a, b) => a - b);
+      const percentile = (p: number) => item.values.length
+        ? item.values[Math.min(item.values.length - 1, Math.max(0, Math.ceil(p / 100 * item.values.length) - 1))]
+        : null;
+      return {
+        channel: item.channel,
+        min: Number.isFinite(item.min) ? item.min : null,
+        max: Number.isFinite(item.max) ? item.max : null,
+        mean: item.values.length ? item.sum / item.values.length : null,
+        median: percentile(50),
+        p90: percentile(90),
+        p99: percentile(99),
+        p99_9: percentile(99.9),
+        maxPosition: item.maxPosition,
+        nonFinite: item.nonFinite
+      };
+    })
+  };
+}
+
 function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250_000, scale = 1) {
   const channels = 3;
   const pixelCount = Math.floor(values.length / channels);
@@ -1092,12 +1160,16 @@ if (parentPort) {
 
         if (isFullSize) {
           const orderedRgbPixels = orderedRgb.writeToMemory();
+          const sunRegion = { left: 1910, top: 815, width: 100, height: 80 };
+          const sunContextRegion = { left: 1860, top: 775, width: 200, height: 160 };
           console.info('[ThumbWorker] JXR FULL-SIZE ordered RGB diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: decoded.width, height: decoded.height },
             channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
             orderedRgb: summarizeJxrPixels(orderedRgbPixels, 3),
-            detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
+            detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels),
+            sunCore: summarizePixelRegion(orderedRgbPixels, decoded.width, decoded.height, 3, sunRegion),
+            sunContext: summarizePixelRegion(orderedRgbPixels, decoded.width, decoded.height, 3, sunContextRegion)
           }, null, 2));
         }
 
@@ -1115,7 +1187,9 @@ if (parentPort) {
           console.info('[ThumbWorker] JXR FULL-SIZE UHDR encoder input diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: scrgb.width, height: scrgb.height },
-            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
+            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels),
+            sunCore: summarizePixelRegion(encoderInputPixels, scrgb.width, scrgb.height, 3, sunRegion),
+            sunContext: summarizePixelRegion(encoderInputPixels, scrgb.width, scrgb.height, 3, sunContextRegion)
           }, null, 2));
           scrgb.uhdrsave(target, { Q: 90 });
         }
@@ -1173,19 +1247,50 @@ if (parentPort) {
             }
             : null;
 
+          const sdrBasePixels = encodedJpeg.writeToMemory();
+          const gainmapPixels = gainmap?.writeToMemory();
+          const decodedHdrPixels = decodedRgb.writeToMemory();
+          const gainmapSunRegion = {
+            left: sunRegion.left / 2,
+            top: sunRegion.top / 2,
+            width: sunRegion.width / 2,
+            height: sunRegion.height / 2
+          };
+          const gainmapContextRegion = {
+            left: sunContextRegion.left / 2,
+            top: sunContextRegion.top / 2,
+            width: sunContextRegion.width / 2,
+            height: sunContextRegion.height / 2
+          };
           const diagnostics = {
             source,
             target,
+            sunRegion: {
+              sourceCoordinates: sunRegion,
+              contextCoordinates: sunContextRegion,
+              gainmapCoordinates: gainmapSunRegion,
+              gainmapContextCoordinates: gainmapContextRegion
+            },
             sdrBase: {
+              sunCore: summarizePixelRegion(sdrBasePixels, encodedJpeg.width, encodedJpeg.height, 3, sunRegion, 1 / 255),
+              sunContext: summarizePixelRegion(sdrBasePixels, encodedJpeg.width, encodedJpeg.height, 3, sunContextRegion, 1 / 255),
               width: encodedJpeg.width,
               height: encodedJpeg.height,
               format: encodedJpeg.format,
               bands: encodedJpeg.bands,
               interpretation: encodedJpeg.interpretation,
-              pixels: summarizeJxrPixels(encodedJpeg.writeToMemory(), encodedJpeg.bands, 1 / 255),
-              detailedRgb: summarizeDetailedRgbPixels(encodedJpeg.writeToMemory(), 250_000, 1 / 255)
+              pixels: summarizeJxrPixels(sdrBasePixels, encodedJpeg.bands, 1 / 255),
+              detailedRgb: summarizeDetailedRgbPixels(sdrBasePixels, 250_000, 1 / 255)
             },
-            gainmap: gainmapStats,
+            gainmap: gainmapStats ? {
+              ...gainmapStats,
+              sunCore: gainmapPixels
+                ? summarizePixelRegion(gainmapPixels, gainmap.width, gainmap.height, gainmap.bands, gainmapSunRegion)
+                : null,
+              sunContext: gainmapPixels
+                ? summarizePixelRegion(gainmapPixels, gainmap.width, gainmap.height, gainmap.bands, gainmapContextRegion)
+                : null
+            } : null,
             gainmapMetadata: {
               fields: metadataFields.filter(field => encodedJpeg.getTypeof(field) !== 0),
               values: gainmapMetadata
@@ -1202,8 +1307,10 @@ if (parentPort) {
               height: decodedHdr.height,
               format: decodedHdr.format,
               bands: decodedHdr.bands,
-              rgb: summarizeJxrPixels(decodedRgb.writeToMemory(), 3),
-              detailedRgb: summarizeDetailedRgbPixels(decodedRgb.writeToMemory())
+              sunCore: summarizePixelRegion(decodedHdrPixels, decodedHdr.width, decodedHdr.height, 3, sunRegion),
+              sunContext: summarizePixelRegion(decodedHdrPixels, decodedHdr.width, decodedHdr.height, 3, sunContextRegion),
+              rgb: summarizeJxrPixels(decodedHdrPixels, 3),
+              detailedRgb: summarizeDetailedRgbPixels(decodedHdrPixels)
             }
           };
           // Emit a JSON string so nested channel statistics are visible in every console.
