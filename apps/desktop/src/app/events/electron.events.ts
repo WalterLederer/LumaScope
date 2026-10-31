@@ -196,6 +196,54 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
   }
 };
 
+const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
+  const channels = [ 'R', 'G', 'B' ].map(name => ({
+    name,
+    min: Infinity,
+    max: -Infinity,
+    minPositive: Infinity,
+    negativeSamples: 0,
+    zeroSamples: 0,
+    aboveReferenceWhiteSamples: 0,
+    nonFiniteSamples: 0
+  }));
+  const values = new Uint16Array(
+    frame.buffer.buffer,
+    frame.buffer.byteOffset,
+    frame.buffer.byteLength / 2
+  );
+
+  for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+    for (let channel = 0; channel < 3; channel++) {
+      const value = halfToFloat(values[pixel * 4 + channel]);
+      const stats = channels[channel];
+      if (!Number.isFinite(value)) {
+        stats.nonFiniteSamples++;
+        continue;
+      }
+      stats.min = Math.min(stats.min, value);
+      stats.max = Math.max(stats.max, value);
+      if (value < 0) stats.negativeSamples++;
+      else if (value === 0) stats.zeroSamples++;
+      else stats.minPositive = Math.min(stats.minPositive, value);
+      if (value > 1) stats.aboveReferenceWhiteSamples++;
+    }
+  }
+
+  return {
+    width: frame.width,
+    height: frame.height,
+    pixelFormat: 'RGBA16F linear scRGB',
+    referenceWhiteNits: 80,
+    channels: channels.map(({ min, max, minPositive, ...stats }) => ({
+      ...stats,
+      min: Number.isFinite(min) ? min : null,
+      max: Number.isFinite(max) ? max : null,
+      minPositive: Number.isFinite(minPositive) ? minPositive : null
+    }))
+  };
+};
+
 const getHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame> => {
   const key = captureTargetKey(target);
   if (cachedHdrFrame?.targetKey === key) {
@@ -744,6 +792,7 @@ ipcMain.handle(
     // Always capture a fresh frame for Preview. The resulting frame remains cached
     // so Save can reuse exactly the image the user just inspected.
     const frame = await captureHdrFrame(target);
+    console.info('[HDR Capture] preview source FP16/scRGB statistics', summarizeFp16Frame(frame));
     const pixels = new Uint16Array(
       frame.buffer.buffer.slice(frame.buffer.byteOffset, frame.buffer.byteOffset + frame.buffer.byteLength)
     );
@@ -780,7 +829,13 @@ ipcMain.handle(
       console.info(`[HDR Capture] ${phase}`);
     };
     try {
+      const reusedPreviewFrame = cachedHdrFrame?.targetKey === captureTargetKey(target);
       const frame = await getHdrFrame(target);
+      console.info('[HDR Capture] save source FP16/scRGB statistics', {
+        reusedPreviewFrame,
+        gammaCorrection,
+        ...summarizeFp16Frame(frame)
+      });
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
       const extension = format === 'uhdr' ? 'jpg' : format;
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
