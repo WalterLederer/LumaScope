@@ -962,13 +962,16 @@ if (parentPort) {
           throw new Error(`Unsupported JPEG XR pixel format: ${decoded.pixelInfo.bitDepth}.`);
         }
 
+        const isFullSize = width === 0 && height === 0;
         const sampleScale = bitDepth === '8' ? 1 / 255 : bitDepth === '16' ? 1 / 65535 : 1;
-        console.info('[ThumbWorker] JXR decoded pixel diagnostics', {
-          source,
-          dimensions: { width: decoded.width, height: decoded.height },
-          pixelInfo: decoded.pixelInfo,
-          decodedSamples: summarizeJxrPixels(pixels, channels, sampleScale)
-        });
+        if (isFullSize) {
+          console.info('[ThumbWorker] JXR FULL-SIZE decoded pixel diagnostics', {
+            source,
+            dimensions: { width: decoded.width, height: decoded.height },
+            pixelInfo: decoded.pixelInfo,
+            decodedSamples: summarizeJxrPixels(pixels, channels, sampleScale)
+          });
+        }
 
         if (channels < 1 || channels === 2) {
           throw new Error(`Unsupported JPEG XR channel count: ${channels}.`);
@@ -999,46 +1002,29 @@ if (parentPort) {
             ])
             : floatImage.extractBand(0, { n: 3 });
 
-        const orderedRgbPixels = orderedRgb.writeToMemory();
-        console.info('[ThumbWorker] JXR ordered RGB diagnostics\\n' + JSON.stringify({
-          source,
-          dimensions: { width: decoded.width, height: decoded.height },
-          channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
-          orderedRgb: summarizeJxrPixels(orderedRgbPixels, 3),
-          detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
-        }, null, 2));
+        if (isFullSize) {
+          const orderedRgbPixels = orderedRgb.writeToMemory();
+          console.info('[ThumbWorker] JXR FULL-SIZE ordered RGB diagnostics\\n' + JSON.stringify({
+            source,
+            dimensions: { width: decoded.width, height: decoded.height },
+            channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
+            orderedRgb: summarizeJxrPixels(orderedRgbPixels, 3),
+            detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
+          }, null, 2));
+        }
 
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
           using resized = orderedRgb.resize(scale, { kernel: vips.Kernel.linear });
           const cropLeft = Math.max(0, Math.floor((resized.width - width) / 2));
           const cropTop = Math.max(0, Math.floor((resized.height - height) / 2));
-          const resizedPixels = resized.writeToMemory();
-          console.info('[ThumbWorker] JXR resized RGB diagnostics\\n' + JSON.stringify({
-            source,
-            dimensions: { width: resized.width, height: resized.height },
-            scale,
-            detailedRgb: summarizeDetailedRgbPixels(resizedPixels)
-          }, null, 2));
           using cropped = resized.extractArea(cropLeft, cropTop, width, height);
           using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
-          const encoderInputPixels = scrgb.writeToMemory();
-          console.info('[ThumbWorker] JXR cropped RGB diagnostics\\n' + JSON.stringify({
-            source,
-            dimensions: { width: cropped.width, height: cropped.height },
-            crop: { left: cropLeft, top: cropTop, width, height },
-            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
-          }, null, 2));
-          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics\\n' + JSON.stringify({
-            source,
-            dimensions: { width: scrgb.width, height: scrgb.height },
-            detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
-          }, null, 2));
           scrgb.uhdrsave(target, { Q: 80 });
         } else {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
           const encoderInputPixels = scrgb.writeToMemory();
-          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics\\n' + JSON.stringify({
+          console.info('[ThumbWorker] JXR FULL-SIZE UHDR encoder input diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: scrgb.width, height: scrgb.height },
             detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
@@ -1046,9 +1032,12 @@ if (parentPort) {
           scrgb.uhdrsave(target, { Q: 90 });
         }
 
-        // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
-        // This isolates the JXR decoder from libvips' UltraHDR encoder/decoder path.
-        try {
+        // Only inspect the full-size JPEG. Thumbnail derivatives are deliberately
+        // excluded so their resize/crop statistics cannot be confused with the image.
+        if (isFullSize) {
+          // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
+          // This isolates the JXR decoder from libvips' UltraHDR encoder/decoder path.
+          try {
           using encodedJpeg = vips.Image.newFromFile(target);
           using decodedHdr = encodedJpeg.uhdr2scRGB();
           using decodedRgb = decodedHdr.extractBand(0, { n: 3 });
@@ -1131,14 +1120,15 @@ if (parentPort) {
           };
           // Emit a JSON string so nested channel statistics are visible in every console.
           console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics\n' + JSON.stringify(diagnostics, null, 2));
-        } catch (diagnosticError) {
-          console.error('[ThumbWorker] JXR UltraHDR derivative verification failed', {
-            source,
-            target,
-            error: diagnosticError instanceof Error
-              ? `${diagnosticError.name}: ${diagnosticError.message}`
-              : String(diagnosticError)
-          });
+          } catch (diagnosticError) {
+            console.error('[ThumbWorker] JXR FULL-SIZE UltraHDR derivative verification failed', {
+              source,
+              target,
+              error: diagnosticError instanceof Error
+                ? `${diagnosticError.name}: ${diagnosticError.message}`
+                : String(diagnosticError)
+            });
+          }
         }
       } else {
         using thumb = vips.Image.thumbnail(
