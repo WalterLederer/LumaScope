@@ -44,6 +44,7 @@ export interface DesktopCacheManager {
   readonly clear: () => Promise<CacheClearResult>;
   readonly clearFullSize: () => Promise<CacheClearResult>;
   readonly clearThumbnails: () => Promise<CacheClearResult>;
+  readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
