@@ -12,6 +12,7 @@ import {
   dbMigrations,
   deleteCacheFile,
   findCacheFiles,
+  findCacheFilesForSource,
   findFullSizeCacheFiles,
   findCacheFile,
   findThumbnailCacheFiles,
@@ -50,6 +51,29 @@ export class CacheManager {
     this.db.exec(clearCacheRecords);
     await rm(this.cacheDir, { recursive: true, force: true });
     return result;
+  };
+
+  @IpcHandler({ name: 'CacheManager.deleteImage' })
+  readonly deleteImage = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<CacheClearResult> => {
+    if (typeof sourceName !== 'string' || sourceName.trim().length === 0) {
+      throw new Error('A valid source image path is required.');
+    }
+
+    // Let an in-progress conversion finish before removing all cache variants
+    // for this image, so it cannot recreate an entry immediately after deletion.
+    const pending = [ ...this.pendingEntries.entries() ]
+      .filter(([ key ]) => {
+        try {
+          return JSON.parse(key)[0] === sourceName;
+        } catch {
+          return false;
+        }
+      })
+      .map(([, operation]) => operation);
+    await Promise.all(pending);
+
+    const entries = this.db.prepare(findCacheFilesForSource).all({ sourceName }) as unknown as CacheFileEntry[];
+    return this.clearEntries(entries);
   };
 
   @IpcHandler({ name: 'CacheManager.clearFullSize' })
