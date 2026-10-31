@@ -1282,7 +1282,7 @@ if (parentPort) {
               pixels: summarizeJxrPixels(sdrBasePixels, encodedJpeg.bands, 1 / 255),
               detailedRgb: summarizeDetailedRgbPixels(sdrBasePixels, 250_000, 1 / 255)
             },
-            gainmap: gainmapStats ? {
+            gainmap: gainmap && gainmapStats ? {
               ...gainmapStats,
               sunCore: gainmapPixels
                 ? summarizePixelRegion(gainmapPixels, gainmap.width, gainmap.height, gainmap.bands, gainmapSunRegion)
