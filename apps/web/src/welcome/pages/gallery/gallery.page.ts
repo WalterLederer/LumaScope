@@ -155,7 +155,7 @@ export class GalleryPage {
     // Restore a previously selected nested folder in the tree after its root has rendered.
     combineLatest([ this.galleryRoot$, this.selectedLocation$ ])
       .pipe(
-        filter(([ root, location ]) => root.children.length > 0 && location !== null),
+        filter(([ root, location ]) => (root.children?.length ?? 0) > 0 && location !== null),
         take(1)
       )
       .subscribe(([ root, location ]) => {
@@ -164,7 +164,7 @@ export class GalleryPage {
   }
 
   private readonly restoreSelectedTreePath = async (root: TreeNode<string>, selectedPath: string): Promise<void> => {
-    const normalize = (path: string): string => path.replace(/\\/g, '/').replace(/\\/+$/, '').toLowerCase();
+    const normalize = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
     const selected = normalize(selectedPath);
     const rootNode = root.children?.find(node => {
       const candidate = normalize(node.id);
