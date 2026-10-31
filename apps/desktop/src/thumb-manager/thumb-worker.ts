@@ -939,6 +939,40 @@ if (parentPort) {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
           scrgb.jpegsave(target, { Q: 90 });
         }
+
+        // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
+        // This isolates the JXR decoder from libvips' UltraHDR encoder/decoder path.
+        try {
+          using encodedJpeg = vips.Image.newFromFile(target);
+          using decodedHdr = encodedJpeg.uhdr2scRGB();
+          using decodedRgb = decodedHdr.extractBand(0, { n: 3 });
+          console.info('[ThumbWorker] JXR UltraHDR derivative diagnostics', {
+            source,
+            target,
+            encoded: {
+              width: encodedJpeg.width,
+              height: encodedJpeg.height,
+              format: encodedJpeg.format,
+              bands: encodedJpeg.bands,
+              fields: encodedJpeg.getFields().size()
+            },
+            decodedHdr: {
+              width: decodedHdr.width,
+              height: decodedHdr.height,
+              format: decodedHdr.format,
+              bands: decodedHdr.bands,
+              rgb: summarizeJxrPixels(decodedRgb.writeToMemory(), 3)
+            }
+          });
+        } catch (diagnosticError) {
+          console.error('[ThumbWorker] JXR UltraHDR derivative verification failed', {
+            source,
+            target,
+            error: diagnosticError instanceof Error
+              ? `${diagnosticError.name}: ${diagnosticError.message}`
+              : String(diagnosticError)
+          });
+        }
       } else {
         using thumb = vips.Image.thumbnail(
           source,
