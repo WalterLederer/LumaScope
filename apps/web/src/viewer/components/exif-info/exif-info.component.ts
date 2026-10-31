@@ -48,6 +48,8 @@ export class ExifInfoComponent {
   readonly cachePathLoading = signal(false);
 
   readonly copyCachePathStatus = signal('');
+  readonly deleteCacheLoading = signal(false);
+  readonly deleteCacheStatus = signal('');
 
   private cachePathRequestId = 0;
   readonly cachePathRefresh = signal(0);
@@ -79,6 +81,28 @@ export class ExifInfoComponent {
       });
     });
   }
+
+  readonly deleteImageCache = async (): Promise<void> => {
+    const sourcePath = this.path();
+    if (!sourcePath || this.deleteCacheLoading()) return;
+
+    this.deleteCacheLoading.set(true);
+    this.deleteCacheStatus.set('');
+    try {
+      const result = await this.cacheManager.deleteImage(sourcePath);
+      this.cachePathRefresh.update(value => value + 1);
+      this.deleteCacheStatus.set(
+        result.entries > 0
+          ? `Deleted ${result.entries} cache file${result.entries === 1 ? '' : 's'}`
+          : 'No cache entries found'
+      );
+    } catch (error) {
+      console.error('Failed to delete image cache entries', error);
+      this.deleteCacheStatus.set('Cache deletion failed');
+    } finally {
+      this.deleteCacheLoading.set(false);
+    }
+  };
 
   readonly refreshCachePath = (): void => this.cachePathRefresh.update(value => value + 1);
 
