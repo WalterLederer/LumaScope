@@ -1000,13 +1000,13 @@ if (parentPort) {
             : floatImage.extractBand(0, { n: 3 });
 
         const orderedRgbPixels = orderedRgb.writeToMemory();
-        console.info('[ThumbWorker] JXR ordered RGB diagnostics', {
+        console.info('[ThumbWorker] JXR ordered RGB diagnostics\\n' + JSON.stringify({
           source,
           dimensions: { width: decoded.width, height: decoded.height },
           channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
           orderedRgb: summarizeJxrPixels(orderedRgbPixels, 3),
           detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
-        });
+        }, null, 2));
 
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
@@ -1019,20 +1019,20 @@ if (parentPort) {
           );
           using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
           const encoderInputPixels = scrgb.writeToMemory();
-          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
+          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: scrgb.width, height: scrgb.height },
             detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
-          });
+          }, null, 2));
           scrgb.uhdrsave(target, { Q: 80 });
         } else {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
           const encoderInputPixels = scrgb.writeToMemory();
-          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
+          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: scrgb.width, height: scrgb.height },
             detailedRgb: summarizeDetailedRgbPixels(encoderInputPixels)
-          });
+          }, null, 2));
           scrgb.uhdrsave(target, { Q: 90 });
         }
 
