@@ -1158,10 +1158,10 @@ if (parentPort) {
             ])
             : floatImage.extractBand(0, { n: 3 });
 
+        const sunRegion = { left: 1910, top: 815, width: 100, height: 80 };
+        const sunContextRegion = { left: 1860, top: 775, width: 200, height: 160 };
         if (isFullSize) {
           const orderedRgbPixels = orderedRgb.writeToMemory();
-          const sunRegion = { left: 1910, top: 815, width: 100, height: 80 };
-          const sunContextRegion = { left: 1860, top: 775, width: 200, height: 160 };
           console.info('[ThumbWorker] JXR FULL-SIZE ordered RGB diagnostics\\n' + JSON.stringify({
             source,
             dimensions: { width: decoded.width, height: decoded.height },
