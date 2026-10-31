@@ -276,6 +276,88 @@ function summarizeJxrPixels(values: ArrayLike<number>, channels: number, scale =
   }));
 }
 
+function summarizeDetailedRgbPixels(values: ArrayLike<number>, sampleLimit = 250_000) {
+  const channels = 3;
+  const pixelCount = Math.floor(values.length / channels);
+  const sampleCount = Math.min(pixelCount, sampleLimit);
+  const sampleStride = Math.max(1, Math.floor(pixelCount / sampleCount));
+  const channelNames = [ 'R', 'G', 'B' ];
+  const percentiles = [ 0.01, 0.1, 1, 10, 50, 90, 99, 99.9, 99.99 ];
+  const results = channelNames.map((channel, channelIndex) => {
+    const samples = new Float64Array(sampleCount);
+    let sampleIndex = 0;
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    let negative = 0;
+    let zero = 0;
+    let atOrBelow0001 = 0;
+    let atOrBelow001 = 0;
+    let atOrBelow01 = 0;
+    let aboveOne = 0;
+    let aboveFour = 0;
+    let aboveTen = 0;
+    let aboveTwenty = 0;
+    let nonFinite = 0;
+
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const value = Number(values[pixel * channels + channelIndex]);
+
+      if (!Number.isFinite(value)) {
+        nonFinite++;
+        continue;
+      }
+
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+      sum += value;
+      if (value < 0) negative++;
+      if (value === 0) zero++;
+      if (value <= 0.0001) atOrBelow0001++;
+      if (value <= 0.001) atOrBelow001++;
+      if (value <= 0.01) atOrBelow01++;
+      if (value > 1) aboveOne++;
+      if (value > 4) aboveFour++;
+      if (value > 10) aboveTen++;
+      if (value > 20) aboveTwenty++;
+
+      if (pixel % sampleStride === 0 && sampleIndex < sampleCount) {
+        samples[sampleIndex++] = value;
+      }
+    }
+
+    const sortedSamples = Array.from(samples.subarray(0, sampleIndex)).sort((a, b) => a - b);
+    const sampledPercentiles = Object.fromEntries(percentiles.map(percentile => {
+      const index = Math.min(sortedSamples.length - 1, Math.max(0, Math.ceil(percentile / 100 * sortedSamples.length) - 1));
+      return [String(percentile), sortedSamples.length ? sortedSamples[index] : null];
+    }));
+
+    return {
+      channel,
+      min: Number.isFinite(min) ? min : null,
+      max: Number.isFinite(max) ? max : null,
+      mean: pixelCount - nonFinite > 0 ? sum / (pixelCount - nonFinite) : null,
+      negative,
+      zero,
+      atOrBelow0001,
+      atOrBelow001,
+      atOrBelow01,
+      aboveOne,
+      aboveFour,
+      aboveTen,
+      aboveTwenty,
+      nonFinite,
+      percentileSample: {
+        count: sampleIndex,
+        stride: sampleStride,
+        values: sampledPercentiles
+      }
+    };
+  });
+
+  return { pixelCount, sampleLimit, channels: results };
+}
+
 function getHeifColorProfile(data: Uint8Array): AvifColorProfile | null {
   for (let index = 0; index <= data.length - 11; index++) {
     if (data[index] === 0x6e && data[index + 1] === 0x63 && data[index + 2] === 0x6c && data[index + 3] === 0x78) {
@@ -917,13 +999,16 @@ if (parentPort) {
             ])
             : floatImage.extractBand(0, { n: 3 });
 
+        const orderedRgbPixels = orderedRgb.writeToMemory();
         console.info('[ThumbWorker] JXR ordered RGB diagnostics', {
           source,
           dimensions: { width: decoded.width, height: decoded.height },
           channelOrder: channels === 1 ? 'grayscale replicated to RGB' : bgr ? 'BGR converted to RGB' : 'RGB',
-          orderedRgb: summarizeJxrPixels(orderedRgb.writeToMemory(), 3)
+          orderedRgb: summarizeJxrPixels(orderedRgbPixels, 3),
+          detailedRgb: summarizeDetailedRgbPixels(orderedRgbPixels)
         });
 
+        let encoderInput: Vips.Image;
         if (width > 0 && height > 0) {
           const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
           using resized = orderedRgb.resize(scale, { kernel: vips.Kernel.linear });
@@ -933,12 +1018,23 @@ if (parentPort) {
             width,
             height
           );
-          using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
-          scrgb.uhdrsave(target, { Q: 80 });
+          encoderInput = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
+            source,
+            dimensions: { width: encoderInput.width, height: encoderInput.height },
+            detailedRgb: summarizeDetailedRgbPixels(encoderInput.writeToMemory())
+          });
+          encoderInput.uhdrsave(target, { Q: 80 });
         } else {
-          using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
-          scrgb.uhdrsave(target, { Q: 90 });
+          encoderInput = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
+          console.info('[ThumbWorker] JXR UHDR encoder input diagnostics', {
+            source,
+            dimensions: { width: encoderInput.width, height: encoderInput.height },
+            detailedRgb: summarizeDetailedRgbPixels(encoderInput.writeToMemory())
+          });
+          encoderInput.uhdrsave(target, { Q: 90 });
         }
+        encoderInput.delete();
 
         // Reopen the generated Ultra HDR JPEG and inspect the decoded HDR pixels.
         // This isolates the JXR decoder from libvips' UltraHDR encoder/decoder path.
@@ -999,7 +1095,17 @@ if (parentPort) {
               format: encodedJpeg.format,
               bands: encodedJpeg.bands,
               interpretation: encodedJpeg.interpretation,
-              pixels: summarizeJxrPixels(encodedJpeg.writeToMemory(), encodedJpeg.bands, 1 / 255)
+              pixels: summarizeJxrPixels(encodedJpeg.writeToMemory(), encodedJpeg.bands, 1 / 255),
+              detailedRgb: summarizeDetailedRgbPixels(encodedJpeg.writeToMemory(), 250_000).channels.map(channel => ({
+                ...channel,
+                mean: channel.mean === null ? null : channel.mean / 255,
+                min: channel.min === null ? null : channel.min / 255,
+                max: channel.max === null ? null : channel.max / 255,
+                percentileSample: {
+                  ...channel.percentileSample,
+                  values: Object.fromEntries(Object.entries(channel.percentileSample.values).map(([key, value]) => [key, typeof value === 'number' ? value / 255 : value]))
+                }
+              }))
             },
             gainmap: gainmapStats,
             gainmapMetadata: {
@@ -1018,7 +1124,8 @@ if (parentPort) {
               height: decodedHdr.height,
               format: decodedHdr.format,
               bands: decodedHdr.bands,
-              rgb: summarizeJxrPixels(decodedRgb.writeToMemory(), 3)
+              rgb: summarizeJxrPixels(decodedRgb.writeToMemory(), 3),
+              detailedRgb: summarizeDetailedRgbPixels(decodedRgb.writeToMemory())
             }
           };
           // Emit a JSON string so nested channel statistics are visible in every console.
