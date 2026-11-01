@@ -72,9 +72,9 @@ export class CapturePanelComponent {
   protected readonly sdrContrast = signal(this.readSavedSdrContrast());
   protected readonly setSdrContrast = (value: number): void => {
     if (!Number.isFinite(value)) return;
-    const contrast = Math.min(3, Math.max(1, value));
+    const contrast = Math.min(1.5, Math.max(1, value));
     this.sdrContrast.set(contrast);
-    try { localStorage.setItem('capture.sdrContrast.v2', String(contrast)); }
+    try { localStorage.setItem('capture.sdrContrast.v3', String(contrast)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
@@ -243,9 +243,9 @@ export class CapturePanelComponent {
   private readSavedSdrContrast(): number {
     try {
       const value = Number(localStorage.getItem('capture.sdrContrast.v2'));
-      if (Number.isFinite(value) && value >= 1 && value <= 3) return value;
+      if (Number.isFinite(value) && value >= 1 && value <= 1.5) return value;
     } catch { /* use the default when storage is unavailable */ }
-    return 1.6;
+    return 1.0;
   }
 
   private readSavedEncoderQuality(): number {
@@ -595,7 +595,7 @@ export class CapturePanelComponent {
           const adjusted = value < 0.5
             ? 0.5 * Math.pow(value * 2, contrast)
             : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
-          pixels[offset + channel] = Math.round(adjusted * 255);
+          pixels[offset + channel] = Math.round(Math.pow(adjusted, 1.1) * 255);
         }
       }
     }
