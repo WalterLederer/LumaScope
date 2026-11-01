@@ -208,13 +208,13 @@ export class CapturePanelComponent {
   private readSavedFormat(): CaptureFormat {
     try {
       const value = localStorage.getItem('capture.format');
-      if (value === 'exr' || value === 'jxr' || value === 'uhdr') return value;
+      if (value === 'exr' || value === 'jxr' || value === 'uhdr' || value === 'clipboard') return value;
     } catch { /* use the default when storage is unavailable */ }
     return 'exr';
   }
 
   protected readonly changeFormat = (value: string): void => {
-    if (value !== 'exr' && value !== 'jxr' && value !== 'uhdr') return;
+    if (value !== 'exr' && value !== 'jxr' && value !== 'uhdr' && value !== 'clipboard') return;
     const format = value as CaptureFormat;
     this.selectedFormat.set(format);
     try { localStorage.setItem('capture.format', format); }
@@ -479,11 +479,12 @@ export class CapturePanelComponent {
   protected readonly captureNow = async (): Promise<void> => {
     const target = this.selectedCaptureTarget();
     const folder = this.destinationFolder();
+    const format = this.selectedFormat();
     if (!target) {
       this.error.set('Select a monitor or application window.');
       return;
     }
-    if (!folder) {
+    if (format !== 'clipboard' && !folder) {
       this.error.set('Choose a destination folder first.');
       return;
     }
@@ -493,14 +494,19 @@ export class CapturePanelComponent {
     try {
       const result = await this.captureService.capture(
         target,
-        folder,
-        this.selectedFormat(),
+        folder || '',
+        format,
         this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
         this.encoderQuality()
       );
-      this.galleryLocations.addLocation(folder);
-      this.lastOutputPath.set(result.path);
-      this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
+      if (format === 'clipboard') {
+        this.lastOutputPath.set('Windows Clipboard');
+        this.status.set(`Copied ${result.width} × ${result.height} SDR-compatible image to Windows Clipboard`);
+      } else {
+        this.galleryLocations.addLocation(folder);
+        this.lastOutputPath.set(result.path);
+        this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
+      }
     } catch (error) {
       this.status.set('');
       this.error.set(error instanceof Error ? error.message : String(error));
