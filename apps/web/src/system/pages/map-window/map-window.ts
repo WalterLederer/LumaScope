@@ -27,7 +27,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   selector: 'app-map-window',
   standalone: true,
   template: `
-    <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
+    <main class="map-window" [class.light-theme]="themeService.current() === 'light'" [style.opacity]="windowOpacity() / 100">
       <header class="map-titlebar">
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
         <span class="titlebar-location-address" [title]="locationAddress()">{{ locationAddress() }}</span>
@@ -234,7 +234,6 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
-    this.applyWindowOpacity();
     this.applyAlwaysOnTop();
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
@@ -368,7 +367,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapStyle();
     this.applyMapColor();
     this.applyMapOpacity();
-    this.applyWindowOpacity();
     await this.restoreGpxTrack();
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
       const next: [number, number] = [location.latitude, location.longitude];
@@ -408,14 +406,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.windowOpacity.set(next);
     this.saveSetting('windowOpacity', next);
-    this.applyWindowOpacity();
   };
-  private applyWindowOpacity(): void {
-    const opacity = this.windowOpacity() / 100;
-    const mapWindow = this.mapElement().nativeElement.closest<HTMLElement>('.map-window');
-    if (mapWindow) mapWindow.style.opacity = String(opacity);
-  }
-
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
