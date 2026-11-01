@@ -240,3 +240,22 @@ ui-side-panel {
 :host-context(html[data-theme='light']) :host .gallery-controls-sidebar .gallery-sidebar-tabs button[role="tab"]:not(.active):hover {
   background:#d3d3d3 !important;
 }
+
+
+:host .gallery-controls-sidebar .capture-window-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+:host .gallery-controls-sidebar .capture-window-launch p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+:host .gallery-controls-sidebar .capture-window-open-button {
+  min-height: 32px;
+  padding: 6px 10px;
+}
