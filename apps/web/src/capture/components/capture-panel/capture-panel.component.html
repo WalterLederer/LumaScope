@@ -63,7 +63,6 @@
             <option value="exr">OpenEXR (.exr)</option>
             <option value="jxr">JPEG XR (.jxr)</option>
             <option value="uhdr">Ultra HDR JPEG (.jpg, gain map)</option>
-            <option value="clipboard">Windows Clipboard (SDR-compatible)</option>
           </select>
           <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ previewing() ? 'Capturing…' : 'Capture' }}
@@ -71,17 +70,20 @@
         </div>
       </label>
 
-      <div class="capture-destination" [class.clipboard-destination]="selectedFormat() === 'clipboard'">
-        @if (selectedFormat() !== 'clipboard') {
-          <span>Save folder</span>
-          <div class="capture-folder-row">
-            <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
-            <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
-          </div>
-        }
-        <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() === 'clipboard' && !previewFrame()) || (selectedFormat() !== 'clipboard' && !destinationFolder())">
-          {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
-        </button>
+      <div class="capture-destination">
+        <span>Save folder</span>
+        <div class="capture-folder-row">
+          <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
+        </div>
+        <div class="capture-destination-actions">
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+            {{ capturing() ? 'Copying…' : 'Copy to clipboard' }}
+          </button>
+          <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || !destinationFolder()">
+            {{ capturing() ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
       </div>
         @if (status() && !status().toLowerCase().includes('capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
@@ -120,7 +122,7 @@
           <input type="range" min="0.1" max="2.2" step="0.05" [value]="gammaCorrectionValue()" (input)="setGammaCorrectionValue($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || !applyGammaCorrectionOnSave()"/>
         </label>
         <p class="capture-format-note">Adaptive SDR brightness (preview + clipboard): 1.09× for SDR-range captures · 2.70× for HDR-range captures</p>
-        @if (selectedFormat() !== 'exr' && selectedFormat() !== 'clipboard') {
+        @if (selectedFormat() !== 'exr') {
           <label class="capture-field capture-quality-slider">
             <span>Encoder quality: {{ encoderQuality() }}%</span>
             <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
@@ -129,8 +131,8 @@
         <section class="capture-selection-summary" aria-label="Capture summary">
           <h3>Summary</h3>
           <div><strong>Source:</strong> {{ selectedSourceLabel() }}</div>
-          <div><strong>Format:</strong> {{ selectedFormat() === 'exr' ? 'OpenEXR (.exr)' : selectedFormat() === 'jxr' ? 'JPEG XR (.jxr)' : selectedFormat() === 'uhdr' ? 'Ultra HDR JPEG (.jpg, gain map)' : 'Windows Clipboard (SDR-compatible)' }}</div>
-          <div><strong>Destination:</strong> {{ selectedFormat() === 'clipboard' ? 'Windows Clipboard' : destinationFolder() || 'No folder selected' }}</div>
+          <div><strong>Format:</strong> {{ selectedFormat() === 'exr' ? 'OpenEXR (.exr)' : selectedFormat() === 'jxr' ? 'JPEG XR (.jxr)' : 'Ultra HDR JPEG (.jpg, gain map)' }}</div>
+          <div><strong>Destination:</strong> {{ destinationFolder() || 'No folder selected' }}</div>
           <div><strong>Full output filename:</strong> {{ lastOutputPath() || 'Generated automatically when captured' }}</div>
         </section>
   
