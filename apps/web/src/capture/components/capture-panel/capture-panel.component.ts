@@ -86,14 +86,7 @@ export class CapturePanelComponent {
     above05: number; above1: number; above2: number; above4: number;
     whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; diagnosticP95: number; diagnosticP99: number; diagnosticP999: number; diagnosticP9999: number; above3: number; above31: number; above32: number; above324: number; pixelCount: number;
   } | null>(null);
-  protected readonly sdrExposure = signal(this.readSavedSdrExposure());
-  protected readonly setSdrExposure = (value: number): void => {
-    if (!Number.isFinite(value)) return;
-    const exposure = Math.min(3.0, Math.max(0.5, value));
-    this.sdrExposure.set(exposure);
-    try { localStorage.setItem('capture.sdrExposure.v2', String(exposure)); }
-    catch { /* keep the current-session preference if storage is unavailable */ }
-  };
+  private readonly sdrBrightnessFactor = 1.4;
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
   protected readonly gammaCorrectionValue = signal<number>(this.readSavedGammaCorrection());
@@ -257,14 +250,6 @@ export class CapturePanelComponent {
     return 1.3;
   }
 
-  private readSavedSdrExposure(): number {
-    try {
-      const value = Number(localStorage.getItem('capture.sdrExposure.v2'));
-      if (Number.isFinite(value) && value >= 0.5 && value <= 3.0) return value;
-    } catch { /* use the default when storage is unavailable */ }
-    return 1.0;
-  }
-
   private readSavedEncoderQuality(): number {
     try {
       const value = Number(localStorage.getItem('capture.encoderQuality'));
@@ -361,9 +346,8 @@ export class CapturePanelComponent {
     });
     effect(() => {
       const frame = this.previewFrame();
-      const exposure = this.sdrExposure();
       const canvas = this.sdrPreviewCanvas()?.nativeElement;
-      if (frame && canvas) void this.renderSdrPreview(canvas, frame, exposure);
+      if (frame && canvas) void this.renderSdrPreview(canvas, frame);
     });
     void this.loadSources(true);
   }
@@ -577,7 +561,7 @@ export class CapturePanelComponent {
     this.previewContext = null;
   };
 
-  private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview, exposure: number): void => {
+  private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview): void => {
     const pixels = imageData.data;
     const source = frame.pixels;
     const pixelCount = frame.width * frame.height;
@@ -725,15 +709,12 @@ export class CapturePanelComponent {
         }
       }
 
-      // Keep the exposure control as a shadow/midtone shaping control while
-      // retaining an exact zero black point and the adaptive highlight range.
-      const safeExposure = Math.min(3, Math.max(0.5, Number.isFinite(exposure) ? exposure : 1));
-      mappedLuminance = Math.pow(Math.min(1, Math.max(0, mappedLuminance)), 1 / safeExposure);
-
+      // Apply one fixed linear-light brightness factor after tone mapping.
+      // Zero remains exactly zero and RGB channel ratios are preserved until clipping.
       const scale = luminance > 0 ? mappedLuminance / luminance : 0;
-      const outputR = Math.min(1, Math.max(0, positiveR * scale));
-      const outputG = Math.min(1, Math.max(0, positiveG * scale));
-      const outputB = Math.min(1, Math.max(0, positiveB * scale));
+      const outputR = Math.min(1, Math.max(0, positiveR * scale * this.sdrBrightnessFactor));
+      const outputG = Math.min(1, Math.max(0, positiveG * scale * this.sdrBrightnessFactor));
+      const outputB = Math.min(1, Math.max(0, positiveB * scale * this.sdrBrightnessFactor));
       const toSrgb = (linear: number): number => linear <= 0.0031308
         ? linear * 12.92
         : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
@@ -754,25 +735,23 @@ export class CapturePanelComponent {
 
   private readonly renderSdrImage = (
     canvas: HTMLCanvasElement,
-    frame: CapturePreview,
-    exposure: number
+    frame: CapturePreview
   ): void => {
     canvas.width = frame.width;
     canvas.height = frame.height;
     const context = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
     if (!context) throw new Error('Could not create the SDR image canvas.');
     const imageData = context.createImageData(frame.width, frame.height);
-    this.applySdrToneMapping(imageData, frame, exposure);
+    this.applySdrToneMapping(imageData, frame);
     context.putImageData(imageData, 0, 0);
   };
 
   private readonly renderSdrPreview = (
     canvas: HTMLCanvasElement,
-    frame: CapturePreview,
-    exposure: number
+    frame: CapturePreview
   ): void => {
     try {
-      this.renderSdrImage(canvas, frame, exposure);
+      this.renderSdrImage(canvas, frame);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.error.set(message);
@@ -782,7 +761,7 @@ export class CapturePanelComponent {
 
   private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
     const canvas = document.createElement('canvas');
-    this.renderSdrImage(canvas, frame, this.sdrExposure());
+    this.renderSdrImage(canvas, frame);
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(result => result
         ? resolve(result)
