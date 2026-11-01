@@ -62,7 +62,7 @@ export class CapturePanelComponent {
     catch { /* keep the current-session preference if storage is unavailable */ }
     this.previewFrame.set(null);
     this.previewSize.set('');
-    void this.previewNow();
+    this.status.set('');
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
@@ -300,7 +300,6 @@ export class CapturePanelComponent {
     this.status.set('');
     this.error.set(null);
     this.lastOutputPath.set('');
-    void this.previewNow();
   };
 
   constructor() {
@@ -320,10 +319,10 @@ export class CapturePanelComponent {
       const canvas = this.previewCanvas()?.nativeElement;
       if (frame && canvas) void this.renderHdrPreview(canvas, frame);
     });
-    void this.loadSources();
+    void this.loadSources(true);
   }
 
-  protected readonly loadSources = async (): Promise<void> => {
+  protected readonly loadSources = async (restoreSavedSelection = false): Promise<void> => {
     this.loadingSources.set(true);
     this.error.set(null);
     try {
@@ -331,7 +330,7 @@ export class CapturePanelComponent {
       this.monitors.set(sources.monitors);
       this.windows.set(sources.windows);
       if (sources.sourceErrors?.length) this.error.set(sources.sourceErrors.join('\n'));
-      const saved = this.readSavedSource();
+      const saved = restoreSavedSelection ? this.readSavedSource() : null;
       let restored = false;
       if (saved?.kind === 'top-window') {
         this.selectedTarget.set('top-window');
@@ -355,7 +354,6 @@ export class CapturePanelComponent {
         const firstWindow = sources.windows[0];
         this.selectedTarget.set(firstMonitor ? `monitor:${firstMonitor.index}` : firstWindow ? `window:${firstWindow.handle}` : '');
       }
-      if (this.selectedTarget()) void this.previewNow();
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
