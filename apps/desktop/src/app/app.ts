@@ -162,7 +162,8 @@ export default class App {
   static openCapturePreviewWindow(): boolean {
     if (App.isCapturePreviewWindowOpen()) {
       if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
-      App.capturePreviewWindow.showInactive();
+      App.capturePreviewWindow.show();
+      App.capturePreviewWindow.focus();
       return true;
     }
     const display = screen.getDisplayMatching(App.mainWindow.getBounds());
@@ -195,7 +196,7 @@ export default class App {
       }));
     }
     App.capturePreviewWindow.once('ready-to-show', () => {
-      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.showInactive();
+      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.capturePreviewWindow = null;
