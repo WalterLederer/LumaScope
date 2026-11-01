@@ -63,6 +63,10 @@
   justify-self: end;
 }
 
+.capture-destination.clipboard-destination {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .capture-source-picker {
   position: relative;
   min-width: 0;
