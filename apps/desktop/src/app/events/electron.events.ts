@@ -2,7 +2,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -42,14 +42,14 @@ interface CapturedHdrFrame {
 
 let cachedHdrFrame: CapturedHdrFrame | null = null;
 
-const captureTargetKey = (target: CaptureTarget): string =>
+const captureTargetKey = (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): string =>
   target.kind === 'monitor'
     ? `monitor:${target.index}`
     : target.kind === 'window'
       ? `window:${target.handle}`
       : target.kind === 'rectangle'
         ? 'rectangle'
-        : target.includeLightMatterWindows ? 'top-window:include-light-matter' : 'top-window';
+        : target.includeLightMatterWindows ? `top-window:include-light-matter:${ownerWindow?.id ?? 'default'}` : 'top-window';
 
 interface CaptureWindowState {
   exists: boolean;
@@ -287,9 +287,9 @@ public static class LightMatterExternalWindow {
   return foreground.handle;
 };
 
-const captureTopWindowFrame = async (includeLightMatterWindows = false): Promise<CapturedHdrFrame> => {
+const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
   if (includeLightMatterWindows) {
-    const captureWindow = App.capturePreviewWindow;
+    const captureWindow = ownerWindow && !ownerWindow.isDestroyed() ? ownerWindow : App.capturePreviewWindow;
     if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible()) {
       throw new Error('The Light Matter Capture window must be visible to capture it as the Top Window.');
     }
@@ -299,7 +299,7 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false): Promise
       throw new Error('Could not resolve the Light Matter Capture window handle.');
     }
     const frame = await captureHdrFrame({ kind: 'window', handle });
-    frame.targetKey = 'top-window:include-light-matter';
+    frame.targetKey = captureTargetKey({ kind: 'top-window', includeLightMatterWindows: true }, captureWindow);
     return frame;
   }
 
@@ -391,8 +391,8 @@ const captureRectangleFrame = async (): Promise<CapturedHdrFrame> => {
   }
 };
 
-const captureTargetFrame = (target: CaptureTarget): Promise<CapturedHdrFrame> =>
-  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true) : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
+const captureTargetFrame = (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> =>
+  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow) : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
@@ -726,13 +726,13 @@ const logUhdrFileDiagnostics = (vips: typeof Vips, outputPath: string): void => 
   }
 };
 
-const getHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame> => {
-  const key = captureTargetKey(target);
+const getHdrFrame = async (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
+  const key = captureTargetKey(target, ownerWindow);
   if (cachedHdrFrame?.targetKey === key) {
     // console.info('[HDR Capture] reuse cached FP16 HDR frame');
     return cachedHdrFrame;
   }
-  return captureTargetFrame(target);
+  return captureTargetFrame(target, ownerWindow);
 };
 const halfConversionBuffer = new ArrayBuffer(4);
 const halfConversionFloat = new Float32Array(halfConversionBuffer);
@@ -1277,11 +1277,12 @@ ipcMain.handle('CapturePreviewWindow.getFrame', async (): Promise<{ width: numbe
 
 ipcMain.handle(
   'Capture.preview',
-  async (_event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; }> => {
+  async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; }> => {
     // console.info('[HDR Capture] preview requested');
     // Always capture a fresh frame for Preview. The resulting frame remains cached
     // so Save can reuse exactly the image the user just inspected.
-    const frame = await captureTargetFrame(target);
+    const ownerWindow = BrowserWindow.fromWebContents(event.sender);
+    const frame = await captureTargetFrame(target, ownerWindow);
     console.info('[HDR Capture] preview source FP16/scRGB statistics', summarizeFp16Frame(frame));
     const pixels = new Uint16Array(
       frame.buffer.buffer.slice(frame.buffer.byteOffset, frame.buffer.byteOffset + frame.buffer.byteLength)
@@ -1293,7 +1294,7 @@ ipcMain.handle(
 
 ipcMain.handle(
   'Capture.capture',
-  async (_event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90): Promise<CaptureResult> => {
+  async (event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90): Promise<CaptureResult> => {
     if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr' && format !== 'clipboard') {
       throw new Error('Choose OpenEXR, JPEG XR, Ultra HDR JPEG, or Windows Clipboard as the capture format.');
     }
@@ -1319,8 +1320,9 @@ ipcMain.handle(
       console.info(`[HDR Capture] ${phase}`);
     };
     try {
-      const reusedPreviewFrame = cachedHdrFrame?.targetKey === captureTargetKey(target);
-      const frame = await getHdrFrame(target);
+      const ownerWindow = BrowserWindow.fromWebContents(event.sender);
+      const reusedPreviewFrame = cachedHdrFrame?.targetKey === captureTargetKey(target, ownerWindow);
+      const frame = await getHdrFrame(target, ownerWindow);
       console.info('[HDR Capture] save source FP16/scRGB statistics', {
         reusedPreviewFrame,
         gammaCorrection,
