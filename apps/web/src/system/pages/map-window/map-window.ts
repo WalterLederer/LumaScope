@@ -44,8 +44,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           <div class="settings-group map-actions-settings">
             <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
             <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
-          </div>
-          <div class="settings-group">
+            <span class="map-action-divider" aria-hidden="true">|</span>
             <label>Open location in
               <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
                 <option value="">Select web app…</option>
@@ -56,7 +55,9 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 <option value="apple-maps">Apple Maps</option>
               </select>
             </label>
-            <label>Map style
+          </div>
+          <div class="settings-group">
+            <label><strong>Map:</strong> Style
               <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                 <option value="standard">Standard</option><option value="satellite">Satellite</option>
                 <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
@@ -143,7 +144,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}
+    .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
