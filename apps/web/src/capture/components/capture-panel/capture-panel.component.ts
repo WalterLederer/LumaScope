@@ -81,6 +81,11 @@ export class CapturePanelComponent {
     this.previewSize.set('');
     this.status.set('');
   };
+  protected readonly sdrDiagnostics = signal<{
+    maxR: number; maxG: number; maxB: number;
+    above05: number; above1: number; above2: number; above4: number;
+    whitePixels: number; p95: number; p99: number; p999: number; pixelCount: number;
+  } | null>(null);
   protected readonly sdrExposure = signal(this.readSavedSdrExposure());
   protected readonly setSdrExposure = (value: number): void => {
     if (!Number.isFinite(value)) return;
@@ -594,13 +599,70 @@ export class CapturePanelComponent {
       toneMappedLookup[bits] = Math.round(Math.min(1, Math.max(0, srgb)) * 255);
     }
 
-    for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+    // Collect source statistics while writing the SDR result. The logarithmic
+    // histogram provides useful luminance percentiles without sorting millions
+    // of pixels or allocating a second full-size image buffer.
+    const histogram = new Uint32Array(2048);
+    const logMin = Math.log(0.000001);
+    const logMax = Math.log(65504);
+    const logRange = logMax - logMin;
+    let maxR = 0;
+    let maxG = 0;
+    let maxB = 0;
+    let above05 = 0;
+    let above1 = 0;
+    let above2 = 0;
+    let above4 = 0;
+    let whitePixels = 0;
+    const pixelCount = frame.width * frame.height;
+
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
       const offset = pixel * 4;
+      const r = halfFloatLookup[source[offset]];
+      const g = halfFloatLookup[source[offset + 1]];
+      const b = halfFloatLookup[source[offset + 2]];
+      const positiveR = Number.isFinite(r) ? Math.max(0, r) : r === Infinity ? 65504 : 0;
+      const positiveG = Number.isFinite(g) ? Math.max(0, g) : g === Infinity ? 65504 : 0;
+      const positiveB = Number.isFinite(b) ? Math.max(0, b) : b === Infinity ? 65504 : 0;
+      const peak = Math.max(positiveR, positiveG, positiveB);
+      maxR = Math.max(maxR, positiveR);
+      maxG = Math.max(maxG, positiveG);
+      maxB = Math.max(maxB, positiveB);
+      if (peak > 0.5) above05++;
+      if (peak > 1) above1++;
+      if (peak > 2) above2++;
+      if (peak > 4) above4++;
+
+      const luminance = Math.max(0, positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722);
+      if (luminance > 0) {
+        const bin = Math.min(histogram.length - 1, Math.max(0,
+          Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
+        histogram[bin]++;
+      }
+
       pixels[offset] = toneMappedLookup[source[offset]];
       pixels[offset + 1] = toneMappedLookup[source[offset + 1]];
       pixels[offset + 2] = toneMappedLookup[source[offset + 2]];
       pixels[offset + 3] = 255;
+      if (pixels[offset] === 255 && pixels[offset + 1] === 255 && pixels[offset + 2] === 255) whitePixels++;
     }
+
+    const percentile = (fraction: number): number => {
+      const target = Math.max(1, Math.ceil(pixelCount * fraction));
+      let cumulative = 0;
+      for (let bin = 0; bin < histogram.length; bin++) {
+        cumulative += histogram[bin];
+        if (cumulative >= target) {
+          return Math.exp(logMin + ((bin + 0.5) / histogram.length) * logRange);
+        }
+      }
+      return 0;
+    };
+
+    this.sdrDiagnostics.set({
+      maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
+      p95: percentile(0.95), p99: percentile(0.99), p999: percentile(0.999), pixelCount
+    });
   };
 
   private readonly renderSdrImage = (
