@@ -172,6 +172,7 @@ export default class App {
       ...savedBounds,
       minWidth: 480,
       minHeight: 320,
+      resizable: true,
       show: false,
       title: `Light Matter ${App.application.getVersion()} - CAPTURE PREVIEW`,
       webPreferences: {
