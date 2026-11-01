@@ -3,18 +3,19 @@
   <div class="capture-content">
       <div class="capture-field">
         <span>Source</span>
-        <div class="capture-source-picker">
-          <button
-            type="button"
-            class="capture-source-trigger"
-            (click)="toggleSourceMenu()"
-            [disabled]="loadingSources() || capturing() || previewing()"
-            [attr.aria-expanded]="sourceMenuOpen()"
-            aria-haspopup="listbox">
-            <span>{{ selectedSourceLabel() }}</span>
-            <span class="capture-source-chevron" aria-hidden="true">▾</span>
-          </button>
-          @if (sourceMenuOpen()) {
+        <div class="capture-control-row">
+          <div class="capture-source-picker">
+            <button
+              type="button"
+              class="capture-source-trigger"
+              (click)="toggleSourceMenu()"
+              [disabled]="loadingSources() || capturing() || previewing()"
+              [attr.aria-expanded]="sourceMenuOpen()"
+              aria-haspopup="listbox">
+              <span>{{ selectedSourceLabel() }}</span>
+              <span class="capture-source-chevron" aria-hidden="true">▾</span>
+            </button>
+            @if (sourceMenuOpen()) {
             <div class="capture-source-menu" [attr.style]="sourceMenuStyle()" role="listbox" aria-label="Capture sources">
               <div class="capture-source-table capture-source-header" aria-hidden="true">
                 <span>Favorite</span>
@@ -47,7 +48,11 @@
                 <div class="capture-source-empty">No capture sources found.</div>
               }
             </div>
-          }
+            }
+          </div>
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="loadSources()" [disabled]="loadingSources() || capturing() || previewing()">
+            {{ loadingSources() ? 'Refreshing…' : 'Refresh' }}
+          </button>
         </div>
       </div>
 
@@ -66,20 +71,27 @@
 
       <label class="capture-field">
         <span>Output format</span>
-        <select [value]="selectedFormat()" (change)="changeFormat($any($event.target).value)" [disabled]="capturing() || previewing()">
-          <option value="exr">OpenEXR (.exr)</option>
-          <option value="jxr">JPEG XR (.jxr)</option>
-          <option value="uhdr">Ultra HDR JPEG (.jpg, gain map)</option>
-          <option value="clipboard">Windows Clipboard (SDR-compatible)</option>
-        </select>
+        <div class="capture-control-row">
+          <select [value]="selectedFormat()" (change)="changeFormat($any($event.target).value)" [disabled]="capturing() || previewing()">
+            <option value="exr">OpenEXR (.exr)</option>
+            <option value="jxr">JPEG XR (.jxr)</option>
+            <option value="uhdr">Ultra HDR JPEG (.jpg, gain map)</option>
+            <option value="clipboard">Windows Clipboard (SDR-compatible)</option>
+          </select>
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+            {{ previewing() ? 'Previewing…' : 'Preview' }}
+          </button>
+        </div>
       </label>
 
-      <div class="capture-action-row">
-        <button type="button" class="capture-secondary-button" (click)="loadSources()" [disabled]="loadingSources() || capturing() || previewing() || !selectedTarget()">
-          {{ loadingSources() ? 'Refreshing…' : previewing() ? 'Creating preview…' : 'Refresh' }}
-        </button>
-        <button type="button" class="capture-primary-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() !== 'clipboard' && !destinationFolder())">
-          {{ capturing() ? 'Capturing…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'SAVE Capture image' }}
+      <div class="capture-destination">
+        @if (selectedFormat() !== 'clipboard') {
+          <span>Save folder</span>
+          <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
+        }
+        <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() !== 'clipboard' && !destinationFolder())">
+          {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
       <label class="capture-field capture-gamma-option">
@@ -108,14 +120,6 @@
         <div><strong>Destination:</strong> {{ selectedFormat() === 'clipboard' ? 'Windows Clipboard' : destinationFolder() || 'No folder selected' }}</div>
         <div><strong>Full output filename:</strong> {{ lastOutputPath() || 'Generated automatically when captured' }}</div>
       </section>
-
-      @if (selectedFormat() !== 'clipboard') {
-        <div class="capture-destination">
-          <span>Save folder</span>
-          <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
-          <button type="button" class="capture-secondary-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
-        </div>
-      }
 
       @if (error()) {
         <p class="capture-error" role="alert">{{ error() }}</p>
