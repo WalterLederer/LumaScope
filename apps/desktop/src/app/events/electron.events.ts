@@ -404,7 +404,13 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
   // The window enumeration explicitly excludes this process, so the capture UI
   // can remain visible while the selected external window is cropped.
   const handle=getForegroundWindowHandle();
-  return cropWindowFromMonitorFrame(handle,'top-window');
+  // Use the same native HWND capture path as an explicitly selected application
+  // window. Cropping a monitor capture can accidentally retain the full desktop
+  // when window and monitor coordinates differ (for example with mixed DPI).
+  const captured=await captureHdrFrame({kind:'window',handle});
+  const frame:CapturedHdrFrame={...captured,targetKey:'top-window'};
+  cachedHdrFrame=frame;
+  return frame;
 };
 
 const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; x: number; y: number; width: number; height: number } => {
