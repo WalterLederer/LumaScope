@@ -2,7 +2,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, clipboard, dialog, ipcMain, IpcMainInvokeEvent, nativeImage, screen } from 'electron';
+import { app, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -49,7 +49,7 @@ const captureTargetKey = (target: CaptureTarget): string =>
       ? `window:${target.handle}`
       : target.kind === 'rectangle'
         ? 'rectangle'
-        : 'top-window';
+        : target.includeLightMatterWindows ? 'top-window:include-light-matter' : 'top-window';
 
 interface CaptureWindowState {
   exists: boolean;
@@ -233,7 +233,21 @@ public static class LightMatterForegroundWindow {
   return foreground.handle;
 };
 
-const captureTopWindowFrame = async (): Promise<CapturedHdrFrame> => {
+const captureTopWindowFrame = async (includeLightMatterWindows = false): Promise<CapturedHdrFrame> => {
+  if (includeLightMatterWindows) {
+    if (!App.mainWindow || App.mainWindow.isDestroyed() || !App.mainWindow.isVisible()) {
+      throw new Error('The Light Matter Capture window must be visible to capture it as the Top Window.');
+    }
+    const nativeHandle = App.mainWindow.getNativeWindowHandle();
+    const handle = Number(nativeHandle.readBigUInt64LE(0));
+    if (!Number.isSafeInteger(handle) || handle <= 0) {
+      throw new Error('Could not resolve the Light Matter Capture window handle.');
+    }
+    const frame = await captureHdrFrame({ kind: 'window', handle });
+    frame.targetKey = 'top-window:include-light-matter';
+    return frame;
+  }
+
   const auxiliaryWindows = [App.capturePreviewWindow, App.mapWindow]
     .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
   const mainWindowWasVisible = !!App.mainWindow && !App.mainWindow.isDestroyed() && App.mainWindow.isVisible();
@@ -316,7 +330,7 @@ const captureRectangleFrame = async (): Promise<CapturedHdrFrame> => {
 };
 
 const captureTargetFrame = (target: CaptureTarget): Promise<CapturedHdrFrame> =>
-  target.kind==='top-window' ? captureTopWindowFrame() : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
+  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true) : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
@@ -1260,7 +1274,11 @@ ipcMain.handle(
         using sdrImage = vips.Image.newFromMemory(pixels, frame.width, frame.height, 3, vips.BandFormat.uchar);
         const png = sdrImage.writeToBuffer('.png');
         logPhase('write tone-mapped SDR sRGB image to Windows Clipboard');
-        clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(png)));
+        await clipboard.write([
+          new ClipboardItem({
+            'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' })
+          })
+        ]);
         if (cachedHdrFrame === frame) cachedHdrFrame = null;
         return { path: 'Windows Clipboard', width: frame.width, height: frame.height };
       }
