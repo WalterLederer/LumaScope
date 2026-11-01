@@ -489,22 +489,12 @@ export class CapturePanelComponent {
         @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
           let dims = vec2<i32>(textureDimensions(sourceTexture));
           let coords = vec2<i32>(clamp(input.uv * vec2<f32>(dims), vec2<f32>(0.0), vec2<f32>(dims - vec2<i32>(1, 1))));
-          // WGC returns linear scRGB where 1.0 represents 80 nits.
-          // Correct the capture to reference white, then compress only HDR
-          // highlights to the HDR1000 display's 12.5 scRGB peak (1000 nits
-          // at 80 nits per scRGB unit). Keep SDR-range values unchanged.
-          let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb, vec3<f32>(0.0)) * 0.4;
-          let luminance = dot(linearColor, vec3<f32>(0.2126, 0.7152, 0.0722));
-          let displayPeak = 12.5;
-          let highlightKnee = 1.0;
-          let highlightRolloff = 4.0;
-          let mappedLuminance = select(
-            luminance,
-            highlightKnee + (displayPeak - highlightKnee) * (1.0 - exp(-(luminance - highlightKnee) / highlightRolloff)),
-            luminance > highlightKnee
-          );
-          let mappedColor = select(linearColor, linearColor * (mappedLuminance / max(luminance, 0.000001)), luminance > highlightKnee);
-          return vec4<f32>(mappedColor, 1.0);
+          // WGC supplies linear scRGB. Preserve its absolute values and let
+          // the OS compositor map the extended-range canvas to the actual
+          // display. Do not apply a guessed SDR-white multiplier or a fixed
+          // HDR peak here: either would make the preview device-dependent.
+          let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb, vec3<f32>(0.0));
+          return vec4<f32>(linearColor, 1.0);
         }
       ` });
       const pipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: shader, entryPoint: 'vs' }, fragment: { module: shader, entryPoint: 'fs', targets: [{ format: 'rgba16float' }] }, primitive: { topology: 'triangle-list' } });
@@ -564,19 +554,19 @@ export class CapturePanelComponent {
       return Math.round(encoded * 255);
     };
 
-    // Keep SDR-range pixels unchanged. Compress only values above the SDR
-    // highlight knee, using luminance scaling to preserve the source colours.
-    const highlightKnee = 0.75;
-    const highlightRolloff = 0.5;
+    // scRGB is linear with 1.0 at the 80-nit reference white. Preserve
+    // this complete reference range for SDR output and compress only values
+    // above it. This avoids assuming a particular Windows SDR-brightness slider.
+    const highlightKnee = 1.0;
+    const highlightRolloff = 1.0;
     for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
       const source = pixel * 4;
       const destination = pixel * 4;
-      // Match the HDR preview's scRGB-to-reference-white correction before
-      // converting the linear FP16 values to an SDR sRGB clipboard image.
-      const brightnessCorrection = 0.4;
-      const red = Math.max(0, halfToFloat(pixels[source]) * brightnessCorrection);
-      const green = Math.max(0, halfToFloat(pixels[source + 1]) * brightnessCorrection);
-      const blue = Math.max(0, halfToFloat(pixels[source + 2]) * brightnessCorrection);
+      // Keep the captured scRGB reference white (1.0 = 80 nits). The
+      // sRGB transfer below converts linear light to the standard SDR encoding.
+      const red = Math.max(0, halfToFloat(pixels[source]));
+      const green = Math.max(0, halfToFloat(pixels[source + 1]));
+      const blue = Math.max(0, halfToFloat(pixels[source + 2]));
       const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
       const mappedLuminance = luminance <= highlightKnee
         ? luminance
