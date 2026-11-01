@@ -5,6 +5,8 @@ import { writeJsonAtomically } from '../file-system/json-file';
 
 export class StartupConfig {
   private _bounds: Electron.Rectangle | null = null;
+  private _mapBounds: Electron.Rectangle | null = null;
+  private _capturePreviewBounds: Electron.Rectangle | null = null;
   private _minimiseOnStart = false;
   private _devToolsOpen: boolean;
 
@@ -14,6 +16,8 @@ export class StartupConfig {
   }
 
   readonly bounds = () => this._bounds;
+  readonly mapBounds = () => this._mapBounds;
+  readonly capturePreviewBounds = () => this._capturePreviewBounds;
 
   readonly minimiseOnStart = () => this._minimiseOnStart;
 
@@ -61,6 +65,18 @@ export class StartupConfig {
     await this.save(config);
   };
 
+  readonly saveMapBounds = async (bounds: Electron.Rectangle) => this.saveAuxiliaryBounds('mapBounds', bounds);
+
+  readonly saveCapturePreviewBounds = async (bounds: Electron.Rectangle) => this.saveAuxiliaryBounds('capturePreviewBounds', bounds);
+
+  private readonly saveAuxiliaryBounds = async (key: 'mapBounds' | 'capturePreviewBounds', bounds: Electron.Rectangle) => {
+    const config = this.load();
+    if (!(config instanceof Object)) return;
+    if (!(config['system'] instanceof Object)) config['system'] = {};
+    config['system'][key] = { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+    await this.save(config);
+  };
+
   private readonly init = () => {
     const json = this.load();
 
@@ -73,6 +89,8 @@ export class StartupConfig {
 
   private readonly parseConfig = (config: unknown) => {
     this._bounds = null;
+    this._mapBounds = null;
+    this._capturePreviewBounds = null;
 
     if (!(config instanceof Object)) {
       return;
@@ -88,6 +106,14 @@ export class StartupConfig {
     if (typeof system.devToolsOpen === 'boolean') {
       this._devToolsOpen = system.devToolsOpen;
     }
+
+    const readBounds = (value: any): Electron.Rectangle | null => {
+      const x = value?.x, y = value?.y, width = value?.width, height = value?.height;
+      return [x, y, width, height].every(item => typeof item === 'number' && Number.isFinite(item)) && width >= 320 && height >= 240
+        ? { x, y, width, height } : null;
+    };
+    this._mapBounds = readBounds(system.mapBounds);
+    this._capturePreviewBounds = readBounds(system.capturePreviewBounds);
 
     const x = system.bounds?.x;
     const y = system.bounds?.y;
