@@ -96,7 +96,7 @@
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
-        @if (status() && !status().startsWith('Capture ready')) {
+        @if (status() && !status().toLowerCase().includes('capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
         }
         @if (error()) {
@@ -110,7 +110,7 @@
         @if (previewFrame()) {
           <p class="capture-status">FP16/scRGB capture available · {{ previewSize() }} · WebGPU HDR capture</p>
         }
-        @if (status() && status().startsWith('Capture ready')) {
+        @if (status() && status().toLowerCase().includes('capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
         }
         <label class="capture-field capture-gamma-option">
