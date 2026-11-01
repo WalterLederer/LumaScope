@@ -41,6 +41,12 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
           <div class="settings-group">
+            <label>Coordinate format
+              <select [value]="coordinateFormat()" (change)="changeCoordinateFormat($any($event.target).value)">
+                <option value="dms">Degrees / minutes / seconds</option>
+                <option value="decimal">Decimal degrees</option>
+              </select>
+            </label>
             <label>Map style
               <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                 <option value="standard">Standard</option><option value="satellite">Satellite</option>
@@ -108,9 +114,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   `,
   styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
-    .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:transparent}
-    .map-titlebar{height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
+    .map-titlebar{-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title,.map-title-actions{display:flex;align-items:center;gap:10px;min-width:0}.map-title{font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
+    .map-titlebar button,.map-titlebar select{-webkit-app-region:no-drag}
     .map-title-actions{margin-left:auto}.map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
@@ -173,6 +180,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
+  protected readonly coordinateFormat = signal<'dms' | 'decimal'>(this.readSetting('coordinateFormat', 'dms') === 'decimal' ? 'decimal' : 'dms');
   protected readonly coordinateLabel = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
@@ -194,7 +202,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const longitude = Number(this.route.snapshot.queryParamMap.get('lon'));
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
-      this.coordinateLabel.set(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+      this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
       void this.initialize(latitude, longitude);
     }
   }
@@ -217,6 +225,33 @@ export class MapWindow implements OnInit, OnDestroy {
     const marker = this.marker?.getLatLng();
     if (marker) this.map?.setView([marker.lat, marker.lng], this.map.getZoom());
   };
+  private formatCoordinateDms(value: number, latitude: boolean): string {
+    const hemisphere = latitude ? (value < 0 ? 'S' : 'N') : (value < 0 ? 'W' : 'E');
+    const absolute = Math.abs(value);
+    const degrees = Math.floor(absolute);
+    const minutesFull = (absolute - degrees) * 60;
+    const minutes = Math.floor(minutesFull);
+    const seconds = ((minutesFull - minutes) * 60).toFixed(2).padStart(5, '0');
+    return `${degrees}° ${String(minutes).padStart(2, '0')}′ ${seconds}″ ${hemisphere}`;
+  }
+
+  private formatCoordinates(latitude: number, longitude: number): string {
+    if (this.coordinateFormat() === 'decimal') {
+      const latHemisphere = latitude < 0 ? 'S' : 'N';
+      const lonHemisphere = longitude < 0 ? 'W' : 'E';
+      return `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
+    }
+    return `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
+  }
+
+  protected readonly changeCoordinateFormat = (value: string): void => {
+    if (value !== 'dms' && value !== 'decimal') return;
+    this.coordinateFormat.set(value);
+    this.saveSetting('coordinateFormat', value);
+    const marker = this.marker?.getLatLng();
+    if (marker) this.coordinateLabel.set(this.formatCoordinates(marker.lat, marker.lng));
+  };
+
   private compassDirection(degrees: number): string {
     return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(degrees / 22.5) % 16];
   }
@@ -262,7 +297,7 @@ export class MapWindow implements OnInit, OnDestroy {
     await this.restoreGpxTrack();
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
       const next: [number, number] = [location.latitude, location.longitude];
-      this.coordinateLabel.set(`${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`);
+      this.coordinateLabel.set(this.formatCoordinates(location.latitude, location.longitude));
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       this.marker?.setLatLng(next);
       this.map?.setView(next, this.map.getZoom());
