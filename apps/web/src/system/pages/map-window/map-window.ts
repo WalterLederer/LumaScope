@@ -30,6 +30,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
+        <span class="titlebar-location-address" [title]="locationAddress()">{{ locationAddress() }}</span>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
@@ -135,6 +136,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-titlebar{-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title,.map-title-actions{display:flex;align-items:center;gap:10px;min-width:0}.map-title{font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
+    .titlebar-location-address{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .titlebar-always-on-top{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
     .titlebar-always-on-top input{accent-color:#8ab4f8}
     .map-title-actions{margin-left:auto}.map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
