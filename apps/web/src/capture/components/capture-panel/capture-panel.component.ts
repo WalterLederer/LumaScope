@@ -91,7 +91,7 @@ export class CapturePanelComponent {
     if (!Number.isFinite(value)) return;
     const exposure = Math.min(3.0, Math.max(0.5, value));
     this.sdrExposure.set(exposure);
-    try { localStorage.setItem('capture.sdrExposure.v1', String(exposure)); }
+    try { localStorage.setItem('capture.sdrExposure.v2', String(exposure)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
@@ -259,10 +259,10 @@ export class CapturePanelComponent {
 
   private readSavedSdrExposure(): number {
     try {
-      const value = Number(localStorage.getItem('capture.sdrExposure.v1'));
+      const value = Number(localStorage.getItem('capture.sdrExposure.v2'));
       if (Number.isFinite(value) && value >= 0.5 && value <= 3.0) return value;
     } catch { /* use the default when storage is unavailable */ }
-    return 1.5;
+    return 1.0;
   }
 
   private readSavedEncoderQuality(): number {
