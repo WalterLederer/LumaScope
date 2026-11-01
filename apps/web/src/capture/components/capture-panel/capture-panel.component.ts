@@ -486,15 +486,14 @@ export class CapturePanelComponent {
           output.uv = vec2<f32>((p.x + 1.0) * 0.5, (1.0 - p.y) * 0.5);
           return output;
         }
-        fn linearToExtendedSrgb(value: f32) -> f32 {
-          if (value <= 0.0031308) { return value * 12.92; }
-          return 1.055 * pow(value, 1.0 / 2.4) - 0.055;
-        }
         @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
           let dims = vec2<i32>(textureDimensions(sourceTexture));
           let coords = vec2<i32>(clamp(input.uv * vec2<f32>(dims), vec2<f32>(0.0), vec2<f32>(dims - vec2<i32>(1, 1))));
+          // The rgba16float canvas is configured for the sRGB color space.
+          // Keep shader output linear so the canvas performs the linear-to-sRGB
+          // conversion exactly once when presenting or exporting the preview.
           let linearColor = textureLoad(sourceTexture, coords, 0).rgb * 0.4;
-          return vec4<f32>(linearToExtendedSrgb(linearColor.r), linearToExtendedSrgb(linearColor.g), linearToExtendedSrgb(linearColor.b), 1.0);
+          return vec4<f32>(linearColor, 1.0);
         }
       ` });
       const pipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: shader, entryPoint: 'vs' }, fragment: { module: shader, entryPoint: 'fs', targets: [{ format: 'rgba16float' }] }, primitive: { topology: 'triangle-list' } });
