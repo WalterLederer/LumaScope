@@ -577,27 +577,29 @@ export class CapturePanelComponent {
     const source = frame.pixels;
     const knee = 0.75;
     const shoulderScale = 0.55;
-    const encodeSrgb = (linear: number): number => {
-      const value = Math.min(1, Math.max(0, linear));
-      return value <= 0.0031308
-        ? value * 12.92
-        : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
-    };
+    const toneMappedLookup = new Uint8Array(0x10000);
+
+    // Build the transfer table once per exposure change instead of evaluating
+    // the tone curve and sRGB transfer function for every pixel channel.
+    for (let bits = 0; bits < toneMappedLookup.length; bits++) {
+      const captured = halfFloatLookup[bits];
+      const exposed = Math.max(0, Number.isNaN(captured) ? 0 : captured) * exposure;
+      const mapped = exposed <= knee
+        ? exposed
+        : 1 - (1 - knee) * Math.exp(-(exposed - knee) / shoulderScale);
+      const linear = Math.min(1, Math.max(0, mapped));
+      const srgb = linear <= 0.0031308
+        ? linear * 12.92
+        : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+      toneMappedLookup[bits] = Math.round(Math.min(1, Math.max(0, srgb)) * 255);
+    }
 
     for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
-      const sourceOffset = pixel * 4;
-      const destinationOffset = pixel * 4;
-      for (let channel = 0; channel < 3; channel++) {
-        const captured = halfFloatLookup[source[sourceOffset + channel]];
-        const exposed = Math.max(0, Number.isFinite(captured) ? captured : 0) * exposure;
-        // Preserve black and the lower tonal range; use a smooth shoulder to
-        // bring highlights towards SDR white without a hard cutoff at 1.0.
-        const mapped = exposed <= knee
-          ? exposed
-          : 1 - (1 - knee) * Math.exp(-(exposed - knee) / shoulderScale);
-        pixels[destinationOffset + channel] = Math.round(encodeSrgb(mapped) * 255);
-      }
-      pixels[destinationOffset + 3] = 255;
+      const offset = pixel * 4;
+      pixels[offset] = toneMappedLookup[source[offset]];
+      pixels[offset + 1] = toneMappedLookup[source[offset + 1]];
+      pixels[offset + 2] = toneMappedLookup[source[offset + 2]];
+      pixels[offset + 3] = 255;
     }
   };
 
