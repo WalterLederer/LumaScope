@@ -84,7 +84,7 @@ export class CapturePanelComponent {
   protected readonly sdrDiagnostics = signal<{
     maxR: number; maxG: number; maxB: number;
     above05: number; above1: number; above2: number; above4: number;
-    whitePixels: number; p95: number; p99: number; p999: number; pixelCount: number;
+    whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; pixelCount: number;
   } | null>(null);
   protected readonly sdrExposure = signal(this.readSavedSdrExposure());
   protected readonly setSdrExposure = (value: number): void => {
@@ -585,12 +585,13 @@ export class CapturePanelComponent {
 
     // Build a logarithmic luminance histogram first so the highlight white
     // point can adapt to the captured image without changing the dark range.
-    const histogram = new Uint32Array(2048);
+    const histogram = new Uint32Array(32768);
     const logMin = Math.log(0.000001);
     const logMax = Math.log(65504);
     const logRange = logMax - logMin;
     const pixelCount = frame.width * frame.height;
     let zeroLuminancePixels = 0;
+    let maxLuminance = 0;
     let maxR = 0;
     let maxG = 0;
     let maxB = 0;
@@ -617,6 +618,7 @@ export class CapturePanelComponent {
       if (peak > 4) above4++;
 
       const luminance = positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722;
+      maxLuminance = Math.max(maxLuminance, luminance);
       if (luminance > 0) {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
@@ -706,7 +708,7 @@ export class CapturePanelComponent {
 
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
-      p95, p99, p999, pixelCount
+      maxLuminance, p95, p99, p999, p9999, pixelCount
     });
   };
 
