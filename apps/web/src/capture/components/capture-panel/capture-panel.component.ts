@@ -50,6 +50,7 @@ export class CapturePanelComponent {
   protected readonly previewFrame = signal<CapturePreview | null>(null);
   protected readonly previewSize = signal('');
   protected readonly sdrPreviewUrl = signal('');
+  protected readonly sdrPreviewImage = viewChild<ElementRef<HTMLImageElement>>('sdrPreviewImage');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
   private previewTexture: { destroy(): void } | null = null;
@@ -550,13 +551,11 @@ export class CapturePanelComponent {
     if (!frame.sdrImage?.byteLength) {
       throw new Error('The browser-decodable Ultra HDR reference image is unavailable.');
     }
-    const imageUrl = URL.createObjectURL(new Blob([frame.sdrImage], { type: 'image/jpeg' }));
-    try {
-      const image = new Image();
-      image.src = imageUrl;
-      await image.decode();
+    const image = this.sdrPreviewImage()?.nativeElement;
+    if (!image) throw new Error('The browser-decoded SDR reference image is not available in the capture preview.');
+    await image.decode();
 
-      const canvas = document.createElement('canvas');
+    const canvas = document.createElement('canvas');
       canvas.width = frame.width;
       canvas.height = frame.height;
       const context = canvas.getContext('2d', {
@@ -575,9 +574,6 @@ export class CapturePanelComponent {
           : reject(new Error('Could not encode the browser-decoded SDR image as PNG.')), 'image/png');
       });
       return new Uint8Array(await blob.arrayBuffer());
-    } finally {
-      URL.revokeObjectURL(imageUrl);
-    }
   };
 
   protected readonly captureNow = async (): Promise<void> => {
