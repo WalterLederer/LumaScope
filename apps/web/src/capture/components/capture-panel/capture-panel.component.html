@@ -96,40 +96,43 @@
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
-      <label class="capture-field capture-gamma-option">
-        <span><input type="checkbox" [checked]="applyGammaCorrectionOnSave()" (change)="setApplyGammaCorrectionOnSave($any($event.target).checked)" [disabled]="capturing() || previewing()"/> Gamma correction (saved file only)</span>
-      </label>
-      <label class="capture-field capture-gamma-slider">
-        <span>Gamma value: {{ gammaCorrectionValue().toFixed(2) }}</span>
-        <input type="range" min="0.1" max="2.2" step="0.05" [value]="gammaCorrectionValue()" (input)="setGammaCorrectionValue($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || !applyGammaCorrectionOnSave()"/>
-      </label>
-      @if (selectedFormat() !== 'exr' && selectedFormat() !== 'clipboard') {
-        <label class="capture-field capture-quality-slider">
-          <span>Encoder quality: {{ encoderQuality() }}%</span>
-          <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
+      <details class="capture-advanced-settings">
+        <summary>Advanced Settings</summary>
+        <label class="capture-field capture-gamma-option">
+          <span><input type="checkbox" [checked]="applyGammaCorrectionOnSave()" (change)="setApplyGammaCorrectionOnSave($any($event.target).checked)" [disabled]="capturing() || previewing()"/> Gamma correction (saved file only)</span>
         </label>
-      }
-      @if (previewFrame()) {
-        <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
-      }
-      @if (status()) {
-        <p class="capture-status" role="status">{{ status() }}</p>
-      }
-      <section class="capture-selection-summary" aria-label="Capture summary">
-        <h3>Summary</h3>
-        <div><strong>Source:</strong> {{ selectedSourceLabel() }}</div>
-        <div><strong>Format:</strong> {{ selectedFormat() === 'exr' ? 'OpenEXR (.exr)' : selectedFormat() === 'jxr' ? 'JPEG XR (.jxr)' : selectedFormat() === 'uhdr' ? 'Ultra HDR JPEG (.jpg, gain map)' : 'Windows Clipboard (SDR-compatible)' }}</div>
-        <div><strong>Destination:</strong> {{ selectedFormat() === 'clipboard' ? 'Windows Clipboard' : destinationFolder() || 'No folder selected' }}</div>
-        <div><strong>Full output filename:</strong> {{ lastOutputPath() || 'Generated automatically when captured' }}</div>
-      </section>
-
-      @if (error()) {
-        <p class="capture-error" role="alert">{{ error() }}</p>
-      }
-      @if (monitors().length === 0 && !loadingSources() && !error()) {
-        <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
-      }
-      <p class="capture-format-note">Brightness correction: 0.4.</p>
+        <label class="capture-field capture-gamma-slider">
+          <span>Gamma value: {{ gammaCorrectionValue().toFixed(2) }}</span>
+          <input type="range" min="0.1" max="2.2" step="0.05" [value]="gammaCorrectionValue()" (input)="setGammaCorrectionValue($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || !applyGammaCorrectionOnSave()"/>
+        </label>
+        @if (selectedFormat() !== 'exr' && selectedFormat() !== 'clipboard') {
+          <label class="capture-field capture-quality-slider">
+            <span>Encoder quality: {{ encoderQuality() }}%</span>
+            <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
+          </label>
+        }
+        @if (previewFrame()) {
+          <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
+        }
+        @if (status()) {
+          <p class="capture-status" role="status">{{ status() }}</p>
+        }
+        <section class="capture-selection-summary" aria-label="Capture summary">
+          <h3>Summary</h3>
+          <div><strong>Source:</strong> {{ selectedSourceLabel() }}</div>
+          <div><strong>Format:</strong> {{ selectedFormat() === 'exr' ? 'OpenEXR (.exr)' : selectedFormat() === 'jxr' ? 'JPEG XR (.jxr)' : selectedFormat() === 'uhdr' ? 'Ultra HDR JPEG (.jpg, gain map)' : 'Windows Clipboard (SDR-compatible)' }}</div>
+          <div><strong>Destination:</strong> {{ selectedFormat() === 'clipboard' ? 'Windows Clipboard' : destinationFolder() || 'No folder selected' }}</div>
+          <div><strong>Full output filename:</strong> {{ lastOutputPath() || 'Generated automatically when captured' }}</div>
+        </section>
+  
+        @if (error()) {
+          <p class="capture-error" role="alert">{{ error() }}</p>
+        }
+        @if (monitors().length === 0 && !loadingSources() && !error()) {
+          <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
+        }
+        <p class="capture-format-note">Brightness correction: 0.4.</p>
+      </details>
   </div>
   }
   @if (previewFrame(); as frame) {
