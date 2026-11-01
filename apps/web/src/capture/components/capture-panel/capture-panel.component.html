@@ -80,11 +80,11 @@
           <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
         </label>
       }
+      <label class="capture-field capture-preview-window-toggle">
+        <span><input type="checkbox" [checked]="detachedPreviewOpen()" (change)="setDetachedPreview($any($event.target).checked)"/> Open HDR preview in separate window</span>
+      </label>
       @if (previewFrame()) {
-        <figure class="capture-preview">
-          <canvas #previewCanvas aria-label="HDR capture source preview"></canvas>
-          <figcaption>{{ previewSize() }} · HDR preview via WebGPU · brightness 0.4</figcaption>
-        </figure>
+        <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
       }
       @if (status()) {
         <p class="capture-status" role="status">{{ status() }}</p>

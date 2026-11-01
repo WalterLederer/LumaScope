@@ -186,6 +186,10 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
       buffer: Buffer.from(frame.buffer)
     };
     cachedHdrFrame = captured;
+    if (App.isCapturePreviewWindowOpen() && !App.capturePreviewWindow.webContents.isDestroyed()) {
+      const pixels = new Uint16Array(captured.buffer.buffer.slice(captured.buffer.byteOffset, captured.buffer.byteOffset + captured.buffer.byteLength));
+      App.capturePreviewWindow.webContents.send('CapturePreviewWindow.frameChanged', { width: captured.width, height: captured.height, pixels });
+    }
     logPhase(`FP16 HDR frame ready (${frame.width}x${frame.height})`);
     return captured;
   } catch (error) {
@@ -920,6 +924,15 @@ ipcMain.handle('Capture.chooseFolder', async (_event, initialPath?: string): Pro
     properties: [ 'openDirectory', 'createDirectory' ]
   });
   return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+});
+
+ipcMain.handle('CapturePreviewWindow.open', async (): Promise<boolean> => App.openCapturePreviewWindow());
+ipcMain.handle('CapturePreviewWindow.close', async (): Promise<void> => App.closeCapturePreviewWindow());
+ipcMain.handle('CapturePreviewWindow.isOpen', async (): Promise<boolean> => App.isCapturePreviewWindowOpen());
+ipcMain.handle('CapturePreviewWindow.getFrame', async (): Promise<{ width: number; height: number; pixels: Uint16Array } | null> => {
+  if (!cachedHdrFrame) return null;
+  const pixels = new Uint16Array(cachedHdrFrame.buffer.buffer.slice(cachedHdrFrame.buffer.byteOffset, cachedHdrFrame.buffer.byteOffset + cachedHdrFrame.buffer.byteLength));
+  return { width: cachedHdrFrame.width, height: cachedHdrFrame.height, pixels };
 });
 
 ipcMain.handle(

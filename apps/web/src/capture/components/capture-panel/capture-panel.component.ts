@@ -49,6 +49,14 @@ export class CapturePanelComponent {
   protected readonly capturing = signal(false);
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
+  protected readonly detachedPreviewOpen = signal(false);
+  protected readonly setDetachedPreview = async (open: boolean): Promise<void> => {
+    const desktop = (window as unknown as { desktop?: import('internal-api').Desktop }).desktop;
+    if (!desktop) return;
+    if (open) await desktop.CapturePreviewWindow.open();
+    else await desktop.CapturePreviewWindow.close();
+    this.detachedPreviewOpen.set(await desktop.CapturePreviewWindow.isOpen());
+  };
   protected readonly previewSize = signal('');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
@@ -282,6 +290,12 @@ export class CapturePanelComponent {
       });
 
     this.destroyRef.onDestroy(() => this.disposeHdrPreview());
+    const desktop = (window as unknown as { desktop?: import('internal-api').Desktop }).desktop;
+    if (desktop) {
+      void desktop.CapturePreviewWindow.isOpen().then(open => this.detachedPreviewOpen.set(open));
+      const unsubscribe = desktop.CapturePreviewWindow.onStateChanged(open => this.detachedPreviewOpen.set(open));
+      this.destroyRef.onDestroy(unsubscribe);
+    }
     effect(() => {
       const frame = this.previewFrame();
       const canvas = this.previewCanvas()?.nativeElement;

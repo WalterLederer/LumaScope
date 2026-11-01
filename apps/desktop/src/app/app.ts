@@ -12,6 +12,7 @@ export default class App {
   // be closed automatically when the JavaScript object is garbage collected.
   static mainWindow: Electron.BrowserWindow;
   static mapWindow: Electron.BrowserWindow | null = null;
+  static capturePreviewWindow: Electron.BrowserWindow | null = null;
   static application: Electron.App;
   static BrowserWindow;
 
@@ -150,6 +151,62 @@ export default class App {
     }
 
     return App.startupConfig.saveDevToolsOpen(open);
+  }
+
+  static isCapturePreviewWindowOpen(): boolean {
+    return App.capturePreviewWindow !== null && !App.capturePreviewWindow.isDestroyed();
+  }
+
+  static openCapturePreviewWindow(): boolean {
+    if (App.isCapturePreviewWindowOpen()) {
+      if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
+      App.capturePreviewWindow.show();
+      App.capturePreviewWindow.focus();
+      return true;
+    }
+    const display = screen.getDisplayMatching(App.mainWindow.getBounds());
+    App.capturePreviewWindow = new BrowserWindow({
+      width: Math.min(1100, display.workArea.width),
+      height: Math.min(760, display.workArea.height),
+      minWidth: 480,
+      minHeight: 320,
+      show: false,
+      title: 'Light Matter — HDR Capture Preview',
+      webPreferences: {
+        contextIsolation: true,
+        backgroundThrottling: false,
+        preload: join(__dirname, 'main.preload.js')
+      }
+    });
+    App.capturePreviewWindow.setMenu(null);
+    const hash = '/capture-preview';
+    if (!App.application.isPackaged) {
+      App.capturePreviewWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
+    } else {
+      App.capturePreviewWindow.loadURL(format({
+        pathname: join(__dirname, '..', rendererAppName, 'index.html'),
+        protocol: 'file:',
+        slashes: true,
+        hash
+      }));
+    }
+    App.capturePreviewWindow.once('ready-to-show', () => {
+      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.show();
+    });
+    App.capturePreviewWindow.on('closed', () => {
+      App.capturePreviewWindow = null;
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+        App.mainWindow.webContents.send('CapturePreviewWindow.stateChanged', false);
+      }
+    });
+    if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+      App.mainWindow.webContents.send('CapturePreviewWindow.stateChanged', true);
+    }
+    return true;
+  }
+
+  static closeCapturePreviewWindow(): void {
+    if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.close();
   }
 
   static isMapWindowOpen(): boolean {

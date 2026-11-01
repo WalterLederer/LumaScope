@@ -82,6 +82,23 @@ const api: Desktop = {
     }
   },
 
+  CapturePreviewWindow: {
+    open: () => ipcRenderer.invoke('CapturePreviewWindow.open'),
+    close: () => ipcRenderer.invoke('CapturePreviewWindow.close'),
+    isOpen: () => ipcRenderer.invoke('CapturePreviewWindow.isOpen'),
+    getFrame: () => ipcRenderer.invoke('CapturePreviewWindow.getFrame'),
+    onStateChanged: (callback: (open: boolean) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);
+      ipcRenderer.on('CapturePreviewWindow.stateChanged', listener);
+      return () => ipcRenderer.removeListener('CapturePreviewWindow.stateChanged', listener);
+    },
+    onFrameChanged: (callback: (frame: { width: number; height: number; pixels: Uint16Array }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, frame: { width: number; height: number; pixels: Uint16Array }): void => callback(frame);
+      ipcRenderer.on('CapturePreviewWindow.frameChanged', listener);
+      return () => ipcRenderer.removeListener('CapturePreviewWindow.frameChanged', listener);
+    }
+  },
+
   Capture: {
     listSources: () => ipcRenderer.invoke('Capture.listSources'),
     chooseFolder: (initialPath?: string) => ipcRenderer.invoke('Capture.chooseFolder', initialPath),

@@ -138,6 +138,15 @@ export interface DesktopMapWindow {
   readonly onLocationChanged: (callback: (location: { latitude: number; longitude: number }) => void) => () => void;
 }
 
+export interface DesktopCapturePreviewWindow {
+  readonly open: () => Promise<boolean>;
+  readonly close: () => Promise<void>;
+  readonly isOpen: () => Promise<boolean>;
+  readonly getFrame: () => Promise<CapturePreview | null>;
+  readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
+  readonly onFrameChanged: (callback: (frame: CapturePreview) => void) => () => void;
+}
+
 export interface DesktopCapture {
   readonly listSources: () => Promise<CaptureSources>;
   readonly chooseFolder: (initialPath?: string) => Promise<string | null>;
@@ -159,6 +168,7 @@ export interface Desktop {
   readonly Loupe: DesktopLoupe;
   readonly Capture: DesktopCapture;
   readonly MapWindow: DesktopMapWindow;
+  readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
   openFolder: () => Promise<FileListing>;
   openFile: () => Promise<FileListing>;
