@@ -420,8 +420,8 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
     " public static void SetResult(string device, long monitor, int screenWidth, int screenHeight, int x, int y, int width, int height) { DeviceName=device; MonitorHandle=monitor; ScreenWidth=screenWidth; ScreenHeight=screenHeight; X=x; Y=y; Width=width; Height=height; Finish(false); }",
     "}",
     "public sealed class RectangleSelectionForm : Form {",
-    " private readonly Screen targetScreen; private Point start, current; private bool dragging;
- [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);",
+    " private readonly Screen targetScreen; private Point start, current; private bool dragging;",
+    " [System.Runtime.InteropServices.DllImport(\\"user32.dll\\")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);",
     " public RectangleSelectionForm(Screen screen) { targetScreen=screen; FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.Manual; Bounds=screen.Bounds; ShowInTaskbar=false; TopMost=true; BackColor=Color.Black; Opacity=0.32; Cursor=Cursors.Cross; KeyPreview=true; DoubleBuffered=true; MouseDown+=OnMouseDown; MouseMove+=OnMouseMove; MouseUp+=OnMouseUp; KeyDown+=OnKeyDown; Paint+=OnPaintOverlay; FormClosed+=(_,__)=>{ if(LightMatterRectangleSelection.Forms.TrueForAll(f=>f.IsDisposed || f==this)) Application.ExitThread(); }; }",
     " private void OnMouseDown(object s, MouseEventArgs e) { if(e.Button!=MouseButtons.Left)return; start=e.Location; current=e.Location; dragging=true; Invalidate(); }",
     " private void OnMouseMove(object s, MouseEventArgs e) { if(!dragging)return; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); Invalidate(); }",
