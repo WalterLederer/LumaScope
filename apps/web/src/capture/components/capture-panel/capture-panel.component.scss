@@ -42,6 +42,9 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 5px 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .capture-destination > span {
@@ -52,15 +55,41 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .capture-folder-row .capture-folder-path {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
 }
 
-.capture-destination > .capture-primary-button {
+.capture-folder-row > .capture-inline-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 112px;
+}
+
+.capture-destination:not(.clipboard-destination) > .capture-folder-row {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.capture-destination:not(.clipboard-destination) > .capture-primary-button {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
   justify-self: end;
+  width: auto;
+  min-width: 84px;
+}
+
+.capture-destination.clipboard-destination > .capture-primary-button {
+  grid-column: 2;
+  justify-self: end;
+  width: auto;
 }
 
 .capture-destination.clipboard-destination {
@@ -135,17 +164,28 @@
   display: flex;
   align-items: stretch;
   gap: 8px;
+  width: 100%;
   min-width: 0;
 }
 
 .capture-control-row .capture-source-picker,
 .capture-control-row select {
-  flex: 1 1 auto;
-  width: 0;
+  flex: 1 1 0;
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
-.capture-inline-button {
+.capture-control-row .capture-source-picker {
+  display: block;
+}
+
+.capture-control-row .capture-source-trigger {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.capture-control-row > .capture-inline-button {
   flex: 0 0 auto;
   width: auto;
   min-width: 84px;
@@ -294,8 +334,10 @@
 }
 
 .capture-panel select {
+  display: block;
   width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   min-height: 30px;
   padding: 4px 6px;
   color: inherit;
