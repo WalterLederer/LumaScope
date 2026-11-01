@@ -66,6 +66,17 @@ const api: Desktop = {
     }
   },
 
+  MapWindow: {
+    open: (latitude: number, longitude: number) => ipcRenderer.invoke('MapWindow.open', latitude, longitude),
+    close: () => ipcRenderer.invoke('MapWindow.close'),
+    isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
+    onStateChanged: (callback: (open: boolean) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);
+      ipcRenderer.on('MapWindow.stateChanged', listener);
+      return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
+    }
+  },
+
   Capture: {
     listSources: () => ipcRenderer.invoke('Capture.listSources'),
     chooseFolder: (initialPath?: string) => ipcRenderer.invoke('Capture.chooseFolder', initialPath),

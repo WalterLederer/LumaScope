@@ -4,6 +4,7 @@ import { Root } from '../system/pages/root/root';
 
 export const appRoutes: Route[] = [
   { path: '', component: Root, canActivate: [ startupGuard ] },
+  { path: 'map', loadComponent: () => import('../system/pages/map-window/map-window').then(m => m.MapWindow) },
   { path: 'view', loadChildren: () => import('../viewer/viewer.routes').then(m => m.routes) },
   { path: 'welcome', loadChildren: () => import('../welcome/welcome.routes').then(m => m.routes) }
 ];

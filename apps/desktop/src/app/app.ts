@@ -11,6 +11,7 @@ export default class App {
   // Keep a global reference of the window object, if you don't, the window will
   // be closed automatically when the JavaScript object is garbage collected.
   static mainWindow: Electron.BrowserWindow;
+  static mapWindow: Electron.BrowserWindow | null = null;
   static application: Electron.App;
   static BrowserWindow;
 
@@ -149,6 +150,69 @@ export default class App {
     }
 
     return App.startupConfig.saveDevToolsOpen(open);
+  }
+
+  static isMapWindowOpen(): boolean {
+    return App.mapWindow !== null && !App.mapWindow.isDestroyed();
+  }
+
+  static openMapWindow(latitude: number, longitude: number): boolean {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      throw new Error('The map window requires valid GPS coordinates.');
+    }
+
+    if (App.isMapWindowOpen()) {
+      App.mapWindow.webContents.send('MapWindow.locationChanged', { latitude, longitude });
+      if (App.mapWindow.isMinimized()) App.mapWindow.restore();
+      App.mapWindow.show();
+      App.mapWindow.focus();
+      return true;
+    }
+
+    const display = screen.getDisplayMatching(App.mainWindow.getBounds());
+    App.mapWindow = new BrowserWindow({
+      width: Math.min(1000, display.workArea.width),
+      height: Math.min(760, display.workArea.height),
+      minWidth: 420,
+      minHeight: 320,
+      show: false,
+      title: 'Light Matter — Image Location',
+      webPreferences: {
+        contextIsolation: true,
+        backgroundThrottling: false,
+        preload: join(__dirname, 'main.preload.js')
+      }
+    });
+    App.mapWindow.setMenu(null);
+    const hash = `/map?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`;
+    if (!App.application.isPackaged) {
+      App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
+    } else {
+      App.mapWindow.loadURL(format({
+        pathname: join(__dirname, '..', rendererAppName, 'index.html'),
+        protocol: 'file:',
+        slashes: true,
+        hash
+      }));
+    }
+    App.mapWindow.once('ready-to-show', () => {
+      if (App.isMapWindowOpen()) App.mapWindow.show();
+    });
+    App.mapWindow.on('closed', () => {
+      App.mapWindow = null;
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+        App.mainWindow.webContents.send('MapWindow.stateChanged', false);
+      }
+    });
+    if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+      App.mainWindow.webContents.send('MapWindow.stateChanged', true);
+    }
+    return true;
+  }
+
+  static closeMapWindow(): void {
+    if (App.isMapWindowOpen()) App.mapWindow.close();
   }
 
   private static loadMainWindow() {

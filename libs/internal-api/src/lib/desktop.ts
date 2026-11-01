@@ -130,6 +130,13 @@ export interface CapturePreview {
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr';
 
+export interface DesktopMapWindow {
+  readonly open: (latitude: number, longitude: number) => Promise<boolean>;
+  readonly close: () => Promise<void>;
+  readonly isOpen: () => Promise<boolean>;
+  readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
+}
+
 export interface DesktopCapture {
   readonly listSources: () => Promise<CaptureSources>;
   readonly chooseFolder: (initialPath?: string) => Promise<string | null>;
@@ -150,6 +157,7 @@ export interface Desktop {
   readonly Histogram: DesktopHistogram;
   readonly Loupe: DesktopLoupe;
   readonly Capture: DesktopCapture;
+  readonly MapWindow: DesktopMapWindow;
 
   openFolder: () => Promise<FileListing>;
   openFile: () => Promise<FileListing>;

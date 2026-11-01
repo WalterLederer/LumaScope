@@ -1160,3 +1160,10 @@ const readFolder = async (folder: string): Promise<string[]> =>
     .map(f => path.join(folder, f))
     .filter(f => fsSync.lstatSync(f).isFile())
     .filter(f => supportedFileExtensions.includes(path.extname(f).toLowerCase().replace('.', '')));
+
+
+ipcMain.handle('MapWindow.open', (_event, latitude: number, longitude: number): boolean =>
+  App.openMapWindow(latitude, longitude)
+);
+ipcMain.handle('MapWindow.close', (): void => App.closeMapWindow());
+ipcMain.handle('MapWindow.isOpen', (): boolean => App.isMapWindowOpen());
