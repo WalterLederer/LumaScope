@@ -59,7 +59,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             </label>
           </div>
           <div class="settings-group">
-            <label class="always-on-top-setting"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
+            <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
             <label class="range-setting">Zoom <span>{{ zoomLevel() }}</span>
               <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)">
             </label>

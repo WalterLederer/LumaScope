@@ -14,6 +14,12 @@ export class ThemeService {
   readonly current = signal<AppTheme>('dark');
 
   constructor() {
+    this.document.defaultView?.addEventListener('storage', event => {
+      if (event.key === 'light-matter.theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
+        this.setTheme(event.newValue);
+      }
+    });
+
     this.configuration.config()
       .pipe(takeUntilDestroyed())
       .subscribe(config => this.setTheme(config.system.theme ?? 'dark'));
@@ -28,5 +34,6 @@ export class ThemeService {
   private readonly setTheme = (theme: AppTheme) => {
     this.current.set(theme);
     this.document.documentElement.dataset['theme'] = theme;
+    try { this.document.defaultView?.localStorage.setItem('light-matter.theme', theme); } catch { /* Theme remains active for this window. */ }
   };
 }
