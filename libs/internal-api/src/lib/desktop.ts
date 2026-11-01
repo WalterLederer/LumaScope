@@ -113,7 +113,8 @@ export interface CaptureSources {
 
 export type CaptureTarget =
   | { kind: 'monitor'; index: number }
-  | { kind: 'window'; handle: number };
+  | { kind: 'window'; handle: number }
+  | { kind: 'top-window' };
 
 export interface CaptureResult {
   path: string;
