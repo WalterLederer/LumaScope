@@ -1271,6 +1271,39 @@ ipcMain.handle('CapturePreviewWindow.getFrame', async (): Promise<{ width: numbe
   return { width: cachedHdrFrame.width, height: cachedHdrFrame.height, pixels };
 });
 
+const createUhdrPreviewImage = async (frame: CapturedHdrFrame): Promise<Uint8Array> => {
+  vipsInitPromise ??= Vips();
+  const vips = await vipsInitPromise;
+  vips.Cache.max(0);
+  vips.Cache.maxMem(0);
+
+  const sourceChannels = new Uint16Array(
+    frame.buffer.buffer,
+    frame.buffer.byteOffset,
+    frame.buffer.byteLength / 2
+  );
+  const rgb = new Float32Array(frame.width * frame.height * 3);
+  for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+    const source = pixel * 4;
+    const destination = pixel * 3;
+    for (let channel = 0; channel < 3; channel++) {
+      const value = halfToFloat(sourceChannels[source + channel]);
+      rgb[destination + channel] = Number.isFinite(value) ? value : 0;
+    }
+  }
+
+  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'light-matter-uhdr-preview-'));
+  const imagePath = path.join(temporaryDirectory, 'preview.jpg');
+  try {
+    using image = vips.Image.newFromMemory(rgb, frame.width, frame.height, 3, vips.BandFormat.float);
+    using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
+    scrgb.uhdrsave(imagePath, { Q: 100 });
+    return new Uint8Array(await fs.readFile(imagePath));
+  } finally {
+    await fs.rm(temporaryDirectory, { recursive: true, force: true });
+  }
+};
+
 ipcMain.handle(
   'Capture.preview',
   async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; }> => {
@@ -1283,8 +1316,10 @@ ipcMain.handle(
     const pixels = new Uint16Array(
       frame.buffer.buffer.slice(frame.buffer.byteOffset, frame.buffer.byteOffset + frame.buffer.byteLength)
     );
-    console.info(`[HDR Capture] send FP16 frame to WebGPU preview (${frame.width}x${frame.height})`);
-    return { width: frame.width, height: frame.height, pixels };
+    console.info(`[HDR Capture] encode browser-decodable Ultra HDR SDR reference (${frame.width}x${frame.height})`);
+    const sdrImage = await createUhdrPreviewImage(frame);
+    console.info(`[HDR Capture] send FP16 frame and Ultra HDR reference image (${frame.width}x${frame.height})`);
+    return { width: frame.width, height: frame.height, pixels, sdrImage };
   }
 );
 
