@@ -55,6 +55,12 @@ export class CapturePanelComponent {
   private previewContext: { unconfigure(): void; configure(options: any): void; getCurrentTexture(): any } | null = null;
   private previewRequestId = 0;
   protected readonly selectedFormat = signal<CaptureFormat>(this.readSavedFormat());
+  protected readonly includeLightMatterWindows = signal(this.readSavedIncludeLightMatterWindows());
+  protected readonly setIncludeLightMatterWindows = (enabled: boolean): void => {
+    this.includeLightMatterWindows.set(enabled);
+    try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
+    catch { /* keep the current-session preference if storage is unavailable */ }
+  };
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
   protected readonly gammaCorrectionValue = signal<number>(this.readSavedGammaCorrection());
@@ -126,9 +132,9 @@ export class CapturePanelComponent {
     const topWindow: CaptureSourceRow = {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
-      title: 'Foreground window after hiding Light Matter',
+      title: this.includeLightMatterWindows() ? 'Capture the Light Matter Capture window' : 'Foreground window after hiding Light Matter',
       size: 'Automatic', displayMode: '—',
-      status: 'Automatically detected when capturing',
+      status: this.includeLightMatterWindows() ? 'Light Matter windows remain visible' : 'Automatically detected when capturing',
       minimized: false, unavailable: false
     };
     const rectangle: CaptureSourceRow = {
@@ -205,6 +211,11 @@ export class CapturePanelComponent {
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
 
+  private readSavedIncludeLightMatterWindows(): boolean {
+    try { return localStorage.getItem('capture.includeLightMatterWindows') === 'true'; }
+    catch { return false; }
+  }
+
   private readSavedGammaCorrection(): number {
     try {
       const value = Number(localStorage.getItem('capture.gamma'));
@@ -247,7 +258,9 @@ export class CapturePanelComponent {
   protected readonly selectedSourceLabel = (): string => {
     const target = this.selectedCaptureTarget();
     if (!target) return 'None';
-    if (target.kind === 'top-window') return 'Top Window · Foreground window after hiding Light Matter';
+    if (target.kind === 'top-window') return this.includeLightMatterWindows()
+      ? 'Top Window · Light Matter Capture window'
+      : 'Top Window · Foreground window after hiding Light Matter';
     if (target.kind === 'rectangle') return 'Rectangle · Select area directly on screen';
     if (target.kind === 'monitor') {
       const monitor = this.monitors().find(item => item.index === target.index);
@@ -395,7 +408,7 @@ export class CapturePanelComponent {
 
   private selectedCaptureTarget(): CaptureTarget | null {
     const value = this.selectedTarget();
-    if (value === 'top-window') return { kind: 'top-window' };
+    if (value === 'top-window') return { kind: 'top-window', includeLightMatterWindows: this.includeLightMatterWindows() };
     if (value === 'rectangle') return { kind: 'rectangle' };
     const separator = value.indexOf(':');
     if (separator < 0) return null;
