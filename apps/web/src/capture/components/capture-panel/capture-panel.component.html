@@ -51,6 +51,19 @@
         </div>
       </div>
 
+      @if (selectedTarget() === 'top-window') {
+        <label class="capture-field capture-gamma-option">
+          <span>
+            <input
+              type="checkbox"
+              [checked]="includeLightMatterWindows()"
+              (change)="setIncludeLightMatterWindows($any($event.target).checked)"
+              [disabled]="capturing() || previewing()"/>
+            Capture Light Matter Capture window (keep all Light Matter windows visible)
+          </span>
+        </label>
+      }
+
       <label class="capture-field">
         <span>Output format</span>
         <select [value]="selectedFormat()" (change)="changeFormat($any($event.target).value)" [disabled]="capturing() || previewing()">
