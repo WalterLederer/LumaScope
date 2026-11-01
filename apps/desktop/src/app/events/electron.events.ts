@@ -2,7 +2,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
+import { app, clipboard, dialog, ipcMain, IpcMainInvokeEvent, nativeImage, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -950,8 +950,8 @@ ipcMain.handle(
 ipcMain.handle(
   'Capture.capture',
   async (_event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90): Promise<CaptureResult> => {
-    if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr') {
-      throw new Error('Choose OpenEXR, JPEG XR, or Ultra HDR JPEG as the capture format.');
+    if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr' && format !== 'clipboard') {
+      throw new Error('Choose OpenEXR, JPEG XR, Ultra HDR JPEG, or Windows Clipboard as the capture format.');
     }
     if (!Number.isFinite(gammaCorrection) || gammaCorrection < 0.1 || gammaCorrection > 2.2) {
       throw new Error('Gamma correction must be between 0.1 and 2.2.');
@@ -962,7 +962,7 @@ ipcMain.handle(
     if (process.platform !== 'win32') {
       throw new Error('HDR capture is currently supported on Windows only.');
     }
-    if (!folder || !path.isAbsolute(folder)) {
+    if (format !== 'clipboard' && (!folder || !path.isAbsolute(folder))) {
       throw new Error('Choose a valid destination folder before capturing.');
     }
     if (target?.kind !== 'monitor' && target?.kind !== 'window') {
@@ -983,6 +983,36 @@ ipcMain.handle(
         ...summarizeFp16Frame(frame)
       });
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
+
+      if (format === 'clipboard') {
+        logPhase('convert linear scRGB FP16 to an SDR sRGB clipboard image');
+        const pixels = new Uint8Array(frame.width * frame.height * 3);
+        for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+          for (let channel = 0; channel < 3; channel++) {
+            const sourceValue = halfToFloat(sourceChannels[pixel * 4 + channel]);
+            const corrected = Number.isFinite(sourceValue)
+              ? (gammaCorrection !== 1 ? applyGammaCorrection(sourceValue, gammaCorrection) : sourceValue)
+              : 0;
+            // scRGB is linear-light RGB with 1.0 at reference white. Clamp HDR
+            // values to the SDR range before applying the sRGB transfer function;
+            // this prevents SDR applications from treating HDR headroom as SDR.
+            const linear = Math.max(0, Math.min(1, corrected));
+            const srgb = linear <= 0.0031308
+              ? linear * 12.92
+              : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+            pixels[pixel * 3 + channel] = Math.round(srgb * 255);
+          }
+        }
+        vipsInitPromise ??= Vips();
+        const vips = await vipsInitPromise;
+        using sdrImage = vips.Image.newFromMemory(pixels, frame.width, frame.height, 3, vips.BandFormat.uchar);
+        const png = sdrImage.writeToBuffer('.png');
+        logPhase('write SDR sRGB image to Windows Clipboard');
+        clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(png)));
+        if (cachedHdrFrame === frame) cachedHdrFrame = null;
+        return { path: 'Windows Clipboard', width: frame.width, height: frame.height };
+      }
+
       const extension = format === 'uhdr' ? 'jpg' : format;
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       const baseName = `LightMatter_Capture_${stamp}`;
