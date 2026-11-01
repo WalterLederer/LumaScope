@@ -96,6 +96,18 @@
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
+        @if (previewFrame()) {
+          <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
+        }
+        @if (status()) {
+          <p class="capture-status" role="status">{{ status() }}</p>
+        }
+        @if (error()) {
+          <p class="capture-error" role="alert">{{ error() }}</p>
+        }
+        @if (monitors().length === 0 && !loadingSources() && !error()) {
+          <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
+        }
       <details class="capture-advanced-settings">
         <summary>Advanced Settings</summary>
         <label class="capture-field capture-gamma-option">
@@ -111,12 +123,6 @@
             <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
           </label>
         }
-        @if (previewFrame()) {
-          <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
-        }
-        @if (status()) {
-          <p class="capture-status" role="status">{{ status() }}</p>
-        }
         <section class="capture-selection-summary" aria-label="Capture summary">
           <h3>Summary</h3>
           <div><strong>Source:</strong> {{ selectedSourceLabel() }}</div>
@@ -125,12 +131,6 @@
           <div><strong>Full output filename:</strong> {{ lastOutputPath() || 'Generated automatically when captured' }}</div>
         </section>
   
-        @if (error()) {
-          <p class="capture-error" role="alert">{{ error() }}</p>
-        }
-        @if (monitors().length === 0 && !loadingSources() && !error()) {
-          <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
-        }
         <p class="capture-format-note">Brightness correction: 0.4.</p>
       </details>
   </div>
