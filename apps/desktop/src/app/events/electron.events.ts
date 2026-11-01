@@ -220,6 +220,10 @@ public static class LightMatterExternalWindow {
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
   [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+  [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint command);
+  [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+  [DllImport("user32.dll", SetLastError=true)] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+  [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
 
   private static bool VisitWindow(IntPtr hWnd, IntPtr lParam) {
     if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
@@ -227,6 +231,14 @@ public static class LightMatterExternalWindow {
     uint processId;
     GetWindowThreadProcessId(hWnd, out processId);
     if (processId == 0 || processId == excludedProcessId) return true;
+
+    // Ignore owned/tool windows and tiny helper surfaces. EnumWindows is already
+    // in Z-order, so the first remaining entry is the topmost real application window.
+    if (GetWindow(hWnd, 4) != IntPtr.Zero) return true; // GW_OWNER
+    long extendedStyle = GetWindowLongPtr(hWnd, -20).ToInt64(); // GWL_EXSTYLE
+    if ((extendedStyle & 0x00000080L) != 0) return true; // WS_EX_TOOLWINDOW
+    RECT rect;
+    if (!GetWindowRect(hWnd, out rect) || rect.Right - rect.Left < 160 || rect.Bottom - rect.Top < 120) return true;
 
     StringBuilder title = new StringBuilder(1024);
     if (GetWindowText(hWnd, title, title.Capacity) <= 0) return true;
