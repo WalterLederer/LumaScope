@@ -261,13 +261,13 @@ export class CapturePanelComponent {
   private readSavedFormat(): CaptureFormat {
     try {
       const value = localStorage.getItem('capture.format');
-      if (value === 'exr' || value === 'jxr' || value === 'uhdr' || value === 'clipboard') return value;
+      if (value === 'exr' || value === 'jxr' || value === 'uhdr') return value;
     } catch { /* use the default when storage is unavailable */ }
     return 'exr';
   }
 
   protected readonly changeFormat = (value: string): void => {
-    if (value !== 'exr' && value !== 'jxr' && value !== 'uhdr' && value !== 'clipboard') return;
+    if (value !== 'exr' && value !== 'jxr' && value !== 'uhdr') return;
     const format = value as CaptureFormat;
     this.selectedFormat.set(format);
     try { localStorage.setItem('capture.format', format); }
@@ -778,6 +778,36 @@ export class CapturePanelComponent {
     return new Uint8Array(await blob.arrayBuffer());
   };
 
+  protected readonly copyToClipboard = async (): Promise<void> => {
+    if (this.capturing() || this.previewing()) return;
+    if (!this.selectedCaptureTarget()) {
+      this.error.set('Select a rectangle, monitor, or application window.');
+      return;
+    }
+    this.capturing.set(true);
+    this.error.set(null);
+    try {
+      let frame = this.previewFrame();
+      if (!frame) {
+        await this.previewNow();
+        frame = this.previewFrame();
+      }
+      if (!frame) {
+        throw new Error('Could not capture a preview for the clipboard.');
+      }
+      this.status.set('Preparing SDR clipboard image…');
+      const pngData = await this.createSdrClipboardPng(frame);
+      const result = await this.captureService.copyPreviewToClipboard(pngData);
+      this.lastOutputPath.set('Windows Clipboard');
+      this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
+    } catch (error) {
+      this.status.set('');
+      this.error.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.capturing.set(false);
+    }
+  };
+
   protected readonly captureNow = async (): Promise<void> => {
     const target = this.selectedCaptureTarget();
     const folder = this.destinationFolder();
@@ -786,7 +816,7 @@ export class CapturePanelComponent {
       this.error.set('Select a rectangle, monitor, or application window.');
       return;
     }
-    if (format !== 'clipboard' && !folder) {
+    if (!folder) {
       this.error.set('Choose a destination folder first.');
       return;
     }
@@ -794,27 +824,16 @@ export class CapturePanelComponent {
     this.error.set(null);
     this.status.set('Capturing HDR frame…');
     try {
-      if (format === 'clipboard') {
-        const frame = this.previewFrame();
-        if (!frame) {
-          throw new Error('Capture a source first so the HDR frame is available.');
-        }
-        const pngData = await this.createSdrClipboardPng(frame);
-        const result = await this.captureService.copyPreviewToClipboard(pngData);
-        this.lastOutputPath.set('Windows Clipboard');
-        this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
-      } else {
-        const result = await this.captureService.capture(
-          target,
-          folder || '',
-          format,
-          this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
-          this.encoderQuality()
-        );
-        this.galleryLocations.addLocation(folder);
-        this.lastOutputPath.set(result.path);
-        this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
-      }
+      const result = await this.captureService.capture(
+        target,
+        folder,
+        format,
+        this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
+        this.encoderQuality()
+      );
+      this.galleryLocations.addLocation(folder);
+      this.lastOutputPath.set(result.path);
+      this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
     } catch (error) {
       this.status.set('');
       this.error.set(error instanceof Error ? error.message : String(error));
