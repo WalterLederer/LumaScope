@@ -1,4 +1,5 @@
 import {
+  captureApiSupport,
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
@@ -146,13 +147,19 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
 
   const targetKey = captureTargetKey(target);
   const options = target.kind === 'monitor' ? { monitorIndex: target.index } : { windowHandle: target.handle };
+  const captureCapabilities = captureApiSupport();
   const capture = new ScreenCapture({
     ...options,
     colorFormat: 'rgba16F' as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
     cursorCapture: false,
-    drawBorder: false,
+    // Windows 10 build 19045 does not expose IsBorderRequired. Leave the
+    // optional setting untouched there and keep the system-default border.
+    ...(captureCapabilities.borderSettings ? { drawBorder: false } : {}),
     minimumUpdateIntervalMs: 0
   });
+  if (!captureCapabilities.borderSettings) {
+    console.info('[HDR Capture] Border control is unavailable; using the Windows default capture border.');
+  }
   let phase = 'initialize capture';
   const logPhase = (nextPhase: string): void => {
     phase = nextPhase;
