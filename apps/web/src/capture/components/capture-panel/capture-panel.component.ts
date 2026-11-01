@@ -84,7 +84,7 @@ export class CapturePanelComponent {
       const favoriteKey = value;
       return {
         value, kind: 'monitor', favoriteKey, favorite: favorites.has(favoriteKey),
-        exe: 'Monitor',
+        exe: `Monitor ${monitor.index}`,
         title: monitor.name || monitor.deviceName || `Monitor ${monitor.index}`,
         size: `${monitor.width} × ${monitor.height}`,
         displayMode: monitor.isHdr === undefined ? 'Unknown' : monitor.isHdr ? 'HDR' : 'SDR',
