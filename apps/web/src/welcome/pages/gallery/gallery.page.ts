@@ -1,7 +1,7 @@
 import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
-import { AsyncPipe } from '@angular/common';
-import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
+import { AsyncPipe, DOCUMENT } from '@angular/common';
+import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ActionButtonComponent,
@@ -17,7 +17,7 @@ import {
   TreeNode,
   VerticalStackComponent
 } from '@light-matter/ui';
-import { defaultThumbnailSize, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
+import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
 import { combineLatest, filter, take } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
@@ -25,7 +25,6 @@ import { GalleryState } from '../../../gallery/services/gallery-state/gallery-st
 import { ProcessManager } from '../../../ipc/process-manager';
 import { defaultSortMode, treeNode } from '../../../gallery/services/gallery-state/gallery-state.types';
 import { Dialogs } from '../../../ipc/dialogs';
-import { CapturePanelComponent } from '../../../capture/components/capture-panel/capture-panel.component';
 import { SettingsPanelComponent } from '../../../settings/components/settings-dialog/settings-dialog.component';
 import { DefaultPipe } from '../../../system/pipes/default/default.pipe';
 import { ImageView } from '../../../viewer/pages/image-view/image-view';
@@ -36,7 +35,6 @@ import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navi
   imports: [
     AsyncPipe,
     ImageGridComponent,
-    CapturePanelComponent,
     SettingsPanelComponent,
     SidePanelComponent,
     TreeComponent,
@@ -56,6 +54,10 @@ import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navi
 })
 export class GalleryPage {
   /* DI */
+  private readonly document = inject(DOCUMENT);
+
+  private readonly desktopApi = (this.document.defaultView as unknown as { desktop?: Desktop } | null)?.desktop;
+
   private readonly galleryState = inject(GalleryState);
 
   private readonly dialogs = inject(Dialogs);
@@ -126,6 +128,23 @@ export class GalleryPage {
     const next = !this.controlsSidebarVisible();
     this.controlsSidebarVisible.set(next);
     try { globalThis.localStorage.setItem('light-matter.gallerySidebarVisible', String(next)); } catch { /* Keep session state. */ }
+  };
+
+  protected readonly openCaptureWindow = async (): Promise<void> => {
+    await this.desktopApi?.CapturePreviewWindow.open();
+  };
+
+  @HostListener('document:keyup', ['$event'])
+  protected readonly onCaptureShortcut = (event: KeyboardEvent): void => {
+    if (!event.shiftKey || event.key.toLowerCase() !== 'c'
+      || event.ctrlKey || event.altKey || event.metaKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement
+      && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]')) return;
+    // ImageView owns the same shortcut while its overlay is active.
+    if (this.document.querySelector('app-image-view')) return;
+    event.preventDefault();
+    void this.openCaptureWindow();
   };
 
   /* State */
