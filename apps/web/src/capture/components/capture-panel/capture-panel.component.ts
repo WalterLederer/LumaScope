@@ -506,6 +506,7 @@ export class CapturePanelComponent {
       pass.draw(3);
       pass.end();
       device.queue.submit([encoder.finish()]);
+      await device.queue.onSubmittedWorkDone();
       this.previewDevice = device;
       this.previewTexture = texture;
       this.previewContext = context;
@@ -542,17 +543,28 @@ export class CapturePanelComponent {
     this.error.set(null);
     this.status.set('Capturing HDR frame…');
     try {
-      const result = await this.captureService.capture(
-        target,
-        folder || '',
-        format,
-        this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
-        this.encoderQuality()
-      );
       if (format === 'clipboard') {
+        const canvas = this.previewCanvas()?.nativeElement;
+        if (!this.previewFrame() || !canvas) {
+          throw new Error('Capture a source first so the rendered WebGPU preview is available.');
+        }
+        const rect = canvas.getBoundingClientRect();
+        const result = await this.captureService.copyPreviewToClipboard({
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height
+        });
         this.lastOutputPath.set('Windows Clipboard');
-        this.status.set(`Copied ${result.width} × ${result.height} SDR-compatible image to Windows Clipboard`);
+        this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
       } else {
+        const result = await this.captureService.capture(
+          target,
+          folder || '',
+          format,
+          this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
+          this.encoderQuality()
+        );
         this.galleryLocations.addLocation(folder);
         this.lastOutputPath.set(result.path);
         this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
