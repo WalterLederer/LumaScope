@@ -614,6 +614,7 @@ export class CapturePanelComponent {
     let above2 = 0;
     let above4 = 0;
     let whitePixels = 0;
+    let zeroLuminancePixels = 0;
     const pixelCount = frame.width * frame.height;
 
     for (let pixel = 0; pixel < pixelCount; pixel++) {
@@ -638,6 +639,8 @@ export class CapturePanelComponent {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
         histogram[bin]++;
+      } else {
+        zeroLuminancePixels++;
       }
 
       pixels[offset] = toneMappedLookup[source[offset]];
@@ -649,7 +652,8 @@ export class CapturePanelComponent {
 
     const percentile = (fraction: number): number => {
       const target = Math.max(1, Math.ceil(pixelCount * fraction));
-      let cumulative = 0;
+      let cumulative = zeroLuminancePixels;
+      if (cumulative >= target) return 0;
       for (let bin = 0; bin < histogram.length; bin++) {
         cumulative += histogram[bin];
         if (cumulative >= target) {
