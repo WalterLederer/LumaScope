@@ -156,7 +156,7 @@ export interface DesktopCapture {
   readonly chooseFolder: (initialPath?: string) => Promise<string | null>;
   readonly preview: (target: CaptureTarget) => Promise<CapturePreview>;
   readonly capture: (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number) => Promise<CaptureResult>;
-  readonly copyPreviewToClipboard: (bounds: { x: number; y: number; width: number; height: number }) => Promise<CaptureResult>;
+  readonly copyPreviewToClipboard: (pngData: Uint8Array) => Promise<CaptureResult>;
 }
 
 export interface DesktopHistogram {
