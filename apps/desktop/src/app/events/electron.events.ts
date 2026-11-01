@@ -280,7 +280,7 @@ const selectCaptureRectangle = (): { deviceName: string; x: number; y: number; w
     "[System.Windows.Forms.Application]::Run()\n" +
     "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
     "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
-  const output = execFileSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
+  const output = execFileSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
     { encoding:'utf8', windowsHide:true, timeout:120000 }).trim();
   const selection = JSON.parse(output) as { deviceName:string; x:number; y:number; width:number; height:number };
   if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
