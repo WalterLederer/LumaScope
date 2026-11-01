@@ -238,6 +238,8 @@ export default class App {
       minWidth: 420,
       minHeight: 320,
       show: false,
+      transparent: true,
+      backgroundColor: '#00000000',
       title: 'Light Matter — Image Location - MAP',
       webPreferences: {
         contextIsolation: true,
@@ -296,6 +298,12 @@ export default class App {
       else { App.capturePreviewBoundsTimer = null; if (App.capturePreviewWindow && !App.capturePreviewWindow.isDestroyed()) void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds()); }
     }, 250);
     if (kind === 'map') App.mapBoundsTimer = next; else App.capturePreviewBoundsTimer = next;
+  }
+
+  static setMapWindowAlwaysOnTop(enabled: boolean): boolean {
+    if (!App.isMapWindowOpen()) return false;
+    App.mapWindow.setAlwaysOnTop(!!enabled);
+    return true;
   }
 
   static closeMapWindow(): void {

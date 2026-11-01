@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
+import { ThemeService } from '../../services/theme/theme.service';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -9,6 +10,7 @@ interface MapInstance {
   invalidateSize(): MapInstance;
   getZoom(): number;
   setZoom(zoom: number): MapInstance;
+  on(event: 'zoomend', callback: () => void): MapInstance;
   fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
   remove(): void;
 }
@@ -25,7 +27,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   selector: 'app-map-window',
   standalone: true,
   template: `
-    <main class="map-window">
+    <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
         <div class="map-title-actions">
@@ -57,6 +59,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             </label>
           </div>
           <div class="settings-group">
+            <label class="always-on-top-setting"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
             <label class="range-setting">Zoom <span>{{ zoomLevel() }}</span>
               <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)">
             </label>
@@ -68,10 +71,25 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           <div class="settings-group gpx-settings">
             <strong>GPX track</strong>
             <button type="button" (click)="importGpxTrack()">Import GPX…</button>
-            <select [value]="gpxSelection()" (change)="changeGpxColor($any($event.target).value)" aria-label="GPX track color and visibility">
-              <option value="off">Off</option>
-              @for (color of gpxColors; track color.value) { <option [value]="color.value">{{ color.name }}</option> }
-            </select>
+            <div class="color-picker">
+              <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
+                @if (gpxVisible()) {
+                  <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
+                  <span>{{ selectedGpxColorName() }}</span>
+                } @else { <span>Off</span> }
+                <span class="color-picker-chevron">▾</span>
+              </button>
+              @if (colorMenuOpen()) {
+                <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
+                  <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+                  @for (color of gpxColors; track color.value) {
+                    <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
+                      <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
             <label class="range-setting">Track opacity <span>{{ gpxOpacity() }}%</span>
               <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
             </label>
@@ -83,28 +101,40 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
       <div #map class="map"></div>
     </main>
   `,
-  styles: [`
-    :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--text-color,#eee);font:13px/1.4 inherit}
-    .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:#202124}
-    .map-titlebar{height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--surface-2,#292a2d);border-bottom:1px solid #444;box-sizing:border-box}
+  styles: [
+    :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
+    .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:transparent}
+    .map-titlebar{height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title,.map-title-actions{display:flex;align-items:center;gap:10px;min-width:0}.map-title{font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
-    .map-title-actions{margin-left:auto}.map-coordinates{font-size:11px;color:#aaa;white-space:nowrap}
-    button,select{font:inherit;color:inherit;background:#383a3f;border:1px solid #555;border-radius:4px;padding:4px 8px}
-    button{cursor:pointer}button:hover,.settings-toggle.active{background:#4b5260;border-color:#8ab4f8}
+    .map-title-actions{margin-left:auto}.map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
+    button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
+    button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap}.settings-toggle span{margin-left:3px}
-    .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:#252629;border-bottom:1px solid #444;box-sizing:border-box}
-    .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid #454545}
+    .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:#aaa;min-width:34px;text-align:right}
+    select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
+    .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
-    .gpx-settings{gap:7px}.gpx-settings strong{white-space:nowrap}.gpx-filename{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aaa}.gpx-error{color:#ff8a80}
-    .map{flex:1 1 auto;width:100%;min-height:0;background:#202124}
-    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid #454545;padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}}
+    .gpx-settings{gap:7px}.gpx-settings strong{white-space:nowrap}.gpx-filename{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
+    .color-picker{position:relative}.color-picker-trigger{display:flex;align-items:center;gap:7px;min-width:132px}.color-picker-chevron{margin-left:auto}
+    .color-picker-menu{position:absolute;z-index:1000;top:calc(100% + 4px);left:0;min-width:185px;padding:4px;background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:5px;box-shadow:0 5px 18px #0005}
+    .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
+    .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
+    .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
+    .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
+    :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
+    :host-context(html[data-theme='light']) .map-settings{background:#f7f7f8;border-color:#d0d3d8}
+    :host-context(html[data-theme='light']) button,:host-context(html[data-theme='light']) select{color:#202124;background:#fff;border-color:#c5c8ce}
+    :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
+    :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
+    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapWindow implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  protected readonly themeService = inject(ThemeService);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
   private marker: MapMarker | null = null;
@@ -116,6 +146,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
   protected readonly settingsOpen = signal(false);
+  protected readonly colorMenuOpen = signal(false);
+  protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
@@ -127,12 +159,16 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxError = signal('');
   protected readonly coordinateLabel = signal('');
   protected readonly gpxColors = [
-    { name: 'Red', value: '#ff3b30' }, { name: 'Orange', value: '#ff9500' },
-    { name: 'Yellow', value: '#ffd60a' }, { name: 'Green', value: '#34c759' },
-    { name: 'Blue', value: '#0a84ff' }, { name: 'Magenta', value: '#bf5af2' }
+    { name: 'Red', value: '#ff3b30', textColor: '#ffffff' }, { name: 'Orange', value: '#ff9500', textColor: '#171717' },
+    { name: 'Yellow', value: '#ffd60a', textColor: '#171717' }, { name: 'Green', value: '#34c759', textColor: '#102014' },
+    { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
   ] as const;
 
   ngOnInit(): void {
+    document.documentElement.style.backgroundColor = 'transparent';
+    document.body.style.backgroundColor = 'transparent';
+    document.documentElement.style.colorScheme = this.themeService.current();
+    this.applyAlwaysOnTop();
     const latitude = Number(this.route.snapshot.queryParamMap.get('lat'));
     const longitude = Number(this.route.snapshot.queryParamMap.get('lon'));
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
@@ -152,6 +188,17 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly onResize = (): void => { this.map?.invalidateSize(); };
 
   protected readonly toggleSettings = (): void => { this.settingsOpen.update(open => !open); };
+  protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
+  protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
+  protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
+  protected readonly changeAlwaysOnTop = (enabled: boolean): void => {
+    this.alwaysOnTop.set(enabled);
+    this.saveSetting('alwaysOnTop', enabled);
+    this.applyAlwaysOnTop();
+  };
+  private applyAlwaysOnTop(): void {
+    void this.desktop?.MapWindow.setAlwaysOnTop(this.alwaysOnTop());
+  }
 
   private readSetting(key: string, fallback: string): string {
     try { return localStorage.getItem(this.storagePrefix + key) ?? fallback; } catch { return fallback; }
@@ -170,6 +217,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
+    this.map.on('zoomend', () => {
+      const zoom = this.validZoom(this.map?.getZoom() ?? this.zoomLevel());
+      this.zoomLevel.set(zoom);
+      this.saveSetting('zoom', zoom);
+    });
     this.marker = this.leaflet.marker(center).addTo(this.map);
     this.applyMapStyle();
     this.applyMapColor();
@@ -216,8 +268,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = this.validZoom(zoom); this.zoomLevel.set(next); this.saveSetting('zoom', next); this.map?.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
-    this.changeZoom(this.map?.getZoom() ?? this.zoomLevel() + direction);
-    if (this.map) this.changeZoom(this.map.getZoom() + direction);
+    this.changeZoom((this.map?.getZoom() ?? this.zoomLevel()) + direction);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
@@ -231,6 +282,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxColor.set(value); this.gpxVisible.set(true);
       this.saveSetting('gpxColor', value); this.saveSetting('gpxVisible', true);
     } else return;
+    this.colorMenuOpen.set(false);
     this.applyGpxTrack();
   };
   protected readonly importGpxTrack = (): void => {
