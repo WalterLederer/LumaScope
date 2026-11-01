@@ -49,6 +49,7 @@ export class CapturePanelComponent {
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
   protected readonly previewSize = signal('');
+  protected readonly sdrPreviewUrl = signal('');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
   private previewTexture: { destroy(): void } | null = null;
@@ -61,6 +62,9 @@ export class CapturePanelComponent {
     try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
     this.previewFrame.set(null);
+    const previousPreviewUrl = this.sdrPreviewUrl();
+    if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
+    this.sdrPreviewUrl.set('');
     this.previewSize.set('');
     this.status.set('');
   };
@@ -313,7 +317,11 @@ export class CapturePanelComponent {
         if (!this.destinationFolder()) this.destinationFolder.set(path);
       });
 
-    this.destroyRef.onDestroy(() => this.disposeHdrPreview());
+    this.destroyRef.onDestroy(() => {
+      this.disposeHdrPreview();
+      const previewUrl = this.sdrPreviewUrl();
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    });
     effect(() => {
       const frame = this.previewFrame();
       const canvas = this.previewCanvas()?.nativeElement;
@@ -435,6 +443,10 @@ export class CapturePanelComponent {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
       this.previewFrame.set(preview);
+      const previousPreviewUrl = this.sdrPreviewUrl();
+      if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
+      const previewUrl = URL.createObjectURL(new Blob([preview.sdrImage], { type: 'image/jpeg' }));
+      this.sdrPreviewUrl.set(previewUrl);
       this.capturePreviewStore.setFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
@@ -442,6 +454,9 @@ export class CapturePanelComponent {
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
       this.previewFrame.set(null);
+      const previousPreviewUrl = this.sdrPreviewUrl();
+      if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
+      this.sdrPreviewUrl.set('');
       this.status.set('');
       const message = error instanceof Error ? error.message : String(error);
       if (target.kind === 'window' && /0x80070057|Falscher Parameter|invalid parameter/i.test(message)) {
@@ -528,62 +543,34 @@ export class CapturePanelComponent {
   };
 
   private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
-    const canvas = document.createElement('canvas');
-    canvas.width = frame.width;
-    canvas.height = frame.height;
-    const context = canvas.getContext('2d', { willReadFrequently: false });
-    if (!context) throw new Error('Could not create the SDR clipboard conversion canvas.');
+    const imageUrl = URL.createObjectURL(new Blob([frame.sdrImage], { type: 'image/jpeg' }));
+    try {
+      const image = new Image();
+      image.src = imageUrl;
+      await image.decode();
 
-    const imageData = context.createImageData(frame.width, frame.height);
-    const output = imageData.data;
-    const pixels = frame.pixels;
+      const canvas = document.createElement('canvas');
+      canvas.width = frame.width;
+      canvas.height = frame.height;
+      const context = canvas.getContext('2d', {
+        colorSpace: 'srgb',
+        willReadFrequently: true
+      });
+      if (!context) throw new Error('Could not create the SDR readback canvas.');
 
-    const halfToFloat = (half: number): number => {
-      const sign = (half & 0x8000) !== 0 ? -1 : 1;
-      const exponent = (half >> 10) & 0x1f;
-      const fraction = half & 0x03ff;
-      if (exponent === 0) return fraction === 0 ? 0 : sign * 2 ** -14 * (fraction / 1024);
-      if (exponent === 0x1f) return fraction === 0 ? Infinity : NaN;
-      return sign * 2 ** (exponent - 15) * (1 + fraction / 1024);
-    };
-    const linearToSrgb8 = (value: number): number => {
-      const clamped = Math.min(1, Math.max(0, value));
-      const encoded = clamped <= 0.0031308
-        ? clamped * 12.92
-        : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
-      return Math.round(encoded * 255);
-    };
+      context.drawImage(image, 0, 0, frame.width, frame.height);
+      const imageData = context.getImageData(0, 0, frame.width, frame.height);
+      context.putImageData(imageData, 0, 0);
 
-    // scRGB is linear with 1.0 at the 80-nit reference white. Preserve
-    // this complete reference range for SDR output and compress only values
-    // above it. This avoids assuming a particular Windows SDR-brightness slider.
-    const highlightKnee = 1.0;
-    const highlightRolloff = 1.0;
-    for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
-      const source = pixel * 4;
-      const destination = pixel * 4;
-      // Keep the captured scRGB reference white (1.0 = 80 nits). The
-      // sRGB transfer below converts linear light to the standard SDR encoding.
-      const red = Math.max(0, halfToFloat(pixels[source]));
-      const green = Math.max(0, halfToFloat(pixels[source + 1]));
-      const blue = Math.max(0, halfToFloat(pixels[source + 2]));
-      const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-      const mappedLuminance = luminance <= highlightKnee
-        ? luminance
-        : highlightKnee + (1 - highlightKnee) * (1 - Math.exp(-(luminance - highlightKnee) / highlightRolloff));
-      const scale = luminance > 0 ? mappedLuminance / luminance : 0;
-
-      output[destination] = linearToSrgb8(red * scale);
-      output[destination + 1] = linearToSrgb8(green * scale);
-      output[destination + 2] = linearToSrgb8(blue * scale);
-      output[destination + 3] = 255;
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(result => result
+          ? resolve(result)
+          : reject(new Error('Could not encode the browser-decoded SDR image as PNG.')), 'image/png');
+      });
+      return new Uint8Array(await blob.arrayBuffer());
+    } finally {
+      URL.revokeObjectURL(imageUrl);
     }
-
-    context.putImageData(imageData, 0, 0);
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not encode the SDR clipboard image as PNG.')), 'image/png');
-    });
-    return new Uint8Array(await blob.arrayBuffer());
   };
 
   protected readonly captureNow = async (): Promise<void> => {
