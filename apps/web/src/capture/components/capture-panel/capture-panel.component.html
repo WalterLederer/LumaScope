@@ -92,7 +92,7 @@
             <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
           </div>
         }
-        <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() !== 'clipboard' && !destinationFolder())">
+        <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() === 'clipboard' && !previewFrame()) || (selectedFormat() !== 'clipboard' && !destinationFolder())">
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
