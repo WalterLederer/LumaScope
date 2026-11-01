@@ -254,7 +254,8 @@ export default class App {
       minHeight: 320,
       show: false,
       resizable: true,
-      backgroundColor: '#202124',
+      transparent: true,
+      backgroundColor: '#00000000',
       title: `Light Matter ${App.application.getVersion()} - MAP`,
       webPreferences: {
         contextIsolation: true,
