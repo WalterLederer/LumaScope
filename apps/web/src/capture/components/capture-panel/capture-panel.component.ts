@@ -329,9 +329,6 @@ export class CapturePanelComponent {
     this.selectedTarget.set(value);
     this.sourceMenuOpen.set(false);
     this.previewFrame.set(null);
-    const previousPreviewUrl = this.sdrPreviewUrl();
-    if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
-    this.sdrPreviewUrl.set('');
     this.previewSize.set('');
     this.status.set('');
     this.error.set(null);
@@ -613,7 +610,7 @@ export class CapturePanelComponent {
     canvas.height = frame.height;
     const context = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
     if (!context) throw new Error('Could not create the SDR image canvas.');
-    const imageData = context.createImageData(frame.width, frame.height, { colorSpace: 'srgb' });
+    const imageData = context.createImageData(frame.width, frame.height);
     this.applySdrToneMapping(imageData, frame, exposure);
     context.putImageData(imageData, 0, 0);
   };
