@@ -525,12 +525,16 @@ export class CapturePanelComponent {
         @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
           let dims = vec2<i32>(textureDimensions(sourceTexture));
           let coords = vec2<i32>(clamp(input.uv * vec2<f32>(dims), vec2<f32>(0.0), vec2<f32>(dims - vec2<i32>(1, 1))));
-          // WGC supplies linear scRGB. Preserve its absolute values and let
-          // the OS compositor map the extended-range canvas to the actual
-          // display. Do not apply a guessed SDR-white multiplier or a fixed
-          // HDR peak here: either would make the preview device-dependent.
-          let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb, vec3<f32>(0.0));
-          return vec4<f32>(linearColor, 1.0);
+          // Match the established HDR preview rendering: convert the captured
+          // scRGB reference white (80 nits) to the 203-nit display reference,
+          // then encode linear light as extended sRGB for the canvas.
+          fn linearToExtendedSrgb(value: vec3<f32>) -> vec3<f32> {
+            let low = value * 12.92;
+            let high = 1.055 * pow(max(value, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+            return select(high, low, value <= vec3<f32>(0.0031308));
+          }
+          let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb * 0.4, vec3<f32>(0.0));
+          return vec4<f32>(linearToExtendedSrgb(linearColor), 1.0);
         }
       ` });
       const pipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: shader, entryPoint: 'vs' }, fragment: { module: shader, entryPoint: 'fs', targets: [{ format: 'rgba16float' }] }, primitive: { topology: 'triangle-list' } });
