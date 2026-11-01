@@ -498,7 +498,7 @@
           </div>
         </div>
         <div class="status-control-group status-right">
-          <button type="button" class="status-icon-button" (click)="setDetachedMapWindowOpen(true)" title="Location" aria-label="Location">⌖</button>
+          <button type="button" class="status-icon-button status-location-button" (click)="openLocationWindow()" title="Location" aria-label="Location">⌖</button>
           <button type="button" class="status-icon-button" (click)="openCaptureWindow()" title="Capture" aria-label="Capture">▣</button>
           <button type="button" class="status-icon-button" (click)="resetCorrections()" title="Reset corrections" aria-label="Reset corrections">↺</button>
           <button type="button" class="status-icon-button" (click)="toggleSidebarVisibility()" [title]="controlsSidebarVisible() ? 'Hide right sidebar' : 'Show right sidebar'" [attr.aria-label]="controlsSidebarVisible() ? 'Hide right sidebar' : 'Show right sidebar'">▤</button>

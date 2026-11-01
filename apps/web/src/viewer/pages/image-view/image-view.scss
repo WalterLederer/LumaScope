@@ -1480,6 +1480,13 @@
   line-height: 1;
   cursor: pointer;
 }
+:host .image-status-bar .status-location-button {
+  width: 36px;
+  min-width: 36px;
+  height: 32px;
+  font-size: 1.75rem;
+  line-height: .85;
+}
 :host .image-status-bar .status-icon-button:hover:not(:disabled) {
   background: var(--color-content-default-low);
 }

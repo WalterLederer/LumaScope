@@ -218,6 +218,14 @@ export default class App {
     return App.mapWindow !== null && !App.mapWindow.isDestroyed();
   }
 
+  static focusMapWindow(): boolean {
+    if (!App.isMapWindowOpen()) return false;
+    if (App.mapWindow.isMinimized()) App.mapWindow.restore();
+    App.mapWindow.show();
+    App.mapWindow.focus();
+    return true;
+  }
+
   static openMapWindow(latitude: number, longitude: number, bearing?: number): boolean {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {

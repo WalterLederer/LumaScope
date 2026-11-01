@@ -70,6 +70,7 @@ const api: Desktop = {
     open: (latitude: number, longitude: number, bearing?: number) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing),
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
+    focus: () => ipcRenderer.invoke('MapWindow.focus'),
     setAlwaysOnTop: (enabled: boolean) => ipcRenderer.invoke('MapWindow.setAlwaysOnTop', enabled),
     onStateChanged: (callback: (open: boolean) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);

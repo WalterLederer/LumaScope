@@ -147,6 +147,16 @@ export class ImageView {
     await this.desktopApi?.CapturePreviewWindow.open();
   };
 
+  protected readonly openLocationWindow = async (): Promise<void> => {
+    const api = this.desktopApi?.MapWindow;
+    if (!api) return;
+    if (this.detachedMapWindowOpen()) {
+      await api.focus();
+      return;
+    }
+    await this.setDetachedMapWindowOpen(true);
+  };
+
   protected readonly setDetachedMapWindowOpen = async (open: boolean): Promise<void> => {
     const coordinates = this.gpsCoordinates();
     const api = this.desktopApi?.MapWindow;

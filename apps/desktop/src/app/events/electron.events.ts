@@ -1176,6 +1176,7 @@ ipcMain.handle('MapWindow.open', (_event, latitude: number, longitude: number, b
 );
 ipcMain.handle('MapWindow.close', (): void => App.closeMapWindow());
 ipcMain.handle('MapWindow.isOpen', (): boolean => App.isMapWindowOpen());
+ipcMain.handle('MapWindow.focus', (): boolean => App.focusMapWindow());
 ipcMain.handle('MapWindow.setAlwaysOnTop', (_event, enabled: boolean): boolean =>
   App.setMapWindowAlwaysOnTop(enabled)
 );
