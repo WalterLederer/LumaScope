@@ -223,10 +223,11 @@ public static class LightMatterForegroundWindow {
     '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
   ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
   const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
-  if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0 || foreground.processId === process.pid) {
+  if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0
+    || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0
+    || foreground.processId === process.pid) {
     throw new Error('No external foreground window was found after hiding Light Matter.');
   }
-  if (!foreground.title?.trim()) throw new Error('The foreground window has no title and cannot be used as a capture source.');
   return foreground.handle;
 };
 
