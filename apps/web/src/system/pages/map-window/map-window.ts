@@ -29,20 +29,22 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
-        <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
+        <div class="map-title"><span class="map-title-icon">⌖</span><strong>Location</strong></div>
         <span class="map-coordinates">{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
         <div class="map-title-actions">
-          <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
-          <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
           <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
                   [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">⚙ <span>Settings</span></button>
         </div>
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
+          <div class="settings-group map-actions-settings">
+            <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
+            <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
+          </div>
           <div class="settings-group">
             <label>Open location in
               <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
@@ -141,6 +143,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
