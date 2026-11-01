@@ -131,12 +131,12 @@ export interface CapturePreview {
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr';
 
 export interface DesktopMapWindow {
-  readonly open: (latitude: number, longitude: number) => Promise<boolean>;
+  readonly open: (latitude: number, longitude: number, bearing?: number) => Promise<boolean>;
   readonly close: () => Promise<void>;
   readonly isOpen: () => Promise<boolean>;
   readonly setAlwaysOnTop: (enabled: boolean) => Promise<boolean>;
   readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
-  readonly onLocationChanged: (callback: (location: { latitude: number; longitude: number }) => void) => () => void;
+  readonly onLocationChanged: (callback: (location: { latitude: number; longitude: number; bearing?: number | null }) => void) => () => void;
 }
 
 export interface DesktopCapturePreviewWindow {

@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; getLatLng(): { lat: number; lng: number }; }
 interface MapBounds { isValid(): boolean; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
@@ -31,7 +31,9 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
       <header class="map-titlebar">
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
         <div class="map-title-actions">
-          <span class="map-coordinates">{{ coordinateLabel() }}</span>
+          <span class="map-coordinates">{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span>
+          <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
+          <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
           <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
                   [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">⚙ <span>Settings</span></button>
         </div>
@@ -54,18 +56,19 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
               </select>
             </label>
+          </div>
+          <div class="settings-group opacity-settings">
             <label class="range-setting">Map opacity <span>{{ mapOpacity() }}%</span>
               <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
             </label>
           </div>
           <div class="settings-group">
             <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
-            <label class="range-setting">Zoom <span>{{ zoomLevel() }}</span>
-              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)">
-            </label>
-            <div class="zoom-buttons">
-              <button type="button" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-              <button type="button" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+            <div class="zoom-control">
+              <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+              <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+              <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
           <div class="settings-group gpx-settings">
@@ -123,11 +126,22 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
+    .zoom-control{display:flex;align-items:center;gap:6px;flex:1;min-width:210px}
+    .zoom-control input{flex:1;min-width:70px;accent-color:#8ab4f8}
+    .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
+    .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
+    .map-toolbar-button{width:27px;height:27px;padding:0;font-size:16px}
+    .opacity-settings{width:100%;flex-basis:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0}
+    .opacity-settings .range-setting{flex:1;min-width:180px}
+    .opacity-settings .range-setting input{flex:1;width:auto}
+    :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
+    :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
     :host-context(html[data-theme='light']) .map-settings{background:#f7f7f8;border-color:#d0d3d8}
     :host-context(html[data-theme='light']) button,:host-context(html[data-theme='light']) select{color:#202124;background:#fff;border-color:#c5c8ce}
     :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
+    :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -158,6 +172,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
   protected readonly coordinateLabel = signal('');
+  protected readonly bearing = signal<number | null>(null);
+  protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors = [
     { name: 'Red', value: '#ff3b30', textColor: '#ffffff' }, { name: 'Orange', value: '#ff9500', textColor: '#171717' },
     { name: 'Yellow', value: '#ffd60a', textColor: '#171717' }, { name: 'Green', value: '#34c759', textColor: '#102014' },
@@ -169,6 +185,8 @@ export class MapWindow implements OnInit, OnDestroy {
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
+    const initialBearing = Number(this.route.snapshot.queryParamMap.get('bearing'));
+    this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
     const latitude = Number(this.route.snapshot.queryParamMap.get('lat'));
     const longitude = Number(this.route.snapshot.queryParamMap.get('lon'));
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
@@ -187,6 +205,18 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private readonly onResize = (): void => { this.map?.invalidateSize(); };
 
+  protected readonly copyCoordinates = async (): Promise<void> => {
+    const marker = this.marker?.getLatLng(); if (!marker) return;
+    try { await navigator.clipboard.writeText(marker.lat.toFixed(6) + ', ' + marker.lng.toFixed(6)); }
+    catch (error) { console.error('Failed to copy GPS coordinates', error); }
+  };
+  protected readonly centerMarker = (): void => {
+    const marker = this.marker?.getLatLng();
+    if (marker) this.map?.setView([marker.lat, marker.lng], this.map.getZoom());
+  };
+  private compassDirection(degrees: number): string {
+    return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(degrees / 22.5) % 16];
+  }
   protected readonly toggleSettings = (): void => { this.settingsOpen.update(open => !open); };
   protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
@@ -230,6 +260,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
       const next: [number, number] = [location.latitude, location.longitude];
       this.coordinateLabel.set(`${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`);
+      this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       this.marker?.setLatLng(next);
       this.map?.setView(next, this.map.getZoom());
     }) ?? null;

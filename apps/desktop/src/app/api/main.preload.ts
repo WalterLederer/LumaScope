@@ -67,7 +67,7 @@ const api: Desktop = {
   },
 
   MapWindow: {
-    open: (latitude: number, longitude: number) => ipcRenderer.invoke('MapWindow.open', latitude, longitude),
+    open: (latitude: number, longitude: number, bearing?: number) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing),
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
     setAlwaysOnTop: (enabled: boolean) => ipcRenderer.invoke('MapWindow.setAlwaysOnTop', enabled),
@@ -76,7 +76,7 @@ const api: Desktop = {
       ipcRenderer.on('MapWindow.stateChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
     },
-    onLocationChanged: (callback: (location: { latitude: number; longitude: number }) => void) => {
+    onLocationChanged: (callback: (location: { latitude: number; longitude: number; bearing?: number | null }) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number; longitude: number }): void => callback(location);
       ipcRenderer.on('MapWindow.locationChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.locationChanged', listener);

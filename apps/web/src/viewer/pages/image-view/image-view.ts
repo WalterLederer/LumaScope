@@ -153,7 +153,7 @@ export class ImageView {
     if (!api) return;
     if (open) {
       if (!coordinates) return;
-      await api.open(coordinates.latitude, coordinates.longitude);
+      await api.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined);
       this.detachedMapWindowOpen.set(true);
     } else {
       await api.close();
@@ -1339,7 +1339,10 @@ export class ImageView {
     const latitude = parseCoordinate(tags['GPSLatitude'], tags['GPSLatitudeRef']);
     const longitude = parseCoordinate(tags['GPSLongitude'], tags['GPSLongitudeRef']);
     if (latitude === null || longitude === null || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
-    return { latitude, longitude };
+    const directionParts = String(tags['GPSImgDirection'] ?? '').match(/-?\d+(?:\.\d+)?/g);
+    const directionValue = directionParts?.length ? Number(directionParts[0]) : NaN;
+    const direction = Number.isFinite(directionValue) ? ((directionValue % 360) + 360) % 360 : null;
+    return { latitude, longitude, direction };
   });
 
   protected readonly copyLocation = async (): Promise<void> => {
@@ -1520,7 +1523,7 @@ export class ImageView {
     effect(() => {
       const coordinates = this.gpsCoordinates();
       if (this.detachedMapWindowOpen() && coordinates) {
-        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude);
+        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined);
       }
     });
 

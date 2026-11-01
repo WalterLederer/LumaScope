@@ -218,14 +218,14 @@ export default class App {
     return App.mapWindow !== null && !App.mapWindow.isDestroyed();
   }
 
-  static openMapWindow(latitude: number, longitude: number): boolean {
+  static openMapWindow(latitude: number, longitude: number, bearing?: number): boolean {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
       throw new Error('The map window requires valid GPS coordinates.');
     }
 
     if (App.isMapWindowOpen()) {
-      App.mapWindow.webContents.send('MapWindow.locationChanged', { latitude, longitude });
+      App.mapWindow.webContents.send('MapWindow.locationChanged', { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null });
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
       App.mapWindow.showInactive();
       return true;
@@ -251,7 +251,7 @@ export default class App {
     App.mapWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
-    const hash = `/map?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`;
+    const hash = `/map?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}`;
     if (!App.application.isPackaged) {
       App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
     } else {
