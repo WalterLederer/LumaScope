@@ -79,7 +79,7 @@
             <option value="clipboard">Windows Clipboard (SDR-compatible)</option>
           </select>
           <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
-            {{ previewing() ? 'Previewing…' : 'Preview' }}
+            {{ previewing() ? 'Capturing…' : 'Capture' }}
           </button>
         </div>
       </label>
