@@ -400,24 +400,11 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
     return cropWindowFromMonitorFrame(handle,key);
   }
 
-  const appWindows=[App.mainWindow,App.capturePreviewWindow,App.mapWindow]
-    .filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
-  const states=appWindows.map(window=>({window,visible:window.isVisible(),focused:window.isFocused()}));
-  const restoreWindow=states.find(item=>item.focused)?.window
-    ?? (ownerWindow&&!ownerWindow.isDestroyed()?ownerWindow:states.find(item=>item.visible)?.window);
-  try {
-    for(const item of states) if(item.visible) item.window.hide();
-    await new Promise(resolve=>setTimeout(resolve,180));
-    const handle=getForegroundWindowHandle();
-    return cropWindowFromMonitorFrame(handle,'top-window');
-  } finally {
-    for(const item of states) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
-    if(restoreWindow&&!restoreWindow.isDestroyed()){
-      if(restoreWindow.isMinimized()) restoreWindow.restore();
-      restoreWindow.show();
-      restoreWindow.focus();
-    }
-  }
+  // Find the topmost external application window without hiding Light Matter.
+  // The window enumeration explicitly excludes this process, so the capture UI
+  // can remain visible while the selected external window is cropped.
+  const handle=getForegroundWindowHandle();
+  return cropWindowFromMonitorFrame(handle,'top-window');
 };
 
 const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; x: number; y: number; width: number; height: number } => {
@@ -509,8 +496,30 @@ const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null
   }
 };
 
-const captureTargetFrame = (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> =>
-  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow) : target.kind==='rectangle' ? captureRectangleFrame(ownerWindow) : captureHdrFrame(target);
+const captureTargetFrame = async (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
+  if (target.kind === 'monitor') {
+    const appWindows=[App.mainWindow,App.capturePreviewWindow,App.mapWindow]
+      .filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
+    const states=appWindows.map(window=>({window,visible:window.isVisible(),focused:window.isFocused()}));
+    const restoreWindow=states.find(item=>item.focused)?.window
+      ?? (ownerWindow&&!ownerWindow.isDestroyed()?ownerWindow:states.find(item=>item.visible)?.window);
+    try {
+      for(const item of states) if(item.visible) item.window.hide();
+      await new Promise(resolve=>setTimeout(resolve,180));
+      return await captureHdrFrame(target);
+    } finally {
+      for(const item of states) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
+      if(restoreWindow&&!restoreWindow.isDestroyed()){
+        if(restoreWindow.isMinimized()) restoreWindow.restore();
+        restoreWindow.show();
+        restoreWindow.focus();
+      }
+    }
+  }
+  if (target.kind === 'top-window') return captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow);
+  if (target.kind === 'rectangle') return captureRectangleFrame(ownerWindow);
+  return captureHdrFrame(target);
+};
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
