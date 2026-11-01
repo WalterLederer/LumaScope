@@ -87,8 +87,10 @@
       <div class="capture-destination">
         @if (selectedFormat() !== 'clipboard') {
           <span>Save folder</span>
-          <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
-          <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
+          <div class="capture-folder-row">
+            <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
+            <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
+          </div>
         }
         <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || (selectedFormat() !== 'clipboard' && !destinationFolder())">
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
