@@ -489,11 +489,22 @@ export class CapturePanelComponent {
         @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
           let dims = vec2<i32>(textureDimensions(sourceTexture));
           let coords = vec2<i32>(clamp(input.uv * vec2<f32>(dims), vec2<f32>(0.0), vec2<f32>(dims - vec2<i32>(1, 1))));
-          // The rgba16float canvas is configured for the sRGB color space.
-          // Keep shader output linear so the canvas performs the linear-to-sRGB
-          // conversion exactly once when presenting or exporting the preview.
-          let linearColor = textureLoad(sourceTexture, coords, 0).rgb * 0.4;
-          return vec4<f32>(linearColor, 1.0);
+          // WGC returns linear scRGB where 1.0 represents 80 nits.
+          // Correct the capture to reference white, then gently compress HDR
+          // highlights to the BenQ HDR300 preview's approximately 3.75 scRGB
+          // peak while leaving SDR-range values and their colours unchanged.
+          let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb, vec3<f32>(0.0)) * 0.4;
+          let luminance = dot(linearColor, vec3<f32>(0.2126, 0.7152, 0.0722));
+          let displayPeak = 3.75;
+          let highlightKnee = 1.0;
+          let highlightRolloff = 4.0;
+          let mappedLuminance = select(
+            luminance,
+            highlightKnee + (displayPeak - highlightKnee) * (1.0 - exp(-(luminance - highlightKnee) / highlightRolloff)),
+            luminance > highlightKnee
+          );
+          let mappedColor = select(linearColor, linearColor * (mappedLuminance / max(luminance, 0.000001)), luminance > highlightKnee);
+          return vec4<f32>(mappedColor, 1.0);
         }
       ` });
       const pipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: shader, entryPoint: 'vs' }, fragment: { module: shader, entryPoint: 'fs', targets: [{ format: 'rgba16float' }] }, primitive: { topology: 'triangle-list' } });
