@@ -79,11 +79,19 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
           <div class="settings-group opacity-settings">
             <strong class="settings-row-title">Opacity:</strong>
-            <label class="range-setting">Map <span>{{ mapOpacity() }}%</span>
+            <label class="range-setting">Map
               <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+              <span class="range-value">{{ mapOpacity() }}%</span>
             </label>
-            <label class="range-setting">Track <span>{{ gpxOpacity() }}%</span>
+            <span class="opacity-divider" aria-hidden="true"></span>
+            <label class="range-setting">Track
               <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+              <span class="range-value">{{ gpxOpacity() }}%</span>
+            </label>
+            <span class="opacity-divider" aria-hidden="true"></span>
+            <label class="range-setting window-opacity-setting">Window
+              <input type="range" min="0" max="100" step="1" [value]="windowOpacity()" (input)="changeWindowOpacity($any($event.target).value)" title="Window opacity">
+              <span class="range-value">{{ windowOpacity() }}%</span>
             </label>
           </div>
           <div class="settings-group zoom-settings">
@@ -168,8 +176,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-toolbar-button{width:27px;height:27px;padding:0;font-size:16px}
     .opacity-settings{order:2;width:100%;flex:0 0 100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:12px}
     .opacity-settings .settings-row-title{flex:0 0 auto}
-    .opacity-settings .range-setting{flex:1;min-width:180px}
-    .opacity-settings .range-setting input{flex:1;width:auto}
+    .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:150px}
+    .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
+    .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
+    .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
+    .window-opacity-setting{flex:1.1}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
@@ -201,6 +212,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
+  protected readonly windowOpacity = signal(this.readNumber('windowOpacity', 100, 0, 100));
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
@@ -222,6 +234,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
+    this.applyWindowOpacity();
     this.applyAlwaysOnTop();
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
@@ -355,6 +368,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapStyle();
     this.applyMapColor();
     this.applyMapOpacity();
+    this.applyWindowOpacity();
     await this.restoreGpxTrack();
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
       const next: [number, number] = [location.latitude, location.longitude];
@@ -389,6 +403,19 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!(value in this.filters)) return;
     this.mapColor.set(value as MapColor); this.saveSetting('color', value); this.applyMapColor();
   };
+  protected readonly changeWindowOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.windowOpacity.set(next);
+    this.saveSetting('windowOpacity', next);
+    this.applyWindowOpacity();
+  };
+  private applyWindowOpacity(): void {
+    const opacity = this.windowOpacity() / 100;
+    const mapWindow = this.mapElement().nativeElement.closest<HTMLElement>('.map-window');
+    if (mapWindow) mapWindow.style.opacity = String(opacity);
+  }
+
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
