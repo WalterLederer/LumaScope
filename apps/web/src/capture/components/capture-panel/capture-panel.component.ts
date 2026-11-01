@@ -548,7 +548,6 @@ export class CapturePanelComponent {
         if (!this.previewFrame() || !canvas) {
           throw new Error('Capture a source first so the rendered WebGPU preview is available.');
         }
-        await this.previewDevice?.destroy?.();
         const pngBlob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not export the WebGPU preview as PNG.')), 'image/png');
         });
