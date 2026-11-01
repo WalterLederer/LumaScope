@@ -60,6 +60,9 @@ export class CapturePanelComponent {
     this.includeLightMatterWindows.set(enabled);
     try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
+    this.previewFrame.set(null);
+    this.previewSize.set('');
+    void this.previewNow();
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
