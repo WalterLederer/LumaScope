@@ -1306,7 +1306,7 @@ const createUhdrPreviewImage = async (frame: CapturedHdrFrame): Promise<Uint8Arr
 
 ipcMain.handle(
   'Capture.preview',
-  async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; }> => {
+  async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; sdrImage: Uint8Array; }> => {
     // console.info('[HDR Capture] preview requested');
     // Always capture a fresh frame for Preview. The resulting frame remains cached
     // so Save can reuse exactly the image the user just inspected.
