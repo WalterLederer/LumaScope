@@ -25,11 +25,30 @@
 
 .capture-field,
 .capture-destination {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 5px 8px;
   min-width: 0;
+}
+
+.capture-destination > span {
+  grid-column: 1 / -1;
+}
+
+.capture-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.capture-folder-row .capture-folder-path {
+  flex: 1 1 auto;
+}
+
+.capture-destination > .capture-primary-button {
+  justify-self: end;
 }
 
 .capture-field > span,
@@ -67,8 +86,35 @@
 }
 
 .capture-source-chevron {
+  display: inline-flex;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  font-size: 1.2rem;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.capture-control-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.capture-control-row .capture-source-picker,
+.capture-control-row select {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+}
+
+.capture-inline-button {
   flex: 0 0 auto;
-  opacity: 0.7;
+  width: auto;
+  min-width: 84px;
+  white-space: nowrap;
 }
 
 .capture-source-menu {
