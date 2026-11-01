@@ -96,10 +96,7 @@
           {{ capturing() ? 'Saving…' : selectedFormat() === 'clipboard' ? 'COPY to Windows Clipboard' : 'Save' }}
         </button>
       </div>
-        @if (previewFrame()) {
-          <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
-        }
-        @if (status()) {
+        @if (status() && !status().startsWith('Capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
         }
         @if (error()) {
@@ -110,6 +107,12 @@
         }
       <details class="capture-advanced-settings">
         <summary>Advanced Settings</summary>
+        @if (previewFrame()) {
+          <p class="capture-status">FP16/scRGB capture available · {{ previewSize() }} · WebGPU HDR capture</p>
+        }
+        @if (status() && status().startsWith('Capture ready')) {
+          <p class="capture-status" role="status">{{ status() }}</p>
+        }
         <label class="capture-field capture-gamma-option">
           <span><input type="checkbox" [checked]="applyGammaCorrectionOnSave()" (change)="setApplyGammaCorrectionOnSave($any($event.target).checked)" [disabled]="capturing() || previewing()"/> Gamma correction (saved file only)</span>
         </label>
