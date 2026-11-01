@@ -106,7 +106,7 @@ const api: Desktop = {
     chooseFolder: (initialPath?: string) => ipcRenderer.invoke('Capture.chooseFolder', initialPath),
     preview: target => ipcRenderer.invoke('Capture.preview', target),
     capture: (target, folder: string, format?: 'exr' | 'jxr' | 'uhdr' | 'clipboard', gammaCorrection?: number, encoderQuality?: number) => ipcRenderer.invoke('Capture.capture', target, folder, format, gammaCorrection, encoderQuality),
-    copyPreviewToClipboard: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke('Capture.copyPreviewToClipboard', bounds)
+    copyPreviewToClipboard: (pngData: Uint8Array) => ipcRenderer.invoke('Capture.copyPreviewToClipboard', pngData)
   },
 
   // TODO: Deprecated methods, should be moved into a handler class in the future
