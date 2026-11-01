@@ -173,7 +173,7 @@ export default class App {
       minWidth: 480,
       minHeight: 320,
       show: false,
-      title: 'Light Matter — HDR Capture',
+      title: `Light Matter ${App.application.getVersion()} - CAPTURE PREVIEW`,
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -246,9 +246,9 @@ export default class App {
       minWidth: 420,
       minHeight: 320,
       show: false,
-      transparent: true,
-      backgroundColor: '#00000000',
-      title: 'Light Matter — Image Location - MAP',
+      resizable: true,
+      backgroundColor: '#202124',
+      title: `Light Matter ${App.application.getVersion()} - MAP`,
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
