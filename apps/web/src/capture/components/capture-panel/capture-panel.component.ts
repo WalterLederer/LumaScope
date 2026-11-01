@@ -84,7 +84,7 @@ export class CapturePanelComponent {
   protected readonly sdrDiagnostics = signal<{
     maxR: number; maxG: number; maxB: number;
     above05: number; above1: number; above2: number; above4: number;
-    whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; pixelCount: number;
+    whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; diagnosticP95: number; diagnosticP99: number; diagnosticP999: number; diagnosticP9999: number; above3: number; above31: number; above32: number; above324: number; pixelCount: number;
   } | null>(null);
   protected readonly sdrExposure = signal(this.readSavedSdrExposure());
   protected readonly setSdrExposure = (value: number): void => {
@@ -586,12 +586,20 @@ export class CapturePanelComponent {
     // Build a logarithmic luminance histogram first so the highlight white
     // point can adapt to the captured image without changing the dark range.
     const histogram = new Uint32Array(32768);
+    // A separate linear histogram gives precise diagnostic percentiles in the
+    // scRGB range relevant to this capture, without changing the tone curve.
+    const diagnosticHistogram = new Uint32Array(65536);
+    const diagnosticRange = 4;
     const logMin = Math.log(0.000001);
     const logMax = Math.log(65504);
     const logRange = logMax - logMin;
     const pixelCount = frame.width * frame.height;
     let zeroLuminancePixels = 0;
     let maxLuminance = 0;
+    let above3 = 0;
+    let above31 = 0;
+    let above32 = 0;
+    let above324 = 0;
     let maxR = 0;
     let maxG = 0;
     let maxB = 0;
@@ -619,6 +627,13 @@ export class CapturePanelComponent {
 
       const luminance = positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722;
       maxLuminance = Math.max(maxLuminance, luminance);
+      if (luminance > 3) above3++;
+      if (luminance > 3.1) above31++;
+      if (luminance > 3.2) above32++;
+      if (luminance > 3.24) above324++;
+      const diagnosticBin = Math.min(diagnosticHistogram.length - 1,
+        Math.max(0, Math.floor(luminance / diagnosticRange * diagnosticHistogram.length)));
+      diagnosticHistogram[diagnosticBin]++;
       if (luminance > 0) {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
@@ -645,6 +660,24 @@ export class CapturePanelComponent {
     const p99 = percentile(0.99);
     const p999 = percentile(0.999);
     const p9999 = percentile(0.9999);
+
+    // Diagnostic percentiles use a high-resolution linear histogram. Keep
+    // them separate from the logarithmic values used by the existing curve.
+    const diagnosticPercentile = (fraction: number): number => {
+      const target = Math.max(1, Math.ceil(pixelCount * fraction));
+      let cumulative = 0;
+      for (let bin = 0; bin < diagnosticHistogram.length; bin++) {
+        cumulative += diagnosticHistogram[bin];
+        if (cumulative >= target) {
+          return (bin + 0.5) / diagnosticHistogram.length * diagnosticRange;
+        }
+      }
+      return maxLuminance;
+    };
+    const diagnosticP95 = diagnosticPercentile(0.95);
+    const diagnosticP99 = diagnosticPercentile(0.99);
+    const diagnosticP999 = diagnosticPercentile(0.999);
+    const diagnosticP9999 = diagnosticPercentile(0.9999);
 
     // Keep the existing linear response below the knee. Place true SDR white
     // just above the 99.99th luminance percentile so isolated extreme values
@@ -708,7 +741,9 @@ export class CapturePanelComponent {
 
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
-      maxLuminance, p95, p99, p999, p9999, pixelCount
+      maxLuminance, p95, p99, p999, p9999,
+      diagnosticP95, diagnosticP99, diagnosticP999, diagnosticP9999,
+      above3, above31, above32, above324, pixelCount
     });
   };
 
