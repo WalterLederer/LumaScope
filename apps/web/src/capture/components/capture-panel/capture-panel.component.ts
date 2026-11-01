@@ -560,9 +560,12 @@ export class CapturePanelComponent {
     for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
       const source = pixel * 4;
       const destination = pixel * 4;
-      const red = Math.max(0, halfToFloat(pixels[source]));
-      const green = Math.max(0, halfToFloat(pixels[source + 1]));
-      const blue = Math.max(0, halfToFloat(pixels[source + 2]));
+      // Match the HDR preview's scRGB-to-reference-white correction before
+      // converting the linear FP16 values to an SDR sRGB clipboard image.
+      const brightnessCorrection = 0.4;
+      const red = Math.max(0, halfToFloat(pixels[source]) * brightnessCorrection);
+      const green = Math.max(0, halfToFloat(pixels[source + 1]) * brightnessCorrection);
+      const blue = Math.max(0, halfToFloat(pixels[source + 2]) * brightnessCorrection);
       const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
       const mappedLuminance = luminance <= highlightKnee
         ? luminance
