@@ -14,6 +14,6 @@ export class CaptureService implements DesktopCapture {
   readonly capture = (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number): Promise<CaptureResult> =>
     window.desktop.Capture.capture(target, folder, format, gammaCorrection, encoderQuality);
 
-  readonly copyPreviewToClipboard = (bounds: { x: number; y: number; width: number; height: number }): Promise<CaptureResult> =>
-    window.desktop.Capture.copyPreviewToClipboard(bounds);
+  readonly copyPreviewToClipboard = (pngData: Uint8Array): Promise<CaptureResult> =>
+    window.desktop.Capture.copyPreviewToClipboard(pngData);
 }
