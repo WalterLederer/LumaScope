@@ -84,7 +84,7 @@
         </div>
       </label>
 
-      <div class="capture-destination">
+      <div class="capture-destination" [class.clipboard-destination]="selectedFormat() === 'clipboard'">
         @if (selectedFormat() !== 'clipboard') {
           <span>Save folder</span>
           <div class="capture-folder-row">
