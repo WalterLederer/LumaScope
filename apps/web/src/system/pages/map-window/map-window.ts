@@ -27,14 +27,14 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   selector: 'app-map-window',
   standalone: true,
   template: `
-    <main class="map-window" [class.light-theme]="themeService.current() === 'light'" [style.opacity]="windowOpacity() / 100">
+    <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Image location</strong></div>
+        <span class="map-coordinates">{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
         <div class="map-title-actions">
-          <span class="map-coordinates">{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span>
           <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
           <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
           <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
@@ -44,12 +44,6 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
           <div class="settings-group">
-            <label>Coordinate format
-              <select [value]="coordinateFormat()" (change)="changeCoordinateFormat($any($event.target).value)">
-                <option value="dms">Degrees / minutes / seconds</option>
-                <option value="decimal">Decimal degrees</option>
-              </select>
-            </label>
             <label>Open location in
               <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
                 <option value="">Select web app…</option>
@@ -86,11 +80,6 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             <label class="range-setting">Track
               <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
               <span class="range-value">{{ gpxOpacity() }}%</span>
-            </label>
-            <span class="opacity-divider" aria-hidden="true"></span>
-            <label class="range-setting window-opacity-setting">Window
-              <input type="range" min="0" max="100" step="1" [value]="windowOpacity()" (input)="changeWindowOpacity($any($event.target).value)" title="Window opacity">
-              <span class="range-value">{{ windowOpacity() }}%</span>
             </label>
           </div>
           <div class="settings-group zoom-settings">
@@ -178,7 +167,6 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
-    .window-opacity-setting{flex:1.1}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
@@ -210,14 +198,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
-  protected readonly windowOpacity = signal(this.readNumber('windowOpacity', 100, 0, 100));
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
-  protected readonly coordinateFormat = signal<'dms' | 'decimal'>(this.readSetting('coordinateFormat', 'dms') === 'decimal' ? 'decimal' : 'dms');
   protected readonly coordinateLabel = signal('');
   protected readonly locationAddress = signal('');
   protected readonly bearing = signal<number | null>(null);
@@ -275,21 +261,12 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private formatCoordinates(latitude: number, longitude: number): string {
-    if (this.coordinateFormat() === 'decimal') {
-      const latHemisphere = latitude < 0 ? 'S' : 'N';
-      const lonHemisphere = longitude < 0 ? 'W' : 'E';
-      return `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
-    }
-    return `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
+    const dms = `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
+    const latHemisphere = latitude < 0 ? 'S' : 'N';
+    const lonHemisphere = longitude < 0 ? 'W' : 'E';
+    const decimal = `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
+    return `DMS: ${dms}  |  Decimal: ${decimal}`;
   }
-
-  protected readonly changeCoordinateFormat = (value: string): void => {
-    if (value !== 'dms' && value !== 'decimal') return;
-    this.coordinateFormat.set(value);
-    this.saveSetting('coordinateFormat', value);
-    const marker = this.marker?.getLatLng();
-    if (marker) this.coordinateLabel.set(this.formatCoordinates(marker.lat, marker.lng));
-  };
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
     this.locationAddress.set('Looking up address…');
@@ -398,12 +375,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeMapColor = (value: string): void => {
     if (!(value in this.filters)) return;
     this.mapColor.set(value as MapColor); this.saveSetting('color', value); this.applyMapColor();
-  };
-  protected readonly changeWindowOpacity = (value: string | number): void => {
-    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
-    const next = Math.max(0, Math.min(100, Math.round(opacity)));
-    this.windowOpacity.set(next);
-    this.saveSetting('windowOpacity', next);
   };
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
