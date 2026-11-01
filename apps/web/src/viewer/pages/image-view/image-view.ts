@@ -1178,7 +1178,7 @@ export class ImageView {
     },
     topographic: {
       url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-      attribution: 'Kartendaten: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende, SRTM &middot; Kartendarstellung: &copy; <a href="https://opentopomap.org/">OpenTopoMap</a> (CC-BY-SA)',
+      attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM &middot; Map rendering: &copy; <a href="https://opentopomap.org/">OpenTopoMap</a> (CC-BY-SA)',
       maxZoom: 17,
       maxNativeZoom: 17,
       maxDisplayZoom: 20
