@@ -182,6 +182,12 @@ export default class App {
       }
     });
     App.capturePreviewWindow.setMenu(null);
+    const capturePreviewWindowTitle = `Light Matter ${App.application.getVersion()} - CAPTURE PREVIEW`;
+    App.capturePreviewWindow.webContents.on('page-title-updated', event => {
+      event.preventDefault();
+      App.capturePreviewWindow?.setTitle(capturePreviewWindowTitle);
+    });
+    App.capturePreviewWindow.setTitle(capturePreviewWindowTitle);
     App.capturePreviewWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('capture'));
     App.capturePreviewWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('capture'));
     App.capturePreviewWindow.on('close', () => { void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds()); });
@@ -257,6 +263,12 @@ export default class App {
       }
     });
     App.mapWindow.setMenu(null);
+    const mapWindowTitle = `Light Matter ${App.application.getVersion()} - MAP`;
+    App.mapWindow.webContents.on('page-title-updated', event => {
+      event.preventDefault();
+      App.mapWindow?.setTitle(mapWindowTitle);
+    });
+    App.mapWindow.setTitle(mapWindowTitle);
     App.mapWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
