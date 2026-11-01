@@ -95,10 +95,6 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
-          <div class="settings-group address-settings">
-            <strong class="settings-row-title">Location:</strong>
-            <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
-          </div>
           <div class="settings-group gpx-settings">
             <strong class="settings-row-title">GPX track:</strong>
             <button type="button" (click)="importGpxTrack()">Import GPX…</button>
@@ -123,6 +119,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             </div>
             @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
+          </div>
+          <div class="settings-group address-settings">
+            <strong class="settings-row-title">Location:</strong>
+            <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
           </div>
         </section>
       }
