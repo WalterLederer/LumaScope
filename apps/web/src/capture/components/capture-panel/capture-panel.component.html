@@ -155,7 +155,9 @@
           <p>Pixels with any RGB channel above — 0.5: {{ diag.above05.toLocaleString() }} · 1.0: {{ diag.above1.toLocaleString() }} · 2.0: {{ diag.above2.toLocaleString() }} · 4.0: {{ diag.above4.toLocaleString() }}</p>
           <p>SDR pure-white pixels (255/255/255): {{ diag.whitePixels.toLocaleString() }}</p>
           <p>FP16 maximum linear luminance: {{ diag.maxLuminance.toFixed(5) }}</p>
-          <p>FP16 linear luminance percentiles — P95: {{ diag.p95.toFixed(5) }} · P99: {{ diag.p99.toFixed(5) }} · P99.9: {{ diag.p999.toFixed(5) }} · P99.99: {{ diag.p9999.toFixed(5) }}</p>
+          <p>FP16 linear luminance percentiles (existing log histogram) — P95: {{ diag.p95.toFixed(5) }} · P99: {{ diag.p99.toFixed(5) }} · P99.9: {{ diag.p999.toFixed(5) }} · P99.99: {{ diag.p9999.toFixed(5) }}</p>
+          <p>FP16 linear luminance percentiles (high-resolution linear histogram) — P95: {{ diag.diagnosticP95.toFixed(5) }} · P99: {{ diag.diagnosticP99.toFixed(5) }} · P99.9: {{ diag.diagnosticP999.toFixed(5) }} · P99.99: {{ diag.diagnosticP9999.toFixed(5) }}</p>
+          <p>Pixels with luminance above — 3.00: {{ diag.above3.toLocaleString() }} · 3.10: {{ diag.above31.toLocaleString() }} · 3.20: {{ diag.above32.toLocaleString() }} · 3.24: {{ diag.above324.toLocaleString() }}</p>
         </details>
       }
     </figure>
