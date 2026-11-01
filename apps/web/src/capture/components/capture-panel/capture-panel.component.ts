@@ -7,6 +7,22 @@ import { CapturePreviewStore } from '../../capture-preview-store';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 
+// Half-float lookup used to convert the captured FP16/scRGB frame directly to SDR.
+const halfFloatLookup = (() => {
+  const values = new Float32Array(0x10000);
+  for (let bits = 0; bits < values.length; bits++) {
+    const sign = (bits & 0x8000) === 0 ? 1 : -1;
+    const exponent = (bits >>> 10) & 0x1f;
+    const mantissa = bits & 0x03ff;
+    values[bits] = exponent === 0
+      ? sign * mantissa * Math.pow(2, -24)
+      : exponent === 0x1f
+        ? mantissa === 0 ? sign * Infinity : NaN
+        : sign * (1 + mantissa / 1024) * Math.pow(2, exponent - 15);
+  }
+  return values;
+})();
+
 type CaptureSourceRow = {
   value: string;
   kind: 'monitor' | 'window' | 'top-window' | 'rectangle';
@@ -49,8 +65,6 @@ export class CapturePanelComponent {
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
   protected readonly previewSize = signal('');
-  protected readonly sdrPreviewUrl = signal('');
-  protected readonly sdrPreviewImage = viewChild<ElementRef<HTMLImageElement>>('sdrPreviewImage');
   protected readonly sdrPreviewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sdrPreviewCanvas');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
@@ -64,18 +78,15 @@ export class CapturePanelComponent {
     try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
     this.previewFrame.set(null);
-    const previousPreviewUrl = this.sdrPreviewUrl();
-    if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
-    this.sdrPreviewUrl.set('');
     this.previewSize.set('');
     this.status.set('');
   };
-  protected readonly sdrContrast = signal(this.readSavedSdrContrast());
-  protected readonly setSdrContrast = (value: number): void => {
+  protected readonly sdrExposure = signal(this.readSavedSdrExposure());
+  protected readonly setSdrExposure = (value: number): void => {
     if (!Number.isFinite(value)) return;
-    const contrast = Math.min(3.0, Math.max(0.5, value));
-    this.sdrContrast.set(contrast);
-    try { localStorage.setItem('capture.sdrContrast.v4', String(contrast)); }
+    const exposure = Math.min(3.0, Math.max(0.5, value));
+    this.sdrExposure.set(exposure);
+    try { localStorage.setItem('capture.sdrExposure.v1', String(exposure)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
@@ -241,12 +252,12 @@ export class CapturePanelComponent {
     return 1.3;
   }
 
-  private readSavedSdrContrast(): number {
+  private readSavedSdrExposure(): number {
     try {
-      const value = Number(localStorage.getItem('capture.sdrContrast.v4'));
+      const value = Number(localStorage.getItem('capture.sdrExposure.v1'));
       if (Number.isFinite(value) && value >= 0.5 && value <= 3.0) return value;
     } catch { /* use the default when storage is unavailable */ }
-    return 0.85;
+    return 1.5;
   }
 
   private readSavedEncoderQuality(): number {
@@ -340,8 +351,6 @@ export class CapturePanelComponent {
 
     this.destroyRef.onDestroy(() => {
       this.disposeHdrPreview();
-      const previewUrl = this.sdrPreviewUrl();
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
     });
     effect(() => {
       const frame = this.previewFrame();
@@ -350,10 +359,9 @@ export class CapturePanelComponent {
     });
     effect(() => {
       const frame = this.previewFrame();
-      const contrast = this.sdrContrast();
-      const url = this.sdrPreviewUrl();
+      const exposure = this.sdrExposure();
       const canvas = this.sdrPreviewCanvas()?.nativeElement;
-      if (frame && url && canvas) void this.renderSdrPreview(canvas, frame, contrast);
+      if (frame && canvas) void this.renderSdrPreview(canvas, frame, exposure);
     });
     void this.loadSources(true);
   }
@@ -470,12 +478,7 @@ export class CapturePanelComponent {
     try {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
-      if (!preview.sdrImage?.byteLength) throw new Error('The capture service did not return a browser-decodable Ultra HDR reference image.');
       this.previewFrame.set(preview);
-      const previousPreviewUrl = this.sdrPreviewUrl();
-      if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
-      const previewUrl = URL.createObjectURL(new Blob([new Uint8Array(preview.sdrImage)], { type: 'image/jpeg' }));
-      this.sdrPreviewUrl.set(previewUrl);
       this.capturePreviewStore.setFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
@@ -483,9 +486,6 @@ export class CapturePanelComponent {
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
       this.previewFrame.set(null);
-      const previousPreviewUrl = this.sdrPreviewUrl();
-      if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
-      this.sdrPreviewUrl.set('');
       this.status.set('');
       const message = error instanceof Error ? error.message : String(error);
       if (target.kind === 'window' && /0x80070057|Falscher Parameter|invalid parameter/i.test(message)) {
@@ -575,47 +575,56 @@ export class CapturePanelComponent {
     this.previewContext = null;
   };
 
-  private readonly applySdrContrast = (imageData: ImageData, contrast: number): void => {
+  private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview, exposure: number): void => {
     const pixels = imageData.data;
-    for (let offset = 0; offset < pixels.length; offset += 4) {
+    const source = frame.pixels;
+    const knee = 0.75;
+    const shoulderScale = 0.55;
+    const encodeSrgb = (linear: number): number => {
+      const value = Math.min(1, Math.max(0, linear));
+      return value <= 0.0031308
+        ? value * 12.92
+        : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
+    };
+
+    for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+      const sourceOffset = pixel * 4;
+      const destinationOffset = pixel * 4;
       for (let channel = 0; channel < 3; channel++) {
-        const value = pixels[offset + channel] / 255;
-        const adjusted = value < 0.5
-          ? 0.5 * Math.pow(value * 2, contrast)
-          : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
-        pixels[offset + channel] = Math.round(Math.pow(adjusted, 1.1) * 255);
+        const captured = halfFloatLookup[source[sourceOffset + channel]];
+        const exposed = Math.max(0, Number.isFinite(captured) ? captured : 0) * exposure;
+        // Preserve black and the lower tonal range; use a smooth shoulder to
+        // bring highlights towards SDR white without a hard cutoff at 1.0.
+        const mapped = exposed <= knee
+          ? exposed
+          : 1 - (1 - knee) * Math.exp(-(exposed - knee) / shoulderScale);
+        pixels[destinationOffset + channel] = Math.round(encodeSrgb(mapped) * 255);
       }
+      pixels[destinationOffset + 3] = 255;
     }
   };
 
-  private readonly renderSdrImage = async (
+  private readonly renderSdrImage = (
     canvas: HTMLCanvasElement,
     frame: CapturePreview,
-    contrast: number
-  ): Promise<void> => {
-    if (!frame.sdrImage?.byteLength) {
-      throw new Error('The browser-decodable Ultra HDR reference image is unavailable.');
-    }
-    const image = this.sdrPreviewImage()?.nativeElement;
-    if (!image) throw new Error('The browser-decoded SDR reference image is not available in the capture preview.');
-    await image.decode();
+    exposure: number
+  ): void => {
     canvas.width = frame.width;
     canvas.height = frame.height;
     const context = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
     if (!context) throw new Error('Could not create the SDR image canvas.');
-    context.drawImage(image, 0, 0, frame.width, frame.height);
-    const imageData = context.getImageData(0, 0, frame.width, frame.height);
-    this.applySdrContrast(imageData, contrast);
+    const imageData = context.createImageData(frame.width, frame.height, { colorSpace: 'srgb' });
+    this.applySdrToneMapping(imageData, frame, exposure);
     context.putImageData(imageData, 0, 0);
   };
 
-  private readonly renderSdrPreview = async (
+  private readonly renderSdrPreview = (
     canvas: HTMLCanvasElement,
     frame: CapturePreview,
-    contrast: number
-  ): Promise<void> => {
+    exposure: number
+  ): void => {
     try {
-      await this.renderSdrImage(canvas, frame, contrast);
+      this.renderSdrImage(canvas, frame, exposure);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.error.set(message);
@@ -625,7 +634,7 @@ export class CapturePanelComponent {
 
   private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
     const canvas = document.createElement('canvas');
-    await this.renderSdrImage(canvas, frame, this.sdrContrast());
+    this.renderSdrImage(canvas, frame, this.sdrExposure());
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(result => result
         ? resolve(result)
