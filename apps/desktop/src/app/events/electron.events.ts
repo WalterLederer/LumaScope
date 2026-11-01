@@ -1265,7 +1265,7 @@ ipcMain.handle(
     if (image.isEmpty()) {
       throw new Error('Electron could not read the rendered WebGPU capture preview.');
     }
-    clipboard.writeImage(image);
+    clipboard.write({ image });
     const size = image.getSize();
     console.info('[HDR Capture] Copied rendered WebGPU preview to Windows Clipboard', size);
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
@@ -1313,7 +1313,7 @@ ipcMain.handle(
     if (process.platform !== 'win32') {
       throw new Error('HDR capture is currently supported on Windows only.');
     }
-    if (format !== 'clipboard' && (!folder || !path.isAbsolute(folder))) {
+    if (!folder || !path.isAbsolute(folder)) {
       throw new Error('Choose a valid destination folder before capturing.');
     }
     if (target?.kind !== 'monitor' && target?.kind !== 'window' && target?.kind !== 'top-window' && target?.kind !== 'rectangle') {
