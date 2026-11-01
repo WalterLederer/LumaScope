@@ -65,9 +65,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           <div class="settings-group">
             <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
             <div class="zoom-control">
-              <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+              <div class="zoom-buttons">
+                <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+                <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+              </div>
               <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-              <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
@@ -126,7 +128,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
-    .zoom-control{display:flex;align-items:center;gap:6px;flex:1;min-width:210px}
+    .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
     .zoom-control input{flex:1;min-width:70px;accent-color:#8ab4f8}
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
     .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
