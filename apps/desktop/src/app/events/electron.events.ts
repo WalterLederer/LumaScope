@@ -208,37 +208,92 @@ const getForegroundWindowHandle = (): number => {
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
-public static class LightMatterForegroundWindow {
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
-  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+public static class LightMatterExternalWindow {
+  private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+  private static IntPtr result;
+  private static uint excludedProcessId;
+
+  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
+  [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
+  [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+  private static bool VisitWindow(IntPtr hWnd, IntPtr lParam) {
+    if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
+
+    uint processId;
+    GetWindowThreadProcessId(hWnd, out processId);
+    if (processId == 0 || processId == excludedProcessId) return true;
+
+    StringBuilder title = new StringBuilder(1024);
+    if (GetWindowText(hWnd, title, title.Capacity) <= 0) return true;
+
+    StringBuilder className = new StringBuilder(256);
+    GetClassName(hWnd, className, className.Capacity);
+    string name = className.ToString();
+    if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" || name == "Shell_SecondaryTrayWnd") return true;
+
+    result = hWnd;
+    return false;
+  }
+
+  public static IntPtr Find(uint ownProcessId) {
+    result = IntPtr.Zero;
+    excludedProcessId = ownProcessId;
+    EnumWindows(new EnumWindowsProc(VisitWindow), IntPtr.Zero);
+    return result;
+  }
+
+  public static uint GetProcessId(IntPtr hWnd) {
+    uint processId;
+    GetWindowThreadProcessId(hWnd, out processId);
+    return processId;
+  }
+
+  public static string GetTitle(IntPtr hWnd) {
+    StringBuilder title = new StringBuilder(1024);
+    GetWindowText(hWnd, title, title.Capacity);
+    return title.ToString();
+  }
 }
 '@
-    $handle = [LightMatterForegroundWindow]::GetForegroundWindow()
-    [uint32]$processId = 0
-    [void][LightMatterForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId)
-    $title = [System.Text.StringBuilder]::new(1024)
-    [void][LightMatterForegroundWindow]::GetWindowText($handle, $title, $title.Capacity)
-    [PSCustomObject]@{ handle = $handle.ToInt64(); processId = $processId; title = $title.ToString() } | ConvertTo-Json -Compress
+    $handle = [LightMatterExternalWindow]::Find([uint32]$env:LIGHT_MATTER_PROCESS_ID)
+    if ($handle -eq [IntPtr]::Zero) {
+      throw 'No visible, non-minimized external application window was found.'
+    }
+    [PSCustomObject]@{
+      handle = $handle.ToInt64()
+      processId = [LightMatterExternalWindow]::GetProcessId($handle)
+      title = [LightMatterExternalWindow]::GetTitle($handle)
+    } | ConvertTo-Json -Compress
   `;
   const output = execFileSync('powershell.exe', [
     '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
-  ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
+  ], {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 5000,
+    env: { ...process.env, LIGHT_MATTER_PROCESS_ID: String(process.pid) }
+  }).trim();
   const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
   if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0
     || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0
     || foreground.processId === process.pid) {
-    throw new Error('No external foreground window was found after hiding Light Matter.');
+    throw new Error('No visible, non-minimized external application window was found.');
   }
   return foreground.handle;
 };
 
 const captureTopWindowFrame = async (includeLightMatterWindows = false): Promise<CapturedHdrFrame> => {
   if (includeLightMatterWindows) {
-    if (!App.mainWindow || App.mainWindow.isDestroyed() || !App.mainWindow.isVisible()) {
+    const captureWindow = App.capturePreviewWindow;
+    if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible()) {
       throw new Error('The Light Matter Capture window must be visible to capture it as the Top Window.');
     }
-    const nativeHandle = App.mainWindow.getNativeWindowHandle();
+    const nativeHandle = captureWindow.getNativeWindowHandle();
     const handle = Number(nativeHandle.readBigUInt64LE(0));
     if (!Number.isSafeInteger(handle) || handle <= 0) {
       throw new Error('Could not resolve the Light Matter Capture window handle.');
@@ -248,23 +303,30 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false): Promise
     return frame;
   }
 
-  const auxiliaryWindows = [App.capturePreviewWindow, App.mapWindow]
+  const appWindows = [App.mainWindow, App.capturePreviewWindow, App.mapWindow]
     .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
-  const mainWindowWasVisible = !!App.mainWindow && !App.mainWindow.isDestroyed() && App.mainWindow.isVisible();
-  const auxiliaryVisibility = auxiliaryWindows.map(window => ({ window, visible: window.isVisible() }));
+  const windowStates = appWindows.map(window => ({
+    window,
+    visible: window.isVisible(),
+    focused: window.isFocused()
+  }));
+  const windowToRestoreFocus = windowStates.find(item => item.focused)?.window
+    ?? windowStates.find(item => item.visible)?.window;
+
   try {
-    if (mainWindowWasVisible) App.mainWindow.hide();
-    for (const item of auxiliaryVisibility) if (item.visible) item.window.hide();
+    for (const item of windowStates) if (item.visible) item.window.hide();
     await new Promise(resolve => setTimeout(resolve, 180));
     const handle = getForegroundWindowHandle();
     const frame = await captureHdrFrame({ kind: 'window', handle });
     frame.targetKey = 'top-window';
     return frame;
   } finally {
-    for (const item of auxiliaryVisibility) if (item.visible && !item.window.isDestroyed()) item.window.showInactive();
-    if (mainWindowWasVisible && App.mainWindow && !App.mainWindow.isDestroyed()) {
-      App.mainWindow.show();
-      App.mainWindow.focus();
+    for (const item of windowStates) {
+      if (item.visible && !item.window.isDestroyed()) item.window.showInactive();
+    }
+    if (windowToRestoreFocus && !windowToRestoreFocus.isDestroyed()) {
+      windowToRestoreFocus.show();
+      windowToRestoreFocus.focus();
     }
   }
 };
