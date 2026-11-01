@@ -3,7 +3,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -1246,7 +1246,11 @@ ipcMain.handle(
     if (process.platform !== 'win32') {
       throw new Error('Capture preview clipboard export is currently supported on Windows only.');
     }
-    const contentSize = event.sender.getContentSize();
+    const ownerWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!ownerWindow || ownerWindow.isDestroyed()) {
+      throw new Error('The capture preview window is no longer available.');
+    }
+    const contentSize = ownerWindow.getContentSize();
     const x = Math.round(bounds?.x ?? -1);
     const y = Math.round(bounds?.y ?? -1);
     const width = Math.round(bounds?.width ?? 0);
@@ -1297,8 +1301,8 @@ ipcMain.handle(
 ipcMain.handle(
   'Capture.capture',
   async (event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90): Promise<CaptureResult> => {
-    if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr' && format !== 'clipboard') {
-      throw new Error('Choose OpenEXR, JPEG XR, Ultra HDR JPEG, or Windows Clipboard as the capture format.');
+    if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr') {
+      throw new Error('Choose OpenEXR, JPEG XR, or Ultra HDR JPEG as the file capture format.');
     }
     if (!Number.isFinite(gammaCorrection) || gammaCorrection < 0.1 || gammaCorrection > 2.2) {
       throw new Error('Gamma correction must be between 0.1 and 2.2.');
