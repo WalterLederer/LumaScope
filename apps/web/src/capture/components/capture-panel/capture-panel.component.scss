@@ -25,11 +25,23 @@
 
 .capture-field,
 .capture-destination {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+}
+
+.capture-field > span,
+.capture-destination > span {
+  font-weight: 600;
+}
+
+.capture-destination {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 5px 8px;
-  min-width: 0;
 }
 
 .capture-destination > span {
@@ -49,11 +61,6 @@
 
 .capture-destination > .capture-primary-button {
   justify-self: end;
-}
-
-.capture-field > span,
-.capture-destination > span {
-  font-weight: 600;
 }
 
 .capture-source-picker {
