@@ -51,6 +51,7 @@ export class CapturePanelComponent {
   protected readonly previewSize = signal('');
   protected readonly sdrPreviewUrl = signal('');
   protected readonly sdrPreviewImage = viewChild<ElementRef<HTMLImageElement>>('sdrPreviewImage');
+  protected readonly sdrPreviewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sdrPreviewCanvas');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
   private previewTexture: { destroy(): void } | null = null;
@@ -74,7 +75,7 @@ export class CapturePanelComponent {
     if (!Number.isFinite(value)) return;
     const contrast = Math.min(1.5, Math.max(0.5, value));
     this.sdrContrast.set(contrast);
-    try { localStorage.setItem('capture.sdrContrast.v3', String(contrast)); }
+    try { localStorage.setItem('capture.sdrContrast.v4', String(contrast)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
   protected readonly applyGammaCorrectionOnSave = signal(false);
@@ -347,6 +348,13 @@ export class CapturePanelComponent {
       const canvas = this.previewCanvas()?.nativeElement;
       if (frame && canvas) void this.renderHdrPreview(canvas, frame);
     });
+    effect(() => {
+      const frame = this.previewFrame();
+      const contrast = this.sdrContrast();
+      const url = this.sdrPreviewUrl();
+      const canvas = this.sdrPreviewCanvas()?.nativeElement;
+      if (frame && url && canvas) void this.renderSdrPreview(canvas, frame, contrast);
+    });
     void this.loadSources(true);
   }
 
@@ -567,43 +575,61 @@ export class CapturePanelComponent {
     this.previewContext = null;
   };
 
-  private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
+  private readonly applySdrContrast = (imageData: ImageData, contrast: number): void => {
+    const pixels = imageData.data;
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      for (let channel = 0; channel < 3; channel++) {
+        const value = pixels[offset + channel] / 255;
+        const adjusted = value < 0.5
+          ? 0.5 * Math.pow(value * 2, contrast)
+          : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
+        pixels[offset + channel] = Math.round(Math.pow(adjusted, 1.1) * 255);
+      }
+    }
+  };
+
+  private readonly renderSdrImage = async (
+    canvas: HTMLCanvasElement,
+    frame: CapturePreview,
+    contrast: number
+  ): Promise<void> => {
     if (!frame.sdrImage?.byteLength) {
       throw new Error('The browser-decodable Ultra HDR reference image is unavailable.');
     }
     const image = this.sdrPreviewImage()?.nativeElement;
     if (!image) throw new Error('The browser-decoded SDR reference image is not available in the capture preview.');
     await image.decode();
-
-    const canvas = document.createElement('canvas');
     canvas.width = frame.width;
     canvas.height = frame.height;
-    const context = canvas.getContext('2d', {
-      colorSpace: 'srgb',
-      willReadFrequently: true
-    });
-    if (!context) throw new Error('Could not create the SDR readback canvas.');
-
+    const context = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
+    if (!context) throw new Error('Could not create the SDR image canvas.');
     context.drawImage(image, 0, 0, frame.width, frame.height);
     const imageData = context.getImageData(0, 0, frame.width, frame.height);
-    const contrast = this.sdrContrast();
-    const pixels = imageData.data;
-    for (let offset = 0; offset < pixels.length; offset += 4) {
-      for (let channel = 0; channel < 3; channel++) {
-        const value = pixels[offset + channel] / 255;
-        const contrastAdjusted = value < 0.5
-          ? 0.5 * Math.pow(value * 2, contrast)
-          : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
-        // Apply the SDR midtone darkening independently of the contrast slider.
-        pixels[offset + channel] = Math.round(Math.pow(contrastAdjusted, 1.1) * 255);
-      }
-    }
+    this.applySdrContrast(imageData, contrast);
     context.putImageData(imageData, 0, 0);
+  };
 
+  private readonly renderSdrPreview = async (
+    canvas: HTMLCanvasElement,
+    frame: CapturePreview,
+    contrast: number
+  ): Promise<void> => {
+    try {
+      await this.renderSdrImage(canvas, frame, contrast);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.error.set(message);
+      console.error('[HDR Capture] SDR preview rendering failed:', error);
+    }
+  };
+
+  private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
+    const canvas = document.createElement('canvas');
+    await this.renderSdrImage(canvas, frame, this.sdrContrast());
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(result => result
         ? resolve(result)
-        : reject(new Error('Could not encode the browser-decoded SDR image as PNG.')), 'image/png');
+        : reject(new Error('Could not encode the adjusted SDR image as PNG.')), 'image/png');
     });
     return new Uint8Array(await blob.arrayBuffer());
   };
