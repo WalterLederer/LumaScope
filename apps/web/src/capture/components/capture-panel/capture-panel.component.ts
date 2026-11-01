@@ -73,7 +73,7 @@ export class CapturePanelComponent {
   protected readonly sdrContrast = signal(this.readSavedSdrContrast());
   protected readonly setSdrContrast = (value: number): void => {
     if (!Number.isFinite(value)) return;
-    const contrast = Math.min(1.5, Math.max(0.5, value));
+    const contrast = Math.min(3.0, Math.max(0.5, value));
     this.sdrContrast.set(contrast);
     try { localStorage.setItem('capture.sdrContrast.v4', String(contrast)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
@@ -244,7 +244,7 @@ export class CapturePanelComponent {
   private readSavedSdrContrast(): number {
     try {
       const value = Number(localStorage.getItem('capture.sdrContrast.v4'));
-      if (Number.isFinite(value) && value >= 0.5 && value <= 1.5) return value;
+      if (Number.isFinite(value) && value >= 0.5 && value <= 3.0) return value;
     } catch { /* use the default when storage is unavailable */ }
     return 0.85;
   }
