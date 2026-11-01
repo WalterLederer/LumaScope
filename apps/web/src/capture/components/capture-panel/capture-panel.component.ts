@@ -526,6 +526,62 @@ export class CapturePanelComponent {
     this.previewContext = null;
   };
 
+  private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
+    const canvas = document.createElement('canvas');
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    const context = canvas.getContext('2d', { willReadFrequently: false });
+    if (!context) throw new Error('Could not create the SDR clipboard conversion canvas.');
+
+    const imageData = context.createImageData(frame.width, frame.height);
+    const output = imageData.data;
+    const pixels = frame.pixels;
+
+    const halfToFloat = (half: number): number => {
+      const sign = (half & 0x8000) !== 0 ? -1 : 1;
+      const exponent = (half >> 10) & 0x1f;
+      const fraction = half & 0x03ff;
+      if (exponent === 0) return fraction === 0 ? 0 : sign * 2 ** -14 * (fraction / 1024);
+      if (exponent === 0x1f) return fraction === 0 ? Infinity : NaN;
+      return sign * 2 ** (exponent - 15) * (1 + fraction / 1024);
+    };
+    const linearToSrgb8 = (value: number): number => {
+      const clamped = Math.min(1, Math.max(0, value));
+      const encoded = clamped <= 0.0031308
+        ? clamped * 12.92
+        : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
+      return Math.round(encoded * 255);
+    };
+
+    // Keep SDR-range pixels unchanged. Compress only values above the SDR
+    // highlight knee, using luminance scaling to preserve the source colours.
+    const highlightKnee = 0.75;
+    const highlightRolloff = 0.5;
+    for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
+      const source = pixel * 4;
+      const destination = pixel * 4;
+      const red = Math.max(0, halfToFloat(pixels[source]));
+      const green = Math.max(0, halfToFloat(pixels[source + 1]));
+      const blue = Math.max(0, halfToFloat(pixels[source + 2]));
+      const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      const mappedLuminance = luminance <= highlightKnee
+        ? luminance
+        : highlightKnee + (1 - highlightKnee) * (1 - Math.exp(-(luminance - highlightKnee) / highlightRolloff));
+      const scale = luminance > 0 ? mappedLuminance / luminance : 0;
+
+      output[destination] = linearToSrgb8(red * scale);
+      output[destination + 1] = linearToSrgb8(green * scale);
+      output[destination + 2] = linearToSrgb8(blue * scale);
+      output[destination + 3] = 255;
+    }
+
+    context.putImageData(imageData, 0, 0);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not encode the SDR clipboard image as PNG.')), 'image/png');
+    });
+    return new Uint8Array(await blob.arrayBuffer());
+  };
+
   protected readonly captureNow = async (): Promise<void> => {
     const target = this.selectedCaptureTarget();
     const folder = this.destinationFolder();
@@ -543,14 +599,11 @@ export class CapturePanelComponent {
     this.status.set('Capturing HDR frame…');
     try {
       if (format === 'clipboard') {
-        const canvas = this.previewCanvas()?.nativeElement;
-        if (!this.previewFrame() || !canvas) {
-          throw new Error('Capture a source first so the rendered WebGPU preview is available.');
+        const frame = this.previewFrame();
+        if (!frame) {
+          throw new Error('Capture a source first so the HDR frame is available.');
         }
-        const pngBlob = await new Promise<Blob>((resolve, reject) => {
-          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not export the WebGPU preview as PNG.')), 'image/png');
-        });
-        const pngData = new Uint8Array(await pngBlob.arrayBuffer());
+        const pngData = await this.createSdrClipboardPng(frame);
         const result = await this.captureService.copyPreviewToClipboard(pngData);
         this.lastOutputPath.set('Windows Clipboard');
         this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
