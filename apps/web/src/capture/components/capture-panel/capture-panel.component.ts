@@ -581,31 +581,16 @@ export class CapturePanelComponent {
     const pixels = imageData.data;
     const source = frame.pixels;
     const knee = 0.75;
-    const shoulderScale = 0.55;
     const toneMappedLookup = new Uint8Array(0x10000);
 
-    // Build the transfer table once per exposure change instead of evaluating
-    // the tone curve and sRGB transfer function for every pixel channel.
-    for (let bits = 0; bits < toneMappedLookup.length; bits++) {
-      const captured = halfFloatLookup[bits];
-      const exposed = Math.max(0, Number.isNaN(captured) ? 0 : captured) * exposure;
-      const mapped = exposed <= knee
-        ? exposed
-        : 1 - (1 - knee) * Math.exp(-(exposed - knee) / shoulderScale);
-      const linear = Math.min(1, Math.max(0, mapped));
-      const srgb = linear <= 0.0031308
-        ? linear * 12.92
-        : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
-      toneMappedLookup[bits] = Math.round(Math.min(1, Math.max(0, srgb)) * 255);
-    }
-
-    // Collect source statistics while writing the SDR result. The logarithmic
-    // histogram provides useful luminance percentiles without sorting millions
-    // of pixels or allocating a second full-size image buffer.
+    // Build a logarithmic luminance histogram first so the highlight white
+    // point can adapt to the captured image without changing the dark range.
     const histogram = new Uint32Array(2048);
     const logMin = Math.log(0.000001);
     const logMax = Math.log(65504);
     const logRange = logMax - logMin;
+    const pixelCount = frame.width * frame.height;
+    let zeroLuminancePixels = 0;
     let maxR = 0;
     let maxG = 0;
     let maxB = 0;
@@ -613,9 +598,6 @@ export class CapturePanelComponent {
     let above1 = 0;
     let above2 = 0;
     let above4 = 0;
-    let whitePixels = 0;
-    let zeroLuminancePixels = 0;
-    const pixelCount = frame.width * frame.height;
 
     for (let pixel = 0; pixel < pixelCount; pixel++) {
       const offset = pixel * 4;
@@ -634,7 +616,7 @@ export class CapturePanelComponent {
       if (peak > 2) above2++;
       if (peak > 4) above4++;
 
-      const luminance = Math.max(0, positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722);
+      const luminance = positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722;
       if (luminance > 0) {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
@@ -642,12 +624,6 @@ export class CapturePanelComponent {
       } else {
         zeroLuminancePixels++;
       }
-
-      pixels[offset] = toneMappedLookup[source[offset]];
-      pixels[offset + 1] = toneMappedLookup[source[offset + 1]];
-      pixels[offset + 2] = toneMappedLookup[source[offset + 2]];
-      pixels[offset + 3] = 255;
-      if (pixels[offset] === 255 && pixels[offset + 1] === 255 && pixels[offset + 2] === 255) whitePixels++;
     }
 
     const percentile = (fraction: number): number => {
@@ -663,9 +639,74 @@ export class CapturePanelComponent {
       return 0;
     };
 
+    const p95 = percentile(0.95);
+    const p99 = percentile(0.99);
+    const p999 = percentile(0.999);
+    const p9999 = percentile(0.9999);
+
+    // Keep the existing linear response below the knee. Place true SDR white
+    // just above the 99.99th luminance percentile so isolated extreme values
+    // do not determine the whole curve or flatten broad highlight regions.
+    const whitePoint = Math.max(knee + 0.05, p9999 * exposure * 1.15);
+    const shoulderRange = whitePoint - knee;
+    const normalizedRange = shoulderRange / (1 - knee);
+
+    // Select the exponential shoulder's curvature so its starting slope is
+    // exactly one. It therefore joins the unchanged linear section smoothly,
+    // remains monotonic, and reaches exact SDR white with zero slope.
+    let curvature = 0;
+    if (normalizedRange > 1.000001) {
+      let low = 0;
+      let high = Math.max(2, normalizedRange * 2);
+      for (let iteration = 0; iteration < 48; iteration++) {
+        const middle = (low + high) * 0.5;
+        const ratio = middle / (1 - Math.exp(-middle));
+        if (ratio < normalizedRange) low = middle;
+        else high = middle;
+      }
+      curvature = (low + high) * 0.5;
+    }
+
+    const exponentialDenominator = curvature > 0 ? 1 - Math.exp(-curvature) : 1;
+
+    // Precompute all FP16 input values once; the same table drives both the
+    // on-screen SDR preview and the PNG written to the Windows clipboard.
+    for (let bits = 0; bits < toneMappedLookup.length; bits++) {
+      const captured = halfFloatLookup[bits];
+      const exposed = Math.max(0, Number.isNaN(captured) ? 0 : captured) * exposure;
+      let mapped: number;
+      if (exposed <= knee) {
+        mapped = exposed;
+      } else if (exposed >= whitePoint) {
+        mapped = 1;
+      } else {
+        const t = (exposed - knee) / shoulderRange;
+        const shoulder = curvature > 0
+          ? (1 - Math.exp(-curvature * t)) / exponentialDenominator
+          : t;
+        mapped = knee + (1 - knee) * shoulder;
+      }
+
+      const linear = Math.min(1, Math.max(0, mapped));
+      const srgb = linear <= 0.0031308
+        ? linear * 12.92
+        : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+      toneMappedLookup[bits] = Math.round(Math.min(1, Math.max(0, srgb)) * 255);
+    }
+
+    let whitePixels = 0;
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const offset = pixel * 4;
+      pixels[offset] = toneMappedLookup[source[offset]];
+      pixels[offset + 1] = toneMappedLookup[source[offset + 1]];
+      pixels[offset + 2] = toneMappedLookup[source[offset + 2]];
+      pixels[offset + 3] = 255;
+      if (pixels[offset] === 255 && pixels[offset + 1] === 255 && pixels[offset + 2] === 255) whitePixels++;
+    }
+
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
-      p95: percentile(0.95), p99: percentile(0.99), p999: percentile(0.999), pixelCount
+      p95, p99, p999, pixelCount
     });
   };
 
