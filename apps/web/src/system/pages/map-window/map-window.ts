@@ -18,7 +18,7 @@ interface MapInstance {
   remove(): void;
 }
 interface LeafletMapApi {
-  map(element: HTMLElement, options?: { zoomControl?: boolean }): MapInstance;
+  map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean }): MapInstance;
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): { addTo(map: MapInstance): { remove(): void } };
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string }): { addTo(map: MapInstance): unknown };
   marker(position: [number, number]): MapMarker & { addTo(map: MapInstance): MapMarker };
@@ -97,7 +97,7 @@ export class MapWindow implements OnInit, OnDestroy {
       topographic: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: 'OpenStreetMap contributors · OpenTopoMap', maxZoom: 20, maxNativeZoom: 17 },
       humanitarian: { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors · HOT', maxZoom: 20, maxNativeZoom: 19 }
     };
-    const style = styles[this.state.style ?? 'standard'] ?? styles.standard;
+    const style = styles[this.state.style ?? 'standard'] ?? styles['standard'];
     this.tileLayer?.remove();
     const leaflet = (window as Window & { L?: LeafletMapApi }).L;
     this.tileLayer = leaflet?.tileLayer(style.url, style).addTo(this.map) ?? null;
