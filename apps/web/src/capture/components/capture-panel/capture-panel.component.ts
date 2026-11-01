@@ -437,7 +437,7 @@ export class CapturePanelComponent {
       this.previewFrame.set(preview);
       this.capturePreviewStore.setFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
-      this.status.set(`Preview ready · ${preview.width} × ${preview.height}`);
+      this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
       this.saveSelectedSource();
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
@@ -509,7 +509,7 @@ export class CapturePanelComponent {
       this.previewDevice = device;
       this.previewTexture = texture;
       this.previewContext = context;
-      this.status.set(`HDR preview ready · ${frame.width} × ${frame.height} · WebGPU FP16/scRGB`);
+      this.status.set(`HDR capture ready · ${frame.width} × ${frame.height} · WebGPU FP16/scRGB`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.error.set(message);
