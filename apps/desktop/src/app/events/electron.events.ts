@@ -441,13 +441,7 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
   return selection;
 };
 
-const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
-  const appWindows=[App.mainWindow,App.capturePreviewWindow,App.mapWindow]
-    .filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
-  const states=appWindows.map(window=>({window,visible:window.isVisible(),focused:window.isFocused()}));
-  const restoreWindow=states.find(item=>item.focused)?.window
-    ?? (ownerWindow&&!ownerWindow.isDestroyed()?ownerWindow:states.find(item=>item.visible)?.window);
-  try {
+const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
     for(const item of states) if(item.visible) item.window.hide();
     await new Promise(resolve=>setTimeout(resolve,180));
     const selection=selectCaptureRectangle();
@@ -486,14 +480,6 @@ const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null
     const frame:CapturedHdrFrame={targetKey:'rectangle',width,height,buffer};
     cachedHdrFrame=frame;
     return frame;
-  } finally {
-    for(const item of states) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
-    if(restoreWindow&&!restoreWindow.isDestroyed()){
-      if(restoreWindow.isMinimized()) restoreWindow.restore();
-      restoreWindow.show();
-      restoreWindow.focus();
-    }
-  }
 };
 
 const captureTargetFrame = async (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
