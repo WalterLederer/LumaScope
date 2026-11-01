@@ -275,7 +275,7 @@ const selectCaptureRectangle = (): { deviceName: string; x: number; y: number; w
     "}"
   ].join("\n");
   const dpi = "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class DpiAwareness { [DllImport(\"user32.dll\")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); }'; [void][DpiAwareness]::SetProcessDpiAwarenessContext([IntPtr](-4));";
-  const script = "$ErrorActionPreference='Stop'\nAdd-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\nAdd-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'\n" + csharp + "\n'@\n" +
+  const script = "$ErrorActionPreference='Stop'\nAdd-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\nAdd-Type -ReferencedAssemblies @('System.Windows.Forms','System.Drawing') -TypeDefinition @'\n" + csharp + "\n'@\n" +
     "$screens=[System.Windows.Forms.Screen]::AllScreens\nforeach($display in $screens){$form=[RectangleSelectionForm]::new($display);[LightMatterRectangleSelection]::Forms.Add($form);$form.Show()}\n" +
     "[System.Windows.Forms.Application]::Run()\n" +
     "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
