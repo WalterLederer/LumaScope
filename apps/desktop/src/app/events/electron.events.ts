@@ -425,7 +425,7 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
     " public RectangleSelectionForm(Screen screen) { targetScreen=screen; FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.Manual; Bounds=screen.Bounds; ShowInTaskbar=false; TopMost=true; BackColor=Color.Black; Opacity=0.32; Cursor=Cursors.Cross; KeyPreview=true; DoubleBuffered=true; MouseDown+=OnMouseDown; MouseMove+=OnMouseMove; MouseUp+=OnMouseUp; KeyDown+=OnKeyDown; Paint+=OnPaintOverlay; FormClosed+=(_,__)=>{ if(LightMatterRectangleSelection.Forms.TrueForAll(f=>f.IsDisposed || f==this)) Application.ExitThread(); }; }",
     " private void OnMouseDown(object s, MouseEventArgs e) { if(e.Button!=MouseButtons.Left)return; start=e.Location; current=e.Location; dragging=true; Invalidate(); }",
     " private void OnMouseMove(object s, MouseEventArgs e) { if(!dragging)return; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); Invalidate(); }",
-    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} var center=new Point(targetScreen.Bounds.Left+targetScreen.Bounds.Width/2,targetScreen.Bounds.Top+targetScreen.Bounds.Height/2); var monitor=MonitorFromPoint(center,2); LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,monitor.ToInt64(),targetScreen.Bounds.Width,targetScreen.Bounds.Height,l,t,w,h); }",
+    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} var selectionCenter=new Point(targetScreen.Bounds.Left+l+w/2,targetScreen.Bounds.Top+t+h/2); var monitor=MonitorFromPoint(selectionCenter,2); LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,monitor.ToInt64(),targetScreen.Bounds.Width,targetScreen.Bounds.Height,l,t,w,h); }",
     " private void OnKeyDown(object s, KeyEventArgs e) { if(e.KeyCode==Keys.Escape){LightMatterRectangleSelection.Finish(true);e.Handled=true;} }",
     " private void OnPaintOverlay(object s, PaintEventArgs e) { using(var b=new SolidBrush(Color.White)) using(var f=new Font(\"Segoe UI\",16,FontStyle.Bold)) e.Graphics.DrawString(\"Drag to select HDR capture area  ·  Esc to cancel\",f,b,24,24); if(dragging){var r=new Rectangle(Math.Min(start.X,current.X),Math.Min(start.Y,current.Y),Math.Abs(current.X-start.X),Math.Abs(current.Y-start.Y)); using(var p=new Pen(Color.DeepSkyBlue,3))e.Graphics.DrawRectangle(p,r); using(var b=new SolidBrush(Color.FromArgb(45,Color.DeepSkyBlue)))e.Graphics.FillRectangle(b,r);} }",
     "}"
@@ -454,8 +454,24 @@ const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null
     for(const item of states) if(item.visible) item.window.hide();
     await new Promise(resolve=>setTimeout(resolve,180));
     const selection=selectCaptureRectangle();
-    const monitor=enumerateMonitors().find(item=>Number(item.handle)===Number(selection.monitorHandle));
-    if(!monitor) throw new Error('The selected display handle could not be matched to an HDR capture monitor.');
+    const enumeratedMonitors=enumerateMonitors();
+    const normalizeDeviceName=(value:string|undefined):string=>(value??'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const selectedDevice=normalizeDeviceName(selection.deviceName);
+    // Match the selected Windows display by its stable device name first. HMONITOR
+    // values can be represented differently by the PowerShell and Node processes.
+    const monitor=enumeratedMonitors.find(item=>
+      selectedDevice && normalizeDeviceName(item.deviceName)===selectedDevice
+    ) ?? enumeratedMonitors.find(item=>String(item.handle)===String(selection.monitorHandle));
+    if(!monitor) {
+      throw new Error(`The selected display "${selection.deviceName}" (HMONITOR ${selection.monitorHandle}) could not be matched to an HDR capture monitor. Available: ${enumeratedMonitors.map(item=>`${item.deviceName} [${item.handle}]`).join(', ')}`);
+    }
+    console.info('[HDR Capture] Rectangle source mapping', {
+      selectedDeviceName:selection.deviceName,
+      selectedMonitorHandle:selection.monitorHandle,
+      captureMonitorDeviceName:monitor.deviceName,
+      captureMonitorHandle:String(monitor.handle),
+      captureMonitorIndex:monitor.index
+    });
     const source=await captureHdrFrame({kind:'monitor',index:monitor.index});
     const scaleX=source.width/selection.screenWidth, scaleY=source.height/selection.screenHeight;
     const left=Math.max(0,Math.round(selection.x*scaleX)), top=Math.max(0,Math.round(selection.y*scaleY));
