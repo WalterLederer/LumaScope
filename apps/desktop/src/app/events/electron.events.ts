@@ -47,7 +47,9 @@ const captureTargetKey = (target: CaptureTarget): string =>
     ? `monitor:${target.index}`
     : target.kind === 'window'
       ? `window:${target.handle}`
-      : 'top-window';
+      : target.kind === 'rectangle'
+        ? 'rectangle'
+        : 'top-window';
 
 interface CaptureWindowState {
   exists: boolean;
@@ -253,8 +255,68 @@ const captureTopWindowFrame = async (): Promise<CapturedHdrFrame> => {
   }
 };
 
+const selectCaptureRectangle = (): { deviceName: string; x: number; y: number; width: number; height: number } => {
+  const csharp = [
+    "using System;", "using System.Collections.Generic;", "using System.Drawing;", "using System.Windows.Forms;",
+    "public static class LightMatterRectangleSelection {",
+    " public static string DeviceName = null; public static int X, Y, Width, Height; public static bool Cancelled = false;",
+    " public static readonly List<RectangleSelectionForm> Forms = new List<RectangleSelectionForm>();",
+    " public static void Finish(bool cancel) { if (cancel) Cancelled = true; foreach (var form in Forms.ToArray()) if (!form.IsDisposed) form.Close(); }",
+    " public static void SetResult(string device, int x, int y, int width, int height) { DeviceName=device; X=x; Y=y; Width=width; Height=height; Finish(false); }",
+    "}",
+    "public sealed class RectangleSelectionForm : Form {",
+    " private readonly Screen targetScreen; private Point start, current; private bool dragging;",
+    " public RectangleSelectionForm(Screen screen) { targetScreen=screen; FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.Manual; Bounds=screen.Bounds; ShowInTaskbar=false; TopMost=true; BackColor=Color.Black; Opacity=0.32; Cursor=Cursors.Cross; KeyPreview=true; DoubleBuffered=true; MouseDown+=OnMouseDown; MouseMove+=OnMouseMove; MouseUp+=OnMouseUp; KeyDown+=OnKeyDown; Paint+=OnPaintOverlay; FormClosed+=(_,__)=>{ if(LightMatterRectangleSelection.Forms.TrueForAll(f=>f.IsDisposed || f==this)) Application.ExitThread(); }; }",
+    " private void OnMouseDown(object s, MouseEventArgs e) { if(e.Button!=MouseButtons.Left)return; start=e.Location; current=e.Location; dragging=true; Invalidate(); }",
+    " private void OnMouseMove(object s, MouseEventArgs e) { if(!dragging)return; current=e.Location; Invalidate(); }",
+    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=e.Location; int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,l,t,w,h); }",
+    " private void OnKeyDown(object s, KeyEventArgs e) { if(e.KeyCode==Keys.Escape){LightMatterRectangleSelection.Finish(true);e.Handled=true;} }",
+    " private void OnPaintOverlay(object s, PaintEventArgs e) { using(var b=new SolidBrush(Color.White)) using(var f=new Font(\"Segoe UI\",16,FontStyle.Bold)) e.Graphics.DrawString(\"Drag to select HDR capture area  ·  Esc to cancel\",f,b,24,24); if(dragging){var r=new Rectangle(Math.Min(start.X,current.X),Math.Min(start.Y,current.Y),Math.Abs(current.X-start.X),Math.Abs(current.Y-start.Y)); using(var p=new Pen(Color.DeepSkyBlue,3))e.Graphics.DrawRectangle(p,r); using(var b=new SolidBrush(Color.FromArgb(45,Color.DeepSkyBlue)))e.Graphics.FillRectangle(b,r);} }",
+    "}"
+  ].join("\n");
+  const dpi = "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class DpiAwareness { [DllImport(\"user32.dll\")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); }'; [void][DpiAwareness]::SetProcessDpiAwarenessContext([IntPtr](-4));";
+  const script = "$ErrorActionPreference='Stop'\nAdd-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\nAdd-Type -TypeDefinition @'\n" + csharp + "\n'@\n" +
+    "$screens=[System.Windows.Forms.Screen]::AllScreens\nforeach($display in $screens){$form=[RectangleSelectionForm]::new($display);[LightMatterRectangleSelection]::Forms.Add($form);$form.Show()}\n" +
+    "[System.Windows.Forms.Application]::Run()\n" +
+    "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
+    "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
+  const output = execFileSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
+    { encoding:'utf8', windowsHide:true, timeout:120000 }).trim();
+  const selection = JSON.parse(output) as { deviceName:string; x:number; y:number; width:number; height:number };
+  if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
+    || selection.x<0 || selection.y<0 || selection.width<8 || selection.height<8) throw new Error('Windows returned an invalid rectangle selection.');
+  return selection;
+};
+
+const captureRectangleFrame = async (): Promise<CapturedHdrFrame> => {
+  const auxiliaryWindows = [App.capturePreviewWindow,App.mapWindow].filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
+  const mainWindowWasVisible = !!App.mainWindow&&!App.mainWindow.isDestroyed()&&App.mainWindow.isVisible();
+  const auxiliaryVisibility = auxiliaryWindows.map(window=>({window,visible:window.isVisible()}));
+  try {
+    if(mainWindowWasVisible) App.mainWindow.hide();
+    for(const item of auxiliaryVisibility) if(item.visible) item.window.hide();
+    await new Promise(resolve=>setTimeout(resolve,180));
+    const selection=selectCaptureRectangle();
+    const normalize=(value:string):string=>value.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const monitor=enumerateMonitors().find(item=>normalize(item.deviceName)===normalize(selection.deviceName));
+    if(!monitor) throw new Error('The selected display is not available to the HDR capture API.');
+    const left=Math.max(0,selection.x), top=Math.max(0,selection.y);
+    const width=Math.min(monitor.width,selection.x+selection.width)-left;
+    const height=Math.min(monitor.height,selection.y+selection.height)-top;
+    if(width<8||height<8) throw new Error('The selected rectangle is outside the captured display.');
+    const source=await captureHdrFrame({kind:'monitor',index:monitor.index});
+    if(source.width!==monitor.width||source.height!==monitor.height) throw new Error('The display dimensions changed during rectangle capture.');
+    const rowBytes=width*8, buffer=Buffer.allocUnsafe(rowBytes*height);
+    for(let row=0;row<height;row++){const sourceStart=((top+row)*source.width+left)*8;source.buffer.copy(buffer,row*rowBytes,sourceStart,sourceStart+rowBytes);}
+    const frame:CapturedHdrFrame={targetKey:'rectangle',width,height,buffer}; cachedHdrFrame=frame; return frame;
+  } finally {
+    for(const item of auxiliaryVisibility) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
+    if(mainWindowWasVisible&&App.mainWindow&&!App.mainWindow.isDestroyed()){App.mainWindow.show();App.mainWindow.focus();}
+  }
+};
+
 const captureTargetFrame = (target: CaptureTarget): Promise<CapturedHdrFrame> =>
-  target.kind === 'top-window' ? captureTopWindowFrame() : captureHdrFrame(target);
+  target.kind==='top-window' ? captureTopWindowFrame() : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
@@ -1171,8 +1233,8 @@ ipcMain.handle(
     if (format !== 'clipboard' && (!folder || !path.isAbsolute(folder))) {
       throw new Error('Choose a valid destination folder before capturing.');
     }
-    if (target?.kind !== 'monitor' && target?.kind !== 'window' && target?.kind !== 'top-window') {
-      throw new Error('Choose a monitor, top window, or application window to capture.');
+    if (target?.kind !== 'monitor' && target?.kind !== 'window' && target?.kind !== 'top-window' && target?.kind !== 'rectangle') {
+      throw new Error('Choose a rectangle, monitor, top window, or application window to capture.');
     }
 
     let phase = 'get FP16 HDR frame';
