@@ -129,7 +129,7 @@ export interface CapturePreview {
   /** Packed RGBA16F/scRGB pixels from the native HDR capture. */
   pixels: Uint16Array;
   /** Browser-decodable Ultra HDR JPEG used as the SDR readback reference. */
-  sdrImage: Uint8Array;
+  sdrImage?: Uint8Array;
 }
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
