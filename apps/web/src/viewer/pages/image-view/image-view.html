@@ -407,29 +407,7 @@
           <p>Location is available in its own window.</p>
           <button type="button" class="capture-window-open-button" (click)="openLocationWindow()">Open Location window…</button>
         </section>
-        <section class="image-location-panel" aria-label="Image GPS location">
-          @if (gpsCoordinates(); as coordinates) {
-            <div class="location-map-stage">
-              <div #locationMapElement class="location-map-frame"
-                   (pointerenter)="onLocationMapPointerEnter()"
-                   (pointerleave)="onLocationMapPointerLeave()"
-                   [class.map-color-light]="locationMapColor() === 'light'"
-                   [class.map-color-extra-light]="locationMapColor() === 'extra-light'"
-                   [class.map-color-dark]="locationMapColor() === 'dark'"
-                   [class.map-color-grayscale]="locationMapColor() === 'grayscale'"
-                   [class.map-color-pastel]="locationMapColor() === 'pastel'"
-                   [class.map-color-contrast]="locationMapColor() === 'contrast'"
-                   [class.map-color-night]="locationMapColor() === 'night'"
-                   role="application" aria-label="Interactive map showing the image GPS location"></div>
 
-            </div>
-            @if (locationMapError(); as mapError) {
-              <p class="location-no-gps">Map could not be loaded: {{mapError}}</p>
-            }
-          } @else {
-            <p class="location-no-gps">No GPS coordinates are available in this image's metadata.</p>
-          }
-        </section>
       }
       @if (activeImageSidebarTab() === 'image') {
       <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
