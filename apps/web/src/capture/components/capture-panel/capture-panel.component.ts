@@ -658,7 +658,7 @@ export class CapturePanelComponent {
     const diagnosticP999 = diagnosticPercentile(0.999);
     const diagnosticP9999 = diagnosticPercentile(0.9999);
     const blackPoint = 0;
-    const whitePoint = Math.max(0.000001, p9999);
+    const whitePoint = Math.max(0.000001, p999);
     const shoulderStart = whitePoint;
     const shoulderEnd = Math.max(shoulderStart, maxLuminance);
     const shoulderRange = shoulderEnd - shoulderStart;
@@ -669,7 +669,7 @@ export class CapturePanelComponent {
       : 0;
 
     // Use an exponential highlight shoulder that starts at 92% SDR white and
-    // reaches exact white at the captured maximum. The lower 0..P99.99 range
+    // reaches exact white at the captured maximum. The lower 0..P99.9 range
     // is linearly stretched, preserving black and the relative RGB ratios.
     let curvature = 0;
     if (normalizedShoulderRange > 1.000001) {
