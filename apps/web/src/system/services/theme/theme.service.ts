@@ -11,7 +11,15 @@ export class ThemeService {
 
   private readonly configuration = inject(Configuration);
 
-  readonly current = signal<AppTheme>('dark');
+  readonly current = signal<AppTheme>(this.readInitialTheme());
+
+  private readInitialTheme(): AppTheme {
+    try {
+      const stored = this.document.defaultView?.localStorage.getItem('light-matter.theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+    } catch { /* Fall back to the document theme when storage is unavailable. */ }
+    return this.document.documentElement.dataset['theme'] === 'light' ? 'light' : 'dark';
+  }
 
   constructor() {
     this.document.defaultView?.addEventListener('storage', event => {
