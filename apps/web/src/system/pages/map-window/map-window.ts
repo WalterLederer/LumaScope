@@ -106,7 +106,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
       <div #map class="map"></div>
     </main>
   `,
-  styles: [
+  styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:transparent}
     .map-titlebar{height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
