@@ -121,7 +121,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
           <div class="settings-group address-settings">
-            <strong class="settings-row-title">Location:</strong>
+            <strong class="settings-row-title">Address:</strong>
             <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
           </div>
         </section>
