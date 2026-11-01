@@ -61,7 +61,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             <label class="range-setting">Map opacity <span>{{ mapOpacity() }}%</span>
               <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
             </label>
-          </div>
+          
+            <label class="range-setting">Track opacity <span>{{ gpxOpacity() }}%</span>
+              <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+            </label></div>
           <div class="settings-group">
             <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
             <div class="zoom-control">
@@ -95,9 +98,6 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 </div>
               }
             </div>
-            <label class="range-setting">Track opacity <span>{{ gpxOpacity() }}%</span>
-              <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-            </label>
             @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
