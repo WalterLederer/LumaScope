@@ -131,7 +131,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
-    .settings-row-title{flex:0 0 100%;white-space:nowrap}
+    .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
