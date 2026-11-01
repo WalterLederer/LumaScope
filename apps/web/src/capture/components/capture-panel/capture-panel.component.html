@@ -154,7 +154,8 @@
           <p>FP16 maximum — R: {{ diag.maxR.toFixed(3) }} · G: {{ diag.maxG.toFixed(3) }} · B: {{ diag.maxB.toFixed(3) }}</p>
           <p>Pixels with any RGB channel above — 0.5: {{ diag.above05.toLocaleString() }} · 1.0: {{ diag.above1.toLocaleString() }} · 2.0: {{ diag.above2.toLocaleString() }} · 4.0: {{ diag.above4.toLocaleString() }}</p>
           <p>SDR pure-white pixels (255/255/255): {{ diag.whitePixels.toLocaleString() }}</p>
-          <p>FP16 linear luminance percentiles — P95: {{ diag.p95.toFixed(3) }} · P99: {{ diag.p99.toFixed(3) }} · P99.9: {{ diag.p999.toFixed(3) }}</p>
+          <p>FP16 maximum linear luminance: {{ diag.maxLuminance.toFixed(5) }}</p>
+          <p>FP16 linear luminance percentiles — P95: {{ diag.p95.toFixed(5) }} · P99: {{ diag.p99.toFixed(5) }} · P99.9: {{ diag.p999.toFixed(5) }} · P99.99: {{ diag.p9999.toFixed(5) }}</p>
         </details>
       }
     </figure>
