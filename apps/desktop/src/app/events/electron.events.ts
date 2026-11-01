@@ -245,6 +245,152 @@ const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   };
 };
 
+
+/**
+ * Converts linear scRGB FP16 to an SDR sRGB image using a BT.2390-style
+ * PQ-domain EETF. The 80-nit scRGB reference white is preserved below the
+ * EETF knee; HDR highlights are smoothly compressed into the SDR range.
+ */
+const createSdrClipboardPixels = (
+  frame: CapturedHdrFrame,
+  sourceChannels: Uint16Array,
+  gammaCorrection: number
+): Uint8Array => {
+  const pixelCount = frame.width * frame.height;
+  const histogramSize = 512;
+  const maxTrackedLuminance = 64;
+  const histogram = new Uint32Array(histogramSize);
+  let maxLuminance = 0;
+
+  const getLinearChannel = (pixel: number, channel: number): number => {
+    const source = halfToFloat(sourceChannels[pixel * 4 + channel]);
+    if (!Number.isFinite(source)) return 0;
+    const nonNegative = Math.max(0, source);
+    return gammaCorrection === 1 ? nonNegative : Math.pow(nonNegative, gammaCorrection);
+  };
+
+  for (let pixel = 0; pixel < pixelCount; pixel++) {
+    const red = getLinearChannel(pixel, 0);
+    const green = getLinearChannel(pixel, 1);
+    const blue = getLinearChannel(pixel, 2);
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    maxLuminance = Math.max(maxLuminance, luminance);
+    const tracked = Math.min(luminance, maxTrackedLuminance);
+    const bin = Math.min(
+      histogramSize - 1,
+      Math.floor(Math.sqrt(tracked / maxTrackedLuminance) * (histogramSize - 1))
+    );
+    histogram[bin]++;
+  }
+
+  // Ignore only the very brightest 0.005% of samples so a single specular
+  // pixel does not force the entire image through an unnecessarily strong curve.
+  const percentileTarget = Math.max(1, Math.ceil(pixelCount * 0.99995));
+  let accumulated = 0;
+  let peakBin = histogramSize - 1;
+  for (let bin = 0; bin < histogramSize; bin++) {
+    accumulated += histogram[bin];
+    if (accumulated >= percentileTarget) {
+      peakBin = bin;
+      break;
+    }
+  }
+  const peakNorm = Math.pow(peakBin / (histogramSize - 1), 2) * maxTrackedLuminance;
+  const sdrWhiteNits = 80;
+  const targetNits = sdrWhiteNits * 0.95;
+  const pqM1 = 2610 / 16384;
+  const pqM2 = (2523 / 4096) * 128;
+  const pqC1 = 3424 / 4096;
+  const pqC2 = (2413 / 4096) * 32;
+  const pqC3 = (2392 / 4096) * 32;
+
+  const pqEncode = (nits: number): number => {
+    const value = Math.pow(Math.max(0, nits) / 10000, pqM1);
+    return Math.pow((pqC1 + pqC2 * value) / (1 + pqC3 * value), pqM2);
+  };
+  const pqDecode = (pq: number): number => {
+    const value = Math.pow(Math.max(0, pq), 1 / pqM2);
+    const numerator = Math.max(value - pqC1, 0);
+    const denominator = Math.max(pqC2 - pqC3 * value, 1e-8);
+    return 10000 * Math.pow(numerator / denominator, 1 / pqM1);
+  };
+
+  const sourcePeakNits = Math.max(targetNits, peakNorm * sdrWhiteNits);
+  const pqSourceMax = pqEncode(sourcePeakNits);
+  const pqTargetMax = pqEncode(targetNits);
+  const targetRatio = pqTargetMax / Math.max(pqSourceMax, 1e-8);
+  const knee = Math.max(0, 1.5 * targetRatio - 0.5);
+  const hasHdrHighlights = maxLuminance > 1.0005 && pqSourceMax > pqTargetMax + 1e-6;
+
+  const bayer8 = [
+    0, 32, 8, 40, 2, 34, 10, 42,
+    48, 16, 56, 24, 50, 18, 58, 26,
+    12, 44, 4, 36, 14, 46, 6, 38,
+    60, 28, 52, 20, 62, 30, 54, 22,
+    3, 35, 11, 43, 1, 33, 9, 41,
+    51, 19, 59, 27, 49, 17, 57, 25,
+    15, 47, 7, 39, 13, 45, 5, 37,
+    63, 31, 55, 23, 61, 29, 53, 21
+  ];
+  const output = new Uint8Array(pixelCount * 3);
+
+  for (let pixel = 0; pixel < pixelCount; pixel++) {
+    let red = getLinearChannel(pixel, 0);
+    let green = getLinearChannel(pixel, 1);
+    let blue = getLinearChannel(pixel, 2);
+    const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+    if (hasHdrHighlights && luminance > 0) {
+      const inputPq = pqEncode(luminance * sdrWhiteNits) / pqSourceMax;
+      let outputPq = inputPq;
+
+      if (inputPq > knee) {
+        const t = Math.min(1, (inputPq - knee) / Math.max(1 - knee, 1e-6));
+        const t2 = t * t;
+        const t3 = t2 * t;
+        outputPq =
+          (2 * t3 - 3 * t2 + 1) * knee
+          + (t3 - 2 * t2 + t) * (1 - knee)
+          + (-2 * t3 + 3 * t2) * targetRatio;
+      }
+
+      const mappedLuminance = pqDecode(outputPq * pqSourceMax) / sdrWhiteNits;
+      const scale = mappedLuminance / luminance;
+      red *= scale;
+      green *= scale;
+      blue *= scale;
+    }
+
+    // Compress out-of-gamut RGB by scaling all channels together, avoiding
+    // the hue shifts caused by clipping each channel independently.
+    const maxChannel = Math.max(red, green, blue);
+    if (maxChannel > 1) {
+      const gamutScale = 1 / maxChannel;
+      red *= gamutScale;
+      green *= gamutScale;
+      blue *= gamutScale;
+    }
+
+    const x = pixel % frame.width;
+    const y = Math.floor(pixel / frame.width);
+    const dither = ((bayer8[(y & 7) * 8 + (x & 7)] + 0.5) / 64 - 0.5) / 255;
+    const encodeSrgb = (linear: number): number => {
+      const value = Math.max(0, Math.min(1, linear));
+      const encoded = value <= 0.0031308
+        ? value * 12.92
+        : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
+      return Math.max(0, Math.min(255, Math.round((encoded + dither) * 255)));
+    };
+
+    const destination = pixel * 3;
+    output[destination] = encodeSrgb(red);
+    output[destination + 1] = encodeSrgb(green);
+    output[destination + 2] = encodeSrgb(blue);
+  }
+
+  return output;
+};
+
 const summarizeVipsImageSamples = (image: Vips.Image) => {
   const pixels = image.writeToMemory();
   const channelCount = image.bands;
@@ -985,29 +1131,13 @@ ipcMain.handle(
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
 
       if (format === 'clipboard') {
-        logPhase('convert linear scRGB FP16 to an SDR sRGB clipboard image');
-        const pixels = new Uint8Array(frame.width * frame.height * 3);
-        for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
-          for (let channel = 0; channel < 3; channel++) {
-            const sourceValue = halfToFloat(sourceChannels[pixel * 4 + channel]);
-            const corrected = Number.isFinite(sourceValue)
-              ? (gammaCorrection !== 1 ? applyGammaCorrection(sourceValue, gammaCorrection) : sourceValue)
-              : 0;
-            // scRGB is linear-light RGB with 1.0 at reference white. Clamp HDR
-            // values to the SDR range before applying the sRGB transfer function;
-            // this prevents SDR applications from treating HDR headroom as SDR.
-            const linear = Math.max(0, Math.min(1, corrected));
-            const srgb = linear <= 0.0031308
-              ? linear * 12.92
-              : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
-            pixels[pixel * 3 + channel] = Math.round(srgb * 255);
-          }
-        }
+        logPhase('tone map FP16 scRGB HDR frame to SDR sRGB using the BT.2390 PQ EETF');
+        const pixels = createSdrClipboardPixels(frame, sourceChannels, gammaCorrection);
         vipsInitPromise ??= Vips();
         const vips = await vipsInitPromise;
         using sdrImage = vips.Image.newFromMemory(pixels, frame.width, frame.height, 3, vips.BandFormat.uchar);
         const png = sdrImage.writeToBuffer('.png');
-        logPhase('write SDR sRGB image to Windows Clipboard');
+        logPhase('write tone-mapped SDR sRGB image to Windows Clipboard');
         clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(png)));
         if (cachedHdrFrame === frame) cachedHdrFrame = null;
         return { path: 'Windows Clipboard', width: frame.width, height: frame.height };
