@@ -585,12 +585,18 @@ export class CapturePanelComponent {
     // Build a logarithmic luminance histogram from the captured linear-light
     // RGB values. Black remains exactly zero; no statistical black lift is used.
     const histogram = new Uint32Array(32768);
+    const diagnosticHistogram = new Uint32Array(65536);
+    const diagnosticRange = 4;
     const logMin = Math.log(0.000001);
     const logMax = Math.log(65504);
     const logRange = logMax - logMin;
     const luminances = new Float32Array(pixelCount);
     let zeroLuminancePixels = 0;
     let maxLuminance = 0;
+    let above3 = 0;
+    let above31 = 0;
+    let above32 = 0;
+    let above324 = 0;
     let maxR = 0;
     let maxG = 0;
     let maxB = 0;
@@ -619,6 +625,13 @@ export class CapturePanelComponent {
       const luminance = positiveR * 0.2126 + positiveG * 0.7152 + positiveB * 0.0722;
       luminances[pixel] = luminance;
       maxLuminance = Math.max(maxLuminance, luminance);
+      if (luminance > 3) above3++;
+      if (luminance > 3.1) above31++;
+      if (luminance > 3.2) above32++;
+      if (luminance > 3.24) above324++;
+      const diagnosticBin = Math.min(diagnosticHistogram.length - 1,
+        Math.max(0, Math.floor(luminance / diagnosticRange * diagnosticHistogram.length)));
+      diagnosticHistogram[diagnosticBin]++;
       if (luminance > 0) {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
@@ -645,6 +658,21 @@ export class CapturePanelComponent {
     const p99 = percentile(0.99);
     const p999 = percentile(0.999);
     const p9999 = percentile(0.9999);
+    const diagnosticPercentile = (fraction: number): number => {
+      const target = Math.max(1, Math.ceil(pixelCount * fraction));
+      let cumulative = 0;
+      for (let bin = 0; bin < diagnosticHistogram.length; bin++) {
+        cumulative += diagnosticHistogram[bin];
+        if (cumulative >= target) {
+          return (bin + 0.5) / diagnosticHistogram.length * diagnosticRange;
+        }
+      }
+      return maxLuminance;
+    };
+    const diagnosticP95 = diagnosticPercentile(0.95);
+    const diagnosticP99 = diagnosticPercentile(0.99);
+    const diagnosticP999 = diagnosticPercentile(0.999);
+    const diagnosticP9999 = diagnosticPercentile(0.9999);
     const blackPoint = 0;
     const whitePoint = Math.max(0.000001, p9999);
     const shoulderStart = whitePoint;
@@ -719,8 +747,8 @@ export class CapturePanelComponent {
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
       maxLuminance, p95, p99, p999, p9999,
-      diagnosticP95: p95, diagnosticP99: p99, diagnosticP999: p999, diagnosticP9999: p9999,
-      above3: 0, above31: 0, above32: 0, above324: 0, pixelCount
+      diagnosticP95, diagnosticP99, diagnosticP999, diagnosticP9999,
+      above3, above31, above32, above324, pixelCount
     });
   };
 
