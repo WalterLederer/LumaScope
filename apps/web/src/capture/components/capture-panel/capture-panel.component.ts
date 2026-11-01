@@ -556,24 +556,24 @@ export class CapturePanelComponent {
     await image.decode();
 
     const canvas = document.createElement('canvas');
-      canvas.width = frame.width;
-      canvas.height = frame.height;
-      const context = canvas.getContext('2d', {
-        colorSpace: 'srgb',
-        willReadFrequently: true
-      });
-      if (!context) throw new Error('Could not create the SDR readback canvas.');
+    canvas.width = frame.width;
+    canvas.height = frame.height;
+    const context = canvas.getContext('2d', {
+      colorSpace: 'srgb',
+      willReadFrequently: true
+    });
+    if (!context) throw new Error('Could not create the SDR readback canvas.');
 
-      context.drawImage(image, 0, 0, frame.width, frame.height);
-      const imageData = context.getImageData(0, 0, frame.width, frame.height);
-      context.putImageData(imageData, 0, 0);
+    context.drawImage(image, 0, 0, frame.width, frame.height);
+    const imageData = context.getImageData(0, 0, frame.width, frame.height);
+    context.putImageData(imageData, 0, 0);
 
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(result => result
-          ? resolve(result)
-          : reject(new Error('Could not encode the browser-decoded SDR image as PNG.')), 'image/png');
-      });
-      return new Uint8Array(await blob.arrayBuffer());
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(result => result
+        ? resolve(result)
+        : reject(new Error('Could not encode the browser-decoded SDR image as PNG.')), 'image/png');
+    });
+    return new Uint8Array(await blob.arrayBuffer());
   };
 
   protected readonly captureNow = async (): Promise<void> => {
