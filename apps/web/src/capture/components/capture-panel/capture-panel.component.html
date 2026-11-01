@@ -146,7 +146,8 @@
       <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
       <figcaption>HDR FP16/scRGB · {{ frame.width }} × {{ frame.height }} · WebGPU</figcaption>
       @if (sdrPreviewUrl()) {
-        <img #sdrPreviewImage [src]="sdrPreviewUrl()" alt="Browser-decoded Ultra HDR SDR reference" style="display:block;max-width:100%;height:auto;dynamic-range-limit:standard"/>
+        <img #sdrPreviewImage [src]="sdrPreviewUrl()" alt="" aria-hidden="true" style="display:none"/>
+        <canvas #sdrPreviewCanvas aria-label="Adjusted SDR clipboard preview" style="display:block;max-width:100%;height:auto"></canvas>
         <figcaption>Browser-decoded Ultra HDR reference · SDR readback via Canvas getImageData()</figcaption>
       }
     </figure>
