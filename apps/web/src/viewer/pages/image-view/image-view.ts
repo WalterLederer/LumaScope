@@ -3345,6 +3345,12 @@ export class ImageView {
           return;
         }
 
+        if (event.key === 'l' || event.key === 'L') {
+          event.preventDefault();
+          void this.openLocationWindow();
+          return;
+        }
+
         if (event.key === 'c' || event.key === 'C' || event.key === 'F8') {
           event.preventDefault();
           this.copyPhoto();
