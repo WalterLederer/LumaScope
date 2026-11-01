@@ -682,7 +682,10 @@ export class CapturePanelComponent {
     // Keep the existing linear response below the knee. Place true SDR white
     // just above the 99.99th luminance percentile so isolated extreme values
     // do not determine the whole curve or flatten broad highlight regions.
-    const whitePoint = Math.max(1, p9999 * exposure * 1.15);
+    // The measured P99.99 already sits at the captured white plateau in this
+    // frame. Do not add artificial headroom: it would put SDR white above the
+    // maximum captured value and prevent any pixel from reaching 255.
+    const whitePoint = Math.max(1, p9999 * exposure);
     const shoulderRange = whitePoint - knee;
     const normalizedRange = shoulderRange / (1 - knee);
 
