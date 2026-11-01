@@ -187,7 +187,8 @@ export class MapWindow implements OnInit, OnDestroy {
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
-    const initialBearing = Number(this.route.snapshot.queryParamMap.get('bearing'));
+    const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
+    const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
     const latitude = Number(this.route.snapshot.queryParamMap.get('lat'));
     const longitude = Number(this.route.snapshot.queryParamMap.get('lon'));
