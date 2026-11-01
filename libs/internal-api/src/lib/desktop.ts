@@ -128,7 +128,7 @@ export interface CapturePreview {
   pixels: Uint16Array;
 }
 
-export type CaptureFormat = 'exr' | 'jxr' | 'uhdr';
+export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
 export interface DesktopMapWindow {
   readonly open: (latitude: number, longitude: number, bearing?: number) => Promise<boolean>;
