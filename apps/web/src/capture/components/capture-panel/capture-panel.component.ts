@@ -84,7 +84,7 @@ export class CapturePanelComponent {
   protected readonly sdrDiagnostics = signal<{
     maxR: number; maxG: number; maxB: number;
     above05: number; above1: number; above2: number; above4: number;
-    whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; diagnosticP95: number; diagnosticP99: number; diagnosticP999: number; diagnosticP9999: number; above3: number; above31: number; above32: number; above324: number; pixelCount: number;
+    whitePixels: number; brightnessFactor: number; captureRange: 'SDR-range' | 'HDR-range'; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; diagnosticP95: number; diagnosticP99: number; diagnosticP999: number; diagnosticP9999: number; above3: number; above31: number; above32: number; above324: number; pixelCount: number;
   } | null>(null);
   private readonly sdrBrightnessFactor = 2.7;
   protected readonly applyGammaCorrectionOnSave = signal(false);
@@ -663,6 +663,14 @@ export class CapturePanelComponent {
     const shoulderEnd = Math.max(shoulderStart, maxLuminance);
     const shoulderRange = shoulderEnd - shoulderStart;
     const linearHighlightFraction = 0.92;
+    // SDR-only desktop captures can be represented above 1.0 in scRGB,
+    // depending on the Windows HDR/SDR white-level setting. Avoid applying
+    // the HDR brightness boost when the upper luminance range stays <= 4.0.
+    const isSdrRangeCapture = maxLuminance <= 4.0 && p999 <= 4.0;
+    const brightnessFactor = isSdrRangeCapture
+      ? 1 / linearHighlightFraction
+      : this.sdrBrightnessFactor;
+    const captureRange = isSdrRangeCapture ? 'SDR-range' as const : 'HDR-range' as const;
     const shoulderHeight = 1 - linearHighlightFraction;
     const normalizedShoulderRange = shoulderRange > 0
       ? linearHighlightFraction * shoulderRange / (shoulderStart * shoulderHeight)
@@ -712,9 +720,9 @@ export class CapturePanelComponent {
       // Apply one fixed linear-light brightness factor after tone mapping.
       // Zero remains exactly zero and RGB channel ratios are preserved until clipping.
       const scale = luminance > 0 ? mappedLuminance / luminance : 0;
-      const outputR = Math.min(1, Math.max(0, positiveR * scale * this.sdrBrightnessFactor));
-      const outputG = Math.min(1, Math.max(0, positiveG * scale * this.sdrBrightnessFactor));
-      const outputB = Math.min(1, Math.max(0, positiveB * scale * this.sdrBrightnessFactor));
+      const outputR = Math.min(1, Math.max(0, positiveR * scale * brightnessFactor));
+      const outputG = Math.min(1, Math.max(0, positiveG * scale * brightnessFactor));
+      const outputB = Math.min(1, Math.max(0, positiveB * scale * brightnessFactor));
       const toSrgb = (linear: number): number => linear <= 0.0031308
         ? linear * 12.92
         : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
@@ -727,7 +735,7 @@ export class CapturePanelComponent {
 
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
-      maxLuminance, p95, p99, p999, p9999,
+      brightnessFactor, captureRange, maxLuminance, p95, p99, p999, p9999,
       diagnosticP95, diagnosticP99, diagnosticP999, diagnosticP9999,
       above3, above31, above32, above324, pixelCount
     });
