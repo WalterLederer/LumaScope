@@ -186,10 +186,7 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
       buffer: Buffer.from(frame.buffer)
     };
     cachedHdrFrame = captured;
-    if (App.isCapturePreviewWindowOpen() && !App.capturePreviewWindow.webContents.isDestroyed()) {
-      const pixels = new Uint16Array(captured.buffer.buffer.slice(captured.buffer.byteOffset, captured.buffer.byteOffset + captured.buffer.byteLength));
-      App.capturePreviewWindow.webContents.send('CapturePreviewWindow.frameChanged', { width: captured.width, height: captured.height, pixels });
-    }
+
     logPhase(`FP16 HDR frame ready (${frame.width}x${frame.height})`);
     return captured;
   } catch (error) {

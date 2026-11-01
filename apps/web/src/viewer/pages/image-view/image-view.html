@@ -93,7 +93,10 @@
         <app-exif-info mode="cache" [path]="selected.path" />
       }
       @if (activeImageSidebarTab() === 'capture') {
-      <app-capture-panel />
+        <section class="capture-window-launch" aria-label="HDR Capture">
+          <p>Capture is available in its own window.</p>
+          <button type="button" class="capture-window-open-button" (click)="openCaptureWindow()">Open HDR Capture window…</button>
+        </section>
       }
       @if (activeImageSidebarTab() === 'zoom') {
       <section>

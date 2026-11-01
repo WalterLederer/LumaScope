@@ -1,4 +1,5 @@
 <section class="capture-panel">
+  @if (settingsVisible) {
   <div class="capture-content">
       <div class="capture-field">
         <span>Source</span>
@@ -80,9 +81,6 @@
           <input type="range" min="0" max="100" step="1" [value]="encoderQuality()" (input)="setEncoderQuality($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
         </label>
       }
-      <label class="capture-field capture-preview-window-toggle">
-        <span><input type="checkbox" [checked]="detachedPreviewOpen()" (change)="setDetachedPreview($any($event.target).checked)"/> Open HDR preview in separate window</span>
-      </label>
       @if (previewFrame()) {
         <p class="capture-status">FP16/scRGB frame available · {{ previewSize() }} · WebGPU HDR preview</p>
       }
@@ -111,4 +109,11 @@
       }
       <p class="capture-format-note">Brightness correction: 0.4.</p>
   </div>
+  }
+  @if (previewFrame(); as frame) {
+    <figure class="capture-preview">
+      <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
+      <figcaption>HDR FP16/scRGB · {{ frame.width }} × {{ frame.height }} · WebGPU</figcaption>
+    </figure>
+  }
 </section>

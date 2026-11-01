@@ -172,7 +172,7 @@ export default class App {
       minWidth: 480,
       minHeight: 320,
       show: false,
-      title: 'Light Matter — HDR Capture Preview - CAPTURE PREVIEW',
+      title: 'Light Matter — HDR Capture',
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,

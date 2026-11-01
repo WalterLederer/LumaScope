@@ -1,12 +1,11 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, Input, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CaptureFormat, CaptureMonitor, CapturePreview, CaptureTarget, CaptureWindow } from 'internal-api';
-import { filter, firstValueFrom, take } from 'rxjs';
+import { filter, take } from 'rxjs';
 import { CaptureService } from '../../../ipc/capture';
 import { CapturePreviewStore } from '../../capture-preview-store';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
-import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navigator';
 
 type CaptureSourceRow = {
   value: string;
@@ -33,7 +32,6 @@ export class CapturePanelComponent {
   private readonly capturePreviewStore = inject(CapturePreviewStore);
   private readonly galleryState = inject(GalleryState);
   private readonly galleryLocations = inject(GalleryLocations);
-  private readonly viewNavigator = inject(ViewNavigator);
   private readonly destroyRef = inject(DestroyRef);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
 
@@ -44,19 +42,12 @@ export class CapturePanelComponent {
   protected readonly sourceMenuStyle = signal('position: fixed;');
   protected readonly favoriteKeys = signal<string[]>(this.readFavoriteKeys());
   protected readonly unavailableTargets = signal<string[]>([]);
-  protected readonly destinationFolder = signal('');
+  @Input() settingsVisible = true;
+  protected readonly destinationFolder = signal(this.readSavedDestinationFolder());
   protected readonly loadingSources = signal(false);
   protected readonly capturing = signal(false);
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
-  protected readonly detachedPreviewOpen = signal(false);
-  protected readonly setDetachedPreview = async (open: boolean): Promise<void> => {
-    const desktop = (window as unknown as { desktop?: import('internal-api').Desktop }).desktop;
-    if (!desktop) return;
-    if (open) await desktop.CapturePreviewWindow.open();
-    else await desktop.CapturePreviewWindow.close();
-    this.detachedPreviewOpen.set(await desktop.CapturePreviewWindow.isOpen());
-  };
   protected readonly previewSize = signal('');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
   private previewDevice: { destroy(): void } | null = null;
@@ -290,12 +281,6 @@ export class CapturePanelComponent {
       });
 
     this.destroyRef.onDestroy(() => this.disposeHdrPreview());
-    const desktop = (window as unknown as { desktop?: import('internal-api').Desktop }).desktop;
-    if (desktop) {
-      void desktop.CapturePreviewWindow.isOpen().then(open => this.detachedPreviewOpen.set(open));
-      const unsubscribe = desktop.CapturePreviewWindow.onStateChanged(open => this.detachedPreviewOpen.set(open));
-      this.destroyRef.onDestroy(unsubscribe);
-    }
     effect(() => {
       const frame = this.previewFrame();
       const canvas = this.previewCanvas()?.nativeElement;
@@ -360,10 +345,16 @@ export class CapturePanelComponent {
     }
   }
 
+  private readSavedDestinationFolder(): string {
+    try { return localStorage.getItem('capture.destinationFolder') ?? ''; }
+    catch { return ''; }
+  }
+
   protected readonly chooseFolder = async (): Promise<void> => {
     const folder = await this.captureService.chooseFolder(this.destinationFolder() || undefined);
     if (folder) {
       this.destinationFolder.set(folder);
+      try { localStorage.setItem('capture.destinationFolder', folder); } catch { /* keep current-session preference */ }
       this.error.set(null);
     }
   };
@@ -508,8 +499,6 @@ export class CapturePanelComponent {
         this.encoderQuality()
       );
       this.galleryLocations.addLocation(folder);
-      await firstValueFrom(this.galleryState.navigateTo(folder).pipe(take(1)));
-      await firstValueFrom(this.viewNavigator.selectImage(result.path).pipe(take(1)));
       this.lastOutputPath.set(result.path);
       this.status.set(`Saved ${result.width} × ${result.height} HDR · ${result.path}`);
     } catch (error) {
