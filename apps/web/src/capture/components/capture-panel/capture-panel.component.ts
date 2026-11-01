@@ -548,6 +548,8 @@ export class CapturePanelComponent {
         if (!this.previewFrame() || !canvas) {
           throw new Error('Capture a source first so the rendered WebGPU preview is available.');
         }
+        canvas.scrollIntoView({ block: 'center', inline: 'nearest' });
+        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
         const rect = canvas.getBoundingClientRect();
         const result = await this.captureService.copyPreviewToClipboard({
           x: rect.left,
