@@ -56,19 +56,6 @@
         </div>
       </div>
 
-      @if (selectedTarget() === 'top-window') {
-        <label class="capture-field capture-gamma-option">
-          <span>
-            <input
-              type="checkbox"
-              [checked]="includeLightMatterWindows()"
-              (change)="setIncludeLightMatterWindows($any($event.target).checked)"
-              [disabled]="capturing() || previewing()"/>
-            Capture Light Matter Capture window (keep all Light Matter windows visible)
-          </span>
-        </label>
-      }
-
       <label class="capture-field">
         <span>Output format</span>
         <div class="capture-control-row">
@@ -112,6 +99,18 @@
         }
         @if (status() && status().toLowerCase().includes('capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
+        }
+        @if (selectedTarget() === 'top-window') {
+          <label class="capture-field capture-gamma-option">
+            <span>
+              <input
+                type="checkbox"
+                [checked]="includeLightMatterWindows()"
+                (change)="setIncludeLightMatterWindows($any($event.target).checked)"
+                [disabled]="capturing() || previewing()"/>
+              Capture Light Matter Capture window (keep all Light Matter windows visible)
+            </span>
+          </label>
         }
         <label class="capture-field capture-gamma-option">
           <span><input type="checkbox" [checked]="applyGammaCorrectionOnSave()" (change)="setApplyGammaCorrectionOnSave($any($event.target).checked)" [disabled]="capturing() || previewing()"/> Gamma correction (saved file only)</span>
