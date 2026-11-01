@@ -69,6 +69,14 @@ export class CapturePanelComponent {
     this.previewSize.set('');
     this.status.set('');
   };
+  protected readonly sdrContrast = signal(this.readSavedSdrContrast());
+  protected readonly setSdrContrast = (value: number): void => {
+    if (!Number.isFinite(value)) return;
+    const contrast = Math.min(2, Math.max(1, value));
+    this.sdrContrast.set(contrast);
+    try { localStorage.setItem('capture.sdrContrast', String(contrast)); }
+    catch { /* keep the current-session preference if storage is unavailable */ }
+  };
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
   protected readonly gammaCorrectionValue = signal<number>(this.readSavedGammaCorrection());
@@ -230,6 +238,14 @@ export class CapturePanelComponent {
       if (Number.isFinite(value) && value >= 0.1 && value <= 2.2) return value;
     } catch { /* use the default when storage is unavailable */ }
     return 1.3;
+  }
+
+  private readSavedSdrContrast(): number {
+    try {
+      const value = Number(localStorage.getItem('capture.sdrContrast'));
+      if (Number.isFinite(value) && value >= 1 && value <= 2) return value;
+    } catch { /* use the default when storage is unavailable */ }
+    return 1.15;
   }
 
   private readSavedEncoderQuality(): number {
@@ -566,6 +582,19 @@ export class CapturePanelComponent {
 
     context.drawImage(image, 0, 0, frame.width, frame.height);
     const imageData = context.getImageData(0, 0, frame.width, frame.height);
+    const contrast = this.sdrContrast();
+    if (contrast > 1) {
+      const pixels = imageData.data;
+      for (let offset = 0; offset < pixels.length; offset += 4) {
+        for (let channel = 0; channel < 3; channel++) {
+          const value = pixels[offset + channel] / 255;
+          const adjusted = value < 0.5
+            ? 0.5 * Math.pow(value * 2, contrast)
+            : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
+          pixels[offset + channel] = Math.round(adjusted * 255);
+        }
+      }
+    }
     context.putImageData(imageData, 0, 0);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
