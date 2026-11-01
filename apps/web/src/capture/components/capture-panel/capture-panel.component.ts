@@ -9,7 +9,7 @@ import { GalleryState } from '../../../gallery/services/gallery-state/gallery-st
 
 type CaptureSourceRow = {
   value: string;
-  kind: 'monitor' | 'window' | 'top-window';
+  kind: 'monitor' | 'window' | 'top-window' | 'rectangle';
   favoriteKey: string;
   favorite: boolean;
   exe: string;
@@ -131,7 +131,15 @@ export class CapturePanelComponent {
       status: 'Automatically detected when capturing',
       minimized: false, unavailable: false
     };
-    return [topWindow, ...[...monitors, ...windows].sort((a, b) =>
+    const rectangle: CaptureSourceRow = {
+      value: 'rectangle', kind: 'rectangle', favoriteKey: 'rectangle',
+      favorite: favorites.has('rectangle'), exe: 'Rectangle',
+      title: 'Select an area directly on the screen',
+      size: 'Custom', displayMode: 'HDR',
+      status: 'Drag to select · Esc to cancel',
+      minimized: false, unavailable: false
+    };
+    return [topWindow, rectangle, ...[...monitors, ...windows].sort((a, b) =>
       capturabilityTier(a) - capturabilityTier(b) ||
       Number(b.favorite) - Number(a.favorite) ||
       Number(b.kind === 'monitor') - Number(a.kind === 'monitor') ||
@@ -240,6 +248,7 @@ export class CapturePanelComponent {
     const target = this.selectedCaptureTarget();
     if (!target) return 'None';
     if (target.kind === 'top-window') return 'Top Window · Foreground window after hiding Light Matter';
+    if (target.kind === 'rectangle') return 'Rectangle · Select area directly on screen';
     if (target.kind === 'monitor') {
       const monitor = this.monitors().find(item => item.index === target.index);
       return monitor
@@ -311,6 +320,9 @@ export class CapturePanelComponent {
       if (saved?.kind === 'top-window') {
         this.selectedTarget.set('top-window');
         restored = true;
+      } else if (saved?.kind === 'rectangle') {
+        this.selectedTarget.set('rectangle');
+        restored = true;
       } else if (saved?.kind === 'monitor' && sources.monitors.some(item => item.index === saved.index)) {
         this.selectedTarget.set(`monitor:${saved.index}`);
         restored = true;
@@ -335,10 +347,11 @@ export class CapturePanelComponent {
     }
   };
 
-  private readSavedSource(): { kind: 'top-window' } | { kind: 'monitor'; index: number } | { kind: 'window'; executablePath: string } | null {
+  private readSavedSource(): { kind: 'top-window' } | { kind: 'rectangle' } | { kind: 'monitor'; index: number } | { kind: 'window'; executablePath: string } | null {
     try {
       const value = JSON.parse(localStorage.getItem('capture.source') ?? 'null');
       if (value?.kind === 'top-window') return value;
+      if (value?.kind === 'rectangle') return value;
       if (value?.kind === 'monitor' && Number.isSafeInteger(value.index)) return value;
       if (value?.kind === 'window' && typeof value.executablePath === 'string') return value;
     } catch { /* ignore invalid saved preference */ }
@@ -350,6 +363,10 @@ export class CapturePanelComponent {
     if (!target) return;
     if (target.kind === 'top-window') {
       localStorage.setItem('capture.source', JSON.stringify({ kind: 'top-window' }));
+      return;
+    }
+    if (target.kind === 'rectangle') {
+      localStorage.setItem('capture.source', JSON.stringify({ kind: 'rectangle' }));
       return;
     }
     if (target.kind === 'monitor') {
@@ -379,6 +396,7 @@ export class CapturePanelComponent {
   private selectedCaptureTarget(): CaptureTarget | null {
     const value = this.selectedTarget();
     if (value === 'top-window') return { kind: 'top-window' };
+    if (value === 'rectangle') return { kind: 'rectangle' };
     const separator = value.indexOf(':');
     if (separator < 0) return null;
     const kind = value.slice(0, separator);
@@ -392,7 +410,7 @@ export class CapturePanelComponent {
   protected readonly previewNow = async (): Promise<void> => {
     const target = this.selectedCaptureTarget();
     if (!target) {
-      this.error.set('Select a top window, monitor, or application window.');
+      this.error.set('Select a rectangle, top window, monitor, or application window.');
       return;
     }
     const requestId = ++this.previewRequestId;
@@ -499,7 +517,7 @@ export class CapturePanelComponent {
     const folder = this.destinationFolder();
     const format = this.selectedFormat();
     if (!target) {
-      this.error.set('Select a monitor or application window.');
+      this.error.set('Select a rectangle, monitor, or application window.');
       return;
     }
     if (format !== 'clipboard' && !folder) {
