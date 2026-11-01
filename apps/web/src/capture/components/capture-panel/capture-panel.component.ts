@@ -450,7 +450,7 @@ export class CapturePanelComponent {
       this.previewFrame.set(preview);
       const previousPreviewUrl = this.sdrPreviewUrl();
       if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
-      const previewUrl = URL.createObjectURL(new Blob([preview.sdrImage], { type: 'image/jpeg' }));
+      const previewUrl = URL.createObjectURL(new Blob([new Uint8Array(preview.sdrImage)], { type: 'image/jpeg' }));
       this.sdrPreviewUrl.set(previewUrl);
       this.capturePreviewStore.setFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
