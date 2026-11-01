@@ -442,8 +442,6 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
 };
 
 const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
-    for(const item of states) if(item.visible) item.window.hide();
-    await new Promise(resolve=>setTimeout(resolve,180));
     const selection=selectCaptureRectangle();
     const enumeratedMonitors=enumerateMonitors();
     const normalizeDeviceName=(value:string|undefined):string=>(value??'').toLowerCase().replace(/[^a-z0-9]/g,'');
