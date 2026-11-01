@@ -547,6 +547,9 @@ export class CapturePanelComponent {
   };
 
   private readonly createSdrClipboardPng = async (frame: CapturePreview): Promise<Uint8Array> => {
+    if (!frame.sdrImage?.byteLength) {
+      throw new Error('The browser-decodable Ultra HDR reference image is unavailable.');
+    }
     const imageUrl = URL.createObjectURL(new Blob([frame.sdrImage], { type: 'image/jpeg' }));
     try {
       const image = new Image();
