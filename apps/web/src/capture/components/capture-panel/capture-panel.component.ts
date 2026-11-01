@@ -9,7 +9,7 @@ import { GalleryState } from '../../../gallery/services/gallery-state/gallery-st
 
 type CaptureSourceRow = {
   value: string;
-  kind: 'monitor' | 'window';
+  kind: 'monitor' | 'window' | 'top-window';
   favoriteKey: string;
   favorite: boolean;
   exe: string;
@@ -37,7 +37,7 @@ export class CapturePanelComponent {
 
   protected readonly monitors = signal<CaptureMonitor[]>([]);
   protected readonly windows = signal<CaptureWindow[]>([]);
-  protected readonly selectedTarget = signal('monitor:1');
+  protected readonly selectedTarget = signal('top-window');
   protected readonly sourceMenuOpen = signal(false);
   protected readonly sourceMenuStyle = signal('position: fixed;');
   protected readonly favoriteKeys = signal<string[]>(this.readFavoriteKeys());
@@ -123,13 +123,21 @@ export class CapturePanelComponent {
       row.status.startsWith('[Not capturable]') ? 2 :
       row.minimized ? 1 :
       row.unavailable ? 2 : 0;
-    return [...monitors, ...windows].sort((a, b) =>
+    const topWindow: CaptureSourceRow = {
+      value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
+      favorite: favorites.has('top-window'), exe: 'Top Window',
+      title: 'Foreground window after hiding Light Matter',
+      size: 'Automatic', displayMode: '—',
+      status: 'Automatically detected when capturing',
+      minimized: false, unavailable: false
+    };
+    return [topWindow, ...[...monitors, ...windows].sort((a, b) =>
       capturabilityTier(a) - capturabilityTier(b) ||
       Number(b.favorite) - Number(a.favorite) ||
       Number(b.kind === 'monitor') - Number(a.kind === 'monitor') ||
       a.exe.localeCompare(b.exe, undefined, { sensitivity: 'base' }) ||
       a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-    );
+    )];
   };
 
 
@@ -231,6 +239,7 @@ export class CapturePanelComponent {
   protected readonly selectedSourceLabel = (): string => {
     const target = this.selectedCaptureTarget();
     if (!target) return 'None';
+    if (target.kind === 'top-window') return 'Top Window · Foreground window after hiding Light Matter';
     if (target.kind === 'monitor') {
       const monitor = this.monitors().find(item => item.index === target.index);
       return monitor
@@ -299,7 +308,10 @@ export class CapturePanelComponent {
       if (sources.sourceErrors?.length) this.error.set(sources.sourceErrors.join('\n'));
       const saved = this.readSavedSource();
       let restored = false;
-      if (saved?.kind === 'monitor' && sources.monitors.some(item => item.index === saved.index)) {
+      if (saved?.kind === 'top-window') {
+        this.selectedTarget.set('top-window');
+        restored = true;
+      } else if (saved?.kind === 'monitor' && sources.monitors.some(item => item.index === saved.index)) {
         this.selectedTarget.set(`monitor:${saved.index}`);
         restored = true;
       } else if (saved?.kind === 'window') {
@@ -309,7 +321,7 @@ export class CapturePanelComponent {
           restored = true;
         }
       }
-      if (!restored && !sources.monitors.some(monitor => this.selectedTarget() === `monitor:${monitor.index}`) &&
+      if (!restored && this.selectedTarget() !== 'top-window' && !sources.monitors.some(monitor => this.selectedTarget() === `monitor:${monitor.index}`) &&
           !sources.windows.some(window => this.selectedTarget() === `window:${window.handle}`)) {
         const firstMonitor = sources.monitors[0];
         const firstWindow = sources.windows[0];
@@ -323,9 +335,10 @@ export class CapturePanelComponent {
     }
   };
 
-  private readSavedSource(): { kind: 'monitor'; index: number } | { kind: 'window'; executablePath: string } | null {
+  private readSavedSource(): { kind: 'top-window' } | { kind: 'monitor'; index: number } | { kind: 'window'; executablePath: string } | null {
     try {
       const value = JSON.parse(localStorage.getItem('capture.source') ?? 'null');
+      if (value?.kind === 'top-window') return value;
       if (value?.kind === 'monitor' && Number.isSafeInteger(value.index)) return value;
       if (value?.kind === 'window' && typeof value.executablePath === 'string') return value;
     } catch { /* ignore invalid saved preference */ }
@@ -335,6 +348,10 @@ export class CapturePanelComponent {
   private saveSelectedSource(): void {
     const target = this.selectedCaptureTarget();
     if (!target) return;
+    if (target.kind === 'top-window') {
+      localStorage.setItem('capture.source', JSON.stringify({ kind: 'top-window' }));
+      return;
+    }
     if (target.kind === 'monitor') {
       localStorage.setItem('capture.source', JSON.stringify({ kind: 'monitor', index: target.index }));
       return;
@@ -361,6 +378,7 @@ export class CapturePanelComponent {
 
   private selectedCaptureTarget(): CaptureTarget | null {
     const value = this.selectedTarget();
+    if (value === 'top-window') return { kind: 'top-window' };
     const separator = value.indexOf(':');
     if (separator < 0) return null;
     const kind = value.slice(0, separator);
@@ -374,7 +392,7 @@ export class CapturePanelComponent {
   protected readonly previewNow = async (): Promise<void> => {
     const target = this.selectedCaptureTarget();
     if (!target) {
-      this.error.set('Select a monitor or application window.');
+      this.error.set('Select a top window, monitor, or application window.');
       return;
     }
     const requestId = ++this.previewRequestId;
