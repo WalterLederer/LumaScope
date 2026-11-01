@@ -45,7 +45,9 @@ let cachedHdrFrame: CapturedHdrFrame | null = null;
 const captureTargetKey = (target: CaptureTarget): string =>
   target.kind === 'monitor'
     ? `monitor:${target.index}`
-    : `window:${target.handle}`;
+    : target.kind === 'window'
+      ? `window:${target.handle}`
+      : 'top-window';
 
 interface CaptureWindowState {
   exists: boolean;
@@ -196,6 +198,62 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
     await capture.stop().catch(() => undefined);
   }
 };
+
+const getForegroundWindowHandle = (): number => {
+  const script = String.raw`
+    $ErrorActionPreference = 'Stop'
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class LightMatterForegroundWindow {
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+}
+'@
+    $handle = [LightMatterForegroundWindow]::GetForegroundWindow()
+    [uint32]$processId = 0
+    [void][LightMatterForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId)
+    $title = [System.Text.StringBuilder]::new(1024)
+    [void][LightMatterForegroundWindow]::GetWindowText($handle, $title, $title.Capacity)
+    [PSCustomObject]@{ handle = $handle.ToInt64(); processId = $processId; title = $title.ToString() } | ConvertTo-Json -Compress
+  `;
+  const output = execFileSync('powershell.exe', [
+    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
+  ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
+  const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
+  if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0 || foreground.processId === process.pid) {
+    throw new Error('No external foreground window was found after hiding Light Matter.');
+  }
+  if (!foreground.title?.trim()) throw new Error('The foreground window has no title and cannot be used as a capture source.');
+  return foreground.handle;
+};
+
+const captureTopWindowFrame = async (): Promise<CapturedHdrFrame> => {
+  const auxiliaryWindows = [App.capturePreviewWindow, App.mapWindow]
+    .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
+  const mainWindowWasVisible = !!App.mainWindow && !App.mainWindow.isDestroyed() && App.mainWindow.isVisible();
+  const auxiliaryVisibility = auxiliaryWindows.map(window => ({ window, visible: window.isVisible() }));
+  try {
+    if (mainWindowWasVisible) App.mainWindow.hide();
+    for (const item of auxiliaryVisibility) if (item.visible) item.window.hide();
+    await new Promise(resolve => setTimeout(resolve, 180));
+    const handle = getForegroundWindowHandle();
+    const frame = await captureHdrFrame({ kind: 'window', handle });
+    frame.targetKey = 'top-window';
+    return frame;
+  } finally {
+    for (const item of auxiliaryVisibility) if (item.visible && !item.window.isDestroyed()) item.window.showInactive();
+    if (mainWindowWasVisible && App.mainWindow && !App.mainWindow.isDestroyed()) {
+      App.mainWindow.show();
+      App.mainWindow.focus();
+    }
+  }
+};
+
+const captureTargetFrame = (target: CaptureTarget): Promise<CapturedHdrFrame> =>
+  target.kind === 'top-window' ? captureTopWindowFrame() : captureHdrFrame(target);
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
@@ -535,7 +593,7 @@ const getHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame> => 
     // console.info('[HDR Capture] reuse cached FP16 HDR frame');
     return cachedHdrFrame;
   }
-  return captureHdrFrame(target);
+  return captureTargetFrame(target);
 };
 const halfConversionBuffer = new ArrayBuffer(4);
 const halfConversionFloat = new Float32Array(halfConversionBuffer);
@@ -1084,7 +1142,7 @@ ipcMain.handle(
     // console.info('[HDR Capture] preview requested');
     // Always capture a fresh frame for Preview. The resulting frame remains cached
     // so Save can reuse exactly the image the user just inspected.
-    const frame = await captureHdrFrame(target);
+    const frame = await captureTargetFrame(target);
     console.info('[HDR Capture] preview source FP16/scRGB statistics', summarizeFp16Frame(frame));
     const pixels = new Uint16Array(
       frame.buffer.buffer.slice(frame.buffer.byteOffset, frame.buffer.byteOffset + frame.buffer.byteLength)
@@ -1112,8 +1170,8 @@ ipcMain.handle(
     if (format !== 'clipboard' && (!folder || !path.isAbsolute(folder))) {
       throw new Error('Choose a valid destination folder before capturing.');
     }
-    if (target?.kind !== 'monitor' && target?.kind !== 'window') {
-      throw new Error('Choose a monitor or application window to capture.');
+    if (target?.kind !== 'monitor' && target?.kind !== 'window' && target?.kind !== 'top-window') {
+      throw new Error('Choose a monitor, top window, or application window to capture.');
     }
 
     let phase = 'get FP16 HDR frame';
