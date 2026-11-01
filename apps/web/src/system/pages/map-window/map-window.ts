@@ -8,12 +8,13 @@ interface MapMarker {
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
+  getZoom(): number;
   remove(): void;
 }
 interface LeafletMapApi {
   map(element: HTMLElement, options?: { zoomControl?: boolean }): MapInstance;
   tileLayer(url: string, options: { attribution: string; maxZoom: number }): { addTo(map: MapInstance): void };
-  marker(position: [number, number]): MapMarker & { addTo(map: MapInstance): void };
+  marker(position: [number, number]): MapMarker & { addTo(map: MapInstance): MapMarker };
 }
 
 @Component({
@@ -47,7 +48,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.map = null;
   }
 
-  private readonly onResize = (): void => this.map?.invalidateSize();
+  private readonly onResize = (): void => {
+    this.map?.invalidateSize();
+  };
 
   private async initialize(latitude: number, longitude: number): Promise<void> {
     const leaflet = await this.loadLeaflet();
