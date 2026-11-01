@@ -1,0 +1,292 @@
+:host {
+  display: block;
+  position: relative;
+
+  .surface {
+    position: absolute;
+    overflow: auto;
+    scrollbar-width: auto;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+
+    &.dual-stacked-surface {
+      background: var(--mat-sys-surface, #f5f5f5);
+      padding: 12px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 0;
+      row-gap: 12px;
+    }
+
+    &.dual-stacked-surface .comparison-image {
+      z-index: 1;
+      left: 0 !important;
+      width: 100% !important;
+      height: calc(50% - 18px) !important;
+      border: 1px solid var(--mat-sys-outline, #9e9e9e);
+      box-sizing: border-box;
+      background: transparent;
+      object-fit: contain;
+    }
+
+    &.dual-stacked-surface .sdr-image {
+      top: 12px !important;
+    }
+
+    &.dual-stacked-surface .hdr-image {
+      top: calc(50% + 0px) !important;
+    }
+
+    &.dual-side-by-side-surface {
+      background: var(--mat-sys-surface, #f5f5f5);
+      padding: 12px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      column-gap: 12px;
+      row-gap: 0;
+    }
+
+    &.dual-side-by-side-surface .comparison-image {
+      top: 0 !important;
+      height: 100% !important;
+      width: calc(50% - 18px) !important;
+      border: 1px solid var(--mat-sys-outline, #9e9e9e);
+      box-sizing: border-box;
+      background: transparent;
+      object-fit: contain;
+    }
+
+    &.dual-side-by-side-surface .sdr-image {
+      left: 12px !important;
+    }
+
+    &.dual-side-by-side-surface .hdr-image {
+      left: calc(50% + 0px) !important;
+    }
+  }
+
+  .surface.pannable-surface {
+    cursor: grab;
+  }
+
+  .surface.pannable-surface:active {
+    cursor: grabbing;
+  }
+
+  .surface::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  .surface::-webkit-scrollbar-thumb {
+    background: rgb(128 128 128 / 65%);
+    border: 3px solid transparent;
+    border-radius: 8px;
+    background-clip: padding-box;
+  }
+
+  .surface::-webkit-scrollbar-track {
+    background: rgb(128 128 128 / 12%);
+  }
+
+  .hdr-copy-diagnostic {
+    position: absolute;
+    z-index: 20;
+    top: 16px;
+    left: 16px;
+    width: min(720px, calc(100% - 32px));
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid rgb(125 180 255 / 75%);
+    border-radius: 6px;
+    background: rgb(5 16 30 / 94%);
+    color: #e8f3ff;
+    box-shadow: 0 4px 18px rgb(0 0 0 / 45%);
+    font: 12px/1.35 sans-serif;
+    pointer-events: none;
+
+    .hdr-copy-diagnostic-title {
+      margin-bottom: 6px;
+      color: #8ec5ff;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .hdr-copy-diagnostic-pattern,
+    .hdr-output-diagnostic-pattern,
+    .hdr-copy-diagnostic-sdr-canvas,
+    .hdr-copy-diagnostic-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 360px;
+      object-fit: contain;
+      background: #111;
+    }
+
+    .hdr-copy-diagnostic-note {
+      margin-top: 6px;
+      color: #c6d7e8;
+    }
+
+    .hdr-copy-diagnostic-error {
+      margin-top: 5px;
+      color: #ff9696;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .dual-side-by-side-labels {
+    position: absolute;
+    z-index: 1000;
+    left: 12px;
+    right: 12px;
+    top: 8px;
+    height: 112px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+    justify-items: center;
+    pointer-events: none;
+  }
+
+  .dual-side-by-side-labels.dual-stacked-labels {
+    top: 12px;
+    bottom: 12px;
+    left: auto;
+    right: 12px;
+    width: 165px;
+    max-width: calc(100% - 24px);
+    height: auto;
+    display: grid;
+    overflow: visible;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 12px;
+    align-items: center;
+    justify-items: stretch;
+  }
+
+  .dual-side-by-side-labels.dual-stacked-labels .comparison-logo-image {
+    width: min(100%, 112px);
+    max-height: 112px;
+  }
+
+  .comparison-logo-image {
+    position: relative;
+    z-index: 1001;
+    display: block;
+    width: min(100%, 112px);
+    height: auto;
+    max-height: 112px;
+    object-fit: contain;
+    justify-self: center;
+    align-self: center;
+    filter: drop-shadow(0 2px 5px rgb(0 0 0 / 35%));
+  }
+
+  .comparison-logo-image.sdr-logo-image {
+    opacity: 0.58;
+  }
+
+  img,
+  canvas.comparison-image {
+    position: absolute;
+
+    &.pannable {
+      cursor: all-scroll;
+    }
+  }
+
+  .comparison-image {
+    clip-path: inset(0 0 0 0);
+    dynamic-range-limit: no-limit;
+    user-select: none;
+    -webkit-user-drag: none;
+
+    &.sdr-image {
+      dynamic-range-limit: standard;
+    }
+
+    &.dual-side-by-side {
+      width: 50%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    &.hidden-variant {
+      display: none;
+    }
+  }
+
+  .comparison-split-handle {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+
+    &.vertical {
+      transform: translateX(-50%);
+      cursor: col-resize;
+
+      span {
+        width: 2px;
+        height: 100%;
+      }
+    }
+
+    &.horizontal {
+      transform: translateY(-50%);
+      cursor: row-resize;
+
+      span {
+        width: 100%;
+        height: 2px;
+      }
+    }
+
+    span {
+      display: block;
+      background: #fff;
+      box-shadow: 0 0 3px rgb(0 0 0 / 90%);
+      pointer-events: none;
+    }
+
+    &:hover span,
+    &:focus-visible span {
+      background: #58a6ff;
+      box-shadow: 0 0 0 1px #fff, 0 0 4px rgb(0 0 0 / 90%);
+    }
+
+    &:focus-visible {
+      outline: 1px solid #58a6ff;
+      outline-offset: 1px;
+    }
+  }
+
+  .loading-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    &.visible {
+      display: flex;
+    }
+  }
+}

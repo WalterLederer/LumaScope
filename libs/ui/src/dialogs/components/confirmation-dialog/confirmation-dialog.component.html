@@ -1,0 +1,29 @@
+<ui-dialog>
+  <header>
+    <ui-title>{{ options.title }}</ui-title>
+  </header>
+  <section>
+    <ui-text [multiLine]="true">{{ options.description }}</ui-text>
+  </section>
+  <footer>
+    @if (options.defaultAction === 'cancel') {
+      <ui-action-button variant="primary"
+                        (pressed)="dialogRef.close(true)">
+        {{ options.confirmLabel ?? 'Yes' }}
+      </ui-action-button>
+
+      <ui-action-button class="default-action"
+                        (pressed)="dialogRef.close(false)">
+        Cancel
+      </ui-action-button>
+    } @else {
+      <ui-action-button class="default-action"
+                        variant="primary"
+                        (pressed)="dialogRef.close(true)">
+        {{ options.confirmLabel ?? 'Yes' }}
+      </ui-action-button>
+
+      <ui-action-button (pressed)="dialogRef.close(false)">Cancel</ui-action-button>
+    }
+  </footer>
+</ui-dialog>

@@ -1,0 +1,75 @@
+{
+  "incremental": true,
+  "lineWidth": 120,
+  "indentWidth": 2,
+  "useTabs": false,
+  "typescript": {
+    "quoteStyle": "alwaysSingle",
+    "newLineKind": "auto",
+    "useBraces": "always",
+    "bracePosition": "sameLine",
+    "singleBodyPosition": "nextLine",
+    "nextControlFlowPosition": "sameLine",
+    "trailingCommas": "never",
+    "arrowFunction.useParentheses": "preferNone",
+    "semiColons": "always",
+    "quoteProps": "asNeeded",
+    "jsx.quoteStyle": "preferSingle",
+    "arguments.spaceAround": false,
+    "arrayExpression.spaceAround": true,
+    "arrayPattern.spaceAround": true,
+    "doWhileStatement.spaceAround": false,
+    "forInStatement.spaceAround": false,
+    "forOfStatement.spaceAround": false,
+    "forStatement.spaceAround": false,
+    "ifStatement.spaceAround": false,
+    "parameters.spaceAround": false,
+    "switchStatement.spaceAround": false,
+    "tupleType.spaceAround": true,
+    "whileStatement.spaceAround": false,
+    "spaceSurroundingProperties": true,
+    "objectExpression.spaceSurroundingProperties": true,
+    "objectPattern.spaceSurroundingProperties": true,
+    "typeLiteral.spaceSurroundingProperties": true,
+    "binaryExpression.spaceSurroundingBitwiseAndArithmeticOperator": true,
+    "exportDeclaration.spaceSurroundingNamedExports": true,
+    "importDeclaration.spaceSurroundingNamedImports": true,
+    "module.sortImportDeclarations": "caseInsensitive",
+    "module.sortExportDeclarations": "caseInsensitive",
+    "exportDeclaration.sortNamedExports": "caseInsensitive",
+    "importDeclaration.sortNamedImports": "caseInsensitive",
+    "commentLine.forceSpaceAfterSlashes": true,
+    "jsxExpressionContainer.spaceSurroundingExpression": true
+  },
+  "json": {
+    "newLineKind": "auto",
+    "trailingCommas": "never"
+  },
+  "markdown": {
+    "lineWidth": 80,
+    "newLineKind": "auto",
+    "textWrap": "always",
+    "codeBlock.skipFormat": true,
+    "codeBlock.preserveIndentation": true
+  },
+  "includes": [
+    "**/*.{ts,tsx,js,jsx,json,md}"
+  ],
+  "excludes": [
+    "**/node_modules",
+    "**/dist",
+    "**/tmp",
+    "**/coverage",
+    "**/test.ts",
+    "**/*-lock.json",
+    "**/*.d.ts",
+    "**/.idea",
+    "**/.nx",
+    "**/.vscode"
+  ],
+  "plugins": [
+    "npm:@dprint/typescript@0.96.1",
+    "npm:@dprint/json@0.25.2",
+    "npm:@dprint/markdown@0.26.0"
+  ]
+}

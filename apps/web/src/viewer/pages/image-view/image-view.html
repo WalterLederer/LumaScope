@@ -1,0 +1,606 @@
+@let selected = selectedImage$ | async;
+@let currentImageLocation = imageLocation$ | async;
+@let capturePreview = capturePreviewStore.frame();
+@let fullScreen = isFullScreen();
+@let dimensions = imageDimensions();
+@let exif = exifState();
+@let isHdrImage = imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
+
+@if (selected !== null) {
+  <app-image-renderer [url]="selected.url"
+                      [style.margin-right.px]="!fullScreen && controlsSidebarVisible() ? sidebarWidth() : 0"
+                      [debugImageSwitching]="debugImageSwitching()"
+                      (debugSwitchingPhase)="onDebugSwitchingPhase($event)"
+                      [displayBrightness]="1"
+                      [brightnessRendererMode]="loupeRendererMode()"
+                      [comparisonMode]="isHdrImage ? comparisonMode() : 'sdr'"
+                      [comparisonSplit]="comparisonSplit()"
+                      (comparisonSplitChange)="previewComparisonSplit($event)"
+                      (comparisonSplitCommit)="setComparisonSplit($event)"
+                      (dimensions)="imageDimensions.set($event)"
+                      (pixelColorChange)="pixelColor.set($event)"
+                      (pixelDebugChange)="pixelDebug.set($event)"
+                      (dblclick)="toggleFullScreen()"
+                      (loadingChange)="onImageLoadingChange($event)"
+                      (loadDuration)="loadDuration.set($event); loadConversionDuration(selected.path); onImageRendered()"
+                      (decodeDuration)="imageDecodeDuration.set($event)"
+                      (totalDuration)="imageTotalDuration.set($event)"
+                      (loadError)="imageLoadFailed.set(true)"
+                      (wheel)="onMouseWheel($event)"
+                      (mousemove)="onLoupeMouseMove($event)"
+                      (mouseleave)="onLoupeMouseLeave()" />
+
+  @if (hdrImageAdjustmentActive()) {
+    <canvas class="hdr-image-adjustment-canvas"
+            [class.capture-pending]="hdrImageAdjustmentPending() || !hdrImageAdjustmentReady()"
+            [style.left.px]="hdrImageAdjustmentBounds().left"
+            [style.top.px]="hdrImageAdjustmentBounds().top"
+            [style.width.px]="hdrImageAdjustmentBounds().width"
+            [style.height.px]="hdrImageAdjustmentBounds().height"
+            aria-label="HDR image adjustments" aria-hidden="true"></canvas>
+  }
+
+  @if (loupeEnabled() && selected !== null) {
+<aside class="hdr-loupe-overlay" [class.capture-pending]="loupeCapturePending() || hdrImageAdjustmentPending()" [class.circular]="loupeShape() === 'circular'" [class.rectangular]="loupeShape() === 'rectangular'" [class.ruler]="loupeShape() === 'ruler'" [style.left.px]="loupePosition().x" [style.top.px]="loupePosition().y" [style.transform]="'scale(' + loupeSizeScale() + ')'" aria-label="HDR cursor loupe" aria-live="off">
+      @if (loupeShape() !== 'ruler' && loupeShape() !== 'vertical-ruler') {
+        <div class="loupe-handle" aria-hidden="true"></div>
+      }
+      @if (loupeShape() !== 'ruler' && loupeShape() !== 'vertical-ruler') {
+        <div class="loupe-led-ring" [class.bright]="loupeBrightness() > 1" [class.dark]="loupeBrightness() < 1" [class.rectangular]="loupeShape() === 'rectangular'" [style.opacity]="loupeBrightnessIndicatorOpacity()" aria-hidden="true">
+          @if (loupeShape() === 'rectangular') {
+            @for (position of loupeLedRectPositions; track $index) {
+              <span class="loupe-led" [class.bright]="loupeBrightness() > 1" [class.dark]="loupeBrightness() < 1" [style.left.px]="position.x" [style.top.px]="position.y"></span>
+            }
+          } @else {
+            @for (angle of loupeLedAngles; track angle) {
+              <span class="loupe-led" [class.bright]="loupeBrightness() > 1" [class.dark]="loupeBrightness() < 1" [style.transform]="'rotate(' + angle + 'deg) translateY(-' + 132 + 'px)'"></span>
+            }
+          }
+        </div>
+      }
+      <div class="loupe-image-viewport" [class.circular]="loupeShape() === 'circular'" [class.ruler]="loupeShape() === 'ruler'" [class.vertical-ruler]="loupeShape() === 'vertical-ruler'">
+        <canvas class="loupe-image hdr-loupe-canvas" [style.display]="loupeRendererMode() === 'webgpu' ? 'block' : 'none'" aria-hidden="true"></canvas>
+        <img class="loupe-image"
+             [src]="selected.url"
+             [width]="dimensions.width"
+             [height]="dimensions.height"
+             [style.left.px]="(loupeShape() === 'ruler' ? 280 : loupeShape() === 'vertical-ruler' ? 50 : 140) - loupeSourcePoint().x * loupePixelSize() / loupeSizeScale()"
+             [style.top.px]="(loupeShape() === 'ruler' ? 50 : loupeShape() === 'vertical-ruler' ? 280 : 140) - loupeSourcePoint().y * loupePixelSize() / loupeSizeScale()"
+             [style.transform]="'scale(' + (loupePixelSize() / loupeSizeScale()) + ')'"
+             [style.display]="loupeRendererMode() === 'webgpu' ? 'none' : null"
+             [style.filter]="loupeRendererMode() === 'css' && loupeBrightness() !== 1 ? 'brightness(' + loupeBrightness() + ')' : null"
+             alt=""
+             aria-hidden="true"
+             draggable="false" />
+        <div class="loupe-crosshair" aria-hidden="true"></div>
+      </div>
+      
+    </aside>
+  }
+
+  @if (isHdrImage && comparisonMode() === 'sdr') {
+    <img class="sdr-quality-logo sdr-logo-image" src="sdr-logo.png" alt="SDR — Standard Dynamic Range" title="SDR view of an HDR-capable image">
+  }
+
+  @if (!fullScreen && !controlsSidebarVisible()) {
+    <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleControlsSidebar()">⚙</button>
+  }
+  @if (!fullScreen && controlsSidebarVisible()) {
+    <aside class="image-controls-sidebar" [class.location-tab-active]="activeImageSidebarTab() === 'location'" aria-label="Image controls" [style.width.px]="sidebarWidth()">
+      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleControlsSidebar()">×</button></nav>
+      <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
+      @if (activeImageSidebarTab() === 'cache') {
+        <app-exif-info mode="cache" [path]="selected.path" />
+      }
+      @if (activeImageSidebarTab() === 'capture') {
+      <app-capture-panel />
+      }
+      @if (activeImageSidebarTab() === 'zoom') {
+      <section>
+        <button class="section-heading" (click)="toggleSidebarSection('zoom')"><span class="section-chevron">{{sidebarSectionExpanded('zoom') ? 'v' : '>'}}</span>Zoom</button>
+        @if (sidebarSectionExpanded('zoom')) {
+          <div class="viewer-zoom-controls" aria-label="Bildzoom">
+            <button type="button" class="status-icon-button" (click)="resetZoom()" title="Zoom zurücksetzen / an Fenster anpassen" aria-label="Zoom zurücksetzen">⟲</button>
+            <button type="button" class="status-icon-button" (click)="zoomOut()" title="Zoom verkleinern" aria-label="Zoom verkleinern">−</button>
+            <button type="button" class="status-icon-button" (click)="zoomIn()" title="Zoom vergrößern" aria-label="Zoom vergrößern">+</button>
+            <div class="viewer-zoom-slider"><ui-slider [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
+            <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
+          </div>
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'corrections') {
+      <section>
+        @if(sidebarSectionExpanded('corrections')) {
+          <section class="correction-subsection basic-correction-section">
+            <button class="section-heading" (click)="toggleSidebarSection('basic')"><span class="section-chevron">{{sidebarSectionExpanded('basic') ? 'v' : '>'}}</span>Basic</button>
+            @if (sidebarSectionExpanded('basic')) {
+              <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
+              <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="imageContrast()" (input)="setImageContrast($any($event.target).value)"/></label>
+              <label class="channel-control"><span><b>Gamma</b><span>{{imageGamma().toFixed(2)}}</span></span><input type="range" min="0.1" max="3" step=".01" [value]="imageGamma()" (input)="setImageGamma($any($event.target).value)" title="Gamma correction; 1.00 = unchanged"/></label>
+              <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
+            }
+          </section>
+          <section class="correction-subsection rgb-correction-section">
+            <button class="section-heading" (click)="toggleSidebarSection('rgbLevels')"><span class="section-chevron">{{sidebarSectionExpanded('rgbLevels') ? 'v' : '>'}}</span>RGB</button>
+            @if (sidebarSectionExpanded('rgbLevels')) {
+              <div class="rgb-correction-controls" aria-label="RGB channel levels">
+                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="redChannelLevel()" (input)="setRedChannelLevel($any($event.target).value)"/></label>
+                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="greenChannelLevel()" (input)="setGreenChannelLevel($any($event.target).value)"/></label>
+                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="blueChannelLevel()" (input)="setBlueChannelLevel($any($event.target).value)"/></label>
+              </div>
+            }
+          </section>
+          <section class="correction-subsection inverse-section">
+            <button class="section-heading" (click)="toggleSidebarSection('inverse')"><span class="section-chevron">{{sidebarSectionExpanded('inverse') ? 'v' : '>'}}</span>Inverse</button>
+            @if (sidebarSectionExpanded('inverse')) {
+              <div class="rgb-inversion-controls">
+                <div class="rgb-inversion-row">
+                  <label><input type="checkbox" [checked]="invertRedChannel()" (change)="setInvertRedChannel($any($event.target).checked)"/> R</label>
+                  <label><input type="checkbox" [checked]="invertGreenChannel()" (change)="setInvertGreenChannel($any($event.target).checked)"/> G</label>
+                  <label><input type="checkbox" [checked]="invertBlueChannel()" (change)="setInvertBlueChannel($any($event.target).checked)"/> B</label>
+                  <label><input type="checkbox" [checked]="invertAllRgbChannels()" (change)="setInvertAllRgbChannels($any($event.target).checked)"/> All</label>
+                </div>
+              </div>
+            }
+          </section>
+          <section class="tone-curve-section">
+            <button class="section-heading" (click)="toggleSidebarSection('toneCurve')"><span class="section-chevron">{{sidebarSectionExpanded('toneCurve') ? 'v' : '>'}}</span>Tone curve</button>
+            @if (sidebarSectionExpanded('toneCurve')) {
+          <div class="tone-curve-controls">
+            <svg class="tone-curve" viewBox="0 0 120 72" role="img" aria-label="Tone curve with adjustable black and white points">
+              <path class="tone-curve-grid" d="M4 4V68H116M4 36H116M60 4V68" />
+              <path class="tone-curve-line" [attr.d]="'M4 68 H' + (4 + blackPoint() * 56) + ' L' + (4 + whitePoint() * 56) + ' 4 H116'" />
+            </svg>
+            <label class="channel-control"><span><span>Black point</span><span>{{(blackPoint()*100).toFixed(0)}}%</span></span><input type="range" min="0" [max]="whitePoint() - 0.01" step=".005" [value]="blackPoint()" (input)="setBlackPoint($any($event.target).value)"/></label>
+            <label class="channel-control"><span><span>White point</span><span>{{(whitePoint()*100).toFixed(0)}}%</span></span><input type="range" [min]="blackPoint() + 0.01" max="2" step=".01" [value]="whitePoint()" (input)="setWhitePoint($any($event.target).value)"/></label>
+          </div>
+            }
+          </section>
+          <button (click)="resetCorrections()">Reset corrections</button>
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'highlight') {
+      <section><strong class="section-title">Highlight</strong>
+        @if (sidebarSectionExpanded('highlight')) {
+          <label class="hdr-highlight-toggle"><input type="checkbox" [checked]="highlightHdrPixels()" (change)="setHdrPixelHighlight($any($event.target).checked)"/> Highlight HDR pixels</label>
+          @if (highlightHdrPixels()) {
+            <label class="hdr-threshold-control">
+              <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{hdrHighlightThresholdNits().toLocaleString()}} nits</span></span>
+              <input type="range" min="1" max="125" step="0.1" [value]="hdrHighlightThreshold()" (input)="setHdrHighlightThreshold($any($event.target).value)" aria-label="HDR highlight threshold from 80 to 10000 nits"/>
+            </label>
+          }
+          <label class="sdr-overexposure-toggle"><input type="checkbox" [checked]="highlightSdrOverexposure()" (change)="setSdrOverexposureHighlight($any($event.target).checked)"/> Highlight overexposed SDR pixels</label>
+          @if (highlightSdrOverexposure()) {
+            <label class="sdr-overexposure-threshold">
+              <span><b>SDR threshold</b><span>{{sdrOverexposureThreshold()}} / 255</span></span>
+              <input type="range" min="0" max="255" step="1" [value]="sdrOverexposureThreshold()" (input)="setSdrOverexposureThreshold($any($event.target).value)" aria-label="SDR overexposure threshold from 0 to 255"/>
+            </label>
+          }
+          <label class="sdr-underexposure-toggle"><input type="checkbox" [checked]="highlightSdrUnderexposure()" (change)="setSdrUnderexposureHighlight($any($event.target).checked)"/> Highlight underexposed SDR pixels</label>
+          @if (highlightSdrUnderexposure()) {
+            <label class="sdr-underexposure-threshold">
+              <span><b>SDR shadow threshold</b><span>{{sdrUnderexposureThreshold()}} / 255</span></span>
+              <input type="range" min="0" max="64" step="1" [value]="sdrUnderexposureThreshold()" (input)="setSdrUnderexposureThreshold($any($event.target).value)" aria-label="SDR underexposure threshold from 0 to 64"/>
+            </label>
+          }
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'zoom') {
+      <section><button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
+        @if(sidebarSectionExpanded('loupe')) {
+          <button class="section-heading" (click)="toggleSidebarSection('magnifierSettings')"><span class="section-chevron">{{sidebarSectionExpanded('magnifierSettings') ? 'v' : '>'}}</span>Magnifier Settings</button>
+          @if(sidebarSectionExpanded('magnifierSettings')) {
+            <label class="channel-control"><span><b>Magnifier zoom (mouse wheel)</b><span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
+            <label class="channel-control"><span><b>Magnifier size</b><span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
+            <label class="channel-control"><span><b>Magnifier brightness</b><span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
+            <div class="channel-control"><b>Magnifier Shape</b><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
+            <section><button class="section-heading" (click)="toggleSidebarSection('loupeRenderer')"><span class="section-chevron">{{sidebarSectionExpanded('loupeRenderer') ? 'v' : '>'}}</span>Magnifier renderer</button>@if(sidebarSectionExpanded('loupeRenderer')) {<button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>}</section>
+          }
+        }
+      @if (sidebarSectionExpanded('loupe') && loupeEnabled()) {
+        <section class="loupe-info-box location-info-box" aria-label="Location pixel information">
+          <div class="loupe-info-heading location-heading">
+            <span class="loupe-coordinates">
+              @if (loupeSample(); as sample) {
+                X: {{ loupeSourcePoint().x }}/{{ imageDimensions().width > 0 ? imageDimensions().width - 1 : '—' }} · Y: {{ loupeSourcePoint().y }}/{{ imageDimensions().height > 0 ? imageDimensions().height - 1 : '—' }}
+              } @else {
+                X: —/{{ loupeCaptureGeometry()?.width || '—' }} · Y: —/{{ loupeCaptureGeometry()?.height || '—' }}
+              }
+            </span>
+          </div>
+          <section class="loupe-sdr-info" aria-label="SDR pixel information">
+            <div class="loupe-info-subheading"><span class="loupe-rgb-swatch" [style.background-color]="pixelColor() ? 'rgb(' + pixelColor()?.r + ' ' + pixelColor()?.g + ' ' + pixelColor()?.b + ')' : 'transparent'" aria-hidden="true"></span><span>SDR 0x (max=255)</span></div>
+            @if (pixelColor(); as rgb) {
+              <div class="loupe-channel-meters" aria-label="SDR RGB channel values and levels">
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.r.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="rgb.r / 255 * 100"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.g.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="rgb.g / 255 * 100"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.b.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="rgb.b / 255 * 100"></span></span>
+                </div>
+              </div>
+            } @else {
+              <div class="loupe-channel-meters">
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+              </div>
+            }
+          </section>
+          <section class="loupe-hdr-info" aria-label="HDR pixel information">
+            <div class="loupe-info-subheading"><span class="loupe-rgb-swatch loupe-hdr-swatch-container" aria-hidden="true"><canvas class="loupe-hdr-swatch-canvas"></canvas></span><span>HDR 0x (max=10k nits)</span></div>
+            @if (loupeHdrRgb(); as hdr) {
+              <div class="loupe-channel-meters hdr-rgb-channels" aria-label="HDR RGB channel values and levels; logarithmic scale to 10000 nits; scRGB 1.0 reference-white boundary">
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.rHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="hdrRgbBarWidth(hdr.r)"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.gHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="hdrRgbBarWidth(hdr.g)"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.bHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="hdrRgbBarWidth(hdr.b)"></span></span>
+                </div>
+              </div>
+              <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ hdr.r | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ hdr.g | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ hdr.b | number:'1.0-4' }}</span><span class="loupe-scrgb-label">scRGB</span></div>
+            } @else if (loupeCaptureError(); as captureError) {
+              <div class="loupe-capture-error" role="status">HDR pixel info unavailable: {{ captureError }}</div>
+            } @else {
+              <div class="loupe-channel-meters">
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+              </div>
+              <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-label">scRGB</span></div>
+            }
+          </section>
+          @if (loupeShowsCapturePreview()) {
+              <section class="loupe-hdr-info loupe-capture-pixel-info" aria-label="Capture preview FP16 pixel values">
+                <div class="loupe-info-subheading"><span class="loupe-rgb-swatch loupe-capture-rgb-swatch-container" aria-hidden="true"><canvas class="loupe-capture-rgb-swatch-canvas"></canvas></span><span>Capture preview · FP16/scRGB (raw values)</span></div>
+                @if (loupeCaptureRgb(); as captureRgb) {
+                  <div class="loupe-channel-meters hdr-rgb-channels">
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.rHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="hdrRgbBarWidth(captureRgb.r)"></span></span></div>
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.gHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="hdrRgbBarWidth(captureRgb.g)"></span></span></div>
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.bHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="hdrRgbBarWidth(captureRgb.b)"></span></span></div>
+                  </div>
+                  <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ captureRgb.r * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ captureRgb.g * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ captureRgb.b * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-label">scRGB</span></div>
+                  <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ captureRgb.r * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-values">{{ captureRgb.g * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-values">{{ captureRgb.b * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-label">cd/m²</span></div>
+                  @if (loupeRgbDifference(); as diff) {
+                    <div class="loupe-hdr-linear" title="Hauptbild minus Capture Preview nach dem bestehenden Capture-Faktor 0,5">
+                      <span class="loupe-scrgb-values">{{ diff.r.delta | number:'1.0-4' }}<small> ({{ diff.r.percent === null ? '—' : diff.r.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-values">{{ diff.g.delta | number:'1.0-4' }}<small> ({{ diff.g.percent === null ? '—' : diff.g.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-values">{{ diff.b.delta | number:'1.0-4' }}<small> ({{ diff.b.percent === null ? '—' : diff.b.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-label">Δ scRGB (%)</span>
+                    </div>
+                  }
+                } @else { <div class="loupe-capture-error">No capture pixel at the current cursor position. Check that the preview source matches the current display/window.</div> }
+              </section>
+          }
+
+          <label class="histogram-capture-preview-toggle loupe-capture-preview-toggle">
+            <input type="checkbox" [checked]="loupeShowsCapturePreview()" (change)="loupeShowsCapturePreview.set($any($event.target).checked)" />
+            Show also capture preview
+          </label>
+          @if (loupeShowsCapturePreview()) {
+            @if (capturePreview) {
+              <figure class="loupe-capture-preview">
+                <canvas #loupeCapturePreviewCanvas aria-label="HDR Capture Preview at magnifier cursor coordinates"></canvas>
+                <figcaption>HDR Capture Preview · {{ capturePreview.width }} × {{ capturePreview.height }} · cursor pixel X: {{ loupeCaptureRgb()?.x ?? '—' }} · Y: {{ loupeCaptureRgb()?.y ?? '—' }}</figcaption>
+              </figure>
+              <figure class="loupe-capture-zoom-preview">
+                <div class="loupe-capture-zoom-viewport">
+                  <canvas #loupeCaptureZoomCanvas aria-label="WebGPU magnification of the HDR capture preview at the cursor pixel"></canvas>
+                  <div class="loupe-crosshair" aria-hidden="true"></div>
+                </div>
+                <figcaption>Capture preview · WebGPU magnifier · zoom {{ (loupePixelSize() * (loupeCaptureGeometry()?.scaleFactor ?? 1) / loupeSizeScale()).toFixed(2) }}× · center pixel X: {{ loupeCaptureRgb()?.x ?? '—' }} · Y: {{ loupeCaptureRgb()?.y ?? '—' }}</figcaption>
+              </figure>
+            } @else { <p class="loupe-capture-error">No capture preview available. Open the Capture tab and select “Preview source” first.</p> }
+          }
+        </section>
+      }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'view') {
+      <section><strong class="section-title">View mode (V)</strong>
+        @if(sidebarSectionExpanded('mode')) { <div class="mode-row">
+<button class="mode-button" [class.active]="comparisonMode()==='hdr'" [disabled]="!isHdrImage" (click)="setComparisonMode('hdr')" aria-label="HDR view" title="HDR view"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></button>
+<button class="mode-button" [class.active]="comparisonMode()==='sdr'" (click)="setComparisonMode('sdr')" aria-label="SDR view" title="SDR view"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"></button>
+<button class="mode-button" [class.active]="comparisonMode()==='side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('side-by-side')" aria-label="Side by side overlay" title="Side by side · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('stacked')" aria-label="Stacked overlay" title="Stacked · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair vertical overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='dual-side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-side-by-side')" aria-label="Full size side by side without overlay" title="Full size side by side · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='dual-stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-stacked')" aria-label="Full size stacked without overlay" title="Full size stacked · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair vertical"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><input type="range" min="1" max="99" [value]="comparisonSplit()" (input)="previewComparisonSplit($any($event.target).value)" (change)="setComparisonSplit($any($event.target).value)"/>} }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'histogram') {
+        <section class="histogram-inline" aria-label="SDR and HDR image histogram">
+          @if (histogramLoading()) {
+              <p>Calculating histogram…</p>
+            } @else if (histogramError()) {
+              <p>{{ histogramErrorMessage() }}</p>
+            } @else if (histogramData(); as histogram) {
+              <div class="histogram-legend">
+                <span class="white-legend">White / luminance</span>
+                <span class="red-legend">R</span>
+                <span class="green-legend">G</span>
+                <span class="blue-legend">B</span>
+                <span class="boundary-legend">100 cd/m²</span>
+              </div>
+              <div class="histogram-plots histogram-plots-stacked">
+                <div class="histogram-chart">
+                  <div class="histogram-chart-title">Linear</div>
+                  <svg class="histogram-plot"
+                       viewBox="0 0 256 160"
+                       role="img"
+                       aria-label="Linear luminance histogram including SDR and HDR"
+                       data-scale="linear"
+                       (mousemove)="onHistogramMouseMove($event)"
+                       (mouseleave)="onHistogramMouseLeave()">
+                    @for (tick of histogramPaths().linearYTicks; track tick.value) {
+                      <path class="histogram-grid" [attr.d]="'M0 ' + tick.y + 'H256'" />
+                      <text class="histogram-y-label" x="2" [attr.y]="tick.y - 2">{{ tick.value }}</text>
+                    }
+                    <path class="histogram-divider" [attr.d]="'M' + histogramPaths().linearBoundary + ' 4V152'" />
+                    <path class="histogram-white" [attr.d]="histogramPaths().linear.white" />
+                    <path class="histogram-red" [attr.d]="histogramPaths().linear.red" />
+                    <path class="histogram-green" [attr.d]="histogramPaths().linear.green" />
+                    <path class="histogram-blue" [attr.d]="histogramPaths().linear.blue" />
+                  </svg>
+                  <div class="histogram-axis"><span>0</span><span>{{ histogram.maximumNits | number:'1.0-0' }} cd/m²</span></div>
+                </div>
+                <div class="histogram-chart">
+                  <div class="histogram-chart-title">Logarithmic</div>
+                  <svg class="histogram-plot"
+                       viewBox="0 0 256 160"
+                       role="img"
+                       aria-label="Logarithmic luminance histogram including SDR and HDR"
+                       data-scale="logarithmic"
+                       (mousemove)="onHistogramMouseMove($event)"
+                       (mouseleave)="onHistogramMouseLeave()">
+                    @for (tick of histogramPaths().logarithmicYTicks; track tick.value) {
+                      <path class="histogram-grid" [attr.d]="'M0 ' + tick.y + 'H256'" />
+                      <text class="histogram-y-label" x="2" [attr.y]="tick.y - 2">{{ tick.value }}</text>
+                    }
+                    <path class="histogram-divider" [attr.d]="'M' + histogramPaths().logarithmicBoundary + ' 4V152'" />
+                    <path class="histogram-white" [attr.d]="histogramPaths().logarithmic.white" />
+                    <path class="histogram-red" [attr.d]="histogramPaths().logarithmic.red" />
+                    <path class="histogram-green" [attr.d]="histogramPaths().logarithmic.green" />
+                    <path class="histogram-blue" [attr.d]="histogramPaths().logarithmic.blue" />
+                  </svg>
+                  <div class="histogram-axis"><span>{{ histogram.minimumLogNits | number:'1.1-1' }} cd/m²</span><span>{{ histogram.maximumNits | number:'1.0-0' }} cd/m²</span></div>
+                </div>
+              </div>
+              <div class="histogram-readout" aria-live="polite">
+                {{ histogramHoverStatus() ?? 'Move over the histogram to inspect values' }}
+              </div>
+            }
+          <label class="histogram-capture-preview-toggle">
+            <input type="checkbox"
+                   [checked]="histogramUsesCapturePreview()"
+                   (change)="setHistogramCapturePreview($any($event.target).checked)" />
+            Use capture preview
+          </label>
+          @if (histogramUsesCapturePreview() && capturePreviewStore.frame(); as capturePreview) {
+            <figure class="histogram-capture-preview">
+              <canvas #histogramCaptureCanvas aria-label="HDR Capture Preview image used for histogram"></canvas>
+              <figcaption>HDR Capture Preview · {{ capturePreview.width }} × {{ capturePreview.height }}</figcaption>
+            </figure>
+          }
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'location') {
+        <section class="image-location-panel" aria-label="Image GPS location">
+          <button class="section-heading" type="button" (click)="toggleSidebarSection('mapSettings')"><span class="section-chevron">{{sidebarSectionExpanded('mapSettings') ? 'v' : '>'}}</span>Map settings</button>
+          @if (gpsCoordinates(); as coordinates) {
+            @if (sidebarSectionExpanded('mapSettings')) {
+            <label class="location-detached-map-toggle">
+              <input type="checkbox" [checked]="detachedMapWindowOpen()" (change)="setDetachedMapWindowOpen($any($event.target).checked)" />
+              Open map in separate window
+            </label>
+            <div class="location-coordinate-readout">
+              <strong>GPS/GNSS:</strong>
+              <span>{{formatGpsCoordinate(coordinates.latitude, 'N', 'S')}}, {{formatGpsCoordinate(coordinates.longitude, 'O', 'W')}}</span>
+              <button type="button" class="location-copy-button" (click)="copyLocation()" title="Copy GPS coordinates to the clipboard" aria-label="Copy GPS coordinates to the clipboard">{{copyLocationStatus() || 'Copy'}}</button>
+              <button type="button" class="location-copy-button location-center-button" (click)="centerLocationMarker()" aria-label="Center map on GPS marker" title="Center map on GPS marker"><span class="location-center-icon" aria-hidden="true">⌖</span> Center</button>
+              <div class="location-map-style-row">
+                <select id="location-map-style"
+                        title="Choose the map layer: standard street map, satellite imagery, cycling, topographic, or humanitarian map."
+                        aria-label="Choose map layer"
+                        [value]="locationMapStyle()" (change)="changeLocationMapStyle($any($event.target).value)">
+                  <option value="standard">Standard</option>
+                  <option value="satellite">Satellite</option>
+                  <option value="cycling">Cycling (CyclOSM)</option>
+                  <option value="topographic">Topographic</option>
+                  <option value="humanitarian">Humanitarian (HOT)</option>
+                </select>
+                <select id="location-map-color"
+                        title="Apply a color filter to the map tiles, for example light, dark, grayscale, pastel, or high contrast."
+                        aria-label="Choose map color filter"
+                        [value]="locationMapColor()" (change)="changeLocationMapColor($any($event.target).value)">
+                  <option value="original">Original</option>
+                  <option value="light">Light</option>
+                  <option value="extra-light">Extra light</option>
+                  <option value="ultra-light">Ultra light</option>
+                  <option value="dark">Dark</option>
+                  <option value="grayscale">Grayscale</option>
+                  <option value="pastel">Pastel</option>
+                  <option value="contrast">High contrast</option>
+                  <option value="night">Night</option>
+                </select>
+                <select id="location-web-app" class="location-web-app-select"
+                        [value]="locationWebApp()"
+                        (change)="openLocationWebApp($any($event.target))"
+                        title="Choose which external map website to open with this image's GPS coordinates."
+                        aria-label="Choose external map website">
+                  <option value="">Select map website...</option>
+                  <option value="google-earth">Google Earth</option>
+                  <option value="google-maps">Google Maps</option>
+                  <option value="openstreetmap">OpenStreetMap</option>
+                  <option value="bing-maps">Bing Maps</option>
+                  <option value="here-wego">HERE WeGo</option>
+                  <option value="google-street-view">Google Street View</option>
+                  <option value="mapillary">Mapillary</option>
+                </select>
+              </div>
+            </div>
+            <div class="location-gpx-row">
+              <strong>GPX:</strong>
+              <button type="button" class="location-gpx-import-button" (click)="importGpxTrack()" title="Import a GPX file and display its track on the map" aria-label="Import a GPX track">Import</button>
+              <select id="location-gpx-track-color" class="location-gpx-color-select"
+                      title="Choose the GPX track color or select OFF to hide the track"
+                      aria-label="GPX track color and visibility"
+                      [value]="gpxTrackSelection()"
+                      [style.background-color]="gpxTrackSelection() === 'off' ? '#555' : gpxTrackColor()"
+                      [style.color]="gpxTrackSelection() === 'off' || gpxTrackColor() !== '#ffd60a' ? '#fff' : '#111'"
+                      (change)="setGpxTrackColor($any($event.target).value)">
+                <option value="off" [selected]="gpxTrackSelection() === 'off'" style="background-color: #555; color: #fff">OFF</option>
+                @for (color of gpxTrackColors; track color.value) {
+                  <option [value]="color.value"
+                          [selected]="gpxTrackSelection() === color.value"
+                          [style.background-color]="color.value"
+                          [style.color]="color.value === '#ffd60a' ? '#111' : '#fff'">{{color.name}} ({{color.value}})</option>
+                }
+              </select>
+              <span class="location-gpx-filename" [title]="gpxTrackFileName() || ''">{{gpxTrackFileName() || ''}}</span>
+            </div>
+            @if (gpxTrackStatus(); as gpxError) {
+              <p class="location-no-gps">{{gpxError}}</p>
+            }
+            }
+            <div class="location-map-stage">
+              <div #locationMapElement class="location-map-frame"
+                   (pointerenter)="onLocationMapPointerEnter()"
+                   (pointerleave)="onLocationMapPointerLeave()"
+                   [class.map-color-light]="locationMapColor() === 'light'"
+                   [class.map-color-extra-light]="locationMapColor() === 'extra-light'"
+                   [class.map-color-dark]="locationMapColor() === 'dark'"
+                   [class.map-color-grayscale]="locationMapColor() === 'grayscale'"
+                   [class.map-color-pastel]="locationMapColor() === 'pastel'"
+                   [class.map-color-contrast]="locationMapColor() === 'contrast'"
+                   [class.map-color-night]="locationMapColor() === 'night'"
+                   role="application" aria-label="Interactive map showing the image GPS location"></div>
+              <div class="location-map-zoom-overlay">
+                <div class="location-map-zoom-control">
+                  <button type="button" class="location-map-zoom-button" (click)="adjustLocationMapZoom(-1)" aria-label="Zoom out" title="Zoom out">−</button>
+                  <button type="button" class="location-map-zoom-button" (click)="adjustLocationMapZoom(1)" aria-label="Zoom in" title="Zoom in">+</button>
+                  <input id="location-map-zoom" type="range" min="1" max="20" step="1"
+                         [value]="locationMapZoomLevel()"
+                         [attr.aria-valuetext]="'Map zoom level ' + locationMapZoomLevel()"
+                         (input)="changeLocationMapZoom($any($event.target).value)">
+                  <label for="location-map-zoom">Zoom {{ locationMapZoomLevel() }}</label>
+                </div>
+                <div class="location-map-opacity-control">
+                  <input id="location-map-opacity" type="range" min="0" max="100" step="1"
+                         [value]="locationMapOpacity()"
+                         [attr.aria-valuetext]="'Map opacity ' + locationMapOpacity() + ' percent'"
+                         (input)="changeLocationMapOpacity($any($event.target).value)"
+                         title="Adjust map opacity without affecting the GPS marker or GPX track">
+                  <label for="location-map-opacity" title="Map opacity">Map {{ locationMapOpacity() }}%</label>
+                </div>
+                <div class="location-map-opacity-control location-gpx-opacity-control">
+                  <input id="location-gpx-opacity" type="range" min="0" max="100" step="1"
+                         [value]="gpxTrackOpacity()"
+                         [attr.aria-valuetext]="'GPX track opacity ' + gpxTrackOpacity() + ' percent'"
+                         (input)="changeGpxTrackOpacity($any($event.target).value)"
+                         title="Adjust GPX track opacity independently of the map and GPS marker">
+                  <label for="location-gpx-opacity" title="GPX track opacity">Track {{ gpxTrackOpacity() }}%</label>
+                </div>
+              </div>
+            </div>
+            @if (locationMapError(); as mapError) {
+              <p class="location-no-gps">Map could not be loaded: {{mapError}}</p>
+            }
+          } @else {
+            <p class="location-no-gps">No GPS coordinates are available in this image's metadata.</p>
+          }
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'image') {
+      <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
+        <section class="image-actions-section">
+          <button class="section-heading" type="button" (click)="toggleSidebarSection('actions')"><span class="section-chevron">{{sidebarSectionExpanded('actions') ? 'v' : '>'}}</span>Actions</button>
+          @if (sidebarSectionExpanded('actions')) {
+            <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
+            <section class="copy-file-section">
+              <button class="section-heading" type="button" (click)="toggleSidebarSection('copy')"><span class="section-chevron">{{sidebarSectionExpanded('copy') ? 'v' : '>'}}</span>Copy file</button>
+              @if (sidebarSectionExpanded('copy')) {
+                <div class="copy-folder-info-box">
+                  <div class="copy-folder-info-title">Source</div>
+                  <div class="copy-folder-info-path" [title]="sourceFolderPath() || ''">{{sourceFolderPath() || 'No source folder'}}</div>
+                  <div class="copy-folder-info-files">Files: {{sourceFileCount() ?? '—'}}</div>
+                  <div class="copy-folder-info-files">Size: {{formatFolderSize(sourceFolderSize())}}</div>
+                </div>
+                <div class="copy-folder-info-box">
+                  <div class="copy-folder-info-title">Destination</div>
+                  <div class="copy-folder-info-path" [title]="copyDestinationFolder() || ''">{{copyDestinationFolder() || 'No destination folder selected'}}</div>
+                  <div class="copy-folder-info-files">Files: {{copyDestinationFileCount() ?? '—'}}</div>
+                  <div class="copy-folder-info-files">Size: {{formatFolderSize(copyDestinationFolderSize())}}</div>
+                  <div class="copy-folder-select-row">
+                    <button type="button" (click)="selectCopyFolder()">Select folder</button>
+                    <button type="button" (click)="selectBestOfFolder()">Select BestOf folder</button>
+                  </div>
+                </div>
+                @if (copyPhotoStatus()) { <div class="copy-photo-status" role="status">{{copyPhotoStatus()}}</div> }
+                <button class="danger-action copy-confirm-button" type="button" [disabled]="!copyDestinationFolder()" (click)="copyPhoto()">Copy (C, F8)</button>
+              }
+            </section>
+            <div class="image-path-copy-row">
+              <div class="image-path-value" [title]="displayImagePath(selected.path)">{{displayImagePath(selected.path)}}</div>
+              <button type="button" class="image-copy-path-button" (click)="copyImagePath()">{{copyPathStatus() || 'Copy path'}}</button>
+            </div>
+          }
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'general') {
+      <section>@if(sidebarSectionExpanded('general')){<div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div><app-settings-panel mode="general" />}</section>
+      }
+    </aside>
+  }
+
+  @if (!fullScreen) {
+    @let imagePosition = imagePosition$ | async;
+    <footer class="image-status-bar" aria-label="Image status"
+            [style.margin-right.px]="controlsSidebarVisible() ? sidebarWidth() : 0">
+      <div class="status-control-groups">
+        <div class="status-control-group status-left">
+          <button type="button" class="status-icon-button" (click)="goBack()" title="Abbrechen / zurück zur Galerie" aria-label="Abbrechen">✕</button>
+          <span class="status-image-size">{{ dimensions.width }} × {{ dimensions.height }}</span>
+        </div>
+        <div class="status-control-group status-zoom" aria-label="Zoom">
+          <button type="button" class="status-icon-button" (click)="resetZoom()" title="Zoom zurücksetzen / an Fenster anpassen" aria-label="Zoom zurücksetzen">⟲</button>
+          <button type="button" class="status-icon-button" (click)="zoomOut()" title="Zoom verkleinern (−)" aria-label="Zoom verkleinern">−</button>
+          <button type="button" class="status-icon-button" (click)="zoomIn()" title="Zoom vergrößern (+)" aria-label="Zoom vergrößern">+</button>
+          <div class="status-zoom-slider"><ui-slider [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
+          <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
+        </div>
+        <div class="status-control-group status-navigation">
+          <button type="button" class="status-icon-button" [disabled]="!(hasPrevious$ | async)" (click)="prevPhoto()" title="Vorheriges Bild (←, PageUp)" aria-label="Vorheriges Bild">‹</button>
+          <button type="button" class="status-icon-button" [disabled]="!(hasNext$ | async)" (click)="nextPhoto()" title="Nächstes Bild (→, Space, PageDown)" aria-label="Nächstes Bild">›</button>
+          <div class="status-position-slider" [title]="(imagePosition?.position ?? 0) + ' / ' + (imagePosition?.total ?? 0)">
+            <input type="range" min="1" [max]="imagePosition?.total ?? 1" [value]="imagePosition?.position ?? 1"
+                   [disabled]="(imagePosition?.total ?? 0) < 2"
+                   [attr.aria-label]="'Bildposition ' + (imagePosition?.position ?? 0) + ' von ' + (imagePosition?.total ?? 0)"
+                   (input)="changeImagePosition(+$any($event.target).value)" />
+            <span class="status-position-value">{{ imagePosition?.position ?? 0 }} / {{ imagePosition?.total ?? 0 }}</span>
+            <span class="status-position-tooltip">{{ imagePosition?.position ?? 0 }} / {{ imagePosition?.total ?? 0 }}</span>
+          </div>
+        </div>
+        <div class="status-control-group status-right">
+          <button type="button" class="status-icon-button" (click)="resetCorrections()" title="Korrekturen zurücksetzen" aria-label="Korrekturen zurücksetzen">↺</button>
+          <button type="button" class="status-icon-button" (click)="toggleSidebarVisibility()" [title]="controlsSidebarVisible() ? 'Rechte Seitenleiste ausblenden' : 'Rechte Seitenleiste einblenden'" [attr.aria-label]="controlsSidebarVisible() ? 'Rechte Seitenleiste ausblenden' : 'Rechte Seitenleiste einblenden'">▤</button>
+        </div>
+      </div>
+    </footer>
+  }
+}

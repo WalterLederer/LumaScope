@@ -828,7 +828,7 @@ public static class LightMatterWindowEnumerator {
       var titleBuffer = new StringBuilder(1024);
       GetWindowText(hWnd, titleBuffer, titleBuffer.Capacity);
       var title = titleBuffer.ToString().Trim();
-      if (title.Length == 0) return true;
+      if (title.Length == 0 || title.StartsWith("Light Matter", StringComparison.OrdinalIgnoreCase)) return true;
       uint pid;
       GetWindowThreadProcessId(hWnd, out pid);
       string exePath = null;
@@ -889,6 +889,7 @@ public static class LightMatterWindowEnumerator {
       isMinimized: boolean;
     }>;
     windows = nativeRows
+      .filter(window => Number(window.processId) !== process.pid)
       .map(window => {
         const executablePath = window.executablePath || undefined;
         return {

@@ -1,0 +1,58 @@
+{
+  "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
+  "productName": "Light Matter",
+  "fileAssociations": [
+    {
+      "ext": [
+        "jpg",
+        "jpeg",
+        "jxl",
+        "png",
+        "gif",
+        "svg",
+        "webp",
+        "avif",
+        "heif",
+        "heic",
+        "exr",
+        "hdr",
+        "tif",
+        "tiff",
+        "bmp"
+      ],
+      "role": "Viewer"
+    }
+  ],
+  "directories": {
+    "buildResources": "./apps/desktop/src/assets"
+  },
+  "appx": {
+    "applicationId": "hexmode.org.LightMatter",
+    "identityName": "62205hexmode.org.LightMatter",
+    "displayName": "Light Matter",
+    "publisher": "CN=A139D0AB-B22F-434F-A983-4845D29D550E",
+    "publisherDisplayName": "hexmode.org"
+  },
+  "win": {
+    "icon": "./apps/desktop/src/assets/icon.ico",
+    "target": "appx",
+    "extraResources": [
+      {
+        "from": "tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe",
+        "to": "jxr-wic-encoder.exe"
+      }
+    ]
+  },
+  "electronLanguages": [
+    "en-GB"
+  ],
+  "files": [
+    {
+      "from": "desktop",
+      "to": "desktop",
+      "filter": [
+        "thumb-worker.js"
+      ]
+    }
+  ]
+}

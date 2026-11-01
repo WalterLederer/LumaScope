@@ -1514,17 +1514,6 @@ export class ImageView {
     }
 
     effect(() => {
-      const mapState = {
-        style: this.locationMapStyle(), color: this.locationMapColor(), opacity: this.locationMapOpacity(),
-        zoom: this.locationMapZoomLevel(), gpxSegments: this.gpxTrackSegments(),
-        gpxVisible: this.gpxTrackVisible(), gpxColor: this.gpxTrackColor(), gpxOpacity: this.gpxTrackOpacity(),
-        gpxFileName: this.gpxTrackFileName()
-      };
-      try { this.document.defaultView?.localStorage.setItem('light-matter.detachedMapState', JSON.stringify(mapState)); }
-      catch { /* The detached map continues with its last synchronized state. */ }
-    });
-
-    effect(() => {
       const coordinates = this.gpsCoordinates();
       if (this.detachedMapWindowOpen() && coordinates) {
         void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude);

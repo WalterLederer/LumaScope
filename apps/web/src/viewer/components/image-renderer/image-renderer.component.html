@@ -1,0 +1,118 @@
+@let imageUrl = displayUrl();
+@let loading = isLoading();
+@let location = imageLocation$ | async | default:defaultImageLocation;
+
+<div class="loading-indicator" [class.visible]="loading && imageUrl === null">
+  <ui-icon icon="arrowClockwise" size="x-large" />
+</div>
+
+<div #surface
+     class="surface"
+     [class.dual-side-by-side-surface]="comparisonMode() === 'dual-side-by-side'"
+     [class.dual-stacked-surface]="comparisonMode() === 'dual-stacked'"
+     [class.pannable-surface]="location.zoom !== 'fit' && comparisonMode() !== 'dual-side-by-side' && comparisonMode() !== 'dual-stacked'"
+     [style.zoom]="location.pixelRatio"
+     (click)="onSurfaceClick($event)"
+     (mousedown)="onMouseDown($event)"
+     (mousemove)="onSurfaceMouseMove($event)"
+     (mouseleave)="onSurfaceMouseLeave()"
+     (pointermove)="onSplitPointerMove($event)"
+     (pointerup)="onSplitPointerUp($event)"
+     (pointercancel)="onSplitPointerUp($event)">
+
+  @if (imageUrl !== null) {
+    @if (comparisonMode() !== 'hdr') {
+      <img alt=""
+         class="comparison-image sdr-image"
+         [class.pannable]="location.zoom !== 'fit' && comparisonMode() !== 'dual-side-by-side' && comparisonMode() !== 'dual-stacked'"
+         [class.hidden-variant]="comparisonMode() === 'hdr'"
+         [style.opacity]="brightnessRendererMode() === 'webgpu' && displayBrightness() !== 1 && gpuBrightnessReady() && !gpuBrightnessFailed() ? 0 : 1"
+         [class.dual-side-by-side]="comparisonMode() === 'dual-side-by-side'"
+         [width]="location.width"
+         [height]="location.height"
+         [style.left]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? '0%' : (location.x | px)"
+         [style.top]="comparisonMode() === 'dual-side-by-side' ? '0%' : comparisonMode() === 'dual-stacked' ? '0%' : (location.y | px)"
+         [style.transform]="(comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked') && location.zoom !== 'fit' ? 'scale(' + (location.zoom * 100 / location.fitZoom) + ')' : null"
+         [style.transform-origin]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? 'center center' : null"
+         [style.clip-path]="sdrClip()"
+         [style.filter]="(brightnessRendererMode() === 'css' || gpuBrightnessFailed()) && displayBrightness() !== 1 ? 'brightness(' + displayBrightness() + ')' : null"
+         [src]="imageUrl"
+         crossorigin="anonymous"
+         draggable="false">
+    }
+    @if (comparisonMode() !== 'hdr') {
+      <canvas class="comparison-image sdr-image sdr-gpu-image"
+         [class.pannable]="location.zoom !== 'fit' && comparisonMode() !== 'dual-side-by-side' && comparisonMode() !== 'dual-stacked'"
+         [class.dual-side-by-side]="comparisonMode() === 'dual-side-by-side'"
+         [style.visibility]="brightnessRendererMode() === 'webgpu' && displayBrightness() !== 1 && !gpuBrightnessFailed() ? 'visible' : 'hidden'"
+         [style.opacity]="gpuBrightnessReady() ? 1 : 0"
+         [width]="location.width" [height]="location.height"
+         [style.width.px]="location.width" [style.height.px]="location.height"
+         [style.left]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? '0%' : (location.x | px)"
+         [style.top]="comparisonMode() === 'dual-side-by-side' ? '0%' : comparisonMode() === 'dual-stacked' ? '0%' : (location.y | px)"
+         [style.transform]="(comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked') && location.zoom !== 'fit' ? 'scale(' + (location.zoom * 100 / location.fitZoom) + ')' : null"
+         [style.transform-origin]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? 'center center' : null"
+         [style.clip-path]="sdrClip()" style="pointer-events: none" aria-hidden="true"></canvas>
+    }
+    @if (comparisonMode() === 'side-by-side' || comparisonMode() === 'stacked') {
+      <div class="comparison-split-handle"
+           [class.vertical]="comparisonMode() === 'side-by-side'"
+           [class.horizontal]="comparisonMode() === 'stacked'"
+           [style.left]="comparisonMode() === 'side-by-side' ? (location.x + location.width * comparisonSplit() / 100 | px) : (location.x | px)"
+           [style.top]="comparisonMode() === 'stacked' ? (location.y + location.height * comparisonSplit() / 100 | px) : (location.y | px)"
+           [style.width]="comparisonMode() === 'side-by-side' ? '16px' : (location.width | px)"
+           [style.height]="comparisonMode() === 'stacked' ? '16px' : (location.height | px)"
+           (pointerdown)="onSplitPointerDown($event)"
+           role="slider"
+           tabindex="0"
+           aria-label="SDR/HDR-Trennlinie"
+           [attr.aria-valuenow]="comparisonSplit()"
+           aria-valuemin="1"
+           aria-valuemax="99">
+        <span></span>
+      </div>
+    }
+
+    @if (comparisonMode() !== 'sdr') {
+      <img alt=""
+         class="comparison-image hdr-image"
+         [class.hidden-variant]="comparisonMode() === 'sdr'"
+         [class.pannable]="location.zoom !== 'fit' && comparisonMode() !== 'dual-side-by-side' && comparisonMode() !== 'dual-stacked'"
+         [class.dual-side-by-side]="comparisonMode() === 'dual-side-by-side'"
+         [style.opacity]="brightnessRendererMode() === 'webgpu' && displayBrightness() !== 1 && gpuHdrBrightnessReady() && !gpuHdrBrightnessFailed() ? 0 : 1"
+         [width]="location.width"
+         [height]="location.height"
+         [style.left]="comparisonMode() === 'dual-side-by-side' ? '50%' : comparisonMode() === 'dual-stacked' ? '0%' : (location.x | px)"
+         [style.top]="comparisonMode() === 'dual-side-by-side' ? '0%' : comparisonMode() === 'dual-stacked' ? '50%' : (location.y | px)"
+         [style.transform]="(comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked') && location.zoom !== 'fit' ? 'scale(' + (location.zoom * 100 / location.fitZoom) + ')' : null"
+         [style.transform-origin]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? 'center center' : null"
+         [style.clip-path]="hdrClip()"
+         [style.filter]="(brightnessRendererMode() === 'css' || gpuHdrBrightnessFailed()) && displayBrightness() !== 1 ? 'brightness(' + displayBrightness() + ')' : null"
+         [src]="imageUrl"
+         crossorigin="anonymous"
+         style="dynamic-range-limit: no-limit"
+         draggable="false">
+      <canvas class="comparison-image hdr-image hdr-gpu-image"
+         [style.visibility]="brightnessRendererMode() === 'webgpu' && displayBrightness() !== 1 && !gpuHdrBrightnessFailed() ? 'visible' : 'hidden'"
+         [style.opacity]="gpuHdrBrightnessReady() ? 1 : 0"
+         [class.dual-side-by-side]="comparisonMode() === 'dual-side-by-side'"
+         [width]="location.width" [height]="location.height"
+         [style.width.px]="location.width" [style.height.px]="location.height"
+         [style.left]="comparisonMode() === 'dual-side-by-side' ? '50%' : comparisonMode() === 'dual-stacked' ? '0%' : (location.x | px)"
+         [style.top]="comparisonMode() === 'dual-side-by-side' ? '0%' : comparisonMode() === 'dual-stacked' ? '50%' : (location.y | px)"
+         [style.transform]="(comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked') && location.zoom !== 'fit' ? 'scale(' + (location.zoom * 100 / location.fitZoom) + ')' : null"
+         [style.transform-origin]="comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked' ? 'center center' : null"
+         [style.clip-path]="hdrClip()" style="pointer-events: none; dynamic-range-limit: no-limit" aria-hidden="true"></canvas>
+      <!-- HDR diagnostics are temporarily disabled: separate WebGPU devices caused validation failures. -->
+    }
+  }
+
+</div>
+
+
+@if (imageUrl !== null && (comparisonMode() === 'dual-side-by-side' || comparisonMode() === 'dual-stacked')) {
+  <div class="dual-side-by-side-labels" [class.dual-stacked-labels]="comparisonMode() === 'dual-stacked'" aria-hidden="true">
+    <img class="comparison-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo">
+    <img class="comparison-logo-image" src="hdr-logo.png" alt="HDR logo">
+  </div>
+}

@@ -1,0 +1,79 @@
+@use '@angular/cdk' as cdk;
+
+@use "global/dimensions";
+@use "global/palette";
+@use "global/palette2";
+@use "global/typography";
+
+
+@include cdk.overlay();
+
+body {
+  color-scheme: dark;
+  background: var(--color-surface-default-low);
+  color: var(--color-content-default-high);
+
+  font-family: var(--text-font-family);
+  font-size: var(--text-font-size);
+
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+ul, li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* DEPRECATED */
+
+.block-icon {
+  display: block;
+}
+
+/* Consistent disclosure styling across the app. */
+details {
+  border-bottom: 1px solid var(--color-content-default-low);
+}
+
+details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--dim-small);
+  list-style: none;
+  cursor: pointer;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary::before {
+  content: ">";
+  display: inline-block;
+  flex: 0 0 12px;
+  width: 12px;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+details[open] > summary::before {
+  content: "v";
+}
+

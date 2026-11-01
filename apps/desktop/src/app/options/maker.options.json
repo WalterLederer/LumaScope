@@ -1,0 +1,52 @@
+{
+  "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
+  "productName": "Light Matter",
+  "fileAssociations": [
+    {
+      "ext": [
+        "jpg",
+        "jpeg",
+        "jxl",
+        "png",
+        "gif",
+        "svg",
+        "webp",
+        "avif",
+        "heif",
+        "heic",
+        "exr",
+        "hdr",
+        "tif",
+        "tiff",
+        "bmp"
+      ],
+      "role": "Viewer"
+    }
+  ],
+  "nsis": {
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "oneClick": false
+  },
+  "win": {
+    "icon": "./apps/desktop/src/assets/icon.ico",
+    "extraResources": [
+      {
+        "from": "tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe",
+        "to": "jxr-wic-encoder.exe"
+      }
+    ]
+  },
+  "electronLanguages": [
+    "en-GB"
+  ],
+  "files": [
+    {
+      "from": "desktop",
+      "to": "desktop",
+      "filter": [
+        "thumb-worker.js"
+      ]
+    }
+  ]
+}

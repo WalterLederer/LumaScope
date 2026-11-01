@@ -1,0 +1,61 @@
+name: Release a new version
+
+on:
+  workflow_dispatch:
+
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-windows:
+    permissions:
+      contents: write
+    name: Build and release Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.14.0"
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit --ignore-scripts
+      - run: npm run build:all
+      - run: npm run make:prod-nsis
+      - run: npm run make:prod-appx
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/executables/*.exe
+            dist/executables/*.appx
+
+  build-linux:
+    permissions:
+      contents: write
+    name: Build and release Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.14.0"
+          cache: 'npm'
+      - run: npm ci --prefer-offline --no-audit --ignore-scripts
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - run: npm run build:all
+      - run: npm run make:prod-appimage
+      - run: npm run make:prod-flatpak
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/executables/*.AppImage
+            dist/executables/*.flatpak
+            dist/executables/latest-linux.yml

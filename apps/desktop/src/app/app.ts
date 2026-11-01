@@ -13,8 +13,6 @@ export default class App {
   static mainWindow: Electron.BrowserWindow;
   static mapWindow: Electron.BrowserWindow | null = null;
   static capturePreviewWindow: Electron.BrowserWindow | null = null;
-  private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
-  private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   static application: Electron.App;
   static BrowserWindow;
 
@@ -162,17 +160,18 @@ export default class App {
   static openCapturePreviewWindow(): boolean {
     if (App.isCapturePreviewWindowOpen()) {
       if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
-      App.capturePreviewWindow.showInactive();
+      App.capturePreviewWindow.show();
+      App.capturePreviewWindow.focus();
       return true;
     }
     const display = screen.getDisplayMatching(App.mainWindow.getBounds());
-    const savedBounds = App.restoreAuxiliaryBounds(App.startupConfig.capturePreviewBounds(), display.workArea, 1100, 760);
     App.capturePreviewWindow = new BrowserWindow({
-      ...savedBounds,
+      width: Math.min(1100, display.workArea.width),
+      height: Math.min(760, display.workArea.height),
       minWidth: 480,
       minHeight: 320,
       show: false,
-      title: 'Light Matter — HDR Capture Preview - CAPTURE PREVIEW',
+      title: 'Light Matter — HDR Capture Preview',
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -180,9 +179,6 @@ export default class App {
       }
     });
     App.capturePreviewWindow.setMenu(null);
-    App.capturePreviewWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('capture'));
-    App.capturePreviewWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('capture'));
-    App.capturePreviewWindow.on('close', () => { void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds()); });
     const hash = '/capture-preview';
     if (!App.application.isPackaged) {
       App.capturePreviewWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
@@ -195,7 +191,7 @@ export default class App {
       }));
     }
     App.capturePreviewWindow.once('ready-to-show', () => {
-      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.showInactive();
+      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.capturePreviewWindow = null;
@@ -226,18 +222,19 @@ export default class App {
     if (App.isMapWindowOpen()) {
       App.mapWindow.webContents.send('MapWindow.locationChanged', { latitude, longitude });
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
-      App.mapWindow.showInactive();
+      App.mapWindow.show();
+      App.mapWindow.focus();
       return true;
     }
 
     const display = screen.getDisplayMatching(App.mainWindow.getBounds());
-    const savedBounds = App.restoreAuxiliaryBounds(App.startupConfig.mapBounds(), display.workArea, 1000, 760);
     App.mapWindow = new BrowserWindow({
-      ...savedBounds,
+      width: Math.min(1000, display.workArea.width),
+      height: Math.min(760, display.workArea.height),
       minWidth: 420,
       minHeight: 320,
       show: false,
-      title: 'Light Matter — Image Location - MAP',
+      title: 'Light Matter — Image Location',
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -245,9 +242,6 @@ export default class App {
       }
     });
     App.mapWindow.setMenu(null);
-    App.mapWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('map'));
-    App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
-    App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
     const hash = `/map?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`;
     if (!App.application.isPackaged) {
       App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
@@ -260,7 +254,7 @@ export default class App {
       }));
     }
     App.mapWindow.once('ready-to-show', () => {
-      if (App.isMapWindowOpen()) App.mapWindow.showInactive();
+      if (App.isMapWindowOpen()) App.mapWindow.show();
     });
     App.mapWindow.on('closed', () => {
       App.mapWindow = null;
@@ -272,29 +266,6 @@ export default class App {
       App.mainWindow.webContents.send('MapWindow.stateChanged', true);
     }
     return true;
-  }
-
-  private static restoreAuxiliaryBounds(saved: Electron.Rectangle | null, workArea: Electron.Rectangle, defaultWidth: number, defaultHeight: number): Electron.Rectangle {
-    if (saved && screen.getAllDisplays().some(display => {
-      const area = display.workArea;
-      return saved.x < area.x + area.width && saved.x + saved.width > area.x
-        && saved.y < area.y + area.height && saved.y + saved.height > area.y;
-    })) return saved;
-    return { x: workArea.x + Math.max(0, Math.round((workArea.width - Math.min(defaultWidth, workArea.width)) / 2)),
-      y: workArea.y + Math.max(0, Math.round((workArea.height - Math.min(defaultHeight, workArea.height)) / 2)),
-      width: Math.min(defaultWidth, workArea.width), height: Math.min(defaultHeight, workArea.height) };
-  }
-
-  private static scheduleAuxiliaryBoundsSave(kind: 'map' | 'capture'): void {
-    const current = kind === 'map' ? App.mapWindow : App.capturePreviewWindow;
-    if (!current || current.isDestroyed() || current.isMaximized() || current.isFullScreen()) return;
-    const timer = kind === 'map' ? App.mapBoundsTimer : App.capturePreviewBoundsTimer;
-    if (timer) clearTimeout(timer);
-    const next = setTimeout(() => {
-      if (kind === 'map') { App.mapBoundsTimer = null; if (App.mapWindow && !App.mapWindow.isDestroyed()) void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); }
-      else { App.capturePreviewBoundsTimer = null; if (App.capturePreviewWindow && !App.capturePreviewWindow.isDestroyed()) void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds()); }
-    }, 250);
-    if (kind === 'map') App.mapBoundsTimer = next; else App.capturePreviewBoundsTimer = next;
   }
 
   static closeMapWindow(): void {
