@@ -295,7 +295,8 @@ const createSdrClipboardPixels = (
       break;
     }
   }
-  const peakNorm = Math.pow(peakBin / (histogramSize - 1), 2) * maxTrackedLuminance;
+  const histogramPeakNorm = Math.pow(peakBin / (histogramSize - 1), 2) * maxTrackedLuminance;
+  const peakNorm = maxLuminance > 1.0005 ? Math.max(histogramPeakNorm, 1.001) : histogramPeakNorm;
   const sdrWhiteNits = 80;
   const targetNits = sdrWhiteNits * 0.95;
   const pqM1 = 2610 / 16384;
