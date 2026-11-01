@@ -1265,7 +1265,7 @@ ipcMain.handle(
     if (image.isEmpty()) {
       throw new Error('Electron could not read the rendered WebGPU capture preview.');
     }
-    clipboard.write([{ mimeType: 'image/png', data: image.toPNG() }]);
+    clipboard.write([{ type: 'image/png', data: image.toPNG() }]);
     const size = image.getSize();
     console.info('[HDR Capture] Copied rendered WebGPU preview to Windows Clipboard', size);
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
