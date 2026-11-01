@@ -3,7 +3,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, nativeImage, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -1242,36 +1242,23 @@ ipcMain.handle('Capture.chooseFolder', async (_event, initialPath?: string): Pro
 
 ipcMain.handle(
   'Capture.copyPreviewToClipboard',
-  async (event, bounds: { x: number; y: number; width: number; height: number }): Promise<CaptureResult> => {
+  async (_event, pngData: Uint8Array): Promise<CaptureResult> => {
     if (process.platform !== 'win32') {
       throw new Error('Capture preview clipboard export is currently supported on Windows only.');
     }
-    const ownerWindow = BrowserWindow.fromWebContents(event.sender);
-    if (!ownerWindow || ownerWindow.isDestroyed()) {
-      throw new Error('The capture preview window is no longer available.');
-    }
-    const contentSize = ownerWindow.getContentSize();
-    const x = Math.round(bounds?.x ?? -1);
-    const y = Math.round(bounds?.y ?? -1);
-    const width = Math.round(bounds?.width ?? 0);
-    const height = Math.round(bounds?.height ?? 0);
-    if (![x, y, width, height].every(Number.isFinite)
-      || x < 0 || y < 0 || width < 1 || height < 1
-      || x + width > contentSize[0] || y + height > contentSize[1]) {
-      throw new Error('The WebGPU capture preview is not fully visible. Make sure the preview is visible and try again.');
+    if (!(pngData instanceof Uint8Array) || pngData.byteLength < 8
+      || pngData[0] !== 0x89 || pngData[1] !== 0x50 || pngData[2] !== 0x4e || pngData[3] !== 0x47) {
+      throw new Error('The WebGPU preview did not provide valid PNG image data.');
     }
 
-    const image = await event.sender.capturePage({ x, y, width, height });
+    const imageBlob = new Blob([new Uint8Array(pngData)], { type: 'image/png' });
+    await clipboard.write([new ClipboardItem({ 'image/png': imageBlob })]);
+    const image = nativeImage.createFromBuffer(Buffer.from(pngData));
     if (image.isEmpty()) {
-      throw new Error('Electron could not read the rendered WebGPU capture preview.');
+      throw new Error('Electron could not decode the rendered WebGPU preview PNG.');
     }
-    await clipboard.write([
-      new ClipboardItem({
-        'image/png': new Blob([new Uint8Array(image.toPNG())], { type: 'image/png' })
-      })
-    ]);
     const size = image.getSize();
-    console.info('[HDR Capture] Copied rendered WebGPU preview to Windows Clipboard', size);
+    console.info('[HDR Capture] Copied native-resolution WebGPU preview to Windows Clipboard', size);
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
   }
 );
