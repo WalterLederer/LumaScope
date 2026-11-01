@@ -136,10 +136,11 @@ export default class App {
 
     // Emitted when the window is closed.
     App.mainWindow.on('closed', () => {
-      // Dereference the window object, usually you would store windows
-      // in an array if your app supports multi windows, this is the time
-      // when you should delete the corresponding element.
+      // Dereference the main window and close all auxiliary Light Matter windows.
       App.mainWindow = null;
+
+      if (App.isMapWindowOpen()) App.mapWindow.close();
+      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.close();
     });
   }
 
