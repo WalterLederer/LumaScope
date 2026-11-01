@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, OnInit, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Desktop } from 'internal-api';
 
 interface MapMarker {
   setLatLng(position: [number, number]): MapMarker;
@@ -26,6 +27,9 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
+  private marker: MapMarker | null = null;
+  private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
+  private unsubscribeLocation: (() => void) | null = null;
 
   ngOnInit(): void {
     const latitude = Number(this.route.snapshot.queryParamMap.get('lat'));
@@ -37,6 +41,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.unsubscribeLocation?.();
     window.removeEventListener('resize', this.onResize);
     this.map?.remove();
     this.map = null;
@@ -52,7 +57,12 @@ export class MapWindow implements OnInit, OnDestroy {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(this.map);
-    leaflet.marker(center).addTo(this.map);
+    this.marker = leaflet.marker(center).addTo(this.map);
+    this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
+      const next: [number, number] = [location.latitude, location.longitude];
+      this.marker?.setLatLng(next);
+      this.map?.setView(next, this.map.getZoom());
+    }) ?? null;
     window.addEventListener('resize', this.onResize);
   }
 

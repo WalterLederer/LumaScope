@@ -74,6 +74,11 @@ const api: Desktop = {
       const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);
       ipcRenderer.on('MapWindow.stateChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
+    },
+    onLocationChanged: (callback: (location: { latitude: number; longitude: number }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number; longitude: number }): void => callback(location);
+      ipcRenderer.on('MapWindow.locationChanged', listener);
+      return () => ipcRenderer.removeListener('MapWindow.locationChanged', listener);
     }
   },
 

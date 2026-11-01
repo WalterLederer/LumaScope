@@ -135,6 +135,7 @@ export interface DesktopMapWindow {
   readonly close: () => Promise<void>;
   readonly isOpen: () => Promise<boolean>;
   readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
+  readonly onLocationChanged: (callback: (location: { latitude: number; longitude: number }) => void) => () => void;
 }
 
 export interface DesktopCapture {

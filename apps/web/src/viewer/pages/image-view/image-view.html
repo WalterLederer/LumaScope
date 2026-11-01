@@ -404,6 +404,10 @@
           <button class="section-heading" type="button" (click)="toggleSidebarSection('mapSettings')"><span class="section-chevron">{{sidebarSectionExpanded('mapSettings') ? 'v' : '>'}}</span>Map settings</button>
           @if (gpsCoordinates(); as coordinates) {
             @if (sidebarSectionExpanded('mapSettings')) {
+            <label class="location-detached-map-toggle">
+              <input type="checkbox" [checked]="detachedMapWindowOpen()" (change)="setDetachedMapWindowOpen($any($event.target).checked)" />
+              Open map in separate window
+            </label>
             <div class="location-coordinate-readout">
               <strong>GPS/GNSS:</strong>
               <span>{{formatGpsCoordinate(coordinates.latitude, 'N', 'S')}}, {{formatGpsCoordinate(coordinates.longitude, 'O', 'W')}}</span>

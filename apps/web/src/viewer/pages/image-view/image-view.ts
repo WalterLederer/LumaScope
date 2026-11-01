@@ -139,6 +139,24 @@ export class ImageView {
 
   private readonly document = inject(DOCUMENT);
 
+  private readonly desktopApi = (this.document.defaultView as unknown as { desktop?: Desktop } | null)?.desktop;
+
+  protected readonly detachedMapWindowOpen = signal(false);
+
+  protected readonly setDetachedMapWindowOpen = async (open: boolean): Promise<void> => {
+    const coordinates = this.gpsCoordinates();
+    const api = this.desktopApi?.MapWindow;
+    if (!api) return;
+    if (open) {
+      if (!coordinates) return;
+      await api.open(coordinates.latitude, coordinates.longitude);
+      this.detachedMapWindowOpen.set(true);
+    } else {
+      await api.close();
+      this.detachedMapWindowOpen.set(false);
+    }
+  };
+
   private readonly exif = inject(ExifService);
 
   private readonly histogram = inject(HistogramService);
@@ -1488,6 +1506,20 @@ export class ImageView {
 
   /* Constructor */
   constructor() {
+    const mapWindowApi = this.desktopApi?.MapWindow;
+    if (mapWindowApi) {
+      void mapWindowApi.isOpen().then(open => this.detachedMapWindowOpen.set(open));
+      const unsubscribe = mapWindowApi.onStateChanged(open => this.detachedMapWindowOpen.set(open));
+      this.destroyRef.onDestroy(unsubscribe);
+    }
+
+    effect(() => {
+      const coordinates = this.gpsCoordinates();
+      if (this.detachedMapWindowOpen() && coordinates) {
+        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude);
+      }
+    });
+
     effect(() => {
       const tab = this.activeImageSidebarTab();
       const container = this.locationMapElement()?.nativeElement ?? null;
