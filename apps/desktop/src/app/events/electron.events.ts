@@ -468,15 +468,15 @@ const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null
     if(!monitor) {
       throw new Error(`The selected display "${selection.deviceName}" (HMONITOR ${selection.monitorHandle}) could not be matched to an HDR capture monitor. Available: ${enumeratedMonitors.map(item=>`${item.deviceName} [${item.handle}]`).join(', ')}`);
     }
+    // Use the capture backend's enumeration position, not MonitorInfo.index (DISPLAYn).
+    const captureMonitorIndex=enumeratedMonitors.indexOf(monitor)+1;
     console.info('[HDR Capture] Rectangle source mapping', {
       selectedDeviceName:selection.deviceName,
       selectedMonitorHandle:selection.monitorHandle,
       captureMonitorDeviceName:monitor.deviceName,
       captureMonitorHandle:String(monitor.handle),
-      captureMonitorIndex:monitor.index
+      captureMonitorIndex
     });
-    // Use the capture backend's enumeration position, not MonitorInfo.index (DISPLAYn).
-    const captureMonitorIndex=enumeratedMonitors.indexOf(monitor)+1;
     const source=await captureHdrFrame({kind:'monitor',index:captureMonitorIndex});
     const scaleX=source.width/selection.screenWidth, scaleY=source.height/selection.screenHeight;
     const left=Math.max(0,Math.round(selection.x*scaleX)), top=Math.max(0,Math.round(selection.y*scaleY));
@@ -1213,7 +1213,7 @@ ipcMain.handle('Capture.listSources', async (): Promise<CaptureSources> => {
       // This is the one-based EnumDisplayMonitors position expected by ScreenCapture.
       // Do not use MonitorInfo.index here: it may be the Windows DISPLAYn suffix.
       index: position + 1,
-      name: monitor.name || monitor.deviceName || `Monitor ${monitor.index}`,
+      name: monitor.name || monitor.deviceName || `Monitor ${position + 1}`,
       deviceName: monitor.deviceName,
       width: monitor.width,
       height: monitor.height,
