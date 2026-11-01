@@ -3,7 +3,7 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, screen } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -1265,7 +1265,11 @@ ipcMain.handle(
     if (image.isEmpty()) {
       throw new Error('Electron could not read the rendered WebGPU capture preview.');
     }
-    clipboard.write([{ type: 'image/png', data: image.toPNG() }]);
+    await clipboard.write([
+      new ClipboardItem({
+        'image/png': new Blob([new Uint8Array(image.toPNG())], { type: 'image/png' })
+      })
+    ]);
     const size = image.getSize();
     console.info('[HDR Capture] Copied rendered WebGPU preview to Windows Clipboard', size);
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
