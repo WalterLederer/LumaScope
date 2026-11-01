@@ -120,7 +120,7 @@
           <input type="range" min="0.1" max="2.2" step="0.05" [value]="gammaCorrectionValue()" (input)="setGammaCorrectionValue($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || !applyGammaCorrectionOnSave()"/>
         </label>
         <label class="capture-field capture-gamma-slider">
-          <span>SDR exposure (clipboard only): {{ sdrExposure().toFixed(2) }}×</span>
+          <span>SDR exposure (preview + clipboard): {{ sdrExposure().toFixed(2) }}×</span>
           <input type="range" min="0.5" max="3.0" step="0.05" [value]="sdrExposure()" (input)="setSdrExposure($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || selectedFormat() !== 'clipboard'"/>
         </label>
         @if (selectedFormat() !== 'exr' && selectedFormat() !== 'clipboard') {
