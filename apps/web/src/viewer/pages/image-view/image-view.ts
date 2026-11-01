@@ -3314,11 +3314,20 @@ export class ImageView {
           return;
         }
 
-        if ((event.shiftKey && event.key !== '+' && event.key !== '_') || event.ctrlKey || event.altKey || event.metaKey) {
+        const target = event.target;
+        if (
+          event.shiftKey && event.key.toLowerCase() === 'c'
+          && !event.ctrlKey && !event.altKey && !event.metaKey
+          && !(target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]'))
+        ) {
+          event.preventDefault();
+          void this.openCaptureWindow();
           return;
         }
 
-        const target = event.target;
+        if ((event.shiftKey && event.key !== '+' && event.key !== '_') || event.ctrlKey || event.altKey || event.metaKey) {
+          return;
+        }
         if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]')) {
           return;
         }
