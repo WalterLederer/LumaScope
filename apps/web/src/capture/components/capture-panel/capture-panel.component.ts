@@ -548,15 +548,12 @@ export class CapturePanelComponent {
         if (!this.previewFrame() || !canvas) {
           throw new Error('Capture a source first so the rendered WebGPU preview is available.');
         }
-        canvas.scrollIntoView({ block: 'center', inline: 'nearest' });
-        await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-        const rect = canvas.getBoundingClientRect();
-        const result = await this.captureService.copyPreviewToClipboard({
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height
+        await this.previewDevice?.destroy?.();
+        const pngBlob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not export the WebGPU preview as PNG.')), 'image/png');
         });
+        const pngData = new Uint8Array(await pngBlob.arrayBuffer());
+        const result = await this.captureService.copyPreviewToClipboard(pngData);
         this.lastOutputPath.set('Windows Clipboard');
         this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
       } else {
