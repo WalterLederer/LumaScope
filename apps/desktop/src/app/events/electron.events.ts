@@ -354,9 +354,12 @@ public static class LightMatterWindowGeometry {
 
 const cropWindowFromMonitorFrame = async (handle: number, targetKey: string): Promise<CapturedHdrFrame> => {
   const geometry = getWindowMonitorGeometry(handle);
-  const monitor = enumerateMonitors().find(item => Number(item.handle) === geometry.monitorHandle);
-  if (!monitor) throw new Error('The window monitor could not be matched to an HDR capture device.');
-  const source = await captureHdrFrame({ kind:'monitor', index:monitor.index });
+  const monitors = enumerateMonitors();
+  const monitorPosition = monitors.findIndex(item => Number(item.handle) === geometry.monitorHandle);
+  if (monitorPosition < 0) throw new Error('The window monitor could not be matched to an HDR capture device.');
+  // ScreenCapture.monitorIndex uses the monitor's position in EnumDisplayMonitors order.
+  // MonitorInfo.index can instead reflect the Windows DISPLAYn device suffix.
+  const source = await captureHdrFrame({ kind:'monitor', index:monitorPosition + 1 });
   const scaleX = source.width / (geometry.monitorRight - geometry.monitorLeft);
   const scaleY = source.height / (geometry.monitorBottom - geometry.monitorTop);
   const left = Math.max(0,Math.round((geometry.windowLeft-geometry.monitorLeft)*scaleX));
@@ -472,7 +475,9 @@ const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null
       captureMonitorHandle:String(monitor.handle),
       captureMonitorIndex:monitor.index
     });
-    const source=await captureHdrFrame({kind:'monitor',index:monitor.index});
+    // Use the capture backend's enumeration position, not MonitorInfo.index (DISPLAYn).
+    const captureMonitorIndex=enumeratedMonitors.indexOf(monitor)+1;
+    const source=await captureHdrFrame({kind:'monitor',index:captureMonitorIndex});
     const scaleX=source.width/selection.screenWidth, scaleY=source.height/selection.screenHeight;
     const left=Math.max(0,Math.round(selection.x*scaleX)), top=Math.max(0,Math.round(selection.y*scaleY));
     const right=Math.min(source.width,Math.round((selection.x+selection.width)*scaleX));
@@ -1202,10 +1207,12 @@ ipcMain.handle('Capture.listSources', async (): Promise<CaptureSources> => {
   }, null, 2));
   */
 
-  const monitors = enumerateMonitors().map(monitor => {
+  const monitors = enumerateMonitors().map((monitor, position) => {
     const deviceKey = (monitor.deviceName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
     return {
-      index: monitor.index,
+      // This is the one-based EnumDisplayMonitors position expected by ScreenCapture.
+      // Do not use MonitorInfo.index here: it may be the Windows DISPLAYn suffix.
+      index: position + 1,
       name: monitor.name || monitor.deviceName || `Monitor ${monitor.index}`,
       deviceName: monitor.deviceName,
       width: monitor.width,
