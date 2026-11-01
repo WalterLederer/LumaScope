@@ -72,7 +72,7 @@ export class CapturePanelComponent {
   protected readonly sdrContrast = signal(this.readSavedSdrContrast());
   protected readonly setSdrContrast = (value: number): void => {
     if (!Number.isFinite(value)) return;
-    const contrast = Math.min(1.5, Math.max(1, value));
+    const contrast = Math.min(1.5, Math.max(0.5, value));
     this.sdrContrast.set(contrast);
     try { localStorage.setItem('capture.sdrContrast.v3', String(contrast)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
@@ -242,10 +242,10 @@ export class CapturePanelComponent {
 
   private readSavedSdrContrast(): number {
     try {
-      const value = Number(localStorage.getItem('capture.sdrContrast.v2'));
-      if (Number.isFinite(value) && value >= 1 && value <= 1.5) return value;
+      const value = Number(localStorage.getItem('capture.sdrContrast.v4'));
+      if (Number.isFinite(value) && value >= 0.5 && value <= 1.5) return value;
     } catch { /* use the default when storage is unavailable */ }
-    return 1.0;
+    return 0.85;
   }
 
   private readSavedEncoderQuality(): number {
@@ -522,17 +522,17 @@ export class CapturePanelComponent {
           output.uv = vec2<f32>((p.x + 1.0) * 0.5, (1.0 - p.y) * 0.5);
           return output;
         }
+        // WGSL helper functions must be declared at module scope.
+        fn linearToExtendedSrgb(value: vec3<f32>) -> vec3<f32> {
+          let low = value * 12.92;
+          let high = 1.055 * pow(max(value, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
+          return select(high, low, value <= vec3<f32>(0.0031308));
+        }
         @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
           let dims = vec2<i32>(textureDimensions(sourceTexture));
           let coords = vec2<i32>(clamp(input.uv * vec2<f32>(dims), vec2<f32>(0.0), vec2<f32>(dims - vec2<i32>(1, 1))));
-          // Match the established HDR preview rendering: convert the captured
-          // scRGB reference white (80 nits) to the 203-nit display reference,
-          // then encode linear light as extended sRGB for the canvas.
-          fn linearToExtendedSrgb(value: vec3<f32>) -> vec3<f32> {
-            let low = value * 12.92;
-            let high = 1.055 * pow(max(value, vec3<f32>(0.0)), vec3<f32>(1.0 / 2.4)) - vec3<f32>(0.055);
-            return select(high, low, value <= vec3<f32>(0.0031308));
-          }
+          // Convert the captured scRGB reference white (80 nits) to the
+          // 203-nit display reference and encode it as extended sRGB.
           let linearColor = max(textureLoad(sourceTexture, coords, 0).rgb * 0.4, vec3<f32>(0.0));
           return vec4<f32>(linearToExtendedSrgb(linearColor), 1.0);
         }
@@ -587,16 +587,15 @@ export class CapturePanelComponent {
     context.drawImage(image, 0, 0, frame.width, frame.height);
     const imageData = context.getImageData(0, 0, frame.width, frame.height);
     const contrast = this.sdrContrast();
-    if (contrast > 1) {
-      const pixels = imageData.data;
-      for (let offset = 0; offset < pixels.length; offset += 4) {
-        for (let channel = 0; channel < 3; channel++) {
-          const value = pixels[offset + channel] / 255;
-          const adjusted = value < 0.5
-            ? 0.5 * Math.pow(value * 2, contrast)
-            : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
-          pixels[offset + channel] = Math.round(Math.pow(adjusted, 1.1) * 255);
-        }
+    const pixels = imageData.data;
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      for (let channel = 0; channel < 3; channel++) {
+        const value = pixels[offset + channel] / 255;
+        const contrastAdjusted = value < 0.5
+          ? 0.5 * Math.pow(value * 2, contrast)
+          : 1 - 0.5 * Math.pow((1 - value) * 2, contrast);
+        // Apply the SDR midtone darkening independently of the contrast slider.
+        pixels[offset + channel] = Math.round(Math.pow(contrastAdjusted, 1.1) * 255);
       }
     }
     context.putImageData(imageData, 0, 0);
