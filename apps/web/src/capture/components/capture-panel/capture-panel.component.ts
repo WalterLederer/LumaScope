@@ -300,6 +300,9 @@ export class CapturePanelComponent {
     this.selectedTarget.set(value);
     this.sourceMenuOpen.set(false);
     this.previewFrame.set(null);
+    const previousPreviewUrl = this.sdrPreviewUrl();
+    if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
+    this.sdrPreviewUrl.set('');
     this.previewSize.set('');
     this.status.set('');
     this.error.set(null);
@@ -442,6 +445,7 @@ export class CapturePanelComponent {
     try {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
+      if (!preview.sdrImage?.byteLength) throw new Error('The capture service did not return a browser-decodable Ultra HDR reference image.');
       this.previewFrame.set(preview);
       const previousPreviewUrl = this.sdrPreviewUrl();
       if (previousPreviewUrl) URL.revokeObjectURL(previousPreviewUrl);
