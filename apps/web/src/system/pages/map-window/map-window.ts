@@ -307,7 +307,14 @@ export class MapWindow implements OnInit, OnDestroy {
   private compassDirection(degrees: number): string {
     return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(degrees / 22.5) % 16];
   }
-  protected readonly toggleSettings = (): void => { this.settingsOpen.update(open => !open); };
+  protected readonly toggleSettings = (): void => {
+    this.settingsOpen.update(open => !open);
+
+    // Let Angular update the settings section and flex layout before Leaflet measures the map.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.map?.invalidateSize());
+    });
+  };
   protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
   protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
