@@ -50,6 +50,16 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 <option value="decimal">Decimal degrees</option>
               </select>
             </label>
+            <label>Open location in
+              <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                <option value="">Select web app…</option>
+                <option value="google-earth">Google Earth</option>
+                <option value="google-maps">Google Maps</option>
+                <option value="bing-maps">Bing Maps</option>
+                <option value="openstreetmap">OpenStreetMap</option>
+                <option value="apple-maps">Apple Maps</option>
+              </select>
+            </label>
             <label>Map style
               <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                 <option value="standard">Standard</option><option value="satellite">Satellite</option>
@@ -84,6 +94,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
               <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
+          </div>
+          <div class="settings-group address-settings">
+            <strong class="settings-row-title">Location:</strong>
+            <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
           </div>
           <div class="settings-group gpx-settings">
             <strong class="settings-row-title">GPX track:</strong>
@@ -135,6 +149,8 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .zoom-settings{flex:1;min-width:260px}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
+    .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
+    .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .gpx-filename{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
     .color-picker{position:relative}.color-picker-trigger{display:flex;align-items:center;gap:7px;min-width:132px}.color-picker-chevron{margin-left:auto}
@@ -191,6 +207,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxError = signal('');
   protected readonly coordinateFormat = signal<'dms' | 'decimal'>(this.readSetting('coordinateFormat', 'dms') === 'decimal' ? 'decimal' : 'dms');
   protected readonly coordinateLabel = signal('');
+  protected readonly locationAddress = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors = [
@@ -212,6 +229,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
+      void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
     }
   }
@@ -261,6 +279,38 @@ export class MapWindow implements OnInit, OnDestroy {
     if (marker) this.coordinateLabel.set(this.formatCoordinates(marker.lat, marker.lng));
   };
 
+  private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
+    this.locationAddress.set('Looking up address…');
+    try {
+      const url = new URL('https://nominatim.openstreetmap.org/reverse');
+      url.search = new URLSearchParams({
+        format: 'jsonv2', lat: String(latitude), lon: String(longitude), zoom: '18', addressdetails: '1'
+      }).toString();
+      const response = await fetch(url.toString(), { headers: { 'Accept-Language': navigator.language || 'en' } });
+      if (!response.ok) throw new Error('Reverse geocoding request failed.');
+      const result = await response.json() as { display_name?: string };
+      this.locationAddress.set(result.display_name?.trim() || 'No street address available for this location.');
+    } catch {
+      this.locationAddress.set('Address lookup unavailable.');
+    }
+  }
+
+  protected readonly openLocationIn = (provider: string): void => {
+    const marker = this.marker?.getLatLng();
+    if (!marker) return;
+    const lat = marker.lat;
+    const lon = marker.lng;
+    const urls: Record<string, string> = {
+      'google-earth': `https://earth.google.com/web/@${lat},${lon},1000a,1000d,35y,0h,0t,0r`,
+      'google-maps': `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
+      'bing-maps': `https://www.bing.com/maps?cp=${lat}~${lon}&lvl=16`,
+      openstreetmap: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`,
+      'apple-maps': `https://maps.apple.com/?ll=${lat},${lon}`
+    };
+    const url = urls[provider];
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   private compassDirection(degrees: number): string {
     return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(degrees / 22.5) % 16];
   }
@@ -307,6 +357,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
       const next: [number, number] = [location.latitude, location.longitude];
       this.coordinateLabel.set(this.formatCoordinates(location.latitude, location.longitude));
+      void this.lookupLocationAddress(location.latitude, location.longitude);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       this.marker?.setLatLng(next);
       this.map?.setView(next, this.map.getZoom());
