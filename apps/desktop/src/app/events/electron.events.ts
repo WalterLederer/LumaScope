@@ -566,6 +566,8 @@ const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
  * PQ-domain EETF. The 80-nit scRGB reference white is preserved below the
  * EETF knee; HDR highlights are smoothly compressed into the SDR range.
  */
+const SDR_CLIPBOARD_BRIGHTNESS_CORRECTION = 0.4;
+
 const createSdrClipboardPixels = (
   frame: CapturedHdrFrame,
   sourceChannels: Uint16Array,
@@ -580,8 +582,11 @@ const createSdrClipboardPixels = (
   const getLinearChannel = (pixel: number, channel: number): number => {
     const source = halfToFloat(sourceChannels[pixel * 4 + channel]);
     if (!Number.isFinite(source)) return 0;
-    const nonNegative = Math.max(0, source);
-    return gammaCorrection === 1 ? nonNegative : Math.pow(nonNegative, gammaCorrection);
+    // Match the 0.4 linear-light correction used by the HDR WebGPU viewer.
+    // Without it, SDR clipboard exports are substantially brighter than the
+    // same captured frame as displayed in Light Matter.
+    const corrected = Math.max(0, source) * SDR_CLIPBOARD_BRIGHTNESS_CORRECTION;
+    return gammaCorrection === 1 ? corrected : Math.pow(corrected, gammaCorrection);
   };
 
   for (let pixel = 0; pixel < pixelCount; pixel++) {
