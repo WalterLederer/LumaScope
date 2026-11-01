@@ -287,65 +287,133 @@ public static class LightMatterExternalWindow {
   return foreground.handle;
 };
 
+const getWindowMonitorGeometry = (handle: number): {
+  monitorHandle: number; windowLeft: number; windowTop: number; windowRight: number; windowBottom: number;
+  monitorLeft: number; monitorTop: number; monitorRight: number; monitorBottom: number;
+} => {
+  const script = String.raw`
+    $ErrorActionPreference = 'Stop'
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class LightMatterWindowGeometry {
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public struct MONITORINFOEX {
+    public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string szDevice;
+  }
+  [DllImport("user32.dll", SetLastError=true)] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+  [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] public static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFOEX info);
+}
+'@
+    $hwnd = [IntPtr]::new([long]::Parse($env:LIGHT_MATTER_WINDOW_HANDLE, [Globalization.CultureInfo]::InvariantCulture))
+    $windowRect = [LightMatterWindowGeometry+RECT]::new()
+    if (-not [LightMatterWindowGeometry]::GetWindowRect($hwnd, [ref]$windowRect)) { throw 'Could not read window bounds.' }
+    $monitor = [LightMatterWindowGeometry]::MonitorFromWindow($hwnd, 2)
+    if ($monitor -eq [IntPtr]::Zero) { throw 'Could not resolve the window monitor.' }
+    $info = [LightMatterWindowGeometry+MONITORINFOEX]::new()
+    $info.cbSize = [Runtime.InteropServices.Marshal]::SizeOf($info)
+    if (-not [LightMatterWindowGeometry]::GetMonitorInfoW($monitor, [ref]$info)) { throw 'Could not read monitor bounds.' }
+    [PSCustomObject]@{
+      monitorHandle = $monitor.ToInt64().ToString([Globalization.CultureInfo]::InvariantCulture)
+      windowLeft = $windowRect.Left; windowTop = $windowRect.Top; windowRight = $windowRect.Right; windowBottom = $windowRect.Bottom
+      monitorLeft = $info.rcMonitor.Left; monitorTop = $info.rcMonitor.Top; monitorRight = $info.rcMonitor.Right; monitorBottom = $info.rcMonitor.Bottom
+    } | ConvertTo-Json -Compress
+  `;
+  const output = execFileSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',script], {
+    encoding:'utf8', windowsHide:true, timeout:5000,
+    env:{ ...process.env, LIGHT_MATTER_WINDOW_HANDLE:String(handle) }
+  }).trim();
+  const value = JSON.parse(output) as Record<string, number | string>;
+  const geometry = {
+    monitorHandle:Number(value.monitorHandle),
+    windowLeft:Number(value.windowLeft), windowTop:Number(value.windowTop), windowRight:Number(value.windowRight), windowBottom:Number(value.windowBottom),
+    monitorLeft:Number(value.monitorLeft), monitorTop:Number(value.monitorTop), monitorRight:Number(value.monitorRight), monitorBottom:Number(value.monitorBottom)
+  };
+  if (!Number.isSafeInteger(geometry.monitorHandle) || geometry.monitorHandle<=0
+    || !Object.values(geometry).every(Number.isFinite)
+    || geometry.windowRight<=geometry.windowLeft || geometry.windowBottom<=geometry.windowTop
+    || geometry.monitorRight<=geometry.monitorLeft || geometry.monitorBottom<=geometry.monitorTop) {
+    throw new Error('Windows returned invalid window or monitor geometry.');
+  }
+  return geometry;
+};
+
+const cropWindowFromMonitorFrame = async (handle: number, targetKey: string): Promise<CapturedHdrFrame> => {
+  const geometry = getWindowMonitorGeometry(handle);
+  const monitor = enumerateMonitors().find(item => Number(item.handle) === geometry.monitorHandle);
+  if (!monitor) throw new Error('The window monitor could not be matched to an HDR capture device.');
+  const source = await captureHdrFrame({ kind:'monitor', index:monitor.index });
+  const scaleX = source.width / (geometry.monitorRight - geometry.monitorLeft);
+  const scaleY = source.height / (geometry.monitorBottom - geometry.monitorTop);
+  const left = Math.max(0,Math.round((geometry.windowLeft-geometry.monitorLeft)*scaleX));
+  const top = Math.max(0,Math.round((geometry.windowTop-geometry.monitorTop)*scaleY));
+  const right = Math.min(source.width,Math.round((geometry.windowRight-geometry.monitorLeft)*scaleX));
+  const bottom = Math.min(source.height,Math.round((geometry.windowBottom-geometry.monitorTop)*scaleY));
+  const width=right-left, height=bottom-top;
+  if(width<8||height<8) throw new Error('The selected window is outside the captured monitor frame.');
+  const rowBytes=width*8, buffer=Buffer.allocUnsafe(rowBytes*height);
+  for(let row=0;row<height;row++){
+    const sourceStart=((top+row)*source.width+left)*8;
+    source.buffer.copy(buffer,row*rowBytes,sourceStart,sourceStart+rowBytes);
+  }
+  const frame:CapturedHdrFrame={targetKey,width,height,buffer};
+  cachedHdrFrame=frame;
+  return frame;
+};
+
 const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
   if (includeLightMatterWindows) {
     const captureWindow = ownerWindow && !ownerWindow.isDestroyed() ? ownerWindow : App.capturePreviewWindow;
-    if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible()) {
-      throw new Error('The Light Matter Capture window must be visible to capture it as the Top Window.');
+    if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible() || captureWindow.isMinimized()) {
+      throw new Error('The Light Matter Capture window must be visible and restored to capture it as the Top Window.');
     }
-    const nativeHandle = captureWindow.getNativeWindowHandle();
-    const handle = Number(nativeHandle.readBigUInt64LE(0));
-    if (!Number.isSafeInteger(handle) || handle <= 0) {
-      throw new Error('Could not resolve the Light Matter Capture window handle.');
-    }
-    const frame = await captureHdrFrame({ kind: 'window', handle });
-    frame.targetKey = captureTargetKey({ kind: 'top-window', includeLightMatterWindows: true }, captureWindow);
-    return frame;
+    const nativeHandle=captureWindow.getNativeWindowHandle();
+    const handle=Number(nativeHandle.readBigUInt64LE(0));
+    if(!Number.isSafeInteger(handle)||handle<=0) throw new Error('Could not resolve the Light Matter Capture window handle.');
+    const key=captureTargetKey({kind:'top-window',includeLightMatterWindows:true},captureWindow);
+    // Use visible monitor pixels for Chromium/Electron windows; native window capture
+    // can return only the application icon instead of the rendered window contents.
+    return cropWindowFromMonitorFrame(handle,key);
   }
 
-  const appWindows = [App.mainWindow, App.capturePreviewWindow, App.mapWindow]
-    .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
-  const windowStates = appWindows.map(window => ({
-    window,
-    visible: window.isVisible(),
-    focused: window.isFocused()
-  }));
-  const windowToRestoreFocus = windowStates.find(item => item.focused)?.window
-    ?? windowStates.find(item => item.visible)?.window;
-
+  const appWindows=[App.mainWindow,App.capturePreviewWindow,App.mapWindow]
+    .filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
+  const states=appWindows.map(window=>({window,visible:window.isVisible(),focused:window.isFocused()}));
+  const restoreWindow=states.find(item=>item.focused)?.window
+    ?? (ownerWindow&&!ownerWindow.isDestroyed()?ownerWindow:states.find(item=>item.visible)?.window);
   try {
-    for (const item of windowStates) if (item.visible) item.window.hide();
-    await new Promise(resolve => setTimeout(resolve, 180));
-    const handle = getForegroundWindowHandle();
-    const frame = await captureHdrFrame({ kind: 'window', handle });
-    frame.targetKey = 'top-window';
-    return frame;
+    for(const item of states) if(item.visible) item.window.hide();
+    await new Promise(resolve=>setTimeout(resolve,180));
+    const handle=getForegroundWindowHandle();
+    return cropWindowFromMonitorFrame(handle,'top-window');
   } finally {
-    for (const item of windowStates) {
-      if (item.visible && !item.window.isDestroyed()) item.window.showInactive();
-    }
-    if (windowToRestoreFocus && !windowToRestoreFocus.isDestroyed()) {
-      windowToRestoreFocus.show();
-      windowToRestoreFocus.focus();
+    for(const item of states) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
+    if(restoreWindow&&!restoreWindow.isDestroyed()){
+      if(restoreWindow.isMinimized()) restoreWindow.restore();
+      restoreWindow.show();
+      restoreWindow.focus();
     }
   }
 };
 
-const selectCaptureRectangle = (): { deviceName: string; x: number; y: number; width: number; height: number } => {
+const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; x: number; y: number; width: number; height: number } => {
   const csharp = [
     "using System;", "using System.Collections.Generic;", "using System.Drawing;", "using System.Windows.Forms;",
     "public static class LightMatterRectangleSelection {",
-    " public static string DeviceName = null; public static int X, Y, Width, Height; public static bool Cancelled = false;",
+    " public static string DeviceName = null; public static long MonitorHandle; public static int ScreenWidth, ScreenHeight, X, Y, Width, Height; public static bool Cancelled = false;",
     " public static readonly List<RectangleSelectionForm> Forms = new List<RectangleSelectionForm>();",
     " public static void Finish(bool cancel) { if (cancel) Cancelled = true; foreach (var form in Forms.ToArray()) if (!form.IsDisposed) form.Close(); }",
-    " public static void SetResult(string device, int x, int y, int width, int height) { DeviceName=device; X=x; Y=y; Width=width; Height=height; Finish(false); }",
+    " public static void SetResult(string device, long monitor, int screenWidth, int screenHeight, int x, int y, int width, int height) { DeviceName=device; MonitorHandle=monitor; ScreenWidth=screenWidth; ScreenHeight=screenHeight; X=x; Y=y; Width=width; Height=height; Finish(false); }",
     "}",
     "public sealed class RectangleSelectionForm : Form {",
-    " private readonly Screen targetScreen; private Point start, current; private bool dragging;",
+    " private readonly Screen targetScreen; private Point start, current; private bool dragging;
+ [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);",
     " public RectangleSelectionForm(Screen screen) { targetScreen=screen; FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.Manual; Bounds=screen.Bounds; ShowInTaskbar=false; TopMost=true; BackColor=Color.Black; Opacity=0.32; Cursor=Cursors.Cross; KeyPreview=true; DoubleBuffered=true; MouseDown+=OnMouseDown; MouseMove+=OnMouseMove; MouseUp+=OnMouseUp; KeyDown+=OnKeyDown; Paint+=OnPaintOverlay; FormClosed+=(_,__)=>{ if(LightMatterRectangleSelection.Forms.TrueForAll(f=>f.IsDisposed || f==this)) Application.ExitThread(); }; }",
     " private void OnMouseDown(object s, MouseEventArgs e) { if(e.Button!=MouseButtons.Left)return; start=e.Location; current=e.Location; dragging=true; Invalidate(); }",
     " private void OnMouseMove(object s, MouseEventArgs e) { if(!dragging)return; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); Invalidate(); }",
-    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,l,t,w,h); }",
+    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} var center=new Point(targetScreen.Bounds.Left+targetScreen.Bounds.Width/2,targetScreen.Bounds.Top+targetScreen.Bounds.Height/2); var monitor=MonitorFromPoint(center,2); LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,monitor.ToInt64(),targetScreen.Bounds.Width,targetScreen.Bounds.Height,l,t,w,h); }",
     " private void OnKeyDown(object s, KeyEventArgs e) { if(e.KeyCode==Keys.Escape){LightMatterRectangleSelection.Finish(true);e.Handled=true;} }",
     " private void OnPaintOverlay(object s, PaintEventArgs e) { using(var b=new SolidBrush(Color.White)) using(var f=new Font(\"Segoe UI\",16,FontStyle.Bold)) e.Graphics.DrawString(\"Drag to select HDR capture area  ·  Esc to cancel\",f,b,24,24); if(dragging){var r=new Rectangle(Math.Min(start.X,current.X),Math.Min(start.Y,current.Y),Math.Abs(current.X-start.X),Math.Abs(current.Y-start.Y)); using(var p=new Pen(Color.DeepSkyBlue,3))e.Graphics.DrawRectangle(p,r); using(var b=new SolidBrush(Color.FromArgb(45,Color.DeepSkyBlue)))e.Graphics.FillRectangle(b,r);} }",
     "}"
@@ -355,44 +423,54 @@ const selectCaptureRectangle = (): { deviceName: string; x: number; y: number; w
     "$screens=[System.Windows.Forms.Screen]::AllScreens\nforeach($display in $screens){$form=[RectangleSelectionForm]::new($display);[LightMatterRectangleSelection]::Forms.Add($form);$form.Show()}\n" +
     "[System.Windows.Forms.Application]::Run()\n" +
     "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
-    "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
+    "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;monitorHandle=[LightMatterRectangleSelection]::MonitorHandle.ToString();screenWidth=[LightMatterRectangleSelection]::ScreenWidth;screenHeight=[LightMatterRectangleSelection]::ScreenHeight;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
   const output = execFileSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
     { encoding:'utf8', windowsHide:true, timeout:120000 }).trim();
-  const selection = JSON.parse(output) as { deviceName:string; x:number; y:number; width:number; height:number };
+  const selection = JSON.parse(output) as { deviceName:string; monitorHandle:string; screenWidth:number; screenHeight:number; x:number; y:number; width:number; height:number };
   if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
     || selection.x<0 || selection.y<0 || selection.width<8 || selection.height<8) throw new Error('Windows returned an invalid rectangle selection.');
   return selection;
 };
 
-const captureRectangleFrame = async (): Promise<CapturedHdrFrame> => {
-  const auxiliaryWindows = [App.capturePreviewWindow,App.mapWindow].filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
-  const mainWindowWasVisible = !!App.mainWindow&&!App.mainWindow.isDestroyed()&&App.mainWindow.isVisible();
-  const auxiliaryVisibility = auxiliaryWindows.map(window=>({window,visible:window.isVisible()}));
+const captureRectangleFrame = async (ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
+  const appWindows=[App.mainWindow,App.capturePreviewWindow,App.mapWindow]
+    .filter((window):window is Electron.BrowserWindow=>!!window&&!window.isDestroyed());
+  const states=appWindows.map(window=>({window,visible:window.isVisible(),focused:window.isFocused()}));
+  const restoreWindow=states.find(item=>item.focused)?.window
+    ?? (ownerWindow&&!ownerWindow.isDestroyed()?ownerWindow:states.find(item=>item.visible)?.window);
   try {
-    if(mainWindowWasVisible) App.mainWindow.hide();
-    for(const item of auxiliaryVisibility) if(item.visible) item.window.hide();
+    for(const item of states) if(item.visible) item.window.hide();
     await new Promise(resolve=>setTimeout(resolve,180));
     const selection=selectCaptureRectangle();
-    const normalize=(value:string):string=>value.toLowerCase().replace(/[^a-z0-9]/g,'');
-    const monitor=enumerateMonitors().find(item=>normalize(item.deviceName)===normalize(selection.deviceName));
-    if(!monitor) throw new Error('The selected display is not available to the HDR capture API.');
-    const left=Math.max(0,selection.x), top=Math.max(0,selection.y);
-    const width=Math.min(monitor.width,selection.x+selection.width)-left;
-    const height=Math.min(monitor.height,selection.y+selection.height)-top;
-    if(width<8||height<8) throw new Error('The selected rectangle is outside the captured display.');
+    const monitor=enumerateMonitors().find(item=>Number(item.handle)===Number(selection.monitorHandle));
+    if(!monitor) throw new Error('The selected display handle could not be matched to an HDR capture monitor.');
     const source=await captureHdrFrame({kind:'monitor',index:monitor.index});
-    if(source.width!==monitor.width||source.height!==monitor.height) throw new Error('The display dimensions changed during rectangle capture.');
-    const rowBytes=width*8, buffer=Buffer.allocUnsafe(rowBytes*height);
-    for(let row=0;row<height;row++){const sourceStart=((top+row)*source.width+left)*8;source.buffer.copy(buffer,row*rowBytes,sourceStart,sourceStart+rowBytes);}
-    const frame:CapturedHdrFrame={targetKey:'rectangle',width,height,buffer}; cachedHdrFrame=frame; return frame;
+    const scaleX=source.width/selection.screenWidth, scaleY=source.height/selection.screenHeight;
+    const left=Math.max(0,Math.round(selection.x*scaleX)), top=Math.max(0,Math.round(selection.y*scaleY));
+    const right=Math.min(source.width,Math.round((selection.x+selection.width)*scaleX));
+    const bottom=Math.min(source.height,Math.round((selection.y+selection.height)*scaleY));
+    const width=right-left,height=bottom-top;
+    if(width<8||height<8) throw new Error('The selected rectangle is outside the captured display.');
+    const rowBytes=width*8,buffer=Buffer.allocUnsafe(rowBytes*height);
+    for(let row=0;row<height;row++){
+      const sourceStart=((top+row)*source.width+left)*8;
+      source.buffer.copy(buffer,row*rowBytes,sourceStart,sourceStart+rowBytes);
+    }
+    const frame:CapturedHdrFrame={targetKey:'rectangle',width,height,buffer};
+    cachedHdrFrame=frame;
+    return frame;
   } finally {
-    for(const item of auxiliaryVisibility) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
-    if(mainWindowWasVisible&&App.mainWindow&&!App.mainWindow.isDestroyed()){App.mainWindow.show();App.mainWindow.focus();}
+    for(const item of states) if(item.visible&&!item.window.isDestroyed()) item.window.showInactive();
+    if(restoreWindow&&!restoreWindow.isDestroyed()){
+      if(restoreWindow.isMinimized()) restoreWindow.restore();
+      restoreWindow.show();
+      restoreWindow.focus();
+    }
   }
 };
 
 const captureTargetFrame = (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> =>
-  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow) : target.kind==='rectangle' ? captureRectangleFrame() : captureHdrFrame(target);
+  target.kind==='top-window' ? captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow) : target.kind==='rectangle' ? captureRectangleFrame(ownerWindow) : captureHdrFrame(target);
 
 const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
   const channels = [ 'R', 'G', 'B' ].map(name => ({
