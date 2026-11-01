@@ -14,7 +14,6 @@ import { SettingsPanelComponent } from '../../../settings/components/settings-di
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { Keyboard } from '../../../system/services/keyboard/keyboard';
-import { CapturePanelComponent } from '../../../capture/components/capture-panel/capture-panel.component';
 import { CapturePreviewStore } from '../../../capture/capture-preview-store';
 import { ExifInfoComponent } from '../../components/exif-info/exif-info.component';
 import { ImageRendererComponent } from '../../components/image-renderer/image-renderer.component';
@@ -118,7 +117,6 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
     AsyncPipe,
     ImageRendererComponent,
     SettingsPanelComponent,
-    CapturePanelComponent,
     ReactiveFormsModule,
     SliderComponent,
     DecimalPipe,
