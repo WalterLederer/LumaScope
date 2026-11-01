@@ -86,7 +86,7 @@ export class CapturePanelComponent {
     above05: number; above1: number; above2: number; above4: number;
     whitePixels: number; maxLuminance: number; p95: number; p99: number; p999: number; p9999: number; diagnosticP95: number; diagnosticP99: number; diagnosticP999: number; diagnosticP9999: number; above3: number; above31: number; above32: number; above324: number; pixelCount: number;
   } | null>(null);
-  private readonly sdrBrightnessFactor = 1.4;
+  private readonly sdrBrightnessFactor = 1.8;
   protected readonly applyGammaCorrectionOnSave = signal(false);
   protected readonly setApplyGammaCorrectionOnSave = (enabled: boolean): void => this.applyGammaCorrectionOnSave.set(enabled);
   protected readonly gammaCorrectionValue = signal<number>(this.readSavedGammaCorrection());
