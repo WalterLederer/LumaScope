@@ -53,7 +53,10 @@
             {{ loadingSources() ? 'Refreshing…' : 'Refresh' }}
           </button>
         </div>
-      </div> 
+      </div>
+      @if (error()) {
+        <p class="capture-error" role="alert">{{ error() }}</p>
+      }
 
       <details class="capture-section capture-file-section" open>
         <summary>FILE Capture</summary>
@@ -103,9 +106,6 @@
 
       @if (status() && !status().toLowerCase().includes('capture ready')) {
         <p class="capture-status" role="status">{{ status() }}</p>
-      }
-      @if (error()) {
-        <p class="capture-error" role="alert">{{ error() }}</p>
       }
       @if (monitors().length === 0 && !loadingSources() && !error()) {
         <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
