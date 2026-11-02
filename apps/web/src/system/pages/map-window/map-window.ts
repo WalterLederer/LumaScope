@@ -307,6 +307,14 @@ export class MapWindow implements OnInit, OnDestroy {
     { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
   ] as const;
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target;
+    if (target instanceof Element && target.closest('.color-picker')) return;
+    this.colorMenuOpen.set(false);
+    this.markerColorMenuOpen.set(false);
+  }
+
   @HostListener('window:keyup', ['$event'])
   onDocumentKeyup(event: KeyboardEvent): void {
     // The location window is a separate Electron window, so the main image-view
@@ -462,9 +470,17 @@ export class MapWindow implements OnInit, OnDestroy {
       requestAnimationFrame(() => this.map?.invalidateSize());
     });
   };
-  protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
+  protected readonly toggleColorMenu = (): void => {
+    const open = !this.colorMenuOpen();
+    this.markerColorMenuOpen.set(false);
+    this.colorMenuOpen.set(open);
+  };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
-  protected readonly toggleMarkerColorMenu = (): void => this.markerColorMenuOpen.update(open => !open);
+  protected readonly toggleMarkerColorMenu = (): void => {
+    const open = !this.markerColorMenuOpen();
+    this.colorMenuOpen.set(false);
+    this.markerColorMenuOpen.set(open);
+  };
   protected readonly selectedMarkerColorName = (): string => this.markerColor() === 'dynamic' ? 'Dynamic' : this.gpxColors.find(color => color.value === this.markerColor())?.name ?? 'Green';
   protected readonly selectedMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.textColor ?? '#102014';
   protected readonly changeMarkerShape = (value: string): void => {
