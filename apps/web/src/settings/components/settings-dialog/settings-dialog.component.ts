@@ -163,7 +163,7 @@ export class SettingsPanelComponent {
     { keys: 'V', action: 'Cycle image comparison modes', global: false, id: null },
     { keys: 'L', action: 'Open the location window', global: false, id: null },
     { keys: 'C / F8', action: 'Copy the current image to the clipboard', global: false, id: null },
-    { keys: 'Shift + C', action: 'Open the Capture window', global: false, id: null },
+    { keys: 'S', action: 'Open the Screen Capture window', global: false, id: null },
     { keys: 'M', action: 'Toggle the magnifier (loupe)', global: false, id: null },
     { keys: 'H', action: 'Toggle the histogram', global: false, id: null },
     { keys: 'Delete', action: 'Delete the current image', global: false, id: null },
