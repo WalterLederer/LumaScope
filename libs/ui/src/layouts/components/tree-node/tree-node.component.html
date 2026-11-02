@@ -1,6 +1,12 @@
 @let currentNode = node();
 @let currentMenu = menu();
 
+@if (currentNode.hasChildren === true) {
+  <span class="expand-indicator" [class.expanded]="currentNode.isOpen === true">›</span>
+} @else {
+  <span class="expand-placeholder"></span>
+}
+
 <ui-icon [icon]="icon()" class="prefix" />
 
 <ui-text>{{ currentNode.label }}</ui-text>
