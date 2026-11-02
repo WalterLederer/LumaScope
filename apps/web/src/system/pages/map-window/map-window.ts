@@ -126,7 +126,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
         </section>
       }
-      <div #map class="map"></div>
+      <div #map class="map" [class.map-hidden]="!coordinatesAvailable()"></div>
       @if (!coordinatesAvailable()) {
         <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
       }
@@ -163,6 +163,8 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
+    .map-hidden{display:none!important}
+    .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
     .zoom-control input{flex:1;min-width:70px;accent-color:#8ab4f8}
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
