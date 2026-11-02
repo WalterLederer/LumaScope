@@ -23,7 +23,7 @@ export class ProcessManager {
 
   @IpcHandler({ name: 'ProcessManager.setWindowTitle' })
   readonly setWindowTitle = async (_: IpcMainInvokeEvent, title: string): Promise<void> => {
-    App.mainWindow?.setTitle(title || 'Light Matter');
+    App.mainWindow?.setTitle(title || 'LumaScope');
   };
 
   @IpcHandler({ name: 'ProcessManager.isPackaged' })
