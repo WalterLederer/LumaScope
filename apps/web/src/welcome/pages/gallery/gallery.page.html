@@ -15,7 +15,8 @@
                    [menu]="galleryMenu"
                    [enableLoading]="true"
                    (loadRequested)="loadTreeNode($event)"
-                   (selected)="selectLocation($event)" />
+                   (selected)="selectLocation($event)"
+                   (hovered)="onTreeNodeHovered($event)" />
         }
       </section>
 
@@ -35,6 +36,7 @@
   </aside>
 
   <app-image-grid [selectedLocation]="selectedLocation"
+                  [hoveredFolderPath]="hoveredFolderPath()"
                   [images]="images"
                   [sortBy]="sorting.sortBy"
                   [sortDirection]="sorting.sortDir"
