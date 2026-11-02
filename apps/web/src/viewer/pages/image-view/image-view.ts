@@ -15,6 +15,7 @@ import { Configuration } from '../../../system/services/configuration/configurat
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { Keyboard } from '../../../system/services/keyboard/keyboard';
 import { CapturePreviewStore } from '../../../capture/capture-preview-store';
+import { CaptureHotkeyService } from '../../../capture/capture-hotkey.service';
 import { ExifInfoComponent } from '../../components/exif-info/exif-info.component';
 import { ImageRendererComponent } from '../../components/image-renderer/image-renderer.component';
 import { HdrImageBrightnessRenderer, HdrLoupeRenderer, HdrLoupeRegion } from './hdr-loupe-renderer';
@@ -133,6 +134,8 @@ export class ImageView {
   protected readonly viewNavigator = inject(ViewNavigator);
 
   private readonly keyboard = inject(Keyboard);
+
+  private readonly captureHotkeyService = inject(CaptureHotkeyService);
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -1681,6 +1684,14 @@ export class ImageView {
     });
 
     this.trackKeyboard();
+
+    // Global capture shortcuts must work even when the Capture tab is not mounted.
+    // Open the tab first; the shared pending action is consumed by CapturePanelComponent.
+    effect(() => {
+      if (!this.captureHotkeyService.pendingAction()) return;
+      this.controlsSidebarVisible.set(true);
+      this.setActiveImageSidebarTab('capture');
+    });
 
     this.selectedImage$
       .pipe(
