@@ -268,7 +268,7 @@ export class MapWindow implements OnInit, OnDestroy {
   ] as const;
 
   @HostListener('document:keyup', ['$event'])
-  private readonly onDocumentKeyup = (event: KeyboardEvent): void => {
+  onDocumentKeyup(event: KeyboardEvent): void {
     // The location window is a separate Electron window, so the main image-view
     // keyboard listener cannot receive shortcuts while this window has focus.
     if (event.shiftKey && event.key.toLowerCase() === 'c'
@@ -276,7 +276,7 @@ export class MapWindow implements OnInit, OnDestroy {
       event.preventDefault();
       void this.desktop?.CapturePreviewWindow.open();
     }
-  };
+  }
 
   ngOnInit(): void {
     document.documentElement.style.backgroundColor = 'transparent';
