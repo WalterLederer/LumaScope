@@ -3,9 +3,9 @@ import {
   enumerateMonitors,
   ScreenCapture
 } from '@screen-capture/node';
-import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, IpcMainInvokeEvent, nativeImage, screen, shell } from 'electron';
 import { encodeExr, init as initExr } from 'exrs';
-import { CaptureFormat, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
+import { CaptureFormat, CapturePreview, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
 import { execFileSync } from 'node:child_process';
 import * as fsSync from 'node:fs';
@@ -1332,6 +1332,7 @@ ipcMain.handle(
       throw new Error('Electron could not decode the rendered WebGPU preview PNG.');
     }
     const size = image.getSize();
+    shell.beep();
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
   }
 );
@@ -1364,7 +1365,7 @@ ipcMain.handle(
 
 ipcMain.handle(
   'Capture.capture',
-  async (event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90): Promise<CaptureResult> => {
+  async (event, target: CaptureTarget, folder: string, format: CaptureFormat = 'exr', gammaCorrection = 1, encoderQuality = 90, previewFrame?: CapturePreview): Promise<CaptureResult> => {
     if (format !== 'exr' && format !== 'jxr' && format !== 'uhdr') {
       throw new Error('Choose OpenEXR, JPEG XR, or Ultra HDR JPEG as the file capture format.');
     }
@@ -1390,7 +1391,26 @@ ipcMain.handle(
       };
     try {
       const ownerWindow = BrowserWindow.fromWebContents(event.sender);
-      const frame = await getHdrFrame(target, ownerWindow);
+      const frame: CapturedHdrFrame = previewFrame
+        ? (() => {
+          if (!Number.isSafeInteger(previewFrame.width) || !Number.isSafeInteger(previewFrame.height)
+            || previewFrame.width < 1 || previewFrame.height < 1
+            || !(previewFrame.pixels instanceof Uint16Array)
+            || previewFrame.pixels.length !== previewFrame.width * previewFrame.height * 4) {
+            throw new Error('The supplied preview frame is invalid or incomplete. Generate a new preview and try again.');
+          }
+          const expectedBytes = previewFrame.width * previewFrame.height * 8;
+          if (previewFrame.pixels.byteLength !== expectedBytes) {
+            throw new Error('The supplied preview frame has an unexpected FP16 buffer size.');
+          }
+          return {
+            targetKey: captureTargetKey(target, ownerWindow),
+            width: previewFrame.width,
+            height: previewFrame.height,
+            buffer: Buffer.from(previewFrame.pixels.buffer, previewFrame.pixels.byteOffset, previewFrame.pixels.byteLength)
+          };
+        })()
+        : await getHdrFrame(target, ownerWindow);
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
 
       const extension = format === 'uhdr' ? 'jpg' : format;
