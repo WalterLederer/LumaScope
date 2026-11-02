@@ -32,6 +32,7 @@ const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 // A global key event can be observed by more than one mounted image-view instance.
 // Claim each navigation keyup once so one physical press advances only one image.
 const handledImageNavigationKeyEvents = new WeakSet<KeyboardEvent>();
+const handledImageViewShortcutKeyEvents = new WeakSet<KeyboardEvent>();
 
 interface LeafletMap {
   setView(center: [number, number], zoom: number, options?: { animate?: boolean }): LeafletMap;
@@ -3330,6 +3331,14 @@ export class ImageView {
         }
         if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]')) {
           return;
+        }
+
+        // A single physical shortcut may be observed by multiple mounted image-view
+        // instances. Claim toggle/action shortcuts once to avoid cancelling toggles.
+        const shortcutKey = event.key.toLowerCase();
+        if (['i', 'g', 'h', 'delete', 'f', 'f11'].includes(shortcutKey)) {
+          if (handledImageViewShortcutKeyEvents.has(event)) return;
+          handledImageViewShortcutKeyEvents.add(event);
         }
 
         // Keep keyboard zoom shortcuts wired to the same actions as both sets of
