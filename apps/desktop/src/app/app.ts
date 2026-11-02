@@ -69,13 +69,14 @@ export default class App {
 
       App.initMainWindow();
       App.loadMainWindow();
-      const registered = globalShortcut.register('CommandOrControl+Super+PrintScreen', () => {
+      const accelerator = 'CommandOrControl+Super+PrintScreen';
+      const registered = globalShortcut.isRegistered(accelerator) || globalShortcut.register(accelerator, () => {
         if (App.mainWindow && !App.mainWindow.isDestroyed()) {
           App.mainWindow.webContents.send('Capture.topWindowClipboardHotkey');
         }
       });
       if (!registered) console.warn('[Capture] Could not register Ctrl+Win+PrintScreen; the shortcut may already be in use.');
-      App.application.once('will-quit', () => globalShortcut.unregister('CommandOrControl+Super+PrintScreen'));
+      App.application.once('will-quit', () => globalShortcut.unregister(accelerator));
     }
   }
 
