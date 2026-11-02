@@ -423,7 +423,12 @@ export class MapWindow implements OnInit, OnDestroy {
     if (enabled) void this.scanDirectoryMarkers();
     else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set(''); }
   };
-  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }\n  private createImageMarkerIcon(selected: boolean): unknown {\n    const color = selected ? '#ff3b30' : '#2688e8';\n    const size = selected ? 18 : 13;\n    return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });\n  }
+  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }
+  private createImageMarkerIcon(selected: boolean): unknown {
+    const color = selected ? '#ff3b30' : '#2688e8';
+    const size = selected ? 18 : 13;
+    return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });
+  }
   private parseExifCoordinate(value: unknown, reference: unknown): number | null {
     if (typeof value !== 'number' && typeof value !== 'string') return null;
     const parts = String(value).match(/-?\d+(?:\.\d+)?/g); if (!parts?.length) return null;
@@ -520,7 +525,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.map?.getZoom() ?? this.zoomLevel()) + direction);
   };
-  protected readonly changeMarkerOpacity = (value: string | number): void => {\n    const opacity = Number(value); if (!Number.isFinite(opacity)) return;\n    const next = Math.max(0, Math.min(100, Math.round(opacity)));\n    this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);\n    this.marker?.setOpacity(next / 100);\n    this.directoryMarkerGroup?.eachLayer(layer => layer.setOpacity(next / 100));\n  };\n  protected readonly changeGpxOpacity = (value: string | number): void => {
+  protected readonly changeMarkerOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
+    this.marker?.setOpacity(next / 100);
+    this.directoryMarkerGroup?.eachLayer(layer => layer.setOpacity(next / 100));
+  };
+  protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.gpxOpacity.set(next); this.saveSetting('gpxOpacity', next); this.applyGpxTrack();
