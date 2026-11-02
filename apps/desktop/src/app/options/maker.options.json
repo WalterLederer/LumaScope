@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
-  "productName": "Light Matter",
+  "productName": "LumaScope",
   "fileAssociations": [
     {
       "ext": [
