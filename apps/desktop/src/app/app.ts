@@ -96,7 +96,7 @@ export default class App {
       height: height,
       show: false,
       title: App.windowTitle(),
-      icon: join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+      icon: join(__dirname, 'assets', process.platform === 'win32' ? 'lumascope.ico' : 'icon.png'),
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
