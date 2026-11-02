@@ -4,17 +4,7 @@ import { Desktop, ExternalProcessCall, SortDirection, SortType } from 'internal-
 const api: Desktop = {
   ProcessManager: {
     getAppVersion: () => ipcRenderer.invoke('ProcessManager.getAppVersion'),
-    isPackaged: async () => {
-      console.warn('[Preload] ProcessManager.isPackaged INVOKE');
-      try {
-        const result = await ipcRenderer.invoke('ProcessManager.isPackaged');
-        console.warn('[Preload] ProcessManager.isPackaged RESULT', result);
-        return result;
-      } catch (error) {
-        console.error('[Preload] ProcessManager.isPackaged ERROR', error);
-        throw error;
-      }
-    },
+    isPackaged: () => ipcRenderer.invoke('ProcessManager.isPackaged'),
     getDevToolsOpen: () => ipcRenderer.invoke('ProcessManager.getDevToolsOpen'),
     setDevToolsOpen: (open: boolean) => ipcRenderer.invoke('ProcessManager.setDevToolsOpen', open),
     getPlatform: () => ipcRenderer.invoke('ProcessManager.getPlatform'),
