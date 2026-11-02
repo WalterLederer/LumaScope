@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DatePipe, DestroyRef, inject, input, signal } from '@angular/core';
 import { CacheClearResult, CacheInfo, ExternalProcessCall, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
@@ -7,7 +7,8 @@ import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 @Component({
   selector: 'app-settings-panel',
   imports: [
-    ByteSizePipe
+    ByteSizePipe,
+    DatePipe
   ],
   templateUrl: './settings-dialog.component.html',
   styleUrl: './settings-dialog.component.scss',
@@ -157,7 +158,12 @@ export class SettingsPanelComponent {
 
   private readonly loadExternalProcessCalls = async (): Promise<void> => {
     try {
-      this.externalProcessCalls.set(await window.desktop.Profiling.getExternalProcessCalls());
+      const snapshot = await window.desktop.Profiling.getExternalProcessCalls();
+      this.externalProcessCalls.update(current => {
+        const calls = new Map(current.map(call => [call.id, call]));
+        snapshot.forEach(call => calls.set(call.id, call));
+        return [...calls.values()];
+      });
       this.profilingError.set(null);
     } catch (error) {
       this.profilingError.set(error instanceof Error ? error.message : String(error));
