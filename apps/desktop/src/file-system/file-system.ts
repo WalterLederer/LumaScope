@@ -60,15 +60,45 @@ export class FileSystem {
 
   @IpcHandler({ name: 'FileSystem.readDirectories' })
   readonly readDirectories = async (_: IpcMainInvokeEvent, path: string): Promise<ApiResponse<FileInfo[]>> => {
+    const startedAt = Date.now();
+    console.log('[FileSystem.readDirectories] START', JSON.stringify({ path, startedAt: new Date(startedAt).toISOString() }));
+
     try {
-      return {
-        success: true,
-        data: (await readdir(path, { withFileTypes: true }))
-          .filter(file => file.isDirectory())
-          .map(this.toFileInfo)
-          .sort(this.sortByNameAsc)
-      };
-    } catch (_) {
+      const entries = (await readdir(path, { withFileTypes: true }))
+        .filter(file => file.isDirectory());
+
+      // Keep directory metadata lookups asynchronous; statSync here can freeze the Electron main process.
+      const directories = await Promise.all(entries.map(async file => {
+        const directoryPath = join(path, file.name);
+        const stats = await stat(directoryPath);
+
+        return {
+          path: directoryPath,
+          name: file.name,
+          parent: path,
+          isDirectory: true,
+          ext: extname(file.name),
+          createdAt: stats.birthtimeMs,
+          size: stats.size,
+          modifiedAt: stats.mtimeMs
+        } satisfies FileInfo;
+      }));
+
+      const data = directories.sort(this.sortByNameAsc);
+      console.log('[FileSystem.readDirectories] DONE', JSON.stringify({
+        path,
+        count: data.length,
+        durationMs: Date.now() - startedAt
+      }));
+
+      return { success: true, data };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[FileSystem.readDirectories] ERROR', JSON.stringify({
+        path,
+        durationMs: Date.now() - startedAt,
+        error: message
+      }));
       return { success: false, errorMessage: `Failed to read directory at ${path}.` };
     }
   };
