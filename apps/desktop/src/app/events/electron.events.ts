@@ -20,6 +20,25 @@ import { captureLoupeFrame, releaseLoupeFrame, sampleLoupeRectangle, sampleLoupe
 let exrInitPromise: Promise<void> | undefined;
 let vipsInitPromise: Promise<typeof Vips> | undefined;
 
+const runExternalProcessSync = (
+  command: string,
+  args: readonly string[],
+  options: { encoding?: BufferEncoding; windowsHide?: boolean; timeout?: number; env?: NodeJS.ProcessEnv; stdio?: 'pipe' | 'inherit' }
+): Buffer | string => {
+  const commandLine = [command, ...args].map(value => JSON.stringify(value)).join(' ');
+  const startedAt = Date.now();
+  console.info(`[ExternalProcess] START ${commandLine}`);
+  try {
+    const result = execFileSync(command, [...args], options);
+    console.info(`[ExternalProcess] EXIT code=0 duration=${Date.now() - startedAt}ms command=${commandLine}`);
+    return result;
+  } catch (error) {
+    const processError = error as NodeJS.ErrnoException & { status?: number | null; signal?: string | null };
+    console.error(`[ExternalProcess] EXIT code=${processError.status ?? 'unknown'} signal=${processError.signal ?? 'none'} duration=${Date.now() - startedAt}ms command=${commandLine}`, error);
+    throw error;
+  }
+};
+
 const halfToFloat = (half: number): number => {
   const sign = (half & 0x8000) !== 0 ? -1 : 1;
   const exponent = (half >> 10) & 0x1f;
@@ -90,7 +109,7 @@ public static class LightMatterCaptureWindowState {
     } | ConvertTo-Json -Compress
   `;
 
-  const output = execFileSync(
+  const output = runExternalProcessSync(
     'powershell.exe',
     [
       '-NoLogo',
@@ -110,7 +129,7 @@ public static class LightMatterCaptureWindowState {
         LIGHT_MATTER_CAPTURE_HWND: String(handle)
       }
     }
-  ).trim();
+  ).toString().trim();
 
   const state = JSON.parse(output) as CaptureWindowState;
 
@@ -289,14 +308,14 @@ public static class LightMatterExternalWindow {
       title = [LightMatterExternalWindow]::GetTitle($handle)
     } | ConvertTo-Json -Compress
   `;
-  const output = execFileSync('powershell.exe', [
+  const output = runExternalProcessSync('powershell.exe', [
     '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
   ], {
     encoding: 'utf8',
     windowsHide: true,
     timeout: 5000,
     env: { ...process.env, LIGHT_MATTER_PROCESS_ID: String(process.pid) }
-  }).trim();
+  }).toString().trim();
   const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
   if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0
     || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0
@@ -340,10 +359,10 @@ public static class LightMatterWindowGeometry {
       monitorLeft = $info.rcMonitor.Left; monitorTop = $info.rcMonitor.Top; monitorRight = $info.rcMonitor.Right; monitorBottom = $info.rcMonitor.Bottom
     } | ConvertTo-Json -Compress
   `;
-  const output = execFileSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',script], {
+  const output = runExternalProcessSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',script], {
     encoding:'utf8', windowsHide:true, timeout:5000,
     env:{ ...process.env, LIGHT_MATTER_WINDOW_HANDLE:String(handle) }
-  }).trim();
+  }).toString().trim();
   const value = JSON.parse(output) as Record<string, number | string>;
   const geometry = {
     monitorHandle:Number(value.monitorHandle),
@@ -439,8 +458,8 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
     "[System.Windows.Forms.Application]::Run()\n" +
     "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
     "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;monitorHandle=[LightMatterRectangleSelection]::MonitorHandle.ToString();screenWidth=[LightMatterRectangleSelection]::ScreenWidth;screenHeight=[LightMatterRectangleSelection]::ScreenHeight;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
-  const output = execFileSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
-    { encoding:'utf8', windowsHide:true, timeout:120000 }).trim();
+  const output = runExternalProcessSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
+    { encoding:'utf8', windowsHide:true, timeout:120000 }).toString().trim();
   const selection = JSON.parse(output) as { deviceName:string; monitorHandle:string; screenWidth:number; screenHeight:number; x:number; y:number; width:number; height:number };
   if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
     || selection.x<0 || selection.y<0 || selection.width<8 || selection.height<8) throw new Error('Windows returned an invalid rectangle selection.');
@@ -1010,7 +1029,7 @@ public static class LightMatterDisplayConfig {
     [LightMatterDisplayConfig]::GetModes() | ConvertTo-Json -Compress -Depth 4
   `;
   try {
-    const raw = execFileSync('powershell.exe', [
+    const raw = runExternalProcessSync('powershell.exe', [
       '-NoLogo',
       '-NoProfile',
       '-NonInteractive',
@@ -1018,7 +1037,7 @@ public static class LightMatterDisplayConfig {
       'Bypass',
       '-Command',
       script
-    ], { encoding: 'utf8', windowsHide: true, timeout: 10000 }).trim();
+    ], { encoding: 'utf8', windowsHide: true, timeout: 10000 }).toString().trim();
     const parsed = JSON.parse(raw || '[]') as
       | { deviceName: string; isHdr: boolean | null; }
       | Array<{ deviceName: string; isHdr: boolean | null; }>;
@@ -1182,7 +1201,7 @@ public static class LightMatterWindowEnumerator {
   `;
 
   try {
-    const nativeJson = execFileSync('powershell.exe', [
+    const nativeJson = runExternalProcessSync('powershell.exe', [
       '-NoLogo',
       '-NoProfile',
       '-NonInteractive',
@@ -1190,7 +1209,7 @@ public static class LightMatterWindowEnumerator {
       'Bypass',
       '-Command',
       script
-    ], { encoding: 'utf8', windowsHide: true, timeout: 20000 }).trim();
+    ], { encoding: 'utf8', windowsHide: true, timeout: 20000 }).toString().trim();
     const nativeRows = JSON.parse(nativeJson || '[]') as Array<{
       handle: string;
       title: string;
@@ -1432,7 +1451,7 @@ ipcMain.handle(
             await fs.writeFile(inputPath, rgba);
             logPhase(`encode FP16 JPEG XR with WIC (quality ${encoderQuality}%)`);
             try {
-              execFileSync(
+              runExternalProcessSync(
                 encoderPath,
                 [inputPath, encodedPath, String(frame.width), String(frame.height), String(encoderQuality)],
                 { windowsHide: true, timeout: 120000, stdio: 'pipe' }
