@@ -593,10 +593,15 @@ const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | nul
   const source = await captureHdrFrame({ kind: 'monitor', index: captureMonitorIndex });
   const scaleX = source.width / selection.screenWidth;
   const scaleY = source.height / selection.screenHeight;
-  const left = Math.max(0, Math.round(selection.x * scaleX));
+  // The visible selection outline is 2 CSS pixels wide. Keep the top edge
+  // unchanged (it already aligns correctly), and trim the other three edges
+  // so the captured image does not include pixels outside the visible box.
+  const horizontalInset = Math.max(1, Math.round(2 * scaleX));
+  const bottomInset = Math.max(1, Math.round(2 * scaleY));
+  const left = Math.max(0, Math.round(selection.x * scaleX) + horizontalInset);
   const top = Math.max(0, Math.round(selection.y * scaleY));
-  const right = Math.min(source.width, Math.round((selection.x + selection.width) * scaleX));
-  const bottom = Math.min(source.height, Math.round((selection.y + selection.height) * scaleY));
+  const right = Math.max(0, Math.min(source.width, Math.round((selection.x + selection.width) * scaleX)) - horizontalInset);
+  const bottom = Math.max(0, Math.min(source.height, Math.round((selection.y + selection.height) * scaleY)) - bottomInset);
   const width = right - left, height = bottom - top;
   if (width < 8 || height < 8) throw new Error('The selected rectangle is outside the captured display.');
   const rowBytes = width * 8, buffer = Buffer.allocUnsafe(rowBytes * height);
