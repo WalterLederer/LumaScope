@@ -27,7 +27,12 @@ export class ProcessManager {
   };
 
   @IpcHandler({ name: 'ProcessManager.isPackaged' })
-  readonly isPackaged = async (): Promise<boolean> => App.application.isPackaged;
+  readonly isPackaged = async (): Promise<boolean> => {
+    console.log('[ProcessManager.isPackaged] Handler START');
+    const result = App.application.isPackaged;
+    console.log('[ProcessManager.isPackaged] Handler DONE', result);
+    return result;
+  };
 
   @IpcHandler({ name: 'ProcessManager.getDevToolsOpen' })
   readonly getDevToolsOpen = async (): Promise<boolean> => App.startupConfig.devToolsOpen();
