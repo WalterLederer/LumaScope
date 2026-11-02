@@ -783,17 +783,13 @@ export class CapturePanelComponent {
       this.error.set('Select a rectangle, monitor, or application window.');
       return;
     }
-    this.capturing.set(true);
     this.error.set(null);
+    await this.previewNow();
+    const frame = this.previewFrame();
+    if (!frame) return;
+
+    this.capturing.set(true);
     try {
-      let frame = this.previewFrame();
-      if (!frame) {
-        await this.previewNow();
-        frame = this.previewFrame();
-      }
-      if (!frame) {
-        throw new Error('Could not capture a preview for the clipboard.');
-      }
       this.status.set('Preparing SDR clipboard image…');
       const pngData = await this.createSdrClipboardPng(frame);
       const result = await this.captureService.copyPreviewToClipboard(pngData);
@@ -819,9 +815,12 @@ export class CapturePanelComponent {
       this.error.set('Choose a destination folder first.');
       return;
     }
-    this.capturing.set(true);
     this.error.set(null);
-    this.status.set('Capturing HDR frame…');
+    await this.previewNow();
+    if (!this.previewFrame()) return;
+
+    this.capturing.set(true);
+    this.status.set('Saving captured HDR frame…');
     try {
       const result = await this.captureService.capture(
         target,
