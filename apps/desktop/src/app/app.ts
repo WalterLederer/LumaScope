@@ -29,7 +29,7 @@ export default class App {
   }
 
   private static windowTitle(suffix = ''): string {
-    return `Light Matter - ${App.executableTimestamp()}${suffix ? ` - ${suffix}` : ''}`;
+    return `LumaScope - ${App.executableTimestamp()}${suffix ? ` - ${suffix}` : ''}`;
   }
 
   public static isDevelopmentMode() {
@@ -391,7 +391,7 @@ export default class App {
       App.application.commandLine.appendSwitch('class', 'light-matter');
     }
 
-    App.application.setName('Light Matter');
+    App.application.setName('LumaScope');
     App.application.setPath('userData', join(App.application.getPath('appData'), 'light-matter'));
     App.startupConfig = new StartupConfig(app);
 
