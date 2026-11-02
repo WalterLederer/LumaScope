@@ -76,9 +76,12 @@
               (selected)="selected.emit($event)" />
 </div>
 
-<ui-toolbar class="image-status" [class.visible]="(images()?.length ?? 0) > 0">
+<ui-toolbar class="image-status" [class.visible]="(images()?.length ?? 0) > 0 || hoveredFolderPath() !== null">
   <ui-text>
-    <strong>{{ images()?.length ?? 0 }} images</strong>
+    @if (hoveredFolderPath(); as folderPath) {
+      {{ folderPath }}
+    } @else {
+      <strong>{{ images()?.length ?? 0 }} images</strong>
     @if (hoveredImage(); as image) {
       @let tags = hoveredTags();
       @let bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
@@ -95,6 +98,7 @@
       @if (image.modifiedAt !== undefined) {
         · {{ image.modifiedAt | date: 'yyyy-MM-dd HH:mm:ss' }}
       }
+    }
     }
   </ui-text>
 </ui-toolbar>
