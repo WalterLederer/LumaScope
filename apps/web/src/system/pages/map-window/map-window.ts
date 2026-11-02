@@ -6,6 +6,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; remove(): void; }
+interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
@@ -21,7 +22,7 @@ interface LeafletMapApi {
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string }): { addTo(map: MapInstance): { remove(): void } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
-  markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean }): MapMarkerGroup;
+  markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean; iconCreateFunction?: (cluster: MapMarkerCluster) => unknown }): MapMarkerGroup;
 }
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
@@ -593,7 +594,16 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('zoom', zoom);
     });
     this.marker = this.leaflet.marker(center, { icon: this.createImageMarkerIcon(true) }).addTo(this.map).setOpacity(this.markerOpacity() / 100);
-    this.directoryMarkerGroup = this.leaflet.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true }).addTo(this.map);
+    this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
+      chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
+      iconCreateFunction: cluster => {
+        const count = cluster.getChildCount();
+        const size = count < 10 ? 40 : count < 100 ? 48 : 56;
+        const fontSize = count < 100 ? 15 : 14;
+        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56"><polygon points="28,2 51,15 51,41 28,54 5,41 5,15" fill="#279b51" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
+        return this.leaflet!.divIcon({ className: 'lumascope-marker-cluster', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+      }
+    }).addTo(this.map);
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     this.applyMapStyle();
     this.applyMapColor();
