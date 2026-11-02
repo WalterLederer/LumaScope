@@ -164,6 +164,9 @@ export class GalleryPage {
   readonly thumbSize$ = this.galleryState.thumbSize();
 
   constructor() {
+    console.warn('[GalleryPage] CONSTRUCTOR START');
+    afterNextRender(() => console.warn('[GalleryPage] AFTER NEXT RENDER'));
+
     // Keep the native window title in sync with the active gallery directory.
     this.selectedLocation$.subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
