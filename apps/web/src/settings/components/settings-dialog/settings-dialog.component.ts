@@ -43,18 +43,18 @@ export class SettingsPanelComponent {
   protected readonly profilingSortDirection = signal<'asc' | 'desc'>('desc');
 
   protected readonly externalPrograms = computed(() => {
-    const programs = new Map<string, { programName: string; function: string }>();
+    const programs = new Map<string, { programName: string; functions: Set<string> }>();
     for (const call of this.externalProcessCalls()) {
-      const entry = {
-        programName: call.programName,
-        function: this.externalProgramFunction(call)
-      };
-      programs.set(`${entry.programName.toLowerCase()}|${entry.function}`, entry);
+      const key = call.programName.toLowerCase();
+      const entry = programs.get(key) ?? { programName: call.programName, functions: new Set<string>() };
+      entry.functions.add(this.externalProgramFunction(call));
+      programs.set(key, entry);
     }
-    return [...programs.values()].sort((left, right) =>
-      left.programName.localeCompare(right.programName, undefined, { sensitivity: 'base' })
-      || left.function.localeCompare(right.function)
-    );
+    return [...programs.values()]
+      .map(program => ({ programName: program.programName, function: [...program.functions].sort().join('; ') }))
+      .sort((left, right) =>
+        left.programName.localeCompare(right.programName, undefined, { sensitivity: 'base' })
+      );
   });
 
   private readonly externalProgramFunction = (call: ExternalProcessCall): string => {
