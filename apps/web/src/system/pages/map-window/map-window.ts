@@ -236,6 +236,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
+  private locationUpdateVersion = 0;
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
@@ -304,7 +305,7 @@ export class MapWindow implements OnInit, OnDestroy {
     } else {
       this.locationAddress.set('This image does not contain GPS coordinates.');
     }
-    this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
+    const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
       this.currentImagePath = location.imagePath ?? null;
       if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
@@ -331,7 +332,18 @@ export class MapWindow implements OnInit, OnDestroy {
         this.marker?.setLatLng([nextLatitude!, nextLongitude!]);
         this.map.setView([nextLatitude!, nextLongitude!], this.map.getZoom());
       }
+    };
+    this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
+      this.locationUpdateVersion++;
+      applyLocation(location);
     }) ?? null;
+
+    // The initial open event can arrive before this window subscribes. Read the
+    // main-process snapshot after registering the listener to close that race.
+    const initialLocationVersion = this.locationUpdateVersion;
+    void this.desktop?.MapWindow.getLocation().then(location => {
+      if (this.locationUpdateVersion === initialLocationVersion) applyLocation(location);
+    }).catch(error => console.error('Could not retrieve initial map location:', error));
   }
 
   ngOnDestroy(): void {
