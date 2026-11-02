@@ -3,18 +3,18 @@ import { setPackagedMode } from 'internal-api';
 import { App } from './app/app';
 import { appConfig } from './app/app.config';
 
-console.info('[Startup] Renderer entry reached; requesting ProcessManager.isPackaged');
+console.warn('[Startup] Renderer entry reached; requesting ProcessManager.isPackaged');
 
 window.desktop
   .ProcessManager
   .isPackaged()
   .then(isPackaged => {
-    console.info('[Startup] ProcessManager.isPackaged resolved', isPackaged);
+    console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
     setPackagedMode(isPackaged);
-    console.info('[Startup] Starting Angular bootstrap');
+    console.warn('[Startup] Starting Angular bootstrap');
 
     return bootstrapApplication(App, appConfig)
-      .then(() => console.info('[Startup] Angular bootstrap completed'))
+      .then(() => console.warn('[Startup] Angular bootstrap completed'))
       .catch(err => console.error('[Startup] Angular bootstrap failed', err));
   })
   .catch(err => console.error('[Startup] ProcessManager.isPackaged failed', err));
