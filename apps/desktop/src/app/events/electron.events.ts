@@ -1407,7 +1407,7 @@ ipcMain.handle(
             targetKey: captureTargetKey(target, ownerWindow),
             width: previewFrame.width,
             height: previewFrame.height,
-            buffer: Buffer.from(previewFrame.pixels.buffer, previewFrame.pixels.byteOffset, previewFrame.pixels.byteLength)
+            buffer: Buffer.from(new Uint8Array(previewFrame.pixels.buffer, previewFrame.pixels.byteOffset, previewFrame.pixels.byteLength))
           };
         })()
         : await getHdrFrame(target, ownerWindow);
