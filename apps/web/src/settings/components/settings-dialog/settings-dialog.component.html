@@ -153,7 +153,7 @@
     <section class="shortcut-details info-box">
       <details>
         <summary>Key shortcuts · {{ keyShortcuts.length }} shortcuts</summary>
-        <p class="format-note">Global shortcuts are registered by Windows through Electron and remain available when the application is not focused. Local shortcuts work while using the application.</p>
+        <p class="format-note">Global shortcuts are registered by Windows through Electron and remain available when the application is not focused. Local shortcuts work while using the application. When the pointer is over the location map, the arrow keys pan the map instead of changing images.</p>
         @if (globalShortcutError()) {
           <p class="cache-status error" role="alert">Could not read global shortcut status: {{ globalShortcutError() }}</p>
         }
