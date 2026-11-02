@@ -65,6 +65,8 @@ export class CapturePanelComponent {
   protected readonly capturing = signal(false);
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
+  private readonly rawPreviewFrame = signal<CapturePreview | null>(null);
+  protected readonly captureBrightness = signal<number>(this.readSavedCaptureBrightness());
   protected readonly previewSize = signal('');
   protected readonly sdrPreviewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sdrPreviewCanvas');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
@@ -251,6 +253,24 @@ export class CapturePanelComponent {
     return 1.3;
   }
 
+  private readSavedCaptureBrightness(): number {
+    try {
+      const value = Number(localStorage.getItem('capture.brightness'));
+      if (Number.isFinite(value) && value >= 0.25 && value <= 4) return value;
+    } catch { /* use the default when storage is unavailable */ }
+    return 1;
+  }
+
+  protected readonly setCaptureBrightness = (value: number): void => {
+    if (!Number.isFinite(value)) return;
+    const brightness = Math.min(4, Math.max(0.25, value));
+    this.captureBrightness.set(brightness);
+    try { localStorage.setItem('capture.brightness', String(brightness)); }
+    catch { /* keep the current-session preference if storage is unavailable */ }
+    const rawFrame = this.rawPreviewFrame();
+    if (rawFrame) this.setPreviewFrame(rawFrame);
+  };
+
   private readSavedEncoderQuality(): number {
     try {
       const value = Number(localStorage.getItem('capture.encoderQuality'));
@@ -313,12 +333,50 @@ export class CapturePanelComponent {
     if (usable(processName)) return processName;
     return 'Unknown executable';
   };
+  private readonly setPreviewFrame = (frame: CapturePreview): void => {
+    const brightness = this.captureBrightness();
+    if (brightness === 1) {
+      this.previewFrame.set(frame);
+      this.capturePreviewStore.setFrame(frame);
+      return;
+    }
+    const pixels = new Uint16Array(frame.pixels.length);
+    for (let offset = 0; offset < frame.pixels.length; offset += 4) {
+      for (let channel = 0; channel < 3; channel++) {
+        const value = halfFloatLookup[frame.pixels[offset + channel]] * brightness;
+        pixels[offset + channel] = this.floatToHalf(Number.isFinite(value) ? Math.max(-65504, Math.min(65504, value)) : 0);
+      }
+      pixels[offset + 3] = frame.pixels[offset + 3];
+    }
+    const adjusted = { ...frame, pixels };
+    this.previewFrame.set(adjusted);
+    this.capturePreviewStore.setFrame(adjusted);
+  };
+
+  private readonly floatToHalf = (value: number): number => {
+    const float = new Float32Array(1);
+    const bits = new Uint32Array(float.buffer);
+    float[0] = value;
+    const raw = bits[0];
+    const sign = (raw >>> 16) & 0x8000;
+    let exponent = ((raw >>> 23) & 0xff) - 127 + 15;
+    let mantissa = raw & 0x7fffff;
+    if (exponent <= 0) {
+      if (exponent < -10) return sign;
+      mantissa = (mantissa | 0x800000) >>> (1 - exponent);
+      return sign | ((mantissa + 0x1000) >>> 13);
+    }
+    if (exponent >= 31) return sign | 0x7bff;
+    return sign | (exponent << 10) | ((mantissa + 0x1000) >>> 13);
+  };
+
   protected readonly changeTarget = (value: string): void => {
     const row = this.sourceRows().find(item => item.value === value);
     if (row?.minimized || row?.unavailable) return;
     this.disposeHdrPreview();
     this.selectedTarget.set(value);
     this.sourceMenuOpen.set(false);
+    this.rawPreviewFrame.set(null);
     this.previewFrame.set(null);
     this.previewSize.set('');
     this.status.set('');
@@ -470,13 +528,14 @@ export class CapturePanelComponent {
     try {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
-      this.previewFrame.set(preview);
-      this.capturePreviewStore.setFrame(preview);
+      this.rawPreviewFrame.set(preview);
+      this.setPreviewFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
       if (!targetOverride) this.saveSelectedSource();
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
+      this.rawPreviewFrame.set(null);
       this.previewFrame.set(null);
       this.status.set('');
       const message = error instanceof Error ? error.message : String(error);
@@ -816,6 +875,43 @@ export class CapturePanelComponent {
 
   protected readonly copyToClipboardRectangle = async (): Promise<void> => {
     await this.copyToClipboard({ kind: 'rectangle' });
+  };
+
+  protected readonly savePreviewNow = async (): Promise<void> => {
+    const target = this.selectedCaptureTarget();
+    const frame = this.previewFrame();
+    const folder = this.destinationFolder();
+    const format = this.selectedFormat();
+    if (!frame) {
+      this.error.set('Generate a preview before saving it.');
+      return;
+    }
+    if (!target) {
+      this.error.set('Select a capture source first.');
+      return;
+    }
+    if (!folder) {
+      this.error.set('Choose a destination folder first.');
+      return;
+    }
+    this.error.set(null);
+    this.capturing.set(true);
+    this.status.set('Saving existing preview frame…');
+    try {
+      const result = await this.captureService.capture(
+        target, folder, format,
+        this.applyGammaCorrectionOnSave() ? this.gammaCorrectionValue() : 1,
+        this.encoderQuality(), frame
+      );
+      this.galleryLocations.addLocation(folder);
+      this.lastOutputPath.set(result.path);
+      this.status.set(`Saved preview ${result.width} × ${result.height} HDR · ${result.path}`);
+    } catch (error) {
+      this.status.set('');
+      this.error.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.capturing.set(false);
+    }
   };
 
   protected readonly captureNow = async (): Promise<void> => {
