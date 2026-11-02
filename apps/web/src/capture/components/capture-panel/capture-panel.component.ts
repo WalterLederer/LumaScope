@@ -277,8 +277,6 @@ export class CapturePanelComponent {
     this.captureBrightness.set(brightness);
     try { localStorage.setItem('capture.brightness', String(brightness)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
-    const rawFrame = this.rawPreviewFrame();
-    if (rawFrame) this.setPreviewFrame(rawFrame);
   };
 
   private readSavedEncoderQuality(): number {
@@ -344,40 +342,9 @@ export class CapturePanelComponent {
     return 'Unknown executable';
   };
   private readonly setPreviewFrame = (frame: CapturePreview): void => {
-    const brightness = this.captureBrightness();
-    if (brightness === 1) {
-      this.previewFrame.set(frame);
-      this.capturePreviewStore.setFrame(frame);
-      return;
-    }
-    const pixels = new Uint16Array(frame.pixels.length);
-    for (let offset = 0; offset < frame.pixels.length; offset += 4) {
-      for (let channel = 0; channel < 3; channel++) {
-        const value = halfFloatLookup[frame.pixels[offset + channel]] * brightness;
-        pixels[offset + channel] = this.floatToHalf(Number.isFinite(value) ? Math.max(-65504, Math.min(65504, value)) : 0);
-      }
-      pixels[offset + 3] = frame.pixels[offset + 3];
-    }
-    const adjusted = { ...frame, pixels };
-    this.previewFrame.set(adjusted);
-    this.capturePreviewStore.setFrame(adjusted);
-  };
-
-  private readonly floatToHalf = (value: number): number => {
-    const float = new Float32Array(1);
-    const bits = new Uint32Array(float.buffer);
-    float[0] = value;
-    const raw = bits[0];
-    const sign = (raw >>> 16) & 0x8000;
-    let exponent = ((raw >>> 23) & 0xff) - 127 + 15;
-    let mantissa = raw & 0x7fffff;
-    if (exponent <= 0) {
-      if (exponent < -10) return sign;
-      mantissa = (mantissa | 0x800000) >>> (1 - exponent);
-      return sign | ((mantissa + 0x1000) >>> 13);
-    }
-    if (exponent >= 31) return sign | 0x7bff;
-    return sign | (exponent << 10) | ((mantissa + 0x1000) >>> 13);
+    // Keep the captured FP16 frame untouched for the HDR preview and downstream capture actions.
+    this.previewFrame.set(frame);
+    this.capturePreviewStore.setFrame(frame);
   };
 
   protected readonly changeTarget = (value: string): void => {
@@ -420,8 +387,9 @@ export class CapturePanelComponent {
     });
     effect(() => {
       const frame = this.previewFrame();
+      const brightness = this.captureBrightness();
       const canvas = this.sdrPreviewCanvas()?.nativeElement;
-      if (frame && canvas) void this.renderSdrPreview(canvas, frame);
+      if (frame && canvas) void this.renderSdrPreview(canvas, frame, brightness);
     });
     void this.loadSources(true);
   }
@@ -636,7 +604,7 @@ export class CapturePanelComponent {
     this.previewContext = null;
   };
 
-  private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview): void => {
+  private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview, previewBrightness = 1): void => {
     const pixels = imageData.data;
     const source = frame.pixels;
     const pixelCount = frame.width * frame.height;
@@ -742,9 +710,9 @@ export class CapturePanelComponent {
     // depending on the Windows HDR/SDR white-level setting. Avoid applying
     // the HDR brightness boost when the upper luminance range stays <= 4.0.
     const isSdrRangeCapture = maxLuminance <= 4.0 && p999 <= 4.0;
-    const brightnessFactor = isSdrRangeCapture
+    const brightnessFactor = (isSdrRangeCapture
       ? 1 / linearHighlightFraction
-      : this.sdrBrightnessFactor;
+      : this.sdrBrightnessFactor) * previewBrightness;
     const captureRange = isSdrRangeCapture ? 'SDR-range' as const : 'HDR-range' as const;
     const shoulderHeight = 1 - linearHighlightFraction;
     const normalizedShoulderRange = shoulderRange > 0
@@ -818,23 +786,25 @@ export class CapturePanelComponent {
 
   private readonly renderSdrImage = (
     canvas: HTMLCanvasElement,
-    frame: CapturePreview
+    frame: CapturePreview,
+    previewBrightness = 1
   ): void => {
     canvas.width = frame.width;
     canvas.height = frame.height;
     const context = canvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true });
     if (!context) throw new Error('Could not create the SDR image canvas.');
     const imageData = context.createImageData(frame.width, frame.height);
-    this.applySdrToneMapping(imageData, frame);
+    this.applySdrToneMapping(imageData, frame, previewBrightness);
     context.putImageData(imageData, 0, 0);
   };
 
   private readonly renderSdrPreview = (
     canvas: HTMLCanvasElement,
-    frame: CapturePreview
+    frame: CapturePreview,
+    brightness: number
   ): void => {
     try {
-      this.renderSdrImage(canvas, frame);
+      this.renderSdrImage(canvas, frame, brightness);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.error.set(message);
