@@ -7,7 +7,6 @@ import { firstValueFrom } from 'rxjs';
 import { GalleryLocations } from '../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../gallery/services/gallery-state/gallery-state';
 import { FileSystem } from '../ipc/file-system';
-import { ProcessManager } from '../ipc/process-manager';
 import { ThemeService } from '../system/services/theme/theme.service';
 import { ImageView } from '../viewer/pages/image-view/image-view';
 import { ViewNavigator } from '../viewer/services/view-navigator/view-navigator';
@@ -25,8 +24,6 @@ import { ViewNavigator } from '../viewer/services/view-navigator/view-navigator'
 export class App {
   private readonly title = inject(Title);
 
-  private readonly processManager = inject(ProcessManager);
-
   private readonly fileSystem = inject(FileSystem);
 
   private readonly galleryLocations = inject(GalleryLocations);
@@ -40,11 +37,10 @@ export class App {
   private readonly themeService = inject(ThemeService);
 
   constructor() {
-    this.setAppTitle().then();
+    this.setAppTitle();
   }
 
-  setAppTitle = async () =>
-    this.title.setTitle(`Light Matter v${await this.processManager.getAppVersion()}`);
+  setAppTitle = () => this.title.setTitle('Light Matter');
 
   protected readonly onDragOver = (event: DragEvent) => {
     if (event.dataTransfer?.types.includes('Files')) {
