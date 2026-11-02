@@ -3200,15 +3200,6 @@ export class ImageView {
     }
   };
 
-  @HostListener('window:keyup', ['$event'])
-  private readonly openCaptureWindowOnShortcut = (event: KeyboardEvent): void => {
-    if (event.key.toLowerCase() !== 's' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
-    const target = event.target;
-    if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
-    event.preventDefault();
-    void this.openCaptureWindow();
-  };
-
   private readonly trackKeyboard = () => {
     // Capture Escape before the CDK dialog handles and closes the overlay.
     // The matching keyup must not also trigger the image-view back action.
@@ -3267,6 +3258,19 @@ export class ImageView {
         if (event.key === 'Escape') {
           this.goBack();
           return;
+        }
+
+        // Open the detached screen-capture window from the main viewer.
+        // Handle this in the shared keyboard stream so it follows the same
+        // focus and lifecycle path as the other viewer shortcuts.
+        if (event.code === 'KeyS' && !event.repeat && !event.shiftKey
+          && !event.ctrlKey && !event.altKey && !event.metaKey) {
+          if (!(target instanceof HTMLElement)
+            || !target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) {
+            event.preventDefault();
+            void this.openCaptureWindow();
+            return;
+          }
         }
 
         // Modal dialogs own keyboard interaction. In particular, left/right
