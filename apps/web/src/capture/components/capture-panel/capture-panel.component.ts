@@ -65,7 +65,6 @@ export class CapturePanelComponent {
   protected readonly capturing = signal(false);
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
-  private readonly rawPreviewFrame = signal<CapturePreview | null>(null);
   protected readonly captureBrightness = signal<number>(this.readSavedCaptureBrightness());
   protected readonly previewSize = signal('');
   protected readonly sdrPreviewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sdrPreviewCanvas');
@@ -80,7 +79,6 @@ export class CapturePanelComponent {
     this.includeLightMatterWindows.set(enabled);
     try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
-    this.rawPreviewFrame.set(null);
     this.previewFrame.set(null);
     this.previewSize.set('');
     this.status.set('');
@@ -506,7 +504,6 @@ export class CapturePanelComponent {
     try {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
-      this.rawPreviewFrame.set(preview);
       this.setPreviewFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
