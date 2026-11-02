@@ -103,12 +103,6 @@
           <span class="capture-brightness-value">{{ captureBrightness().toFixed(2) }}×</span>
           <button type="button" class="capture-brightness-reset" (click)="setCaptureBrightness(1)" [disabled]="capturing() || previewing()" title="Reset brightness to 1.00×" aria-label="Reset brightness to 1.00×">Reset</button>
         </label>
-        <label class="capture-field capture-gamma-option">
-          <span>
-            <input type="checkbox" [checked]="useFixedSdrReference()" (change)="setUseFixedSdrReference($any($event.target).checked)" [disabled]="capturing() || previewing()"/>
-            Fixed SDR reference + HDR highlight compression
-          </span>
-        </label>
         <div class="capture-clipboard-actions">
           <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ previewing() ? 'Previewing…' : 'Preview' }}
