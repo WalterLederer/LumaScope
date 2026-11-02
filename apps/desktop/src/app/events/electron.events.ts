@@ -20,6 +20,28 @@ import { captureLoupeFrame, releaseLoupeFrame, sampleLoupeRectangle, sampleLoupe
 let exrInitPromise: Promise<void> | undefined;
 let vipsInitPromise: Promise<typeof Vips> | undefined;
 
+interface ExternalProcessCall {
+  id: number;
+  timestamp: number;
+  programName: string;
+  commandLine: string;
+  durationMs: number;
+  exitCode: number | null;
+  signal: string | null;
+}
+
+const externalProcessCalls: ExternalProcessCall[] = [];
+let nextExternalProcessCallId = 1;
+
+const publishExternalProcessCall = (call: ExternalProcessCall): void => {
+  externalProcessCalls.push(call);
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      window.webContents.send('Profiling.externalProcessCall', call);
+    }
+  }
+};
+
 const runExternalProcessSync = (
   command: string,
   args: readonly string[],
@@ -27,14 +49,38 @@ const runExternalProcessSync = (
 ): Buffer | string => {
   const commandLine = [command, ...args].map(value => JSON.stringify(value)).join(' ');
   const startedAt = Date.now();
+  const timestamp = startedAt;
+  const programName = path.basename(command);
   console.info(`[ExternalProcess] START ${commandLine}`);
   try {
     const result = execFileSync(command, [...args], options);
-    console.info(`[ExternalProcess] EXIT code=0 duration=${Date.now() - startedAt}ms command=${commandLine}`);
+    const durationMs = Date.now() - startedAt;
+    const call: ExternalProcessCall = {
+      id: nextExternalProcessCallId++,
+      timestamp,
+      programName,
+      commandLine,
+      durationMs,
+      exitCode: 0,
+      signal: null
+    };
+    publishExternalProcessCall(call);
+    console.info(`[ExternalProcess] EXIT code=0 duration=${durationMs}ms command=${commandLine}`);
     return result;
   } catch (error) {
     const processError = error as NodeJS.ErrnoException & { status?: number | null; signal?: string | null };
-    console.error(`[ExternalProcess] EXIT code=${processError.status ?? 'unknown'} signal=${processError.signal ?? 'none'} duration=${Date.now() - startedAt}ms command=${commandLine}`, error);
+    const durationMs = Date.now() - startedAt;
+    const call: ExternalProcessCall = {
+      id: nextExternalProcessCallId++,
+      timestamp,
+      programName,
+      commandLine,
+      durationMs,
+      exitCode: processError.status ?? null,
+      signal: processError.signal ?? null
+    };
+    publishExternalProcessCall(call);
+    console.error(`[ExternalProcess] EXIT code=${processError.status ?? 'unknown'} signal=${processError.signal ?? 'none'} duration=${durationMs}ms command=${commandLine}`, error);
     throw error;
   }
 };
@@ -1527,6 +1573,7 @@ ipcMain.handle(
   }
 );
 
+ipcMain.handle('Profiling.getExternalProcessCalls', (): ExternalProcessCall[] => [...externalProcessCalls]);
 ipcMain.on('quit', (_, code) => app.exit(code));
 
 const readFolder = async (folder: string): Promise<string[]> =>
