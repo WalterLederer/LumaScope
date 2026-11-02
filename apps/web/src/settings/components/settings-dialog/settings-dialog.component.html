@@ -184,6 +184,36 @@
     } @else if (devToolsError() !== null) {
       <p class="cache-status error" role="alert">Could not update DevTools setting: {{ devToolsError() }}</p>
     }
+        <details class="profiling-section">
+          <summary>Profiling · {{ externalProcessCalls().length }} external calls</summary>
+          @if (profilingError() !== null) {
+            <p class="cache-status error" role="alert">Could not load profiling data: {{ profilingError() }}</p>
+          }
+          <div class="profiling-table-scroll">
+            <table class="profiling-table">
+              <thead>
+                <tr>
+                  <th scope="col"><button type="button" (click)="sortProfiling('timestamp')">Timestamp {{ profilingSortIndicator('timestamp') }}</button></th>
+                  <th scope="col"><button type="button" (click)="sortProfiling('programName')">Program name {{ profilingSortIndicator('programName') }}</button></th>
+                  <th scope="col"><button type="button" (click)="sortProfiling('commandLine')">Command line {{ profilingSortIndicator('commandLine') }}</button></th>
+                  <th scope="col"><button type="button" (click)="sortProfiling('durationMs')">Duration {{ profilingSortIndicator('durationMs') }}</button></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (call of sortedExternalProcessCalls(); track call.id) {
+                  <tr>
+                    <td>{{ call.timestamp | date:'yyyy-MM-dd HH:mm:ss.SSS' }}</td>
+                    <td>{{ call.programName }}</td>
+                    <td class="profiling-command">{{ call.commandLine }}</td>
+                    <td class="profiling-duration">{{ call.durationMs }} ms</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="profiling-empty">No external program calls recorded since startup.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
       </div>
     </details>
   </section>
