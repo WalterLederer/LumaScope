@@ -273,7 +273,7 @@ export default class App {
       minHeight: 320,
       resizable: true,
       show: false,
-      title: App.windowTitle('CAPTURE'),
+      title: App.windowTitle('SCREEN CAPTURE'),
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -281,7 +281,7 @@ export default class App {
       }
     });
     App.capturePreviewWindow.setMenu(null);
-    const capturePreviewWindowTitle = App.windowTitle('CAPTURE');
+    const capturePreviewWindowTitle = App.windowTitle('SCREEN CAPTURE');
     App.capturePreviewWindow.webContents.on('page-title-updated', event => {
       event.preventDefault();
       App.capturePreviewWindow?.setTitle(capturePreviewWindowTitle);
