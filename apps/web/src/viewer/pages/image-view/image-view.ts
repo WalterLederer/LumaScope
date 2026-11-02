@@ -3258,6 +3258,7 @@ export class ImageView {
     this.keyboard.keyup()
       .pipe(takeUntilDestroyed())
       .subscribe(event => {
+        const target = event.target;
         if (event.key === 'Escape' && this.escapePressedWhileDialogOpen) {
           this.escapePressedWhileDialogOpen = false;
           return;
