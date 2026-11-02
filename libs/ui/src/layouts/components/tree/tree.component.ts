@@ -49,7 +49,8 @@ export class TreeComponent<T> {
       isOpen: current.isOpen ?? incoming.isOpen,
       isLoading: current.isLoading ?? incoming.isLoading,
       isSelected: incoming.isSelected ?? current.isSelected,
-      children
+      children,
+      hasChildren: incoming.hasChildren ?? current.hasChildren
     };
   };
 
@@ -126,7 +127,7 @@ export class TreeComponent<T> {
   };
 
   private readonly toggleNode = (node: TreeNode<T>, root: TreeNode<T>) => {
-    if (node.isLoading) {
+    if (node.isLoading || node.hasChildren === false) {
       return;
     }
 
