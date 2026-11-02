@@ -163,6 +163,12 @@ export class GalleryPage {
     })
   );
 
+  readonly hoveredFolderPath = signal<string | null>(null);
+
+  protected readonly onTreeNodeHovered = (node: TreeNode<string> | null): void => {
+    this.hoveredFolderPath.set(node?.id || null);
+  };
+
   readonly selectedLocation$ = this.galleryState.selectedLocation();
 
   readonly images$ = this.galleryState.images();
