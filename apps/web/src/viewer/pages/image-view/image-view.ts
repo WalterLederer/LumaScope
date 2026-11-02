@@ -160,7 +160,7 @@ export class ImageView {
     const api = this.desktopApi?.MapWindow;
     if (!api) return;
     if (open) {
-      await api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined);
+      await api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, this.selectedImage$()?.path ?? null);
       this.detachedMapWindowOpen.set(true);
     } else {
       await api.close();
@@ -1529,7 +1529,7 @@ export class ImageView {
     effect(() => {
       const coordinates = this.gpsCoordinates();
       if (this.detachedMapWindowOpen() && coordinates) {
-        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined);
+        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined, this.selectedImage$()?.path ?? null);
       }
     });
 
