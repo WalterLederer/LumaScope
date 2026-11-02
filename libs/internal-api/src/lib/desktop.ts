@@ -146,6 +146,7 @@ export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
 export interface DesktopMapWindow {
   readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => Promise<boolean>;
+  readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>;
   readonly close: () => Promise<void>;
   readonly isOpen: () => Promise<boolean>;
   readonly focus: () => Promise<boolean>;
