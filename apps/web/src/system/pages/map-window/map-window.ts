@@ -429,7 +429,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async scanDirectoryMarkers(): Promise<void> {
     const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, desktop = this.desktop;
     if (!imagePath || !desktop || !this.directoryMarkerGroup) { this.clearDirectoryMarkers(); this.markerStatus.set('No image folder is available.'); return; }
-    this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set('Reading folder…');
+    this.clearDirectoryMarkers(); this.markerCount.set(this.coordinatesAvailable() ? 1 : 0); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set('Reading folder…');
     try {
       const directory = await desktop.FileSystem.dirname(imagePath);
       const response = await desktop.FileSystem.readImages(directory, 'name', 'asc');
@@ -456,7 +456,7 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       };
       await Promise.all(Array.from({ length: Math.min(6, files.length) }, () => worker()));
-      if (generation === this.markerScanGeneration) this.markerStatus.set('Completed: ' + this.markerFilesChecked() + ' files checked.');
+      if (generation === this.markerScanGeneration) this.markerStatus.set('Completed: ' + this.markerFilesChecked() + ' files checked; ' + this.markerExifErrors() + ' EXIF errors.');
     } catch (error) { if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Folder scan failed.'); }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
