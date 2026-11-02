@@ -23,6 +23,25 @@
   padding-left: 0;
 }
 
+.capture-field.capture-brightness-row {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.capture-brightness-row input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.capture-brightness-value {
+  min-width: 4.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .capture-field,
 .capture-destination {
   display: flex;
