@@ -146,8 +146,8 @@ export default class App {
       startupLog('did-fail-load', JSON.stringify({ code, description, validatedURL, isMainFrame })));
     App.mainWindow.webContents.on('render-process-gone', (_event, details) =>
       startupLog('render-process-gone', JSON.stringify(details)));
-    App.mainWindow.webContents.on('console-message', (_event, details) => {
-      if (details.level >= 2) startupLog('renderer-console', JSON.stringify({ level: details.level, message: details.message, line: details.lineNumber, source: details.sourceId }));
+    App.mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      if (level >= 2) startupLog('renderer-console', JSON.stringify({ level, message, line, source: sourceId }));
     });
     App.mainWindow.on('unresponsive', () => startupLog('window unresponsive'));
     App.mainWindow.on('responsive', () => startupLog('window responsive'));
