@@ -2,6 +2,16 @@ import type { Tags } from 'exiftool-vendored';
 import { Arguments } from 'yargs';
 import { FileInfo } from './fs';
 
+export interface ExternalProcessCall {
+  id: number;
+  timestamp: number;
+  programName: string;
+  commandLine: string;
+  durationMs: number;
+  exitCode: number | null;
+  signal: string | null;
+}
+
 export interface DesktopProcessManager {
   readonly getAppVersion: () => Promise<string>;
   readonly isPackaged: () => Promise<boolean>;
@@ -167,6 +177,10 @@ export interface DesktopHistogram {
 
 export interface Desktop {
   readonly ProcessManager: DesktopProcessManager;
+  readonly Profiling: {
+    readonly getExternalProcessCalls: () => Promise<ExternalProcessCall[]>;
+    readonly onExternalProcessCall: (callback: (call: ExternalProcessCall) => void) => () => void;
+  };
   readonly FileSystem: DesktopFileSystem;
   readonly Dialogs: DesktopDialogs;
   readonly Exif: DesktopExif;
