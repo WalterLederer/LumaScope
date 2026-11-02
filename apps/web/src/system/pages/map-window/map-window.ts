@@ -594,9 +594,11 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (this.mapInitialization) {
       await this.mapInitialization;
-      if (this.map) {
+      // TypeScript cannot see that createMap() assigns this.map across the await.
+      const map = this.map as MapInstance | null;
+      if (map) {
         this.marker?.setLatLng([latitude, longitude]);
-        this.map.setView([latitude, longitude], this.map.getZoom());
+        map.setView([latitude, longitude], map.getZoom());
       }
       return;
     }
