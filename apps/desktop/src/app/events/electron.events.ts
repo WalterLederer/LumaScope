@@ -499,7 +499,10 @@ const selectCaptureRectangle = async (): Promise<{
 
   const windows: Electron.BrowserWindow[] = [];
   let settled = false;
-  return await new Promise((resolve, reject) => {
+  return await new Promise<{
+    deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+    x: number; y: number; width: number; height: number;
+  }>((resolve, reject) => {
     const cleanup = (): void => { for (const window of windows) if (!window.isDestroyed()) window.destroy(); };
     const finish = (value?: {
       deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
@@ -569,10 +572,13 @@ const selectCaptureRectangle = async (): Promise<{
         if (!settled && windows.every(item => item.isDestroyed())) finish();
       });
       void window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
-        .then(() => { if (!settled && !window.isDestroyed()) window.showInactive(); })
+        .then(() => {
+          if (settled || window.isDestroyed()) return;
+          if (position === 0) { window.show(); window.focus(); }
+          else window.showInactive();
+        })
         .catch(error => finish(undefined, error instanceof Error ? error : new Error(String(error))));
     }
-    if (windows[0] && !windows[0].isDestroyed()) windows[0].focus();
   });
 };
 
