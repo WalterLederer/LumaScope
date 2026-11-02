@@ -223,7 +223,7 @@ export class CapturePanelComponent {
     this.sourceMenuOpen.set(false);
   };
 
-  @HostListener('document:keyup', ['$event'])
+  @HostListener('window:keyup', ['$event'])
   protected readonly focusLocationWindowOnShortcut = (event: KeyboardEvent): void => {
     if (event.key.toLowerCase() !== 'l' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
     const target = event.target;
