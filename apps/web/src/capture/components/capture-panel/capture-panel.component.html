@@ -108,10 +108,13 @@
           <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
           </button>
-          <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboardTopWindow()" [disabled]="capturing() || previewing() || loadingSources()" title="Copy the topmost visible window to the clipboard. Shortcut: Ctrl + Win + PrtScn.">
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyPreviewToClipboardNow()" [disabled]="capturing() || previewing() || !previewFrame()" title="Copy the already displayed, brightness-corrected SDR preview without capturing again.">
+            Clipboard copy PREVIEW
+          </button>
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyToClipboardTopWindow()" [disabled]="capturing() || previewing() || loadingSources()" title="Copy the topmost visible window to the clipboard. Shortcut: Ctrl + Win + PrtScn.">
             TOP WINDOW copy
           </button>
-          <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboardRectangle()" [disabled]="capturing() || previewing() || loadingSources()" title="Select a screen rectangle and copy it to the clipboard. Shortcut: Ctrl + Shift + Win + PrtScn.">
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyToClipboardRectangle()" [disabled]="capturing() || previewing() || loadingSources()" title="Select a screen rectangle and copy it to the clipboard. Shortcut: Ctrl + Shift + Win + PrtScn.">
             RECTANGLE copy
           </button>
         </div>
