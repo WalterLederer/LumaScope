@@ -26,7 +26,7 @@ interface LeafletMapApi {
 }
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
-type MarkerShape = 'hexagon' | 'circle' | 'square';
+type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 
 @Component({
   selector: 'app-map-window',
@@ -93,32 +93,6 @@ type MarkerShape = 'hexagon' | 'circle' | 'square';
               <span class="range-value">{{ markerOpacity() }}%</span>
             </label>
           </div>
-          <div class="settings-group marker-appearance-settings">
-            <strong class="settings-row-title">Folder markers:</strong>
-            <label>Shape
-              <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
-                <option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
-              </select>
-            </label>
-            <label>Color</label>
-            <div class="color-picker">
-              <button type="button" class="color-picker-trigger" (click)="toggleMarkerColorMenu()" [attr.aria-expanded]="markerColorMenuOpen()" aria-label="Folder marker color and visibility">
-                @if (markerColorVisible()) {
-                  <span class="color-swatch" [style.background]="markerColor()" [style.color]="selectedMarkerTextColor()">{{ markerColor() }}</span>
-                  <span>{{ selectedMarkerColorName() }}</span>
-                } @else { <span>Off</span> }
-                <span class="color-picker-chevron">▾</span>
-              </button>
-              @if (markerColorMenuOpen()) {
-                <div class="color-picker-menu" role="listbox" aria-label="Folder marker colors">
-                  <button type="button" class="color-option" role="option" [attr.aria-selected]="!markerColorVisible()" (click)="changeMarkerColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
-                  @for (color of gpxColors; track color.value) {
-                    <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === color.value && markerColorVisible()" (click)="changeMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
-                  }
-                </div>
-              }
-            </div>
-          </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
               <span class="zoom-label">Zoom</span>
@@ -159,6 +133,32 @@ type MarkerShape = 'hexagon' | 'circle' | 'square';
             <summary>Marker</summary>
             <div class="marker-settings-content">
               <div class="marker-description">Show all geotagged images in this folder</div>
+              <div class="marker-appearance-settings">
+                <label>Shape
+                  <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
+                    <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
+                  </select>
+                </label>
+                <label>Color</label>
+                <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleMarkerColorMenu()" [attr.aria-expanded]="markerColorMenuOpen()" aria-label="Folder marker color and visibility">
+                    @if (markerColorVisible()) {
+                      <span class="color-swatch" [style.background]="markerColor() === 'dynamic' ? '#34c759' : markerColor()" [style.color]="selectedMarkerTextColor()">{{ markerColor() === 'dynamic' ? 'Dynamic' : markerColor() }}</span>
+                      <span>{{ selectedMarkerColorName() }}</span>
+                    } @else { <span>Off</span> }
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (markerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Folder marker colors">
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="!markerColorVisible()" (click)="changeMarkerColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === 'dynamic' && markerColorVisible()" (click)="changeMarkerColor('dynamic')"><span class="color-swatch" style="background:linear-gradient(90deg,#34c759 0 33%,#ffd60a 33% 66%,#ff3b30 66%);color:#171717">↗</span><span>Dynamic</span></button>
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === color.value && markerColorVisible()" (click)="changeMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
                 <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
@@ -198,7 +198,7 @@ type MarkerShape = 'hexagon' | 'circle' | 'square';
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
-    .marker-appearance-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:10px}
+    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#454545)}
     .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
@@ -282,8 +282,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
-  protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'hexagon') as MarkerShape);
-  protected readonly markerColor = signal(this.readSetting('markerColor', '#34c759'));
+  protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'double-circle') as MarkerShape);
+  protected readonly markerColor = signal(this.readSetting('markerColor', 'dynamic'));
   protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
@@ -465,15 +465,18 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
   protected readonly toggleMarkerColorMenu = (): void => this.markerColorMenuOpen.update(open => !open);
-  protected readonly selectedMarkerColorName = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.name ?? 'Green';
+  protected readonly selectedMarkerColorName = (): string => this.markerColor() === 'dynamic' ? 'Dynamic' : this.gpxColors.find(color => color.value === this.markerColor())?.name ?? 'Green';
   protected readonly selectedMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.textColor ?? '#102014';
   protected readonly changeMarkerShape = (value: string): void => {
-    if (value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
+    if (value !== 'double-circle' && value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
     this.markerShape.set(value); this.saveSetting('markerShape', value); this.directoryMarkerGroup?.refreshClusters?.();
   };
   protected readonly changeMarkerColor = (value: string): void => {
     if (value === 'off') { this.markerColorVisible.set(false); this.saveSetting('markerColorVisible', false); }
-    else if (this.gpxColors.some(color => color.value === value)) {
+    else if (value === 'dynamic') {
+      this.markerColor.set(value); this.markerColorVisible.set(true);
+      this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
+    } else if (this.gpxColors.some(color => color.value === value)) {
       this.markerColor.set(value); this.markerColorVisible.set(true);
       this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
     } else return;
@@ -680,11 +683,16 @@ export class MapWindow implements OnInit, OnDestroy {
         const fontSize = count < 100 ? 15 : 14;
         const shape = this.markerShape();
         const fill = this.markerColorVisible() ? this.markerColor() : 'transparent';
-        const shapeMarkup = shape === 'hexagon'
-          ? '<polygon points="28,2 51,15 51,41 28,54 5,41 5,15"'
-          : shape === 'circle' ? '<circle cx="28" cy="28" r="25"'
-            : '<rect x="3" y="3" width="50" height="50" rx="3"';
-        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56" opacity="${this.markerColorVisible() ? 1 : 0}">${shapeMarkup} fill="${fill}" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
+        const dynamicFill = count < 10 ? '#34c759' : count < 100 ? '#ffd60a' : '#ff3b30';
+        const markerFill = this.markerColor() === 'dynamic' ? dynamicFill : fill;
+        const shapeMarkup = shape === 'double-circle'
+          ? `<circle cx="28" cy="28" r="25" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/><circle cx="28" cy="28" r="18" fill="none" stroke="#fff" stroke-width="1.5" opacity=".9"/>`
+          : shape === 'hexagon'
+            ? `<polygon points="28,2 51,15 51,41 28,54 5,41 5,15" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`
+            : shape === 'circle'
+              ? `<circle cx="28" cy="28" r="25" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`
+              : `<rect x="3" y="3" width="50" height="50" rx="3" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`;
+        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56" opacity="${this.markerColorVisible() ? 1 : 0}">${shapeMarkup}<text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
         return this.leaflet!.divIcon({ className: 'lumascope-marker-cluster', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
       }
     }).addTo(this.map);
