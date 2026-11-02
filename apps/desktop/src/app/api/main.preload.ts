@@ -136,6 +136,11 @@ const api: Desktop = {
       const listener = (): void => callback();
       ipcRenderer.on('Capture.topWindowClipboardHotkey', listener);
       return () => ipcRenderer.removeListener('Capture.topWindowClipboardHotkey', listener);
+    },
+    onRectangleClipboardHotkey: (callback: () => void) => {
+      const listener = (): void => callback();
+      ipcRenderer.on('Capture.rectangleClipboardHotkey', listener);
+      return () => ipcRenderer.removeListener('Capture.rectangleClipboardHotkey', listener);
     }
   },
 
