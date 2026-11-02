@@ -157,6 +157,7 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    console.warn('[ImageGrid] CONSTRUCTOR START');
     effect(() => {
       if (this.viewMode() === 'details') {
         this.thumbSizeSlider.disable({ emitEvent: false });
