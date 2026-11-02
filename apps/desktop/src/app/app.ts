@@ -13,6 +13,7 @@ export default class App {
   // be closed automatically when the JavaScript object is garbage collected.
   static mainWindow: Electron.BrowserWindow;
   static mapWindow: Electron.BrowserWindow | null = null;
+  static mapWindowLocation: { latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null } = { latitude: null, longitude: null, bearing: null, imagePath: null };
   static capturePreviewWindow: Electron.BrowserWindow | null = null;
   private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -338,6 +339,9 @@ export default class App {
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
       throw new Error('The map window received invalid GPS coordinates.');
     }
+    App.mapWindowLocation = hasCoordinates
+      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null }
+      : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
 
     if (App.isMapWindowOpen()) {
       App.mapWindow.webContents.send('MapWindow.locationChanged', hasCoordinates
