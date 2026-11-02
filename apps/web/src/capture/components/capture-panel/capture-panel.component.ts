@@ -634,6 +634,8 @@ export class CapturePanelComponent {
     const logMax = Math.log(65504);
     const logRange = logMax - logMin;
     let maxLuminance = 0;
+    let zeroLuminancePixels = 0;
+    let above3 = 0, above31 = 0, above32 = 0, above324 = 0;
     let maxR = 0, maxG = 0, maxB = 0;
     let above05 = 0, above1 = 0, above2 = 0, above4 = 0;
 
@@ -654,17 +656,40 @@ export class CapturePanelComponent {
       const luminance = r * 0.2126 + g * 0.7152 + b * 0.0722;
       luminances[pixel] = luminance;
       maxLuminance = Math.max(maxLuminance, luminance);
+      if (luminance > 3) above3++;
+      if (luminance > 3.1) above31++;
+      if (luminance > 3.2) above32++;
+      if (luminance > 3.24) above324++;
       if (luminance > 0) {
         const bin = Math.min(histogram.length - 1, Math.max(0,
           Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
         histogram[bin]++;
+      } else {
+        zeroLuminancePixels++;
       }
     }
+
+    const percentile = (fraction: number): number => {
+      const percentileTarget = Math.max(1, Math.ceil(pixelCount * fraction));
+      let percentileCumulative = zeroLuminancePixels;
+      if (percentileCumulative >= percentileTarget) return 0;
+      for (let bin = 0; bin < histogram.length; bin++) {
+        percentileCumulative += histogram[bin];
+        if (percentileCumulative >= percentileTarget) {
+          return Math.exp(logMin + ((bin + 0.5) / histogram.length) * logRange);
+        }
+      }
+      return maxLuminance;
+    };
+    const p95 = percentile(0.95);
+    const p99 = percentile(0.99);
+    const p999 = percentile(0.999);
+    const p9999 = percentile(0.9999);
 
     // Estimate SDR reference white robustly, ignoring at most the brightest 0.01%.
     // Keep a 15% margin so isolated bright highlights do not redefine SDR white.
     const target = Math.max(1, Math.ceil(pixelCount * 0.9999));
-    let cumulative = 0;
+    let cumulative = zeroLuminancePixels;
     let p9999 = 0;
     for (let bin = 0; bin < histogram.length; bin++) {
       cumulative += histogram[bin];
@@ -736,10 +761,10 @@ export class CapturePanelComponent {
 
     this.sdrDiagnostics.set({
       maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
-      brightnessFactor: previewBrightness, captureRange: 'HDR-range', maxLuminance,
-      p95: 0, p99: 0, p999: 0, p9999: p9999,
-      diagnosticP95: 0, diagnosticP99: 0, diagnosticP999: 0, diagnosticP9999: 0,
-      above3: 0, above31: 0, above32: 0, above324: 0, pixelCount
+      brightnessFactor: previewBrightness, captureRange: maxLuminance > sdrReferenceWhite ? 'HDR-range' : 'SDR-range', maxLuminance,
+      p95, p99, p999, p9999,
+      diagnosticP95: p95, diagnosticP99: p99, diagnosticP999: p999, diagnosticP9999: p9999,
+      above3, above31, above32, above324, pixelCount
     });
   };
 
