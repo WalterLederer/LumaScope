@@ -712,9 +712,10 @@ export class CapturePanelComponent {
     const shoulderRange = shoulderEnd - shoulderStart;
     const linearHighlightFraction = 0.92;
     // SDR-only desktop captures can be represented above 1.0 in scRGB,
-    // depending on the Windows HDR/SDR white-level setting. Avoid applying
-    // the HDR brightness boost when the upper luminance range stays <= 4.0.
-    const isSdrRangeCapture = maxLuminance <= 4.0 && p999 <= 4.0;
+    // depending on the Windows HDR/SDR white-level setting. Classify from the
+    // high-resolution P99.99 percentile so a few isolated HDR highlights do
+    // not switch the entire image to the HDR brightness boost.
+    const isSdrRangeCapture = diagnosticP9999 <= 4.0;
     const brightnessFactor = (isSdrRangeCapture
       ? 1 / linearHighlightFraction
       : this.sdrBrightnessFactor) * previewBrightness;
