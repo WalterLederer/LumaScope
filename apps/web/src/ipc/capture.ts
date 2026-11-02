@@ -19,4 +19,7 @@ export class CaptureService implements DesktopCapture {
 
   readonly onTopWindowClipboardHotkey = (callback: () => void): (() => void) =>
     window.desktop.Capture.onTopWindowClipboardHotkey(callback);
+
+  readonly onRectangleClipboardHotkey = (callback: () => void): (() => void) =>
+    window.desktop.Capture.onRectangleClipboardHotkey(callback);
 }
