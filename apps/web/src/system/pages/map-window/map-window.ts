@@ -684,7 +684,7 @@ export class MapWindow implements OnInit, OnDestroy {
           ? '<polygon points="28,2 51,15 51,41 28,54 5,41 5,15"'
           : shape === 'circle' ? '<circle cx="28" cy="28" r="25"'
             : '<rect x="3" y="3" width="50" height="50" rx="3"';
-        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56">${shapeMarkup} fill="${fill}" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
+        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56" opacity="${this.markerColorVisible() ? 1 : 0}">${shapeMarkup} fill="${fill}" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
         return this.leaflet!.divIcon({ className: 'lumascope-marker-cluster', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
       }
     }).addTo(this.map);
