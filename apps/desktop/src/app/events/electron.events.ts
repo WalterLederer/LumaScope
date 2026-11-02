@@ -634,55 +634,6 @@ const captureTargetFrame = async (target: CaptureTarget, ownerWindow?: Electron.
   return captureHdrFrame(target);
 };
 
-const summarizeFp16Frame = (frame: CapturedHdrFrame) => {
-  const channels = [ 'R', 'G', 'B' ].map(name => ({
-    name,
-    min: Infinity,
-    max: -Infinity,
-    minPositive: Infinity,
-    negativeSamples: 0,
-    zeroSamples: 0,
-    aboveReferenceWhiteSamples: 0,
-    nonFiniteSamples: 0
-  }));
-  const values = new Uint16Array(
-    frame.buffer.buffer,
-    frame.buffer.byteOffset,
-    frame.buffer.byteLength / 2
-  );
-
-  for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
-    for (let channel = 0; channel < 3; channel++) {
-      const value = halfToFloat(values[pixel * 4 + channel]);
-      const stats = channels[channel];
-      if (!Number.isFinite(value)) {
-        stats.nonFiniteSamples++;
-        continue;
-      }
-      stats.min = Math.min(stats.min, value);
-      stats.max = Math.max(stats.max, value);
-      if (value < 0) stats.negativeSamples++;
-      else if (value === 0) stats.zeroSamples++;
-      else stats.minPositive = Math.min(stats.minPositive, value);
-      if (value > 1) stats.aboveReferenceWhiteSamples++;
-    }
-  }
-
-  return {
-    width: frame.width,
-    height: frame.height,
-    pixelFormat: 'RGBA16F linear scRGB',
-    referenceWhiteNits: 80,
-    channels: channels.map(({ min, max, minPositive, ...stats }) => ({
-      ...stats,
-      min: Number.isFinite(min) ? min : null,
-      max: Number.isFinite(max) ? max : null,
-      minPositive: Number.isFinite(minPositive) ? minPositive : null
-    }))
-  };
-};
-
-
 const summarizeVipsImageSamples = (image: Vips.Image) => {
   const pixels = image.writeToMemory();
   const channelCount = image.bands;
@@ -1439,7 +1390,6 @@ ipcMain.handle(
       };
     try {
       const ownerWindow = BrowserWindow.fromWebContents(event.sender);
-      const reusedPreviewFrame = cachedHdrFrame?.targetKey === captureTargetKey(target, ownerWindow);
       const frame = await getHdrFrame(target, ownerWindow);
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
 
@@ -1455,11 +1405,6 @@ ipcMain.handle(
         logPhase('convert FP16 scRGB frame to Float32 RGB without brightness correction');
 
         const rgb = new Float32Array(frame.width * frame.height * 3);
-        let sourcePeakScRgb = 0;
-        let outputMin = Infinity;
-        let outputMax = -Infinity;
-        let negativeChannelSamples = 0;
-        let nonFiniteChannelSamples = 0;
 
         for (let pixel = 0; pixel < frame.width * frame.height; pixel++) {
           const source = pixel * 4;
@@ -1469,16 +1414,11 @@ ipcMain.handle(
             const value = halfToFloat(sourceChannels[source + channel]);
             if (!Number.isFinite(value)) {
               rgb[destination + channel] = 0;
-              nonFiniteChannelSamples++;
               continue;
             }
 
-            if (value < 0) negativeChannelSamples++;
-            sourcePeakScRgb = Math.max(sourcePeakScRgb, value);
             const corrected = gammaCorrection !== 1 ? applyGammaCorrection(value, gammaCorrection) : value;
             rgb[destination + channel] = corrected;
-            outputMin = Math.min(outputMin, corrected);
-            outputMax = Math.max(outputMax, corrected);
           }
         }
 
