@@ -192,6 +192,35 @@
         </div>
       </details>
     </section>
+    <section class="shortcut-details info-box">
+      <details>
+        <summary>External Programs · {{ externalPrograms().length }} programs</summary>
+        <p class="format-note">Programs are listed when Light Matter launches them. Repeated calls to the same program for the same function are grouped together. The list updates during the current application session.</p>
+        @if (profilingError()) {
+          <p class="cache-status error" role="alert">Could not load external program data: {{ profilingError() }}</p>
+        }
+        <div class="shortcut-table-scroll">
+          <table class="shortcut-table">
+            <thead>
+              <tr>
+                <th scope="col">Program name</th>
+                <th scope="col">Function</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (program of externalPrograms(); track program.programName + program.function) {
+                <tr>
+                  <td><kbd>{{ program.programName }}</kbd></td>
+                  <td>{{ program.function }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="2" class="profiling-empty">No external programs have been called since startup.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
   <section class="debug-settings">
     <details>
       <summary>Debug</summary>
