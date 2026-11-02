@@ -72,7 +72,7 @@
   min-width: 112px;
 }
 
-.capture-destination:not(.clipboard-destination) > .capture-folder-row {
+.capture-destination > .capture-folder-row {
   grid-column: 1;
   grid-row: 2;
 }
@@ -91,6 +91,33 @@
   width: auto;
   min-width: 84px;
   white-space: nowrap;
+}
+
+.capture-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgb(128 128 128 / 30%);
+  border-radius: 5px;
+  background: rgb(128 128 128 / 5%);
+}
+
+.capture-section > summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+}
+
+.capture-section[open] > summary {
+  margin-bottom: 2px;
+}
+
+.capture-clipboard-button {
+  align-self: flex-start;
+  width: auto;
+  min-width: 130px;
 }
 
 .capture-advanced-settings {
