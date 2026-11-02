@@ -91,6 +91,12 @@ const api: Desktop = {
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
     focus: () => ipcRenderer.invoke('MapWindow.focus'),
     setAlwaysOnTop: (enabled: boolean) => ipcRenderer.invoke('MapWindow.setAlwaysOnTop', enabled),
+    selectImage: (path: string) => ipcRenderer.invoke('MapWindow.selectImage', path),
+    onImageSelected: (callback: (path: string) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, path: string): void => callback(path);
+      ipcRenderer.on('MapWindow.imageSelected', listener);
+      return () => ipcRenderer.removeListener('MapWindow.imageSelected', listener);
+    },
     onStateChanged: (callback: (open: boolean) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);
       ipcRenderer.on('MapWindow.stateChanged', listener);
