@@ -106,7 +106,7 @@
             {{ previewing() ? 'Previewing…' : 'Preview' }}
           </button>
           <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="copyPreviewToClipboardNow()" [disabled]="capturing() || previewing() || !previewFrame()" title="Copy the already displayed, brightness-corrected SDR preview without capturing again.">
-            Clipboard copy PREVIEW
+            Clipboard copy preview
           </button>
           <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
