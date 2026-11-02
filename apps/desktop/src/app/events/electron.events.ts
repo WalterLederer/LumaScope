@@ -479,78 +479,134 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
   return frame;
 };
 
-const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; x: number; y: number; width: number; height: number } => {
-  const csharp = [
-    "using System;", "using System.Collections.Generic;", "using System.Drawing;", "using System.Windows.Forms;",
-    "public static class LightMatterRectangleSelection {",
-    " public static string DeviceName = null; public static long MonitorHandle; public static int ScreenWidth, ScreenHeight, X, Y, Width, Height; public static bool Cancelled = false;",
-    " public static readonly List<RectangleSelectionForm> Forms = new List<RectangleSelectionForm>();",
-    " public static void Finish(bool cancel) { if (cancel) Cancelled = true; foreach (var form in Forms.ToArray()) if (!form.IsDisposed) form.Close(); }",
-    " public static void SetResult(string device, long monitor, int screenWidth, int screenHeight, int x, int y, int width, int height) { DeviceName=device; MonitorHandle=monitor; ScreenWidth=screenWidth; ScreenHeight=screenHeight; X=x; Y=y; Width=width; Height=height; Finish(false); }",
-    "}",
-    "public sealed class RectangleSelectionForm : Form {",
-    " private readonly Screen targetScreen; private Point start, current; private bool dragging;",
-    " [System.Runtime.InteropServices.DllImport(\"user32.dll\")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);",
-    " public RectangleSelectionForm(Screen screen) { targetScreen=screen; FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.Manual; Bounds=screen.Bounds; ShowInTaskbar=false; TopMost=true; BackColor=Color.Black; Opacity=0.32; Cursor=Cursors.Cross; KeyPreview=true; DoubleBuffered=true; MouseDown+=OnMouseDown; MouseMove+=OnMouseMove; MouseUp+=OnMouseUp; KeyDown+=OnKeyDown; Paint+=OnPaintOverlay; FormClosed+=(_,__)=>{ if(LightMatterRectangleSelection.Forms.TrueForAll(f=>f.IsDisposed || f==this)) Application.ExitThread(); }; }",
-    " private void OnMouseDown(object s, MouseEventArgs e) { if(e.Button!=MouseButtons.Left)return; start=e.Location; current=e.Location; dragging=true; Invalidate(); }",
-    " private void OnMouseMove(object s, MouseEventArgs e) { if(!dragging)return; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); Invalidate(); }",
-    " private void OnMouseUp(object s, MouseEventArgs e) { if(!dragging || e.Button!=MouseButtons.Left)return; dragging=false; current=new Point(Math.Max(0,Math.Min(ClientSize.Width-1,e.X)),Math.Max(0,Math.Min(ClientSize.Height-1,e.Y))); int l=Math.Min(start.X,current.X), t=Math.Min(start.Y,current.Y), w=Math.Abs(current.X-start.X), h=Math.Abs(current.Y-start.Y); if(w<8 || h<8){Invalidate();return;} var selectionCenter=new Point(targetScreen.Bounds.Left+l+w/2,targetScreen.Bounds.Top+t+h/2); var monitor=MonitorFromPoint(selectionCenter,2); LightMatterRectangleSelection.SetResult(targetScreen.DeviceName,monitor.ToInt64(),targetScreen.Bounds.Width,targetScreen.Bounds.Height,l,t,w,h); }",
-    " private void OnKeyDown(object s, KeyEventArgs e) { if(e.KeyCode==Keys.Escape){LightMatterRectangleSelection.Finish(true);e.Handled=true;} }",
-    " private void OnPaintOverlay(object s, PaintEventArgs e) { using(var b=new SolidBrush(Color.White)) using(var f=new Font(\"Segoe UI\",16,FontStyle.Bold)) e.Graphics.DrawString(\"Drag to select HDR capture area  ·  Esc to cancel\",f,b,24,24); if(dragging){var r=new Rectangle(Math.Min(start.X,current.X),Math.Min(start.Y,current.Y),Math.Abs(current.X-start.X),Math.Abs(current.Y-start.Y)); using(var p=new Pen(Color.DeepSkyBlue,3))e.Graphics.DrawRectangle(p,r); using(var b=new SolidBrush(Color.FromArgb(45,Color.DeepSkyBlue)))e.Graphics.FillRectangle(b,r);} }",
-    "}"
-  ].join("\n");
-  const dpi = "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class DpiAwareness { [DllImport(\"user32.dll\")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); }'; [void][DpiAwareness]::SetProcessDpiAwarenessContext([IntPtr](-4));";
-  const script = "$ErrorActionPreference='Stop'\nAdd-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\nAdd-Type -ReferencedAssemblies @('System.Windows.Forms','System.Drawing') -TypeDefinition @'\n" + csharp + "\n'@\n" +
-    "$screens=[System.Windows.Forms.Screen]::AllScreens\nforeach($display in $screens){$form=[RectangleSelectionForm]::new($display);[LightMatterRectangleSelection]::Forms.Add($form);$form.Show()}\n" +
-    "[System.Windows.Forms.Application]::Run()\n" +
-    "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){[PSCustomObject]@{cancelled=$true}|ConvertTo-Json -Compress;exit 0}\n" +
-    "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;monitorHandle=[LightMatterRectangleSelection]::MonitorHandle.ToString();screenWidth=[LightMatterRectangleSelection]::ScreenWidth;screenHeight=[LightMatterRectangleSelection]::ScreenHeight;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
-  const output = runExternalProcessSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
-    { encoding:'utf8', windowsHide:true, timeout:120000 }).toString().trim();
-  const selection = JSON.parse(output) as { cancelled?:boolean; deviceName?:string; monitorHandle?:string; screenWidth?:number; screenHeight?:number; x?:number; y?:number; width?:number; height?:number };
-  if (selection.cancelled) throw new Error('Rectangle selection was cancelled.');
-  if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
-    || selection.x<0 || selection.y<0 || selection.width<8 || selection.height<8) throw new Error('Windows returned an invalid rectangle selection.');
-  return selection;
+const selectCaptureRectangle = async (): Promise<{
+  deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+  x: number; y: number; width: number; height: number;
+}> => {
+  const displays = screen.getAllDisplays();
+  const monitors = enumerateMonitors();
+  if (!displays.length || !monitors.length) throw new Error('No displays are available for rectangle capture.');
+
+  const displayMonitors = displays.map((display, position) => {
+    const width = Math.round(display.bounds.width * display.scaleFactor);
+    const height = Math.round(display.bounds.height * display.scaleFactor);
+    const indexed = monitors[position];
+    if (indexed && Math.abs(indexed.width - width) <= 2 && Math.abs(indexed.height - height) <= 2) return indexed;
+    const matches = monitors.filter(item => Math.abs(item.width - width) <= 2 && Math.abs(item.height - height) <= 2);
+    if (matches.length === 1) return matches[0];
+    throw new Error('Could not safely map Electron display ' + display.id + ' (' + width + 'x' + height + ') to an HDR capture monitor.');
+  });
+
+  const windows: Electron.BrowserWindow[] = [];
+  let settled = false;
+  return await new Promise((resolve, reject) => {
+    const cleanup = (): void => { for (const window of windows) if (!window.isDestroyed()) window.destroy(); };
+    const finish = (value?: {
+      deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+      x: number; y: number; width: number; height: number;
+    }, error?: Error): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) reject(error);
+      else if (value) resolve(value);
+      else reject(new Error('Rectangle selection was cancelled.'));
+    };
+
+    for (let position = 0; position < displays.length; position++) {
+      const display = displays[position];
+      const html = [
+        '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
+        '<style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;cursor:crosshair;background:rgba(0,0,0,.38);font:600 18px "Segoe UI",sans-serif;color:#fff}',
+        '#hint{position:absolute;left:24px;top:20px;padding:10px 14px;background:rgba(0,0,0,.72);border-radius:6px;pointer-events:none}',
+        '#selection{position:absolute;border:2px solid #39b9ff;background:rgba(57,185,255,.16);display:none;pointer-events:none}</style></head>',
+        '<body><div id="hint">Drag to select HDR capture area&nbsp;&nbsp;·&nbsp;&nbsp;Esc to cancel</div><div id="selection"></div><script>(()=>{',
+        'const box=document.getElementById("selection");let start=null;',
+        'const point=e=>({x:Math.max(0,Math.min(innerWidth,e.clientX)),y:Math.max(0,Math.min(innerHeight,e.clientY))});',
+        'addEventListener("pointerdown",e=>{if(e.button!==0)return;start=point(e);box.style.display="block";box.style.left=start.x+"px";box.style.top=start.y+"px";box.style.width="0";box.style.height="0";});',
+        'addEventListener("pointermove",e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y);box.style.left=x+"px";box.style.top=y+"px";box.style.width=Math.abs(p.x-start.x)+"px";box.style.height=Math.abs(p.y-start.y)+"px";});',
+        'addEventListener("pointerup",e=>{if(!start||e.button!==0)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);start=null;if(w<8||h<8){box.style.display="none";return;}location.hash=encodeURIComponent(JSON.stringify({x,y,width:w,height:h}));});',
+        '})();</script></body></html>'
+      ].join('');
+      const window = new BrowserWindow({
+        x: display.bounds.x, y: display.bounds.y, width: display.bounds.width, height: display.bounds.height,
+        frame: false, transparent: true, backgroundColor: '#00000000', hasShadow: false,
+        resizable: false, movable: false, minimizable: false, maximizable: false, fullscreenable: false,
+        skipTaskbar: true, alwaysOnTop: true, focusable: true, show: false,
+        webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true }
+      });
+      windows.push(window);
+      window.setAlwaysOnTop(true, 'screen-saver');
+      window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      window.webContents.on('before-input-event', (event, input) => {
+        if (input.type === 'keyDown' && input.key === 'Escape') { event.preventDefault(); finish(); }
+      });
+      window.webContents.on('did-navigate-in-page', (_event, url) => {
+        const hash = url.split('#')[1];
+        if (!hash) return;
+        try {
+          const selected = JSON.parse(decodeURIComponent(hash)) as { x: number; y: number; width: number; height: number };
+          if (![selected.x, selected.y, selected.width, selected.height].every(Number.isFinite)
+            || selected.x < 0 || selected.y < 0 || selected.width < 8 || selected.height < 8) {
+            finish(undefined, new Error('The selected rectangle is invalid.'));
+            return;
+          }
+          const scale = display.scaleFactor || 1;
+          const monitor = displayMonitors[position];
+          finish({
+            deviceName: monitor.deviceName || ('Display ' + (position + 1)),
+            monitorHandle: String(monitor.handle),
+            screenWidth: Math.round(display.bounds.width * scale),
+            screenHeight: Math.round(display.bounds.height * scale),
+            x: Math.round(selected.x * scale), y: Math.round(selected.y * scale),
+            width: Math.round(selected.width * scale), height: Math.round(selected.height * scale)
+          });
+        } catch (error) {
+          finish(undefined, error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+      window.on('closed', () => {
+        if (!settled && windows.every(item => item.isDestroyed())) finish();
+      });
+      void window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html))
+        .then(() => { if (!settled && !window.isDestroyed()) window.showInactive(); })
+        .catch(error => finish(undefined, error instanceof Error ? error : new Error(String(error))));
+    }
+    if (windows[0] && !windows[0].isDestroyed()) windows[0].focus();
+  });
 };
 
 const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
-    const selection=selectCaptureRectangle();
-    const enumeratedMonitors=enumerateMonitors();
-    const normalizeDeviceName=(value:string|undefined):string=>(value??'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const selectedDevice=normalizeDeviceName(selection.deviceName);
-    // Match the selected Windows display by its stable device name first. HMONITOR
-    // values can be represented differently by the PowerShell and Node processes.
-    const monitor=enumeratedMonitors.find(item=>
-      selectedDevice && normalizeDeviceName(item.deviceName)===selectedDevice
-    ) ?? enumeratedMonitors.find(item=>String(item.handle)===String(selection.monitorHandle));
-    if(!monitor) {
-      throw new Error(`The selected display "${selection.deviceName}" (HMONITOR ${selection.monitorHandle}) could not be matched to an HDR capture monitor. Available: ${enumeratedMonitors.map(item=>`${item.deviceName} [${item.handle}]`).join(', ')}`);
-    }
-    // Use the capture backend's enumeration position, not MonitorInfo.index (DISPLAYn).
-    const captureMonitorIndex=enumeratedMonitors.indexOf(monitor)+1;
-    console.info('[HDR Capture] Rectangle source mapping', {
-      selectedDeviceName:selection.deviceName,
-      selectedMonitorHandle:selection.monitorHandle,
-      captureMonitorDeviceName:monitor.deviceName,
-      captureMonitorHandle:String(monitor.handle),
-      captureMonitorIndex
-    });
-    const source=await captureHdrFrame({kind:'monitor',index:captureMonitorIndex});
-    const scaleX=source.width/selection.screenWidth, scaleY=source.height/selection.screenHeight;
-    const left=Math.max(0,Math.round(selection.x*scaleX)), top=Math.max(0,Math.round(selection.y*scaleY));
-    const right=Math.min(source.width,Math.round((selection.x+selection.width)*scaleX));
-    const bottom=Math.min(source.height,Math.round((selection.y+selection.height)*scaleY));
-    const width=right-left,height=bottom-top;
-    if(width<8||height<8) throw new Error('The selected rectangle is outside the captured display.');
-    const rowBytes=width*8,buffer=Buffer.allocUnsafe(rowBytes*height);
-    for(let row=0;row<height;row++){
-      const sourceStart=((top+row)*source.width+left)*8;
-      source.buffer.copy(buffer,row*rowBytes,sourceStart,sourceStart+rowBytes);
-    }
-    const frame:CapturedHdrFrame={targetKey:'rectangle',width,height,buffer};
-    cachedHdrFrame=frame;
-    return frame;
+  const selection = await selectCaptureRectangle();
+  const monitors = enumerateMonitors();
+  const selectedDevice = selection.deviceName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const monitor = monitors.find(item =>
+    selectedDevice && (item.deviceName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '') === selectedDevice
+  ) ?? monitors.find(item => String(item.handle) === selection.monitorHandle);
+  if (!monitor) throw new Error('The selected display "' + selection.deviceName + '" could not be matched to an HDR capture monitor.');
+
+  const captureMonitorIndex = monitors.indexOf(monitor) + 1;
+  console.info('[HDR Capture] Native Electron rectangle source mapping', {
+    selectedDeviceName: selection.deviceName, selectedMonitorHandle: selection.monitorHandle,
+    captureMonitorDeviceName: monitor.deviceName, captureMonitorHandle: String(monitor.handle), captureMonitorIndex
+  });
+  const source = await captureHdrFrame({ kind: 'monitor', index: captureMonitorIndex });
+  const scaleX = source.width / selection.screenWidth;
+  const scaleY = source.height / selection.screenHeight;
+  const left = Math.max(0, Math.round(selection.x * scaleX));
+  const top = Math.max(0, Math.round(selection.y * scaleY));
+  const right = Math.min(source.width, Math.round((selection.x + selection.width) * scaleX));
+  const bottom = Math.min(source.height, Math.round((selection.y + selection.height) * scaleY));
+  const width = right - left, height = bottom - top;
+  if (width < 8 || height < 8) throw new Error('The selected rectangle is outside the captured display.');
+  const rowBytes = width * 8, buffer = Buffer.allocUnsafe(rowBytes * height);
+  for (let row = 0; row < height; row++) {
+    const sourceStart = ((top + row) * source.width + left) * 8;
+    source.buffer.copy(buffer, row * rowBytes, sourceStart, sourceStart + rowBytes);
+  }
+  const frame: CapturedHdrFrame = { targetKey: 'rectangle', width, height, buffer };
+  cachedHdrFrame = frame;
+  return frame;
 };
 
 const captureTargetFrame = async (target: CaptureTarget, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
