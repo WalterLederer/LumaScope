@@ -3327,8 +3327,8 @@ export class ImageView {
 
         const target = event.target;
         if (
-          event.shiftKey && event.key.toLowerCase() === 'c'
-          && !event.ctrlKey && !event.altKey && !event.metaKey
+          event.key.toLowerCase() === 's'
+          && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
           && !(target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]'))
         ) {
           event.preventDefault();
