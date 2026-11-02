@@ -159,9 +159,7 @@ export class SettingsPanelComponent {
     { keys: 'C / F8', action: 'Copy the current image to the clipboard', global: false, id: null },
     { keys: 'Shift + C', action: 'Open the Capture window', global: false, id: null },
     { keys: 'M', action: 'Toggle the magnifier (loupe)', global: false, id: null },
-    { keys: 'I', action: 'Toggle image EXIF information', global: false, id: null },
     { keys: 'H', action: 'Toggle the histogram', global: false, id: null },
-    { keys: 'G', action: 'Toggle the General sidebar section', global: false, id: null },
     { keys: 'Delete', action: 'Delete the current image', global: false, id: null },
     { keys: 'F / F11', action: 'Toggle fullscreen mode', global: false, id: null }
   ] as const;
