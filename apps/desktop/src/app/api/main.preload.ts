@@ -86,7 +86,7 @@ const api: Desktop = {
   },
 
   MapWindow: {
-    open: (latitude: number, longitude: number, bearing?: number) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing),
+    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath),
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
     focus: () => ipcRenderer.invoke('MapWindow.focus'),
@@ -96,8 +96,8 @@ const api: Desktop = {
       ipcRenderer.on('MapWindow.stateChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
     },
-    onLocationChanged: (callback: (location: { latitude: number; longitude: number; bearing?: number | null }) => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number; longitude: number }): void => callback(location);
+    onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => callback(location);
       ipcRenderer.on('MapWindow.locationChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.locationChanged', listener);
     }
