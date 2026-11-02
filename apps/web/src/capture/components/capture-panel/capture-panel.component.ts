@@ -686,9 +686,17 @@ export class CapturePanelComponent {
     const p999 = percentile(0.999);
     const p9999 = percentile(0.9999);
 
-    // Use P99.99 plus a 15% margin so isolated bright highlights do not redefine SDR white.
-    const sdrReferenceWhite = Math.max(1, p9999 * 1.15);
-    const linearHighlightFraction = 0.75;
+    // Pure SDR captures must retain the existing SDR rendering without being dimmed
+    // merely to create highlight headroom that they do not need.
+    if (maxLuminance <= 1.0001) {
+      this.applyLegacySdrToneMapping(imageData, frame, previewBrightness);
+      return;
+    }
+
+    // In mixed SDR/HDR captures, scRGB 1.0 is the SDR reference white.
+    // Keep it close to display white and compress only values above it.
+    const sdrReferenceWhite = 1.0;
+    const linearHighlightFraction = 0.95;
     const shoulderStart = sdrReferenceWhite;
     const shoulderRange = Math.max(0, maxLuminance - shoulderStart);
     const shoulderHeight = 1 - linearHighlightFraction;
