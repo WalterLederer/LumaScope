@@ -267,7 +267,7 @@ export class MapWindow implements OnInit, OnDestroy {
     { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
   ] as const;
 
-  @HostListener('document:keyup', ['$event'])
+  @HostListener('window:keyup', ['$event'])
   onDocumentKeyup(event: KeyboardEvent): void {
     // The location window is a separate Electron window, so the main image-view
     // keyboard listener cannot receive shortcuts while this window has focus.
