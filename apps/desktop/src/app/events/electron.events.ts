@@ -503,11 +503,12 @@ const selectCaptureRectangle = (): { deviceName: string; monitorHandle: string; 
   const script = "$ErrorActionPreference='Stop'\nAdd-Type -AssemblyName System.Windows.Forms\nAdd-Type -AssemblyName System.Drawing\nAdd-Type -ReferencedAssemblies @('System.Windows.Forms','System.Drawing') -TypeDefinition @'\n" + csharp + "\n'@\n" +
     "$screens=[System.Windows.Forms.Screen]::AllScreens\nforeach($display in $screens){$form=[RectangleSelectionForm]::new($display);[LightMatterRectangleSelection]::Forms.Add($form);$form.Show()}\n" +
     "[System.Windows.Forms.Application]::Run()\n" +
-    "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){throw 'Rectangle selection was cancelled.'}\n" +
+    "if([LightMatterRectangleSelection]::Cancelled -or -not [LightMatterRectangleSelection]::DeviceName){[PSCustomObject]@{cancelled=$true}|ConvertTo-Json -Compress;exit 0}\n" +
     "[PSCustomObject]@{deviceName=[LightMatterRectangleSelection]::DeviceName;monitorHandle=[LightMatterRectangleSelection]::MonitorHandle.ToString();screenWidth=[LightMatterRectangleSelection]::ScreenWidth;screenHeight=[LightMatterRectangleSelection]::ScreenHeight;x=[LightMatterRectangleSelection]::X;y=[LightMatterRectangleSelection]::Y;width=[LightMatterRectangleSelection]::Width;height=[LightMatterRectangleSelection]::Height}|ConvertTo-Json -Compress";
   const output = runExternalProcessSync('powershell.exe', ['-STA','-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',dpi + '\n' + script],
     { encoding:'utf8', windowsHide:true, timeout:120000 }).toString().trim();
-  const selection = JSON.parse(output) as { deviceName:string; monitorHandle:string; screenWidth:number; screenHeight:number; x:number; y:number; width:number; height:number };
+  const selection = JSON.parse(output) as { cancelled?:boolean; deviceName?:string; monitorHandle?:string; screenWidth?:number; screenHeight?:number; x?:number; y?:number; width?:number; height?:number };
+  if (selection.cancelled) throw new Error('Rectangle selection was cancelled.');
   if (!selection.deviceName || ![selection.x,selection.y,selection.width,selection.height].every(Number.isFinite)
     || selection.x<0 || selection.y<0 || selection.width<8 || selection.height<8) throw new Error('Windows returned an invalid rectangle selection.');
   return selection;
