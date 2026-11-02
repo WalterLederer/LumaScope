@@ -54,6 +54,9 @@
           </button>
         </div>
       </div>
+      @if (status().startsWith('Copied ')) {
+        <p class="capture-status" role="status">{{ status() }}</p>
+      }
       @if (error()) {
         <p class="capture-error" role="alert">{{ error() }}</p>
       }
@@ -110,7 +113,7 @@
         </figure>
       </details>
 
-      @if (status() && !status().toLowerCase().includes('capture ready')) {
+      @if (status() && !status().toLowerCase().includes('capture ready') && !status().startsWith('Copied ')) {
         <p class="capture-status" role="status">{{ status() }}</p>
       }
       @if (monitors().length === 0 && !loadingSources() && !error()) {
