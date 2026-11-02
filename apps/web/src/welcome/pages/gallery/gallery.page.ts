@@ -137,8 +137,8 @@ export class GalleryPage {
   @HostListener('document:keyup', ['$event'])
   protected readonly onCaptureShortcut = (event: KeyboardEvent): void => {
     const key = event.key.toLowerCase();
-    if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
-    if (key !== 's' && !(event.shiftKey && key === 'c')) return;
+    if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (!(key === 's' && !event.shiftKey) && !(key === 'c' && event.shiftKey)) return;
     const target = event.target;
     if (target instanceof HTMLElement
       && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
