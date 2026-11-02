@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { CaptureFormat, CapturePreview, CaptureResult, CaptureSources, CaptureTarget, DesktopCapture } from 'internal-api';
+import { CaptureFormat, CapturePreview, CaptureResult, CaptureSources, CaptureTarget, DesktopCapture, GlobalShortcutStatus } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class CaptureService implements DesktopCapture {
@@ -16,6 +16,12 @@ export class CaptureService implements DesktopCapture {
 
   readonly copyPreviewToClipboard = (pngData: Uint8Array): Promise<CaptureResult> =>
     window.desktop.Capture.copyPreviewToClipboard(pngData);
+
+  readonly getGlobalShortcutStatus = (): Promise<GlobalShortcutStatus[]> =>
+    window.desktop.Capture.getGlobalShortcutStatus();
+
+  readonly onGlobalShortcutStatusChanged = (callback: (statuses: GlobalShortcutStatus[]) => void): (() => void) =>
+    window.desktop.Capture.onGlobalShortcutStatusChanged(callback);
 
   readonly onTopWindowClipboardHotkey = (callback: () => void): (() => void) =>
     window.desktop.Capture.onTopWindowClipboardHotkey(callback);
