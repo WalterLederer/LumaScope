@@ -291,7 +291,7 @@ export default class App {
     return true;
   }
 
-  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number): boolean {
+  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean {
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
@@ -300,8 +300,8 @@ export default class App {
 
     if (App.isMapWindowOpen()) {
       App.mapWindow.webContents.send('MapWindow.locationChanged', hasCoordinates
-        ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null }
-        : { latitude: null, longitude: null, bearing: null });
+        ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null, imagePath: imagePath ?? null }
+        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null });
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
       App.mapWindow.showInactive();
       return true;
@@ -335,8 +335,8 @@ export default class App {
     App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
     const hash = hasCoordinates
-      ? `/map?lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}`
-      : '/map';
+      ? `/map?lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}${imagePath ? `&imagePath=${encodeURIComponent(imagePath)}` : ''}`
+      : `/map${imagePath ? `?imagePath=${encodeURIComponent(imagePath)}` : ''}`;
     if (!App.application.isPackaged) {
       App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
     } else {
