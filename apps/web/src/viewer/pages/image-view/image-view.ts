@@ -3027,7 +3027,7 @@ export class ImageView {
   private readonly makeWindowTitle = (imagePath?: string): string => {
     const version = this.appTitleSuffix ? ` ${this.appTitleSuffix}` : '';
     const path = imagePath ? ` - ${imagePath}` : '';
-    return `Light Matter${version}${path}`;
+    return `LumaScope${version}${path}`;
   };
 
   private readonly calculateWheelZoom = (deltaY: number, currentZoom: number, zoomStep: number): number => {
