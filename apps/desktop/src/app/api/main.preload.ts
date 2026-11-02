@@ -120,7 +120,7 @@ const api: Desktop = {
     listSources: () => ipcRenderer.invoke('Capture.listSources'),
     chooseFolder: (initialPath?: string) => ipcRenderer.invoke('Capture.chooseFolder', initialPath),
     preview: target => ipcRenderer.invoke('Capture.preview', target),
-    capture: (target, folder: string, format?: 'exr' | 'jxr' | 'uhdr' | 'clipboard', gammaCorrection?: number, encoderQuality?: number) => ipcRenderer.invoke('Capture.capture', target, folder, format, gammaCorrection, encoderQuality),
+    capture: (target, folder: string, format?: 'exr' | 'jxr' | 'uhdr' | 'clipboard', gammaCorrection?: number, encoderQuality?: number, previewFrame?: import('internal-api').CapturePreview) => ipcRenderer.invoke('Capture.capture', target, folder, format, gammaCorrection, encoderQuality, previewFrame),
     copyPreviewToClipboard: (pngData: Uint8Array) => ipcRenderer.invoke('Capture.copyPreviewToClipboard', pngData),
     getGlobalShortcutStatus: () => ipcRenderer.invoke('Capture.getGlobalShortcutStatus'),
     onGlobalShortcutStatusChanged: (callback: (statuses: import('internal-api').GlobalShortcutStatus[]) => void) => {
