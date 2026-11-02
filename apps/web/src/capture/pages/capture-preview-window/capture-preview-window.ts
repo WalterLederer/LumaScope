@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { CapturePanelComponent } from '../../components/capture-panel/capture-panel.component';
 
@@ -9,14 +9,9 @@ import { CapturePanelComponent } from '../../components/capture-panel/capture-pa
   template: `
     <main class="capture-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="capture-titlebar">
-        <div class="capture-title"><span aria-hidden="true">◉</span><strong>HDR Capture</strong></div>
-        <button type="button" class="settings-toggle" [class.active]="settingsOpen()"
-                (click)="toggleSettings()" [attr.aria-expanded]="settingsOpen()"
-                title="Show or hide capture settings" aria-label="Capture settings">
-          ⚙ <span>Settings</span>
-        </button>
+        <div class="capture-title"><strong>Capture</strong></div>
       </header>
-      <app-capture-panel [settingsVisible]="settingsOpen()" />
+      <app-capture-panel />
     </main>
   `,
   styles: [`
@@ -37,6 +32,4 @@ import { CapturePanelComponent } from '../../components/capture-panel/capture-pa
 })
 export class CapturePreviewWindow {
   protected readonly themeService = inject(ThemeService);
-  protected readonly settingsOpen = signal(true);
-  protected readonly toggleSettings = (): void => this.settingsOpen.update(open => !open);
 }
