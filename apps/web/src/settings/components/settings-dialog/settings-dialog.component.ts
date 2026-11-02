@@ -42,6 +42,48 @@ export class SettingsPanelComponent {
 
   protected readonly profilingSortDirection = signal<'asc' | 'desc'>('desc');
 
+  protected readonly externalPrograms = computed(() => {
+    const programs = new Map<string, { programName: string; function: string }>();
+    for (const call of this.externalProcessCalls()) {
+      const entry = {
+        programName: call.programName,
+        function: this.externalProgramFunction(call)
+      };
+      programs.set(`${entry.programName.toLowerCase()}|${entry.function}`, entry);
+    }
+    return [...programs.values()].sort((left, right) =>
+      left.programName.localeCompare(right.programName, undefined, { sensitivity: 'base' })
+      || left.function.localeCompare(right.function)
+    );
+  });
+
+  private readonly externalProgramFunction = (call: ExternalProcessCall): string => {
+    const program = call.programName.toLowerCase();
+    const command = call.commandLine.toLowerCase();
+
+    if (program === 'powershell.exe' || program === 'powershell') {
+      if (command.includes('lightmatterwindowenumerator')) {
+        return 'Enumerate visible application windows and read their executable paths';
+      }
+      if (command.includes('lightmatterexternalwindow')) {
+        return 'Find the topmost visible application window for capture';
+      }
+      if (command.includes('lightmattercapturewindowstate')) {
+        return 'Check whether the selected window exists and is minimized';
+      }
+      if (command.includes('lightmatterwindowgeometry')) {
+        return 'Read window and monitor geometry for HDR capture';
+      }
+      return 'Run a Windows PowerShell script for Windows integration';
+    }
+
+    if (program === 'jxr-wic-encoder.exe') {
+      return 'Encode an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder';
+    }
+
+    return 'Run an external helper process requested by Light Matter';
+  };
+
   protected readonly sortedExternalProcessCalls = computed(() => {
     const column = this.profilingSortColumn();
     const direction = this.profilingSortDirection();
