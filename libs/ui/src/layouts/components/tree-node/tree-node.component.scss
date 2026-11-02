@@ -27,6 +27,28 @@
   }
 }
 
+.expand-indicator,
+.expand-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 0.75rem;
+  width: 0.75rem;
+  height: 1rem;
+}
+
+.expand-indicator {
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  transition: transform 150ms ease-in-out;
+
+  &.expanded {
+    transform: rotate(90deg);
+  }
+}
+
 .prefix {
   flex-shrink: 0;
 }
