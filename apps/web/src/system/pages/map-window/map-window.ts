@@ -93,7 +93,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
-              <strong class="zoom-label">Zoom</strong>
+              <span class="zoom-label">Zoom</span>
               <div class="zoom-buttons">
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
