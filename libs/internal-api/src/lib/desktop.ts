@@ -176,7 +176,7 @@ export interface DesktopCapture {
   readonly listSources: () => Promise<CaptureSources>;
   readonly chooseFolder: (initialPath?: string) => Promise<string | null>;
   readonly preview: (target: CaptureTarget) => Promise<CapturePreview>;
-  readonly capture: (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number) => Promise<CaptureResult>;
+  readonly capture: (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number, previewFrame?: CapturePreview) => Promise<CaptureResult>;
   readonly copyPreviewToClipboard: (pngData: Uint8Array) => Promise<CaptureResult>;
   readonly getGlobalShortcutStatus: () => Promise<GlobalShortcutStatus[]>;
   readonly onGlobalShortcutStatusChanged: (callback: (statuses: GlobalShortcutStatus[]) => void) => () => void;
