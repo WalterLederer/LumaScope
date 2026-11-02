@@ -154,7 +154,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
-    .map-titlebar{-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
     .titlebar-always-on-top{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
@@ -163,7 +163,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:500;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
@@ -203,7 +203,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
     :host ::ng-deep .leaflet-marker-pane{z-index:400!important}
-    :host ::ng-deep .leaflet-tooltip-pane{z-index:1000}
+    :host ::ng-deep .leaflet-tooltip-pane{z-index:1200}
     :host ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
     :host ::ng-deep .leaflet-marker-icon.marker-cluster{opacity:var(--marker-opacity,1)!important}
     :host ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
