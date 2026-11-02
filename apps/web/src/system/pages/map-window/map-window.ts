@@ -93,6 +93,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
+              <strong class="zoom-label">Zoom</strong>
               <div class="zoom-buttons">
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
@@ -190,6 +191,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
+    .zoom-label{flex:0 0 auto;white-space:nowrap}
     .zoom-control input{flex:1;min-width:70px;accent-color:#8ab4f8}
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
     .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
