@@ -521,14 +521,14 @@ const selectCaptureRectangle = async (): Promise<{
       const display = displays[position];
       const html = [
         '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">',
-        '<style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;cursor:crosshair;background:rgba(0,0,0,.38);font:600 18px "Segoe UI",sans-serif;color:#fff}',
+        '<style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;cursor:crosshair;background:transparent;font:600 18px "Segoe UI",sans-serif;color:#fff}',
         '#hint{position:absolute;left:24px;top:20px;padding:10px 14px;background:rgba(0,0,0,.72);border-radius:6px;pointer-events:none}',
-        '#selection{position:absolute;border:2px solid #39b9ff;background:rgba(57,185,255,.16);display:none;pointer-events:none}</style></head>',
-        '<body><div id="hint">Drag to select HDR capture area&nbsp;&nbsp;·&nbsp;&nbsp;Esc to cancel</div><div id="selection"></div><script>(()=>{',
-        'const box=document.getElementById("selection");let start=null;',
-        'const point=e=>({x:Math.max(0,Math.min(innerWidth,e.clientX)),y:Math.max(0,Math.min(innerHeight,e.clientY))});',
-        'addEventListener("pointerdown",e=>{if(e.button!==0)return;start=point(e);try{e.target.setPointerCapture(e.pointerId)}catch{}box.style.display="block";box.style.left=start.x+"px";box.style.top=start.y+"px";box.style.width="0";box.style.height="0";});',
-        'addEventListener("pointermove",e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y);box.style.left=x+"px";box.style.top=y+"px";box.style.width=Math.abs(p.x-start.x)+"px";box.style.height=Math.abs(p.y-start.y)+"px";});',
+        '#shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#selection{position:absolute;border:2px solid #39b9ff;background:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.55);display:none;pointer-events:none}</style></head>',
+        '<body><svg id="shade" aria-hidden="true"><path id="shade-path" fill="rgba(0,0,0,.58)" fill-rule="evenodd"/></svg><div id="hint">Drag to select HDR capture area&nbsp;&nbsp;·&nbsp;&nbsp;Esc to cancel</div><div id="selection"></div><script>(()=>{
+        'const box=document.getElementById("selection"),shade=document.getElementById("shade"),shadePath=document.getElementById("shade-path");let start=null;',
+        'const point=e=>({x:Math.max(0,Math.min(innerWidth,e.clientX)),y:Math.max(0,Math.min(innerHeight,e.clientY))});const updateShade=(x=0,y=0,w=0,h=0)=>{const W=innerWidth,H=innerHeight;shade.setAttribute("viewBox",`0 0 ${W} ${H}`);shadePath.setAttribute("d",`M0 0H${W}V${H}H0Z ${w>0&&h>0?`M${x} ${y}H${x+w}V${y+h}H${x}Z`:""}`);};updateShade();addEventListener("resize",()=>updateShade());',
+        'addEventListener("pointerdown",e=>{if(e.button!==0)return;start=point(e);try{e.target.setPointerCapture(e.pointerId)}catch{}box.style.display="block";box.style.left=start.x+"px";box.style.top=start.y+"px";box.style.width="0";box.style.height="0";updateShade(start.x,start.y,0,0);});',
+        'addEventListener("pointermove",e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);box.style.left=x+"px";box.style.top=y+"px";box.style.width=w+"px";box.style.height=h+"px";updateShade(x,y,w,h);});',
         'const complete=e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);start=null;if(w<8||h<8){box.style.display="none";return;}document.title="LUMASCOPE_RECTANGLE:"+encodeURIComponent(JSON.stringify({x,y,width:w,height:h}));};',
         'addEventListener("pointerup",e=>{if(e.button===0)complete(e)});addEventListener("mouseup",e=>{if(e.button===0)complete(e)});',
         '})();</script></body></html>'
