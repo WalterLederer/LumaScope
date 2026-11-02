@@ -18,7 +18,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, filter, take } from 'rxjs';
+import { combineLatest, filter, map, take } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -148,7 +148,12 @@ export class GalleryPage {
   };
 
   /* State */
-  readonly galleryRoot$ = this.galleryState.galleryRoot();
+  readonly galleryRoot$ = this.galleryState.galleryRoot().pipe(
+    map(root => ({
+      ...root,
+      children: root.children?.map(node => ({ ...node, hasChildren: true }))
+    }))
+  );
 
   readonly selectedLocation$ = this.galleryState.selectedLocation();
 
