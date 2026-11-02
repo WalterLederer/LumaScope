@@ -28,7 +28,7 @@ export default class App {
     return `${modified.getFullYear()}-${pad(modified.getMonth() + 1)}-${pad(modified.getDate())} ${pad(modified.getHours())}:${pad(modified.getMinutes())}:${pad(modified.getSeconds())}`;
   }
 
-  private static windowTitle(suffix = ''): string {
+  public static windowTitle(suffix = ''): string {
     return `LumaScope - ${App.executableTimestamp()}${suffix ? ` - ${suffix}` : ''}`;
   }
 
