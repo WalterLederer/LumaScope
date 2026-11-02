@@ -23,6 +23,8 @@ export class TreeComponent<T> {
 
   readonly selected = output<TreeNode<T>>();
 
+  readonly hovered = output<TreeNode<T> | null>();
+
   readonly loadRequested = output<TreeLoadRequest<T>>();
 
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
