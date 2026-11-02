@@ -338,8 +338,12 @@ export class CapturePanelComponent {
     const unsubscribeTopWindowHotkey = this.captureService.onTopWindowClipboardHotkey(() => {
       void this.copyToClipboardTopWindow();
     });
+    const unsubscribeRectangleHotkey = this.captureService.onRectangleClipboardHotkey(() => {
+      void this.copyToClipboardRectangle();
+    });
     this.destroyRef.onDestroy(() => {
       unsubscribeTopWindowHotkey();
+      unsubscribeRectangleHotkey();
       this.disposeHdrPreview();
     });
     effect(() => {
@@ -808,7 +812,11 @@ export class CapturePanelComponent {
   };
 
   protected readonly copyToClipboardTopWindow = async (): Promise<void> => {
-    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: false });
+    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: true });
+  };
+
+  protected readonly copyToClipboardRectangle = async (): Promise<void> => {
+    await this.copyToClipboard({ kind: 'rectangle' });
   };
 
   protected readonly captureNow = async (): Promise<void> => {
