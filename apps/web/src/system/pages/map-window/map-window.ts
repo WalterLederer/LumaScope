@@ -5,7 +5,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
-interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; remove(): void; }
+interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
@@ -26,6 +26,7 @@ interface LeafletMapApi {
 }
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
+type MarkerShape = 'hexagon' | 'circle' | 'square';
 
 @Component({
   selector: 'app-map-window',
@@ -91,6 +92,32 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
               <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
               <span class="range-value">{{ markerOpacity() }}%</span>
             </label>
+          </div>
+          <div class="settings-group marker-appearance-settings">
+            <strong class="settings-row-title">Folder markers:</strong>
+            <label>Shape
+              <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
+                <option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
+              </select>
+            </label>
+            <label>Color</label>
+            <div class="color-picker">
+              <button type="button" class="color-picker-trigger" (click)="toggleMarkerColorMenu()" [attr.aria-expanded]="markerColorMenuOpen()" aria-label="Folder marker color and visibility">
+                @if (markerColorVisible()) {
+                  <span class="color-swatch" [style.background]="markerColor()" [style.color]="selectedMarkerTextColor()">{{ markerColor() }}</span>
+                  <span>{{ selectedMarkerColorName() }}</span>
+                } @else { <span>Off</span> }
+                <span class="color-picker-chevron">▾</span>
+              </button>
+              @if (markerColorMenuOpen()) {
+                <div class="color-picker-menu" role="listbox" aria-label="Folder marker colors">
+                  <button type="button" class="color-option" role="option" [attr.aria-selected]="!markerColorVisible()" (click)="changeMarkerColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+                  @for (color of gpxColors; track color.value) {
+                    <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === color.value && markerColorVisible()" (click)="changeMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                  }
+                </div>
+              }
+            </div>
           </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
@@ -171,6 +198,8 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
+    .marker-appearance-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:10px}
+    .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
@@ -206,7 +235,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     :host ::ng-deep .leaflet-marker-pane{z-index:400!important}
     :host ::ng-deep .leaflet-tooltip-pane{z-index:1200}
     :host ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
-    :host ::ng-deep .leaflet-marker-icon.marker-cluster{opacity:var(--marker-opacity,1)!important}
+    :host ::ng-deep .leaflet-marker-icon.lumascope-marker-cluster{opacity:var(--marker-opacity,1)!important;transition:opacity .12s ease}
     :host ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
     :host ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;gap:4px;max-width:190px}
     :host ::ng-deep .folder-marker-preview img{display:block;width:180px;height:120px;object-fit:cover;border-radius:3px;background:#222}
@@ -253,6 +282,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
+  protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'hexagon') as MarkerShape);
+  protected readonly markerColor = signal(this.readSetting('markerColor', '#34c759'));
+  protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
+  protected readonly markerColorMenuOpen = signal(false);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
@@ -431,6 +464,21 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly toggleColorMenu = (): void => { this.colorMenuOpen.update(open => !open); };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
+  protected readonly toggleMarkerColorMenu = (): void => this.markerColorMenuOpen.update(open => !open);
+  protected readonly selectedMarkerColorName = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.name ?? 'Green';
+  protected readonly selectedMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.textColor ?? '#102014';
+  protected readonly changeMarkerShape = (value: string): void => {
+    if (value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
+    this.markerShape.set(value); this.saveSetting('markerShape', value); this.directoryMarkerGroup?.refreshClusters?.();
+  };
+  protected readonly changeMarkerColor = (value: string): void => {
+    if (value === 'off') { this.markerColorVisible.set(false); this.saveSetting('markerColorVisible', false); }
+    else if (this.gpxColors.some(color => color.value === value)) {
+      this.markerColor.set(value); this.markerColorVisible.set(true);
+      this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
+    } else return;
+    this.markerColorMenuOpen.set(false); this.directoryMarkerGroup?.refreshClusters?.();
+  };
   protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
   protected readonly changeAlwaysOnTop = (enabled: boolean): void => {
     this.alwaysOnTop.set(enabled);
@@ -630,7 +678,13 @@ export class MapWindow implements OnInit, OnDestroy {
         const count = cluster.getChildCount();
         const size = count < 10 ? 40 : count < 100 ? 48 : 56;
         const fontSize = count < 100 ? 15 : 14;
-        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56"><polygon points="28,2 51,15 51,41 28,54 5,41 5,15" fill="#279b51" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
+        const shape = this.markerShape();
+        const fill = this.markerColorVisible() ? this.markerColor() : 'transparent';
+        const shapeMarkup = shape === 'hexagon'
+          ? '<polygon points="28,2 51,15 51,41 28,54 5,41 5,15"'
+          : shape === 'circle' ? '<circle cx="28" cy="28" r="25"'
+            : '<rect x="3" y="3" width="50" height="50" rx="3"';
+        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56">${shapeMarkup} fill="${fill}" stroke="#fff" stroke-width="2.5"/><text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
         return this.leaflet!.divIcon({ className: 'lumascope-marker-cluster', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
       }
     }).addTo(this.map);
@@ -684,6 +738,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
     this.marker?.setOpacity(markerOpacity);
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
+    this.directoryMarkerGroup?.refreshClusters?.();
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
