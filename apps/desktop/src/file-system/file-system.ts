@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
-import { copyFile, readdir, readFile, unlink } from 'node:fs/promises';
+import { copyFile, readdir, readFile, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { writeJsonAtomically } from './json-file';
@@ -81,14 +81,31 @@ export class FileSystem {
     sortDir: SortDirection
   ): Promise<ApiResponse<FileInfo[]>> => {
     try {
+      const entries = (await readdir(path, { withFileTypes: true }))
+        .filter(file =>
+          file.isFile() && supportedFileExtensions.includes(extname(file.name).toLowerCase().replace('.', ''))
+        );
+
+      // Do not block Electron's main process with thousands of synchronous statSync calls.
+      const files = await Promise.all(entries.map(async file => {
+        const filePath = join(path, file.name);
+        const stats = await stat(filePath);
+
+        return {
+          path: filePath,
+          name: file.name,
+          parent: path,
+          isDirectory: false,
+          ext: extname(file.name),
+          createdAt: stats.birthtimeMs,
+          size: stats.size,
+          modifiedAt: stats.mtimeMs
+        } satisfies FileInfo;
+      }));
+
       return {
         success: true,
-        data: (await readdir(path, { withFileTypes: true }))
-          .filter(file =>
-            file.isFile() && supportedFileExtensions.includes(extname(file.name).toLowerCase().replace('.', ''))
-          )
-          .map(this.toFileInfo)
-          .sort(this.sortFiles(sortBy, sortDir))
+        data: files.sort(this.sortFiles(sortBy, sortDir))
       };
     } catch (_) {
       return { success: false, errorMessage: `Failed to read directory at ${path}.` };
