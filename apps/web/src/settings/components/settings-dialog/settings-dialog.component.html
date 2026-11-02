@@ -195,7 +195,7 @@
     <section class="shortcut-details info-box">
       <details>
         <summary>External Programs · {{ externalPrograms().length }} programs</summary>
-        <p class="format-note">Programs are listed when Light Matter launches them. Repeated calls to the same program for the same function are grouped together. The list updates during the current application session.</p>
+        <p class="format-note">Programs are listed when they are launched. Repeated calls to the same program for the same function are grouped together. The list updates during the current application session.</p>
         @if (profilingError()) {
           <p class="cache-status error" role="alert">Could not load external program data: {{ profilingError() }}</p>
         }
