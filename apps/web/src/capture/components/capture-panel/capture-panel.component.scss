@@ -406,6 +406,12 @@
   border-color: rgb(70 140 230 / 60%);
 }
 
+.capture-clipboard-button {
+  font-weight: 700;
+  background: rgb(70 140 230 / 20%);
+  border-color: rgb(70 140 230 / 60%);
+}
+
 .capture-panel button:disabled,
 .capture-panel select:disabled {
   opacity: 0.55;
