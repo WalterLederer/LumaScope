@@ -221,9 +221,9 @@ export class CapturePanelComponent {
     this.sourceMenuOpen.set(false);
   };
 
-  @HostListener('window:keyup', ['$event'])
+  @HostListener('window:keydown', ['$event'])
   protected readonly focusLocationWindowOnShortcut = (event: KeyboardEvent): void => {
-    if (event.key.toLowerCase() !== 'l' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.code !== 'KeyL' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
     event.preventDefault();
