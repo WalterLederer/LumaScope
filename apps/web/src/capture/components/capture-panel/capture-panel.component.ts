@@ -351,7 +351,6 @@ export class CapturePanelComponent {
     this.disposeHdrPreview();
     this.selectedTarget.set(value);
     this.sourceMenuOpen.set(false);
-    this.rawPreviewFrame.set(null);
     this.previewFrame.set(null);
     this.previewSize.set('');
     this.status.set('');
@@ -510,7 +509,6 @@ export class CapturePanelComponent {
       if (!targetOverride) this.saveSelectedSource();
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
-      this.rawPreviewFrame.set(null);
       this.previewFrame.set(null);
       this.status.set('');
       const message = error instanceof Error ? error.message : String(error);
