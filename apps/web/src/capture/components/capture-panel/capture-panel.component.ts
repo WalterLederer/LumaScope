@@ -162,9 +162,9 @@ export class CapturePanelComponent {
     const topWindow: CaptureSourceRow = {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
-      title: this.includeLightMatterWindows() ? 'Capture the Light Matter Capture window' : 'Foreground window after hiding Light Matter',
+      title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding Light Matter',
       size: 'Automatic', displayMode: '—',
-      status: this.includeLightMatterWindows() ? 'Light Matter windows remain visible' : 'Automatically detected when capturing',
+      status: this.includeLightMatterWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
       minimized: false, unavailable: false
     };
     const rectangle: CaptureSourceRow = {
@@ -307,8 +307,8 @@ export class CapturePanelComponent {
     const target = this.selectedCaptureTarget();
     if (!target) return 'None';
     if (target.kind === 'top-window') return this.includeLightMatterWindows()
-      ? 'Top Window · Light Matter Capture window'
-      : 'Top Window · Foreground window after hiding Light Matter';
+      ? 'Top Window · Application capture window'
+      : 'Top Window · Foreground window after hiding the application';
     if (target.kind === 'rectangle') return 'Rectangle · Select area directly on screen';
     if (target.kind === 'monitor') {
       const monitor = this.monitors().find(item => item.index === target.index);
