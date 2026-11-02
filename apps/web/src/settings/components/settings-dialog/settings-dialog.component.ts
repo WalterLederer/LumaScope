@@ -50,6 +50,12 @@ export class SettingsPanelComponent {
       entry.functions.add(this.externalProgramFunction(call));
       programs.set(key, entry);
     }
+    // The bundled JPEG XR encoder is a known Light Matter helper. Its native
+    // invocation is not always captured by the external-process event monitor.
+    const jxrEncoder = 'jxr-wic-encoder.exe';
+    const jxrEntry = programs.get(jxrEncoder) ?? { programName: jxrEncoder, functions: new Set<string>() };
+    jxrEntry.functions.add('Encode an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder');
+    programs.set(jxrEncoder, jxrEntry);
     return [...programs.values()]
       .map(program => ({ programName: program.programName, function: [...program.functions].sort().join('; ') }))
       .sort((left, right) =>
