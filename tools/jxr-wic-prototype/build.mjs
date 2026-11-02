@@ -15,8 +15,16 @@ if (process.platform !== 'win32') {
 mkdirSync(buildDirectory, { recursive: true });
 
 const run = (command, args) => {
+  const commandLine = [command, ...args].map(value => JSON.stringify(value)).join(' ');
+  const startedAt = Date.now();
+  console.info(`[ExternalProcess] START ${commandLine}`);
   const result = spawnSync(command, args, { cwd: scriptDirectory, stdio: 'inherit', windowsHide: true });
-  if (result.error) throw result.error;
+  const duration = Date.now() - startedAt;
+  if (result.error) {
+    console.error(`[ExternalProcess] FAILED duration=${duration}ms command=${commandLine}`, result.error);
+    throw result.error;
+  }
+  console.info(`[ExternalProcess] EXIT code=${result.status ?? 'unknown'} duration=${duration}ms command=${commandLine}`);
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status ?? 'unknown'}.`);
   }
