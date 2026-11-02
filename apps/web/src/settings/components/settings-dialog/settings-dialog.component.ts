@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { CacheClearResult, CacheInfo, supportedFileFormats } from 'internal-api';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
+import { CacheClearResult, CacheInfo, ExternalProcessCall, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
@@ -31,6 +31,39 @@ export class SettingsPanelComponent {
   });
 
   protected readonly isClearing = signal(false);
+
+  protected readonly externalProcessCalls = signal<ExternalProcessCall[]>([]);
+
+  protected readonly profilingError = signal<string | null>(null);
+
+  protected readonly profilingSortColumn = signal<keyof Pick<ExternalProcessCall, 'timestamp' | 'programName' | 'commandLine' | 'durationMs'>>('timestamp');
+
+  protected readonly profilingSortDirection = signal<'asc' | 'desc'>('desc');
+
+  protected readonly sortedExternalProcessCalls = computed(() => {
+    const column = this.profilingSortColumn();
+    const direction = this.profilingSortDirection();
+    return [...this.externalProcessCalls()].sort((left, right) => {
+      const a = left[column];
+      const b = right[column];
+      const comparison = typeof a === 'number' && typeof b === 'number'
+        ? a - b
+        : String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+      return direction === 'asc' ? comparison : -comparison;
+    });
+  });
+
+  protected readonly sortProfiling = (column: keyof Pick<ExternalProcessCall, 'timestamp' | 'programName' | 'commandLine' | 'durationMs'>): void => {
+    if (this.profilingSortColumn() === column) {
+      this.profilingSortDirection.set(this.profilingSortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.profilingSortColumn.set(column);
+      this.profilingSortDirection.set(column === 'timestamp' || column === 'durationMs' ? 'desc' : 'asc');
+    }
+  };
+
+  protected readonly profilingSortIndicator = (column: string): string =>
+    this.profilingSortColumn() === column ? (this.profilingSortDirection() === 'asc' ? '▲' : '▼') : '↕';
 
   protected readonly devToolsOpen = signal(false);
 
@@ -112,10 +145,24 @@ export class SettingsPanelComponent {
 
   /* Constructor */
   constructor() {
+    const removeExternalProcessListener = window.desktop.Profiling.onExternalProcessCall(call => {
+      this.externalProcessCalls.update(calls => [...calls, call]);
+    });
+    inject(DestroyRef).onDestroy(removeExternalProcessListener);
+    this.loadExternalProcessCalls().then();
     this.updateCacheInfo().then();
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
+
+  private readonly loadExternalProcessCalls = async (): Promise<void> => {
+    try {
+      this.externalProcessCalls.set(await window.desktop.Profiling.getExternalProcessCalls());
+      this.profilingError.set(null);
+    } catch (error) {
+      this.profilingError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   private readonly loadConfigPath = async () => {
     try {
