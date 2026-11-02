@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, effect, input, output, signal, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output, signal, TemplateRef, untracked } from '@angular/core';
 import { TreeNodeComponent } from '../tree-node/tree-node.component';
 import { TreeNode } from '../tree-node/tree-node.component.types';
 import { TreeLoadRequest } from './tree.component.types';
@@ -32,7 +32,8 @@ export class TreeComponent<T> {
     effect(() => {
       const incoming = this.root();
       console.warn('[Tree] ROOT INPUT', { id: incoming.id, childCount: incoming.children?.length ?? null });
-      const current = this.treeRoot();
+      // Avoid tracking treeRoot here: writing it would otherwise retrigger this effect indefinitely.
+      const current = untracked(() => this.treeRoot());
       this.treeRoot.set(current === null ? incoming : this.mergeTreeState(incoming, current));
     });
   }
