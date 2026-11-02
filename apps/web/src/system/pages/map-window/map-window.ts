@@ -238,6 +238,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
+  private mapInitialization: Promise<void> | null = null;
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
@@ -583,6 +584,33 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
+    // The initial route parameters and the main-process location snapshot can
+    // arrive almost simultaneously. Serialize initialization so Leaflet never
+    // creates two maps on the same container while its library is still loading.
+    if (this.map) {
+      this.marker?.setLatLng([latitude, longitude]);
+      this.map.setView([latitude, longitude], this.map.getZoom());
+      return;
+    }
+    if (this.mapInitialization) {
+      await this.mapInitialization;
+      if (this.map) {
+        this.marker?.setLatLng([latitude, longitude]);
+        this.map.setView([latitude, longitude], this.map.getZoom());
+      }
+      return;
+    }
+
+    const initialization = this.createMap(latitude, longitude);
+    this.mapInitialization = initialization;
+    try {
+      await initialization;
+    } finally {
+      if (this.mapInitialization === initialization) this.mapInitialization = null;
+    }
+  }
+
+  private async createMap(latitude: number, longitude: number): Promise<void> {
     this.leaflet = await this.loadLeaflet();
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
