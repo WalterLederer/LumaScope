@@ -54,9 +54,6 @@
           </button>
         </div>
       </div>
-      @if (status().startsWith('Copied ')) {
-        <p class="capture-status" role="status">{{ status() }}</p>
-      }
       @if (error()) {
         <p class="capture-error" role="alert">{{ error() }}</p>
       }
@@ -84,6 +81,9 @@
               {{ capturing() ? 'Saving…' : 'Save' }}
             </button>
           </div>
+          @if (status().startsWith('Saved ')) {
+            <p class="capture-status" role="status">{{ status() }}</p>
+          }
         </div>
         <figure class="capture-preview">
           @if (error()) {
@@ -104,6 +104,9 @@
             {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
           </button>
         </div>
+        @if (status().startsWith('Copied ')) {
+          <p class="capture-status" role="status">{{ status() }}</p>
+        }
         <figure class="capture-preview">
           @if (error()) {
             <div class="capture-preview-error" role="alert">{{ error() }}</div>
@@ -113,7 +116,7 @@
         </figure>
       </details>
 
-      @if (status() && !status().toLowerCase().includes('capture ready') && !status().startsWith('Copied ')) {
+      @if (status() && !status().toLowerCase().includes('capture ready') && !status().startsWith('Copied ') && !status().startsWith('Saved ')) {
         <p class="capture-status" role="status">{{ status() }}</p>
       }
       @if (monitors().length === 0 && !loadingSources() && !error()) {
