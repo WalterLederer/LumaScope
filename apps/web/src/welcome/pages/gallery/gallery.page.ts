@@ -18,7 +18,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, filter, map, take } from 'rxjs';
+import { map } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -169,71 +169,8 @@ export class GalleryPage {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
     });
 
-    // Restore a previously selected nested folder in the tree after its root has rendered.
-    combineLatest([ this.galleryRoot$, this.selectedLocation$ ])
-      .pipe(
-        filter(([ root, location ]) => (root.children?.length ?? 0) > 0 && location !== null),
-        take(1)
-      )
-      .subscribe(([ root, location ]) => {
-        afterNextRender(() => this.restoreSelectedTreePath(root, location!));
-      });
   }
 
-
-  private readonly restoreSelectedTreePath = async (root: TreeNode<string>, selectedPath: string): Promise<void> => {
-    const normalize = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
-    const selected = normalize(selectedPath);
-    const rootNode = root.children?.find(node => {
-      const candidate = normalize(node.id);
-      return selected === candidate || selected.startsWith(`${candidate}/`);
-    });
-
-    if (!rootNode) return;
-
-    if (normalize(rootNode.id) === selected) {
-      this.tree().updateNode({ ...rootNode, isSelected: true });
-      return;
-    }
-
-    let parentPath = rootNode.id;
-    let parentNode: TreeNode<string> = { ...rootNode, isOpen: true, isSelected: false };
-    const relativePath = selectedPath.slice(rootNode.id.length).replace(/^[\\/]+/, '');
-    const segments = relativePath.split(/[\\/]+/).filter(Boolean);
-
-    for (let index = 0; index < segments.length; index++) {
-      const result = await this.galleryState.getDirContents(parentPath);
-      if (!result.success) return;
-
-      const expectedPath = normalize(segments.slice(0, index + 1).reduce(
-        (path, segment) => `${path}/${segment}`,
-        rootNode.id
-      ));
-      const children = result.data.map(location => {
-        const isTarget = normalize(location.path) === selected;
-        const isAncestor = selected.startsWith(`${normalize(location.path)}/`);
-        return {
-          ...treeNode(location.path, true),
-          hasChildren: true,
-          isSelected: isTarget,
-          isOpen: isAncestor
-        };
-      });
-
-      const nextNode = children.find(child => {
-        const candidate = normalize(child.id);
-        return candidate === expectedPath;
-      });
-      parentNode = { ...parentNode, children, isOpen: true };
-      this.tree().updateNode(parentNode);
-
-      if (!nextNode) return;
-      if (normalize(nextNode.id) === selected) return;
-
-      parentPath = nextNode.id;
-      parentNode = nextNode;
-    }
-  };
 
   /* Event handlers */
   protected readonly onSortByChange = (value: SortType) => this.galleryState.changeSorting({ sortBy: value });
