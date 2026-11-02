@@ -87,7 +87,7 @@ export class SettingsPanelComponent {
       return 'Encode an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder';
     }
 
-    return 'Run an external helper process requested by Light Matter';
+    return 'Run an external helper process requested by the application';
   };
 
   protected readonly sortedExternalProcessCalls = computed(() => {
