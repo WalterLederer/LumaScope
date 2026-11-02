@@ -150,6 +150,48 @@
       </div>
       </details>
     </section>
+    <section class="shortcut-details info-box">
+      <details>
+        <summary>Key shortcuts · {{ keyShortcuts.length }} shortcuts</summary>
+        <p class="format-note">Global shortcuts are registered by Windows through Electron and remain available when the application is not focused. Local shortcuts work while using the application.</p>
+        @if (globalShortcutError()) {
+          <p class="cache-status error" role="alert">Could not read global shortcut status: {{ globalShortcutError() }}</p>
+        }
+        <div class="shortcut-table-scroll">
+          <table class="shortcut-table">
+            <thead>
+              <tr>
+                <th scope="col">Key shortcut</th>
+                <th scope="col">Function</th>
+                <th scope="col">Global</th>
+                <th scope="col">Global status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (shortcut of keyShortcuts; track shortcut.keys) {
+                <tr>
+                  <td><kbd>{{ shortcut.keys }}</kbd></td>
+                  <td>{{ shortcut.action }}</td>
+                  <td>{{ shortcut.global ? 'Yes' : 'No' }}</td>
+                  <td>
+                    @if (shortcut.global) {
+                      <span class="shortcut-status"
+                            [class.active]="globalShortcutStatusText(shortcut.id) === 'Active'"
+                            [class.error]="globalShortcutStatusText(shortcut.id).startsWith('Error') || globalShortcutStatusText(shortcut.id) === 'Unavailable'"
+                            [title]="globalShortcutStatusTitle(shortcut.id)">
+                        {{ globalShortcutStatusText(shortcut.id) }}
+                      </span>
+                    } @else {
+                      <span class="sdr-marker">—</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
   <section class="debug-settings">
     <details>
       <summary>Debug</summary>
