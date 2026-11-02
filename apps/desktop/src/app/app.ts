@@ -1,5 +1,5 @@
-import { BrowserWindow, globalShortcut, protocol, screen, shell } from 'electron';
-import { appProtocol } from 'internal-api';
+import { BrowserWindow, globalShortcut, ipcMain, protocol, screen, shell } from 'electron';
+import { appProtocol, GlobalShortcutStatus } from 'internal-api';
 import { join } from 'path';
 import { statSync } from 'node:fs';
 import { format } from 'url';
@@ -21,6 +21,23 @@ export default class App {
 
   static startupConfig: StartupConfig;
   private static loupeGeometryTimer: ReturnType<typeof setTimeout> | null = null;
+  private static globalCaptureShortcutStatuses: GlobalShortcutStatus[] = [
+    { id: 'top-window', accelerator: 'Ctrl + Win + PrtScn', active: false, error: 'Not registered yet.' },
+    { id: 'rectangle', accelerator: 'Ctrl + Shift + Win + PrtScn', active: false, error: 'Not registered yet.' }
+  ];
+
+  static getGlobalCaptureShortcutStatus(): GlobalShortcutStatus[] {
+    return App.globalCaptureShortcutStatuses.map(status => ({ ...status }));
+  }
+
+  private static publishGlobalCaptureShortcutStatus(): void {
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+        window.webContents.send('Capture.globalShortcutStatusChanged', App.getGlobalCaptureShortcutStatus());
+      }
+    }
+  }
+
 
   private static executableTimestamp(): string {
     const modified = statSync(App.application.getPath('exe')).mtime;
@@ -72,20 +89,41 @@ export default class App {
       // Windows global shortcuts. Super is the Windows key in Electron accelerators.
       const topWindowAccelerator = 'Control+Super+PrintScreen';
       const rectangleAccelerator = 'Control+Shift+Super+PrintScreen';
-      const registerCaptureShortcut = (accelerator: string, channel: string, label: string): void => {
-        if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
-        const registered = globalShortcut.register(accelerator, () => {
-          const window = App.mainWindow;
-          if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
-            window.webContents.send(channel);
+      const registerCaptureShortcut = (
+        id: GlobalShortcutStatus['id'],
+        accelerator: string,
+        channel: string,
+        label: string
+      ): void => {
+        let active = false;
+        let error: string | null = null;
+        try {
+          if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
+          const registered = globalShortcut.register(accelerator, () => {
+            const window = App.mainWindow;
+            if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
+              window.webContents.send(channel);
+            }
+          });
+          active = registered && globalShortcut.isRegistered(accelerator);
+          if (!active) {
+            error = 'Could not register this shortcut. Another application may already use it.';
           }
-        });
-        if (!registered) {
-          console.warn(`[Capture] Could not register ${label} (${accelerator}); another application may own this shortcut.`);
+        } catch (registrationError) {
+          error = registrationError instanceof Error ? registrationError.message : String(registrationError);
         }
+
+        const status = App.globalCaptureShortcutStatuses.find(item => item.id === id);
+        if (status) {
+          status.accelerator = label;
+          status.active = active;
+          status.error = error;
+        }
+        if (error) console.warn(`[Capture] Global shortcut ${label} is unavailable: ${error}`);
+        App.publishGlobalCaptureShortcutStatus();
       };
-      registerCaptureShortcut(topWindowAccelerator, 'Capture.topWindowClipboardHotkey', 'Ctrl+Win+PrintScreen');
-      registerCaptureShortcut(rectangleAccelerator, 'Capture.rectangleClipboardHotkey', 'Ctrl+Shift+Win+PrintScreen');
+      registerCaptureShortcut('top-window', topWindowAccelerator, 'Capture.topWindowClipboardHotkey', 'Ctrl + Win + PrtScn');
+      registerCaptureShortcut('rectangle', rectangleAccelerator, 'Capture.rectangleClipboardHotkey', 'Ctrl + Shift + Win + PrtScn');
       App.application.once('will-quit', () => {
         globalShortcut.unregister(topWindowAccelerator);
         globalShortcut.unregister(rectangleAccelerator);
@@ -417,6 +455,8 @@ export default class App {
     // makes the code easier to write tests for
 
     App.BrowserWindow = browserWindow;
+    ipcMain.handle('Capture.getGlobalShortcutStatus', () => App.getGlobalCaptureShortcutStatus());
+
     App.application = app;
 
     if (process.platform === 'linux') {
