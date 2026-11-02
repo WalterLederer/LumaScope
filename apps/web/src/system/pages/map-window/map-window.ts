@@ -226,6 +226,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private map: MapInstance | null = null;
   private marker: MapMarker | null = null;
   private directoryMarkerGroup: MapMarkerGroup | null = null;
+  private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
   private markerScanGeneration = 0;
   private readonly directoryMarkerCache = new Map<string, { markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>; filesTotal: number; exifErrors: number }>();
@@ -428,7 +429,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (enabled) void this.scanDirectoryMarkers();
     else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerStatus.set('Folder markers hidden. Cached GPS data is kept for this session.'); }
   };
-  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }
+  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.directoryMarkers.length = 0; this.markerCount.set(0); }
   private createImageMarkerIcon(selected: boolean): unknown {
     const color = selected ? '#ff3b30' : '#2688e8';
     const size = selected ? 18 : 13;
@@ -470,6 +471,7 @@ export class MapWindow implements OnInit, OnDestroy {
         { direction: 'top', className: 'folder-marker-tooltip', opacity: 1 }
       );
       marker.on('click', () => { void this.desktop?.MapWindow.selectImage(item.path); });
+      this.directoryMarkers.push(marker);
       this.directoryMarkerGroup?.addLayer(marker);
       this.markerCount.update(value => value + 1);
     }
@@ -605,8 +607,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
-    this.marker?.setOpacity(next / 100);
-    this.directoryMarkerGroup?.eachLayer(layer => layer.setOpacity(next / 100));
+    const markerOpacity = next / 100;
+    this.marker?.setOpacity(markerOpacity);
+    for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
