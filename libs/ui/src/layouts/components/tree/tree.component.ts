@@ -68,12 +68,13 @@ export class TreeComponent<T> {
     }
 
     target.isLoading = false;
-    target.isOpen = true;
+    target.isOpen = node.isOpen ?? (node.children !== undefined && node.children.length > 0);
     target.label = node.label;
     target.closedIcon = node.closedIcon;
     target.openIcon = node.openIcon;
     target.isSelected = node.isSelected;
     target.children = node.children;
+    target.hasChildren = node.hasChildren;
     this.treeRoot.set(root);
   };
 
