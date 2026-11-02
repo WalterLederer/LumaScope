@@ -54,51 +54,62 @@
             {{ loadingSources() ? 'Refreshing…' : 'Refresh' }}
           </button>
         </div>
-      </div>
+      </div> 
 
-      <label class="capture-field">
-        <span>Output format</span>
-        <div class="capture-control-row">
+      <details class="capture-section capture-file-section">
+        <summary>FILE Capture</summary>
+        <label class="capture-field">
+          <span>Output format</span>
           <select [value]="selectedFormat()" (change)="changeFormat($any($event.target).value)" [disabled]="capturing() || previewing()">
             <option value="exr">OpenEXR (.exr)</option>
             <option value="jxr">JPEG XR (.jxr)</option>
             <option value="uhdr">Ultra HDR JPEG (.jpg, gain map)</option>
           </select>
-          <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
-            {{ previewing() ? 'Capturing…' : 'Capture' }}
-          </button>
+        </label>
+        <div class="capture-destination">
+          <span>Save folder</span>
+          <div class="capture-folder-row">
+            <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
+            <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
+          </div>
+          <div class="capture-destination-actions">
+            <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || !destinationFolder()">
+              {{ capturing() ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
         </div>
-      </label>
+        @if (previewFrame(); as frame) {
+          <figure class="capture-preview">
+            <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
+            <figcaption>HDR FP16/scRGB · {{ frame.width }} × {{ frame.height }} · WebGPU</figcaption>
+          </figure>
+        }
+      </details>
 
-      <div class="capture-destination">
-        <span>Save folder</span>
-        <div class="capture-folder-row">
-          <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
-          <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
-        </div>
-        <div class="capture-destination-actions">
-          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
-            {{ capturing() ? 'Copying…' : 'Copy to clipboard' }}
-          </button>
-          <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || !destinationFolder()">
-            {{ capturing() ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-        @if (status() && !status().toLowerCase().includes('capture ready')) {
-          <p class="capture-status" role="status">{{ status() }}</p>
+      <details class="capture-section capture-clipboard-section">
+        <summary>CLIPBOARD Capture</summary>
+        <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+          {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
+        </button>
+        @if (previewFrame(); as frame) {
+          <figure class="capture-preview">
+            <canvas #sdrPreviewCanvas aria-label="Tone-mapped SDR clipboard preview"></canvas>
+            <figcaption>SDR tone-mapped directly from FP16/scRGB · {{ frame.width }} × {{ frame.height }} · clipboard output</figcaption>
+          </figure>
         }
-        @if (error()) {
-          <p class="capture-error" role="alert">{{ error() }}</p>
-        }
-        @if (monitors().length === 0 && !loadingSources() && !error()) {
-          <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
-        }
+      </details>
+
+      @if (status() && !status().toLowerCase().includes('capture ready')) {
+        <p class="capture-status" role="status">{{ status() }}</p>
+      }
+      @if (error()) {
+        <p class="capture-error" role="alert">{{ error() }}</p>
+      }
+      @if (monitors().length === 0 && !loadingSources() && !error()) {
+        <p class="capture-error" role="alert">No monitors were detected by the capture API.</p>
+      }
       <details class="capture-advanced-settings">
         <summary>Advanced Settings</summary>
-        @if (previewFrame()) {
-          <p class="capture-status">FP16/scRGB capture available · {{ previewSize() }} · WebGPU HDR capture</p>
-        }
         @if (status() && status().toLowerCase().includes('capture ready')) {
           <p class="capture-status" role="status">{{ status() }}</p>
         }
@@ -137,28 +148,20 @@
         </section>
   
         <p class="capture-format-note">Brightness correction: 0.4.</p>
+        @if (sdrDiagnostics(); as diag) {
+          <section class="capture-sdr-diagnostics" aria-label="SDR and FP16 diagnostics">
+            <h3>SDR / FP16 diagnostics</h3>
+            <p>Applied brightness factor: {{ diag.brightnessFactor.toFixed(2) }}× · {{ diag.captureRange }} · Pixels: {{ diag.pixelCount.toLocaleString() }}</p>
+            <p>FP16 maximum — R: {{ diag.maxR.toFixed(3) }} · G: {{ diag.maxG.toFixed(3) }} · B: {{ diag.maxB.toFixed(3) }}</p>
+            <p>Pixels with any RGB channel above — 0.5: {{ diag.above05.toLocaleString() }} · 1.0: {{ diag.above1.toLocaleString() }} · 2.0: {{ diag.above2.toLocaleString() }} · 4.0: {{ diag.above4.toLocaleString() }}</p>
+            <p>SDR pure-white pixels (255/255/255): {{ diag.whitePixels.toLocaleString() }}</p>
+            <p>FP16 maximum linear luminance: {{ diag.maxLuminance.toFixed(5) }}</p>
+            <p>FP16 linear luminance percentiles (existing log histogram) — P95: {{ diag.p95.toFixed(5) }} · P99: {{ diag.p99.toFixed(5) }} · P99.9: {{ diag.p999.toFixed(5) }} · P99.99: {{ diag.p9999.toFixed(5) }}</p>
+            <p>FP16 linear luminance percentiles (high-resolution linear histogram) — P95: {{ diag.diagnosticP95.toFixed(5) }} · P99: {{ diag.diagnosticP99.toFixed(5) }} · P99.9: {{ diag.diagnosticP999.toFixed(5) }} · P99.99: {{ diag.diagnosticP9999.toFixed(5) }}</p>
+            <p>Pixels with luminance above — 3.00: {{ diag.above3.toLocaleString() }} · 3.10: {{ diag.above31.toLocaleString() }} · 3.20: {{ diag.above32.toLocaleString() }} · 3.24: {{ diag.above324.toLocaleString() }}</p>
+          </section>
+        }
       </details>
   </div>
-  }
-  @if (previewFrame(); as frame) {
-    <figure class="capture-preview">
-      <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
-      <figcaption>HDR FP16/scRGB · {{ frame.width }} × {{ frame.height }} · WebGPU</figcaption>
-      <canvas #sdrPreviewCanvas aria-label="Tone-mapped SDR clipboard preview" style="display:block;max-width:100%;height:auto"></canvas>
-      <figcaption>SDR tone-mapped directly from FP16/scRGB · clipboard output</figcaption>
-      @if (sdrDiagnostics(); as diag) {
-        <details class="capture-advanced-settings capture-sdr-diagnostics" open>
-          <summary>SDR / FP16 diagnostics</summary>
-          <p>Applied brightness factor: {{ diag.brightnessFactor.toFixed(2) }}× · {{ diag.captureRange }} · Pixels: {{ diag.pixelCount.toLocaleString() }}</p>
-          <p>FP16 maximum — R: {{ diag.maxR.toFixed(3) }} · G: {{ diag.maxG.toFixed(3) }} · B: {{ diag.maxB.toFixed(3) }}</p>
-          <p>Pixels with any RGB channel above — 0.5: {{ diag.above05.toLocaleString() }} · 1.0: {{ diag.above1.toLocaleString() }} · 2.0: {{ diag.above2.toLocaleString() }} · 4.0: {{ diag.above4.toLocaleString() }}</p>
-          <p>SDR pure-white pixels (255/255/255): {{ diag.whitePixels.toLocaleString() }}</p>
-          <p>FP16 maximum linear luminance: {{ diag.maxLuminance.toFixed(5) }}</p>
-          <p>FP16 linear luminance percentiles (existing log histogram) — P95: {{ diag.p95.toFixed(5) }} · P99: {{ diag.p99.toFixed(5) }} · P99.9: {{ diag.p999.toFixed(5) }} · P99.99: {{ diag.p9999.toFixed(5) }}</p>
-          <p>FP16 linear luminance percentiles (high-resolution linear histogram) — P95: {{ diag.diagnosticP95.toFixed(5) }} · P99: {{ diag.diagnosticP99.toFixed(5) }} · P99.9: {{ diag.diagnosticP999.toFixed(5) }} · P99.99: {{ diag.diagnosticP9999.toFixed(5) }}</p>
-          <p>Pixels with luminance above — 3.00: {{ diag.above3.toLocaleString() }} · 3.10: {{ diag.above31.toLocaleString() }} · 3.20: {{ diag.above32.toLocaleString() }} · 3.24: {{ diag.above324.toLocaleString() }}</p>
-        </details>
-      }
-    </figure>
   }
 </section>
