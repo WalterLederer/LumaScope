@@ -130,9 +130,8 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
           <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
-            <summary>Marker</summary>
+            <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
-              <div class="marker-description">Show all geotagged images in this folder</div>
               <div class="marker-appearance-settings">
                 <label>Shape
                   <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
@@ -160,8 +159,10 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
                 </div>
               </div>
               @if (directoryMarkersEnabled()) {
-                <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
-                <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
+                <div class="marker-progress-row">
+                  <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                  <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
+                </div>
                 <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span><span>EXIF read errors: <strong>{{ markerExifErrors() }}</strong></span></div>
                 <div class="marker-status" role="status">{{ markerStatus() }}</div>
               }
@@ -204,10 +205,11 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .marker-settings summary{cursor:pointer;font-weight:600;white-space:nowrap}
+    .marker-settings summary .marker-description{margin-left:8px;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400}
     .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
-    .marker-description{flex:0 0 100%;color:var(--color-content-default-medium,#aaa);font-size:12px}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
-    .marker-progress{width:100%;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
+    .marker-progress-row{display:flex;flex:1 1 100%;align-items:center;gap:10px;min-width:0}
+    .marker-progress{flex:1 1 auto;width:auto;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
     .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:0;padding:7px 0 0;gap:8px}
     .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
