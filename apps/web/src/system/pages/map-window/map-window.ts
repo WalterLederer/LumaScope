@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
@@ -27,6 +27,7 @@ interface LeafletMapApi {
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
+type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 @Component({
   selector: 'app-map-window',
@@ -159,6 +160,19 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
                   }
                 </div>
               </div>
+              <div class="marker-current-appearance-settings">
+                <strong>Marker Icon:</strong>
+                <label>Shape
+                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                  </select>
+                </label>
+                <label>Color
+                  <select [value]="currentMarkerColor()" (change)="changeCurrentMarkerColor($any($event.target).value)">
+                    @for (color of gpxColors; track color.value) { <option [value]="color.value">{{ color.name }}</option> }
+                  </select>
+                </label>
+              </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-row">
                   <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
@@ -200,11 +214,11 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
-    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0}
-    .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .marker-appearance-settings,.marker-current-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
+    .marker-appearance-settings>label,.marker-current-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
-    .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:0;padding:7px 0 0;gap:8px}
+    .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .marker-settings summary{cursor:pointer;font-weight:600;white-space:nowrap}
     .marker-settings summary .marker-description{margin-left:8px;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400}
     .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
@@ -286,6 +300,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
   protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'double-circle') as MarkerShape);
+  protected readonly currentMarkerShape = signal<CurrentMarkerShape>(this.readSetting('currentMarkerShape', 'pin') as CurrentMarkerShape);
+  protected readonly currentMarkerColor = signal(this.readSetting('currentMarkerColor', '#ff3b30'));
   protected readonly markerColor = signal(this.readSetting('markerColor', 'dynamic'));
   protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
   protected readonly markerColorMenuOpen = signal(false);
@@ -490,6 +506,16 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'double-circle' && value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
     this.markerShape.set(value); this.saveSetting('markerShape', value); this.directoryMarkerGroup?.refreshClusters?.();
   };
+  protected readonly changeCurrentMarkerShape = (value: string): void => {
+    if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
+    this.currentMarkerShape.set(value); this.saveSetting('currentMarkerShape', value);
+    this.marker?.setIcon(this.createCurrentLocationIcon());
+  };
+  protected readonly changeCurrentMarkerColor = (value: string): void => {
+    if (!this.gpxColors.some(color => color.value === value)) return;
+    this.currentMarkerColor.set(value); this.saveSetting('currentMarkerColor', value);
+    this.marker?.setIcon(this.createCurrentLocationIcon());
+  };
   protected readonly changeMarkerColor = (value: string): void => {
     if (value === 'off') { this.markerColorVisible.set(false); this.saveSetting('markerColorVisible', false); }
     else if (value === 'dynamic') {
@@ -535,9 +561,28 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.directoryMarkers.length = 0; this.markerCount.set(0); }
   private createImageMarkerIcon(selected: boolean): unknown {
-    const color = selected ? '#ff3b30' : '#2688e8';
-    const size = selected ? 18 : 13;
+    if (selected) return this.createCurrentLocationIcon();
+    const size = 13, color = '#2688e8';
     return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });
+  }
+  private createCurrentLocationIcon(): unknown {
+    const color = this.currentMarkerColor();
+    const shape = this.currentMarkerShape();
+    let svg: string, size: [number, number], anchor: [number, number];
+    if (shape === 'pin') {
+      svg = `<path d=\"M24 2C12.4 2 4 10.5 4 21c0 14 20 35 20 35s20-21 20-35C44 10.5 35.6 2 24 2Z\" fill=\"${color}\" stroke=\"#fff\" stroke-width=\"3\"/><circle cx=\"24\" cy=\"21\" r=\"7.5\" fill=\"#fff\" stroke=\"#222\" stroke-width=\"1.5\"/>`;
+      size = [36, 42]; anchor = [18, 42];
+    } else {
+      const shapeMarkup = shape === 'circle'
+        ? '<circle cx="20" cy="20" r="16"'
+        : shape === 'square'
+          ? '<rect x="4" y="4" width="32" height="32" rx="3"'
+          : '<polygon points="20,2 38,20 20,38 2,20"';
+      svg = `${shapeMarkup} fill=\"${color}\" stroke=\"#fff\" stroke-width=\"3\"/><circle cx=\"20\" cy=\"20\" r=\"6\" fill=\"#fff\" stroke=\"#222\" stroke-width=\"1.5\"/>`;
+      size = [36, 36]; anchor = [18, 18];
+    }
+    const html = `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${size[0]}\" height=\"${size[1]}\" viewBox=\"${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}\" style=\"display:block;filter:drop-shadow(0 1px 3px #000b)\">${svg}</svg>`;
+    return this.leaflet!.divIcon({ className: 'current-location-marker', html, iconSize: size, iconAnchor: anchor });
   }
   private parseExifCoordinate(value: unknown, reference: unknown): number | null {
     if (typeof value !== 'number' && typeof value !== 'string') return null;
@@ -693,7 +738,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.zoomLevel.set(zoom);
       this.saveSetting('zoom', zoom);
     });
-    this.marker = this.leaflet.marker(center, { icon: this.createImageMarkerIcon(true) }).addTo(this.map).setOpacity(this.markerOpacity() / 100);
+    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity(this.markerOpacity() / 100);
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
