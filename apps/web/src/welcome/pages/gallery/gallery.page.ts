@@ -136,12 +136,13 @@ export class GalleryPage {
 
   @HostListener('document:keyup', ['$event'])
   protected readonly onCaptureShortcut = (event: KeyboardEvent): void => {
-    if (!event.shiftKey || event.key.toLowerCase() !== 'c'
-      || event.ctrlKey || event.altKey || event.metaKey) return;
+    const key = event.key.toLowerCase();
+    if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (key !== 's' && !(event.shiftKey && key === 'c')) return;
     const target = event.target;
     if (target instanceof HTMLElement
-      && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]')) return;
-    // ImageView owns the same shortcut while its overlay is active.
+      && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
+    // ImageView owns the shortcut while its overlay is active.
     if (this.document.querySelector('app-image-view')) return;
     event.preventDefault();
     void this.openCaptureWindow();
