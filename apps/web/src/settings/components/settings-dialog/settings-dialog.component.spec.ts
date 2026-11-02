@@ -24,6 +24,23 @@ describe('SettingsPanelComponent', () => {
   };
 
   beforeEach(async () => {
+    Object.defineProperty(window, 'desktop', {
+      configurable: true,
+      value: {
+        Profiling: {
+          onExternalProcessCall: jest.fn().mockReturnValue(jest.fn()),
+          getExternalProcessCalls: jest.fn().mockResolvedValue([])
+        },
+        Capture: {
+          onGlobalShortcutStatusChanged: jest.fn().mockReturnValue(jest.fn()),
+          getGlobalShortcutStatus: jest.fn().mockResolvedValue([
+            { id: 'top-window', accelerator: 'Ctrl + Win + PrtScn', active: true, error: null },
+            { id: 'rectangle', accelerator: 'Ctrl + Shift + Win + PrtScn', active: false, error: 'Shortcut already in use.' }
+          ])
+        }
+      }
+    });
+
     await TestBed.configureTestingModule({
       imports: [ SettingsPanelComponent ],
       providers: [
