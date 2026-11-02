@@ -162,7 +162,7 @@ export class CapturePanelComponent {
     const topWindow: CaptureSourceRow = {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
-      title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding Light Matter',
+      title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding the application',
       size: 'Automatic', displayMode: '—',
       status: this.includeLightMatterWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
       minimized: false, unavailable: false
