@@ -73,14 +73,14 @@
             <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
           </div>
           <div class="capture-destination-actions">
-            <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+            <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
               {{ previewing() ? 'Previewing…' : 'Preview' }}
             </button>
+            <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="savePreviewNow()" [disabled]="capturing() || previewing() || !previewFrame() || !destinationFolder()" title="Save the currently displayed preview without capturing again.">Save preview</button>
             <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose output folder...</button>
             <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || !destinationFolder()">
               {{ capturing() ? 'Saving…' : 'Save' }}
             </button>
-            <button type="button" class="capture-secondary-button capture-inline-button" (click)="savePreviewNow()" [disabled]="capturing() || previewing() || !previewFrame() || !destinationFolder()" title="Save the currently displayed preview without capturing again.">Save preview</button>
           </div>
           @if (status().startsWith('Saved ')) {
             <p class="capture-status" role="status">{{ status() }}</p>
@@ -105,11 +105,11 @@
           <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ previewing() ? 'Previewing…' : 'Preview' }}
           </button>
+          <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="copyPreviewToClipboardNow()" [disabled]="capturing() || previewing() || !previewFrame()" title="Copy the already displayed, brightness-corrected SDR preview without capturing again.">
+            Clipboard copy PREVIEW
+          </button>
           <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
-          </button>
-          <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyPreviewToClipboardNow()" [disabled]="capturing() || previewing() || !previewFrame()" title="Copy the already displayed, brightness-corrected SDR preview without capturing again.">
-            Clipboard copy PREVIEW
           </button>
           <button type="button" class="capture-secondary-button capture-inline-button" (click)="copyToClipboardTopWindow()" [disabled]="capturing() || previewing() || loadingSources()" title="Copy the topmost visible window to the clipboard. Shortcut: Ctrl + Win + PrtScn.">
             TOP WINDOW copy
