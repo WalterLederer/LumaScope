@@ -227,7 +227,13 @@ export class CapturePanelComponent {
     const target = event.target;
     if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
     event.preventDefault();
-    void window.desktop?.MapWindow.focus();
+
+    const mapWindow = window.desktop?.MapWindow;
+    if (!mapWindow) return;
+    void mapWindow.isOpen().then(isOpen => {
+      if (isOpen) return mapWindow.focus();
+      return mapWindow.open(null, null);
+    });
   };
 
   protected readonly selectSourceRow = (value: string): void => {
