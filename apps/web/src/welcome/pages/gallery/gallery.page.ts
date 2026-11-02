@@ -220,9 +220,14 @@ export class GalleryPage {
     const node = structuredClone(state.node);
 
     if (result.success) {
-      node.children = result.data.map(location => ({
-        ...treeNode(location.path, true),
-        hasChildren: true
+      node.children = await Promise.all(result.data.map(async location => {
+        const childContents = await this.galleryState.getDirContents(location.path);
+        return {
+          ...treeNode(location.path, true),
+          // Determine expandability for every nested directory, not just gallery roots.
+          // Preserve the indicator on read failure so the directory can still be expanded.
+          hasChildren: childContents.success ? childContents.data.length > 0 : undefined
+        };
       }));
       node.hasChildren = node.children.length > 0;
     }
