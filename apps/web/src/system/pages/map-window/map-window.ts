@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; remove(): void; }
 interface MapInstance {
@@ -202,6 +202,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
+    :host ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
+    :host ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
+    :host ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;gap:4px;max-width:190px}
+    :host ::ng-deep .folder-marker-preview img{display:block;width:180px;height:120px;object-fit:cover;border-radius:3px;background:#222}
+    :host ::ng-deep .folder-marker-preview span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
@@ -223,6 +228,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private currentImagePath: string | null = null;
   private markerScanGeneration = 0;
+  private readonly directoryMarkerCache = new Map<string, { markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>; filesTotal: number; exifErrors: number }>();
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
@@ -420,7 +426,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleDirectoryMarkers = (enabled: boolean): void => {
     this.directoryMarkersEnabled.set(enabled);
     if (enabled) void this.scanDirectoryMarkers();
-    else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set(''); }
+    else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerStatus.set('Folder markers hidden. Cached GPS data is kept for this session.'); }
   };
   private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }
   private createImageMarkerIcon(selected: boolean): unknown {
@@ -437,38 +443,109 @@ export class MapWindow implements OnInit, OnDestroy {
     if (String(parts[0]).startsWith('-') || ['s', 'south', 'w', 'west'].includes(ref)) result *= -1;
     return Number.isFinite(result) ? result : null;
   }
+  private markerCacheKey(directory: string): string {
+    return directory.replace(/[\\/]+$/, '').replace(/\//g, '\\').toLowerCase();
+  }
+
+  private escapeMarkerHtml(value: string): string {
+    return value.replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character] ?? character);
+  }
+
+  private renderDirectoryMarkers(
+    markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>,
+    imagePath: string
+  ): void {
+    this.clearDirectoryMarkers();
+    for (const item of markers) {
+      if (item.path.toLowerCase() === imagePath.toLowerCase()) continue;
+      const marker = this.leaflet!.marker([item.latitude, item.longitude], {
+        icon: this.createImageMarkerIcon(false)
+      }).setOpacity(this.markerOpacity() / 100);
+      const previewUrl = 'atom://app/thumbs?image=' + encodeURIComponent(item.path) + '&width=180&height=120';
+      const fileName = this.escapeMarkerHtml(item.fileName);
+      marker.bindTooltip(
+        '<div class="folder-marker-preview"><img src="' + previewUrl + '" alt="" loading="lazy"><span>' + fileName + '</span></div>',
+        { direction: 'top', className: 'folder-marker-tooltip', opacity: 1 }
+      );
+      marker.on('click', () => { void this.desktop?.MapWindow.selectImage(item.path); });
+      this.directoryMarkerGroup?.addLayer(marker);
+      this.markerCount.update(value => value + 1);
+    }
+  }
+
   private async scanDirectoryMarkers(): Promise<void> {
     const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, desktop = this.desktop;
-    if (!imagePath || !desktop || !this.directoryMarkerGroup) { this.clearDirectoryMarkers(); this.markerStatus.set('No image folder is available.'); return; }
-    this.clearDirectoryMarkers(); this.markerCount.set(this.coordinatesAvailable() ? 1 : 0); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set('Reading folder…');
+    if (!imagePath || !desktop || !this.directoryMarkerGroup) {
+      this.clearDirectoryMarkers();
+      this.markerStatus.set('No image folder is available.');
+      return;
+    }
+    this.clearDirectoryMarkers();
+    this.markerStatus.set('Reading folder…');
     try {
       const directory = await desktop.FileSystem.dirname(imagePath);
+      if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+      const cacheKey = this.markerCacheKey(directory);
+      const cached = this.directoryMarkerCache.get(cacheKey);
+      if (cached) {
+        this.markerFilesTotal.set(cached.filesTotal);
+        this.markerFilesChecked.set(cached.filesTotal);
+        this.markerExifErrors.set(cached.exifErrors);
+        this.renderDirectoryMarkers(cached.markers, imagePath);
+        this.markerStatus.set('Loaded ' + cached.filesTotal + ' files from session cache; ' + cached.exifErrors + ' EXIF errors.');
+        return;
+      }
+
       const response = await desktop.FileSystem.readImages(directory, 'name', 'asc');
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
       if (!response.success) throw new Error(response.errorMessage);
-      const files = response.data.filter(file => !file.isDirectory); this.markerFilesTotal.set(files.length); this.markerStatus.set('Scanning GPS metadata…');
+      const files = response.data.filter(file => !file.isDirectory);
+      this.markerFilesTotal.set(files.length);
+      this.markerFilesChecked.set(0);
+      this.markerExifErrors.set(0);
+      this.markerStatus.set('Scanning GPS metadata…');
+      const markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }> = [];
       let nextIndex = 0;
+      let exifErrors = 0;
+      let filesChecked = 0;
       const worker = async (): Promise<void> => {
         while (generation === this.markerScanGeneration && this.directoryMarkersEnabled()) {
-          const index = nextIndex++; if (index >= files.length) return; const file = files[index];
+          const index = nextIndex++;
+          if (index >= files.length) return;
+          const file = files[index];
           try {
-            const exif = await desktop.Exif.read(file.path); if (generation !== this.markerScanGeneration) return;
-            if (!exif.success) this.markerExifErrors.update(value => value + 1);
+            const exif = await desktop.Exif.read(file.path);
+            if (generation !== this.markerScanGeneration) return;
+            if (!exif.success) exifErrors++;
             else {
               const tags = exif.data as Record<string, unknown>;
               const latitude = this.parseExifCoordinate(tags['GPSLatitude'], tags['GPSLatitudeRef']);
               const longitude = this.parseExifCoordinate(tags['GPSLongitude'], tags['GPSLongitudeRef']);
-              if (latitude !== null && longitude !== null && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 && file.path.toLowerCase() !== imagePath.toLowerCase()) {
-                this.directoryMarkerGroup?.addLayer(this.leaflet!.marker([latitude, longitude], { icon: this.createImageMarkerIcon(false) }).setOpacity(this.markerOpacity() / 100)); this.markerCount.update(value => value + 1);
+              if (latitude !== null && longitude !== null && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+                markers.push({ path: file.path, fileName: file.name, latitude, longitude });
               }
             }
-          } catch { if (generation === this.markerScanGeneration) this.markerExifErrors.update(value => value + 1); }
-          finally { if (generation === this.markerScanGeneration) this.markerFilesChecked.update(value => value + 1); }
+          } catch {
+            if (generation === this.markerScanGeneration) exifErrors++;
+          } finally {
+            if (generation === this.markerScanGeneration) {
+              filesChecked++;
+              this.markerFilesChecked.set(filesChecked);
+              this.markerExifErrors.set(exifErrors);
+            }
+          }
         }
       };
       await Promise.all(Array.from({ length: Math.min(6, files.length) }, () => worker()));
-      if (generation === this.markerScanGeneration) this.markerStatus.set('Completed: ' + this.markerFilesChecked() + ' files checked; ' + this.markerExifErrors() + ' EXIF errors.');
-    } catch (error) { if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Folder scan failed.'); }
+      if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: files.length, exifErrors });
+      this.renderDirectoryMarkers(markers, imagePath);
+      this.markerStatus.set('Completed: ' + files.length + ' files checked; ' + exifErrors + ' EXIF errors. Cached for this session.');
+    } catch (error) {
+      if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Folder scan failed.');
+    }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
     this.leaflet = await this.loadLeaflet();
