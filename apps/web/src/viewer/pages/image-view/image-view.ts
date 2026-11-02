@@ -1523,6 +1523,12 @@ export class ImageView {
   constructor() {
     const mapWindowApi = this.desktopApi?.MapWindow;
     if (mapWindowApi) {
+      const unsubscribeImageSelected = mapWindowApi.onImageSelected(path => {
+        this.viewNavigator.selectImage(path).subscribe(found => {
+          if (!found) console.warn('[MapWindow] Selected image is not present in the current gallery:', path);
+        });
+      });
+      this.destroyRef.onDestroy(unsubscribeImageSelected);
       void mapWindowApi.isOpen().then(open => this.detachedMapWindowOpen.set(open));
       const unsubscribe = mapWindowApi.onStateChanged(open => this.detachedMapWindowOpen.set(open));
       this.destroyRef.onDestroy(unsubscribe);
