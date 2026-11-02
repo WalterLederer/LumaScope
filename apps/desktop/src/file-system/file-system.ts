@@ -135,10 +135,13 @@ export class FileSystem {
         } satisfies FileInfo;
       }));
 
-      return {
-        success: true,
-        data: files.sort(this.sortFiles(sortBy, sortDir))
-      };
+      const data = files.sort(this.sortFiles(sortBy, sortDir));
+      console.log('[FileSystem.readImages] DONE', JSON.stringify({
+        path,
+        count: data.length,
+        durationMs: Date.now() - startedAt
+      }));
+      return { success: true, data };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error('[FileSystem.readImages] ERROR', JSON.stringify({ path, durationMs: Date.now() - startedAt, error: message }));
