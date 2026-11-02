@@ -5,10 +5,10 @@ const api: Desktop = {
   ProcessManager: {
     getAppVersion: () => ipcRenderer.invoke('ProcessManager.getAppVersion'),
     isPackaged: async () => {
-      console.info('[Preload] ProcessManager.isPackaged INVOKE');
+      console.warn('[Preload] ProcessManager.isPackaged INVOKE');
       try {
         const result = await ipcRenderer.invoke('ProcessManager.isPackaged');
-        console.info('[Preload] ProcessManager.isPackaged RESULT', result);
+        console.warn('[Preload] ProcessManager.isPackaged RESULT', result);
         return result;
       } catch (error) {
         console.error('[Preload] ProcessManager.isPackaged ERROR', error);
