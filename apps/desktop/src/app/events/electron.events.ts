@@ -1516,7 +1516,7 @@ const readFolder = async (folder: string): Promise<string[]> =>
     .filter(f => supportedFileExtensions.includes(path.extname(f).toLowerCase().replace('.', '')));
 
 
-ipcMain.handle('MapWindow.open', (_event, latitude: number, longitude: number, bearing?: number): boolean =>
+ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number): boolean =>
   App.openMapWindow(latitude, longitude, bearing)
 );
 ipcMain.handle('MapWindow.close', (): void => App.closeMapWindow());
