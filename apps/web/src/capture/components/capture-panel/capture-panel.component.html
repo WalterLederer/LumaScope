@@ -1,5 +1,4 @@
 <section class="capture-panel">
-  @if (settingsVisible) {
   <div class="capture-content">
       <div class="capture-field">
         <span>Source</span>
@@ -67,36 +66,39 @@
           </select>
         </label>
         <div class="capture-destination">
-          <span>Save folder</span>
           <div class="capture-folder-row">
             <div class="capture-folder-path">{{ destinationFolder() || 'No folder selected' }}</div>
             <button type="button" class="capture-secondary-button capture-inline-button" (click)="chooseFolder()" [disabled]="capturing() || previewing()">Choose folder…</button>
           </div>
           <div class="capture-destination-actions">
+            <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+              {{ previewing() ? 'Previewing…' : 'Preview' }}
+            </button>
             <button type="button" class="capture-primary-button capture-inline-button" (click)="captureNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget() || !destinationFolder()">
               {{ capturing() ? 'Saving…' : 'Save' }}
             </button>
           </div>
         </div>
-        @if (previewFrame(); as frame) {
-          <figure class="capture-preview">
-            <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
-            <figcaption>HDR FP16/scRGB · {{ frame.width }} × {{ frame.height }} · WebGPU</figcaption>
-          </figure>
-        }
+        <figure class="capture-preview">
+          <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
+          <figcaption>HDR FP16/scRGB · {{ previewSize() || 'Preview not generated' }} · WebGPU</figcaption>
+        </figure>
       </details>
 
       <details class="capture-section capture-clipboard-section">
         <summary>CLIPBOARD Capture</summary>
-        <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
-          {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
-        </button>
-        @if (previewFrame(); as frame) {
-          <figure class="capture-preview">
-            <canvas #sdrPreviewCanvas aria-label="Tone-mapped SDR clipboard preview"></canvas>
-            <figcaption>SDR tone-mapped directly from FP16/scRGB · {{ frame.width }} × {{ frame.height }} · clipboard output</figcaption>
-          </figure>
-        }
+        <div class="capture-clipboard-actions">
+          <button type="button" class="capture-secondary-button capture-inline-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+            {{ previewing() ? 'Previewing…' : 'Preview' }}
+          </button>
+          <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
+            {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
+          </button>
+        </div>
+        <figure class="capture-preview">
+          <canvas #sdrPreviewCanvas aria-label="Tone-mapped SDR clipboard preview"></canvas>
+          <figcaption>SDR tone-mapped directly from FP16/scRGB · {{ previewSize() || 'Preview not generated' }} · clipboard output</figcaption>
+        </figure>
       </details>
 
       @if (status() && !status().toLowerCase().includes('capture ready')) {
@@ -163,5 +165,4 @@
         }
       </details>
   </div>
-  }
 </section>
