@@ -28,8 +28,30 @@ export class TreeComponent<T> {
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
 
   constructor() {
-    effect(() => this.treeRoot.set(this.root()));
+    effect(() => {
+      const incoming = this.root();
+      const current = this.treeRoot();
+      this.treeRoot.set(current === null ? incoming : this.mergeTreeState(incoming, current));
+    });
   }
+
+  private readonly mergeTreeState = (incoming: TreeNode<T>, current: TreeNode<T>): TreeNode<T> => {
+    const previousChildren = current.children ?? [];
+    const children = incoming.children === undefined
+      ? current.children
+      : incoming.children.map(child => {
+          const previous = previousChildren.find(item => item.id === child.id);
+          return previous === undefined ? child : this.mergeTreeState(child, previous);
+        });
+
+    return {
+      ...incoming,
+      isOpen: current.isOpen ?? incoming.isOpen,
+      isLoading: current.isLoading ?? incoming.isLoading,
+      isSelected: incoming.isSelected ?? current.isSelected,
+      children
+    };
+  };
 
   readonly updateNode = (node: TreeNode<T>) => {
     const root = structuredClone(this.treeRoot());
