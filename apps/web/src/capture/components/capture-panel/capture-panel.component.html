@@ -83,6 +83,9 @@
           </div>
         </div>
         <figure class="capture-preview">
+          @if (error()) {
+            <div class="capture-preview-error" role="alert">{{ error() }}</div>
+          }
           <canvas #previewCanvas aria-label="Live HDR capture preview"></canvas>
           <figcaption>HDR FP16/scRGB · {{ previewSize() || 'Preview not generated' }} · WebGPU</figcaption>
         </figure>
@@ -99,6 +102,9 @@
           </button>
         </div>
         <figure class="capture-preview">
+          @if (error()) {
+            <div class="capture-preview-error" role="alert">{{ error() }}</div>
+          }
           <canvas #sdrPreviewCanvas aria-label="Tone-mapped SDR clipboard preview"></canvas>
           <figcaption>SDR tone-mapped directly from FP16/scRGB · {{ previewSize() || 'Preview not generated' }} · clipboard output</figcaption>
         </figure>
