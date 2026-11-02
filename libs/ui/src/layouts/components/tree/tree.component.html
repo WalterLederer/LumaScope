@@ -3,24 +3,26 @@
 
 @if (rootNode !== null) {
   <ng-template #nodeTemplate let-node="node" let-level="level">
-    <ui-tree-node [node]="node"
-                  [level]="level"
-                  [menu]="menuRef"
-                  (pressed)="nodeSelected($event)"
-                  (hovered)="hovered.emit($event)" />
+    <div class="tree-branch" [class.root-folder]="level === 1">
+      <ui-tree-node [node]="node"
+                    [level]="level"
+                    [menu]="menuRef"
+                    (pressed)="nodeSelected($event)"
+                    (hovered)="hovered.emit($event)" />
 
-    @if (node.children !== undefined && node.children.length > 0 && node.isOpen) {
-      <div class="children-container"
-           animate.enter="enter-animation"
-           animate.leave="leave-animation">
-        <div class="wrapper">
-          @for (child of node.children; track child.id) {
-            <ng-template [ngTemplateOutlet]="nodeTemplate"
-                         [ngTemplateOutletContext]="{ node: child, level: level + 1 }" />
-          }
+      @if (node.children !== undefined && node.children.length > 0 && node.isOpen) {
+        <div class="children-container"
+             animate.enter="enter-animation"
+             animate.leave="leave-animation">
+          <div class="wrapper">
+            @for (child of node.children; track child.id) {
+              <ng-template [ngTemplateOutlet]="nodeTemplate"
+                           [ngTemplateOutletContext]="{ node: child, level: level + 1 }" />
+            }
+          </div>
         </div>
-      </div>
-    }
+      }
+    </div>
   </ng-template>
 
   <ng-template [ngTemplateOutlet]="nodeTemplate"
