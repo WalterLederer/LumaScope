@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, Input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CaptureFormat, CaptureMonitor, CapturePreview, CaptureTarget, CaptureWindow } from 'internal-api';
 import { filter, take } from 'rxjs';
@@ -58,7 +58,6 @@ export class CapturePanelComponent {
   protected readonly sourceMenuStyle = signal('position: fixed;');
   protected readonly favoriteKeys = signal<string[]>(this.readFavoriteKeys());
   protected readonly unavailableTargets = signal<string[]>([]);
-  @Input() settingsVisible = true;
   protected readonly destinationFolder = signal(this.readSavedDestinationFolder());
   protected readonly loadingSources = signal(false);
   protected readonly capturing = signal(false);
