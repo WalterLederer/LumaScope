@@ -187,7 +187,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
-    .map{position:relative;z-index:2;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent}
+    .map{position:relative;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
@@ -202,6 +202,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
+    :host ::ng-deep .leaflet-tooltip-pane{z-index:1000}
     :host ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
     :host ::ng-deep .leaflet-marker-icon.marker-cluster{opacity:var(--marker-opacity,1)!important}
     :host ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
