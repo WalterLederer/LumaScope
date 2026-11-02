@@ -160,7 +160,8 @@ export class SettingsPanelComponent {
     try {
       const snapshot = await window.desktop.Profiling.getExternalProcessCalls();
       this.externalProcessCalls.update(current => {
-        const calls = new Map(current.map(call => [call.id, call]));
+        const calls = new Map<number, ExternalProcessCall>();
+        current.forEach(call => calls.set(call.id, call));
         snapshot.forEach(call => calls.set(call.id, call));
         return [...calls.values()];
       });
