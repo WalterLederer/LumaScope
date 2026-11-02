@@ -1,6 +1,7 @@
 import { BrowserWindow, protocol, screen, shell } from 'electron';
 import { appProtocol } from 'internal-api';
 import { join } from 'path';
+import { statSync } from 'node:fs';
 import { format } from 'url';
 import { environment } from '../environments/environment';
 import { protocolHandler } from '../protocol-handler/protocol-handler';
@@ -20,6 +21,16 @@ export default class App {
 
   static startupConfig: StartupConfig;
   private static loupeGeometryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private static executableTimestamp(): string {
+    const modified = statSync(App.application.getPath('exe')).mtime;
+    const pad = (value: number): string => String(value).padStart(2, '0');
+    return `${modified.getFullYear()}-${pad(modified.getMonth() + 1)}-${pad(modified.getDate())} ${pad(modified.getHours())}:${pad(modified.getMinutes())}:${pad(modified.getSeconds())}`;
+  }
+
+  private static windowTitle(suffix = ''): string {
+    return `Light Matter - ${App.executableTimestamp()}${suffix ? ` - ${suffix}` : ''}`;
+  }
 
   public static isDevelopmentMode() {
     const isEnvironmentSet: boolean = 'ELECTRON_IS_DEV' in process.env;
@@ -84,7 +95,7 @@ export default class App {
       width: width,
       height: height,
       show: false,
-      title: 'Light Matter',
+      title: App.windowTitle(),
       icon: join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
       webPreferences: {
         contextIsolation: true,
@@ -93,6 +104,12 @@ export default class App {
       }
     });
     App.mainWindow.setMenu(null);
+    const mainWindowTitle = App.windowTitle();
+    App.mainWindow.webContents.on('page-title-updated', event => {
+      event.preventDefault();
+      App.mainWindow?.setTitle(mainWindowTitle);
+    });
+    App.mainWindow.setTitle(mainWindowTitle);
     App.mainWindow.center();
 
     // Debounce move/resize events so the loupe refreshes after geometry settles.
@@ -175,7 +192,7 @@ export default class App {
       minHeight: 320,
       resizable: true,
       show: false,
-      title: `Light Matter ${App.application.getVersion()} - CAPTURE`,
+      title: App.windowTitle('CAPTURE'),
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -183,7 +200,7 @@ export default class App {
       }
     });
     App.capturePreviewWindow.setMenu(null);
-    const capturePreviewWindowTitle = `Light Matter ${App.application.getVersion()} - CAPTURE`;
+    const capturePreviewWindowTitle = App.windowTitle('CAPTURE');
     App.capturePreviewWindow.webContents.on('page-title-updated', event => {
       event.preventDefault();
       App.capturePreviewWindow?.setTitle(capturePreviewWindowTitle);
@@ -234,14 +251,17 @@ export default class App {
     return true;
   }
 
-  static openMapWindow(latitude: number, longitude: number, bearing?: number): boolean {
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
-      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-      throw new Error('The map window requires valid GPS coordinates.');
+  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number): boolean {
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
+    if ((latitude !== null || longitude !== null) && !hasCoordinates) {
+      throw new Error('The map window received invalid GPS coordinates.');
     }
 
     if (App.isMapWindowOpen()) {
-      App.mapWindow.webContents.send('MapWindow.locationChanged', { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null });
+      App.mapWindow.webContents.send('MapWindow.locationChanged', hasCoordinates
+        ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null }
+        : { latitude: null, longitude: null, bearing: null });
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
       App.mapWindow.showInactive();
       return true;
@@ -257,7 +277,7 @@ export default class App {
       resizable: true,
       frame: true,
       transparent: false,
-      title: `Light Matter ${App.application.getVersion()} - MAP`,
+      title: App.windowTitle('LOCATION'),
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -265,7 +285,7 @@ export default class App {
       }
     });
     App.mapWindow.setMenu(null);
-    const mapWindowTitle = `Light Matter ${App.application.getVersion()} - MAP`;
+    const mapWindowTitle = App.windowTitle('LOCATION');
     App.mapWindow.webContents.on('page-title-updated', event => {
       event.preventDefault();
       App.mapWindow?.setTitle(mapWindowTitle);
@@ -274,7 +294,9 @@ export default class App {
     App.mapWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
-    const hash = `/map?lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}`;
+    const hash = hasCoordinates
+      ? `/map?lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}`
+      : '/map';
     if (!App.application.isPackaged) {
       App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
     } else {
