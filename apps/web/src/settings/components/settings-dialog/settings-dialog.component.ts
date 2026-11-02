@@ -50,7 +50,7 @@ export class SettingsPanelComponent {
       entry.functions.add(this.externalProgramFunction(call));
       programs.set(key, entry);
     }
-    // The bundled JPEG XR encoder is a known Light Matter helper. Its native
+    // The bundled JPEG XR encoder is a known application helper. Its native
     // invocation is not always captured by the external-process event monitor.
     const jxrEncoder = 'jxr-wic-encoder.exe';
     const jxrEntry = programs.get(jxrEncoder) ?? { programName: jxrEncoder, functions: new Set<string>() };
