@@ -127,6 +127,9 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
         </section>
       }
       <div #map class="map"></div>
+      @if (!coordinatesAvailable()) {
+        <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
+      }
     </main>
   `,
   styles: [`
@@ -208,7 +211,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
-  protected readonly coordinateLabel = signal('');
+  protected readonly coordinateLabel = signal('GPS coordinates unavailable');
+  protected readonly coordinatesAvailable = signal(false);
   protected readonly locationAddress = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
@@ -226,14 +230,43 @@ export class MapWindow implements OnInit, OnDestroy {
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
-    const latitude = Number(this.route.snapshot.queryParamMap.get('lat'));
-    const longitude = Number(this.route.snapshot.queryParamMap.get('lon'));
+    const latitudeParameter = this.route.snapshot.queryParamMap.get('lat');
+    const longitudeParameter = this.route.snapshot.queryParamMap.get('lon');
+    const latitude = latitudeParameter === null ? NaN : Number(latitudeParameter);
+    const longitude = longitudeParameter === null ? NaN : Number(longitudeParameter);
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+      this.coordinatesAvailable.set(true);
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
       void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
+    } else {
+      this.locationAddress.set('This image does not contain GPS coordinates.');
     }
+    this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
+      const nextLatitude = location.latitude;
+      const nextLongitude = location.longitude;
+      if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
+        || nextLatitude! < -90 || nextLatitude! > 90 || nextLongitude! < -180 || nextLongitude! > 180) {
+        this.coordinatesAvailable.set(false);
+        this.coordinateLabel.set('GPS coordinates unavailable');
+        this.locationAddress.set('This image does not contain GPS coordinates.');
+        this.map?.remove();
+        this.map = null;
+        this.marker = null;
+        return;
+      }
+      this.coordinatesAvailable.set(true);
+      this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
+      void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
+      this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
+      if (!this.map) {
+        void this.initialize(nextLatitude!, nextLongitude!);
+      } else {
+        this.marker?.setLatLng([nextLatitude!, nextLongitude!]);
+        this.map.setView([nextLatitude!, nextLongitude!], this.map.getZoom());
+      }
+    }) ?? null;
   }
 
   ngOnDestroy(): void {
@@ -354,14 +387,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapColor();
     this.applyMapOpacity();
     await this.restoreGpxTrack();
-    this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
-      const next: [number, number] = [location.latitude, location.longitude];
-      this.coordinateLabel.set(this.formatCoordinates(location.latitude, location.longitude));
-      void this.lookupLocationAddress(location.latitude, location.longitude);
-      this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      this.marker?.setLatLng(next);
-      this.map?.setView(next, this.map.getZoom());
-    }) ?? null;
     window.addEventListener('resize', this.onResize);
   }
 
