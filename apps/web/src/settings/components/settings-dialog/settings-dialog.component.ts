@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { CacheClearResult, CacheInfo, ExternalProcessCall, supportedFileFormats } from 'internal-api';
+import { CacheClearResult, CacheInfo, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
@@ -104,6 +104,43 @@ export class SettingsPanelComponent {
 
   protected readonly supportedFormats = supportedFileFormats;
 
+  protected readonly keyShortcuts = [
+    { keys: 'Ctrl + Win + PrtScn', action: 'Copy the topmost visible window to the clipboard', global: true, id: 'top-window' as const },
+    { keys: 'Ctrl + Shift + Win + PrtScn', action: 'Select a screen rectangle and copy it to the clipboard', global: true, id: 'rectangle' as const },
+    { keys: 'Space / → / Page Down', action: 'Show the next image', global: false, id: null },
+    { keys: '← / Page Up', action: 'Show the previous image', global: false, id: null },
+    { keys: 'Esc', action: 'Close the image view or dismiss the active dialog', global: false, id: null },
+    { keys: '+ / =', action: 'Zoom in; in the gallery, increase thumbnail size', global: false, id: null },
+    { keys: '- / _', action: 'Zoom out; in the gallery, decrease thumbnail size', global: false, id: null },
+    { keys: 'V', action: 'Cycle image comparison modes', global: false, id: null },
+    { keys: 'L', action: 'Open the location window', global: false, id: null },
+    { keys: 'C / F8', action: 'Copy the current image to the clipboard', global: false, id: null },
+    { keys: 'Shift + C', action: 'Open the Capture window', global: false, id: null },
+    { keys: 'M', action: 'Toggle the magnifier (loupe)', global: false, id: null },
+    { keys: 'I', action: 'Toggle image EXIF information', global: false, id: null },
+    { keys: 'H', action: 'Toggle the histogram', global: false, id: null },
+    { keys: 'G', action: 'Toggle the General sidebar section', global: false, id: null },
+    { keys: 'Delete', action: 'Delete the current image', global: false, id: null },
+    { keys: 'F / F11', action: 'Toggle fullscreen mode', global: false, id: null }
+  ] as const;
+
+  protected readonly globalShortcutStatuses = signal<GlobalShortcutStatus[]>([]);
+  protected readonly globalShortcutLoading = signal(true);
+  protected readonly globalShortcutError = signal<string | null>(null);
+
+  protected readonly globalShortcutStatusText = (id: GlobalShortcutStatus['id'] | null): string => {
+    if (id === null) return '—';
+    const status = this.globalShortcutStatuses().find(item => item.id === id);
+    if (!status) return this.globalShortcutLoading() ? 'Checking…' : 'Unavailable';
+    return status.active ? 'Active' : `Error: ${status.error ?? 'Registration failed'}`;
+  };
+
+  protected readonly globalShortcutStatusTitle = (id: GlobalShortcutStatus['id'] | null): string => {
+    if (id === null) return 'This shortcut is handled inside the application.';
+    const status = this.globalShortcutStatuses().find(item => item.id === id);
+    return status?.error ?? (status?.active ? 'The global shortcut is registered and active.' : 'The global shortcut is not active.');
+  };
+
   private readonly decoderFamilyFor = (extensions: readonly string[]): string => {
     const normalized = extensions.map(extension => extension.toLowerCase().replace(/^\\./, ''));
     if (normalized.includes('jxr')) return 'jpegxr';
@@ -150,12 +187,31 @@ export class SettingsPanelComponent {
     const removeExternalProcessListener = window.desktop.Profiling.onExternalProcessCall(call => {
       this.externalProcessCalls.update(calls => [...calls, call]);
     });
-    inject(DestroyRef).onDestroy(removeExternalProcessListener);
+    const destroyRef = inject(DestroyRef);
+    destroyRef.onDestroy(removeExternalProcessListener);
+    const removeShortcutStatusListener = window.desktop.Capture.onGlobalShortcutStatusChanged(statuses => {
+      this.globalShortcutStatuses.set(statuses);
+      this.globalShortcutLoading.set(false);
+      this.globalShortcutError.set(null);
+    });
+    destroyRef.onDestroy(removeShortcutStatusListener);
+    this.loadGlobalShortcutStatus().then();
     this.loadExternalProcessCalls().then();
     this.updateCacheInfo().then();
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
+
+  private readonly loadGlobalShortcutStatus = async (): Promise<void> => {
+    try {
+      this.globalShortcutStatuses.set(await window.desktop.Capture.getGlobalShortcutStatus());
+      this.globalShortcutError.set(null);
+    } catch (error) {
+      this.globalShortcutError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.globalShortcutLoading.set(false);
+    }
+  };
 
   private readonly loadExternalProcessCalls = async (): Promise<void> => {
     try {
