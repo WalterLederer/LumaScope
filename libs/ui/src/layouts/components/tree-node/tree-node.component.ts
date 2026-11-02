@@ -20,7 +20,9 @@ import { TreeNode } from './tree-node.component.types';
   host: {
     '[style.--level-offset]': 'offset()',
     '[class.selected]': 'isSelected()',
-    '(click)': 'onClick()'
+    '(click)': 'onClick()',
+    '(mouseenter)': 'hovered.emit(node())',
+    '(mouseleave)': 'hovered.emit(null)'
   }
 })
 export class TreeNodeComponent<T> {
@@ -31,6 +33,8 @@ export class TreeNodeComponent<T> {
   readonly menu = input<TemplateRef<unknown> | null>(null);
 
   readonly pressed = output<TreeNode<T>>();
+
+  readonly hovered = output<TreeNode<T> | null>();
 
   protected readonly offset = computed(() => `calc(${this.level()} * var(--dim-medium) * 3 + var(--dim-medium))`);
 
