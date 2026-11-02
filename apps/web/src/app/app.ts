@@ -40,7 +40,7 @@ export class App {
     this.setAppTitle();
   }
 
-  setAppTitle = () => this.title.setTitle('Light Matter');
+  setAppTitle = () => this.title.setTitle('LumaScope');
 
   protected readonly onDragOver = (event: DragEvent) => {
     if (event.dataTransfer?.types.includes('Files')) {
