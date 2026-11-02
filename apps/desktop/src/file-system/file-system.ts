@@ -110,6 +110,8 @@ export class FileSystem {
     sortBy: SortType,
     sortDir: SortDirection
   ): Promise<ApiResponse<FileInfo[]>> => {
+    const startedAt = Date.now();
+    console.log('[FileSystem.readImages] START', JSON.stringify({ path, sortBy, sortDir }));
     try {
       const entries = (await readdir(path, { withFileTypes: true }))
         .filter(file =>
@@ -137,7 +139,9 @@ export class FileSystem {
         success: true,
         data: files.sort(this.sortFiles(sortBy, sortDir))
       };
-    } catch (_) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[FileSystem.readImages] ERROR', JSON.stringify({ path, durationMs: Date.now() - startedAt, error: message }));
       return { success: false, errorMessage: `Failed to read directory at ${path}.` };
     }
   };
