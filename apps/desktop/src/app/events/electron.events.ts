@@ -51,7 +51,7 @@ const runExternalProcessSync = (
   const startedAt = Date.now();
   const timestamp = startedAt;
   const programName = path.basename(command);
-  console.info(`[ExternalProcess] START ${programName}`);
+  console.info(`[ExternalProcess] START ${commandLine.slice(0, 200)}${commandLine.length > 200 ? '…' : ''}`);
   try {
     const result = execFileSync(command, [...args], options);
     const durationMs = Date.now() - startedAt;
