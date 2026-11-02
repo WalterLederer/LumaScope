@@ -270,7 +270,7 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
   }
 };
 
-const getForegroundWindowHandle = (): number => {
+const getForegroundWindowHandle = (): { handle: number; processId: number } => {
   const script = String.raw`
     $ErrorActionPreference = 'Stop'
     Add-Type -TypeDefinition @'
@@ -341,7 +341,7 @@ public static class LightMatterExternalWindow {
 '@
     $handle = [LightMatterExternalWindow]::Find()
     if ($handle -eq [IntPtr]::Zero) {
-      throw 'No visible, non-minimized external application window was found.'
+      throw 'No visible, non-minimized application window was found.'
     }
     [PSCustomObject]@{
       handle = $handle.ToInt64()
