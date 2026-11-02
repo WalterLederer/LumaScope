@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
@@ -266,6 +266,17 @@ export class MapWindow implements OnInit, OnDestroy {
     { name: 'Yellow', value: '#ffd60a', textColor: '#171717' }, { name: 'Green', value: '#34c759', textColor: '#102014' },
     { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
   ] as const;
+
+  @HostListener('document:keyup', ['$event'])
+  private readonly onDocumentKeyup = (event: KeyboardEvent): void => {
+    // The location window is a separate Electron window, so the main image-view
+    // keyboard listener cannot receive shortcuts while this window has focus.
+    if (event.shiftKey && event.key.toLowerCase() === 'c'
+      && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      event.preventDefault();
+      void this.desktop?.CapturePreviewWindow.open();
+    }
+  };
 
   ngOnInit(): void {
     document.documentElement.style.backgroundColor = 'transparent';
