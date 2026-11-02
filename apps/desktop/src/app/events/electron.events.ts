@@ -475,7 +475,7 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
 };
 
 const selectCaptureRectangle = async (): Promise<{
-  deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+  deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; scaleFactor: number;
   x: number; y: number; width: number; height: number;
 }> => {
   const displays = screen.getAllDisplays();
@@ -495,7 +495,7 @@ const selectCaptureRectangle = async (): Promise<{
   const windows: Electron.BrowserWindow[] = [];
   let settled = false;
   return await new Promise<{
-    deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+    deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; scaleFactor: number;
     x: number; y: number; width: number; height: number;
   }>((resolve, reject) => {
     const cleanup = (): void => { for (const window of windows) if (!window.isDestroyed()) window.destroy(); };
@@ -558,6 +558,7 @@ const selectCaptureRectangle = async (): Promise<{
             monitorHandle: String(monitor.handle),
             screenWidth: Math.round(display.bounds.width * scale),
             screenHeight: Math.round(display.bounds.height * scale),
+            scaleFactor: scale,
             x: Math.round(selected.x * scale), y: Math.round(selected.y * scale),
             width: Math.round(selected.width * scale), height: Math.round(selected.height * scale)
           });
@@ -593,11 +594,11 @@ const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | nul
   const source = await captureHdrFrame({ kind: 'monitor', index: captureMonitorIndex });
   const scaleX = source.width / selection.screenWidth;
   const scaleY = source.height / selection.screenHeight;
-  // The visible selection outline is 2 CSS pixels wide. Keep the top edge
-  // unchanged (it already aligns correctly), and trim the other three edges
-  // so the captured image does not include pixels outside the visible box.
-  const horizontalInset = Math.max(1, Math.round(2 * scaleX));
-  const bottomInset = Math.max(1, Math.round(2 * scaleY));
+  // The selection border is 2 CSS pixels wide. Convert that inset with the
+  // display's DPI scale factor; source/screen ratios alone lose this offset
+  // when both dimensions are already expressed in physical pixels.
+  const horizontalInset = Math.max(1, Math.ceil(2 * selection.scaleFactor));
+  const bottomInset = Math.max(1, Math.ceil(2 * selection.scaleFactor));
   const left = Math.max(0, Math.round(selection.x * scaleX) + horizontalInset);
   const top = Math.max(0, Math.round(selection.y * scaleY));
   const right = Math.max(0, Math.min(source.width, Math.round((selection.x + selection.width) * scaleX)) - horizontalInset);
