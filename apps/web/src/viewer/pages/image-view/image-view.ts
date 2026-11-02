@@ -160,8 +160,7 @@ export class ImageView {
     const api = this.desktopApi?.MapWindow;
     if (!api) return;
     if (open) {
-      if (!coordinates) return;
-      await api.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined);
+      await api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined);
       this.detachedMapWindowOpen.set(true);
     } else {
       await api.close();
