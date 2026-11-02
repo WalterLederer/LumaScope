@@ -167,11 +167,21 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                     <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
                   </select>
                 </label>
-                <label>Color
-                  <select [value]="currentMarkerColor()" (change)="changeCurrentMarkerColor($any($event.target).value)">
-                    @for (color of gpxColors; track color.value) { <option [value]="color.value">{{ color.name }}</option> }
-                  </select>
-                </label>
+                <label>Color</label>
+                <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                    <span>{{ selectedCurrentMarkerColorName() }}</span>
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (currentMarkerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                </div>
               </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-row">
@@ -305,6 +315,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColor = signal(this.readSetting('markerColor', 'dynamic'));
   protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
   protected readonly markerColorMenuOpen = signal(false);
+  protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
@@ -332,6 +343,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (target instanceof Element && target.closest('.color-picker')) return;
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
+    this.currentMarkerColorMenuOpen.set(false);
   }
 
   @HostListener('window:keyup', ['$event'])
@@ -498,8 +510,17 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleMarkerColorMenu = (): void => {
     const open = !this.markerColorMenuOpen();
     this.colorMenuOpen.set(false);
+    this.currentMarkerColorMenuOpen.set(false);
     this.markerColorMenuOpen.set(open);
   };
+  protected readonly toggleCurrentMarkerColorMenu = (): void => {
+    const open = !this.currentMarkerColorMenuOpen();
+    this.colorMenuOpen.set(false);
+    this.markerColorMenuOpen.set(false);
+    this.currentMarkerColorMenuOpen.set(open);
+  };
+  protected readonly selectedCurrentMarkerColorName = (): string => this.gpxColors.find(color => color.value === this.currentMarkerColor())?.name ?? 'Red';
+  protected readonly selectedCurrentMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.currentMarkerColor())?.textColor ?? '#ffffff';
   protected readonly selectedMarkerColorName = (): string => this.markerColor() === 'dynamic' ? 'Dynamic' : this.gpxColors.find(color => color.value === this.markerColor())?.name ?? 'Green';
   protected readonly selectedMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.textColor ?? '#102014';
   protected readonly changeMarkerShape = (value: string): void => {
@@ -514,6 +535,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeCurrentMarkerColor = (value: string): void => {
     if (!this.gpxColors.some(color => color.value === value)) return;
     this.currentMarkerColor.set(value); this.saveSetting('currentMarkerColor', value);
+    this.currentMarkerColorMenuOpen.set(false);
     this.marker?.setIcon(this.createCurrentLocationIcon());
   };
   protected readonly changeMarkerColor = (value: string): void => {
