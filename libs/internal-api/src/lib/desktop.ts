@@ -172,6 +172,7 @@ export interface DesktopCapture {
   readonly capture: (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number) => Promise<CaptureResult>;
   readonly copyPreviewToClipboard: (pngData: Uint8Array) => Promise<CaptureResult>;
   readonly onTopWindowClipboardHotkey: (callback: () => void) => () => void;
+  readonly onRectangleClipboardHotkey: (callback: () => void) => () => void;
 }
 
 export interface DesktopHistogram {
