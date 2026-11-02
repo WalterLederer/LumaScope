@@ -103,6 +103,12 @@
           <span class="capture-brightness-value">{{ captureBrightness().toFixed(2) }}×</span>
           <button type="button" class="capture-brightness-reset" (click)="setCaptureBrightness(1)" [disabled]="capturing() || previewing()" title="Reset brightness to 1.00×" aria-label="Reset brightness to 1.00×">Reset</button>
         </label>
+        <label class="capture-field capture-gamma-option">
+          <span>
+            <input type="checkbox" [checked]="useFixedSdrReference()" (change)="setUseFixedSdrReference($any($event.target).checked)" [disabled]="capturing() || previewing()"/>
+            Fixed SDR reference + HDR highlight compression
+          </span>
+        </label>
         <div class="capture-clipboard-actions">
           <button type="button" class="capture-secondary-button capture-inline-button capture-preview-action-button" (click)="previewNow()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ previewing() ? 'Previewing…' : 'Preview' }}
@@ -162,7 +168,7 @@
           <span>Gamma value: {{ gammaCorrectionValue().toFixed(2) }}</span>
           <input type="range" min="0.1" max="2.2" step="0.05" [value]="gammaCorrectionValue()" (input)="setGammaCorrectionValue($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing() || !applyGammaCorrectionOnSave()"/>
         </label>
-        <p class="capture-format-note">Adaptive SDR brightness (preview + clipboard): 1.09× for SDR-range captures · 2.70× for HDR-range captures</p>
+        <p class="capture-format-note">{{ useFixedSdrReference() ? 'Fixed SDR reference: SDR white at 75% output with a smooth highlight shoulder into the remaining 25%.' : 'Legacy adaptive SDR exposure: 1.09× for SDR-range captures · 2.70× for HDR-range captures.' }}</p>
         @if (selectedFormat() !== 'exr') {
           <label class="capture-field capture-quality-slider">
             <span>Encoder quality: {{ encoderQuality() }}%</span>
