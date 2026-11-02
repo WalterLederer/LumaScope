@@ -203,6 +203,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
     :host ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
+    :host ::ng-deep .leaflet-marker-icon.marker-cluster{opacity:var(--marker-opacity,1)!important}
     :host ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
     :host ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;gap:4px;max-width:190px}
     :host ::ng-deep .folder-marker-preview img{display:block;width:180px;height:120px;object-fit:cover;border-radius:3px;background:#222}
@@ -565,6 +566,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
+    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(this.markerOpacity() / 100));
     this.map.on('zoomend', () => {
       const zoom = this.validZoom(this.map?.getZoom() ?? this.zoomLevel());
       this.zoomLevel.set(zoom);
@@ -619,6 +621,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
     const markerOpacity = next / 100;
+    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
     this.marker?.setOpacity(markerOpacity);
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
   };
