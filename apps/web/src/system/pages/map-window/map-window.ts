@@ -126,7 +126,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
-          <details class="settings-group marker-settings" (toggle)="onMarkerSectionToggle($event)">
+          <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
             <summary>Marker</summary>
             <div class="marker-settings-content">
               <div class="marker-description">Show all geotagged images in this folder</div>
@@ -249,6 +249,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
+  protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(false);
   protected readonly markerFilesChecked = signal(0);
   protected readonly markerFilesTotal = signal(0);
@@ -436,7 +437,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly onMarkerSectionToggle = (event: Event): void => {
     const section = event.currentTarget;
-    if (section instanceof HTMLDetailsElement && section.open && !this.directoryMarkersEnabled()) {
+    if (!(section instanceof HTMLDetailsElement)) return;
+    this.markerSectionOpen.set(section.open);
+    this.saveSetting('markerSectionOpen', section.open);
+    if (section.open && !this.directoryMarkersEnabled()) {
       this.directoryMarkersEnabled.set(true);
       void this.scanDirectoryMarkers();
     }
