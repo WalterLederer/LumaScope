@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, DatePipe, DestroyRef, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { CacheClearResult, CacheInfo, ExternalProcessCall, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
