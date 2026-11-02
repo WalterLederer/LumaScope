@@ -285,7 +285,6 @@ using System.Text;
 public static class LightMatterExternalWindow {
   private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
   private static IntPtr result;
-  private static uint excludedProcessId;
 
   [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
   [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
@@ -303,7 +302,7 @@ public static class LightMatterExternalWindow {
 
     uint processId;
     GetWindowThreadProcessId(hWnd, out processId);
-    if (processId == 0 || processId == excludedProcessId) return true;
+    if (processId == 0) return true;
 
     // Ignore owned/tool windows and tiny helper surfaces. EnumWindows is already
     // in Z-order, so the first remaining entry is the topmost real application window.
@@ -325,9 +324,8 @@ public static class LightMatterExternalWindow {
     return false;
   }
 
-  public static IntPtr Find(uint ownProcessId) {
+  public static IntPtr Find() {
     result = IntPtr.Zero;
-    excludedProcessId = ownProcessId;
     EnumWindows(new EnumWindowsProc(VisitWindow), IntPtr.Zero);
     return result;
   }
@@ -345,7 +343,7 @@ public static class LightMatterExternalWindow {
   }
 }
 '@
-    $handle = [LightMatterExternalWindow]::Find([uint32]$env:LIGHT_MATTER_PROCESS_ID)
+    $handle = [LightMatterExternalWindow]::Find()
     if ($handle -eq [IntPtr]::Zero) {
       throw 'No visible, non-minimized external application window was found.'
     }
@@ -361,13 +359,12 @@ public static class LightMatterExternalWindow {
     encoding: 'utf8',
     windowsHide: true,
     timeout: 5000,
-    env: { ...process.env, LIGHT_MATTER_PROCESS_ID: String(process.pid) }
+    env: { ...process.env }
   }).toString().trim();
   const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
   if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0
-    || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0
-    || foreground.processId === process.pid) {
-    throw new Error('No visible, non-minimized external application window was found.');
+    || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0) {
+    throw new Error('No visible, non-minimized application window was found.');
   }
   return foreground.handle;
 };
@@ -466,9 +463,8 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
     return cropWindowFromMonitorFrame(handle,key);
   }
 
-  // Find the topmost external application window without hiding Light Matter.
-  // The window enumeration explicitly excludes this process, so the capture UI
-  // can remain visible while the selected external window is cropped.
+  // Find the topmost visible application window in native Z-order.
+  // Light Matter/LumaScope windows are intentionally included.
   const handle=getForegroundWindowHandle();
   // Use the same native HWND capture path as an explicitly selected application
   // window. Cropping a monitor capture can accidentally retain the full desktop
@@ -594,10 +590,7 @@ const captureRectangleFrame = async (_ownerWindow?: Electron.BrowserWindow | nul
   if (!monitor) throw new Error('The selected display "' + selection.deviceName + '" could not be matched to an HDR capture monitor.');
 
   const captureMonitorIndex = monitors.indexOf(monitor) + 1;
-  console.info('[HDR Capture] Native Electron rectangle source mapping', {
-    selectedDeviceName: selection.deviceName, selectedMonitorHandle: selection.monitorHandle,
-    captureMonitorDeviceName: monitor.deviceName, captureMonitorHandle: String(monitor.handle), captureMonitorIndex
-  });
+  // Resolve the selected display to the matching native HDR capture monitor.
   const source = await captureHdrFrame({ kind: 'monitor', index: captureMonitorIndex });
   const scaleX = source.width / selection.screenWidth;
   const scaleY = source.height / selection.screenHeight;
