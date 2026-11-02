@@ -1230,8 +1230,9 @@ public static class LightMatterWindowEnumerator {
   return { monitors, windows, sourceErrors };
 });
 
-ipcMain.handle('Capture.chooseFolder', async (_event, initialPath?: string): Promise<string | null> => {
-  const result = await dialog.showOpenDialog(App.mainWindow, {
+ipcMain.handle('Capture.chooseFolder', async (event, initialPath?: string): Promise<string | null> => {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender) ?? App.mainWindow;
+  const result = await dialog.showOpenDialog(parentWindow, {
     title: 'Choose HDR capture folder',
     defaultPath: initialPath || undefined,
     properties: [ 'openDirectory', 'createDirectory' ]
