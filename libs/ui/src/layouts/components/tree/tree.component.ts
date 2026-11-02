@@ -28,8 +28,10 @@ export class TreeComponent<T> {
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
 
   constructor() {
+    console.warn('[Tree] CONSTRUCTOR START');
     effect(() => {
       const incoming = this.root();
+      console.warn('[Tree] ROOT INPUT', { id: incoming.id, childCount: incoming.children?.length ?? null });
       const current = this.treeRoot();
       this.treeRoot.set(current === null ? incoming : this.mergeTreeState(incoming, current));
     });
