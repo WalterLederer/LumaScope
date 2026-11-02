@@ -1596,6 +1596,7 @@ const readFolder = async (folder: string): Promise<string[]> =>
 ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean =>
   App.openMapWindow(latitude, longitude, bearing, imagePath)
 );
+ipcMain.handle('MapWindow.getLocation', () => App.mapWindowLocation);
 ipcMain.handle('MapWindow.selectImage', (_event, imagePath: string): boolean => {
   if (!imagePath || !App.mainWindow || App.mainWindow.isDestroyed()) return false;
   App.mainWindow.webContents.send('MapWindow.imageSelected', imagePath);
