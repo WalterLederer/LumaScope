@@ -2,6 +2,10 @@
   display: block;
 }
 
+.tree-branch.root-folder + .tree-branch.root-folder {
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+
 .children-container {
   display: grid;
   grid-template-rows: 1fr;
