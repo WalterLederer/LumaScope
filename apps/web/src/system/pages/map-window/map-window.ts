@@ -32,15 +32,13 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
+        <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
+                [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">{{ settingsOpen() ? 'v Settings' : '> Settings' }}</button>
         <div class="map-title"><span class="map-title-icon">⌖</span><strong>Location</strong></div>
         <span class="map-coordinates">{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
-        <div class="map-title-actions">
-          <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
-                  [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">⚙ <span>Settings</span></button>
-        </div>
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
@@ -128,10 +126,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
-          <details class="settings-group marker-settings">
+          <details class="settings-group marker-settings" (toggle)="onMarkerSectionToggle($event)">
             <summary>Marker</summary>
             <div class="marker-settings-content">
-              <label class="marker-enable"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="toggleDirectoryMarkers($any($event.target).checked)"> Show all geotagged images in this folder</label>
+              <div class="marker-description">Show all geotagged images in this folder</div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
                 <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
@@ -155,15 +153,15 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
   styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
-    .map-titlebar{-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
-    .map-title,.map-title-actions{display:flex;align-items:center;gap:10px;min-width:0}.map-title{font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
+    .map-titlebar{-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
-    .titlebar-always-on-top{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
+    .titlebar-always-on-top{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px;margin-left:auto}
     .titlebar-always-on-top input{accent-color:#8ab4f8}
-    .map-title-actions{margin-left:auto}.map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
+    .map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
-    .settings-toggle{height:28px;white-space:nowrap}.settings-toggle span{margin-left:3px}
+    .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -176,10 +174,10 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .marker-settings summary{cursor:pointer;font-weight:600;white-space:nowrap}
     .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
-    .marker-enable{display:flex;align-items:center;gap:6px;white-space:normal}.marker-enable input{accent-color:#8ab4f8}
+    .marker-description{flex:0 0 100%;color:var(--color-content-default-medium,#aaa);font-size:12px}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
     .marker-progress{width:100%;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
-    .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
+    .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:0;padding:7px 0 0;gap:8px}
     .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .gpx-filename{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
@@ -272,8 +270,8 @@ export class MapWindow implements OnInit, OnDestroy {
   onDocumentKeyup(event: KeyboardEvent): void {
     // The location window is a separate Electron window, so the main image-view
     // keyboard listener cannot receive shortcuts while this window has focus.
-    if (event.shiftKey && event.key.toLowerCase() === 'c'
-      && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    if (event.key.toLowerCase() === 's'
+      && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
       event.preventDefault();
       void this.desktop?.CapturePreviewWindow.open();
     }
@@ -436,10 +434,12 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private validZoom(value: number): number { return Math.max(1, Math.min(20, Math.round(value))); }
 
-  protected readonly toggleDirectoryMarkers = (enabled: boolean): void => {
-    this.directoryMarkersEnabled.set(enabled);
-    if (enabled) void this.scanDirectoryMarkers();
-    else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerStatus.set('Folder markers hidden. Cached GPS data is kept for this session.'); }
+  protected readonly onMarkerSectionToggle = (event: Event): void => {
+    const section = event.currentTarget;
+    if (section instanceof HTMLDetailsElement && section.open && !this.directoryMarkersEnabled()) {
+      this.directoryMarkersEnabled.set(true);
+      void this.scanDirectoryMarkers();
+    }
   };
   private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.directoryMarkers.length = 0; this.markerCount.set(0); }
   private createImageMarkerIcon(selected: boolean): unknown {
