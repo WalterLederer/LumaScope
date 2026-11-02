@@ -51,7 +51,7 @@ const runExternalProcessSync = (
   const startedAt = Date.now();
   const timestamp = startedAt;
   const programName = path.basename(command);
-  console.info(`[ExternalProcess] START ${commandLine}`);
+  console.info(`[ExternalProcess] START ${programName}`);
   try {
     const result = execFileSync(command, [...args], options);
     const durationMs = Date.now() - startedAt;
@@ -65,7 +65,7 @@ const runExternalProcessSync = (
       signal: null
     };
     publishExternalProcessCall(call);
-    console.info(`[ExternalProcess] EXIT code=0 duration=${durationMs}ms command=${commandLine}`);
+    console.info(`[ExternalProcess] EXIT ${programName} code=0 duration=${durationMs}ms`);
     return result;
   } catch (error) {
     const processError = error as NodeJS.ErrnoException & { status?: number | null; signal?: string | null };
@@ -80,7 +80,8 @@ const runExternalProcessSync = (
       signal: processError.signal ?? null
     };
     publishExternalProcessCall(call);
-    console.error(`[ExternalProcess] EXIT code=${processError.status ?? 'unknown'} signal=${processError.signal ?? 'none'} duration=${durationMs}ms command=${commandLine}`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[ExternalProcess] EXIT ${programName} code=${processError.status ?? 'unknown'} signal=${processError.signal ?? 'none'} duration=${durationMs}ms: ${errorMessage}`);
     throw error;
   }
 };
