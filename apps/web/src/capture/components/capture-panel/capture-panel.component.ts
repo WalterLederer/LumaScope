@@ -66,6 +66,12 @@ export class CapturePanelComponent {
   protected readonly previewing = signal(false);
   protected readonly previewFrame = signal<CapturePreview | null>(null);
   protected readonly captureBrightness = signal<number>(this.readSavedCaptureBrightness());
+  protected readonly useFixedSdrReference = signal(this.readSavedFixedSdrReference());
+  protected readonly setUseFixedSdrReference = (enabled: boolean): void => {
+    this.useFixedSdrReference.set(enabled);
+    try { localStorage.setItem('capture.fixedSdrReference', String(enabled)); }
+    catch { /* keep the current-session preference if storage is unavailable */ }
+  };
   protected readonly previewSize = signal('');
   protected readonly sdrPreviewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('sdrPreviewCanvas');
   protected readonly previewCanvas = viewChild<ElementRef<HTMLCanvasElement>>('previewCanvas');
@@ -265,6 +271,11 @@ export class CapturePanelComponent {
       if (Number.isFinite(value) && value >= 0.1 && value <= 2.2) return value;
     } catch { /* use the default when storage is unavailable */ }
     return 1.3;
+  }
+
+  private readSavedFixedSdrReference(): boolean {
+    try { return localStorage.getItem('capture.fixedSdrReference') === 'true'; }
+    catch { return false; }
   }
 
   private readSavedCaptureBrightness(): number {
@@ -606,6 +617,133 @@ export class CapturePanelComponent {
   };
 
   private readonly applySdrToneMapping = (imageData: ImageData, frame: CapturePreview, previewBrightness = 1): void => {
+    if (this.useFixedSdrReference()) {
+      this.applyFixedSdrReferenceToneMapping(imageData, frame, previewBrightness);
+      return;
+    }
+    this.applyLegacySdrToneMapping(imageData, frame, previewBrightness);
+  };
+
+  private readonly applyFixedSdrReferenceToneMapping = (imageData: ImageData, frame: CapturePreview, previewBrightness: number): void => {
+    const pixels = imageData.data;
+    const source = frame.pixels;
+    const pixelCount = frame.width * frame.height;
+    const luminances = new Float32Array(pixelCount);
+    const histogram = new Uint32Array(32768);
+    const logMin = Math.log(0.000001);
+    const logMax = Math.log(65504);
+    const logRange = logMax - logMin;
+    let maxLuminance = 0;
+    let maxR = 0, maxG = 0, maxB = 0;
+    let above05 = 0, above1 = 0, above2 = 0, above4 = 0;
+
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const offset = pixel * 4;
+      const rawR = halfFloatLookup[source[offset]];
+      const rawG = halfFloatLookup[source[offset + 1]];
+      const rawB = halfFloatLookup[source[offset + 2]];
+      const r = Number.isFinite(rawR) ? Math.max(0, rawR) : rawR === Infinity ? 65504 : 0;
+      const g = Number.isFinite(rawG) ? Math.max(0, rawG) : rawG === Infinity ? 65504 : 0;
+      const b = Number.isFinite(rawB) ? Math.max(0, rawB) : rawB === Infinity ? 65504 : 0;
+      const peak = Math.max(r, g, b);
+      maxR = Math.max(maxR, r); maxG = Math.max(maxG, g); maxB = Math.max(maxB, b);
+      if (peak > 0.5) above05++;
+      if (peak > 1) above1++;
+      if (peak > 2) above2++;
+      if (peak > 4) above4++;
+      const luminance = r * 0.2126 + g * 0.7152 + b * 0.0722;
+      luminances[pixel] = luminance;
+      maxLuminance = Math.max(maxLuminance, luminance);
+      if (luminance > 0) {
+        const bin = Math.min(histogram.length - 1, Math.max(0,
+          Math.floor((Math.log(Math.min(luminance, 65504)) - logMin) / logRange * histogram.length)));
+        histogram[bin]++;
+      }
+    }
+
+    // Estimate SDR reference white robustly, ignoring at most the brightest 0.01%.
+    // Keep a 15% margin so isolated bright highlights do not redefine SDR white.
+    const target = Math.max(1, Math.ceil(pixelCount * 0.9999));
+    let cumulative = 0;
+    let p9999 = 0;
+    for (let bin = 0; bin < histogram.length; bin++) {
+      cumulative += histogram[bin];
+      if (cumulative >= target) {
+        p9999 = Math.exp(logMin + ((bin + 0.5) / histogram.length) * logRange);
+        break;
+      }
+    }
+    const sdrReferenceWhite = Math.max(1, p9999 * 1.15);
+    const linearHighlightFraction = 0.75;
+    const shoulderStart = sdrReferenceWhite;
+    const shoulderRange = Math.max(0, maxLuminance - shoulderStart);
+    const shoulderHeight = 1 - linearHighlightFraction;
+    const normalizedShoulderRange = shoulderRange > 0
+      ? linearHighlightFraction * shoulderRange / (shoulderStart * shoulderHeight)
+      : 0;
+
+    // Preserve a linear SDR range up to the fixed reference white (75% output).
+    // Compress only values above that reference into the remaining 25% highlight headroom.
+    let curvature = 0;
+    if (normalizedShoulderRange > 1.000001) {
+      let low = 0;
+      let high = Math.max(2, normalizedShoulderRange * 2);
+      for (let iteration = 0; iteration < 48; iteration++) {
+        const middle = (low + high) * 0.5;
+        const ratio = middle / (1 - Math.exp(-middle));
+        if (ratio < normalizedShoulderRange) low = middle;
+        else high = middle;
+      }
+      curvature = (low + high) * 0.5;
+    }
+    const exponentialDenominator = curvature > 0 ? 1 - Math.exp(-curvature) : 1;
+    let whitePixels = 0;
+
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const offset = pixel * 4;
+      const rawR = halfFloatLookup[source[offset]];
+      const rawG = halfFloatLookup[source[offset + 1]];
+      const rawB = halfFloatLookup[source[offset + 2]];
+      const r = Number.isFinite(rawR) ? Math.max(0, rawR) : rawR === Infinity ? 65504 : 0;
+      const g = Number.isFinite(rawG) ? Math.max(0, rawG) : rawG === Infinity ? 65504 : 0;
+      const b = Number.isFinite(rawB) ? Math.max(0, rawB) : rawB === Infinity ? 65504 : 0;
+      const luminance = luminances[pixel];
+      let mappedLuminance = 0;
+      if (luminance > 0) {
+        if (luminance <= shoulderStart || shoulderRange <= 0) {
+          mappedLuminance = linearHighlightFraction * luminance / sdrReferenceWhite;
+        } else {
+          const t = Math.min(1, (luminance - shoulderStart) / shoulderRange);
+          const shoulder = curvature > 0
+            ? (1 - Math.exp(-curvature * t)) / exponentialDenominator
+            : t;
+          mappedLuminance = linearHighlightFraction + shoulderHeight * shoulder;
+        }
+      }
+      const scale = luminance > 0 ? mappedLuminance / luminance : 0;
+      const outputR = Math.min(1, Math.max(0, r * scale * previewBrightness));
+      const outputG = Math.min(1, Math.max(0, g * scale * previewBrightness));
+      const outputB = Math.min(1, Math.max(0, b * scale * previewBrightness));
+      const toSrgb = (linear: number): number => linear <= 0.0031308
+        ? linear * 12.92
+        : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+      pixels[offset] = Math.round(Math.min(1, Math.max(0, toSrgb(outputR))) * 255);
+      pixels[offset + 1] = Math.round(Math.min(1, Math.max(0, toSrgb(outputG))) * 255);
+      pixels[offset + 2] = Math.round(Math.min(1, Math.max(0, toSrgb(outputB))) * 255);
+      pixels[offset + 3] = 255;
+      if (pixels[offset] === 255 && pixels[offset + 1] === 255 && pixels[offset + 2] === 255) whitePixels++;
+    }
+
+    this.sdrDiagnostics.set({
+      maxR, maxG, maxB, above05, above1, above2, above4, whitePixels,
+      brightnessFactor: previewBrightness, captureRange: 'HDR-range', maxLuminance,
+      p95: 0, p99: 0, p999: 0, p9999: p9999,
+      diagnosticP95: 0, diagnosticP99: 0, diagnosticP999: 0, diagnosticP9999: 0,
+      above3: 0, above31: 0, above32: 0, above324: 0, pixelCount
+    });
+  };
+
+  private readonly applyLegacySdrToneMapping = (imageData: ImageData, frame: CapturePreview, previewBrightness = 1): void => {
     const pixels = imageData.data;
     const source = frame.pixels;
     const pixelCount = frame.width * frame.height;
