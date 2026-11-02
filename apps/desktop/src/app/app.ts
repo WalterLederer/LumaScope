@@ -175,7 +175,7 @@ export default class App {
       minHeight: 320,
       resizable: true,
       show: false,
-      title: `Light Matter ${App.application.getVersion()} - CAPTURE PREVIEW`,
+      title: `Light Matter ${App.application.getVersion()} - CAPTURE`,
       webPreferences: {
         contextIsolation: true,
         backgroundThrottling: false,
@@ -183,7 +183,7 @@ export default class App {
       }
     });
     App.capturePreviewWindow.setMenu(null);
-    const capturePreviewWindowTitle = `Light Matter ${App.application.getVersion()} - CAPTURE PREVIEW`;
+    const capturePreviewWindowTitle = `Light Matter ${App.application.getVersion()} - CAPTURE`;
     App.capturePreviewWindow.webContents.on('page-title-updated', event => {
       event.preventDefault();
       App.capturePreviewWindow?.setTitle(capturePreviewWindowTitle);
