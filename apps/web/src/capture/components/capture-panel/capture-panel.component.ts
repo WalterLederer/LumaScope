@@ -4,6 +4,7 @@ import { CaptureFormat, CaptureMonitor, CapturePreview, CaptureTarget, CaptureWi
 import { filter, take } from 'rxjs';
 import { CaptureService } from '../../../ipc/capture';
 import { CapturePreviewStore } from '../../capture-preview-store';
+import { CaptureHotkeyService } from '../../capture-hotkey.service';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 
@@ -46,6 +47,7 @@ type CaptureSourceRow = {
 export class CapturePanelComponent {
   private readonly captureService = inject(CaptureService);
   private readonly capturePreviewStore = inject(CapturePreviewStore);
+  private readonly captureHotkeyService = inject(CaptureHotkeyService);
   private readonly galleryState = inject(GalleryState);
   private readonly galleryLocations = inject(GalleryLocations);
   private readonly destroyRef = inject(DestroyRef);
@@ -335,17 +337,14 @@ export class CapturePanelComponent {
         if (!this.destinationFolder()) this.destinationFolder.set(path);
       });
 
-    const unsubscribeTopWindowHotkey = this.captureService.onTopWindowClipboardHotkey(() => {
-      void this.copyToClipboardTopWindow();
+    effect(() => {
+      const action = this.captureHotkeyService.pendingAction();
+      if (!action) return;
+      this.captureHotkeyService.consume();
+      if (action === 'top-window') void this.copyToClipboardTopWindow();
+      else void this.copyToClipboardRectangle();
     });
-    const unsubscribeRectangleHotkey = this.captureService.onRectangleClipboardHotkey(() => {
-      void this.copyToClipboardRectangle();
-    });
-    this.destroyRef.onDestroy(() => {
-      unsubscribeTopWindowHotkey();
-      unsubscribeRectangleHotkey();
-      this.disposeHdrPreview();
-    });
+    this.destroyRef.onDestroy(() => this.disposeHdrPreview());
     effect(() => {
       const frame = this.previewFrame();
       const canvas = this.previewCanvas()?.nativeElement;
