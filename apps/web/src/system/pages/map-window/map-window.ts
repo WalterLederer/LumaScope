@@ -5,6 +5,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; getLatLng(): { lat: number; lng: number }; }
 interface MapBounds { isValid(): boolean; }
+interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; remove(): void; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
@@ -18,7 +19,8 @@ interface LeafletMapApi {
   map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number }): MapInstance;
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): { addTo(map: MapInstance): { remove(): void } };
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string }): { addTo(map: MapInstance): { remove(): void } };
-  marker(position: [number, number]): MapMarker & { addTo(map: MapInstance): MapMarker };
+  marker(position: [number, number]): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
+  markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean }): MapMarkerGroup;
 }
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
@@ -120,6 +122,18 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
             @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
             @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
           </div>
+          <details class="settings-group marker-settings">
+            <summary>Marker</summary>
+            <div class="marker-settings-content">
+              <label class="marker-enable"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="toggleDirectoryMarkers($any($event.target).checked)"> Show all geotagged images in this folder</label>
+              @if (directoryMarkersEnabled()) {
+                <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
+                <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span><span>EXIF read errors: <strong>{{ markerExifErrors() }}</strong></span></div>
+                <div class="marker-status" role="status">{{ markerStatus() }}</div>
+              }
+            </div>
+          </details>
           <div class="settings-group address-settings">
             <strong class="settings-row-title">Address:</strong>
             <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
@@ -153,6 +167,12 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .zoom-settings{flex:1;min-width:260px}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
+    .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
+    .marker-settings summary{cursor:pointer;font-weight:600;white-space:nowrap}
+    .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
+    .marker-enable{display:flex;align-items:center;gap:6px;white-space:normal}.marker-enable input{accent-color:#8ab4f8}
+    .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
+    .marker-progress{width:100%;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
     .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
@@ -194,6 +214,9 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
   private marker: MapMarker | null = null;
+  private directoryMarkerGroup: MapMarkerGroup | null = null;
+  private currentImagePath: string | null = null;
+  private markerScanGeneration = 0;
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
@@ -213,6 +236,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
+  protected readonly directoryMarkersEnabled = signal(false);
+  protected readonly markerFilesChecked = signal(0);
+  protected readonly markerFilesTotal = signal(0);
+  protected readonly markerCount = signal(0);
+  protected readonly markerExifErrors = signal(0);
+  protected readonly markerStatus = signal('');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
   protected readonly coordinatesAvailable = signal(false);
   protected readonly locationAddress = signal('');
@@ -229,6 +258,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
+    this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
@@ -246,6 +276,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.locationAddress.set('This image does not contain GPS coordinates.');
     }
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
+      const previousDirectory = this.currentImagePath ? this.currentImagePath.replace(/[\\/][^\\/]*$/, '').toLowerCase() : '';
+      this.currentImagePath = location.imagePath ?? null;
+      const nextDirectory = this.currentImagePath ? this.currentImagePath.replace(/[\\/][^\\/]*$/, '').toLowerCase() : '';
+      if (this.directoryMarkersEnabled() && previousDirectory !== nextDirectory) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
@@ -256,6 +290,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.map?.remove();
         this.map = null;
         this.marker = null;
+        this.clearDirectoryMarkers();
         return;
       }
       this.coordinatesAvailable.set(true);
@@ -273,6 +308,8 @@ export class MapWindow implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.unsubscribeLocation?.();
+    this.markerScanGeneration++;
+    this.clearDirectoryMarkers();
     window.removeEventListener('resize', this.onResize);
     this.map?.remove();
     this.map = null;
@@ -374,6 +411,54 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private validZoom(value: number): number { return Math.max(1, Math.min(20, Math.round(value))); }
 
+  protected readonly toggleDirectoryMarkers = (enabled: boolean): void => {
+    this.directoryMarkersEnabled.set(enabled);
+    if (enabled) void this.scanDirectoryMarkers();
+    else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set(''); }
+  };
+  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }
+  private parseExifCoordinate(value: unknown, reference: unknown): number | null {
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    const parts = String(value).match(/-?\d+(?:\.\d+)?/g); if (!parts?.length) return null;
+    const degrees = Math.abs(Number(parts[0])), minutes = Number(parts[1] ?? 0), seconds = Number(parts[2] ?? 0);
+    if (![degrees, minutes, seconds].every(Number.isFinite) || minutes >= 60 || seconds >= 60) return null;
+    let result = degrees + minutes / 60 + seconds / 3600; const ref = String(reference ?? '').toLowerCase();
+    if (String(parts[0]).startsWith('-') || ['s', 'south', 'w', 'west'].includes(ref)) result *= -1;
+    return Number.isFinite(result) ? result : null;
+  }
+  private async scanDirectoryMarkers(): Promise<void> {
+    const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, desktop = this.desktop;
+    if (!imagePath || !desktop || !this.directoryMarkerGroup) { this.clearDirectoryMarkers(); this.markerStatus.set('No image folder is available.'); return; }
+    this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set('Reading folder…');
+    try {
+      const directory = await desktop.FileSystem.dirname(imagePath);
+      const response = await desktop.FileSystem.readImages(directory, 'name', 'asc');
+      if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+      if (!response.success) throw new Error(response.errorMessage);
+      const files = response.data.filter(file => !file.isDirectory); this.markerFilesTotal.set(files.length); this.markerStatus.set('Scanning GPS metadata…');
+      let nextIndex = 0;
+      const worker = async (): Promise<void> => {
+        while (generation === this.markerScanGeneration && this.directoryMarkersEnabled()) {
+          const index = nextIndex++; if (index >= files.length) return; const file = files[index];
+          try {
+            const exif = await desktop.Exif.read(file.path); if (generation !== this.markerScanGeneration) return;
+            if (!exif.success) this.markerExifErrors.update(value => value + 1);
+            else {
+              const tags = exif.data as Record<string, unknown>;
+              const latitude = this.parseExifCoordinate(tags['GPSLatitude'], tags['GPSLatitudeRef']);
+              const longitude = this.parseExifCoordinate(tags['GPSLongitude'], tags['GPSLongitudeRef']);
+              if (latitude !== null && longitude !== null && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 && file.path.toLowerCase() !== imagePath.toLowerCase()) {
+                this.directoryMarkerGroup?.addLayer(this.leaflet!.marker([latitude, longitude])); this.markerCount.update(value => value + 1);
+              }
+            }
+          } catch { if (generation === this.markerScanGeneration) this.markerExifErrors.update(value => value + 1); }
+          finally { if (generation === this.markerScanGeneration) this.markerFilesChecked.update(value => value + 1); }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, files.length) }, () => worker()));
+      if (generation === this.markerScanGeneration) this.markerStatus.set('Completed: ' + this.markerFilesChecked() + ' files checked.');
+    } catch (error) { if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Folder scan failed.'); }
+  }
   private async initialize(latitude: number, longitude: number): Promise<void> {
     this.leaflet = await this.loadLeaflet();
     const center: [number, number] = [latitude, longitude];
@@ -385,6 +470,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('zoom', zoom);
     });
     this.marker = this.leaflet.marker(center).addTo(this.map);
+    this.directoryMarkerGroup = this.leaflet.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true }).addTo(this.map);
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     this.applyMapStyle();
     this.applyMapColor();
     this.applyMapOpacity();
@@ -533,7 +620,11 @@ export class MapWindow implements OnInit, OnDestroy {
       const script = document.createElement('script'); script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       script.onload = () => {
         const api = (window as Window & { L?: LeafletMapApi }).L;
-        if (api) resolve(api); else reject(new Error('Leaflet loaded without exposing its API.'));
+        if (!api) { reject(new Error('Leaflet loaded without exposing its API.')); return; }
+        const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(css);
+        const theme = document.createElement('link'); theme.rel = 'stylesheet'; theme.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(theme);
+        const plugin = document.createElement('script'); plugin.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+        plugin.onload = () => resolve(api); plugin.onerror = () => reject(new Error('Unable to load Leaflet marker clustering.')); document.head.appendChild(plugin);
       };
       script.onerror = () => reject(new Error('Unable to load Leaflet.'));
       document.head.appendChild(script);
