@@ -51,7 +51,6 @@ const runExternalProcessSync = (
   const startedAt = Date.now();
   const timestamp = startedAt;
   const programName = path.basename(command);
-  console.info(`[ExternalProcess] START ${commandLine.slice(0, 200)}${commandLine.length > 200 ? '…' : ''}`);
   try {
     const result = execFileSync(command, [...args], options);
     const durationMs = Date.now() - startedAt;
@@ -65,7 +64,6 @@ const runExternalProcessSync = (
       signal: null
     };
     publishExternalProcessCall(call);
-    console.info(`[ExternalProcess] EXIT ${programName} code=0 duration=${durationMs}ms`);
     return result;
   } catch (error) {
     const processError = error as NodeJS.ErrnoException & { status?: number | null; signal?: string | null };
@@ -224,12 +222,10 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
     minimumUpdateIntervalMs: 0
   });
   if (!captureCapabilities.borderSettings) {
-    console.info('[HDR Capture] Border control is unavailable; using the Windows default capture border.');
   }
   let phase = 'initialize capture';
   const logPhase = (nextPhase: string): void => {
     phase = nextPhase;
-    console.info(`[HDR Capture] ${phase}`);
   };
   try {
     logPhase('start native capture session');
@@ -366,7 +362,7 @@ public static class LightMatterExternalWindow {
     || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0) {
     throw new Error('No visible, non-minimized application window was found.');
   }
-  return foreground.handle;
+  return { handle: foreground.handle, processId: foreground.processId };
 };
 
 const getWindowMonitorGeometry = (handle: number): {
@@ -465,13 +461,16 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
 
   // Find the topmost visible application window in native Z-order.
   // Light Matter/LumaScope windows are intentionally included.
-  const handle=getForegroundWindowHandle();
-  // Use the same native HWND capture path as an explicitly selected application
-  // window. Cropping a monitor capture can accidentally retain the full desktop
-  // when window and monitor coordinates differ (for example with mixed DPI).
-  const captured=await captureHdrFrame({kind:'window',handle});
-  const frame:CapturedHdrFrame={...captured,targetKey:'top-window'};
-  cachedHdrFrame=frame;
+  const foreground = getForegroundWindowHandle();
+  // Electron/Chromium windows may be returned by native window capture as only
+  // their application icon. For Light Matter/LumaScope windows, crop the actual
+  // visible monitor frame so the rendered application contents are captured.
+  if (foreground.processId === process.pid) {
+    return cropWindowFromMonitorFrame(foreground.handle, 'top-window');
+  }
+  const captured = await captureHdrFrame({ kind: 'window', handle: foreground.handle });
+  const frame: CapturedHdrFrame = { ...captured, targetKey: 'top-window' };
+  cachedHdrFrame = frame;
   return frame;
 };
 
@@ -1382,7 +1381,6 @@ ipcMain.handle(
       throw new Error('Electron could not decode the rendered WebGPU preview PNG.');
     }
     const size = image.getSize();
-    console.info('[HDR Capture] Copied native-resolution WebGPU preview to Windows Clipboard', size);
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
   }
 );
@@ -1404,13 +1402,11 @@ ipcMain.handle(
     // so Save can reuse exactly the image the user just inspected.
     const ownerWindow = BrowserWindow.fromWebContents(event.sender);
     const frame = await captureTargetFrame(target, ownerWindow);
-    console.info('[HDR Capture] preview source FP16/scRGB statistics', summarizeFp16Frame(frame));
     const pixels = new Uint16Array(
       frame.buffer.buffer.slice(frame.buffer.byteOffset, frame.buffer.byteOffset + frame.buffer.byteLength)
     );
     // SDR preview and clipboard output are tone-mapped directly from this FP16 frame in the renderer.
     // Keep the empty field for compatibility with the existing CapturePreview IPC contract.
-    console.info(`[HDR Capture] send FP16 frame for HDR and SDR preview (${frame.width}x${frame.height})`);
     return { width: frame.width, height: frame.height, pixels, sdrImage: new Uint8Array() };
   }
 );
@@ -1440,17 +1436,11 @@ ipcMain.handle(
     let phase = 'get FP16 HDR frame';
     const logPhase = (nextPhase: string): void => {
       phase = nextPhase;
-      console.info(`[HDR Capture] ${phase}`);
-    };
+      };
     try {
       const ownerWindow = BrowserWindow.fromWebContents(event.sender);
       const reusedPreviewFrame = cachedHdrFrame?.targetKey === captureTargetKey(target, ownerWindow);
       const frame = await getHdrFrame(target, ownerWindow);
-      console.info('[HDR Capture] save source FP16/scRGB statistics', {
-        reusedPreviewFrame,
-        gammaCorrection,
-        ...summarizeFp16Frame(frame)
-      });
       const sourceChannels = new Uint16Array(frame.buffer.buffer, frame.buffer.byteOffset, frame.buffer.byteLength / 2);
 
       const extension = format === 'uhdr' ? 'jpg' : format;
@@ -1492,17 +1482,6 @@ ipcMain.handle(
           }
         }
 
-        console.info('[HDR Capture] scRGB input summary', {
-          width: frame.width,
-          height: frame.height,
-          sourcePeakScRgb,
-          sourcePeakNitsAt80NitsPerScRgb: sourcePeakScRgb * 80,
-          brightnessCorrection: 1,
-          negativeChannelSamples,
-          nonFiniteChannelSamples,
-          outputMin,
-          outputMax
-        });
 
         vipsInitPromise ??= Vips();
         const vips = await vipsInitPromise;
