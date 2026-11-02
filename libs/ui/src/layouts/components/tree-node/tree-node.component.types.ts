@@ -10,5 +10,6 @@ export interface TreeNode<T> {
   isOpen?: boolean;
   isSelected?: boolean;
   isLoading?: boolean;
+  hasChildren?: boolean;
   hideMenu?: boolean;
 }
