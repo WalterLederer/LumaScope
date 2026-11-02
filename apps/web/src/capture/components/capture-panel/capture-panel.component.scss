@@ -464,7 +464,10 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   margin: 0;
   padding: 6px;
   border: 1px solid rgb(128 128 128 / 35%);
@@ -475,6 +478,7 @@
 .capture-preview canvas {
   display: block;
   width: 100%;
+  max-width: 100%;
   height: auto;
   max-height: min(58vh, 680px);
   object-fit: contain;
