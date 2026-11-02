@@ -69,22 +69,25 @@ export default class App {
 
       App.initMainWindow();
       App.loadMainWindow();
-      const accelerator = 'CommandOrControl+Super+PrintScreen';
-      const registered = globalShortcut.isRegistered(accelerator) || globalShortcut.register(accelerator, () => {
-        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
-          App.mainWindow.webContents.send('Capture.topWindowClipboardHotkey');
+      // Windows global shortcuts. Super is the Windows key in Electron accelerators.
+      const topWindowAccelerator = 'Control+Super+PrintScreen';
+      const rectangleAccelerator = 'Control+Shift+Super+PrintScreen';
+      const registerCaptureShortcut = (accelerator: string, channel: string, label: string): void => {
+        if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
+        const registered = globalShortcut.register(accelerator, () => {
+          const window = App.mainWindow;
+          if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
+            window.webContents.send(channel);
+          }
+        });
+        if (!registered) {
+          console.warn(`[Capture] Could not register ${label} (${accelerator}); another application may own this shortcut.`);
         }
-      });
-      if (!registered) console.warn('[Capture] Could not register Ctrl+Win+PrintScreen; the shortcut may already be in use.');
-      const rectangleAccelerator = 'CommandOrControl+Shift+PrintScreen';
-      const rectangleRegistered = globalShortcut.isRegistered(rectangleAccelerator) || globalShortcut.register(rectangleAccelerator, () => {
-        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
-          App.mainWindow.webContents.send('Capture.rectangleClipboardHotkey');
-        }
-      });
-      if (!rectangleRegistered) console.warn('[Capture] Could not register Ctrl+Shift+PrintScreen; the shortcut may already be in use.');
+      };
+      registerCaptureShortcut(topWindowAccelerator, 'Capture.topWindowClipboardHotkey', 'Ctrl+Win+PrintScreen');
+      registerCaptureShortcut(rectangleAccelerator, 'Capture.rectangleClipboardHotkey', 'Ctrl+Shift+Win+PrintScreen');
       App.application.once('will-quit', () => {
-        globalShortcut.unregister(accelerator);
+        globalShortcut.unregister(topWindowAccelerator);
         globalShortcut.unregister(rectangleAccelerator);
       });
     }
@@ -136,6 +139,12 @@ export default class App {
     App.mainWindow.webContents.on('dom-ready', applyMainWindowTitle);
     App.mainWindow.setTitle(mainWindowTitle);
     App.mainWindow.center();
+    App.mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
+      if (isMainFrame) console.error('[Startup] Main window failed to load:', { code, description, validatedURL });
+    });
+    App.mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      console.error('[Startup] Renderer process exited unexpectedly:', details);
+    });
 
     // Debounce move/resize events so the loupe refreshes after geometry settles.
     const notifyLoupeGeometryChanged = (): void => {
@@ -150,37 +159,14 @@ export default class App {
     App.mainWindow.on('move', notifyLoupeGeometryChanged);
     App.mainWindow.on('resize', notifyLoupeGeometryChanged);
 
-    // Startup diagnostics: record the window lifecycle in the Chromium log.
-    const startupLog = (event: string, details = ''): void => {
-      console.log(`[LumaScope startup] ${new Date().toISOString()} ${event}${details ? ` ${details}` : ''}`);
-    };
-    startupLog('main window created', JSON.stringify({ bounds: App.mainWindow.getBounds(), visible: App.mainWindow.isVisible() }));
-    App.mainWindow.on('show', () => startupLog('window show event'));
-    App.mainWindow.on('closed', () => startupLog('window closed event'));
-    App.mainWindow.webContents.on('did-start-loading', () => startupLog('did-start-loading'));
-    App.mainWindow.webContents.on('dom-ready', () => startupLog('dom-ready', App.mainWindow?.webContents.getURL() ?? ''));
-    App.mainWindow.webContents.on('did-finish-load', () => startupLog('did-finish-load', App.mainWindow?.webContents.getURL() ?? ''));
-    App.mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) =>
-      startupLog('did-fail-load', JSON.stringify({ code, description, validatedURL, isMainFrame })));
-    App.mainWindow.webContents.on('render-process-gone', (_event, details) =>
-      startupLog('render-process-gone', JSON.stringify(details)));
-    App.mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-      startupLog('renderer-console', JSON.stringify({ level, message, line, source: sourceId }));
-    });
-    App.mainWindow.on('unresponsive', () => startupLog('window unresponsive'));
-    App.mainWindow.on('responsive', () => startupLog('window responsive'));
-
     // Show the window once Chromium reports it is ready.
     App.mainWindow.once('ready-to-show', () => {
-      startupLog('ready-to-show');
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.show();
 
-      // In dev mode, optionally minimise the window to avoid interruptions on app reloads after file saves.
       if (!App.application.isPackaged && App.startupConfig.minimiseOnStart()) {
         App.mainWindow.minimize();
       }
 
-      // Restore the persisted DevTools visibility setting in both development and packaged builds.
       if (App.startupConfig.devToolsOpen()) {
         App.mainWindow.webContents.openDevTools();
       }
@@ -189,11 +175,7 @@ export default class App {
     // Avoid leaving the application running invisibly if ready-to-show never arrives.
     setTimeout(() => {
       if (App.mainWindow && !App.mainWindow.isDestroyed() && !App.mainWindow.isVisible()) {
-        startupLog('ready-to-show timeout; forcing window visible', JSON.stringify({
-          bounds: App.mainWindow.getBounds(),
-          url: App.mainWindow.webContents.getURL(),
-          loading: App.mainWindow.webContents.isLoading()
-        }));
+        console.warn('[Startup] Window did not become visible; showing it as a fallback.');
         App.mainWindow.show();
       }
     }, 10000);
