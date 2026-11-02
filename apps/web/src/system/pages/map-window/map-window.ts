@@ -204,7 +204,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
     .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
-    .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
+    .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:0;padding:7px 0 0;gap:8px}
     .marker-settings summary{cursor:pointer;font-weight:600;white-space:nowrap}
     .marker-settings summary .marker-description{margin-left:8px;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400}
     .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
