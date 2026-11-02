@@ -16,4 +16,7 @@ export class CaptureService implements DesktopCapture {
 
   readonly copyPreviewToClipboard = (pngData: Uint8Array): Promise<CaptureResult> =>
     window.desktop.Capture.copyPreviewToClipboard(pngData);
+
+  readonly onTopWindowClipboardHotkey = (callback: () => void): (() => void) =>
+    window.desktop.Capture.onTopWindowClipboardHotkey(callback);
 }
