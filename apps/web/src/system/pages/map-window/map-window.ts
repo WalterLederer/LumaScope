@@ -133,6 +133,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
             <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
               <div class="marker-appearance-settings">
+                <strong>Cluster Icons:</strong>
                 <label>Shape
                   <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
                     <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
