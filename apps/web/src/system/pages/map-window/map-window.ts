@@ -87,6 +87,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
               <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
               <span class="range-value">{{ gpxOpacity() }}%</span>
             </label>
+            <span class="opacity-divider" aria-hidden="true"></span>
+            <label class="range-setting">Markers
+              <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+              <span class="range-value">{{ markerOpacity() }}%</span>
+            </label>
           </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
