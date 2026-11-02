@@ -205,7 +205,6 @@ export class ImageView {
 
   private readonly cacheManager = inject(CacheManager);
 
-  private appTitleSuffix = '';
 
   private readonly imagePositioningService = inject(ImagePositioningService);
 
@@ -1604,14 +1603,9 @@ export class ImageView {
       this.loupeResizeObserver.observe(this.document.documentElement);
     }
 
-    this.processManager.getAppVersion()
-      .then(version => {
-        this.appTitleSuffix = version;
-        this.selectedImage$.pipe(take(1)).subscribe(image => {
-          this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
-        });
-      })
-      .catch(() => undefined);
+    this.selectedImage$.pipe(take(1)).subscribe(image => {
+      this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
+    });
 
     this.configuration.config()
       .pipe(take(1), takeUntilDestroyed())
@@ -3025,9 +3019,7 @@ export class ImageView {
 
   /* Misc */
   private readonly makeWindowTitle = (imagePath?: string): string => {
-    const version = this.appTitleSuffix ? ` ${this.appTitleSuffix}` : '';
-    const path = imagePath ? ` - ${imagePath}` : '';
-    return `LumaScope${version}${path}`;
+    return imagePath ?? '';
   };
 
   private readonly calculateWheelZoom = (deltaY: number, currentZoom: number, zoomStep: number): number => {
