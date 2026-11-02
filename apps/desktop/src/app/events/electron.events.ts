@@ -526,9 +526,10 @@ const selectCaptureRectangle = async (): Promise<{
         '<body><div id="hint">Drag to select HDR capture area&nbsp;&nbsp;·&nbsp;&nbsp;Esc to cancel</div><div id="selection"></div><script>(()=>{',
         'const box=document.getElementById("selection");let start=null;',
         'const point=e=>({x:Math.max(0,Math.min(innerWidth,e.clientX)),y:Math.max(0,Math.min(innerHeight,e.clientY))});',
-        'addEventListener("pointerdown",e=>{if(e.button!==0)return;start=point(e);box.style.display="block";box.style.left=start.x+"px";box.style.top=start.y+"px";box.style.width="0";box.style.height="0";});',
+        'addEventListener("pointerdown",e=>{if(e.button!==0)return;start=point(e);try{e.target.setPointerCapture(e.pointerId)}catch{}box.style.display="block";box.style.left=start.x+"px";box.style.top=start.y+"px";box.style.width="0";box.style.height="0";});',
         'addEventListener("pointermove",e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y);box.style.left=x+"px";box.style.top=y+"px";box.style.width=Math.abs(p.x-start.x)+"px";box.style.height=Math.abs(p.y-start.y)+"px";});',
-        'addEventListener("pointerup",e=>{if(!start||e.button!==0)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);start=null;if(w<8||h<8){box.style.display="none";return;}location.hash=encodeURIComponent(JSON.stringify({x,y,width:w,height:h}));});',
+        'const complete=e=>{if(!start)return;const p=point(e),x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);start=null;if(w<8||h<8){box.style.display="none";return;}document.title="LUMASCOPE_RECTANGLE:"+encodeURIComponent(JSON.stringify({x,y,width:w,height:h}));};',
+        'addEventListener("pointerup",e=>{if(e.button===0)complete(e)});addEventListener("mouseup",e=>{if(e.button===0)complete(e)});',
         '})();</script></body></html>'
       ].join('');
       const window = new BrowserWindow({
@@ -544,11 +545,12 @@ const selectCaptureRectangle = async (): Promise<{
       window.webContents.on('before-input-event', (event, input) => {
         if (input.type === 'keyDown' && input.key === 'Escape') { event.preventDefault(); finish(); }
       });
-      window.webContents.on('did-navigate-in-page', (_event, url) => {
-        const hash = url.split('#')[1];
-        if (!hash) return;
+      window.webContents.on('page-title-updated', (event, title) => {
+        const prefix = 'LUMASCOPE_RECTANGLE:';
+        if (!title.startsWith(prefix)) return;
+        event.preventDefault();
         try {
-          const selected = JSON.parse(decodeURIComponent(hash)) as { x: number; y: number; width: number; height: number };
+          const selected = JSON.parse(decodeURIComponent(title.slice(prefix.length))) as { x: number; y: number; width: number; height: number };
           if (![selected.x, selected.y, selected.width, selected.height].every(Number.isFinite)
             || selected.x < 0 || selected.y < 0 || selected.width < 8 || selected.height < 8) {
             finish(undefined, new Error('The selected rectangle is invalid.'));
