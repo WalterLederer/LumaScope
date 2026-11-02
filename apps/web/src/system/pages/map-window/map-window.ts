@@ -200,7 +200,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}
     .zoom-settings{flex:1;min-width:260px}
-    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#454545)}
+    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0}
     .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
