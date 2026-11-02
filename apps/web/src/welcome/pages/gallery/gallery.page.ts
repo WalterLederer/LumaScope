@@ -18,7 +18,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { map } from 'rxjs';
+import { map, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -149,10 +149,18 @@ export class GalleryPage {
 
   /* State */
   readonly galleryRoot$ = this.galleryState.galleryRoot().pipe(
-    map(root => ({
-      ...root,
-      children: root.children?.map(node => ({ ...node, hasChildren: true }))
-    }))
+    switchMap(async root => {
+      const children = await Promise.all((root.children ?? []).map(async node => {
+        const response = await this.galleryState.getDirContents(node.id);
+        return {
+          ...node,
+          // Only show the expand indicator when the directory actually contains subdirectories.
+          // Leave the value undefined on read failure so the user can still try to expand it.
+          hasChildren: response.success ? response.data.length > 0 : undefined
+        };
+      }));
+      return { ...root, children };
+    })
   );
 
   readonly selectedLocation$ = this.galleryState.selectedLocation();
