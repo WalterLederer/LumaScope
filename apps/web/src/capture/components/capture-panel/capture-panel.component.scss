@@ -24,6 +24,7 @@
 }
 
 .capture-field.capture-brightness-row {
+  margin-bottom: 6px;
   display: grid;
   grid-template-columns: auto minmax(80px, 1fr) auto;
   align-items: center;
