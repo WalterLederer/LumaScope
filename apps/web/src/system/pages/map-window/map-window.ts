@@ -283,10 +283,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.locationAddress.set('This image does not contain GPS coordinates.');
     }
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
-      const previousDirectory = this.currentImagePath ? this.currentImagePath.replace(/[\\/][^\\/]*$/, '').toLowerCase() : '';
+      const previousImagePath = this.currentImagePath;
       this.currentImagePath = location.imagePath ?? null;
-      const nextDirectory = this.currentImagePath ? this.currentImagePath.replace(/[\\/][^\\/]*$/, '').toLowerCase() : '';
-      if (this.directoryMarkersEnabled() && previousDirectory !== nextDirectory) void this.scanDirectoryMarkers();
+      if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
