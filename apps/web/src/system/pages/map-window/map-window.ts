@@ -5,7 +5,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; getLatLng(): { lat: number; lng: number }; }
 interface MapBounds { isValid(): boolean; }
-interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; remove(): void; }
+interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; remove(): void; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
@@ -19,7 +19,8 @@ interface LeafletMapApi {
   map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number }): MapInstance;
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): { addTo(map: MapInstance): { remove(): void } };
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string }): { addTo(map: MapInstance): { remove(): void } };
-  marker(position: [number, number]): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
+  marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
+  divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
   markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean }): MapMarkerGroup;
 }
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian';
@@ -233,6 +234,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
+  protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
@@ -416,7 +418,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (enabled) void this.scanDirectoryMarkers();
     else { this.markerScanGeneration++; this.clearDirectoryMarkers(); this.markerFilesChecked.set(0); this.markerFilesTotal.set(0); this.markerExifErrors.set(0); this.markerStatus.set(''); }
   };
-  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }
+  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.markerCount.set(0); }\n  private createImageMarkerIcon(selected: boolean): unknown {\n    const color = selected ? '#ff3b30' : '#2688e8';\n    const size = selected ? 18 : 13;\n    return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });\n  }
   private parseExifCoordinate(value: unknown, reference: unknown): number | null {
     if (typeof value !== 'number' && typeof value !== 'string') return null;
     const parts = String(value).match(/-?\d+(?:\.\d+)?/g); if (!parts?.length) return null;
@@ -448,7 +450,7 @@ export class MapWindow implements OnInit, OnDestroy {
               const latitude = this.parseExifCoordinate(tags['GPSLatitude'], tags['GPSLatitudeRef']);
               const longitude = this.parseExifCoordinate(tags['GPSLongitude'], tags['GPSLongitudeRef']);
               if (latitude !== null && longitude !== null && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180 && file.path.toLowerCase() !== imagePath.toLowerCase()) {
-                this.directoryMarkerGroup?.addLayer(this.leaflet!.marker([latitude, longitude])); this.markerCount.update(value => value + 1);
+                this.directoryMarkerGroup?.addLayer(this.leaflet!.marker([latitude, longitude], { icon: this.createImageMarkerIcon(false) }).setOpacity(this.markerOpacity() / 100)); this.markerCount.update(value => value + 1);
               }
             }
           } catch { if (generation === this.markerScanGeneration) this.markerExifErrors.update(value => value + 1); }
@@ -469,7 +471,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.zoomLevel.set(zoom);
       this.saveSetting('zoom', zoom);
     });
-    this.marker = this.leaflet.marker(center).addTo(this.map);
+    this.marker = this.leaflet.marker(center, { icon: this.createImageMarkerIcon(true) }).addTo(this.map).setOpacity(this.markerOpacity() / 100);
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true }).addTo(this.map);
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     this.applyMapStyle();
@@ -513,7 +515,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.map?.getZoom() ?? this.zoomLevel()) + direction);
   };
-  protected readonly changeGpxOpacity = (value: string | number): void => {
+  protected readonly changeMarkerOpacity = (value: string | number): void => {\n    const opacity = Number(value); if (!Number.isFinite(opacity)) return;\n    const next = Math.max(0, Math.min(100, Math.round(opacity)));\n    this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);\n    this.marker?.setOpacity(next / 100);\n    this.directoryMarkerGroup?.eachLayer(layer => layer.setOpacity(next / 100));\n  };\n  protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.gpxOpacity.set(next); this.saveSetting('gpxOpacity', next); this.applyGpxTrack();
