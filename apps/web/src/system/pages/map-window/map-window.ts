@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; getLatLng(): { lat: number; lng: number }; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; getLatLng(): { lat: number; lng: number }; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; remove(): void; }
 interface MapInstance {
