@@ -500,7 +500,7 @@ const selectCaptureRectangle = async (): Promise<{
   }>((resolve, reject) => {
     const cleanup = (): void => { for (const window of windows) if (!window.isDestroyed()) window.destroy(); };
     const finish = (value?: {
-      deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number;
+      deviceName: string; monitorHandle: string; screenWidth: number; screenHeight: number; scaleFactor: number;
       x: number; y: number; width: number; height: number;
     }, error?: Error): void => {
       if (settled) return;
