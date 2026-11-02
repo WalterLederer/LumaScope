@@ -150,6 +150,8 @@ export interface DesktopMapWindow {
   readonly isOpen: () => Promise<boolean>;
   readonly focus: () => Promise<boolean>;
   readonly setAlwaysOnTop: (enabled: boolean) => Promise<boolean>;
+  readonly selectImage: (path: string) => Promise<boolean>;
+  readonly onImageSelected: (callback: (path: string) => void) => () => void;
   readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
   readonly onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }) => void) => () => void;
 }
