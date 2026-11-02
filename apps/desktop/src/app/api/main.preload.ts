@@ -121,7 +121,7 @@ const api: Desktop = {
     chooseFolder: (initialPath?: string) => ipcRenderer.invoke('Capture.chooseFolder', initialPath),
     preview: target => ipcRenderer.invoke('Capture.preview', target),
     capture: (target, folder: string, format?: 'exr' | 'jxr' | 'uhdr' | 'clipboard', gammaCorrection?: number, encoderQuality?: number, previewFrame?: import('internal-api').CapturePreview) => ipcRenderer.invoke('Capture.capture', target, folder, format, gammaCorrection, encoderQuality, previewFrame),
-    copyPreviewToClipboard: (pngData: Uint8Array) => ipcRenderer.invoke('Capture.copyPreviewToClipboard', pngData),
+    copyPreviewToClipboard: (pngData: Uint8Array, playFeedback = false) => ipcRenderer.invoke('Capture.copyPreviewToClipboard', pngData, playFeedback),
     getGlobalShortcutStatus: () => ipcRenderer.invoke('Capture.getGlobalShortcutStatus'),
     onGlobalShortcutStatusChanged: (callback: (statuses: import('internal-api').GlobalShortcutStatus[]) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, statuses: import('internal-api').GlobalShortcutStatus[]): void => callback(statuses);
