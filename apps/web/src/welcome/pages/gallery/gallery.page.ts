@@ -159,17 +159,10 @@ export class GalleryPage {
   readonly thumbSize$ = this.galleryState.thumbSize();
 
   constructor() {
-    this.processManager.getAppVersion()
-      .then(version => {
-        // Keep the native window title in sync with the active gallery directory.
-        this.selectedLocation$.subscribe(location => {
-          const title = location
-            ? `LumaScope - ${version} - ${location}`
-            : `LumaScope - ${version}`;
-          this.processManager.setWindowTitle(title).catch(() => undefined);
-        });
-      })
-      .catch(() => undefined);
+    // Keep the native window title in sync with the active gallery directory.
+    this.selectedLocation$.subscribe(location => {
+      this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
+    });
 
     // Restore a previously selected nested folder in the tree after its root has rendered.
     combineLatest([ this.galleryRoot$, this.selectedLocation$ ])
