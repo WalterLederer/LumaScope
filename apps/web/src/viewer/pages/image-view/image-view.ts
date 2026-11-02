@@ -1528,8 +1528,9 @@ export class ImageView {
 
     effect(() => {
       const coordinates = this.gpsCoordinates();
-      if (this.detachedMapWindowOpen() && coordinates) {
-        void this.desktopApi?.MapWindow.open(coordinates.latitude, coordinates.longitude, coordinates.direction ?? undefined, this.selectedImage$()?.path ?? null);
+      const imagePath = this.selectedImage$()?.path ?? null;
+      if (this.detachedMapWindowOpen()) {
+        void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath);
       }
     });
 
