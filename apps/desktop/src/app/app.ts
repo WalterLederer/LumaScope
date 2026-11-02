@@ -100,9 +100,12 @@ export default class App {
         try {
           if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
           const registered = globalShortcut.register(accelerator, () => {
-            const window = App.mainWindow;
-            if (window && !window.isDestroyed() && !window.webContents.isDestroyed()) {
-              window.webContents.send(channel);
+            // Capture UI can be hosted by any live renderer window. Broadcast the
+            // shortcut event instead of assuming the main window owns the panel.
+            for (const window of BrowserWindow.getAllWindows()) {
+              if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+                window.webContents.send(channel);
+              }
             }
           });
           active = registered && globalShortcut.isRegistered(accelerator);
