@@ -80,6 +80,7 @@ export class CapturePanelComponent {
     this.includeLightMatterWindows.set(enabled);
     try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
+    this.rawPreviewFrame.set(null);
     this.previewFrame.set(null);
     this.previewSize.set('');
     this.status.set('');
