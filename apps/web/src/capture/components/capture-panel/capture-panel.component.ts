@@ -808,7 +808,7 @@ export class CapturePanelComponent {
   };
 
   protected readonly copyToClipboardTopWindow = async (): Promise<void> => {
-    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: this.includeLightMatterWindows() });
+    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: false });
   };
 
   protected readonly captureNow = async (): Promise<void> => {
