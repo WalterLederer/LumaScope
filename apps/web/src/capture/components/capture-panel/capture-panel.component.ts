@@ -686,9 +686,7 @@ export class CapturePanelComponent {
     const p999 = percentile(0.999);
     const p9999 = percentile(0.9999);
 
-    // Estimate SDR reference white robustly, ignoring at most the brightest 0.01%.
-    // Keep a 15% margin so isolated bright highlights do not redefine SDR white.
-    const p9999 = percentile(0.9999);
+    // Use P99.99 plus a 15% margin so isolated bright highlights do not redefine SDR white.
     const sdrReferenceWhite = Math.max(1, p9999 * 1.15);
     const linearHighlightFraction = 0.75;
     const shoulderStart = sdrReferenceWhite;
