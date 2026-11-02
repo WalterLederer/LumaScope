@@ -1,4 +1,4 @@
-import { BrowserWindow, protocol, screen, shell } from 'electron';
+import { BrowserWindow, globalShortcut, protocol, screen, shell } from 'electron';
 import { appProtocol } from 'internal-api';
 import { join } from 'path';
 import { statSync } from 'node:fs';
@@ -69,6 +69,13 @@ export default class App {
 
       App.initMainWindow();
       App.loadMainWindow();
+      const registered = globalShortcut.register('CommandOrControl+Super+PrintScreen', () => {
+        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+          App.mainWindow.webContents.send('Capture.topWindowClipboardHotkey');
+        }
+      });
+      if (!registered) console.warn('[Capture] Could not register Ctrl+Win+PrintScreen; the shortcut may already be in use.');
+      App.application.once('will-quit', () => globalShortcut.unregister('CommandOrControl+Super+PrintScreen'));
     }
   }
 
