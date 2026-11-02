@@ -33,7 +33,6 @@ const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 // A global key event can be observed by more than one mounted image-view instance.
 // Claim each navigation keyup once so one physical press advances only one image.
 const handledImageNavigationKeyEvents = new WeakSet<KeyboardEvent>();
-const handledImageViewShortcutKeyEvents = new WeakSet<KeyboardEvent>();
 
 interface LeafletMap {
   setView(center: [number, number], zoom: number, options?: { animate?: boolean }): LeafletMap;
@@ -3344,14 +3343,6 @@ export class ImageView {
           return;
         }
 
-        // A single physical shortcut may be observed by multiple mounted image-view
-        // instances. Claim toggle/action shortcuts once to avoid cancelling toggles.
-        const shortcutKey = event.key.toLowerCase();
-        if (['i', 'g', 'h', 'delete', 'f', 'f11'].includes(shortcutKey)) {
-          if (handledImageViewShortcutKeyEvents.has(event)) return;
-          handledImageViewShortcutKeyEvents.add(event);
-        }
-
         // Keep keyboard zoom shortcuts wired to the same actions as both sets of
         // on-screen zoom buttons. '+' may arrive as '=' on some keyboard layouts.
         if (event.key === '+' || event.key === '=' || event.key === 'Add') {
@@ -3370,13 +3361,13 @@ export class ImageView {
           return;
         }
 
-        if (target instanceof HTMLSelectElement) {
-          return;
-        }
-
         if (event.key === 'l' || event.key === 'L') {
           event.preventDefault();
           void this.openLocationWindow();
+          return;
+        }
+
+        if (target instanceof HTMLSelectElement) {
           return;
         }
 
@@ -3399,19 +3390,8 @@ export class ImageView {
         }
 
             switch (event.key.toLowerCase()) {
-          case 'i':
-          case 'I':
-            this.selectedImage$
-              .pipe(take(1), filter(image => image !== null))
-              .subscribe(image => this.toggleExifInfo(image.path));
-            break;
-
           case 'h':
             this.toggleHistogram();
-            break;
-
-          case 'g':
-            this.toggleSidebarSection('general');
             break;
 
 
