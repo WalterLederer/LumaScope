@@ -103,6 +103,9 @@
           <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboard()" [disabled]="capturing() || previewing() || loadingSources() || !selectedTarget()">
             {{ capturing() ? 'Copying…' : 'Clipboard copy' }}
           </button>
+          <button type="button" class="capture-secondary-button capture-inline-button capture-clipboard-button" (click)="copyToClipboardTopWindow()" [disabled]="capturing() || previewing() || loadingSources()" title="Copy the current top window to the clipboard. Global shortcut: Ctrl + Win + PrtScn.">
+            Clipboard copy top window
+          </button>
         </div>
         @if (status().startsWith('Copied ')) {
           <p class="capture-status" role="status">{{ status() }}</p>
