@@ -165,12 +165,21 @@ export interface DesktopCapturePreviewWindow {
   readonly onFrameChanged: (callback: (frame: CapturePreview) => void) => () => void;
 }
 
+export interface GlobalShortcutStatus {
+  id: 'top-window' | 'rectangle';
+  accelerator: string;
+  active: boolean;
+  error: string | null;
+}
+
 export interface DesktopCapture {
   readonly listSources: () => Promise<CaptureSources>;
   readonly chooseFolder: (initialPath?: string) => Promise<string | null>;
   readonly preview: (target: CaptureTarget) => Promise<CapturePreview>;
   readonly capture: (target: CaptureTarget, folder: string, format?: CaptureFormat, gammaCorrection?: number, encoderQuality?: number) => Promise<CaptureResult>;
   readonly copyPreviewToClipboard: (pngData: Uint8Array) => Promise<CaptureResult>;
+  readonly getGlobalShortcutStatus: () => Promise<GlobalShortcutStatus[]>;
+  readonly onGlobalShortcutStatusChanged: (callback: (statuses: GlobalShortcutStatus[]) => void) => () => void;
   readonly onTopWindowClipboardHotkey: (callback: () => void) => () => void;
   readonly onRectangleClipboardHotkey: (callback: () => void) => () => void;
 }
