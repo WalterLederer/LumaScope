@@ -870,6 +870,29 @@ export class CapturePanelComponent {
     }
   };
 
+  protected readonly copyPreviewToClipboardNow = async (): Promise<void> => {
+    if (this.capturing() || this.previewing()) return;
+    const frame = this.previewFrame();
+    if (!frame) {
+      this.error.set('Generate a preview before copying it.');
+      return;
+    }
+    this.error.set(null);
+    this.capturing.set(true);
+    try {
+      this.status.set('Preparing corrected SDR preview for clipboard…');
+      const pngData = await this.createSdrClipboardPng(frame);
+      const result = await this.captureService.copyPreviewToClipboard(pngData);
+      this.lastOutputPath.set('Windows Clipboard');
+      this.status.set(`Copied corrected ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
+    } catch (error) {
+      this.status.set('');
+      this.error.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.capturing.set(false);
+    }
+  };
+
   protected readonly copyToClipboardTopWindow = async (playFeedback = false): Promise<void> => {
     await this.copyToClipboard({ kind: 'top-window' }, playFeedback);
   };
