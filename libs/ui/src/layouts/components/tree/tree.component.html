@@ -6,7 +6,8 @@
     <ui-tree-node [node]="node"
                   [level]="level"
                   [menu]="menuRef"
-                  (pressed)="nodeSelected($event)" />
+                  (pressed)="nodeSelected($event)"
+                  (hovered)="hovered.emit($event)" />
 
     @if (node.children !== undefined && node.children.length > 0 && node.isOpen) {
       <div class="children-container"
