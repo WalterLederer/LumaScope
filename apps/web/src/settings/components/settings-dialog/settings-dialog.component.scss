@@ -400,3 +400,88 @@ section {
   font-size: 0.75rem;
 }
 
+
+
+.profiling-section {
+  margin: var(--dim-medium) 0 0;
+  padding-left: var(--dim-medium);
+
+  > summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+}
+
+.profiling-table-scroll {
+  max-width: 100%;
+  max-height: 320px;
+  margin-top: var(--dim-small);
+  overflow: auto;
+  border: 1px solid var(--color-content-default-low);
+  border-radius: var(--border-radius-small);
+}
+
+.profiling-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--color-content-default-low);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-surface-default-highest);
+    white-space: nowrap;
+  }
+
+  th button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  th button:hover {
+    color: var(--color-content-primary-highest);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.profiling-command {
+  min-width: 320px;
+  max-width: 760px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-family: var(--font-family-monospace, monospace);
+  font-size: 0.72rem;
+}
+
+.profiling-duration {
+  white-space: nowrap;
+  text-align: right !important;
+}
+
+.profiling-empty {
+  padding: 18px !important;
+  color: var(--color-content-default-medium);
+  text-align: center !important;
+}
