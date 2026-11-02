@@ -812,7 +812,7 @@ export class CapturePanelComponent {
   };
 
   protected readonly copyToClipboardTopWindow = async (): Promise<void> => {
-    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: true });
+    await this.copyToClipboard({ kind: 'top-window' });
   };
 
   protected readonly copyToClipboardRectangle = async (): Promise<void> => {
