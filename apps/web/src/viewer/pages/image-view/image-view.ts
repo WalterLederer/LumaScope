@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, OverlayService, SliderComponent } from '@light-matter/ui';
@@ -3200,6 +3200,15 @@ export class ImageView {
     }
   };
 
+  @HostListener('window:keyup', ['$event'])
+  private readonly openCaptureWindowOnShortcut = (event: KeyboardEvent): void => {
+    if (event.key.toLowerCase() !== 's' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    void this.openCaptureWindow();
+  };
+
   private readonly trackKeyboard = () => {
     // Capture Escape before the CDK dialog handles and closes the overlay.
     // The matching keyup must not also trigger the image-view back action.
@@ -3322,17 +3331,6 @@ export class ImageView {
           this.hasPrevious$
             .pipe(take(1), filter(flag => flag))
             .subscribe(() => this.prevPhoto());
-          return;
-        }
-
-        const target = event.target;
-        if (
-          event.key.toLowerCase() === 's'
-          && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
-          && !(target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]'))
-        ) {
-          event.preventDefault();
-          void this.openCaptureWindow();
           return;
         }
 
