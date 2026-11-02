@@ -223,6 +223,15 @@ export class CapturePanelComponent {
     this.sourceMenuOpen.set(false);
   };
 
+  @HostListener('document:keyup', ['$event'])
+  protected readonly focusLocationWindowOnShortcut = (event: KeyboardEvent): void => {
+    if (event.key.toLowerCase() !== 'l' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    void window.desktop?.MapWindow.focus();
+  };
+
   protected readonly selectSourceRow = (value: string): void => {
     const row = this.sourceRows().find(item => item.value === value);
     if (row?.minimized || row?.unavailable) return;
