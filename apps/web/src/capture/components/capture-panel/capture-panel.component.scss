@@ -412,6 +412,11 @@
   border-color: rgb(70 140 230 / 60%);
 }
 
+.capture-preview-action-button {
+  background: rgb(45 155 115 / 18%);
+  border-color: rgb(45 155 115 / 55%);
+}
+
 .capture-panel button:disabled,
 .capture-panel select:disabled {
   opacity: 0.55;
