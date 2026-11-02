@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { Desktop, SortDirection, SortType } from 'internal-api';
+import { Desktop, ExternalProcessCall, SortDirection, SortType } from 'internal-api';
 
 const api: Desktop = {
   ProcessManager: {
@@ -13,6 +13,15 @@ const api: Desktop = {
     openConfigFile: () => ipcRenderer.invoke('ProcessManager.openConfigFile'),
     quit: (code: number) => ipcRenderer.invoke('ProcessManager.quit', code),
     setWindowTitle: (title: string) => ipcRenderer.invoke('ProcessManager.setWindowTitle', title)
+  },
+
+  Profiling: {
+    getExternalProcessCalls: () => ipcRenderer.invoke('Profiling.getExternalProcessCalls'),
+    onExternalProcessCall: (callback: (call: ExternalProcessCall) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, call: ExternalProcessCall): void => callback(call);
+      ipcRenderer.on('Profiling.externalProcessCall', listener);
+      return () => ipcRenderer.removeListener('Profiling.externalProcessCall', listener);
+    }
   },
 
   FileSystem: {
