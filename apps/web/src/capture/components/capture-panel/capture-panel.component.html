@@ -98,7 +98,7 @@
       <details class="capture-section capture-clipboard-section" open>
         <summary>CLIPBOARD Capture</summary>
         <label class="capture-field capture-gamma-slider">
-          <span>Capture brightness: {{ captureBrightness().toFixed(2) }}×</span>
+          <span>Brightness: {{ captureBrightness().toFixed(2) }}×</span>
           <input type="range" min="0.25" max="4" step="0.05" [value]="captureBrightness()" (input)="setCaptureBrightness($any($event.target).valueAsNumber)" [disabled]="capturing() || previewing()"/>
         </label>
         <div class="capture-clipboard-actions">
