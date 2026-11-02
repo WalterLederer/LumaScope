@@ -387,11 +387,11 @@ public static class LightMatterWindowGeometry {
   [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] public static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFOEX info);
 }
 '@
-    // Keep Win32 window and monitor coordinates in physical pixels, matching the captured monitor frame.
+    # Keep Win32 window and monitor coordinates in physical pixels, matching the captured monitor frame.
     [void][LightMatterWindowGeometry]::SetProcessDpiAwarenessContext([IntPtr](-4))
     $hwnd = [IntPtr]::new([long]::Parse($env:LIGHT_MATTER_WINDOW_HANDLE, [Globalization.CultureInfo]::InvariantCulture))
     $windowRect = [LightMatterWindowGeometry+RECT]::new()
-    // DWMWA_EXTENDED_FRAME_BOUNDS excludes the invisible resize border returned by GetWindowRect.
+    # DWMWA_EXTENDED_FRAME_BOUNDS excludes the invisible resize border returned by GetWindowRect.
     $hasVisibleFrame = [LightMatterWindowGeometry]::DwmGetWindowAttribute($hwnd, 9, [ref]$windowRect, [Runtime.InteropServices.Marshal]::SizeOf($windowRect)) -eq 0
     if (-not $hasVisibleFrame -and -not [LightMatterWindowGeometry]::GetWindowRect($hwnd, [ref]$windowRect)) { throw 'Could not read window bounds.' }
     $monitor = [LightMatterWindowGeometry]::MonitorFromWindow($hwnd, 2)
