@@ -335,7 +335,11 @@ export class CapturePanelComponent {
         if (!this.destinationFolder()) this.destinationFolder.set(path);
       });
 
+    const unsubscribeTopWindowHotkey = this.captureService.onTopWindowClipboardHotkey(() => {
+      void this.copyToClipboardTopWindow();
+    });
     this.destroyRef.onDestroy(() => {
+      unsubscribeTopWindowHotkey();
       this.disposeHdrPreview();
     });
     effect(() => {
@@ -450,8 +454,8 @@ export class CapturePanelComponent {
     return null;
   }
 
-  protected readonly previewNow = async (): Promise<void> => {
-    const target = this.selectedCaptureTarget();
+  protected readonly previewNow = async (targetOverride?: CaptureTarget): Promise<void> => {
+    const target = targetOverride ?? this.selectedCaptureTarget();
     if (!target) {
       this.error.set('Select a rectangle, top window, monitor, or application window.');
       return;
@@ -467,7 +471,7 @@ export class CapturePanelComponent {
       this.capturePreviewStore.setFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
-      this.saveSelectedSource();
+      if (!targetOverride) this.saveSelectedSource();
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
       this.previewFrame.set(null);
@@ -777,14 +781,14 @@ export class CapturePanelComponent {
     return new Uint8Array(await blob.arrayBuffer());
   };
 
-  protected readonly copyToClipboard = async (): Promise<void> => {
+  protected readonly copyToClipboard = async (targetOverride?: CaptureTarget): Promise<void> => {
     if (this.capturing() || this.previewing()) return;
-    if (!this.selectedCaptureTarget()) {
+    if (!targetOverride && !this.selectedCaptureTarget()) {
       this.error.set('Select a rectangle, monitor, or application window.');
       return;
     }
     this.error.set(null);
-    await this.previewNow();
+    await this.previewNow(targetOverride);
     const frame = this.previewFrame();
     if (!frame) return;
 
@@ -801,6 +805,10 @@ export class CapturePanelComponent {
     } finally {
       this.capturing.set(false);
     }
+  };
+
+  protected readonly copyToClipboardTopWindow = async (): Promise<void> => {
+    await this.copyToClipboard({ kind: 'top-window', includeLightMatterWindows: this.includeLightMatterWindows() });
   };
 
   protected readonly captureNow = async (): Promise<void> => {
