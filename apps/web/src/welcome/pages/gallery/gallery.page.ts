@@ -164,8 +164,8 @@ export class GalleryPage {
         // Keep the native window title in sync with the active gallery directory.
         this.selectedLocation$.subscribe(location => {
           const title = location
-            ? `Light Matter - ${version} - ${location}`
-            : `Light Matter - ${version}`;
+            ? `LumaScope - ${version} - ${location}`
+            : `LumaScope - ${version}`;
           this.processManager.setWindowTitle(title).catch(() => undefined);
         });
       })
