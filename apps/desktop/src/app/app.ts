@@ -132,9 +132,30 @@ export default class App {
     App.mainWindow.on('move', notifyLoupeGeometryChanged);
     App.mainWindow.on('resize', notifyLoupeGeometryChanged);
 
-    // if main window is ready to show, close the splash window and show the main window
+    // Startup diagnostics: record the window lifecycle in the Chromium log.
+    const startupLog = (event: string, details = ''): void => {
+      console.log(`[LumaScope startup] ${new Date().toISOString()} ${event}${details ? ` ${details}` : ''}`);
+    };
+    startupLog('main window created', JSON.stringify({ bounds: App.mainWindow.getBounds(), visible: App.mainWindow.isVisible() }));
+    App.mainWindow.on('show', () => startupLog('window show event'));
+    App.mainWindow.on('closed', () => startupLog('window closed event'));
+    App.mainWindow.webContents.on('did-start-loading', () => startupLog('did-start-loading'));
+    App.mainWindow.webContents.on('dom-ready', () => startupLog('dom-ready', App.mainWindow?.webContents.getURL() ?? ''));
+    App.mainWindow.webContents.on('did-finish-load', () => startupLog('did-finish-load', App.mainWindow?.webContents.getURL() ?? ''));
+    App.mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) =>
+      startupLog('did-fail-load', JSON.stringify({ code, description, validatedURL, isMainFrame })));
+    App.mainWindow.webContents.on('render-process-gone', (_event, details) =>
+      startupLog('render-process-gone', JSON.stringify(details)));
+    App.mainWindow.webContents.on('console-message', (_event, details) => {
+      if (details.level >= 2) startupLog('renderer-console', JSON.stringify({ level: details.level, message: details.message, line: details.lineNumber, source: details.sourceId }));
+    });
+    App.mainWindow.on('unresponsive', () => startupLog('window unresponsive'));
+    App.mainWindow.on('responsive', () => startupLog('window responsive'));
+
+    // Show the window once Chromium reports it is ready.
     App.mainWindow.once('ready-to-show', () => {
-      App.mainWindow.show();
+      startupLog('ready-to-show');
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.show();
 
       // In dev mode, optionally minimise the window to avoid interruptions on app reloads after file saves.
       if (!App.application.isPackaged && App.startupConfig.minimiseOnStart()) {
@@ -146,6 +167,18 @@ export default class App {
         App.mainWindow.webContents.openDevTools();
       }
     });
+
+    // Avoid leaving the application running invisibly if ready-to-show never arrives.
+    setTimeout(() => {
+      if (App.mainWindow && !App.mainWindow.isDestroyed() && !App.mainWindow.isVisible()) {
+        startupLog('ready-to-show timeout; forcing window visible', JSON.stringify({
+          bounds: App.mainWindow.getBounds(),
+          url: App.mainWindow.webContents.getURL(),
+          loading: App.mainWindow.webContents.isLoading()
+        }));
+        App.mainWindow.show();
+      }
+    }, 10000);
 
     // handle all external redirects in a new browser window
     // App.mainWindow.webContents.on('will-navigate', App.onRedirect);
