@@ -400,7 +400,7 @@ export class CapturePanelComponent {
       const action = this.captureHotkeyService.pendingAction();
       if (!action) return;
       this.captureHotkeyService.consume();
-      if (action === 'top-window') void this.copyToClipboardTopWindow();
+      if (action === 'top-window') void this.copyToClipboardTopWindow(true);
       else void this.copyToClipboardRectangle();
     });
     this.destroyRef.onDestroy(() => this.disposeHdrPreview());
@@ -844,7 +844,7 @@ export class CapturePanelComponent {
     return new Uint8Array(await blob.arrayBuffer());
   };
 
-  protected readonly copyToClipboard = async (targetOverride?: CaptureTarget): Promise<void> => {
+  protected readonly copyToClipboard = async (targetOverride?: CaptureTarget, playFeedback = false): Promise<void> => {
     if (this.capturing() || this.previewing()) return;
     if (!targetOverride && !this.selectedCaptureTarget()) {
       this.error.set('Select a rectangle, monitor, or application window.');
@@ -859,7 +859,7 @@ export class CapturePanelComponent {
     try {
       this.status.set('Preparing SDR clipboard image…');
       const pngData = await this.createSdrClipboardPng(frame);
-      const result = await this.captureService.copyPreviewToClipboard(pngData);
+      const result = await this.captureService.copyPreviewToClipboard(pngData, playFeedback);
       this.lastOutputPath.set('Windows Clipboard');
       this.status.set(`Copied ${result.width} × ${result.height} SDR preview to Windows Clipboard`);
     } catch (error) {
@@ -870,8 +870,8 @@ export class CapturePanelComponent {
     }
   };
 
-  protected readonly copyToClipboardTopWindow = async (): Promise<void> => {
-    await this.copyToClipboard({ kind: 'top-window' });
+  protected readonly copyToClipboardTopWindow = async (playFeedback = false): Promise<void> => {
+    await this.copyToClipboard({ kind: 'top-window' }, playFeedback);
   };
 
   protected readonly copyToClipboardRectangle = async (): Promise<void> => {
