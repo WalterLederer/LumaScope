@@ -76,7 +76,17 @@ export default class App {
         }
       });
       if (!registered) console.warn('[Capture] Could not register Ctrl+Win+PrintScreen; the shortcut may already be in use.');
-      App.application.once('will-quit', () => globalShortcut.unregister(accelerator));
+      const rectangleAccelerator = 'CommandOrControl+Shift+PrintScreen';
+      const rectangleRegistered = globalShortcut.isRegistered(rectangleAccelerator) || globalShortcut.register(rectangleAccelerator, () => {
+        if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+          App.mainWindow.webContents.send('Capture.rectangleClipboardHotkey');
+        }
+      });
+      if (!rectangleRegistered) console.warn('[Capture] Could not register Ctrl+Shift+PrintScreen; the shortcut may already be in use.');
+      App.application.once('will-quit', () => {
+        globalShortcut.unregister(accelerator);
+        globalShortcut.unregister(rectangleAccelerator);
+      });
     }
   }
 
