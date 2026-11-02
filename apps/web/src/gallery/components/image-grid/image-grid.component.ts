@@ -58,6 +58,8 @@ export class ImageGridComponent {
 
   readonly selectedLocation = input.required<string | null>();
 
+  readonly hoveredFolderPath = input<string | null>(null);
+
   readonly sortBy = input<SortType>(allSortTypes[0]);
 
   readonly sortDirection = input<SortDirection>(allSortDirections[0]);
