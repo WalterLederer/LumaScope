@@ -1300,18 +1300,27 @@ export class ImageView {
       // Image navigation can change the sidebar/map layout after this effect runs.
       // Wait for the layout to settle, update Leaflet's dimensions first, and only
       // then recenter. Calling setView before invalidateSize can briefly offset the map.
+      const refreshMapLayout = (): void => {
+        if (request !== this.locationMapRequest || this.locationMapContainer !== container || !container.isConnected) return;
+        const map = this.locationMapInstance;
+        if (!map) return;
+        // The Location tab can become visible before the sidebar's flex layout has
+        // finished expanding. A first invalidateSize during that transition may
+        // leave Leaflet with a zero/stale viewport and only the marker is visible.
+        const bounds = container.getBoundingClientRect();
+        if (bounds.width <= 0 || bounds.height <= 0) return;
+        map.invalidateSize({ animate: false, pan: false });
+        this.locationMapMarker?.setLatLng(position);
+        map.setView(position, map.getZoom(), { animate: false });
+        this.applyGpxTrack(false);
+      };
       this.document.defaultView?.requestAnimationFrame(() => {
-        this.document.defaultView?.requestAnimationFrame(() => {
-          if (request !== this.locationMapRequest || this.locationMapContainer !== container) return;
-          const map = this.locationMapInstance;
-          if (!map) return;
-          map.invalidateSize({ animate: false, pan: false });
-          this.locationMapMarker?.setLatLng(position);
-          map.setView(position, map.getZoom(), { animate: false });
-          // Keep the imported GPX overlay visible without changing the user's map zoom.
-          this.applyGpxTrack(false);
-        });
+        this.document.defaultView?.requestAnimationFrame(refreshMapLayout);
       });
+      // Recheck after Angular's tab/sidebar transition and after the first tile
+      // layout. These delayed refreshes are harmless if the map has already settled.
+      this.document.defaultView?.setTimeout(refreshMapLayout, 180);
+      this.document.defaultView?.setTimeout(refreshMapLayout, 500);
     } catch (error) {
       if (request === this.locationMapRequest) {
         this.locationMapError.set(error instanceof Error ? error.message : String(error));
