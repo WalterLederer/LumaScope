@@ -105,10 +105,17 @@ export default class App {
     });
     App.mainWindow.setMenu(null);
     const mainWindowTitle = App.windowTitle();
+    const applyMainWindowTitle = (): void => {
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) {
+        App.mainWindow.setTitle(mainWindowTitle);
+      }
+    };
     App.mainWindow.webContents.on('page-title-updated', event => {
       event.preventDefault();
-      App.mainWindow?.setTitle(mainWindowTitle);
+      applyMainWindowTitle();
     });
+    App.mainWindow.webContents.on('did-finish-load', applyMainWindowTitle);
+    App.mainWindow.webContents.on('dom-ready', applyMainWindowTitle);
     App.mainWindow.setTitle(mainWindowTitle);
     App.mainWindow.center();
 
@@ -384,6 +391,7 @@ export default class App {
       App.application.commandLine.appendSwitch('class', 'light-matter');
     }
 
+    App.application.setName('Light Matter');
     App.application.setPath('userData', join(App.application.getPath('appData'), 'light-matter'));
     App.startupConfig = new StartupConfig(app);
 
