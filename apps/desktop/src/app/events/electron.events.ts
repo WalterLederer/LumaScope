@@ -1316,7 +1316,7 @@ ipcMain.handle('Capture.chooseFolder', async (event, initialPath?: string): Prom
 
 ipcMain.handle(
   'Capture.copyPreviewToClipboard',
-  async (_event, pngData: Uint8Array): Promise<CaptureResult> => {
+  async (_event, pngData: Uint8Array, playFeedback = false): Promise<CaptureResult> => {
     if (process.platform !== 'win32') {
       throw new Error('Capture preview clipboard export is currently supported on Windows only.');
     }
@@ -1332,7 +1332,7 @@ ipcMain.handle(
       throw new Error('Electron could not decode the rendered WebGPU preview PNG.');
     }
     const size = image.getSize();
-    shell.beep();
+    if (playFeedback) shell.beep();
     return { path: 'Windows Clipboard', width: size.width, height: size.height };
   }
 );
