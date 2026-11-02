@@ -18,7 +18,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, filter, switchMap, take } from 'rxjs';
+import { combineLatest, filter, take } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -148,15 +148,7 @@ export class GalleryPage {
   };
 
   /* State */
-  readonly galleryRoot$ = this.galleryState.galleryRoot().pipe(
-    switchMap(async root => ({
-      ...root,
-      children: await Promise.all((root.children ?? []).map(async node => ({
-        ...node,
-        hasChildren: await this.hasSubdirectories(node.id)
-      })))
-    }))
-  );
+  readonly galleryRoot$ = this.galleryState.galleryRoot();
 
   readonly selectedLocation$ = this.galleryState.selectedLocation();
 
@@ -183,10 +175,6 @@ export class GalleryPage {
       });
   }
 
-  private readonly hasSubdirectories = async (path: string): Promise<boolean> => {
-    const result = await this.galleryState.getDirContents(path);
-    return result.success && result.data.length > 0;
-  };
 
   private readonly restoreSelectedTreePath = async (root: TreeNode<string>, selectedPath: string): Promise<void> => {
     const normalize = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
@@ -216,16 +204,16 @@ export class GalleryPage {
         (path, segment) => `${path}/${segment}`,
         rootNode.id
       ));
-      const children = await Promise.all(result.data.map(async location => {
+      const children = result.data.map(location => {
         const isTarget = normalize(location.path) === selected;
         const isAncestor = selected.startsWith(`${normalize(location.path)}/`);
         return {
           ...treeNode(location.path, true),
-          hasChildren: await this.hasSubdirectories(location.path),
+          hasChildren: true,
           isSelected: isTarget,
           isOpen: isAncestor
         };
-      }));
+      });
 
       const nextNode = children.find(child => {
         const candidate = normalize(child.id);
@@ -273,10 +261,10 @@ export class GalleryPage {
     const node = structuredClone(state.node);
 
     if (result.success) {
-      node.children = await Promise.all(result.data.map(async location => ({
+      node.children = result.data.map(location => ({
         ...treeNode(location.path, true),
-        hasChildren: await this.hasSubdirectories(location.path)
-      })));
+        hasChildren: true
+      }));
       node.hasChildren = node.children.length > 0;
     }
 
