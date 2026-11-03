@@ -32,6 +32,13 @@ describe('ImageGridComponent', () => {
     expect(component.thumbSize()).toBe('medium');
   });
 
+  it('formats pixel dimensions without comma thousands separators', () => {
+    expect(component['formatPixelDimension'](3840)).toBe('3840');
+    expect(component['formatPixelDimension']('3,840')).toBe('3840');
+    expect(component['formatPixelDimension']('2,160')).toBe('2160');
+    expect(component['formatPixelDimension']('32')).toBe('32');
+  });
+
   it('should emit thumbSizeChanged when triggered', () => {
     const emitted: ThumbnailSize[] = [];
     component.thumbSizeChanged.subscribe(size => emitted.push(size));
