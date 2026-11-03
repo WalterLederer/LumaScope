@@ -41,25 +41,21 @@
       </ui-action-button>
     </div>
 
-    <div class="thumbnail-size-control"
-         [class.disabled]="viewMode() === 'details'"
-         [attr.aria-disabled]="viewMode() === 'details'"
-         title="Thumbnail size">
+    <div class="thumbnail-size-control" title="Thumbnail size">
       <button class="zoom-step-button"
               type="button"
               title="Smaller thumbnails (-)"
               aria-label="Smaller thumbnails"
-              [disabled]="viewMode() === 'details'"
               (click)="adjustThumbnailSize(-1)">−</button>
       <ui-slider [formControl]="thumbSizeSlider"
                  [min]="0"
                  [max]="11"
                  aria-label="Thumbnail size" />
+      <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       <button class="zoom-step-button"
               type="button"
               title="Larger thumbnails (+)"
               aria-label="Larger thumbnails"
-              [disabled]="viewMode() === 'details'"
               (click)="adjustThumbnailSize(1)">+</button>
     </div>
 
