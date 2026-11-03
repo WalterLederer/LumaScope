@@ -123,7 +123,7 @@ export class ImageGridComponent {
   readonly thumbnailZoomFactor = computed(() => {
     const width = thumbnailDimensions[this.thumbSize()].width;
     const factor = this.viewMode() === 'details'
-      ? (24 + ((width - 96) / (512 - 96)) * 296) / (24 + ((192 - 96) / (512 - 96)) * 48)
+      ? (24 + ((width - 96) / (512 - 96)) * 296) / (24 + ((192 - 96) / (512 - 96)) * 296)
       : width / thumbnailDimensions.small.width;
     return `${factor.toFixed(1)}×`;
   });
