@@ -60,6 +60,14 @@ export interface DesktopCacheManager {
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[]) => Promise<CacheImageStatus[]>;
+  readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
+}
+
+export interface PhotoLocation {
+  path: string;
+  fileName: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface CacheClearResult {
