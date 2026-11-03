@@ -118,7 +118,7 @@ export class ImageGridComponent {
 
   protected readonly thumbSizeSlider = new FormControl(0, { nonNullable: true });
 
-  private readonly thumbnailSliderMax = allThumbnailSizes.length - 1;
+  protected readonly thumbnailSliderMax = allThumbnailSizes.length - 1;
 
   readonly thumbnailZoomFactor = computed(() => {
     const width = thumbnailDimensions[this.thumbSize()].width;
