@@ -472,6 +472,7 @@ export class CacheManager {
 
     // Existing sidecar conversions can be adopted without decoding the original again.
     if (useSidecar && existsSync(targetPath)) {
+      await this.ensureCacheDirectory(dirname(targetPath), true);
       return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
     }
 

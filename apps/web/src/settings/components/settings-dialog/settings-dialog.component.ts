@@ -353,7 +353,10 @@ export class SettingsPanelComponent {
     }
     const drive = input.replace(/[\\/]+$/, '');
     await this.updateSidecarVolume(`${drive}\\`, true);
-    if (this.sidecarVolumeError() === null) this.sidecarVolumeInput.set('');
+    if (this.sidecarVolumeError() === null) {
+      this.sidecarVolumeInput.set('');
+      await this.updateCacheInfo();
+    }
   };
 
   protected readonly removeSidecarVolume = async (volumeRoot: string): Promise<void> =>

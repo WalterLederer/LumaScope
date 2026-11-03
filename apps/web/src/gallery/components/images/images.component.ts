@@ -237,12 +237,13 @@ export class ImagesComponent {
         this.cacheStatusLoading.set(false);
       } else {
         this.cacheStatusLoading.set(true);
+        const pathRequestVersions = new Map(this.cacheStatusPathRequests);
         void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
           if (request !== this.cacheStatusRequest) return;
           this.cacheStatuses.update(current => {
             const updated = new Map(statuses.map(status => [status.sourceName, status]));
             for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
-              if (requestVersion > 0 && current.has(sourceName)) {
+              if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && current.has(sourceName)) {
                 const currentStatus = current.get(sourceName);
                 if (currentStatus) updated.set(sourceName, currentStatus);
               }
