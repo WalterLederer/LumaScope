@@ -289,7 +289,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
   private markerScanGeneration = 0;
-  private readonly directoryMarkerCache = new Map<string, { markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>; filesTotal: number; exifErrors: number }>();
+  private readonly directoryMarkerCache = new Map<string, { markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>; filesTotal: number }>();
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
@@ -324,7 +324,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerFilesChecked = signal(0);
   protected readonly markerFilesTotal = signal(0);
   protected readonly markerCount = signal(0);
-  protected readonly markerExifErrors = signal(0);
   protected readonly markerStatus = signal('');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
   protected readonly coordinatesAvailable = signal(false);
@@ -685,7 +684,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
-      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: records.length, exifErrors: 0 });
+      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: records.length });
       this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
