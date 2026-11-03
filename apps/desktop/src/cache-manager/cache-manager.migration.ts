@@ -133,6 +133,33 @@ END;
 ALTER TABLE cache_files DROP COLUMN storage_type;
 CREATE INDEX IF NOT EXISTS idx_cache_files_storage_type_id ON cache_files (storage_type_id);
     `
+  },
+  {
+    name: 'addCacheStorageTypeForeignKeyV6',
+    query: `
+CREATE TABLE cache_files_new (
+  source_name TEXT NOT NULL,
+  source_tag TEXT NOT NULL,
+  source_size INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  target_path TEXT NOT NULL,
+  ttl INTEGER NOT NULL,
+  storage_type_id INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY (storage_type_id) REFERENCES cache_storage_types(id),
+  UNIQUE (source_name, source_tag)
+);
+
+INSERT INTO cache_files_new (
+  source_name, source_tag, source_size, updated_at, target_path, ttl, storage_type_id
+)
+SELECT
+  source_name, source_tag, source_size, updated_at, target_path, ttl, storage_type_id
+FROM cache_files;
+
+DROP TABLE cache_files;
+ALTER TABLE cache_files_new RENAME TO cache_files;
+CREATE INDEX IF NOT EXISTS idx_cache_files_storage_type_id ON cache_files (storage_type_id);
+    `
   }
 ];
 // @formatter:on

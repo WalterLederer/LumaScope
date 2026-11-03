@@ -26,7 +26,6 @@ import {
 const execFileAsync = promisify(execFile);
 
 const CACHE_STORAGE_TYPE = { CENTRAL: 1, SIDECAR: 2, PARALLEL: 3 } as const;
-const CACHE_STORAGE_TYPE_NAME = { 1: 'central', 2: 'sidecar', 3: 'parallel' } as const;
 
 interface CacheFileEntry {
   source_name: string;
@@ -279,6 +278,7 @@ export class CacheManager {
     }
 
     const query = this.db.prepare(findCacheFilesForSource);
+    const storageTypeQuery = this.db.prepare('SELECT name FROM cache_storage_types WHERE id = :id');
     const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
     const uniquePaths = [...new Set(sourceNames)];
     return Promise.all(uniquePaths.map(async sourceName => {
@@ -317,7 +317,7 @@ export class CacheManager {
         return {
           status,
           path: entry.target_path,
-          storageType: CACHE_STORAGE_TYPE_NAME[entry.storage_type_id as keyof typeof CACHE_STORAGE_TYPE_NAME] ?? 'central',
+          storageType: (storageTypeQuery.get({ id: entry.storage_type_id }) as { name: 'central' | 'sidecar' | 'parallel' } | undefined)?.name ?? 'central',
           sourceTag: entry.source_tag
         };
       };
