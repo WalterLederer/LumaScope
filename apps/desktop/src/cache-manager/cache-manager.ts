@@ -220,7 +220,7 @@ export class CacheManager {
     }
 
     const query = this.db.prepare(findCacheFilesForSource);
-    const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
+    const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
     const uniquePaths = [...new Set(sourceNames)];
     return Promise.all(uniquePaths.map(async sourceName => {
       const entries = query.all({ sourceName }) as unknown as CacheFileEntry[];
