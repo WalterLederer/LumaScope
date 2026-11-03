@@ -14,27 +14,27 @@ export const getMigrationRecords = `SELECT * FROM migrations ORDER BY rowid;`;
 
 export const insertMigrationRecord = `INSERT INTO migrations (name) VALUES (:name);`;
 
-export const clearCacheRecords = `DELETE FROM cache_files WHERE storage_type = 'central';`;
+export const clearCacheRecords = `DELETE FROM cache_files WHERE storage_type_id = 1;`;
 
 export const findFullSizeCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type
+SELECT source_name, source_tag, target_path, storage_type_id
 FROM cache_files
-WHERE source_tag LIKE '%-full-%' AND storage_type = 'central';
+WHERE source_tag LIKE '%-full-%' AND storage_type_id = 1;
 `;
 
 export const findThumbnailCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type
+SELECT source_name, source_tag, target_path, storage_type_id
 FROM cache_files
-WHERE source_tag NOT LIKE '%-full-%' AND storage_type = 'central';
+WHERE source_tag NOT LIKE '%-full-%' AND storage_type_id = 1;
 `;
 
 export const findCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type
+SELECT source_name, source_tag, target_path, storage_type_id
 FROM cache_files;
 `;
 
 export const findCacheFilesForSource = `
-SELECT source_name, source_tag, target_path, storage_type
+SELECT source_name, source_tag, target_path, storage_type_id
 FROM cache_files
 WHERE source_name = :sourceName
 ORDER BY ttl DESC;
@@ -52,7 +52,7 @@ INSERT INTO cache_files (
   updated_at,
   target_path,
   ttl,
-  storage_type
+  storage_type_id
 )
 VALUES(
   :sourceName,
@@ -61,7 +61,7 @@ VALUES(
   :updatedAt,
   :targetPath,
   :ttl,
-  :storageType
+  :storageTypeId
 );
 `;
 
@@ -104,6 +104,34 @@ CREATE TABLE IF NOT EXISTS cache_volume_settings (
     name: 'renameConvertedStorageToParallelV4',
     query: `
 UPDATE cache_files SET storage_type = 'parallel' WHERE storage_type = 'converted';
+    `
+  },
+  {
+    name: 'normalizeCacheStorageTypeIdsV5',
+    query: `
+CREATE TABLE IF NOT EXISTS cache_storage_types (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+
+INSERT OR IGNORE INTO cache_storage_types (id, name) VALUES
+  (1, 'central'),
+  (2, 'sidecar'),
+  (3, 'parallel');
+
+ALTER TABLE cache_files ADD COLUMN storage_type_id INTEGER NOT NULL DEFAULT 1;
+
+UPDATE cache_files
+SET storage_type_id = CASE storage_type
+  WHEN 'central' THEN 1
+  WHEN 'sidecar' THEN 2
+  WHEN 'parallel' THEN 3
+  WHEN 'converted' THEN 3
+  ELSE 1
+END;
+
+ALTER TABLE cache_files DROP COLUMN storage_type;
+CREATE INDEX IF NOT EXISTS idx_cache_files_storage_type_id ON cache_files (storage_type_id);
     `
   }
 ];

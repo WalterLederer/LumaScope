@@ -25,11 +25,14 @@ import {
 
 const execFileAsync = promisify(execFile);
 
+const CACHE_STORAGE_TYPE = { CENTRAL: 1, SIDECAR: 2, PARALLEL: 3 } as const;
+const CACHE_STORAGE_TYPE_NAME = { 1: 'central', 2: 'sidecar', 3: 'parallel' } as const;
+
 interface CacheFileEntry {
   source_name: string;
   source_tag: string;
   target_path: string;
-  storage_type: string;
+  storage_type_id: number;
 }
 
 export class CacheManager {
@@ -103,7 +106,7 @@ export class CacheManager {
     if (enabled) {
       // Remove all central cache entries for this drive before switching it to sidecar storage.
       const centralEntries = (this.db.prepare(findCacheFiles).all() as unknown as CacheFileEntry[])
-        .filter(entry => entry.storage_type === 'central'
+        .filter(entry => entry.storage_type_id === CACHE_STORAGE_TYPE.CENTRAL
           && parse(entry.source_name).root.toLowerCase() === volumeRoot);
       await this.clearEntries(centralEntries);
       this.db.prepare('INSERT INTO cache_volume_settings (volume_root, sidecar_enabled) VALUES (:root, 1) ON CONFLICT(volume_root) DO UPDATE SET sidecar_enabled = 1').run({ root: volumeRoot });
@@ -171,14 +174,14 @@ export class CacheManager {
     let removedBytes = 0;
 
     for (const entry of entries) {
-      if (entry.storage_type === 'parallel') {
+      if (entry.storage_type_id === CACHE_STORAGE_TYPE.PARALLEL) {
         // Parallel-folder images are external source files; only forget the reference.
         deleteEntry.run({ sourceName: entry.source_name, sourceTag: entry.source_tag });
         continue;
       }
 
       const targetPath = resolve(entry.target_path);
-      const storageDirectories = entry.storage_type === 'sidecar'
+      const storageDirectories = entry.storage_type_id === CACHE_STORAGE_TYPE.SIDECAR
         ? entry.source_tag.includes('-full-')
           ? [ join(dirname(entry.source_name), '.cache') ]
           // Accept legacy thumbnail entries stored in .cache as well as the new .thumbnails folder.
@@ -208,7 +211,7 @@ export class CacheManager {
 
   readonly forgetParallel = (sourceName: string, sourceTag: string): void => {
     const existing = this.exists(sourceName, sourceTag);
-    if (existing?.['storage_type'] === 'parallel') {
+    if (existing?.['storage_type_id'] === CACHE_STORAGE_TYPE.PARALLEL) {
       this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
     }
   };
@@ -224,7 +227,7 @@ export class CacheManager {
       if (!targetStats.isFile()) return null;
 
       const existing = this.exists(sourceName, sourceTag);
-      if (existing && existing['storage_type'] === 'parallel' && existing['target_path'] === targetPath
+      if (existing && existing['storage_type_id'] === CACHE_STORAGE_TYPE.PARALLEL && existing['target_path'] === targetPath
         && existing['source_size'] === sourceStats.size && existing['updated_at'] === sourceStats.mtimeMs) {
         return targetPath;
       }
@@ -234,11 +237,11 @@ export class CacheManager {
           source_name: sourceName,
           source_tag: sourceTag,
           target_path: String(existing['target_path']),
-          storage_type: String(existing['storage_type'])
+          storage_type_id: Number(existing['storage_type_id'])
         }]);
       }
 
-      return this.addEntry(sourceName, sourceTag, sourceStats.size, sourceStats.mtimeMs, targetPath, 'parallel');
+      return this.addEntry(sourceName, sourceTag, sourceStats.size, sourceStats.mtimeMs, targetPath, CACHE_STORAGE_TYPE.PARALLEL);
     } catch {
       return null;
     }
@@ -253,8 +256,8 @@ export class CacheManager {
     const fullSizeEntries = entries.filter(entry => entry.source_tag.includes('-full-'));
     const thumbnailEntries = entries.filter(entry => !entry.source_tag.includes('-full-'));
     const [ central, sidecar, fullSize, thumbnails ] = await Promise.all([
-      this.getEntryStats(entries.filter(entry => entry.storage_type === 'central')),
-      this.getEntryStats(entries.filter(entry => entry.storage_type === 'sidecar')),
+      this.getEntryStats(entries.filter(entry => entry.storage_type_id === CACHE_STORAGE_TYPE.CENTRAL)),
+      this.getEntryStats(entries.filter(entry => entry.storage_type_id === CACHE_STORAGE_TYPE.SIDECAR)),
       this.getCategoryStats(fullSizeEntries),
       this.getCategoryStats(thumbnailEntries)
     ]);
@@ -314,7 +317,7 @@ export class CacheManager {
         return {
           status,
           path: entry.target_path,
-          storageType: entry.storage_type as 'central' | 'sidecar' | 'parallel',
+          storageType: CACHE_STORAGE_TYPE_NAME[entry.storage_type_id as keyof typeof CACHE_STORAGE_TYPE_NAME] ?? 'central',
           sourceTag: entry.source_tag
         };
       };
@@ -421,7 +424,7 @@ export class CacheManager {
     const volumeRoot = parse(sourceName).root.toLowerCase();
     const useSidecar = this.sidecarVolumes.has(volumeRoot);
     const isFullSize = sourceTag.includes('-full-');
-    const storageType = useSidecar ? 'sidecar' : 'central';
+    const storageType = useSidecar ? CACHE_STORAGE_TYPE.SIDECAR : CACHE_STORAGE_TYPE.CENTRAL;
     const sourceExtension = extname(sourceName).slice(1).toLowerCase();
     const sourceBaseName = basename(sourceName, extname(sourceName));
     const sidecarPath = useSidecar
@@ -439,14 +442,14 @@ export class CacheManager {
       // Replace the legacy 384-pixel sidecar entry without deleting the file before regenerating it.
       const legacyEntries = this.db.prepare(findCacheFilesForSource).all({ sourceName }) as unknown as CacheFileEntry[];
       for (const entry of legacyEntries) {
-        if (entry.storage_type === 'sidecar' && entry.source_tag === 'sidecar-thumbnail-v1'
+        if (entry.storage_type_id === CACHE_STORAGE_TYPE.SIDECAR && entry.source_tag === 'sidecar-thumbnail-v1'
           && resolve(entry.target_path) === resolve(targetPath)) {
           this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag: entry.source_tag });
         }
       }
     }
 
-    if (existing && existing['storage_type'] === 'parallel') {
+    if (existing && existing['storage_type_id'] === CACHE_STORAGE_TYPE.PARALLEL) {
       if (existing['source_size'] === sourceSize && existing['updated_at'] === updatedAt && existsSync(existing['target_path'] as string)) {
         return existing['target_path'] as string;
       }
@@ -456,20 +459,20 @@ export class CacheManager {
 
     if (
       existing &&
-      existing['storage_type'] === storageType &&
+      existing['storage_type_id'] === storageType &&
       existing['source_size'] === sourceSize &&
       existing['updated_at'] === updatedAt &&
       existsSync(existing['target_path'] as string) &&
-      (storageType !== 'sidecar' || resolve(existing['target_path'] as string) === resolve(targetPath))
+      (storageType !== CACHE_STORAGE_TYPE.SIDECAR || resolve(existing['target_path'] as string) === resolve(targetPath))
     ) {
       return existing['target_path'] as string;
     }
 
     // A changed source or storage preference invalidates the previous cache entry.
     // Only remove files from the exact storage directory recorded for that entry.
-    if (existing && existing['storage_type'] !== 'parallel') {
+    if (existing && existing['storage_type_id'] !== CACHE_STORAGE_TYPE.PARALLEL) {
       const stalePath = resolve(existing['target_path'] as string);
-      const storageDirectories = existing['storage_type'] === 'sidecar'
+      const storageDirectories = existing['storage_type_id'] === CACHE_STORAGE_TYPE.SIDECAR
         ? [ join(dirname(sourceName), '.cache'), join(dirname(sourceName), '.thumbnails') ]
         : [ this.cacheDir ];
       const isSafePath = storageDirectories.some(directory => {
@@ -538,7 +541,7 @@ export class CacheManager {
     sourceSize: number,
     updatedAt: number,
     targetPath: string,
-    storageType: 'central' | 'sidecar' | 'parallel' = 'central'
+    storageType: number = CACHE_STORAGE_TYPE.CENTRAL
   ): string => {
     const ttl = Date.now();
 
@@ -549,7 +552,7 @@ export class CacheManager {
       updatedAt,
       targetPath,
       ttl,
-      storageType
+      storageTypeId: storageType
     });
 
     return targetPath;
@@ -579,8 +582,8 @@ export class CacheManager {
 
   private readonly getCategoryStats = async (entries: CacheFileEntry[]): Promise<CacheCategoryInfo> => {
     const [ central, sidecar ] = await Promise.all([
-      this.getEntryStats(entries.filter(entry => entry.storage_type === 'central')),
-      this.getEntryStats(entries.filter(entry => entry.storage_type === 'sidecar'))
+      this.getEntryStats(entries.filter(entry => entry.storage_type_id === CACHE_STORAGE_TYPE.CENTRAL)),
+      this.getEntryStats(entries.filter(entry => entry.storage_type_id === CACHE_STORAGE_TYPE.SIDECAR))
     ]);
     return {
       entries: central.entries + sidecar.entries,
