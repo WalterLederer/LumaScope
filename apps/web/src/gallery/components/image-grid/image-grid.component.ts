@@ -1,6 +1,6 @@
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { DatePipe, DecimalPipe, DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { distinctUntilChanged, fromEvent, map } from 'rxjs';
@@ -22,6 +22,7 @@ import {
   FileInfo,
   SortDirection,
   SortType,
+  thumbnailDimensions,
   ThumbnailSize
 } from 'internal-api';
 import { ImagesComponent } from '../images/images.component';
@@ -118,6 +119,14 @@ export class ImageGridComponent {
 
   private readonly thumbnailSliderMax = 11;
 
+  readonly thumbnailZoomFactor = computed(() => {
+    const width = thumbnailDimensions[this.thumbSize()].width;
+    const factor = this.viewMode() === 'details'
+      ? (24 + ((width - 96) / (512 - 96)) * 48) / (24 + ((192 - 96) / (512 - 96)) * 48)
+      : width / thumbnailDimensions.small.width;
+    return `${factor.toFixed(1)}×`;
+  });
+
   private readonly thumbnailSliderSizes: ThumbnailSize[] = [
     'extraSmallMinus', 'extraSmall', 'extraSmallPlus', 'small', 'smallPlus', 'smallMedium', 'smallMediumPlus', 'medium', 'mediumPlus', 'mediumLarge', 'mediumLargePlus', 'large'
   ];
@@ -162,7 +171,6 @@ export class ImageGridComponent {
   };
 
   protected readonly adjustThumbnailSize = (direction: -1 | 1) => {
-    if (this.viewMode() === 'details') return;
     const next = Math.max(0, Math.min(this.thumbnailSliderMax, this.thumbSizeSlider.value + direction));
     this.thumbSizeSlider.setValue(next);
   };
@@ -170,18 +178,10 @@ export class ImageGridComponent {
   /* Constructor */
   constructor() {
     console.warn('[ImageGrid] CONSTRUCTOR START');
-    effect(() => {
-      if (this.viewMode() === 'details') {
-        this.thumbSizeSlider.disable({ emitEvent: false });
-      } else {
-        this.thumbSizeSlider.enable({ emitEvent: false });
-      }
-    });
-
     fromEvent<KeyboardEvent>(this.document, 'keyup')
       .pipe(takeUntilDestroyed())
       .subscribe(event => {
-        if (event.ctrlKey || event.altKey || event.metaKey || this.viewMode() === 'details') return;
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
         const target = event.target;
         if (target instanceof HTMLElement && target.matches('input, textarea, select, [contenteditable="true"]')) return;
         if (event.key === '+' || event.key === '=' || event.key === 'Add') {
