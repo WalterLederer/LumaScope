@@ -193,7 +193,7 @@ export class CacheManager {
       const [sourceStats, targetStats] = await Promise.all([stat(sourceName), stat(targetPath)]);
       if (!targetStats.isFile()) return null;
       const previous = this.getPhoto(sourceName);
-      const row = this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs);
+      const row = this.ensurePhoto(sourceName, Number(sourceStats.size), sourceStats.mtimeMs);
       if (previous?.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
         await rm(this.getSidecarPath(sourceName, true), { force: true });
       }
@@ -224,7 +224,7 @@ export class CacheManager {
     const full = sourceTag.includes('-full-');
     const previousSize = previous?.file_size;
     const previousModified = previous?.modified_at;
-    const row = this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs);
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), sourceStats.mtimeMs);
     const parallelPath = this.getParallelPath(sourceName);
     if (full && existsSync(parallelPath)) {
       await this.registerParallel(sourceName, sourceTag, parallelPath);
