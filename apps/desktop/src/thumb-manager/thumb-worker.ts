@@ -916,15 +916,13 @@ if (parentPort) {
           scrgb.jpegsave(target, { Q: 90 });
         }
       } else if ([ '.tif', '.tiff' ].includes(sourceExtension)) {
-        using sourceImage = vips.Image.newFromFile(source, { access: 'sequential' });
-        // Materialize the sequential TIFF decoder before downstream operations request pixels out of order.
-        using decodedImage = sourceImage.copyMemory();
+        using sourceImage = vips.Image.newFromFile(source, { access: 'random' });
 
         // Untagged 16-bit TIFF samples from FFmpeg use Rec. 2020 HLG codes.
         // Floating-point TIFFs are already linear and are treated as scRGB.
-        if ([ 'float', 'double' ].includes(decodedImage.format) && decodedImage.bands >= 3) {
-          isHdr = hasHdrHeadroom(decodedImage.writeToMemory());
-          using linearScRgb = decodedImage.extractBand(0, { n: 3 })
+        if ([ 'float', 'double' ].includes(sourceImage.format) && sourceImage.bands >= 3) {
+          isHdr = sourceImage.max() > 1;
+          using linearScRgb = sourceImage.extractBand(0, { n: 3 })
             .cast(vips.BandFormat.float)
             .copy({ interpretation: vips.Interpretation.scrgb });
 
@@ -946,9 +944,9 @@ if (parentPort) {
           } else {
             linearScRgb.uhdrsave(target, { Q: 90 });
           }
-        } else if (decodedImage.format === 'ushort' && decodedImage.bands >= 3) {
+        } else if (sourceImage.format === 'ushort' && sourceImage.bands >= 3) {
           // This path explicitly decodes the untagged 16-bit TIFF data as Rec. 2020 HLG.
-          using rgb = decodedImage.extractBand(0, { n: 3 });
+          using rgb = sourceImage.extractBand(0, { n: 3 });
           using lutImage = vips.Image.newFromMemory(
             getHdrTransferLut(18),
             65536,
@@ -968,7 +966,7 @@ if (parentPort) {
             ]
           );
           using image = displayRec2020.recomb(rec2020ToScRgb);
-          isHdr = hasHdrHeadroom(image.writeToMemory());
+          isHdr = image.max() > 1;
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
@@ -994,7 +992,7 @@ if (parentPort) {
           using jpeg = thumb.cast(vips.BandFormat.uchar).copy({ interpretation: vips.Interpretation.srgb });
           jpeg.jpegsave(target, { Q: 80 });
         } else {
-          using jpeg = decodedImage.cast(vips.BandFormat.uchar).copy({ interpretation: vips.Interpretation.srgb });
+          using jpeg = sourceImage.cast(vips.BandFormat.uchar).copy({ interpretation: vips.Interpretation.srgb });
           jpeg.jpegsave(target, { Q: 90 });
         }
       } else if (sourceExtension === '.heif' || sourceExtension === '.heic') {
@@ -1047,14 +1045,14 @@ if (parentPort) {
           }
         } else {
           const rgba = await decodeHeifToRgba(heifData);
-          using decodedImage = vips.Image.newFromMemory(
+          using sourceImage = vips.Image.newFromMemory(
             new Uint8Array(rgba.data.buffer, rgba.data.byteOffset, rgba.data.byteLength),
             rgba.width,
             rgba.height,
             4,
             vips.BandFormat.uchar
           );
-          using rgb = decodedImage.extractBand(0, { n: 3 }).copy({ interpretation: vips.Interpretation.srgb });
+          using rgb = sourceImage.extractBand(0, { n: 3 }).copy({ interpretation: vips.Interpretation.srgb });
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
