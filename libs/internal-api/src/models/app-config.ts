@@ -16,7 +16,7 @@ export const thumbnailDimensions: Record<ThumbnailSize, {
   mediumPlus: { width: 312, height: 208 },
   mediumLarge: { width: 336, height: 224 },
   mediumLargePlus: { width: 360, height: 240 },
-  large: { width: 384, height: 256 }
+  large: { width: 512, height: 341 }
 };
 export const getThumbnailSize = (width?: number, height?: number): ThumbnailSize => {
   if (width === thumbnailDimensions.extraSmallMinus.width && height === thumbnailDimensions.extraSmallMinus.height) return 'extraSmallMinus';
