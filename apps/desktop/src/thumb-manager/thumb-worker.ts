@@ -1401,6 +1401,9 @@ if (parentPort) {
           const profile = getPngColorProfile(source);
           isHdr = isHdr || (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18))
             || hasComfyUiPqVae(source);
+        } else if (sourceExtension === '.jxl') {
+          const profile = getHeifColorProfile(await readFile(source));
+          isHdr = profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18);
         }
         using thumb = vips.Image.thumbnail(
           source,
