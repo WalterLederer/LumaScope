@@ -128,7 +128,7 @@ export class CacheManager {
         if (existsSync(parallelPath)) await this.registerParallel(sourceName, sourceTag, parallelPath);
         else this.forgetParallel(sourceName, sourceTag);
       }
-      const row = sourceStats ? (this.getPhoto(sourceName) ?? this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs)) : this.getPhoto(sourceName);
+      const row = sourceStats ? (this.getPhoto(sourceName) ?? this.ensurePhoto(sourceName, Number(sourceStats.size), sourceStats.mtimeMs)) : this.getPhoto(sourceName);
       const getStatus = async (kind: 'thumbnail' | 'fullsize') => {
         if (!row) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
@@ -249,7 +249,7 @@ export class CacheManager {
 
   private readonly getPhoto = (sourceName: string): PhotoRow | null => {
     const row = this.db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE')
-      .get({ folder: dirname(sourceName), file: basename(sourceName) }) as PhotoRow | undefined;
+      .get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
   };
 

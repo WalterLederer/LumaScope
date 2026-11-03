@@ -110,10 +110,10 @@ const getFullSizeDerivative = async (
     if (existsSync(convertedPath)) {
       // A sibling JPG is a valid existing derivative even when it is SDR.
       // Do not require an Ultra HDR gain map to reuse the user's conversion.
-      const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
+      const adopted = await cacheManager.registerParallel(fileName, cacheTag, convertedPath);
       if (adopted) return adopted;
     } else {
-      cacheManager.forgetConverted(fileName, cacheTag);
+      cacheManager.forgetParallel(fileName, cacheTag);
     }
   }
 
@@ -258,7 +258,7 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
 
       const result = await getFullSizeDerivative(fileName, cacheTag, cacheManager, thumbManager);
       if (result !== null) {
-        const adoptedConversion = cacheManager.exists(fileName, cacheTag)?.['storage_type'] === 'converted';
+        const adoptedConversion = cacheManager.exists(fileName, cacheTag)?.['storage_type_id'] === 3;
         fullSizeCacheStatus.set(resolve(fileName), wasCacheHit || adoptedConversion);
       }
 
