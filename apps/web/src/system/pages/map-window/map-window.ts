@@ -289,7 +289,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
   private markerScanGeneration = 0;
-  private readonly directoryMarkerCache = new Map<string, { markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>; filesTotal: number }>();
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
@@ -575,7 +574,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!(section instanceof HTMLDetailsElement)) return;
     this.markerSectionOpen.set(section.open);
     this.saveSetting('markerSectionOpen', section.open);
-    if (section.open && !this.directoryMarkersEnabled()) {
+    if (section.open) {
       this.directoryMarkersEnabled.set(true);
       void this.scanDirectoryMarkers();
     }
@@ -605,19 +604,6 @@ export class MapWindow implements OnInit, OnDestroy {
     const html = `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${size[0]}\" height=\"${size[1]}\" viewBox=\"${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}\" style=\"display:block;filter:drop-shadow(0 1px 3px #000b)\">${svg}</svg>`;
     return this.leaflet!.divIcon({ className: 'current-location-marker', html, iconSize: size, iconAnchor: anchor });
   }
-  private parseExifCoordinate(value: unknown, reference: unknown): number | null {
-    if (typeof value !== 'number' && typeof value !== 'string') return null;
-    const parts = String(value).match(/-?\d+(?:\.\d+)?/g); if (!parts?.length) return null;
-    const degrees = Math.abs(Number(parts[0])), minutes = Number(parts[1] ?? 0), seconds = Number(parts[2] ?? 0);
-    if (![degrees, minutes, seconds].every(Number.isFinite) || minutes >= 60 || seconds >= 60) return null;
-    let result = degrees + minutes / 60 + seconds / 3600; const ref = String(reference ?? '').toLowerCase();
-    if (String(parts[0]).startsWith('-') || ['s', 'south', 'w', 'west'].includes(ref)) result *= -1;
-    return Number.isFinite(result) ? result : null;
-  }
-  private markerCacheKey(directory: string): string {
-    return directory.replace(/[\\/]+$/, '').replace(/\//g, '\\').toLowerCase();
-  }
-
   private escapeMarkerHtml(value: string): string {
     return value.replace(/[&<>"']/g, character => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -659,16 +645,6 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const directory = await desktop.FileSystem.dirname(imagePath);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      const cacheKey = this.markerCacheKey(directory);
-      const cached = this.directoryMarkerCache.get(cacheKey);
-      if (cached) {
-        this.markerFilesTotal.set(cached.filesTotal);
-        this.markerFilesChecked.set(cached.filesTotal);
-        this.renderDirectoryMarkers(cached.markers, imagePath);
-        this.markerStatus.set('Loaded ' + cached.filesTotal + ' database records from session cache; ' + cached.markers.length + ' GPS locations found.');
-        return;
-      }
-
       const records = await desktop.CacheManager.getDirectoryPhotoLocations(directory);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
       const markers = records
@@ -684,7 +660,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
-      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: records.length });
       this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
