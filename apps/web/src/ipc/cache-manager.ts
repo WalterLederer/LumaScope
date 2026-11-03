@@ -43,6 +43,9 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getSidecarVolumes = () => window.desktop.CacheManager.getSidecarVolumes();
 
-  readonly setSidecarVolumeEnabled = (volumeRoot: string, enabled: boolean) =>
-    window.desktop.CacheManager.setSidecarVolumeEnabled(volumeRoot, enabled);
+  readonly setSidecarVolumeEnabled = async (volumeRoot: string, enabled: boolean) => {
+    const volumes = await window.desktop.CacheManager.setSidecarVolumeEnabled(volumeRoot, enabled);
+    this.cacheRevision.update(value => value + 1);
+    return volumes;
+  };
 }

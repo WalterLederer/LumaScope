@@ -49,6 +49,7 @@ export class ImagesComponent {
   private readonly exif = inject(ExifService);
   private readonly cacheManager = inject(CacheManager);
   private cacheStatusRequest = 0;
+  private readonly cacheStatusPathRequests = new Map<string, number>();
   readonly cacheStatuses = signal<Map<string, CacheImageStatus>>(new Map());
   readonly cacheStatusLoading = signal(false);
   private readonly manualRefresh = signal(0);
@@ -209,6 +210,18 @@ export class ImagesComponent {
       : '';
   }
 
+  readonly refreshCacheStatus = (sourceName: string): void => {
+    if (this.viewMode() !== 'details' || !(this.images() ?? []).some(image => image.path === sourceName)) return;
+    const request = (this.cacheStatusPathRequests.get(sourceName) ?? 0) + 1;
+    this.cacheStatusPathRequests.set(sourceName, request);
+    void this.cacheManager.getImageCacheStatuses([sourceName]).then(([status]) => {
+      if (this.cacheStatusPathRequests.get(sourceName) !== request || !status) return;
+      this.cacheStatuses.update(current => new Map(current).set(sourceName, status));
+    }).catch(error => {
+      console.error('Failed to refresh thumbnail cache status', error);
+    });
+  };
+
   sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): string {
     if (this.detailSortColumn() !== column) return '';
     return this.detailSortDirection() === 'asc' ? ' ▲' : ' ▼';
@@ -226,7 +239,16 @@ export class ImagesComponent {
         this.cacheStatusLoading.set(true);
         void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
           if (request !== this.cacheStatusRequest) return;
-          this.cacheStatuses.set(new Map(statuses.map(status => [status.sourceName, status])));
+          this.cacheStatuses.update(current => {
+            const updated = new Map(statuses.map(status => [status.sourceName, status]));
+            for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
+              if (requestVersion > 0 && current.has(sourceName)) {
+                const currentStatus = current.get(sourceName);
+                if (currentStatus) updated.set(sourceName, currentStatus);
+              }
+            }
+            return updated;
+          });
         }).catch(error => {
           if (request !== this.cacheStatusRequest) return;
           console.error('Failed to retrieve gallery cache statuses', error);

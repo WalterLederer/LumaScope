@@ -23,6 +23,7 @@
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                      [cacheStatusLoading]="cacheStatusLoading()"
                      [refreshToken]="thumbnailRefreshToken()"
+                     (cacheUpdated)="refreshCacheStatus($event)"
                      (hovered)="hovered.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }

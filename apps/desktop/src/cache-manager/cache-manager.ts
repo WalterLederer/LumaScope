@@ -1,9 +1,11 @@
 import { app, shell, type IpcMainInvokeEvent } from 'electron';
+import { execFile } from 'node:child_process';
 import { nanoid } from 'nanoid/non-secure';
 import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, parse, relative, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
+import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { CacheCategoryInfo, CacheClearResult, CacheImageStatus, CacheInfo } from 'internal-api';
 import {
@@ -20,6 +22,8 @@ import {
   insertCacheFile,
   insertMigrationRecord
 } from './cache-manager.migration';
+
+const execFileAsync = promisify(execFile);
 
 interface CacheFileEntry {
   source_name: string;
@@ -43,6 +47,8 @@ export class CacheManager {
 
   private readonly sidecarVolumes = new Set<string>();
 
+  private readonly volumeChanges = new Map<string, Promise<void>>();
+
   constructor() {
     // SQLite does not create its parent directory, unlike the image cache below.
     mkdirSync(this.userData, { recursive: true });
@@ -63,14 +69,46 @@ export class CacheManager {
     }
     if (typeof enabled !== 'boolean') throw new Error('A boolean sidecar setting is required.');
     const normalizedRoot = volumeRoot.toLowerCase();
-    if (enabled) {
-      this.db.prepare('INSERT INTO cache_volume_settings (volume_root, sidecar_enabled) VALUES (:root, 1) ON CONFLICT(volume_root) DO UPDATE SET sidecar_enabled = 1').run({ root: normalizedRoot });
-      this.sidecarVolumes.add(normalizedRoot);
-    } else {
-      this.db.prepare('DELETE FROM cache_volume_settings WHERE volume_root = :root').run({ root: normalizedRoot });
-      this.sidecarVolumes.delete(normalizedRoot);
+    const change = this.applySidecarVolumeSetting(normalizedRoot, enabled);
+    this.volumeChanges.set(normalizedRoot, change);
+    try {
+      await change;
+    } finally {
+      if (this.volumeChanges.get(normalizedRoot) === change) {
+        this.volumeChanges.delete(normalizedRoot);
+      }
     }
     return [...this.sidecarVolumes].sort();
+  };
+
+  private readonly applySidecarVolumeSetting = async (volumeRoot: string, enabled: boolean): Promise<void> => {
+    const alreadyEnabled = this.sidecarVolumes.has(volumeRoot);
+    if (enabled === alreadyEnabled) return;
+
+    const pending = [...this.pendingEntries.entries()]
+      .filter(([key]) => {
+        try {
+          const sourceName = JSON.parse(key)[0] as string;
+          return parse(sourceName).root.toLowerCase() === volumeRoot;
+        } catch {
+          return false;
+        }
+      })
+      .map(([, operation]) => operation);
+    await Promise.all(pending);
+
+    if (enabled) {
+      // Remove all central cache entries for this drive before switching it to sidecar storage.
+      const centralEntries = (this.db.prepare(findCacheFiles).all() as unknown as CacheFileEntry[])
+        .filter(entry => entry.storage_type === 'central'
+          && parse(entry.source_name).root.toLowerCase() === volumeRoot);
+      await this.clearEntries(centralEntries);
+      this.db.prepare('INSERT INTO cache_volume_settings (volume_root, sidecar_enabled) VALUES (:root, 1) ON CONFLICT(volume_root) DO UPDATE SET sidecar_enabled = 1').run({ root: volumeRoot });
+      this.sidecarVolumes.add(volumeRoot);
+    } else {
+      this.db.prepare('DELETE FROM cache_volume_settings WHERE volume_root = :root').run({ root: volumeRoot });
+      this.sidecarVolumes.delete(volumeRoot);
+    }
   };
 
   @IpcHandler({ name: 'CacheManager.clear' })
@@ -323,6 +361,12 @@ export class CacheManager {
     callback?: (cachePath: string) => Promise<boolean>,
     targetExtension = extname(sourceName)
   ): Promise<string | null> => {
+    const volumeChange = this.volumeChanges.get(parse(sourceName).root.toLowerCase());
+    if (volumeChange) {
+      await volumeChange;
+      return this.get(sourceName, sourceTag, callback, targetExtension);
+    }
+
     const deletion = this.deletingSources.get(sourceName);
     if (deletion) {
       await deletion;
@@ -431,7 +475,7 @@ export class CacheManager {
       return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
     }
 
-    await mkdir(dirname(targetPath), { recursive: true });
+    await this.ensureCacheDirectory(dirname(targetPath), useSidecar);
 
     if (callback) {
       const result = await callback(targetPath);
@@ -440,10 +484,16 @@ export class CacheManager {
         : null;
     }
 
-    await mkdir(dirname(targetPath), { recursive: true });
     await copyFile(sourceName, targetPath);
 
     return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
+  };
+
+  private readonly ensureCacheDirectory = async (directory: string, hidden: boolean): Promise<void> => {
+    await mkdir(directory, { recursive: true });
+    if (hidden && process.platform === 'win32') {
+      await execFileAsync('attrib', [ '+h', directory ]);
+    }
   };
 
   private readonly init = () => {

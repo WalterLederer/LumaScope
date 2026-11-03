@@ -64,6 +64,8 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly hovered = output<FileInfo | null>();
 
+  readonly cacheUpdated = output<string>();
+
   /* State */
   private readonly pixelRatio = toSignal(
     this.devicePixelRatioService
@@ -202,7 +204,12 @@ export class ThumbnailComponent implements OnDestroy {
       this.loaderSubscription = this.thumbnailLoader
         .add(this.url())
         .subscribe({
-          next: success => this.hasError.set(!success),
+          next: success => {
+            this.hasError.set(!success);
+            if (success && this.viewMode() === 'details') {
+              this.cacheUpdated.emit(this.image().path);
+            }
+          },
           complete: () => this.isLoading.set(false)
         });
     });
