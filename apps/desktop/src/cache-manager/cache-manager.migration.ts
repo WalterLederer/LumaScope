@@ -160,6 +160,58 @@ DROP TABLE cache_files;
 ALTER TABLE cache_files_new RENAME TO cache_files;
 CREATE INDEX IF NOT EXISTS idx_cache_files_storage_type_id ON cache_files (storage_type_id);
     `
+  },
+  {
+    name: 'createPhotoMetadataSchemaV7',
+    query: `
+CREATE TABLE IF NOT EXISTS paths (
+  id INTEGER PRIMARY KEY,
+  folder_path TEXT NOT NULL UNIQUE COLLATE NOCASE
+);
+
+CREATE TABLE IF NOT EXISTS coordinate_sources (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+INSERT OR IGNORE INTO coordinate_sources (id, name) VALUES
+  (1, 'EXIF'), (2, 'XMP'), (3, 'GPX'), (4, 'Manual'), (5, 'External');
+
+CREATE TABLE IF NOT EXISTS location_names (
+  id INTEGER PRIMARY KEY,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  place_name TEXT NOT NULL,
+  country_code TEXT,
+  region TEXT,
+  locality TEXT,
+  provider TEXT,
+  updated_at INTEGER NOT NULL,
+  UNIQUE(latitude, longitude, provider)
+);
+
+CREATE TABLE IF NOT EXISTS photos (
+  id INTEGER PRIMARY KEY,
+  path_id INTEGER NOT NULL REFERENCES paths(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_size INTEGER NOT NULL DEFAULT 0,
+  modified_at REAL NOT NULL DEFAULT 0,
+  is_hdr INTEGER NOT NULL DEFAULT 0 CHECK (is_hdr IN (0, 1)),
+  thumbnail_cache_id INTEGER REFERENCES cache_storage_types(id),
+  thumbnail_cache_version TEXT,
+  fullsize_cache_id INTEGER REFERENCES cache_storage_types(id),
+  fullsize_cache_version TEXT,
+  latitude REAL,
+  longitude REAL,
+  altitude_m REAL,
+  gps_timestamp INTEGER,
+  direction_deg REAL,
+  coordinate_source_id INTEGER REFERENCES coordinate_sources(id),
+  location_name_id INTEGER REFERENCES location_names(id),
+  UNIQUE(path_id, file_name)
+);
+CREATE INDEX IF NOT EXISTS idx_photos_path_id ON photos(path_id);
+CREATE INDEX IF NOT EXISTS idx_photos_hdr ON photos(is_hdr);
+`
   }
 ];
 // @formatter:on
