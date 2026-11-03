@@ -171,8 +171,8 @@ export class CacheManager {
     let removedBytes = 0;
 
     for (const entry of entries) {
-      if (entry.storage_type === 'converted') {
-        // Converted images are external source files; only forget the reference.
+      if (entry.storage_type === 'parallel') {
+        // Parallel-folder images are external source files; only forget the reference.
         deleteEntry.run({ sourceName: entry.source_name, sourceTag: entry.source_tag });
         continue;
       }
@@ -206,14 +206,14 @@ export class CacheManager {
     return { entries: entries.length, bytes: removedBytes };
   };
 
-  readonly forgetConverted = (sourceName: string, sourceTag: string): void => {
+  readonly forgetParallel = (sourceName: string, sourceTag: string): void => {
     const existing = this.exists(sourceName, sourceTag);
-    if (existing?.['storage_type'] === 'converted') {
+    if (existing?.['storage_type'] === 'parallel') {
       this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
     }
   };
 
-  readonly registerConverted = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
+  readonly registerParallel = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
     const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
     if (!convertibleExtensions.has(extname(sourceName).toLowerCase()) || !isAbsolute(targetPath) || extname(targetPath).toLowerCase() !== '.jpg') {
       return null;
@@ -224,7 +224,7 @@ export class CacheManager {
       if (!targetStats.isFile()) return null;
 
       const existing = this.exists(sourceName, sourceTag);
-      if (existing && existing['storage_type'] === 'converted' && existing['target_path'] === targetPath
+      if (existing && existing['storage_type'] === 'parallel' && existing['target_path'] === targetPath
         && existing['source_size'] === sourceStats.size && existing['updated_at'] === sourceStats.mtimeMs) {
         return targetPath;
       }
@@ -238,7 +238,7 @@ export class CacheManager {
         }]);
       }
 
-      return this.addEntry(sourceName, sourceTag, sourceStats.size, sourceStats.mtimeMs, targetPath, 'converted');
+      return this.addEntry(sourceName, sourceTag, sourceStats.size, sourceStats.mtimeMs, targetPath, 'parallel');
     } catch {
       return null;
     }
@@ -285,9 +285,9 @@ export class CacheManager {
         const sourceTag = `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
         const parallelJpg = join(dirname(dirname(sourceName)), 'jpg', `${basename(sourceName, extname(sourceName))}.jpg`);
         if (existsSync(parallelJpg)) {
-          await this.registerConverted(sourceName, sourceTag, parallelJpg);
+          await this.registerParallel(sourceName, sourceTag, parallelJpg);
         } else {
-          this.forgetConverted(sourceName, sourceTag);
+          this.forgetParallel(sourceName, sourceTag);
         }
       }
 
@@ -314,7 +314,7 @@ export class CacheManager {
         return {
           status,
           path: entry.target_path,
-          storageType: entry.storage_type as 'central' | 'sidecar' | 'converted',
+          storageType: entry.storage_type as 'central' | 'sidecar' | 'parallel',
           sourceTag: entry.source_tag
         };
       };
@@ -446,11 +446,11 @@ export class CacheManager {
       }
     }
 
-    if (existing && existing['storage_type'] === 'converted') {
+    if (existing && existing['storage_type'] === 'parallel') {
       if (existing['source_size'] === sourceSize && existing['updated_at'] === updatedAt && existsSync(existing['target_path'] as string)) {
         return existing['target_path'] as string;
       }
-      // The converted file is external; invalidate only its database reference.
+      // The parallel file is external; invalidate only its database reference.
       this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
     }
 
@@ -467,7 +467,7 @@ export class CacheManager {
 
     // A changed source or storage preference invalidates the previous cache entry.
     // Only remove files from the exact storage directory recorded for that entry.
-    if (existing && existing['storage_type'] !== 'converted') {
+    if (existing && existing['storage_type'] !== 'parallel') {
       const stalePath = resolve(existing['target_path'] as string);
       const storageDirectories = existing['storage_type'] === 'sidecar'
         ? [ join(dirname(sourceName), '.cache'), join(dirname(sourceName), '.thumbnails') ]
@@ -538,7 +538,7 @@ export class CacheManager {
     sourceSize: number,
     updatedAt: number,
     targetPath: string,
-    storageType: 'central' | 'sidecar' | 'converted' = 'central'
+    storageType: 'central' | 'sidecar' | 'parallel' = 'central'
   ): string => {
     const ttl = Date.now();
 

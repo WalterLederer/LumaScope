@@ -99,6 +99,12 @@ CREATE TABLE IF NOT EXISTS cache_volume_settings (
   sidecar_enabled INTEGER NOT NULL DEFAULT 1
 );
     `
+  },
+  {
+    name: 'renameConvertedStorageToParallelV4',
+    query: `
+UPDATE cache_files SET storage_type = 'parallel' WHERE storage_type = 'converted';
+    `
   }
 ];
 // @formatter:on

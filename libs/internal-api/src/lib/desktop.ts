@@ -85,7 +85,7 @@ export interface CacheInfo extends CacheClearResult {
 export interface CacheEntryStatus {
   status: 'valid' | 'missing' | 'stale';
   path: string;
-  storageType: 'central' | 'sidecar' | 'converted';
+  storageType: 'central' | 'sidecar' | 'parallel';
   sourceTag: string;
 }
 

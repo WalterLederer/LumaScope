@@ -47,7 +47,7 @@ export class ExifInfoComponent {
 
   readonly cacheStorageLabel = (storageType: string | null | undefined): string => {
     switch (storageType) {
-      case 'converted': return 'Parallel folder';
+      case 'parallel': return 'Parallel folder';
       case 'sidecar': return 'Sidecar cache';
       case 'central': return 'Central cache';
       default: return 'Missing';
