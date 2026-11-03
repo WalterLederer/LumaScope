@@ -135,7 +135,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   private cacheEntryLabel(entry: CacheImageStatus['thumbnail']): string {
     if (entry?.status === 'valid') {
-      return entry.storageType === 'sidecar' ? 'Sidecar' : entry.storageType === 'converted' ? 'Converted' : 'Central';
+      return entry.storageType === 'parallel' ? 'Parallel folder' : 'Central cache';
     }
     return entry?.status === 'stale' ? 'Invalid' : 'Missing';
   }

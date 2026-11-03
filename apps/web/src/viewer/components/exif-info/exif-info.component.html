@@ -44,7 +44,7 @@
         <h3>Thumbnail</h3>
         <dl>
           <dt>Status</dt>
-          <dd>{{ cachePathLoading() ? 'Checking…' : cacheStatus?.thumbnail?.status === 'valid' ? cacheStorageLabel(cacheStatus.thumbnail.storageType) : 'Missing' }}</dd>
+          <dd>{{ cachePathLoading() ? 'Checking…' : cacheStatus?.thumbnail?.status === 'valid' ? cacheStorageLabel(cacheStatus?.thumbnail?.storageType) : 'Missing' }}</dd>
           <dt>Path</dt>
           <dd class="cache-entry-path">{{ cacheStatus?.thumbnail?.status === 'valid' ? cacheStatus!.thumbnail!.path : '—' }}</dd>
         </dl>
@@ -54,7 +54,7 @@
         <h3>Full-size conversion</h3>
         <dl>
           <dt>Status</dt>
-          <dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Missing') : !cacheStatus.fullSizeRequired ? 'Not required' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status === 'valid' ? cacheStorageLabel(cacheStatus.fullSize.storageType) : 'Missing' }}</dd>
+          <dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Missing') : !cacheStatus.fullSizeRequired ? 'Not required' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status === 'valid' ? cacheStorageLabel(cacheStatus?.fullSize?.storageType) : 'Missing' }}</dd>
           <dt>Path</dt>
           <dd class="cache-entry-path">{{ cacheStatus?.fullSize?.status === 'valid' ? cacheStatus!.fullSize!.path : '—' }}</dd>
         </dl>
