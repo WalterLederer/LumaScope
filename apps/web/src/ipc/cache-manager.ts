@@ -39,13 +39,4 @@ export class CacheManager implements DesktopCacheManager {
   readonly getImageCacheStatuses = (sourceNames: string[]): Promise<CacheImageStatus[]> =>
     window.desktop.CacheManager.getImageCacheStatuses(sourceNames);
 
-  readonly openCacheFolder = () => window.desktop.CacheManager.openCacheFolder();
-
-  readonly getSidecarVolumes = () => window.desktop.CacheManager.getSidecarVolumes();
-
-  readonly setSidecarVolumeEnabled = async (volumeRoot: string, enabled: boolean) => {
-    const volumes = await window.desktop.CacheManager.setSidecarVolumeEnabled(volumeRoot, enabled);
-    this.cacheRevision.update(value => value + 1);
-    return volumes;
-  };
 }
