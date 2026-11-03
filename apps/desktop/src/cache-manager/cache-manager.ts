@@ -39,6 +39,8 @@ export class CacheManager {
 
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
 
+  private readonly deletingSources = new Map<string, Promise<CacheClearResult>>();
+
   private readonly sidecarVolumes = new Set<string>();
 
   constructor() {
@@ -85,15 +87,28 @@ export class CacheManager {
       throw new Error('A valid source image path is required.');
     }
 
-    // Let an in-progress conversion finish before removing all cache variants
-    // for this image, so it cannot recreate an entry immediately after deletion.
+    const existing = this.deletingSources.get(sourceName);
+    if (existing) return existing;
+
+    // Block new cache requests for this source while the existing operations
+    // finish and all indexed variants are removed. Without this gate, a new
+    // thumbnail/full-size request can recreate an entry during deletion.
+    const operation = this.deleteImageEntries(sourceName);
+    this.deletingSources.set(sourceName, operation);
+    try {
+      return await operation;
+    } finally {
+      if (this.deletingSources.get(sourceName) === operation) {
+        this.deletingSources.delete(sourceName);
+      }
+    }
+  };
+
+  private readonly deleteImageEntries = async (sourceName: string): Promise<CacheClearResult> => {
     const pending = [ ...this.pendingEntries.entries() ]
       .filter(([ key ]) => {
-        try {
-          return JSON.parse(key)[0] === sourceName;
-        } catch {
-          return false;
-        }
+        try { return JSON.parse(key)[0] === sourceName; }
+        catch { return false; }
       })
       .map(([, operation]) => operation);
     await Promise.all(pending);
@@ -308,6 +323,12 @@ export class CacheManager {
     callback?: (cachePath: string) => Promise<boolean>,
     targetExtension = extname(sourceName)
   ): Promise<string | null> => {
+    const deletion = this.deletingSources.get(sourceName);
+    if (deletion) {
+      await deletion;
+      return this.get(sourceName, sourceTag, callback, targetExtension);
+    }
+
     const key = JSON.stringify([ sourceName, sourceTag ]);
     const pending = this.pendingEntries.get(key);
 

@@ -40,20 +40,23 @@
     <summary>Cache · {{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status === 'valid' ? 'Thumbnail cached' : 'Thumbnail not cached' }} · Full-size {{ cachePathLoading() ? 'checking…' : !cacheStatus ? 'unknown' : !cacheStatus.fullSizeRequired ? 'not required' : cacheStatus.fullSize?.status === 'valid' ? 'ready' : cacheStatus.fullSize?.status === 'stale' ? 'stale' : 'missing' }}</summary>
     <dl class="cache-entry-list">
       <dt>Thumbnail status</dt><dd>{{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status ?? 'Not cached' }}</dd>
-      @if (cacheStatus?.thumbnail; as thumbnail) {
+      @if (cacheStatus?.thumbnail?.status === 'valid' && cacheStatus.thumbnail; as thumbnail) {
         <dt>Thumbnail location / type</dt><dd>{{ thumbnail.storageType === 'converted' ? 'Converted' : thumbnail.storageType === 'sidecar' ? 'Sidecar' : 'Central' }}</dd>
         <dt>Thumbnail path</dt><dd class="cache-entry-path">{{ thumbnail.path }}</dd>
       } @else {
         <dt>Thumbnail location / type</dt><dd>—</dd>
       }
       <dt>Full-size conversion</dt><dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Unknown') : !cacheStatus.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status ?? 'Not cached' }}</dd>
-      @if (cacheStatus?.fullSize; as fullSize) {
+      @if (cacheStatus?.fullSize?.status === 'valid' && cacheStatus.fullSize; as fullSize) {
         <dt>Full-size location / type</dt><dd>{{ fullSize.storageType === 'converted' ? 'Converted' : fullSize.storageType === 'sidecar' ? 'Sidecar' : 'Central' }}</dd>
         <dt>Full-size path</dt><dd class="cache-entry-path">{{ fullSize.path }}</dd>
       } @else {
         <dt>Full-size location / type</dt><dd>—</dd>
       }
     </dl>
+    <div class="full-path-row">
+      <div class="full-path-value" [title]="normalizedPath()"><strong>Original image path:</strong> {{ normalizedPath() }}</div>
+    </div>
     <div class="full-path-row">
       <div class="full-path-value" [title]="rawImageUrl()"><strong>Raw image URL:</strong> {{ rawImageUrl() }}</div>
     </div>

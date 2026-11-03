@@ -573,6 +573,13 @@ export class ImageView {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     this.activeImageSidebarTab.set(tab);
     if (tab === 'cache') this.refreshCurrentImageCache();
+    if (tab === 'image') {
+      // The EXIF stream may have completed while the Image tab was inactive.
+      // Expose its latest result immediately; the active request updates it
+      // when metadata is still being read.
+      this.exifVisible.set(true);
+      this.exifState.set(this.imageTags() ?? false);
+    }
     if (tab === 'histogram' && !this.histogramVisible()) this.toggleHistogram();
     try { this.document.defaultView?.localStorage.setItem('light-matter.activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
   };
