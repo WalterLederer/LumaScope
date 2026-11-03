@@ -91,7 +91,7 @@
       </strong>
       · {{ image.name }}
       @if (tags?.ImageWidth && tags?.ImageHeight) {
-        · {{ tags?.ImageWidth }} x {{ tags?.ImageHeight }}
+        · {{ formatPixelDimension(tags?.ImageWidth) }} x {{ formatPixelDimension(tags?.ImageHeight) }}
       }
       · {{ bits ?? '—' }}-bit
       · {{ image.size | number: '1.0-0' }} bytes
