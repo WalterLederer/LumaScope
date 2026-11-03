@@ -40,7 +40,8 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[style.--thumb-width.px]': 'dimensions().width',
-    '[style.--thumb-height.px]': 'dimensions().height'
+    '[style.--thumb-height.px]': 'dimensions().height',
+    '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()'
   }
 })
 export class ImagesComponent {
@@ -149,6 +150,10 @@ export class ImagesComponent {
 
   /* Computed */
   readonly dimensions = computed(() => thumbnailDimensions[this.thumbSize()]);
+  readonly detailThumbnailWidth = computed(() => {
+    const width = this.dimensions().width;
+    return Math.round(24 + ((width - 96) / (512 - 96)) * 48);
+  });
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
   readonly groupedImages = computed<YearGroup[]>(() => {
     if (!this.isDateSorted()) {
