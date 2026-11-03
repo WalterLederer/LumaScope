@@ -114,6 +114,12 @@ ui-toolbar {
   overflow-y: auto;
   padding-right: var(--dim-large);
   contain: paint;
+
+  &.details-mode {
+    width: max-content;
+    max-width: calc(100% - 320px);
+    overflow-x: auto;
+  }
 }
 
 .image-status {
