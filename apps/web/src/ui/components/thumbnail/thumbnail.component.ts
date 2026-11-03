@@ -90,6 +90,8 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly isCaching = signal<boolean>(true);
 
+  readonly isCacheStatusReady = signal<boolean>(false);
+
   readonly isVisible = signal<boolean>(false);
 
   readonly hasError = signal<boolean>(false);
@@ -203,6 +205,7 @@ export class ThumbnailComponent implements OnDestroy {
       this.hasError.set(false);
       this.isLoading.set(true);
       this.isCaching.set(true);
+      this.isCacheStatusReady.set(false);
 
       if (!this.isVisible()) {
         return;
@@ -236,6 +239,7 @@ export class ThumbnailComponent implements OnDestroy {
 
         if (cancelled) return;
         this.isCaching.set(!cached);
+        this.isCacheStatusReady.set(true);
 
         this.loaderSubscription = this.thumbnailLoader
           .add(imageUrl)
