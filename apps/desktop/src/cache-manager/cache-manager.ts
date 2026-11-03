@@ -158,7 +158,8 @@ export class CacheManager {
   };
 
   readonly registerConverted = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
-    if (extname(sourceName).toLowerCase() !== '.jxr' || !isAbsolute(targetPath) || extname(targetPath).toLowerCase() !== '.jpg') {
+    const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+    if (!convertibleExtensions.has(extname(sourceName).toLowerCase()) || !isAbsolute(targetPath) || extname(targetPath).toLowerCase() !== '.jpg') {
       return null;
     }
 

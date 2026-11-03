@@ -101,7 +101,10 @@ const getFullSizeDerivative = async (
   cacheManager: CacheManager,
   thumbManager: ThumbManager
 ): Promise<string | null> => {
-  if (extname(fileName).toLowerCase() === '.jxr') {
+  const extension = extname(fileName).toLowerCase();
+  const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+  if (convertibleExtensions.has(extension)) {
+    // Converted files use a shared sibling folder named "jpg", matching the source basename.
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
     if (existsSync(convertedPath)) {
       if (await thumbManager.hasUltraHdrGainmap(convertedPath)) {
