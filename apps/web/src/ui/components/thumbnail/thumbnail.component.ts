@@ -56,6 +56,12 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly cacheStatus = input<CacheImageStatus | null>(null);
 
+  readonly gpsCoordinates = computed(() => {
+    const status = this.cacheStatus();
+    if (status?.latitude === null || status?.latitude === undefined || status.longitude === null || status.longitude === undefined) return '—';
+    return `${status.latitude.toFixed(6)}, ${status.longitude.toFixed(6)}`;
+  });
+
   readonly cacheStatusLoading = input(false);
 
   readonly refreshToken = input(0);
