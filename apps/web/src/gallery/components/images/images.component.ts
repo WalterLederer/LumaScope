@@ -41,7 +41,8 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
   host: {
     '[style.--thumb-width.px]': 'dimensions().width',
     '[style.--thumb-height.px]': 'dimensions().height',
-    '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()'
+    '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
+    '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()'
   }
 })
 export class ImagesComponent {
@@ -154,6 +155,7 @@ export class ImagesComponent {
     const width = this.dimensions().width;
     return Math.round(24 + ((width - 96) / (512 - 96)) * 48);
   });
+  readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
   readonly groupedImages = computed<YearGroup[]>(() => {
     if (!this.isDateSorted()) {
