@@ -1073,6 +1073,7 @@ if (parentPort) {
           }
         }
       } else if (sourceExtension === '.avif') {
+          isHdr = true;
         const heifData = await readFile(source);
         const profile = getHeifColorProfile(heifData);
 
@@ -1400,9 +1401,6 @@ if (parentPort) {
           const profile = getPngColorProfile(source);
           isHdr = isHdr || (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18))
             || hasComfyUiPqVae(source);
-        } else if (sourceExtension === '.jxl') {
-          using sourceImage = vips.Image.newFromFile(source, { access: 'sequential' });
-          isHdr = sourceImage.format === 'ushort' && sourceImage.bands >= 3;
         }
         using thumb = vips.Image.thumbnail(
           source,

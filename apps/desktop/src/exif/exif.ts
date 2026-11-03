@@ -59,8 +59,9 @@ export class Exif {
     altitudeM: number | null;
     gpsTimestamp: number | null;
     directionDeg: number | null;
+    coordinateSourceId: number | null;
   }> => {
-    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, directionDeg: null };
+    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, directionDeg: null, coordinateSourceId: null };
     try {
       const tags = await this.exifTool.read(path) as unknown as Record<string, unknown>;
       const first = (...values: unknown[]) => values.find(value => value !== undefined && value !== null);
@@ -69,8 +70,14 @@ export class Exif {
         if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
         return null;
       };
-      const latitudeValue = numeric(first(tags['GPSLatitude'], tags['XMP:GPSLatitude']));
-      const longitudeValue = numeric(first(tags['GPSLongitude'], tags['XMP:GPSLongitude']));
+      const exifLatitude = numeric(tags['GPSLatitude']);
+      const exifLongitude = numeric(tags['GPSLongitude']);
+      const xmpLatitude = numeric(tags['XMP:GPSLatitude']);
+      const xmpLongitude = numeric(tags['XMP:GPSLongitude']);
+      const coordinateSourceId = exifLatitude !== null && exifLongitude !== null ? 1
+        : xmpLatitude !== null && xmpLongitude !== null ? 2 : null;
+      const latitudeValue = exifLatitude ?? xmpLatitude;
+      const longitudeValue = exifLongitude ?? xmpLongitude;
       const latitudeRef = String(first(tags['GPSLatitudeRef'], tags['XMP:GPSLatitudeRef']) ?? '').toUpperCase();
       const longitudeRef = String(first(tags['GPSLongitudeRef'], tags['XMP:GPSLongitudeRef']) ?? '').toUpperCase();
       const latitude = latitudeValue === null ? null
@@ -91,7 +98,8 @@ export class Exif {
         longitude: longitude !== null && longitude >= -180 && longitude <= 180 ? longitude : null,
         altitudeM,
         gpsTimestamp,
-        directionDeg: directionDeg !== null && directionDeg >= 0 && directionDeg < 360 ? directionDeg : null
+        directionDeg: directionDeg !== null && directionDeg >= 0 && directionDeg < 360 ? directionDeg : null,
+        coordinateSourceId
       };
     } catch (error) {
       console.warn('[Exif] Could not read photo GPS metadata:', path, error);

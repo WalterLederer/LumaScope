@@ -178,7 +178,7 @@ export class CacheManager {
         altitude: hasCoordinates ? gps.altitudeM : null,
         gpsTimestamp: hasCoordinates ? gps.gpsTimestamp : null,
         direction: hasCoordinates ? gps.directionDeg : null,
-        sourceId: hasCoordinates ? 1 : null,
+        sourceId: hasCoordinates ? gps.coordinateSourceId : null,
         id: row.id
       });
   };
