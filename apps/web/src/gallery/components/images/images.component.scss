@@ -53,6 +53,11 @@
 }
 
 .detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  align-self: start;
+  background: var(--color-surface-default-low);
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
