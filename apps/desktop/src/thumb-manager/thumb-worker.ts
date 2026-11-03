@@ -841,8 +841,8 @@ if (parentPort) {
 
         if (width > 0 && height > 0) {
           const scale = preserveAspectRatio
-            ? width / image.width, height / image.height
-            : width / image.width, height / image.height + 0.0001;
+            ? Math.min(width / image.width, height / image.height)
+            : Math.max(width / image.width, height / image.height) + 0.0001;
           using resized = image.resize(scale, { kernel: vips.Kernel.linear });
           using output = preserveAspectRatio
             ? resized.copy()
@@ -867,8 +867,8 @@ if (parentPort) {
 
         if (width > 0 && height > 0) {
           const scale = preserveAspectRatio
-            ? width / linearHdr.width, height / linearHdr.height
-            : width / linearHdr.width, height / linearHdr.height + 0.0001;
+            ? Math.min(width / linearHdr.width, height / linearHdr.height)
+            : Math.max(width / linearHdr.width, height / linearHdr.height) + 0.0001;
           using resized = linearHdr.resize(scale, { kernel: vips.Kernel.linear });
           using output = preserveAspectRatio
             ? resized.copy()
@@ -896,8 +896,8 @@ if (parentPort) {
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
-              ? width / linearScRgb.width, height / linearScRgb.height
-              : width / linearScRgb.width, height / linearScRgb.height + 0.0001;
+              ? Math.min(width / linearScRgb.width, height / linearScRgb.height)
+              : Math.max(width / linearScRgb.width, height / linearScRgb.height) + 0.0001;
             using resized = linearScRgb.resize(scale, { kernel: vips.Kernel.linear });
             using output = preserveAspectRatio
               ? resized.copy()
@@ -936,8 +936,8 @@ if (parentPort) {
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
-              ? width / image.width, height / image.height
-              : width / image.width, height / image.height + 0.0001;
+              ? Math.min(width / image.width, height / image.height)
+              : Math.max(width / image.width, height / image.height) + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
             using output = preserveAspectRatio
               ? resized.copy()
@@ -991,8 +991,8 @@ if (parentPort) {
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
-              ? width / image.width, height / image.height
-              : width / image.width, height / image.height + 0.0001;
+              ? Math.min(width / image.width, height / image.height)
+              : Math.max(width / image.width, height / image.height) + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
             using output = preserveAspectRatio
               ? resized.copy()
@@ -1021,8 +1021,8 @@ if (parentPort) {
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
-              ? width / rgb.width, height / rgb.height
-              : width / rgb.width, height / rgb.height + 0.0001;
+              ? Math.min(width / rgb.width, height / rgb.height)
+              : Math.max(width / rgb.width, height / rgb.height) + 0.0001;
             using resized = rgb.resize(scale, { kernel: vips.Kernel.lanczos3 });
             using output = preserveAspectRatio
               ? resized.copy()
@@ -1073,8 +1073,8 @@ if (parentPort) {
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
-              ? width / image.width, height / image.height
-              : width / image.width, height / image.height + 0.0001;
+              ? Math.min(width / image.width, height / image.height)
+              : Math.max(width / image.width, height / image.height) + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
             using output = preserveAspectRatio
               ? resized.copy()
