@@ -46,7 +46,7 @@
           <dt>Status</dt>
           <dd>{{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status ?? 'Not cached' }}</dd>
           <dt>Location / type</dt>
-          <dd>{{ cacheStatus?.thumbnail?.status === 'valid' ? (cacheStatus!.thumbnail!.storageType === 'converted' ? 'Converted' : cacheStatus!.thumbnail!.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
+          <dd>{{ cacheStatus?.thumbnail?.status === 'valid' ? (cacheStatus!.thumbnail!.storageType === 'converted' ? 'Parallel folder' : cacheStatus!.thumbnail!.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
           <dt>Path</dt>
           <dd class="cache-entry-path">{{ cacheStatus?.thumbnail?.status === 'valid' ? cacheStatus!.thumbnail!.path : '—' }}</dd>
         </dl>
@@ -58,7 +58,7 @@
           <dt>Status</dt>
           <dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Unknown') : !cacheStatus.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status ?? 'Not cached' }}</dd>
           <dt>Location / type</dt>
-          <dd>{{ cacheStatus?.fullSize?.status === 'valid' ? (cacheStatus!.fullSize!.storageType === 'converted' ? 'Converted' : cacheStatus!.fullSize!.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
+          <dd>{{ cacheStatus?.fullSize?.status === 'valid' ? (cacheStatus!.fullSize!.storageType === 'converted' ? 'Parallel folder' : cacheStatus!.fullSize!.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
           <dt>Path</dt>
           <dd class="cache-entry-path">{{ cacheStatus?.fullSize?.status === 'valid' ? cacheStatus!.fullSize!.path : '—' }}</dd>
         </dl>
