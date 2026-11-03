@@ -33,6 +33,7 @@ export class CacheManager {
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
   private readonly db: DatabaseSync;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
+  private readonly deletingSources = new Map<string, Promise<CacheClearResult>>();
 
   constructor() {
     mkdirSync(this.userData, { recursive: true });
@@ -50,6 +51,15 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.deleteImage' })
   readonly deleteImage = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<CacheClearResult> => {
     if (!sourceName || !sourceName.trim()) throw new Error('A valid source image path is required.');
+    const existing = this.deletingSources.get(sourceName);
+    if (existing) return existing;
+    const operation = this.deleteImageEntries(sourceName);
+    this.deletingSources.set(sourceName, operation);
+    try { return await operation; }
+    finally { if (this.deletingSources.get(sourceName) === operation) this.deletingSources.delete(sourceName); }
+  };
+
+  private readonly deleteImageEntries = async (sourceName: string): Promise<CacheClearResult> => {
     const pending = [...this.pendingEntries.entries()]
       .filter(([key]) => { try { return JSON.parse(key)[0] === sourceName; } catch { return false; } })
       .map(([, operation]) => operation);
@@ -194,6 +204,11 @@ export class CacheManager {
   };
 
   readonly get = async (sourceName: string, sourceTag: string, callback?: (cachePath: string) => Promise<boolean>, _targetExtension = extname(sourceName)): Promise<string | null> => {
+    const deletion = this.deletingSources.get(sourceName);
+    if (deletion) {
+      await deletion;
+      return this.get(sourceName, sourceTag, callback, _targetExtension);
+    }
     const key = JSON.stringify([sourceName, sourceTag]);
     const pending = this.pendingEntries.get(key);
     if (pending) return pending;
