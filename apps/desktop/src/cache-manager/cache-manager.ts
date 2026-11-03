@@ -363,10 +363,16 @@ export class CacheManager {
     const useSidecar = this.sidecarVolumes.has(volumeRoot);
     const isFullSize = sourceTag.includes('-full-');
     const storageType = useSidecar ? 'sidecar' : 'central';
+    const sourceExtension = extname(sourceName).slice(1).toLowerCase();
+    const sourceBaseName = basename(sourceName, extname(sourceName));
     const sidecarPath = useSidecar
-      ? isFullSize
-        ? join(dirname(sourceName), '.cache', `${basename(sourceName)}.uhdr.jpg`)
-        : join(dirname(sourceName), '.thumbnails', `${basename(sourceName, extname(sourceName))}_thumbnail.jpg`)
+      ? join(
+        dirname(sourceName),
+        '.cache',
+        isFullSize
+          ? `${sourceBaseName}_${sourceExtension}.jpg`
+          : `${sourceBaseName}_${sourceExtension}_thumb.jpg`
+      )
       : null;
     const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
 
@@ -394,7 +400,8 @@ export class CacheManager {
       existing['storage_type'] === storageType &&
       existing['source_size'] === sourceSize &&
       existing['updated_at'] === updatedAt &&
-      existsSync(existing['target_path'] as string)
+      existsSync(existing['target_path'] as string) &&
+      (storageType !== 'sidecar' || resolve(existing['target_path'] as string) === resolve(targetPath))
     ) {
       return existing['target_path'] as string;
     }
@@ -404,10 +411,7 @@ export class CacheManager {
     if (existing && existing['storage_type'] !== 'converted') {
       const stalePath = resolve(existing['target_path'] as string);
       const storageDirectories = existing['storage_type'] === 'sidecar'
-        ? isFullSize
-          ? [ join(dirname(sourceName), '.cache') ]
-          // Keep existing thumbnail entries in .cache valid during the transition.
-          : [ join(dirname(sourceName), '.thumbnails'), join(dirname(sourceName), '.cache') ]
+        ? [ join(dirname(sourceName), '.cache'), join(dirname(sourceName), '.thumbnails') ]
         : [ this.cacheDir ];
       const isSafePath = storageDirectories.some(directory => {
         const relativePath = relative(directory, stalePath);
