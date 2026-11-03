@@ -276,6 +276,18 @@ export class CacheManager {
     const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
     const uniquePaths = [...new Set(sourceNames)];
     return Promise.all(uniquePaths.map(async sourceName => {
+      const extension = extname(sourceName).toLowerCase();
+      if (fullSizeExtensions.has(extension)) {
+        const isTiff = extension === '.tif' || extension === '.tiff';
+        const sourceTag = `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
+        const parallelJpg = join(dirname(dirname(sourceName)), 'jpg', `${basename(sourceName, extname(sourceName))}.jpg`);
+        if (existsSync(parallelJpg)) {
+          await this.registerConverted(sourceName, sourceTag, parallelJpg);
+        } else {
+          this.forgetConverted(sourceName, sourceTag);
+        }
+      }
+
       const entries = query.all({ sourceName }) as unknown as CacheFileEntry[];
       let sourceStats: Awaited<ReturnType<typeof stat>> | null = null;
       try { sourceStats = await stat(sourceName); } catch { /* Keep the indexed entry visible as stale if the source is unavailable. */ }
