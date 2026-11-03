@@ -131,18 +131,17 @@ export class ThumbnailComponent implements OnDestroy {
     return `${value.toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[unitIndex]}`;
   });
 
-  readonly cacheStatusLabel = computed(() => {
-    if (this.cacheStatusLoading()) return 'Checking…';
-    const cache = this.cacheStatus();
-    if (!cache) return 'Unknown';
-    const status = cache.thumbnail?.status;
-    return status === 'valid' ? 'Ready' : status === 'stale' ? 'Stale' : 'Missing';
-  });
+  private cacheEntryLabel(entry: CacheImageStatus['thumbnail']): string {
+    if (entry?.status === 'valid') {
+      return entry.storageType === 'sidecar' ? 'Sidecar' : entry.storageType === 'converted' ? 'Converted' : 'Central';
+    }
+    return entry?.status === 'stale' ? 'Stale' : 'Missing';
+  }
 
-  readonly cacheLocationLabel = computed(() => {
+  readonly thumbCacheLabel = computed(() => {
+    if (this.cacheStatusLoading()) return 'Checking…';
     const status = this.cacheStatus();
-    const label = (entry: CacheImageStatus['thumbnail']) => entry ? (entry.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—';
-    return `Thumb: ${label(status?.thumbnail ?? null)} · Full-size: ${label(status?.fullSize ?? null)}`;
+    return status ? this.cacheEntryLabel(status.thumbnail ?? null) : 'Unknown';
   });
 
   readonly cacheLocationTitle = computed(() => {
@@ -150,15 +149,15 @@ export class ThumbnailComponent implements OnDestroy {
     return [
       status?.thumbnail ? `Thumbnail: ${status.thumbnail.path}` : 'Thumbnail: no DB entry',
       status?.fullSize ? `Full-size: ${status.fullSize.path}` : status?.fullSizeRequired ? 'Full-size: no DB entry' : 'Full-size: not required'
-    ].join('\n');
+    ].join('\\n');
   });
 
   readonly fullSizeConversionLabel = computed(() => {
-    const status = this.cacheStatus();
     if (this.cacheStatusLoading()) return 'Checking…';
+    const status = this.cacheStatus();
     if (!status) return 'Unknown';
     if (!status.fullSizeRequired) return 'Not required';
-    return status.fullSize?.status === 'valid' ? 'Ready' : status.fullSize?.status === 'stale' ? 'Stale' : 'Missing';
+    return this.cacheEntryLabel(status.fullSize ?? null);
   });
 
   readonly imageFileInfo = computed(() => {

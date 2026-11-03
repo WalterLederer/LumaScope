@@ -68,7 +68,7 @@ export class ImagesComponent {
   private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
     try {
       const stored = globalThis.localStorage.getItem('light-matter.detailSortColumn');
-      return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'cacheStatus' || stored === 'cacheLocation' || stored === 'fullSize' ? stored : 'date';
+      return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'thumb' || stored === 'fullSize' ? stored : stored === 'cacheStatus' || stored === 'cacheLocation' ? 'thumb' : 'date';
     } catch { return 'date'; }
   };
 

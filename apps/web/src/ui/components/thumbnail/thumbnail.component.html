@@ -38,8 +38,7 @@
     <span>{{ formattedFileSize() }}</span>
     <span>{{ imageSuffix() }}</span>
     <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'">{{ dynamicRange() }}</span>
-    <span class="detail-cache-status">{{ cacheStatusLabel() }}</span>
-    <span class="detail-cache-location" [title]="cacheLocationTitle()">{{ cacheLocationLabel() }}</span>
+    <span class="detail-thumb" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
   </div>
 }
