@@ -51,12 +51,12 @@
                  [min]="0"
                  [max]="thumbnailSliderMax"
                  aria-label="Thumbnail size" />
-      <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       <button class="zoom-step-button"
               type="button"
               title="Larger thumbnails (+)"
               aria-label="Larger thumbnails"
               (click)="adjustThumbnailSize(1)">+</button>
+      <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
     </div>
 
   </aside>
