@@ -188,7 +188,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const thumbManager = injector.inject('ThumbManager');
     const useSidecar = cacheManager.usesSidecarStorage(fileName);
     const tag = useSidecar
-      ? 'sidecar-thumbnail-v1'
+      ? 'sidecar-thumbnail-v2'
       : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
     const result = await cacheManager.get(

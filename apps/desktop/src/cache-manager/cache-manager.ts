@@ -349,6 +349,17 @@ export class CacheManager {
       : null;
     const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
 
+    if (useSidecar && !isFullSize && sourceTag === 'sidecar-thumbnail-v2') {
+      // Replace the legacy 384-pixel sidecar entry without deleting the file before regenerating it.
+      const legacyEntries = this.db.prepare(findCacheFilesForSource).all({ sourceName }) as unknown as CacheFileEntry[];
+      for (const entry of legacyEntries) {
+        if (entry.storage_type === 'sidecar' && entry.source_tag === 'sidecar-thumbnail-v1'
+          && resolve(entry.target_path) === resolve(targetPath)) {
+          this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag: entry.source_tag });
+        }
+      }
+    }
+
     if (existing && existing['storage_type'] === 'converted') {
       if (existing['source_size'] === sourceSize && existing['updated_at'] === updatedAt && existsSync(existing['target_path'] as string)) {
         return existing['target_path'] as string;
