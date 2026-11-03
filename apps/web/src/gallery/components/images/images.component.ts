@@ -153,7 +153,7 @@ export class ImagesComponent {
   readonly dimensions = computed(() => thumbnailDimensions[this.thumbSize()]);
   readonly detailThumbnailWidth = computed(() => {
     const width = this.dimensions().width;
-    return Math.round(24 + ((width - 96) / (512 - 96)) * 136);
+    return Math.round(24 + ((width - 96) / (512 - 96)) * 296);
   });
   readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
