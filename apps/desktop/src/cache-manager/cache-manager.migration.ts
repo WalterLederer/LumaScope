@@ -36,7 +36,8 @@ FROM cache_files;
 export const findCacheFilesForSource = `
 SELECT source_name, source_tag, target_path, storage_type
 FROM cache_files
-WHERE source_name = :sourceName;
+WHERE source_name = :sourceName
+ORDER BY ttl DESC;
 `;
 
 export const deleteCacheFile = `

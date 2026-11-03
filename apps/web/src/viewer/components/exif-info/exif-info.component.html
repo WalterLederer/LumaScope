@@ -37,12 +37,12 @@
 @if (mode() === 'cache') {
 <section class="info-box cache-info">
   <details open>
-    <summary>Cache · {{ cachePathLoading() ? 'Checking…' : cacheStatus?.thumbnail?.status === 'valid' ? 'Thumbnail cached' : 'Thumbnail not cached' }} · Full-size {{ cachePathLoading() ? 'checking…' : !cacheStatus?.fullSizeRequired ? 'not required' : cacheStatus?.fullSize?.status === 'valid' ? 'ready' : cacheStatus?.fullSize?.status === 'stale' ? 'stale' : 'missing' }}</summary>
+    <summary>Cache · {{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status === 'valid' ? 'Thumbnail cached' : 'Thumbnail not cached' }} · Full-size {{ cachePathLoading() ? 'checking…' : !cacheStatus ? 'unknown' : !cacheStatus.fullSizeRequired ? 'not required' : cacheStatus.fullSize?.status === 'valid' ? 'ready' : cacheStatus.fullSize?.status === 'stale' ? 'stale' : 'missing' }}</summary>
     <dl class="cache-entry-list">
-      <dt>Thumbnail status</dt><dd>{{ cachePathLoading() ? 'Checking…' : cacheStatus?.thumbnail?.status ?? 'Not cached' }}</dd>
+      <dt>Thumbnail status</dt><dd>{{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status ?? 'Not cached' }}</dd>
       <dt>Thumbnail location / type</dt><dd>{{ cacheStatus?.thumbnail ? (cacheStatus.thumbnail.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
       @if (cacheStatus?.thumbnail) { <dt>Thumbnail path</dt><dd class="cache-entry-path">{{ cacheStatus.thumbnail.path }}</dd> }
-      <dt>Full-size conversion</dt><dd>{{ !cacheStatus?.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus?.fullSize?.status ?? 'Not cached' }}</dd>
+      <dt>Full-size conversion</dt><dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Unknown') : !cacheStatus.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status ?? 'Not cached' }}</dd>
       <dt>Full-size location / type</dt><dd>{{ cacheStatus?.fullSize ? (cacheStatus.fullSize.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
       @if (cacheStatus?.fullSize) { <dt>Full-size path</dt><dd class="cache-entry-path">{{ cacheStatus.fullSize.path }}</dd> }
     </dl>

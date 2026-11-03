@@ -131,7 +131,9 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly cacheStatusLabel = computed(() => {
     if (this.cacheStatusLoading()) return 'Checking…';
-    const status = this.cacheStatus()?.thumbnail?.status;
+    const cache = this.cacheStatus();
+    if (!cache) return 'Unknown';
+    const status = cache.thumbnail?.status;
     return status === 'valid' ? 'Ready' : status === 'stale' ? 'Stale' : 'Missing';
   });
 
@@ -146,13 +148,14 @@ export class ThumbnailComponent implements OnDestroy {
     return [
       status?.thumbnail ? `Thumbnail: ${status.thumbnail.path}` : 'Thumbnail: no DB entry',
       status?.fullSize ? `Full-size: ${status.fullSize.path}` : status?.fullSizeRequired ? 'Full-size: no DB entry' : 'Full-size: not required'
-    ].join('\\n');
+    ].join('\n');
   });
 
   readonly fullSizeConversionLabel = computed(() => {
     const status = this.cacheStatus();
     if (this.cacheStatusLoading()) return 'Checking…';
-    if (!status?.fullSizeRequired) return 'Not required';
+    if (!status) return 'Unknown';
+    if (!status.fullSizeRequired) return 'Not required';
     return status.fullSize?.status === 'valid' ? 'Ready' : status.fullSize?.status === 'stale' ? 'Stale' : 'Missing';
   });
 
