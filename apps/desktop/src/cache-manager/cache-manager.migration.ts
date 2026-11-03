@@ -17,26 +17,27 @@ export const insertMigrationRecord = `INSERT INTO migrations (name) VALUES (:nam
 export const clearCacheRecords = `DELETE FROM cache_files;`;
 
 export const findFullSizeCacheFiles = `
-SELECT source_name, source_tag, target_path
+SELECT source_name, source_tag, target_path, storage_type
 FROM cache_files
-WHERE source_tag LIKE '%-full-%';
+WHERE source_tag LIKE '%-full-%' AND storage_type = 'central';
 `;
 
 export const findThumbnailCacheFiles = `
-SELECT source_name, source_tag, target_path
+SELECT source_name, source_tag, target_path, storage_type
 FROM cache_files
-WHERE source_tag NOT LIKE '%-full-%';
+WHERE source_tag NOT LIKE '%-full-%' AND storage_type = 'central';
 `;
 
 export const findCacheFiles = `
-SELECT source_name, source_tag, target_path
-FROM cache_files;
+SELECT source_name, source_tag, target_path, storage_type
+FROM cache_files
+WHERE storage_type = 'central';
 `;
 
 export const findCacheFilesForSource = `
-SELECT source_name, source_tag, target_path
+SELECT source_name, source_tag, target_path, storage_type
 FROM cache_files
-WHERE source_name = :sourceName;
+WHERE source_name = :sourceName AND storage_type = 'central';
 `;
 
 export const deleteCacheFile = `
@@ -50,7 +51,8 @@ INSERT INTO cache_files (
   source_size,
   updated_at,
   target_path,
-  ttl
+  ttl,
+  storage_type
 )
 VALUES(
   :sourceName,
@@ -58,7 +60,8 @@ VALUES(
   :sourceSize,
   :updatedAt,
   :targetPath,
-  :ttl
+  :ttl,
+  :storageType
 );
 `;
 
@@ -80,6 +83,12 @@ CREATE TABLE IF NOT EXISTS cache_files (
 );
 
 CREATE UNIQUE INDEX idx_cache_files_search ON cache_files (source_name, source_tag);
+    `
+  }
+  ,{
+    name: 'addCacheStorageTypeV2',
+    query: `
+ALTER TABLE cache_files ADD COLUMN storage_type TEXT NOT NULL DEFAULT 'central';
     `
   }
 ];

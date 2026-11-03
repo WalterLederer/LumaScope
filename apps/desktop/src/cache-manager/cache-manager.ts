@@ -25,6 +25,7 @@ interface CacheFileEntry {
   source_name: string;
   source_tag: string;
   target_path: string;
+  storage_type: string;
 }
 
 export class CacheManager {
@@ -279,7 +280,8 @@ export class CacheManager {
       sourceSize,
       updatedAt,
       targetPath,
-      ttl
+      ttl,
+      storageType: 'central'
     });
 
     return targetPath;
