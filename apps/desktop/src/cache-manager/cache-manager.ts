@@ -110,6 +110,14 @@ export class CacheManager {
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
       let sourceStats: Awaited<ReturnType<typeof stat>> | null = null;
       try { sourceStats = await stat(sourceName); } catch { /* The source may have been removed. */ }
+      const extension = extname(sourceName).toLowerCase();
+      if (sourceStats && FULL_SIZE_EXTENSIONS.has(extension)) {
+        const isTiff = extension === '.tif' || extension === '.tiff';
+        const sourceTag = extension.slice(1) + '-full-' + (isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr');
+        const parallelPath = this.getParallelPath(sourceName);
+        if (existsSync(parallelPath)) await this.registerParallel(sourceName, sourceTag, parallelPath);
+        else this.forgetParallel(sourceName, sourceTag);
+      }
       const row = sourceStats ? (this.getPhoto(sourceName) ?? this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs)) : this.getPhoto(sourceName);
       const getStatus = async (kind: 'thumbnail' | 'fullsize') => {
         if (!row) return null;
@@ -174,7 +182,11 @@ export class CacheManager {
     try {
       const [sourceStats, targetStats] = await Promise.all([stat(sourceName), stat(targetPath)]);
       if (!targetStats.isFile()) return null;
+      const previous = this.getPhoto(sourceName);
       const row = this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs);
+      if (previous?.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
+        await rm(this.getSidecarPath(sourceName, true), { force: true });
+      }
       this.db.prepare('UPDATE photos SET fullsize_cache_id = :cacheId, fullsize_cache_version = :version WHERE id = :id')
         .run({ cacheId: CACHE_STORAGE_TYPE.PARALLEL, version: sourceTag, id: row.id });
       return targetPath;
