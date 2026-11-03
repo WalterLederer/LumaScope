@@ -49,7 +49,6 @@ export class ExifInfoComponent {
     switch (storageType) {
       case 'parallel': return 'Parallel folder';
       case 'sidecar': return 'Sidecar cache';
-      case 'central': return 'Central cache';
       default: return 'Missing';
     }
   };
