@@ -561,8 +561,11 @@ export class ImageView {
     this.selectedImage$.pipe(take(1)).subscribe(image => {
       if (!image) { this.currentImageCacheStatus.set('No image selected.'); return; }
       this.currentImageCacheStatus.set('Checking cache…');
-      void this.cacheManager.imageCachePath(image.path).then(path => {
-        this.currentImageCacheStatus.set(path ? `Full-size cache exists: ${path}` : 'No valid full-size cache entry for this image.');
+      void this.cacheManager.getImageCacheStatuses([image.path]).then(statuses => {
+        const status = statuses[0];
+        const thumbnail = status?.thumbnail?.status ?? 'not cached';
+        const fullSize = !status ? 'unknown' : !status.fullSizeRequired ? 'not required' : status.fullSize?.status ?? 'not cached';
+        this.currentImageCacheStatus.set(`Thumbnail: ${thumbnail}; full-size conversion: ${fullSize}`);
       }).catch(error => this.currentImageCacheStatus.set(`Could not read cache status: ${error instanceof Error ? error.message : String(error)}`));
     });
   };
