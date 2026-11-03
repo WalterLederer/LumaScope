@@ -359,8 +359,13 @@ export class SettingsPanelComponent {
     }
   };
 
-  protected readonly removeSidecarVolume = async (volumeRoot: string): Promise<void> =>
-    this.updateSidecarVolume(volumeRoot, false);
+  protected readonly removeSidecarVolume = async (volumeRoot: string): Promise<void> => {
+    await this.updateSidecarVolume(volumeRoot, false);
+    if (this.sidecarVolumeError() === null) {
+      this.sidecarVolumeInput.set('');
+      await this.updateCacheInfo();
+    }
+  };
 
   private readonly updateSidecarVolume = async (volumeRoot: string, enabled: boolean): Promise<void> => {
     if (this.sidecarVolumeLoading()) return;
