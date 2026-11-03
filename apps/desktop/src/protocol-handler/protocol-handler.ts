@@ -252,7 +252,8 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
 
       const result = await getFullSizeDerivative(fileName, cacheTag, cacheManager, thumbManager);
       if (result !== null) {
-        fullSizeCacheStatus.set(resolve(fileName), wasCacheHit);
+        const adoptedConversion = cacheManager.exists(fileName, cacheTag)?.['storage_type'] === 'converted';
+        fullSizeCacheStatus.set(resolve(fileName), wasCacheHit || adoptedConversion);
       }
 
       if (signal?.aborted || result === null) {
