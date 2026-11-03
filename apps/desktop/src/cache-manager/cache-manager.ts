@@ -116,12 +116,18 @@ export class CacheManager {
 
     for (const entry of entries) {
       const targetPath = resolve(entry.target_path);
-      const storageDirectory = entry.storage_type === 'sidecar'
-        ? join(dirname(entry.source_name), '.cache')
-        : this.cacheDir;
-      const relativePath = relative(storageDirectory, targetPath);
+      const storageDirectories = entry.storage_type === 'sidecar'
+        ? entry.source_tag.includes('-full-')
+          ? [ join(dirname(entry.source_name), '.cache') ]
+          // Accept legacy thumbnail entries stored in .cache as well as the new .thumbnails folder.
+          : [ join(dirname(entry.source_name), '.thumbnails'), join(dirname(entry.source_name), '.cache') ]
+        : [ this.cacheDir ];
+      const isSafePath = storageDirectories.some(directory => {
+        const relativePath = relative(directory, targetPath);
+        return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+      });
 
-      if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+      if (!isSafePath) {
         throw new Error(`Refusing to remove cache file outside its storage directory: ${entry.target_path}`);
       }
 
@@ -293,7 +299,9 @@ export class CacheManager {
     const isFullSize = sourceTag.includes('-full-');
     const storageType = useSidecar ? 'sidecar' : 'central';
     const sidecarPath = useSidecar
-      ? join(dirname(sourceName), '.cache', `${basename(sourceName)}${isFullSize ? '.uhdr' : '.thumbnail'}.jpg`)
+      ? isFullSize
+        ? join(dirname(sourceName), '.cache', `${basename(sourceName)}.uhdr.jpg`)
+        : join(dirname(sourceName), '.thumbnails', `${basename(sourceName, extname(sourceName))}_thumbnail.jpg`)
       : null;
     const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
 
@@ -311,12 +319,18 @@ export class CacheManager {
     // Only remove files from the exact storage directory recorded for that entry.
     if (existing) {
       const stalePath = resolve(existing['target_path'] as string);
-      const storageDirectory = existing['storage_type'] === 'sidecar'
-        ? join(dirname(sourceName), '.cache')
-        : this.cacheDir;
-      const relativePath = relative(storageDirectory, stalePath);
+      const storageDirectories = existing['storage_type'] === 'sidecar'
+        ? isFullSize
+          ? [ join(dirname(sourceName), '.cache') ]
+          // Keep existing thumbnail entries in .cache valid during the transition.
+          : [ join(dirname(sourceName), '.thumbnails'), join(dirname(sourceName), '.cache') ]
+        : [ this.cacheDir ];
+      const isSafePath = storageDirectories.some(directory => {
+        const relativePath = relative(directory, stalePath);
+        return relativePath !== '' && !relativePath.startsWith('..') && !isAbsolute(relativePath);
+      });
 
-      if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+      if (!isSafePath) {
         throw new Error(`Refusing to remove cache file outside its storage directory: ${existing['target_path']}`);
       }
 
