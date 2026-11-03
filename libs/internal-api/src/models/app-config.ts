@@ -1,44 +1,50 @@
-export type ThumbnailSize = 'extraSmallMinus' | 'extraSmall' | 'extraSmallPlus' | 'small' | 'smallMedium' | 'medium' | 'mediumLarge' | 'large' | 'smallPlus' | 'smallMediumPlus' | 'mediumPlus' | 'mediumLargePlus';
-export const allThumbnailSizes = [ 'extraSmallMinus', 'extraSmall', 'extraSmallPlus', 'small', 'smallPlus', 'smallMedium', 'smallMediumPlus', 'medium', 'mediumPlus', 'mediumLarge', 'mediumLargePlus', 'large' ] as const;
+export type ThumbnailSize = 'extraSmallMinus' | 'zoom108' | 'zoom120' | 'zoom132' | 'extraSmall' | 'zoom156' | 'extraSmallPlus' | 'zoom180' | 'small' | 'zoom204' | 'smallPlus' | 'zoom228' | 'smallMedium' | 'zoom252' | 'smallMediumPlus' | 'zoom276' | 'medium' | 'zoom300' | 'mediumPlus' | 'zoom324' | 'mediumLarge' | 'zoom348' | 'mediumLargePlus' | 'zoom372' | 'zoom384' | 'zoom396' | 'zoom408' | 'zoom420' | 'zoom432' | 'zoom444' | 'zoom456' | 'zoom468' | 'zoom480' | 'zoom492' | 'zoom504' | 'large';
+export const allThumbnailSizes = [ 'extraSmallMinus', 'zoom108', 'zoom120', 'zoom132', 'extraSmall', 'zoom156', 'extraSmallPlus', 'zoom180', 'small', 'zoom204', 'smallPlus', 'zoom228', 'smallMedium', 'zoom252', 'smallMediumPlus', 'zoom276', 'medium', 'zoom300', 'mediumPlus', 'zoom324', 'mediumLarge', 'zoom348', 'mediumLargePlus', 'zoom372', 'zoom384', 'zoom396', 'zoom408', 'zoom420', 'zoom432', 'zoom444', 'zoom456', 'zoom468', 'zoom480', 'zoom492', 'zoom504', 'large' ] as const;
 export const defaultThumbnailSize: ThumbnailSize = 'small';
 export const thumbnailDimensions: Record<ThumbnailSize, {
   width: number;
   height: number;
 }> = {
   extraSmallMinus: { width: 96, height: 64 },
+  zoom108: { width: 108, height: 72 },
+  zoom120: { width: 120, height: 80 },
+  zoom132: { width: 132, height: 88 },
   extraSmall: { width: 144, height: 96 },
+  zoom156: { width: 156, height: 104 },
   extraSmallPlus: { width: 168, height: 112 },
+  zoom180: { width: 180, height: 120 },
   small: { width: 192, height: 128 },
+  zoom204: { width: 204, height: 136 },
   smallPlus: { width: 216, height: 144 },
+  zoom228: { width: 228, height: 152 },
   smallMedium: { width: 240, height: 160 },
+  zoom252: { width: 252, height: 168 },
   smallMediumPlus: { width: 264, height: 176 },
+  zoom276: { width: 276, height: 184 },
   medium: { width: 288, height: 192 },
+  zoom300: { width: 300, height: 200 },
   mediumPlus: { width: 312, height: 208 },
+  zoom324: { width: 324, height: 216 },
   mediumLarge: { width: 336, height: 224 },
+  zoom348: { width: 348, height: 232 },
   mediumLargePlus: { width: 360, height: 240 },
+  zoom372: { width: 372, height: 248 },
+  zoom384: { width: 384, height: 256 },
+  zoom396: { width: 396, height: 264 },
+  zoom408: { width: 408, height: 272 },
+  zoom420: { width: 420, height: 280 },
+  zoom432: { width: 432, height: 288 },
+  zoom444: { width: 444, height: 296 },
+  zoom456: { width: 456, height: 304 },
+  zoom468: { width: 468, height: 312 },
+  zoom480: { width: 480, height: 320 },
+  zoom492: { width: 492, height: 328 },
+  zoom504: { width: 504, height: 336 },
   large: { width: 512, height: 341 }
 };
 export const getThumbnailSize = (width?: number, height?: number): ThumbnailSize => {
-  if (width === thumbnailDimensions.extraSmallMinus.width && height === thumbnailDimensions.extraSmallMinus.height) return 'extraSmallMinus';
-  if (width === thumbnailDimensions.extraSmall.width && height === thumbnailDimensions.extraSmall.height) return 'extraSmall';
-  if (width === thumbnailDimensions.extraSmallPlus.width && height === thumbnailDimensions.extraSmallPlus.height) return 'extraSmallPlus';
-  if (width === thumbnailDimensions.smallPlus.width && height === thumbnailDimensions.smallPlus.height) return 'smallPlus';
-  if (width === thumbnailDimensions.smallMediumPlus.width && height === thumbnailDimensions.smallMediumPlus.height) return 'smallMediumPlus';
-  if (width === thumbnailDimensions.mediumPlus.width && height === thumbnailDimensions.mediumPlus.height) return 'mediumPlus';
-  if (width === thumbnailDimensions.mediumLargePlus.width && height === thumbnailDimensions.mediumLargePlus.height) return 'mediumLargePlus';
-  if (width === thumbnailDimensions.large.width && height === thumbnailDimensions.large.height) {
-    return 'large';
-  }
-  if (width === thumbnailDimensions.medium.width && height === thumbnailDimensions.medium.height) {
-    return 'medium';
-  }
-  if (width === thumbnailDimensions.smallMedium.width && height === thumbnailDimensions.smallMedium.height) {
-    return 'smallMedium';
-  }
-  if (width === thumbnailDimensions.mediumLarge.width && height === thumbnailDimensions.mediumLarge.height) {
-    return 'mediumLarge';
-  }
-  return 'small';
+  const match = Object.entries(thumbnailDimensions).find(([, dimensions]) => dimensions.width === width && dimensions.height === height);
+  return (match?.[0] as ThumbnailSize | undefined) ?? 'small';
 };
 export const defaultThumbWidth = 192;
 export const defaultThumbHeight = 128;
