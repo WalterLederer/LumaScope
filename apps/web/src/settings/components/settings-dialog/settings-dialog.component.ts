@@ -348,7 +348,7 @@ export class SettingsPanelComponent {
   protected readonly addSidecarVolume = async (): Promise<void> => {
     const input = this.sidecarVolumeInput().trim();
     if (!this.isSidecarVolumeInputValid()) {
-      this.sidecarVolumeError.set('Enter a drive root such as D:\\.');
+      this.sidecarVolumeError.set('Enter a drive letter such as D.');
       return;
     }
     const drive = input[0].toUpperCase();
