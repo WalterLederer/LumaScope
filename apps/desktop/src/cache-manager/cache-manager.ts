@@ -227,31 +227,6 @@ export class CacheManager {
     const updatedAt = stats.mtimeMs;
 
     const existing = this.exists(sourceName, sourceTag);
-
-    if (
-      existing &&
-      existing['source_size'] === sourceSize &&
-      existing['updated_at'] === updatedAt &&
-      existsSync(existing['target_path'] as string)
-    ) {
-      return existing['target_path'] as string;
-    }
-
-    // A changed source (or a missing cache file) invalidates the old cache entry.
-    // Remove both the stale file and its DB row before generating a replacement;
-    // otherwise INSERT can violate the unique (source_name, source_tag) index.
-    if (existing) {
-      const stalePath = resolve(existing['target_path'] as string);
-      const relativePath = relative(this.cacheDir, stalePath);
-
-      if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) {
-        throw new Error(`Refusing to remove cache file outside the image cache: ${existing['target_path']}`);
-      }
-
-      await rm(stalePath, { force: true });
-      this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
-    }
-
     const volumeRoot = parse(sourceName).root.toLowerCase();
     const useSidecar = this.sidecarVolumes.has(volumeRoot) && sourceTag.includes('-full-');
     const storageType = useSidecar ? 'sidecar' : 'central';
@@ -260,7 +235,35 @@ export class CacheManager {
       : null;
     const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
 
-    if (useSidecar && existsSync(targetPath) && !existing) {
+    if (
+      existing &&
+      existing['storage_type'] === storageType &&
+      existing['source_size'] === sourceSize &&
+      existing['updated_at'] === updatedAt &&
+      existsSync(existing['target_path'] as string)
+    ) {
+      return existing['target_path'] as string;
+    }
+
+    // A changed source or storage preference invalidates the previous cache entry.
+    // Only remove files from the exact storage directory recorded for that entry.
+    if (existing) {
+      const stalePath = resolve(existing['target_path'] as string);
+      const storageDirectory = existing['storage_type'] === 'sidecar'
+        ? join(dirname(sourceName), '.cache')
+        : this.cacheDir;
+      const relativePath = relative(storageDirectory, stalePath);
+
+      if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) {
+        throw new Error(`Refusing to remove cache file outside its storage directory: ${existing['target_path']}`);
+      }
+
+      await rm(stalePath, { force: true });
+      this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
+    }
+
+    // Existing sidecar conversions can be adopted without decoding the original again.
+    if (useSidecar && existsSync(targetPath)) {
       return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
     }
 
