@@ -14,61 +14,6 @@ export const getMigrationRecords = `SELECT * FROM migrations ORDER BY rowid;`;
 
 export const insertMigrationRecord = `INSERT INTO migrations (name) VALUES (:name);`;
 
-export const clearCacheRecords = `DELETE FROM cache_files WHERE storage_type_id = 1;`;
-
-export const findFullSizeCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type_id
-FROM cache_files
-WHERE source_tag LIKE '%-full-%' AND storage_type_id = 1;
-`;
-
-export const findThumbnailCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type_id
-FROM cache_files
-WHERE source_tag NOT LIKE '%-full-%' AND storage_type_id = 1;
-`;
-
-export const findCacheFiles = `
-SELECT source_name, source_tag, target_path, storage_type_id
-FROM cache_files;
-`;
-
-export const findCacheFilesForSource = `
-SELECT source_name, source_tag, target_path, storage_type_id
-FROM cache_files
-WHERE source_name = :sourceName
-ORDER BY ttl DESC;
-`;
-
-export const deleteCacheFile = `
-DELETE FROM cache_files WHERE source_name = :sourceName AND source_tag = :sourceTag;
-`;
-
-export const insertCacheFile = `
-INSERT INTO cache_files (
-  source_name,
-  source_tag,
-  source_size,
-  updated_at,
-  target_path,
-  ttl,
-  storage_type_id
-)
-VALUES(
-  :sourceName,
-  :sourceTag,
-  :sourceSize,
-  :updatedAt,
-  :targetPath,
-  :ttl,
-  :storageTypeId
-);
-`;
-
-export const findCacheFile = `
-SELECT * FROM cache_files WHERE source_name = :sourceName AND source_tag = :sourceTag;
-`;
-
 export const dbMigrations: DBMigration[] = [
   {
     name: 'createCacheTableV1',
