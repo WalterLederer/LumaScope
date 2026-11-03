@@ -24,115 +24,43 @@
   }
 
   @if (mode() !== 'general') {
-    <section class="sidecar-settings">
-      <details class="cache-details">
-        <summary>Sidecar cache · per drive</summary>
-        <p class="format-note">Thumbnails are stored in a hidden .cache folder beside each original image as readable *_thumbnail.jpg files. Full-size HDR conversions remain in a hidden .cache folder. The original files are never modified. New sidecar thumbnails use a proportional 512 × 512 maximum master image and are scaled for smaller gallery tiles. When sidecar storage is enabled for a drive, its previous central cache is deleted and future thumbnails and conversions are stored beside the original files.</p>
-        <div class="setting-row">
-          <div class="setting-description">
-            <strong>Enable sidecar storage for a drive</strong>
-            <span>Enter a drive root, for example D:\ or E:\.</span>
-          </div>
-          <div class="cache-actions">
-            <input type="text"
-                   aria-label="Drive root"
-                   placeholder="e.g. D"
-                   [value]="sidecarVolumeInput()"
-                   [disabled]="sidecarVolumeLoading()"
-                   (input)="sidecarVolumeInput.set($any($event.target).value)" />
-            <button class="cache-button"
-                    type="button"
-                    [disabled]="sidecarVolumeLoading() || !isSidecarVolumeInputValid()"
-                    (click)="addSidecarVolume()">Add drive</button>
-          </div>
-        </div>
-        @if (sidecarVolumes().length > 0) {
-          @for (volume of sidecarVolumes(); track volume) {
-            <div class="setting-row">
-              <div class="setting-description">
-                <strong>{{ volume.toUpperCase() }}</strong>
-                <span>Full-size conversions are stored beside the source photos.</span>
-              </div>
-              <button class="cache-button warning"
-                      type="button"
-                      [disabled]="sidecarVolumeLoading()"
-                      (click)="removeSidecarVolume(volume)">Use central cache</button>
-            </div>
-          }
-        } @else {
-          <p class="cache-status">No drives are configured for sidecar storage.</p>
-        }
-        @if (sidecarVolumeError()) {
-          <p class="cache-status error" role="alert">{{ sidecarVolumeError() }}</p>
-        }
-      </details>
-    </section>
-  }
-
-  @if (mode() !== 'general') {
   <section>
     <div class="cache-details">
       <div class="cache-overview">
-      <div class="cache-categories">
-        <div class="cache-category">
-          <div>
-            <span>Full-size conversions</span>
-            <strong>{{ currentCache.fullSize.entries }} files · {{ currentCache.fullSize.bytes | byteSize }}<span class="cache-hint">Central: {{ currentCache.fullSize.central.entries }} · Sidecar: {{ currentCache.fullSize.sidecar.entries }}</span></strong>
-            <span class="cache-hint">See the “Full-size cache” column in Supported image formats below.</span>
+        <div class="cache-categories">
+          <div class="cache-category">
+            <div>
+              <span>Full-size conversions</span>
+              <strong>{{ currentCache.fullSize.entries }} files · {{ currentCache.fullSize.bytes | byteSize }}</strong>
+              <span class="cache-hint">See the “Full-size cache” column in Supported image formats below.</span>
+            </div>
+            <button class="cache-button warning" type="button"
+                    [disabled]="currentCache.fullSize.entries === 0 || isClearing()"
+                    (click)="deleteFullSizeCache()">Delete full-size cache</button>
           </div>
-          <button class="cache-button warning"
-                  type="button"
-                  [disabled]="currentCache.fullSize.central.entries === 0 || isClearing()"
-                  (click)="deleteFullSizeCache()">
-            Delete central full-size cache
-          </button>
-        </div>
-
-        <div class="cache-category">
-          <div>
-            <span>Thumbnail files</span>
-            <strong>{{ currentCache.thumbnails.entries }} files · {{ currentCache.thumbnails.bytes | byteSize }}<span class="cache-hint">Central: {{ currentCache.thumbnails.central.entries }} · Sidecar: {{ currentCache.thumbnails.sidecar.entries }}</span></strong>
+          <div class="cache-category">
+            <div>
+              <span>Thumbnail files</span>
+              <strong>{{ currentCache.thumbnails.entries }} files · {{ currentCache.thumbnails.bytes | byteSize }}</strong>
+            </div>
+            <button class="cache-button warning" type="button"
+                    [disabled]="currentCache.thumbnails.entries === 0 || isClearing()"
+                    (click)="deleteThumbnailsCache()">Delete thumbnails</button>
           </div>
-          <button class="cache-button warning"
-                  type="button"
-                  [disabled]="currentCache.thumbnails.central.entries === 0 || isClearing()"
-                  (click)="deleteThumbnailsCache()">
-            Delete central thumbnails
-          </button>
-        </div>
-
-        <div class="cache-total">
-          <div>
-            <span>Indexed cache · central + sidecar</span>
-            <strong>{{ currentCache.entries }} files · {{ currentCache.bytes | byteSize }}<span class="cache-hint">Central: {{ currentCache.central.entries }} files · {{ currentCache.central.bytes | byteSize }} · Sidecar: {{ currentCache.sidecar.entries }} files · {{ currentCache.sidecar.bytes | byteSize }}</span></strong>
+          <div class="cache-total">
+            <div>
+              <span>Sidecar cache</span>
+              <strong>{{ currentCache.entries }} files · {{ currentCache.bytes | byteSize }}</strong>
+            </div>
+            <aside class="cache-total-actions">
+              <button class="cache-button warning" type="button"
+                      [disabled]="currentCache.entries === 0 || isClearing()"
+                      (click)="deleteCache()">Delete all cache files</button>
+            </aside>
           </div>
-          <aside class="cache-total-actions">
-            <button class="cache-button warning"
-                    type="button"
-                    [disabled]="currentCache.central.entries === 0 || isClearing()"
-                    (click)="deleteCache()">
-              Delete central cache
-            </button>
-          </aside>
         </div>
+        <p class="format-note">Cache files are stored in each photo folder's hidden .cache subfolder. Parallel JPG files in the adjacent jpg folder are detected but never deleted by cache cleanup.</p>
       </div>
-      <div class="cache-path">
-        <div class="cache-path-details">
-          <span>Cache location</span>
-          <code>{{ currentCache.path }}</code>
-        </div>
-        <button class="cache-button"
-                type="button"
-                [disabled]="isClearing()"
-                (click)="openCacheFolder()">
-          Open cache folder
-        </button>
-      </div>
-    </div>
-
-    @if (openFolderError() !== null) {
-      <p class="cache-status error" role="alert">Could not open cache folder: {{ openFolderError() }}</p>
-    }
 
     @if (isClearing()) {
       <p class="cache-status" role="status">Clearing cache…</p>
