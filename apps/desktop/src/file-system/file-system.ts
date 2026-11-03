@@ -65,7 +65,7 @@ export class FileSystem {
 
     try {
       const entries = (await readdir(path, { withFileTypes: true }))
-        .filter(file => file.isDirectory());
+        .filter(file => file.isDirectory() && file.name.toLowerCase() !== '.cache');
 
       // Keep directory metadata lookups asynchronous; statSync here can freeze the Electron main process.
       const directories = await Promise.all(entries.map(async file => {
