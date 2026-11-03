@@ -1073,11 +1073,11 @@ if (parentPort) {
           }
         }
       } else if (sourceExtension === '.avif') {
-          isHdr = true;
         const heifData = await readFile(source);
         const profile = getHeifColorProfile(heifData);
 
         if (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18)) {
+          isHdr = true;
           using hdrSource = vips.Image.heifload(source, { unlimited: true });
           const lut = getHdrTransferLut(profile.transfer);
 
