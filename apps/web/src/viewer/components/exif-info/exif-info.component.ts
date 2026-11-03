@@ -118,26 +118,6 @@ export class ExifInfoComponent {
     return sourcePath ? `atom://app/raw?image=${encodeURIComponent(sourcePath)}` : '';
   };
 
-  readonly normalizedCachePath = (): string => {
-    const value = this.cachePath() ?? '';
-    // Display cache paths with native Windows separators and single backslashes.
-    return value.replace(/\//g, '\\').replace(/\\{2,}/g, '\\');
-  };
-
-  readonly copyCachePath = async (): Promise<void> => {
-    const path = this.normalizedCachePath();
-    if (!path) return;
-    try {
-      await navigator.clipboard.writeText(path);
-      this.copyCachePathStatus.set('Copied');
-      window.setTimeout(() => this.copyCachePathStatus.set(''), 1800);
-    } catch (error) {
-      console.error('Failed to copy cache path to clipboard', error);
-      this.copyCachePathStatus.set('Copy failed');
-      window.setTimeout(() => this.copyCachePathStatus.set(''), 2500);
-    }
-  };
-
   readonly normalizedPath = () => {
     const value = this.path();
     // Windows drive-letter and UNC paths must be copied with native backslashes.

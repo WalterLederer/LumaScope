@@ -38,39 +38,50 @@
 <section class="info-box cache-info">
   <details open>
     <summary>Cache · {{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status === 'valid' ? 'Thumbnail cached' : 'Thumbnail not cached' }} · Full-size {{ cachePathLoading() ? 'checking…' : !cacheStatus ? 'unknown' : !cacheStatus.fullSizeRequired ? 'not required' : cacheStatus.fullSize?.status === 'valid' ? 'ready' : cacheStatus.fullSize?.status === 'stale' ? 'stale' : 'missing' }}</summary>
-    <dl class="cache-entry-list">
-      <dt>Thumbnail status</dt><dd>{{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status ?? 'Not cached' }}</dd>
-      @if (cacheStatus?.thumbnail?.status === 'valid' && cacheStatus!.thumbnail; as thumbnail) {
-        <dt>Thumbnail location / type</dt><dd>{{ thumbnail.storageType === 'converted' ? 'Converted' : thumbnail.storageType === 'sidecar' ? 'Sidecar' : 'Central' }}</dd>
-        <dt>Thumbnail path</dt><dd class="cache-entry-path">{{ thumbnail.path }}</dd>
-      } @else {
-        <dt>Thumbnail location / type</dt><dd>—</dd>
-      }
-      <dt>Full-size conversion</dt><dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Unknown') : !cacheStatus.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status ?? 'Not cached' }}</dd>
-      @if (cacheStatus?.fullSize?.status === 'valid' && cacheStatus!.fullSize; as fullSize) {
-        <dt>Full-size location / type</dt><dd>{{ fullSize.storageType === 'converted' ? 'Converted' : fullSize.storageType === 'sidecar' ? 'Sidecar' : 'Central' }}</dd>
-        <dt>Full-size path</dt><dd class="cache-entry-path">{{ fullSize.path }}</dd>
-      } @else {
-        <dt>Full-size location / type</dt><dd>—</dd>
-      }
-    </dl>
-    <div class="full-path-row">
-      <div class="full-path-value" [title]="normalizedPath()"><strong>Original image path:</strong> {{ normalizedPath() }}</div>
+
+    <div class="cache-groups">
+      <section class="cache-group">
+        <h3>Thumbnail</h3>
+        <dl>
+          <dt>Status</dt>
+          <dd>{{ cachePathLoading() ? 'Checking…' : !cacheStatus ? 'Unknown' : cacheStatus.thumbnail?.status ?? 'Not cached' }}</dd>
+          <dt>Location / type</dt>
+          <dd>{{ cacheStatus?.thumbnail?.status === 'valid' ? (cacheStatus.thumbnail.storageType === 'converted' ? 'Converted' : cacheStatus.thumbnail.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
+          <dt>Path</dt>
+          <dd class="cache-entry-path">{{ cacheStatus?.thumbnail?.status === 'valid' ? cacheStatus.thumbnail.path : '—' }}</dd>
+        </dl>
+      </section>
+
+      <section class="cache-group">
+        <h3>Full-size conversion</h3>
+        <dl>
+          <dt>Status</dt>
+          <dd>{{ !cacheStatus ? (cachePathLoading() ? 'Checking…' : 'Unknown') : !cacheStatus.fullSizeRequired ? 'Not required for this format' : cachePathLoading() ? 'Checking…' : cacheStatus.fullSize?.status ?? 'Not cached' }}</dd>
+          <dt>Location / type</dt>
+          <dd>{{ cacheStatus?.fullSize?.status === 'valid' ? (cacheStatus.fullSize.storageType === 'converted' ? 'Converted' : cacheStatus.fullSize.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—' }}</dd>
+          <dt>Path</dt>
+          <dd class="cache-entry-path">{{ cacheStatus?.fullSize?.status === 'valid' ? cacheStatus.fullSize.path : '—' }}</dd>
+        </dl>
+      </section>
+
+      <section class="cache-group">
+        <h3>Original</h3>
+        <dl>
+          <dt>Image path</dt>
+          <dd class="cache-entry-path">{{ normalizedPath() }}</dd>
+        </dl>
+      </section>
+
+      <section class="cache-group">
+        <h3>Raw</h3>
+        <dl>
+          <dt>Image URL</dt>
+          <dd class="cache-entry-path">{{ rawImageUrl() }}</dd>
+        </dl>
+      </section>
     </div>
-    <div class="full-path-row">
-      <div class="full-path-value" [title]="rawImageUrl()"><strong>Raw image URL:</strong> {{ rawImageUrl() }}</div>
-    </div>
-    <div class="full-path-row">
-      <div class="full-path-value" [title]="normalizedCachePath()">{{ normalizedCachePath() || (cachePathLoading() ? 'Checking cache…' : 'No cached derivative for this image') }}</div>
-      <button type="button"
-              class="copy-path-button"
-              [disabled]="!cachePath()"
-              (click)="copyCachePath()"
-              title="Copy cache path"
-              aria-label="Copy cache path">
-        <span class="copy-path-icon" aria-hidden="true">⧉</span>
-        {{ copyCachePathStatus() || 'Copy cache path' }}
-      </button>
+
+    <div class="cache-actions">
       <button type="button"
               class="copy-path-button"
               [disabled]="cachePathLoading()"

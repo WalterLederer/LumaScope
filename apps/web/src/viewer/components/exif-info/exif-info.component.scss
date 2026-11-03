@@ -30,7 +30,7 @@
 
   .hdr-classification, .hdr-metadata { display: grid; gap: 3px; }
 
-  .cache-entry-path { overflow-wrap: anywhere; font-family: var(--font-family-monospace, monospace); font-size: 0.85em; }
+  .cache-entry-path { overflow-wrap: anywhere; font-family: var(--font-family-monospace, monospace); font-size: 0.85em; user-select: text; }
 }
 
 
@@ -129,3 +129,34 @@
   font-size: 0.85em;
   opacity: 0.85;
 }
+
+.cache-groups {
+  display: grid;
+  gap: var(--dim-medium);
+  min-width: 0;
+}
+
+.cache-group {
+  min-width: 0;
+  border: 1px solid var(--color-border-default, currentColor);
+  border-radius: 6px;
+  padding: var(--dim-small) var(--dim-medium);
+
+  h3 {
+    margin: 0 0 var(--dim-small);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  dl {
+    grid-template-columns: minmax(6.5rem, max-content) minmax(0, 1fr);
+  }
+}
+
+.cache-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dim-small);
+  margin-top: var(--dim-medium);
+}
+
