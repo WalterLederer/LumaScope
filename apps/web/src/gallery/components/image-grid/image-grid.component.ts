@@ -98,6 +98,16 @@ export class ImageGridComponent {
 
   protected readonly imageDynamicRange = imageDynamicRange;
 
+  protected readonly formatPixelDimension = (value: unknown): string => {
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value).toString();
+    const text = String(value ?? '').trim();
+    // EXIF values may already contain locale-style grouping (for example "3,840").
+    const normalized = /^\d{1,3}(?:,\d{3})+$/.test(text) ? text.replace(/,/g, '') : text;
+    const numeric = Number(normalized);
+    return Number.isFinite(numeric) ? Math.trunc(numeric).toString() : text;
+  };
+
+
   private readonly exif = inject(ExifService);
 
 
