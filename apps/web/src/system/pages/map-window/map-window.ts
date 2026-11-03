@@ -185,10 +185,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-row">
-                  <div class="marker-progress-text">Files checked: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                  <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
                   <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                 </div>
-                <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span><span>EXIF read errors: <strong>{{ markerExifErrors() }}</strong></span></div>
+                <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
                 <div class="marker-status" role="status">{{ markerStatus() }}</div>
               }
             </div>
@@ -656,7 +656,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     this.clearDirectoryMarkers();
-    this.markerStatus.set('Reading folder…');
+    this.markerStatus.set('Reading location database…');
     try {
       const directory = await desktop.FileSystem.dirname(imagePath);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
@@ -665,59 +665,31 @@ export class MapWindow implements OnInit, OnDestroy {
       if (cached) {
         this.markerFilesTotal.set(cached.filesTotal);
         this.markerFilesChecked.set(cached.filesTotal);
-        this.markerExifErrors.set(cached.exifErrors);
         this.renderDirectoryMarkers(cached.markers, imagePath);
-        this.markerStatus.set('Loaded ' + cached.filesTotal + ' files from session cache; ' + cached.exifErrors + ' EXIF errors.');
+        this.markerStatus.set('Loaded ' + cached.filesTotal + ' database records from session cache; ' + cached.markers.length + ' GPS locations found.');
         return;
       }
 
-      const response = await desktop.FileSystem.readImages(directory, 'name', 'asc');
+      const records = await desktop.CacheManager.getDirectoryPhotoLocations(directory);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      if (!response.success) throw new Error(response.errorMessage);
-      const files = response.data.filter(file => !file.isDirectory);
-      this.markerFilesTotal.set(files.length);
-      this.markerFilesChecked.set(0);
-      this.markerExifErrors.set(0);
-      this.markerStatus.set('Scanning GPS metadata…');
-      const markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }> = [];
-      let nextIndex = 0;
-      let exifErrors = 0;
-      let filesChecked = 0;
-      const worker = async (): Promise<void> => {
-        while (generation === this.markerScanGeneration && this.directoryMarkersEnabled()) {
-          const index = nextIndex++;
-          if (index >= files.length) return;
-          const file = files[index];
-          try {
-            const exif = await desktop.Exif.read(file.path);
-            if (generation !== this.markerScanGeneration) return;
-            if (!exif.success) exifErrors++;
-            else {
-              const tags = exif.data as Record<string, unknown>;
-              const latitude = this.parseExifCoordinate(tags['GPSLatitude'], tags['GPSLatitudeRef']);
-              const longitude = this.parseExifCoordinate(tags['GPSLongitude'], tags['GPSLongitudeRef']);
-              if (latitude !== null && longitude !== null && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
-                markers.push({ path: file.path, fileName: file.name, latitude, longitude });
-              }
-            }
-          } catch {
-            if (generation === this.markerScanGeneration) exifErrors++;
-          } finally {
-            if (generation === this.markerScanGeneration) {
-              filesChecked++;
-              this.markerFilesChecked.set(filesChecked);
-              this.markerExifErrors.set(exifErrors);
-            }
-          }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(6, files.length) }, () => worker()));
-      if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: files.length, exifErrors });
+      const markers = records
+        .filter(record => record.latitude !== null && record.longitude !== null
+          && Number.isFinite(record.latitude) && Number.isFinite(record.longitude)
+          && Math.abs(record.latitude) <= 90 && Math.abs(record.longitude) <= 180)
+        .map(record => ({
+          path: record.path,
+          fileName: record.fileName,
+          latitude: record.latitude!,
+          longitude: record.longitude!
+        }));
+
+      this.markerFilesTotal.set(records.length);
+      this.markerFilesChecked.set(records.length);
+      this.directoryMarkerCache.set(cacheKey, { markers, filesTotal: records.length, exifErrors: 0 });
       this.renderDirectoryMarkers(markers, imagePath);
-      this.markerStatus.set('Completed: ' + files.length + ' files checked; ' + exifErrors + ' EXIF errors. Cached for this session.');
+      this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
-      if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Folder scan failed.');
+      if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Location database query failed.');
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
