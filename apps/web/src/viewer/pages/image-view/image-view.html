@@ -8,7 +8,7 @@
 
 @if (selected !== null) {
   <app-image-renderer [url]="selected.url"
-                      [style.margin-right.px]="!fullScreen && controlsSidebarVisible() ? sidebarWidth() : 0"
+                      [style.margin-right.px]="!fullScreen && controlsSidebarVisible() ? sidebarWidth() + 16 : 0"
                       [debugImageSwitching]="debugImageSwitching()"
                       (debugSwitchingPhase)="onDebugSwitchingPhase($event)"
                       [displayBrightness]="1"
@@ -454,7 +454,7 @@
   @if (!fullScreen) {
     @let imagePosition = imagePosition$ | async;
     <footer class="image-status-bar" aria-label="Image status"
-            [style.margin-right.px]="controlsSidebarVisible() ? sidebarWidth() : 0">
+            [style.margin-right.px]="controlsSidebarVisible() ? sidebarWidth() + 16 : 0">
       <div class="status-control-groups">
         <div class="status-control-group status-left">
           <button type="button" class="status-icon-button" (click)="goBack()" title="Back to gallery" aria-label="Back to gallery">✕</button>
