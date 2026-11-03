@@ -73,8 +73,7 @@ export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: 
     // but its published TypeScript union omits this accepted format.
     colorFormat: 'rgba16F' as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
     cursorCapture: false,
-    ...(drawBorder === undefined ? {} : { drawBorder }),
-    minimumUpdateIntervalMs: 0
+    ...(drawBorder === undefined ? {} : { drawBorder })
   });
 
   // Windows 10 builds before 20348 do not support changing the WGC capture
