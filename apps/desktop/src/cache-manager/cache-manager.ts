@@ -158,7 +158,7 @@ export class CacheManager {
   };
 
   readonly registerConverted = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
-    const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+    const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
     if (!convertibleExtensions.has(extname(sourceName).toLowerCase()) || !isAbsolute(targetPath) || extname(targetPath).toLowerCase() !== '.jpg') {
       return null;
     }
@@ -220,7 +220,7 @@ export class CacheManager {
     }
 
     const query = this.db.prepare(findCacheFilesForSource);
-    const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+    const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
     const uniquePaths = [...new Set(sourceNames)];
     return Promise.all(uniquePaths.map(async sourceName => {
       const entries = query.all({ sourceName }) as unknown as CacheFileEntry[];
@@ -263,7 +263,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
   readonly imageCachePath = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<string | null> => {
     const extension = extname(sourceName).toLowerCase();
-    if (![ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ].includes(extension)) {
+    if (![ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ].includes(extension)) {
       return null;
     }
 

@@ -102,8 +102,9 @@ const getFullSizeDerivative = async (
   thumbManager: ThumbManager
 ): Promise<string | null> => {
   const extension = extname(fileName).toLowerCase();
+  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
   const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
-  if (convertibleExtensions.has(extension)) {
+  if (derivativeExtensions.has(extension)) {
     // Converted files use a shared sibling folder named "jpg", matching the source basename.
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
     if (existsSync(convertedPath)) {
@@ -114,6 +115,10 @@ const getFullSizeDerivative = async (
         cacheManager.forgetConverted(fileName, cacheTag);
       }
     }
+  }
+
+  if (!convertibleExtensions.has(extension)) {
+    return null;
   }
 
   return await cacheManager.get(
@@ -135,7 +140,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
     const extension = extname(fileName).toLowerCase();
     let source = fileName;
 
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ].includes(extension)) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ].includes(extension)) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
@@ -143,15 +148,13 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
       const tag = `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
       const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
-      if (signal?.aborted || result === null) {
-        if (signal?.aborted) {
-          return notFound();
-        }
-
+      if (signal?.aborted) {
+        return notFound();
+      }
+      if (result === null && ![ '.jxl', '.png' ].includes(extension)) {
         throw new Error(`Could not decode ${extension} image for histogram.`);
       }
-
-      source = result;
+      if (result !== null) source = result;
     }
 
     const result = await Injector.getInstance().inject('ThumbManager').histogram(source);
@@ -259,8 +262,9 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
         fullSizeCacheStatus.set(resolve(fileName), wasCacheHit || adoptedConversion);
       }
 
-      if (signal?.aborted || result === null) {
-        return notFound();
+      if (signal?.aborted) return notFound();
+      if (result === null) {
+        return [ '.jxl', '.png' ].includes(extension) ? streamFile(fileName) : notFound();
       }
 
       return streamFile(result);
