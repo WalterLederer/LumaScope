@@ -43,7 +43,7 @@
 
 .detail-table {
   display: grid;
-  grid-template-columns: 84px repeat(9, max-content);
+  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
   column-gap: 16px;
   row-gap: 0;
   width: max-content;
@@ -142,7 +142,7 @@
 
 @media (max-width: 900px) {
   .detail-table {
-    grid-template-columns: 72px repeat(9, max-content);
+    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
     column-gap: 12px;
   }
 }
