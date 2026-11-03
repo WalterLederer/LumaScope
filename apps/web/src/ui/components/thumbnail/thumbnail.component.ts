@@ -113,7 +113,7 @@ export class ThumbnailComponent implements OnDestroy {
       .map(value => Number.parseInt(value, 10))
       .find(value => Number.isFinite(value) && value > 0);
 
-    const dimensions = `${width.toLocaleString()} × ${height.toLocaleString()}`;
+    const dimensions = `${Math.trunc(width)} × ${Math.trunc(height)}`;
     return bitsPerSample ? `${dimensions} × ${bitsPerSample}` : dimensions;
   });
 
