@@ -14,7 +14,7 @@ export const getMigrationRecords = `SELECT * FROM migrations ORDER BY rowid;`;
 
 export const insertMigrationRecord = `INSERT INTO migrations (name) VALUES (:name);`;
 
-export const clearCacheRecords = `DELETE FROM cache_files;`;
+export const clearCacheRecords = `DELETE FROM cache_files WHERE storage_type = 'central';`;
 
 export const findFullSizeCacheFiles = `
 SELECT source_name, source_tag, target_path, storage_type
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS cache_files (
 
 CREATE UNIQUE INDEX idx_cache_files_search ON cache_files (source_name, source_tag);
     `
-  }
-  ,{
+  },
+  {
     name: 'addCacheStorageTypeV2',
     query: `
 ALTER TABLE cache_files ADD COLUMN storage_type TEXT NOT NULL DEFAULT 'central';
