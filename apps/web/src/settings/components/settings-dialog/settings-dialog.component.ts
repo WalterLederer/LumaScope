@@ -24,23 +24,7 @@ export class SettingsPanelComponent {
   private readonly processManager = inject(ProcessManager);
 
   /* State */
-  protected readonly sidecarVolumes = signal<string[]>([]);
-
-  protected readonly sidecarVolumeInput = signal('');
-
-  protected readonly sidecarVolumeError = signal<string | null>(null);
-
-  protected readonly sidecarVolumeLoading = signal(false);
-
-  protected readonly cacheInfo = signal<CacheInfo>({
-    path: '',
-    entries: 0,
-    bytes: 0,
-    central: { entries: 0, bytes: 0 },
-    sidecar: { entries: 0, bytes: 0 },
-    fullSize: { entries: 0, bytes: 0, central: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 } },
-    thumbnails: { entries: 0, bytes: 0, central: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 } }
-  });
+  protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
 
   protected readonly isClearing = signal(false);
 
@@ -158,7 +142,6 @@ export class SettingsPanelComponent {
 
   protected readonly clearError = signal<string | null>(null);
 
-  protected readonly openFolderError = signal<string | null>(null);
 
   protected readonly supportedFormats = supportedFileFormats;
 
@@ -254,7 +237,6 @@ export class SettingsPanelComponent {
     this.loadGlobalShortcutStatus().then();
     this.loadExternalProcessCalls().then();
     this.updateCacheInfo().then();
-    this.loadSidecarVolumes().then();
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
@@ -332,69 +314,8 @@ export class SettingsPanelComponent {
     }
   };
 
-  /* Sidecar cache settings */
-  private readonly loadSidecarVolumes = async (): Promise<void> => {
-    try {
-      this.sidecarVolumes.set(await this.cacheManager.getSidecarVolumes());
-      this.sidecarVolumeError.set(null);
-    } catch (error) {
-      this.sidecarVolumeError.set(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  protected readonly isSidecarVolumeInputValid = (): boolean =>
-    /^[a-zA-Z](?::[\\/]?)?$/.test(this.sidecarVolumeInput().trim());
-
-  protected readonly addSidecarVolume = async (): Promise<void> => {
-    const input = this.sidecarVolumeInput().trim();
-    if (!this.isSidecarVolumeInputValid()) {
-      this.sidecarVolumeError.set('Enter a drive letter such as D.');
-      return;
-    }
-    const drive = input[0].toUpperCase();
-    await this.updateSidecarVolume(`${drive}:\\`, true);
-    if (this.sidecarVolumeError() === null) {
-      this.sidecarVolumeInput.set('');
-      await this.updateCacheInfo();
-    }
-  };
-
-  protected readonly removeSidecarVolume = async (volumeRoot: string): Promise<void> => {
-    await this.updateSidecarVolume(volumeRoot, false);
-    if (this.sidecarVolumeError() === null) {
-      this.sidecarVolumeInput.set('');
-      await this.updateCacheInfo();
-    }
-  };
-
-  private readonly updateSidecarVolume = async (volumeRoot: string, enabled: boolean): Promise<void> => {
-    if (this.sidecarVolumeLoading()) return;
-    this.sidecarVolumeLoading.set(true);
-    this.sidecarVolumeError.set(null);
-    try {
-      this.sidecarVolumes.set(await this.cacheManager.setSidecarVolumeEnabled(volumeRoot, enabled));
-    } catch (error) {
-      this.sidecarVolumeError.set(error instanceof Error ? error.message : String(error));
-    } finally {
-      this.sidecarVolumeLoading.set(false);
-    }
-  };
-
   /* State modifiers */
   private readonly updateCacheInfo = async () => this.cacheInfo.set(await this.cacheManager.cacheInfo());
-
-  protected readonly openCacheFolder = async () => {
-    this.openFolderError.set(null);
-
-    try {
-      const error = await this.cacheManager.openCacheFolder();
-      if (error) {
-        this.openFolderError.set(error);
-      }
-    } catch (error) {
-      this.openFolderError.set(error instanceof Error ? error.message : String(error));
-    }
-  };
 
   /* Event handlers */
   protected readonly deleteCache = () => this.clearCache(() => this.cacheManager.clear());
