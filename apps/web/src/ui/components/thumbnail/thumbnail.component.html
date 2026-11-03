@@ -40,5 +40,6 @@
     <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'">{{ dynamicRange() }}</span>
     <span class="detail-thumb" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
+    <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
   </div>
 }
