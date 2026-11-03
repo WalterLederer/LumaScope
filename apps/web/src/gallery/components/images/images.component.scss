@@ -44,7 +44,7 @@
 .detail-header {
   display: grid;
   grid-template-columns: 84px max-content max-content max-content max-content max-content max-content max-content max-content max-content;
-  width: max-content;
+  width: 100%;
   min-width: 0;
   align-items: center;
   gap: var(--dim-medium);
@@ -130,7 +130,7 @@
 @media (max-width: 900px) {
   .detail-header {
     grid-template-columns: 72px max-content max-content max-content max-content max-content max-content max-content max-content max-content;
-    width: max-content;
+    width: 100%;
     gap: 8px;
   }
 }
