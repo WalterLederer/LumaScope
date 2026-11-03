@@ -57,7 +57,8 @@ const api: Desktop = {
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     cacheInfo: () => ipcRenderer.invoke('CacheManager.cacheInfo'),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
-    getImageCacheStatuses: (sourceNames: string[]) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames)
+    getImageCacheStatuses: (sourceNames: string[]) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames),
+    getDirectoryPhotoLocations: (directory: string) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory)
   },
 
   Histogram: {
