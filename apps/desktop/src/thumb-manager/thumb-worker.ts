@@ -33,6 +33,7 @@ export interface ThumbWorkerResponse {
   success: boolean;
   error?: string;
   histogram?: ImageHistogram;
+  isHdr?: boolean;
 }
 
 const cancelledRequests = new Set<string>();
@@ -761,6 +762,25 @@ function histogramForImage(vips: typeof Vips, source: string): ImageHistogram {
   };
 }
 
+function hasHdrHeadroom(values: ArrayLike<number>): boolean {
+  for (let index = 0; index < values.length; index++) {
+    const value = Number(values[index]);
+    if (Number.isFinite(value) && value > 1) return true;
+  }
+  return false;
+}
+
+function hasUltraHdrGainMap(vips: typeof Vips, source: string): boolean {
+  if (![ '.jpg', '.jpeg' ].includes(extname(source).toLowerCase())) return false;
+  try {
+    using image = vips.Image.newFromFile(source);
+    using hdr = image.uhdr2scRGB();
+    return hdr.width > 0 && hdr.height > 0;
+  } catch {
+    return false;
+  }
+}
+
 // Pre-initialize Vips in worker
 getVips().catch(err => {
   console.error('[ThumbWorker] Failed to initialize Vips:', err);
@@ -798,6 +818,7 @@ if (parentPort) {
 
     console.log(`[ThumbWorker] Processing ${source}...`);
     let processingStage = 'initialization';
+    let isHdr = false;
 
     try {
       if (cancelledRequests.has(id)) {
@@ -833,6 +854,7 @@ if (parentPort) {
         const decoder = await getExrDecoder();
         processingStage = 'decoding EXR pixels';
         const decoded = decoder.decodeRgbExr(await readFile(source));
+        isHdr = hasHdrHeadroom(decoded.interleavedRgbPixels);
 
         if (decoded.interleavedRgbPixels.length !== decoded.width * decoded.height * 3) {
           throw new Error('The EXR image does not contain standard RGB channels.');
@@ -872,6 +894,7 @@ if (parentPort) {
       } else if (sourceExtension === '.hdr') {
         using encodedHdr = vips.Image.newFromFile(source);
         using linearHdr = encodedHdr.rad2float();
+        isHdr = hasHdrHeadroom(linearHdr.writeToMemory());
 
         if (width > 0 && height > 0) {
           const scale = preserveAspectRatio
@@ -898,6 +921,7 @@ if (parentPort) {
         // Untagged 16-bit TIFF samples from FFmpeg use Rec. 2020 HLG codes.
         // Floating-point TIFFs are already linear and are treated as scRGB.
         if ([ 'float', 'double' ].includes(sourceImage.format) && sourceImage.bands >= 3) {
+          isHdr = hasHdrHeadroom(sourceImage.writeToMemory());
           using linearScRgb = sourceImage.extractBand(0, { n: 3 })
             .cast(vips.BandFormat.float)
             .copy({ interpretation: vips.Interpretation.scrgb });
@@ -921,6 +945,8 @@ if (parentPort) {
             linearScRgb.uhdrsave(target, { Q: 90 });
           }
         } else if (sourceImage.format === 'ushort' && sourceImage.bands >= 3) {
+          // This path explicitly decodes the untagged 16-bit TIFF data as Rec. 2020 HLG.
+          isHdr = true;
           using rgb = sourceImage.extractBand(0, { n: 3 });
           using lutImage = vips.Image.newFromMemory(
             getHdrTransferLut(18),
@@ -974,6 +1000,7 @@ if (parentPort) {
         const profile = getHeifColorProfile(heifData);
 
         if (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18)) {
+          isHdr = true;
           using hdrSource = decodeHeifHdrToVips(vips, heifData);
           const lut = getHdrTransferLut(profile.transfer);
 
@@ -1154,6 +1181,7 @@ if (parentPort) {
           throw new Error(`Unsupported JPEG XR pixel format: ${decoded.pixelInfo.bitDepth}.`);
         }
 
+        isHdr = (bitDepth === '16Float' || bitDepth === '32Float') && hasHdrHeadroom(pixels);
         const isFullSize = width === 0 && height === 0;
         const sampleScale = bitDepth === '8' ? 1 / 255 : bitDepth === '16' ? 1 / 65535 : 1;
         if (isFullSize) {
@@ -1366,6 +1394,16 @@ if (parentPort) {
           }
         }
       } else {
+        isHdr = hasUltraHdrGainMap(vips, source);
+        const sourceExtension = extname(source).toLowerCase();
+        if (sourceExtension === '.png') {
+          const profile = getPngColorProfile(source);
+          isHdr = isHdr || (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18))
+            || hasComfyUiPqVae(source);
+        } else if (sourceExtension === '.jxl') {
+          using sourceImage = vips.Image.newFromFile(source, { access: 'sequential' });
+          isHdr = sourceImage.format === 'ushort' && sourceImage.bands >= 3;
+        }
         using thumb = vips.Image.thumbnail(
           source,
           width,
@@ -1409,7 +1447,7 @@ if (parentPort) {
         );
       }
 
-      parentPort?.postMessage({ id, success: true } satisfies ThumbWorkerResponse);
+      parentPort?.postMessage({ id, success: true, isHdr } satisfies ThumbWorkerResponse);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       const errorDetails = err instanceof Error

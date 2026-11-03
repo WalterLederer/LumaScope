@@ -7,12 +7,12 @@ import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { CacheClearResult, CacheImageStatus, CacheInfo } from 'internal-api';
+import type { Exif } from '../exif/exif';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
 
 const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
-const HDR_EXTENSIONS = new Set([ ...FULL_SIZE_EXTENSIONS, '.jxl', '.png' ]);
 
 interface PhotoRow {
   id: number;
@@ -163,6 +163,26 @@ export class CacheManager {
     } catch { return null; }
   };
 
+
+  readonly updatePhotoMetadata = async (sourceName: string, isHdr: boolean, gps: Awaited<ReturnType<Exif['readPhotoMetadata']>>): Promise<void> => {
+    const sourceStats = await stat(sourceName);
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+    const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
+    this.db.prepare(`UPDATE photos SET is_hdr = :isHdr, latitude = :latitude, longitude = :longitude,
+      altitude_m = :altitude, gps_timestamp = :gpsTimestamp, direction_deg = :direction,
+      coordinate_source_id = :sourceId WHERE id = :id`)
+      .run({
+        isHdr: isHdr ? 1 : 0,
+        latitude: hasCoordinates ? gps.latitude : null,
+        longitude: hasCoordinates ? gps.longitude : null,
+        altitude: hasCoordinates ? gps.altitudeM : null,
+        gpsTimestamp: hasCoordinates ? gps.gpsTimestamp : null,
+        direction: hasCoordinates ? gps.directionDeg : null,
+        sourceId: hasCoordinates ? 1 : null,
+        id: row.id
+      });
+  };
+
   readonly usesSidecarStorage = (_sourceName: string): boolean => true;
 
   readonly exists = (sourceName: string, sourceTag: string): Record<string, SQLOutputValue> | null => {
@@ -257,9 +277,19 @@ export class CacheManager {
     const folder = dirname(sourceName);
     this.db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
     const path = this.db.prepare('SELECT id FROM paths WHERE folder_path = :folder').get({ folder }) as { id: number };
-    const hdr = HDR_EXTENSIONS.has(extname(sourceName).toLowerCase()) ? 1 : 0;
-    this.db.prepare('INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr) VALUES (:pathId, :file, :size, :modified, :hdr) ON CONFLICT(path_id, file_name) DO UPDATE SET file_size = excluded.file_size, modified_at = excluded.modified_at, is_hdr = excluded.is_hdr')
-      .run({ pathId: path.id, file: basename(sourceName), size, modified, hdr });
+    this.db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
+      VALUES (:pathId, :file, :size, :modified, 0)
+      ON CONFLICT(path_id, file_name) DO UPDATE SET
+        is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
+        latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
+        longitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.longitude END,
+        altitude_m = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.altitude_m END,
+        gps_timestamp = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_timestamp END,
+        direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
+        coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        file_size = excluded.file_size,
+        modified_at = excluded.modified_at`)
+      .run({ pathId: path.id, file: basename(sourceName), size, modified });
     return this.getPhoto(sourceName)!;
   };
 
@@ -327,7 +357,7 @@ export class CacheManager {
       if (resolve(String(row.target_path ?? '')) !== resolve(expected)) continue;
       insertPath.run({ folder });
       const path = findPath.get({ folder }) as { id: number };
-      insertPhoto.run({ pathId: path.id, file, size: Number(row.source_size ?? 0), modified: Number(row.updated_at ?? 0), hdr: HDR_EXTENSIONS.has(extname(source).toLowerCase()) ? 1 : 0 });
+      insertPhoto.run({ pathId: path.id, file, size: Number(row.source_size ?? 0), modified: Number(row.updated_at ?? 0), hdr: 0 });
       updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: tag, pathId: path.id, file });
     }
     this.db.exec('DROP TABLE cache_files; DROP TABLE IF EXISTS cache_volume_settings;');

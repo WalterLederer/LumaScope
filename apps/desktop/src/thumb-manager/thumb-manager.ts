@@ -41,15 +41,25 @@ export class ThumbManager {
     height: number,
     signal?: AbortSignal,
     preserveAspectRatio = false
-  ): Promise<boolean> => this.enqueue(() => this.runWorkerOperation(
+  ): Promise<boolean> => this.generateWithMetadata(source, target, width, height, signal, preserveAspectRatio)
+    .then(result => result.success);
+
+  readonly generateWithMetadata = (
+    source: string,
+    target: string,
+    width: number,
+    height: number,
+    signal?: AbortSignal,
+    preserveAspectRatio = false
+  ): Promise<{ success: boolean; isHdr: boolean | null }> => this.enqueue(() => this.runWorkerOperation(
     source,
     async () => {
       const startedAt = performance.now();
-      const generated = await this.generateQueued(source, target, width, height, signal, preserveAspectRatio);
-      if (generated && width === 0 && height === 0) {
+      const result = await this.generateQueued(source, target, width, height, signal, preserveAspectRatio);
+      if (result.success && width === 0 && height === 0) {
         this.fullSizeConversionDurations.set(resolve(source), performance.now() - startedAt);
       }
-      return generated;
+      return { success: result.success, isHdr: result.success ? result.isHdr ?? null : null };
     }
   ));
 
@@ -63,9 +73,9 @@ export class ThumbManager {
     height: number,
     signal?: AbortSignal,
     preserveAspectRatio = false
-  ): Promise<boolean> => {
+  ): Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr'>> => {
     if (signal?.aborted) {
-      return false;
+      return { success: false };
     }
 
     if (!this.worker) {
@@ -73,11 +83,11 @@ export class ThumbManager {
 
       if (!this.worker) {
         console.error('[ThumbManager] Worker instance missing.');
-        return false;
+        return { success: false };
       }
     }
 
-    return new Promise<boolean>(resolve => {
+    return new Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr'>>(resolve => {
       const id = randomUUID();
 
       let onAbort: (() => void) | undefined;
@@ -90,7 +100,7 @@ export class ThumbManager {
 
       const wrappedResolve = (response: ThumbWorkerResponse) => {
         cleanup();
-        resolve(response.success);
+        resolve({ success: response.success, isHdr: response.isHdr });
       };
 
       this.pendingRequests.set(id, wrappedResolve);
@@ -128,13 +138,13 @@ export class ThumbManager {
         } else {
           this.pendingRequests.delete(id);
           cleanup();
-          resolve(false);
+          resolve({ success: false });
         }
       } catch (err) {
         console.error('[ThumbManager] Failed to post message to worker:', err);
         this.pendingRequests.delete(id);
         cleanup();
-        resolve(false);
+        resolve({ success: false });
       }
     });
   };

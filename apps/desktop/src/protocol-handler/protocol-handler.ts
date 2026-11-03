@@ -202,7 +202,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           return false;
         }
 
-        return await thumbManager.generate(
+        const generated = await thumbManager.generateWithMetadata(
           fileName,
           target,
           useSidecar ? 512 : width,
@@ -210,6 +210,11 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           signal,
           useSidecar
         );
+        if (generated.success && generated.isHdr !== null) {
+          const gps = await injector.inject('Exif').readPhotoMetadata(fileName);
+          await cacheManager.updatePhotoMetadata(fileName, generated.isHdr, gps);
+        }
+        return generated.success;
       },
       useSidecar || isJxr || isAvif || isHeif || isExr || isRadiance || isTiff ? '.jpg' : undefined
     );
