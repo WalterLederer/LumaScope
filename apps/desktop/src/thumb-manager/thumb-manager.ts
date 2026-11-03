@@ -39,12 +39,13 @@ export class ThumbManager {
     target: string,
     width: number,
     height: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    preserveAspectRatio = false
   ): Promise<boolean> => this.enqueue(() => this.runWorkerOperation(
     source,
     async () => {
       const startedAt = performance.now();
-      const generated = await this.generateQueued(source, target, width, height, signal);
+      const generated = await this.generateQueued(source, target, width, height, signal, preserveAspectRatio);
       if (generated && width === 0 && height === 0) {
         this.fullSizeConversionDurations.set(resolve(source), performance.now() - startedAt);
       }
@@ -60,7 +61,8 @@ export class ThumbManager {
     target: string,
     width: number,
     height: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    preserveAspectRatio = false
   ): Promise<boolean> => {
     if (signal?.aborted) {
       return false;
@@ -114,7 +116,8 @@ export class ThumbManager {
         source,
         target,
         width,
-        height
+        height,
+        preserveAspectRatio
       };
 
       try {

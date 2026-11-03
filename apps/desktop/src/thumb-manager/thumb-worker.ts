@@ -12,6 +12,7 @@ export interface ThumbWorkerGenerateRequest {
   target: string;
   width: number;
   height: number;
+  preserveAspectRatio?: boolean;
 }
 
 export interface ThumbWorkerCancelRequest {
@@ -785,7 +786,7 @@ if (parentPort) {
       return;
     }
 
-    const { id, source, target, width, height } = request;
+    const { id, source, target, width, height, preserveAspectRatio = false } = request;
 
     console.log(`[ThumbWorker] Processing ${source}...`);
     let processingStage = 'initialization';
@@ -839,16 +840,20 @@ if (parentPort) {
         );
 
         if (width > 0 && height > 0) {
-          const scale = Math.max(width / image.width, height / image.height) + 0.0001;
+          const scale = preserveAspectRatio
+            ? width / image.width, height / image.height
+            : width / image.width, height / image.height + 0.0001;
           using resized = image.resize(scale, { kernel: vips.Kernel.linear });
-          using cropped = resized.extractArea(
+          using output = preserveAspectRatio
+            ? resized.copy()
+            : resized.extractArea(
             Math.max(0, Math.floor((resized.width - width) / 2)),
             Math.max(0, Math.floor((resized.height - height) / 2)),
             width,
             height
-          );
+            );
           processingStage = 'resizing EXR thumbnail';
-          using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+          using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
           processingStage = 'encoding EXR thumbnail as Ultra HDR JPEG';
           scrgb.uhdrsave(target, { Q: 90 });
         } else {
@@ -861,15 +866,19 @@ if (parentPort) {
         using linearHdr = encodedHdr.rad2float();
 
         if (width > 0 && height > 0) {
-          const scale = Math.max(width / linearHdr.width, height / linearHdr.height) + 0.0001;
+          const scale = preserveAspectRatio
+            ? width / linearHdr.width, height / linearHdr.height
+            : width / linearHdr.width, height / linearHdr.height + 0.0001;
           using resized = linearHdr.resize(scale, { kernel: vips.Kernel.linear });
-          using cropped = resized.extractArea(
+          using output = preserveAspectRatio
+            ? resized.copy()
+            : resized.extractArea(
             Math.max(0, Math.floor((resized.width - width) / 2)),
             Math.max(0, Math.floor((resized.height - height) / 2)),
             width,
             height
-          );
-          using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+            );
+          using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
           scrgb.jpegsave(target, { Q: 80 });
         } else {
           using scrgb = linearHdr.copy({ interpretation: vips.Interpretation.scrgb });
@@ -886,15 +895,19 @@ if (parentPort) {
             .copy({ interpretation: vips.Interpretation.scrgb });
 
           if (width > 0 && height > 0) {
-            const scale = Math.max(width / linearScRgb.width, height / linearScRgb.height) + 0.0001;
+            const scale = preserveAspectRatio
+              ? width / linearScRgb.width, height / linearScRgb.height
+              : width / linearScRgb.width, height / linearScRgb.height + 0.0001;
             using resized = linearScRgb.resize(scale, { kernel: vips.Kernel.linear });
-            using cropped = resized.extractArea(
+            using output = preserveAspectRatio
+              ? resized.copy()
+              : resized.extractArea(
               Math.max(0, Math.floor((resized.width - width) / 2)),
               Math.max(0, Math.floor((resized.height - height) / 2)),
               width,
               height
-            );
-            using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+              );
+            using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.uhdrsave(target, { Q: 90 });
           } else {
             linearScRgb.uhdrsave(target, { Q: 90 });
@@ -922,22 +935,26 @@ if (parentPort) {
           using image = displayRec2020.recomb(rec2020ToScRgb);
 
           if (width > 0 && height > 0) {
-            const scale = Math.max(width / image.width, height / image.height) + 0.0001;
+            const scale = preserveAspectRatio
+              ? width / image.width, height / image.height
+              : width / image.width, height / image.height + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
-            using cropped = resized.extractArea(
+            using output = preserveAspectRatio
+              ? resized.copy()
+              : resized.extractArea(
               Math.max(0, Math.floor((resized.width - width) / 2)),
               Math.max(0, Math.floor((resized.height - height) / 2)),
               width,
               height
-            );
-            using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+              );
+            using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.uhdrsave(target, { Q: 90 });
           } else {
             using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.uhdrsave(target, { Q: 90 });
           }
         } else if (width > 0 && height > 0) {
-          using thumb = vips.Image.thumbnail(source, width, { height, size: 2, crop: 1 });
+          using thumb = vips.Image.thumbnail(source, width, { height, size: 2, crop: preserveAspectRatio ? 0 : 1 });
           using jpeg = thumb.cast(vips.BandFormat.uchar).copy({ interpretation: vips.Interpretation.srgb });
           jpeg.jpegsave(target, { Q: 80 });
         } else {
@@ -973,15 +990,19 @@ if (parentPort) {
           using image = displayRec2020.recomb(rec2020ToScRgb);
 
           if (width > 0 && height > 0) {
-            const scale = Math.max(width / image.width, height / image.height) + 0.0001;
+            const scale = preserveAspectRatio
+              ? width / image.width, height / image.height
+              : width / image.width, height / image.height + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
-            using cropped = resized.extractArea(
+            using output = preserveAspectRatio
+              ? resized.copy()
+              : resized.extractArea(
               Math.max(0, Math.floor((resized.width - width) / 2)),
               Math.max(0, Math.floor((resized.height - height) / 2)),
               width,
               height
-            );
-            using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+              );
+            using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.jpegsave(target, { Q: 80 });
           } else {
             using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
@@ -999,15 +1020,19 @@ if (parentPort) {
           using rgb = decodedImage.extractBand(0, { n: 3 }).copy({ interpretation: vips.Interpretation.srgb });
 
           if (width > 0 && height > 0) {
-            const scale = Math.max(width / rgb.width, height / rgb.height) + 0.0001;
+            const scale = preserveAspectRatio
+              ? width / rgb.width, height / rgb.height
+              : width / rgb.width, height / rgb.height + 0.0001;
             using resized = rgb.resize(scale, { kernel: vips.Kernel.lanczos3 });
-            using cropped = resized.extractArea(
+            using output = preserveAspectRatio
+              ? resized.copy()
+              : resized.extractArea(
               Math.max(0, Math.floor((resized.width - width) / 2)),
               Math.max(0, Math.floor((resized.height - height) / 2)),
               width,
               height
-            );
-            cropped.jpegsave(target, { Q: 80 });
+              );
+            output.jpegsave(target, { Q: 80 });
           } else {
             rgb.jpegsave(target, { Q: 90 });
           }
@@ -1047,15 +1072,19 @@ if (parentPort) {
           using image = displayRec2020.recomb(rec2020ToScRgb);
 
           if (width > 0 && height > 0) {
-            const scale = Math.max(width / image.width, height / image.height) + 0.0001;
+            const scale = preserveAspectRatio
+              ? width / image.width, height / image.height
+              : width / image.width, height / image.height + 0.0001;
             using resized = image.resize(scale, { kernel: vips.Kernel.linear });
-            using cropped = resized.extractArea(
+            using output = preserveAspectRatio
+              ? resized.copy()
+              : resized.extractArea(
               Math.max(0, Math.floor((resized.width - width) / 2)),
               Math.max(0, Math.floor((resized.height - height) / 2)),
               width,
               height
-            );
-            using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+              );
+            using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.jpegsave(target, { Q: 80 });
           } else {
             using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
@@ -1066,7 +1095,7 @@ if (parentPort) {
             using thumb = vips.Image.thumbnail(
               source,
               width,
-              { height, size: 2, crop: 1 }
+              { height, size: 2, crop: preserveAspectRatio ? 0 : 1 }
             );
 
             thumb.writeToFile(target, { Q: 80 });
@@ -1174,12 +1203,15 @@ if (parentPort) {
         }
 
         if (width > 0 && height > 0) {
-          const scale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
-          using resized = orderedRgb.resize(scale, { kernel: vips.Kernel.linear });
+          const coverScale = Math.max(width / decoded.width, height / decoded.height) + 0.0001;
+          const fitScale = Math.min(width / decoded.width, height / decoded.height);
+          using resized = orderedRgb.resize(preserveAspectRatio ? fitScale : coverScale, { kernel: vips.Kernel.linear });
           const cropLeft = Math.max(0, Math.floor((resized.width - width) / 2));
           const cropTop = Math.max(0, Math.floor((resized.height - height) / 2));
-          using cropped = resized.extractArea(cropLeft, cropTop, width, height);
-          using scrgb = cropped.copy({ interpretation: vips.Interpretation.scrgb });
+          using output = preserveAspectRatio
+            ? resized.copy()
+            : resized.extractArea(cropLeft, cropTop, width, height);
+          using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
           scrgb.uhdrsave(target, { Q: 80 });
         } else {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
@@ -1332,7 +1364,7 @@ if (parentPort) {
           {
             height,
             size: 2,
-            crop: 1
+            crop: preserveAspectRatio ? 0 : 1
           }
         );
 

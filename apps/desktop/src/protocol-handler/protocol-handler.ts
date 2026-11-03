@@ -176,9 +176,10 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
         return await thumbManager.generate(
           fileName,
           target,
-          useSidecar ? 384 : width,
-          useSidecar ? 256 : height,
-          signal
+          useSidecar ? 512 : width,
+          useSidecar ? 512 : height,
+          signal,
+          useSidecar
         );
       },
       useSidecar || isJxr || isAvif || isHeif || isExr || isRadiance || isTiff ? '.jpg' : undefined
