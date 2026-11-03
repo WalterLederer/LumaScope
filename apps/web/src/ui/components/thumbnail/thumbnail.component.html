@@ -2,7 +2,7 @@
 @let error = hasError();
 
 <div class="thumbnail-preview">
-  @if (loading) {
+  @if (loading && isCacheStatusReady()) {
     <div class="message">
       <ui-caption>{{ isCaching() ? 'Caching...' : 'Loading...' }}</ui-caption>
     </div>
