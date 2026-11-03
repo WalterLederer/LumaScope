@@ -117,39 +117,35 @@ export class CacheManager {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
-    return Promise.all([...new Set(sourceNames)].map(async sourceName => {
-      let sourceStats: Awaited<ReturnType<typeof stat>> | null = null;
-      try { sourceStats = await stat(sourceName); } catch { /* The source may have been removed. */ }
-      const extension = extname(sourceName).toLowerCase();
-      if (sourceStats && FULL_SIZE_EXTENSIONS.has(extension)) {
-        const isTiff = extension === '.tif' || extension === '.tiff';
-        const sourceTag = extension.slice(1) + '-full-' + (isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr');
-        const parallelPath = this.getParallelPath(sourceName);
-        if (existsSync(parallelPath)) await this.registerParallel(sourceName, sourceTag, parallelPath);
-        else this.forgetParallel(sourceName, sourceTag);
-      }
-      const row = sourceStats ? (this.getPhoto(sourceName) ?? this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs))) : this.getPhoto(sourceName);
-      const getStatus = async (kind: 'thumbnail' | 'fullsize') => {
+
+    // Gallery detail columns are read from SQLite only; folder changes must not trigger filesystem checks.
+    const findPhoto = this.db.prepare(`SELECT photos.* FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE`);
+
+    return [...new Set(sourceNames)].map(sourceName => {
+      const row = findPhoto.get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
+      const getStatus = (kind: 'thumbnail' | 'fullsize') => {
         if (!row) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
         const version = kind === 'thumbnail' ? row.thumbnail_cache_version : row.fullsize_cache_version;
         if (id === null || !version) return null;
         const parallel = id === CACHE_STORAGE_TYPE.PARALLEL && kind === 'fullsize';
-        const path = parallel ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, kind === 'fullsize');
-        let status: 'valid' | 'missing' | 'stale' = 'valid';
-        if (!sourceStats || row.file_size !== sourceStats.size || row.modified_at !== sourceStats.mtimeMs) status = 'stale';
-        else {
-          try { if (!(await stat(path)).isFile()) status = 'missing'; } catch { status = 'missing'; }
-        }
-        return { status, path, storageType: parallel ? 'parallel' as const : 'sidecar' as const, sourceTag: version };
+        return {
+          status: 'valid' as const,
+          path: parallel ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, kind === 'fullsize'),
+          storageType: parallel ? 'parallel' as const : 'sidecar' as const,
+          sourceTag: version
+        };
       };
+
       return {
         sourceName,
-        thumbnail: await getStatus('thumbnail'),
-        fullSize: await getStatus('fullsize'),
+        thumbnail: getStatus('thumbnail'),
+        fullSize: getStatus('fullsize'),
         fullSizeRequired: FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase())
       };
-    }));
+    });
   };
 
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
