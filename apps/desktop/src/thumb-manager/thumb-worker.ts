@@ -946,7 +946,6 @@ if (parentPort) {
           }
         } else if (sourceImage.format === 'ushort' && sourceImage.bands >= 3) {
           // This path explicitly decodes the untagged 16-bit TIFF data as Rec. 2020 HLG.
-          isHdr = true;
           using rgb = sourceImage.extractBand(0, { n: 3 });
           using lutImage = vips.Image.newFromMemory(
             getHdrTransferLut(18),
@@ -967,6 +966,7 @@ if (parentPort) {
             ]
           );
           using image = displayRec2020.recomb(rec2020ToScRgb);
+          isHdr = hasHdrHeadroom(image.writeToMemory());
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
