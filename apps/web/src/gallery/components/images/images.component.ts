@@ -65,7 +65,7 @@ export class ImagesComponent {
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
 
-  private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
+  private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
     try {
       const stored = globalThis.localStorage.getItem('light-matter.detailSortColumn');
       return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'thumb' || stored === 'fullSize' ? stored : stored === 'cacheStatus' || stored === 'cacheLocation' ? 'thumb' : 'date';
@@ -79,7 +79,7 @@ export class ImagesComponent {
     } catch { return this.sortDirection(); }
   };
 
-  readonly detailSortColumn = signal<'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'>(this.readStoredDetailSortColumn());
+  readonly detailSortColumn = signal<'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'>(this.readStoredDetailSortColumn());
   readonly detailSortDirection = signal<'asc' | 'desc'>(this.readStoredDetailSortDirection());
 
   readonly sortedDetailImages = computed(() => {
@@ -164,7 +164,7 @@ export class ImagesComponent {
 
   readonly hovered = output<FileInfo | null>();
 
-  async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
+  async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
     if (this.detailSortColumn() === column) {
       this.detailSortDirection.update(direction => direction === 'asc' ? 'desc' : 'asc');
     } else {
@@ -209,7 +209,7 @@ export class ImagesComponent {
       : '';
   }
 
-  sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): string {
+  sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): string {
     if (this.detailSortColumn() !== column) return '';
     return this.detailSortDirection() === 'asc' ? ' ▲' : ' ▼';
   }
