@@ -25,6 +25,8 @@ interface PhotoRow {
   thumbnail_cache_version: string | null;
   fullsize_cache_id: number | null;
   fullsize_cache_version: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export class CacheManager {
@@ -143,7 +145,9 @@ export class CacheManager {
         sourceName,
         thumbnail: getStatus('thumbnail'),
         fullSize: getStatus('fullsize'),
-        fullSizeRequired: FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase())
+        fullSizeRequired: FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase()),
+        latitude: row?.latitude ?? null,
+        longitude: row?.longitude ?? null
       };
     });
   };
