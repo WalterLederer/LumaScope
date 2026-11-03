@@ -84,6 +84,8 @@ export interface CacheImageStatus {
   thumbnail: CacheEntryStatus | null;
   fullSize: CacheEntryStatus | null;
   fullSizeRequired: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface DesktopLoupe {
