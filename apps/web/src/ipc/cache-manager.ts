@@ -1,16 +1,33 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { CacheClearResult, CacheImageStatus, CacheInfo, DesktopCacheManager } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class CacheManager implements DesktopCacheManager {
-  readonly clear = (): Promise<CacheClearResult> => window.desktop.CacheManager.clear();
+  readonly cacheRevision = signal(0);
 
-  readonly clearFullSize = (): Promise<CacheClearResult> => window.desktop.CacheManager.clearFullSize();
+  readonly clear = async (): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clear();
+    this.cacheRevision.update(value => value + 1);
+    return result;
+  };
 
-  readonly clearThumbnails = (): Promise<CacheClearResult> => window.desktop.CacheManager.clearThumbnails();
+  readonly clearFullSize = async (): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clearFullSize();
+    this.cacheRevision.update(value => value + 1);
+    return result;
+  };
 
-  readonly deleteImage = (sourceName: string): Promise<CacheClearResult> =>
-    window.desktop.CacheManager.deleteImage(sourceName);
+  readonly clearThumbnails = async (): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clearThumbnails();
+    this.cacheRevision.update(value => value + 1);
+    return result;
+  };
+
+  readonly deleteImage = async (sourceName: string): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.deleteImage(sourceName);
+    this.cacheRevision.update(value => value + 1);
+    return result;
+  };
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 

@@ -9,13 +9,14 @@ export function imageUrl(selectedFile: string): string {
   return result.toString();
 }
 
-export function thumbUrl(selectedFile: string, width: number, height: number): string {
+export function thumbUrl(selectedFile: string, width: number, height: number, refreshToken = 0): string {
   const result = new URL(`${appProtocol}://app`);
 
   result.pathname = appPaths.thumbs;
   result.searchParams.set('image', selectedFile);
   result.searchParams.set('width', width.toString());
   result.searchParams.set('height', height.toString());
+  if (refreshToken > 0) result.searchParams.set('refresh', refreshToken.toString());
 
   return result.toString();
 }

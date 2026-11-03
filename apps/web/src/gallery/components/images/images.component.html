@@ -4,7 +4,10 @@
   <p>No images found in this folder.</p>
 } @else if (viewMode() === 'details') {
   <div class="detail-header">
-      <span></span>
+      <span><button type="button" class="detail-refresh-button"
+                    title="Refresh thumbnails and cache status"
+                    aria-label="Refresh thumbnails and cache status"
+                    (click)="refreshGallery()">↻</button></span>
       <button type="button" (click)="sortDetailsBy('name')">Name{{ sortIndicator('name') }}</button>
       <button type="button" (click)="sortDetailsBy('date')">Date modified{{ sortIndicator('date') }}</button>
       <button type="button" (click)="sortDetailsBy('dimensions')">Dimensions{{ sortIndicator('dimensions') }}</button>
@@ -20,6 +23,7 @@
       <app-thumbnail [image]="image" [viewMode]="viewMode()"
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                      [cacheStatusLoading]="cacheStatusLoading()"
+                     [refreshToken]="thumbnailRefreshToken()"
                      (hovered)="hovered.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }

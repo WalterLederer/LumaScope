@@ -51,6 +51,9 @@ export class ImagesComponent {
   private cacheStatusRequest = 0;
   readonly cacheStatuses = signal<Map<string, CacheImageStatus>>(new Map());
   readonly cacheStatusLoading = signal(false);
+  private readonly manualRefresh = signal(0);
+  readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
+  readonly refreshGallery = (): void => this.manualRefresh.update(value => value + 1);
   private observer: IntersectionObserver | null = null;
   private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
@@ -214,6 +217,7 @@ export class ImagesComponent {
   constructor() {
     effect(() => {
       const images = this.images() ?? [];
+      this.thumbnailRefreshToken();
       const request = ++this.cacheStatusRequest;
       if (this.viewMode() !== 'details' || images.length === 0) {
         this.cacheStatuses.set(new Map());

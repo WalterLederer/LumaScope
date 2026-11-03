@@ -58,6 +58,8 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly cacheStatusLoading = input(false);
 
+  readonly refreshToken = input(0);
+
   readonly clicked = output<FileInfo>();
 
   readonly hovered = output<FileInfo | null>();
@@ -73,7 +75,7 @@ export class ThumbnailComponent implements OnDestroy {
     const image = this.image();
     const pixelRatio = this.pixelRatio() || 1;
     const maxPreview = thumbnailDimensions.large;
-    return thumbUrl(image.path, maxPreview.width / pixelRatio, maxPreview.height / pixelRatio);
+    return thumbUrl(image.path, maxPreview.width / pixelRatio, maxPreview.height / pixelRatio, this.refreshToken());
   });
 
   readonly isLoading = signal<boolean>(true);
