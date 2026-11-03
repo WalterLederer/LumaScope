@@ -918,7 +918,7 @@ if (parentPort) {
       } else if ([ '.tif', '.tiff' ].includes(sourceExtension)) {
         using sourceImage = vips.Image.newFromFile(source, { access: 'sequential' });
         // Materialize the sequential TIFF decoder before downstream operations request pixels out of order.
-        using decodedImage = decodedImage.copyMemory();
+        using decodedImage = sourceImage.copyMemory();
 
         // Untagged 16-bit TIFF samples from FFmpeg use Rec. 2020 HLG codes.
         // Floating-point TIFFs are already linear and are treated as scRGB.
