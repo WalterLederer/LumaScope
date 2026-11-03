@@ -24,6 +24,14 @@ export class SettingsPanelComponent {
   private readonly processManager = inject(ProcessManager);
 
   /* State */
+  protected readonly sidecarVolumes = signal<string[]>([]);
+
+  protected readonly sidecarVolumeInput = signal('');
+
+  protected readonly sidecarVolumeError = signal<string | null>(null);
+
+  protected readonly sidecarVolumeLoading = signal(false);
+
   protected readonly cacheInfo = signal<CacheInfo>({
     path: '',
     entries: 0,
@@ -244,6 +252,7 @@ export class SettingsPanelComponent {
     this.loadGlobalShortcutStatus().then();
     this.loadExternalProcessCalls().then();
     this.updateCacheInfo().then();
+    this.loadSidecarVolumes().then();
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
@@ -318,6 +327,42 @@ export class SettingsPanelComponent {
     } catch (error) {
       this.devToolsOpen.set(previousValue);
       this.devToolsError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  /* Sidecar cache settings */
+  private readonly loadSidecarVolumes = async (): Promise<void> => {
+    try {
+      this.sidecarVolumes.set(await this.cacheManager.getSidecarVolumes());
+      this.sidecarVolumeError.set(null);
+    } catch (error) {
+      this.sidecarVolumeError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  protected readonly addSidecarVolume = async (): Promise<void> => {
+    const root = this.sidecarVolumeInput().trim();
+    if (!/^[a-zA-Z]:\\\\?$/.test(root)) {
+      this.sidecarVolumeError.set('Enter a drive root such as D:\\.');
+      return;
+    }
+    await this.updateSidecarVolume(root.endsWith('\\\\') ? root : `${root}\\`, true);
+    if (this.sidecarVolumeError() === null) this.sidecarVolumeInput.set('');
+  };
+
+  protected readonly removeSidecarVolume = async (volumeRoot: string): Promise<void> =>
+    this.updateSidecarVolume(volumeRoot, false);
+
+  private readonly updateSidecarVolume = async (volumeRoot: string, enabled: boolean): Promise<void> => {
+    if (this.sidecarVolumeLoading()) return;
+    this.sidecarVolumeLoading.set(true);
+    this.sidecarVolumeError.set(null);
+    try {
+      this.sidecarVolumes.set(await this.cacheManager.setSidecarVolumeEnabled(volumeRoot, enabled));
+    } catch (error) {
+      this.sidecarVolumeError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.sidecarVolumeLoading.set(false);
     }
   };
 

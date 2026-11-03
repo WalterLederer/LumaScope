@@ -24,6 +24,52 @@
   }
 
   @if (mode() !== 'general') {
+    <section class="sidecar-settings">
+      <details class="cache-details">
+        <summary>Sidecar cache · per drive</summary>
+        <p class="format-note">Full-size HDR conversions can be stored in a hidden .cache folder beside each original image. The original files are never modified. Thumbnails continue to use the central cache for now.</p>
+        <div class="setting-row">
+          <div class="setting-description">
+            <strong>Enable sidecar storage for a drive</strong>
+            <span>Enter a drive root, for example D:\\ or E:\\.</span>
+          </div>
+          <div class="cache-actions">
+            <input type="text"
+                   aria-label="Drive root"
+                   placeholder="D:\\"
+                   [value]="sidecarVolumeInput()"
+                   [disabled]="sidecarVolumeLoading()"
+                   (input)="sidecarVolumeInput.set($any($event.target).value)" />
+            <button class="cache-button"
+                    type="button"
+                    [disabled]="sidecarVolumeLoading() || !sidecarVolumeInput().trim()"
+                    (click)="addSidecarVolume()">Add drive</button>
+          </div>
+        </div>
+        @if (sidecarVolumes().length > 0) {
+          @for (volume of sidecarVolumes(); track volume) {
+            <div class="setting-row">
+              <div class="setting-description">
+                <strong>{{ volume }}</strong>
+                <span>Full-size conversions are stored beside the source photos.</span>
+              </div>
+              <button class="cache-button warning"
+                      type="button"
+                      [disabled]="sidecarVolumeLoading()"
+                      (click)="removeSidecarVolume(volume)">Use central cache</button>
+            </div>
+          }
+        } @else {
+          <p class="cache-status">No drives are configured for sidecar storage.</p>
+        }
+        @if (sidecarVolumeError()) {
+          <p class="cache-status error" role="alert">{{ sidecarVolumeError() }}</p>
+        }
+      </details>
+    </section>
+  }
+
+  @if (mode() !== 'general') {
   <section>
     <div class="cache-details">
       <div class="cache-overview">

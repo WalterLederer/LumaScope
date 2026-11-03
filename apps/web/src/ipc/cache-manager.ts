@@ -20,4 +20,9 @@ export class CacheManager implements DesktopCacheManager {
     window.desktop.CacheManager.imageCachePath(sourceName);
 
   readonly openCacheFolder = () => window.desktop.CacheManager.openCacheFolder();
+
+  readonly getSidecarVolumes = () => window.desktop.CacheManager.getSidecarVolumes();
+
+  readonly setSidecarVolumeEnabled = (volumeRoot: string, enabled: boolean) =>
+    window.desktop.CacheManager.setSidecarVolumeEnabled(volumeRoot, enabled);
 }
