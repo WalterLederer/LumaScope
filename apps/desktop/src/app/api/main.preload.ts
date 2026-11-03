@@ -56,7 +56,9 @@ const api: Desktop = {
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     cacheInfo: () => ipcRenderer.invoke('CacheManager.cacheInfo'),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
-    openCacheFolder: () => ipcRenderer.invoke('CacheManager.openCacheFolder')
+    openCacheFolder: () => ipcRenderer.invoke('CacheManager.openCacheFolder'),
+    getSidecarVolumes: () => ipcRenderer.invoke('CacheManager.getSidecarVolumes'),
+    setSidecarVolumeEnabled: (volumeRoot: string, enabled: boolean) => ipcRenderer.invoke('CacheManager.setSidecarVolumeEnabled', volumeRoot, enabled)
   },
 
   Histogram: {

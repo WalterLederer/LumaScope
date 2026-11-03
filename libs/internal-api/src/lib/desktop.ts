@@ -59,6 +59,8 @@ export interface DesktopCacheManager {
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly openCacheFolder: () => Promise<string>;
+  readonly getSidecarVolumes: () => Promise<string[]>;
+  readonly setSidecarVolumeEnabled: (volumeRoot: string, enabled: boolean) => Promise<string[]>;
 }
 
 export interface CacheClearResult {

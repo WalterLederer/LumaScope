@@ -2,7 +2,7 @@ import { app, shell, type IpcMainInvokeEvent } from 'electron';
 import { nanoid } from 'nanoid/non-secure';
 import { existsSync, mkdirSync } from 'node:fs';
 import { copyFile, mkdir, readdir, rm, stat } from 'node:fs/promises';
-import { dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, parse, relative, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { CacheClearResult, CacheInfo } from 'internal-api';
@@ -39,12 +39,37 @@ export class CacheManager {
 
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
 
+  private readonly sidecarVolumes = new Set<string>();
+
   constructor() {
     // SQLite does not create its parent directory, unlike the image cache below.
     mkdirSync(this.userData, { recursive: true });
     this.db = new DatabaseSync(this.cacheConfigFile);
     this.init();
+    for (const row of this.db.prepare('SELECT volume_root FROM cache_volume_settings WHERE sidecar_enabled = 1').all() as Array<{ volume_root: string }>) {
+      this.sidecarVolumes.add(row.volume_root.toLowerCase());
+    }
   }
+
+  @IpcHandler({ name: 'CacheManager.getSidecarVolumes' })
+  readonly getSidecarVolumes = async (): Promise<string[]> => [...this.sidecarVolumes].sort();
+
+  @IpcHandler({ name: 'CacheManager.setSidecarVolumeEnabled' })
+  readonly setSidecarVolumeEnabled = async (_event: IpcMainInvokeEvent, volumeRoot: string, enabled: boolean): Promise<string[]> => {
+    if (typeof volumeRoot !== 'string' || !isAbsolute(volumeRoot) || parse(volumeRoot).root.toLowerCase() !== volumeRoot.toLowerCase()) {
+      throw new Error('A volume root such as D:\\ is required.');
+    }
+    if (typeof enabled !== 'boolean') throw new Error('A boolean sidecar setting is required.');
+    const normalizedRoot = volumeRoot.toLowerCase();
+    if (enabled) {
+      this.db.prepare('INSERT INTO cache_volume_settings (volume_root, sidecar_enabled) VALUES (:root, 1) ON CONFLICT(volume_root) DO UPDATE SET sidecar_enabled = 1').run({ root: normalizedRoot });
+      this.sidecarVolumes.add(normalizedRoot);
+    } else {
+      this.db.prepare('DELETE FROM cache_volume_settings WHERE volume_root = :root').run({ root: normalizedRoot });
+      this.sidecarVolumes.delete(normalizedRoot);
+    }
+    return [...this.sidecarVolumes].sort();
+  };
 
   @IpcHandler({ name: 'CacheManager.clear' })
   readonly clear = async (): Promise<CacheClearResult> => {
@@ -227,22 +252,31 @@ export class CacheManager {
       this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
     }
 
-    const hash = this.generateCacheName(targetExtension);
-    const targetPath = this.getCacheItemPath(hash);
+    const volumeRoot = parse(sourceName).root.toLowerCase();
+    const useSidecar = this.sidecarVolumes.has(volumeRoot) && sourceTag.includes('-full-');
+    const storageType = useSidecar ? 'sidecar' : 'central';
+    const sidecarPath = useSidecar
+      ? join(dirname(sourceName), '.cache', `${basename(sourceName)}.uhdr.jpg`)
+      : null;
+    const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
+
+    if (useSidecar && existsSync(targetPath) && !existing) {
+      return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
+    }
 
     await mkdir(dirname(targetPath), { recursive: true });
 
     if (callback) {
       const result = await callback(targetPath);
       return result
-        ? this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath)
+        ? this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType)
         : null;
     }
 
     await mkdir(dirname(targetPath), { recursive: true });
     await copyFile(sourceName, targetPath);
 
-    return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath);
+    return this.addEntry(sourceName, sourceTag, sourceSize, updatedAt, targetPath, storageType);
   };
 
   private readonly init = () => {
@@ -270,7 +304,8 @@ export class CacheManager {
     sourceTag: string,
     sourceSize: number,
     updatedAt: number,
-    targetPath: string
+    targetPath: string,
+    storageType: 'central' | 'sidecar' = 'central'
   ): string => {
     const ttl = Date.now();
 
@@ -281,7 +316,7 @@ export class CacheManager {
       updatedAt,
       targetPath,
       ttl,
-      storageType: 'central'
+      storageType
     });
 
     return targetPath;

@@ -90,6 +90,15 @@ CREATE UNIQUE INDEX idx_cache_files_search ON cache_files (source_name, source_t
     query: `
 ALTER TABLE cache_files ADD COLUMN storage_type TEXT NOT NULL DEFAULT 'central';
     `
+  },
+  {
+    name: 'createCacheVolumeSettingsV3',
+    query: `
+CREATE TABLE IF NOT EXISTS cache_volume_settings (
+  volume_root TEXT PRIMARY KEY COLLATE NOCASE,
+  sidecar_enabled INTEGER NOT NULL DEFAULT 1
+);
+    `
   }
 ];
 // @formatter:on
