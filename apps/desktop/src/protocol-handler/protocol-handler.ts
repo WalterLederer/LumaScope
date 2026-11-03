@@ -108,12 +108,12 @@ const getFullSizeDerivative = async (
     // Converted files use a shared sibling folder named "jpg", matching the source basename.
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
     if (existsSync(convertedPath)) {
-      if (await thumbManager.hasUltraHdrGainmap(convertedPath)) {
-        const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
-        if (adopted) return adopted;
-      } else {
-        cacheManager.forgetConverted(fileName, cacheTag);
-      }
+      // A sibling JPG is a valid existing derivative even when it is SDR.
+      // Do not require an Ultra HDR gain map to reuse the user's conversion.
+      const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
+      if (adopted) return adopted;
+    } else {
+      cacheManager.forgetConverted(fileName, cacheTag);
     }
   }
 

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { open } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import type { ImageHistogram } from 'internal-api';
@@ -142,33 +141,6 @@ export class ThumbManager {
 
   readonly histogram = (source: string): Promise<ImageHistogram | null> =>
     this.enqueue(() => this.runWorkerOperation(source, () => this.histogramQueued(source)));
-
-  readonly hasUltraHdrGainmap = async (source: string): Promise<boolean> => {
-    // Gain-map metadata is stored in JPEG XMP/MPF segments. Read it directly
-    // instead of scheduling a full image decode and histogram calculation.
-    let file: Awaited<ReturnType<typeof open>> | undefined;
-    try {
-      file = await open(source, 'r');
-      const buffer = Buffer.alloc(64 * 1024);
-      const markerPattern = /hdrgm|gainmap|mincontentboost|maxcontentboost|ultrahdr/i;
-      const overlapLength = 32;
-      let position = 0;
-      let overlap = '';
-
-      while (true) {
-        const { bytesRead } = await file.read(buffer, 0, buffer.length, position);
-        if (bytesRead === 0) return false;
-        const content = overlap + buffer.subarray(0, bytesRead).toString('latin1');
-        if (markerPattern.test(content)) return true;
-        overlap = content.slice(-overlapLength);
-        position += bytesRead;
-      }
-    } catch {
-      return false;
-    } finally {
-      await file?.close().catch(() => undefined);
-    }
-  };
 
   private readonly histogramQueued = async (source: string): Promise<ImageHistogram | null> => {
     if (!this.worker) {
