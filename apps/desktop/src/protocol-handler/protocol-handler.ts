@@ -157,10 +157,13 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const isExr = extname(fileName).toLowerCase() === '.exr';
     const isRadiance = extname(fileName).toLowerCase() === '.hdr';
     const isTiff = [ '.tif', '.tiff' ].includes(extname(fileName).toLowerCase());
-    const tag = `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
     const injector = Injector.getInstance();
     const cacheManager = injector.inject('CacheManager');
     const thumbManager = injector.inject('ThumbManager');
+    const useSidecar = cacheManager.usesSidecarStorage(fileName);
+    const tag = useSidecar
+      ? 'sidecar-thumbnail-v1'
+      : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
     const result = await cacheManager.get(
       fileName,
@@ -173,12 +176,12 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
         return await thumbManager.generate(
           fileName,
           target,
-          width,
-          height,
+          useSidecar ? 384 : width,
+          useSidecar ? 256 : height,
           signal
         );
       },
-      isJxr || isAvif || isHeif || isExr || isRadiance || isTiff ? '.jpg' : undefined
+      useSidecar || isJxr || isAvif || isHeif || isExr || isRadiance || isTiff ? '.jpg' : undefined
     );
 
     if (signal?.aborted) {

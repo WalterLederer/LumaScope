@@ -186,6 +186,9 @@ export class CacheManager {
     return shell.openPath(this.cacheDir);
   };
 
+  readonly usesSidecarStorage = (sourceName: string): boolean =>
+    this.sidecarVolumes.has(parse(sourceName).root.toLowerCase());
+
   readonly exists = (sourceName: string, sourceTag: string): Record<string, SQLOutputValue> | null => {
     const row = this.db.prepare(findCacheFile).get({ sourceName, sourceTag });
     return row ? row : null;
@@ -228,10 +231,11 @@ export class CacheManager {
 
     const existing = this.exists(sourceName, sourceTag);
     const volumeRoot = parse(sourceName).root.toLowerCase();
-    const useSidecar = this.sidecarVolumes.has(volumeRoot) && sourceTag.includes('-full-');
+    const useSidecar = this.sidecarVolumes.has(volumeRoot);
+    const isFullSize = sourceTag.includes('-full-');
     const storageType = useSidecar ? 'sidecar' : 'central';
     const sidecarPath = useSidecar
-      ? join(dirname(sourceName), '.cache', `${basename(sourceName)}.uhdr.jpg`)
+      ? join(dirname(sourceName), '.cache', `${basename(sourceName)}${isFullSize ? '.uhdr' : '.thumbnail'}.jpg`)
       : null;
     const targetPath = sidecarPath ?? this.getCacheItemPath(this.generateCacheName(targetExtension));
 
