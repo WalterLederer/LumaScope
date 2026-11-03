@@ -194,6 +194,31 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
       ? 'sidecar-thumbnail-v2'
       : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
+    // Lightweight preflight used by the gallery to distinguish cache reads from generation.
+    if (params.get('status') === '1') {
+      let cached = false;
+      const cacheEntry = cacheManager.exists(fileName, tag);
+      if (cacheEntry && typeof cacheEntry['target_path'] === 'string') {
+        try {
+          const sourceStats = statSync(fileName);
+          const targetStats = statSync(cacheEntry['target_path']);
+          cached = targetStats.isFile()
+            && cacheEntry['source_size'] === sourceStats.size
+            && cacheEntry['updated_at'] === sourceStats.mtimeMs;
+        } catch {
+          cached = false;
+        }
+      }
+
+      return new Response(JSON.stringify({ cached }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
+        }
+      });
+    }
+
     const result = await cacheManager.get(
       fileName,
       tag,
