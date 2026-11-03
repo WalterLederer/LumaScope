@@ -108,9 +108,9 @@ export class CacheManager {
       throw new Error('A list of valid image paths is required.');
     }
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
-      const row = this.getPhoto(sourceName);
       let sourceStats: Awaited<ReturnType<typeof stat>> | null = null;
       try { sourceStats = await stat(sourceName); } catch { /* The source may have been removed. */ }
+      const row = sourceStats ? (this.getPhoto(sourceName) ?? this.ensurePhoto(sourceName, sourceStats.size, sourceStats.mtimeMs)) : this.getPhoto(sourceName);
       const getStatus = async (kind: 'thumbnail' | 'fullsize') => {
         if (!row) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
