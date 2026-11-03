@@ -36,7 +36,7 @@
           <div class="cache-actions">
             <input type="text"
                    aria-label="Drive root"
-                   placeholder="Drive letter"
+                   placeholder="e.g. D"
                    [value]="sidecarVolumeInput()"
                    [disabled]="sidecarVolumeLoading()"
                    (input)="sidecarVolumeInput.set($any($event.target).value)" />

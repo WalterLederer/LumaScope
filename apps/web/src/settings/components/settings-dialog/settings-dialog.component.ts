@@ -343,7 +343,7 @@ export class SettingsPanelComponent {
   };
 
   protected readonly isSidecarVolumeInputValid = (): boolean =>
-    /^[a-zA-Z]:[\\/]?$/.test(this.sidecarVolumeInput().trim());
+    /^[a-zA-Z](?::[\\/]?)?$/.test(this.sidecarVolumeInput().trim());
 
   protected readonly addSidecarVolume = async (): Promise<void> => {
     const input = this.sidecarVolumeInput().trim();
@@ -351,8 +351,8 @@ export class SettingsPanelComponent {
       this.sidecarVolumeError.set('Enter a drive root such as D:\\.');
       return;
     }
-    const drive = input.replace(/[\\/]+$/, '');
-    await this.updateSidecarVolume(`${drive}\\`, true);
+    const drive = input[0].toUpperCase();
+    await this.updateSidecarVolume(`${drive}:\\`, true);
     if (this.sidecarVolumeError() === null) {
       this.sidecarVolumeInput.set('');
       await this.updateCacheInfo();
