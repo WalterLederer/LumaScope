@@ -49,7 +49,7 @@
               (click)="adjustThumbnailSize(-1)">−</button>
       <ui-slider [formControl]="thumbSizeSlider"
                  [min]="0"
-                 [max]="11"
+                 [max]="thumbnailSliderMax"
                  aria-label="Thumbnail size" />
       <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       <button class="zoom-step-button"
