@@ -33,6 +33,7 @@ const api: Desktop = {
     writeJson: <T>(path: string, data: T) => ipcRenderer.invoke('FileSystem.writeJson', path, data),
     readGalleryLocation: (path: string) => ipcRenderer.invoke('FileSystem.readGalleryLocation', path),
     readDirectories: (path: string) => ipcRenderer.invoke('FileSystem.readDirectories', path),
+    prepareGalleryLocation: (path: string) => ipcRenderer.invoke('FileSystem.prepareGalleryLocation', path),
     readImages: (path: string, sortBy: SortType, sortDir: SortDirection) =>
       ipcRenderer.invoke('FileSystem.readImages', path, sortBy, sortDir),
     deleteFile: (path: string) => ipcRenderer.invoke('FileSystem.deleteFile', path),

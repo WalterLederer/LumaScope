@@ -166,6 +166,8 @@ export class GalleryPage {
 
   readonly hoveredFolderPath = signal<string | null>(null);
 
+  protected readonly galleryLocationError = signal<string | null>(null);
+
   protected readonly onTreeNodeHovered = (node: TreeNode<string> | null): void => {
     this.hoveredFolderPath.set(node?.id || null);
   };
@@ -198,11 +200,22 @@ export class GalleryPage {
   protected readonly onThumbSizeChange = (value: ThumbnailSize) => this.galleryState.changeThumbnailSize(value);
 
   protected readonly onAddLocation = async () => {
+    this.galleryLocationError.set(null);
     const result = await this.dialogs.openFolder();
 
-    if (result.success) {
-      this.galleryLocations.addLocation(result.data);
+    if (!result.success) return;
+
+    const validation = await this.desktopApi?.FileSystem.prepareGalleryLocation(result.data);
+    if (!validation) {
+      this.galleryLocationError.set('Could not validate the selected folder.');
+      return;
     }
+    if (!validation.success) {
+      this.galleryLocationError.set(validation.errorMessage);
+      return;
+    }
+
+    this.galleryLocations.addLocation(result.data);
   };
 
   protected readonly onRemoveLocation = async (data: TreeNode<string>) =>

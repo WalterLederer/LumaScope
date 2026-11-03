@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
-import { copyFile, readdir, readFile, stat, unlink } from 'node:fs/promises';
+import { copyFile, mkdir, open, readdir, readFile, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { writeJsonAtomically } from './json-file';
@@ -100,6 +100,41 @@ export class FileSystem {
         error: message
       }));
       return { success: false, errorMessage: `Failed to read directory at ${path}.` };
+    }
+  };
+
+    @IpcHandler({ name: 'FileSystem.prepareGalleryLocation' })
+  readonly prepareGalleryLocation = async (_: IpcMainInvokeEvent, path: string): Promise<ApiResponse<undefined>> => {
+    let testFile: string | null = null;
+    let handle: Awaited<ReturnType<typeof open>> | null = null;
+
+    try {
+      const directoryStats = await stat(path);
+      if (!directoryStats.isDirectory()) {
+        return { success: false, errorMessage: 'The selected path is not a directory.' };
+      }
+
+      // Create the sidecar cache folder now so read-only media is rejected
+      // before it is added to the gallery.
+      const cacheDirectory = join(path, '.cache');
+      await mkdir(cacheDirectory, { recursive: true });
+
+      testFile = join(cacheDirectory, `.write-test-${process.pid}-${Date.now()}`);
+      handle = await open(testFile, 'wx');
+      await handle.close();
+      handle = null;
+      await unlink(testFile);
+      testFile = null;
+
+      return { success: true, data: undefined };
+    } catch (error) {
+      if (handle) await handle.close().catch(() => undefined);
+      if (testFile) await unlink(testFile).catch(() => undefined);
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        errorMessage: `This folder cannot be added to the gallery because Light Matter cannot create or write to its .cache folder. Choose a writable folder. Details: ${message}`
+      };
     }
   };
 

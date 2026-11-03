@@ -37,6 +37,7 @@ export interface DesktopFileSystem {
    */
   readonly readGalleryLocation: (path: string) => Promise<ApiResponse<FileInfo[]>>;
   readonly readDirectories: (path: string) => Promise<ApiResponse<FileInfo[]>>;
+  readonly prepareGalleryLocation: (path: string) => Promise<ApiResponse<undefined>>;
   readonly readImages: (path: string, sortBy: SortType, sortDir: SortDirection) => Promise<ApiResponse<FileInfo[]>>;
   readonly deleteFile: (path: string) => Promise<ApiResponse<undefined>>;
   readonly copyFile: (sourcePath: string, destinationDirectory: string) => Promise<ApiResponse<undefined>>;

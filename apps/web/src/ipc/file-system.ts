@@ -19,6 +19,8 @@ export class FileSystem implements DesktopFileSystem {
 
   readonly readDirectories = async (path: string) => window.desktop.FileSystem.readDirectories(path);
 
+  readonly prepareGalleryLocation = async (path: string) => window.desktop.FileSystem.prepareGalleryLocation(path);
+
   readonly readImages = async (path: string, sortBy: SortType, sortDir: SortDirection) =>
     window.desktop.FileSystem.readImages(path, sortBy, sortDir);
 

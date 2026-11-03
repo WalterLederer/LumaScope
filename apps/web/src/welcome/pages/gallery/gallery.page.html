@@ -48,6 +48,10 @@
 
 </ui-side-panel>
 
+@if (galleryLocationError()) {
+  <p class="gallery-location-error" role="alert">{{ galleryLocationError() }}</p>
+}
+
 @if (!controlsSidebarVisible()) {
   <button class="show-controls-sidebar" type="button" title="Show general settings" (click)="toggleControlsSidebar()">⚙</button>
 }
