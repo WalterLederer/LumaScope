@@ -750,7 +750,15 @@ function histogramForImage(vips: typeof Vips, source: string): ImageHistogram {
     }
   }
 
-  return { linear, logarithmic, maximumNits, minimumLogNits };
+  return {
+    linear,
+    logarithmic,
+    maximumNits,
+    minimumLogNits,
+    hasGainmap: extname(source).toLowerCase() === '.jpg' || extname(source).toLowerCase() === '.jpeg'
+      ? hdrPixels !== null
+      : false
+  };
 }
 
 // Pre-initialize Vips in worker

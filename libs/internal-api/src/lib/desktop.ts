@@ -85,7 +85,7 @@ export interface CacheInfo extends CacheClearResult {
 export interface CacheEntryStatus {
   status: 'valid' | 'missing' | 'stale';
   path: string;
-  storageType: 'central' | 'sidecar';
+  storageType: 'central' | 'sidecar' | 'converted';
   sourceTag: string;
 }
 
@@ -272,6 +272,8 @@ export interface ImageHistogram {
   maximumNits: number;
   /** Lower bound of the logarithmic luminance range. */
   minimumLogNits: number;
+  /** True only when the JPEG decoder successfully applied an embedded Ultra HDR gain map. */
+  hasGainmap: boolean;
 }
 
 export const appProtocol = 'atom';

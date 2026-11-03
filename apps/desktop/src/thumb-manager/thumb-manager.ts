@@ -142,6 +142,9 @@ export class ThumbManager {
   readonly histogram = (source: string): Promise<ImageHistogram | null> =>
     this.enqueue(() => this.runWorkerOperation(source, () => this.histogramQueued(source)));
 
+  readonly hasUltraHdrGainmap = async (source: string): Promise<boolean> =>
+    (await this.histogram(source))?.hasGainmap === true;
+
   private readonly histogramQueued = async (source: string): Promise<ImageHistogram | null> => {
     if (!this.worker) {
       this.initWorker();

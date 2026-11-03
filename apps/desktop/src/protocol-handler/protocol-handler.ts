@@ -1,6 +1,6 @@
 import { appPaths } from 'internal-api';
 import { createReadStream, existsSync, statSync } from 'node:fs';
-import { extname, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import * as url from 'node:url';
 import { Injector } from '../injector/injector';
@@ -93,6 +93,28 @@ const conversionTime = async (params: URLSearchParams): Promise<GlobalResponse> 
   }
 };
 
+const getFullSizeDerivative = async (
+  fileName: string,
+  cacheTag: string,
+  cacheManager: ReturnType<Injector['inject']> & { get: (source: string, tag: string, callback: (target: string) => Promise<boolean>, extension: string) => Promise<string | null>; registerConverted: (source: string, tag: string, target: string) => Promise<string | null> },
+  thumbManager: { generate: (source: string, target: string, width: number, height: number) => Promise<boolean>; hasUltraHdrGainmap: (source: string) => Promise<boolean> }
+): Promise<string | null> => {
+  if (extname(fileName).toLowerCase() === '.jxr') {
+    const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
+    if (existsSync(convertedPath) && await thumbManager.hasUltraHdrGainmap(convertedPath)) {
+      const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
+      if (adopted) return adopted;
+    }
+  }
+
+  return await cacheManager.get(
+    fileName,
+    cacheTag,
+    async target => await thumbManager.generate(fileName, target, 0, 0),
+    '.jpg'
+  );
+};
+
 const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise<GlobalResponse> => {
   const fileName = params.get('image');
 
@@ -110,12 +132,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
       const thumbManager = injector.inject('ThumbManager');
       const isTiff = [ '.tif', '.tiff' ].includes(extension);
       const tag = `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
-      const result = await cacheManager.get(
-        fileName,
-        tag,
-        async target => await thumbManager.generate(fileName, target, 0, 0),
-        '.jpg'
-      );
+      const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
       if (signal?.aborted || result === null) {
         if (signal?.aborted) {
@@ -227,14 +244,7 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
         }
       }
 
-      const result = await cacheManager.get(
-        fileName,
-        cacheTag,
-        // Full-size conversions are shared with histogram requests through CacheManager.
-        // Let the shared conversion finish even if this particular renderer request is aborted.
-        async target => await thumbManager.generate(fileName, target, 0, 0),
-        '.jpg'
-      );
+      const result = await getFullSizeDerivative(fileName, cacheTag, cacheManager, thumbManager);
       if (result !== null) {
         fullSizeCacheStatus.set(resolve(fileName), wasCacheHit);
       }
