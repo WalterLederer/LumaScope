@@ -3,7 +3,8 @@
 @if (imageList === null || imageList.length === 0) {
   <p>No images found in this folder.</p>
 } @else if (viewMode() === 'details') {
-  <div class="detail-header">
+  <div class="detail-table">
+    <div class="detail-header">
       <span><button type="button" class="detail-refresh-button"
                     title="Refresh thumbnails and cache status"
                     aria-label="Refresh thumbnails and cache status"
@@ -28,6 +29,7 @@
                      (hovered)="hovered.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }
+  </div>
   </div>
 } @else if (isDateSorted()) {
   <div class="gallery-layout">
