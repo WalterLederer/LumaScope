@@ -764,8 +764,8 @@
 
 
 :host {
- .show-controls-sidebar {position:fixed;z-index:41;right:8px;top:8px;padding:8px;border-radius:4px;background:#202124;color:#fff;border:1px solid rgb(255 255 255 / 25%);cursor:pointer}
- .image-controls-sidebar {position:fixed;z-index:40;top:0;right:0;bottom:0;width:340px;min-width:280px;max-width:70vw;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:12px;color:#f5f5f5;background:#202124;border-left:1px solid rgb(255 255 255 / 16%);box-shadow:-4px 0 16px rgb(0 0 0 / 25%);font-size:13px}
+ .show-controls-sidebar {position:fixed;z-index:41;right:24px;top:8px;padding:8px;border-radius:4px;background:#202124;color:#fff;border:1px solid rgb(255 255 255 / 25%);cursor:pointer}
+ .image-controls-sidebar {position:fixed;z-index:40;top:0;right:16px;bottom:0;width:340px;min-width:280px;max-width:70vw;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:12px;color:#f5f5f5;background:#202124;border-left:1px solid rgb(255 255 255 / 16%);box-shadow:-4px 0 16px rgb(0 0 0 / 25%);font-size:13px}
  .image-controls-sidebar.location-tab-active {display:flex;flex-direction:column;overflow:hidden}
  .image-controls-sidebar .sidebar-resize-handle {position:absolute;z-index:2;top:0;bottom:0;left:0;width:8px;cursor:ew-resize;touch-action:none}
  .image-controls-sidebar .sidebar-resize-handle::after {content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:transparent}
