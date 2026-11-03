@@ -6,7 +6,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheImageStatus, CacheInfo } from 'internal-api';
+import { CacheClearResult, CacheImageStatus, CacheInfo, PhotoLocation } from 'internal-api';
 import type { Exif } from '../exif/exif';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
 
@@ -150,6 +150,22 @@ export class CacheManager {
         longitude: row?.longitude ?? null
       };
     });
+  };
+
+  @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
+  readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
+    const rows = this.db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE paths.folder_path = :folder
+      ORDER BY photos.file_name COLLATE NOCASE`)
+      .all({ folder: directory }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null }>;
+    return rows.map(row => ({
+      path: join(directory, row.file_name),
+      fileName: row.file_name,
+      latitude: row.latitude,
+      longitude: row.longitude
+    }));
   };
 
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
