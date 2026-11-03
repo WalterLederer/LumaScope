@@ -135,7 +135,7 @@ export class ThumbnailComponent implements OnDestroy {
     if (entry?.status === 'valid') {
       return entry.storageType === 'sidecar' ? 'Sidecar' : entry.storageType === 'converted' ? 'Converted' : 'Central';
     }
-    return entry?.status === 'stale' ? 'Stale' : 'Missing';
+    return entry?.status === 'stale' ? 'Invalid' : 'Missing';
   }
 
   readonly thumbCacheLabel = computed(() => {
