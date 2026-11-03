@@ -5,7 +5,7 @@ import { copyFile, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, parse, relative, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheInfo } from 'internal-api';
+import { CacheCategoryInfo, CacheClearResult, CacheImageStatus, CacheInfo } from 'internal-api';
 import {
   clearCacheRecords,
   createMigrationTable,
@@ -116,10 +116,13 @@ export class CacheManager {
 
     for (const entry of entries) {
       const targetPath = resolve(entry.target_path);
-      const relativePath = relative(this.cacheDir, targetPath);
+      const storageDirectory = entry.storage_type === 'sidecar'
+        ? join(dirname(entry.source_name), '.cache')
+        : this.cacheDir;
+      const relativePath = relative(storageDirectory, targetPath);
 
       if (relativePath === '' || relativePath.startsWith('..') || isAbsolute(relativePath)) {
-        throw new Error(`Refusing to remove cache file outside the image cache: ${entry.target_path}`);
+        throw new Error(`Refusing to remove cache file outside its storage directory: ${entry.target_path}`);
       }
 
       try {
@@ -143,13 +146,68 @@ export class CacheManager {
     const entries = this.db.prepare(findCacheFiles).all() as unknown as CacheFileEntry[];
     const fullSizeEntries = entries.filter(entry => entry.source_tag.includes('-full-'));
     const thumbnailEntries = entries.filter(entry => !entry.source_tag.includes('-full-'));
-    const [ totals, fullSize, thumbnails ] = await Promise.all([
-      this.getDirStats(this.cacheDir),
-      this.getEntryStats(fullSizeEntries),
-      this.getEntryStats(thumbnailEntries)
+    const [ central, sidecar, fullSize, thumbnails ] = await Promise.all([
+      this.getEntryStats(entries.filter(entry => entry.storage_type === 'central')),
+      this.getEntryStats(entries.filter(entry => entry.storage_type === 'sidecar')),
+      this.getCategoryStats(fullSizeEntries),
+      this.getCategoryStats(thumbnailEntries)
     ]);
+    return {
+      path: this.cacheDir,
+      entries: central.entries + sidecar.entries,
+      bytes: central.bytes + sidecar.bytes,
+      central,
+      sidecar,
+      fullSize,
+      thumbnails
+    };
+  };
 
-    return { path: this.cacheDir, ...totals, fullSize, thumbnails };
+  @IpcHandler({ name: 'CacheManager.getImageCacheStatuses' })
+  readonly getImageCacheStatuses = async (_event: IpcMainInvokeEvent, sourceNames: string[]): Promise<CacheImageStatus[]> => {
+    if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || path.trim().length === 0)) {
+      throw new Error('A list of valid image paths is required.');
+    }
+
+    const query = this.db.prepare(findCacheFilesForSource);
+    const fullSizeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+    const uniquePaths = [...new Set(sourceNames)];
+    return Promise.all(uniquePaths.map(async sourceName => {
+      const entries = query.all({ sourceName }) as unknown as CacheFileEntry[];
+      let sourceStats: Awaited<ReturnType<typeof stat>> | null = null;
+      try { sourceStats = await stat(sourceName); } catch { /* Keep the indexed entry visible as stale if the source is unavailable. */ }
+
+      const toStatus = async (entry: CacheFileEntry | undefined) => {
+        if (!entry) return null;
+        let status: 'valid' | 'missing' | 'stale' = 'valid';
+        if (!sourceStats) {
+          status = 'stale';
+        } else {
+          const row = this.db.prepare(findCacheFile).get({ sourceName, sourceTag: entry.source_tag }) as Record<string, SQLOutputValue> | undefined;
+          if (!row || row['source_size'] !== sourceStats.size || row['updated_at'] !== sourceStats.mtimeMs) {
+            status = 'stale';
+          } else {
+            try {
+              const targetStats = await stat(entry.target_path);
+              if (!targetStats.isFile()) status = 'missing';
+            } catch { status = 'missing'; }
+          }
+        }
+        return {
+          status,
+          path: entry.target_path,
+          storageType: entry.storage_type as 'central' | 'sidecar',
+          sourceTag: entry.source_tag
+        };
+      };
+
+      return {
+        sourceName,
+        thumbnail: await toStatus(entries.find(entry => !entry.source_tag.includes('-full-'))),
+        fullSize: await toStatus(entries.find(entry => entry.source_tag.includes('-full-'))),
+        fullSizeRequired: fullSizeExtensions.has(extname(sourceName).toLowerCase())
+      };
+    }));
   };
 
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
@@ -349,6 +407,19 @@ export class CacheManager {
     }
 
     return size;
+  };
+
+  private readonly getCategoryStats = async (entries: CacheFileEntry[]): Promise<CacheCategoryInfo> => {
+    const [ central, sidecar ] = await Promise.all([
+      this.getEntryStats(entries.filter(entry => entry.storage_type === 'central')),
+      this.getEntryStats(entries.filter(entry => entry.storage_type === 'sidecar'))
+    ]);
+    return {
+      entries: central.entries + sidecar.entries,
+      bytes: central.bytes + sidecar.bytes,
+      central,
+      sidecar
+    };
   };
 
   private readonly getEntryStats = async (entries: CacheFileEntry[]): Promise<CacheClearResult> => {

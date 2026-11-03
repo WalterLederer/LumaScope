@@ -29,6 +29,8 @@
   dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 
   .hdr-classification, .hdr-metadata { display: grid; gap: 3px; }
+
+  .cache-entry-path { overflow-wrap: anywhere; font-family: var(--font-family-monospace, monospace); font-size: 0.85em; }
 }
 
 

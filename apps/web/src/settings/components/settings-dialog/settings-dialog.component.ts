@@ -36,8 +36,10 @@ export class SettingsPanelComponent {
     path: '',
     entries: 0,
     bytes: 0,
-    fullSize: { entries: 0, bytes: 0 },
-    thumbnails: { entries: 0, bytes: 0 }
+    central: { entries: 0, bytes: 0 },
+    sidecar: { entries: 0, bytes: 0 },
+    fullSize: { entries: 0, bytes: 0, central: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 } },
+    thumbnails: { entries: 0, bytes: 0, central: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 } }
   });
 
   protected readonly isClearing = signal(false);

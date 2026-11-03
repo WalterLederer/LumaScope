@@ -58,6 +58,7 @@ export interface DesktopCacheManager {
   readonly cacheSize: () => Promise<number>;
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
+  readonly getImageCacheStatuses: (sourceNames: string[]) => Promise<CacheImageStatus[]>;
   readonly openCacheFolder: () => Promise<string>;
   readonly getSidecarVolumes: () => Promise<string[]>;
   readonly setSidecarVolumeEnabled: (volumeRoot: string, enabled: boolean) => Promise<string[]>;
@@ -68,10 +69,31 @@ export interface CacheClearResult {
   bytes: number;
 }
 
+export interface CacheCategoryInfo extends CacheClearResult {
+  central: CacheClearResult;
+  sidecar: CacheClearResult;
+}
+
 export interface CacheInfo extends CacheClearResult {
   path: string;
-  fullSize: CacheClearResult;
-  thumbnails: CacheClearResult;
+  central: CacheClearResult;
+  sidecar: CacheClearResult;
+  fullSize: CacheCategoryInfo;
+  thumbnails: CacheCategoryInfo;
+}
+
+export interface CacheEntryStatus {
+  status: 'valid' | 'missing' | 'stale';
+  path: string;
+  storageType: 'central' | 'sidecar';
+  sourceTag: string;
+}
+
+export interface CacheImageStatus {
+  sourceName: string;
+  thumbnail: CacheEntryStatus | null;
+  fullSize: CacheEntryStatus | null;
+  fullSizeRequired: boolean;
 }
 
 export interface DesktopLoupe {

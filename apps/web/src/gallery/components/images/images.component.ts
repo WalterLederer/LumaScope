@@ -11,8 +11,9 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { ExifTags } from 'internal-api';
+import { CacheImageStatus, ExifTags } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
+import { CacheManager } from '../../../ipc/cache-manager';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
   allSortTypes,
@@ -46,6 +47,10 @@ export class ImagesComponent {
   private readonly elementRef = inject(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly exif = inject(ExifService);
+  private readonly cacheManager = inject(CacheManager);
+  private cacheStatusRequest = 0;
+  readonly cacheStatuses = signal<Map<string, CacheImageStatus>>(new Map());
+  readonly cacheStatusLoading = signal(false);
   private observer: IntersectionObserver | null = null;
   private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
@@ -57,10 +62,10 @@ export class ImagesComponent {
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
 
-  private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' => {
+  private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
     try {
       const stored = globalThis.localStorage.getItem('light-matter.detailSortColumn');
-      return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' ? stored : 'date';
+      return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'cacheStatus' || stored === 'cacheLocation' || stored === 'fullSize' ? stored : 'date';
     } catch { return 'date'; }
   };
 
@@ -71,7 +76,7 @@ export class ImagesComponent {
     } catch { return this.sortDirection(); }
   };
 
-  readonly detailSortColumn = signal<'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr'>(this.readStoredDetailSortColumn());
+  readonly detailSortColumn = signal<'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'>(this.readStoredDetailSortColumn());
   readonly detailSortDirection = signal<'asc' | 'desc'>(this.readStoredDetailSortDirection());
 
   readonly sortedDetailImages = computed(() => {
@@ -117,6 +122,21 @@ export class ImagesComponent {
         case 'hdr':
           result = compareText(hdr(a.path), hdr(b.path));
           break;
+        case 'cacheStatus': {
+          const rank = (status: CacheImageStatus | undefined) => status?.thumbnail?.status === 'valid' ? 0 : status?.thumbnail?.status === 'stale' ? 1 : 2;
+          result = rank(this.cacheStatuses().get(a.path)) - rank(this.cacheStatuses().get(b.path));
+          break;
+        }
+        case 'cacheLocation': {
+          const location = (status: CacheImageStatus | undefined) => status?.thumbnail?.storageType ?? '';
+          result = compareText(location(this.cacheStatuses().get(a.path)), location(this.cacheStatuses().get(b.path)));
+          break;
+        }
+        case 'fullSize': {
+          const rank = (status: CacheImageStatus | undefined) => !status?.fullSizeRequired ? 0 : status.fullSize?.status === 'valid' ? 1 : status.fullSize?.status === 'stale' ? 2 : 3;
+          result = rank(this.cacheStatuses().get(a.path)) - rank(this.cacheStatuses().get(b.path));
+          break;
+        }
       }
       return result * direction || compareText(a.name, b.name);
     });
@@ -141,7 +161,7 @@ export class ImagesComponent {
 
   readonly hovered = output<FileInfo | null>();
 
-  async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr'): Promise<void> {
+  async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
     if (this.detailSortColumn() === column) {
       this.detailSortDirection.update(direction => direction === 'asc' ? 'desc' : 'asc');
     } else {
@@ -186,12 +206,33 @@ export class ImagesComponent {
       : '';
   }
 
-  sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr'): string {
+  sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): string {
     if (this.detailSortColumn() !== column) return '';
     return this.detailSortDirection() === 'asc' ? ' ▲' : ' ▼';
   }
 
   constructor() {
+    effect(() => {
+      const images = this.images() ?? [];
+      const request = ++this.cacheStatusRequest;
+      if (this.viewMode() !== 'details' || images.length === 0) {
+        this.cacheStatuses.set(new Map());
+        this.cacheStatusLoading.set(false);
+      } else {
+        this.cacheStatusLoading.set(true);
+        void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
+          if (request !== this.cacheStatusRequest) return;
+          this.cacheStatuses.set(new Map(statuses.map(status => [status.sourceName, status])));
+        }).catch(error => {
+          if (request !== this.cacheStatusRequest) return;
+          console.error('Failed to retrieve gallery cache statuses', error);
+          this.cacheStatuses.set(new Map());
+        }).finally(() => {
+          if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
+        });
+      }
+    });
+
     effect(() => {
       const isDate = this.isDateSorted();
       const groups = this.groupedImages();
@@ -212,6 +253,7 @@ export class ImagesComponent {
     });
 
     this.destroyRef.onDestroy(() => {
+      this.cacheStatusRequest++;
       this.cleanupObserver();
     });
   }

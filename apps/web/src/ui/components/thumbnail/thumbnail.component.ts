@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CaptionComponent } from '@light-matter/ui';
-import { ExifTags, FileInfo, thumbnailDimensions } from 'internal-api';
+import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions } from 'internal-api';
 import { DatePipe } from '@angular/common';
 import { ExifService } from '../../../ipc/exif';
 import { GalleryViewMode } from '../../../gallery/components/images/images.component.types';
@@ -53,6 +53,10 @@ export class ThumbnailComponent implements OnDestroy {
   readonly image = input.required<FileInfo>();
 
   readonly viewMode = input<GalleryViewMode>('thumbnails');
+
+  readonly cacheStatus = input<CacheImageStatus | null>(null);
+
+  readonly cacheStatusLoading = input(false);
 
   readonly clicked = output<FileInfo>();
 
@@ -123,6 +127,33 @@ export class ThumbnailComponent implements OnDestroy {
     }
 
     return `${value.toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[unitIndex]}`;
+  });
+
+  readonly cacheStatusLabel = computed(() => {
+    if (this.cacheStatusLoading()) return 'Checking…';
+    const status = this.cacheStatus()?.thumbnail?.status;
+    return status === 'valid' ? 'Ready' : status === 'stale' ? 'Stale' : 'Missing';
+  });
+
+  readonly cacheLocationLabel = computed(() => {
+    const status = this.cacheStatus();
+    const label = (entry: CacheImageStatus['thumbnail']) => entry ? (entry.storageType === 'sidecar' ? 'Sidecar' : 'Central') : '—';
+    return `Thumb: ${label(status?.thumbnail ?? null)} · Full-size: ${label(status?.fullSize ?? null)}`;
+  });
+
+  readonly cacheLocationTitle = computed(() => {
+    const status = this.cacheStatus();
+    return [
+      status?.thumbnail ? `Thumbnail: ${status.thumbnail.path}` : 'Thumbnail: no DB entry',
+      status?.fullSize ? `Full-size: ${status.fullSize.path}` : status?.fullSizeRequired ? 'Full-size: no DB entry' : 'Full-size: not required'
+    ].join('\\n');
+  });
+
+  readonly fullSizeConversionLabel = computed(() => {
+    const status = this.cacheStatus();
+    if (this.cacheStatusLoading()) return 'Checking…';
+    if (!status?.fullSizeRequired) return 'Not required';
+    return status.fullSize?.status === 'valid' ? 'Ready' : status.fullSize?.status === 'stale' ? 'Stale' : 'Missing';
   });
 
   readonly imageFileInfo = computed(() => {

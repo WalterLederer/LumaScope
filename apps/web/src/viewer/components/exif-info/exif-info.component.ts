@@ -1,6 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
-import { ExifTags } from 'internal-api';
+import { CacheImageStatus, ExifTags } from 'internal-api';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 import { ImageDimensions } from '../../services/image-positioning/image-positioning.types';
 import { imageDynamicRangeDiagnostics } from '../../utils/image-dynamic-range';
@@ -43,6 +43,8 @@ export class ExifInfoComponent {
 
   private readonly cacheManager = inject(CacheManager);
 
+  readonly cacheImageStatus = signal<CacheImageStatus | null>(null);
+
   readonly cachePath = signal<string | null>(null);
 
   readonly cachePathLoading = signal(false);
@@ -63,20 +65,24 @@ export class ExifInfoComponent {
       this.loadDuration();
       const requestId = ++this.cachePathRequestId;
       this.cachePath.set(null);
+      this.cacheImageStatus.set(null);
       this.cachePathLoading.set(!!sourcePath);
       if (!sourcePath) {
         this.cachePathLoading.set(false);
         return;
       }
 
-      this.cacheManager.imageCachePath(sourcePath).then(path => {
+      this.cacheManager.getImageCacheStatuses([sourcePath]).then(statuses => {
         if (requestId !== this.cachePathRequestId) return;
-        this.cachePath.set(path);
+        const status = statuses[0] ?? null;
+        this.cacheImageStatus.set(status);
+        this.cachePath.set(status?.fullSize?.status === 'valid' ? status.fullSize.path : status?.thumbnail?.status === 'valid' ? status.thumbnail.path : null);
         this.cachePathLoading.set(false);
       }).catch(error => {
         if (requestId !== this.cachePathRequestId) return;
         console.error('Failed to retrieve image cache path', error);
         this.cachePath.set(null);
+        this.cacheImageStatus.set(null);
         this.cachePathLoading.set(false);
       });
     });

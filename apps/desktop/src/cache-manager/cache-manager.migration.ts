@@ -30,14 +30,13 @@ WHERE source_tag NOT LIKE '%-full-%' AND storage_type = 'central';
 
 export const findCacheFiles = `
 SELECT source_name, source_tag, target_path, storage_type
-FROM cache_files
-WHERE storage_type = 'central';
+FROM cache_files;
 `;
 
 export const findCacheFilesForSource = `
 SELECT source_name, source_tag, target_path, storage_type
 FROM cache_files
-WHERE source_name = :sourceName AND storage_type = 'central';
+WHERE source_name = :sourceName;
 `;
 
 export const deleteCacheFile = `
