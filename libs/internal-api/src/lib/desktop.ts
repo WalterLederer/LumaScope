@@ -273,7 +273,7 @@ export interface ImageHistogram {
   /** Lower bound of the logarithmic luminance range. */
   minimumLogNits: number;
   /** True only when the JPEG decoder successfully applied an embedded Ultra HDR gain map. */
-  hasGainmap: boolean;
+  hasGainmap?: boolean;
 }
 
 export const appProtocol = 'atom';

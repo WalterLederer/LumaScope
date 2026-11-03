@@ -4,6 +4,8 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import * as url from 'node:url';
 import { Injector } from '../injector/injector';
+import type { CacheManager } from '../cache-manager/cache-manager';
+import type { ThumbManager } from '../thumb-manager/thumb-manager';
 
 const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -96,14 +98,18 @@ const conversionTime = async (params: URLSearchParams): Promise<GlobalResponse> 
 const getFullSizeDerivative = async (
   fileName: string,
   cacheTag: string,
-  cacheManager: ReturnType<Injector['inject']> & { get: (source: string, tag: string, callback: (target: string) => Promise<boolean>, extension: string) => Promise<string | null>; registerConverted: (source: string, tag: string, target: string) => Promise<string | null> },
-  thumbManager: { generate: (source: string, target: string, width: number, height: number) => Promise<boolean>; hasUltraHdrGainmap: (source: string) => Promise<boolean> }
+  cacheManager: CacheManager,
+  thumbManager: ThumbManager
 ): Promise<string | null> => {
   if (extname(fileName).toLowerCase() === '.jxr') {
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
-    if (existsSync(convertedPath) && await thumbManager.hasUltraHdrGainmap(convertedPath)) {
-      const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
-      if (adopted) return adopted;
+    if (existsSync(convertedPath)) {
+      if (await thumbManager.hasUltraHdrGainmap(convertedPath)) {
+        const adopted = await cacheManager.registerConverted(fileName, cacheTag, convertedPath);
+        if (adopted) return adopted;
+      } else {
+        cacheManager.forgetConverted(fileName, cacheTag);
+      }
     }
   }
 

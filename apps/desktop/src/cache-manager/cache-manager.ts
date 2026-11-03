@@ -150,6 +150,13 @@ export class CacheManager {
     return { entries: entries.length, bytes: removedBytes };
   };
 
+  readonly forgetConverted = (sourceName: string, sourceTag: string): void => {
+    const existing = this.exists(sourceName, sourceTag);
+    if (existing?.['storage_type'] === 'converted') {
+      this.db.prepare(deleteCacheFile).run({ sourceName, sourceTag });
+    }
+  };
+
   readonly registerConverted = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
     if (extname(sourceName).toLowerCase() !== '.jxr' || !isAbsolute(targetPath) || extname(targetPath).toLowerCase() !== '.jpg') {
       return null;
