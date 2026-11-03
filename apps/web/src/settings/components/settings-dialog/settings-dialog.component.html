@@ -42,7 +42,7 @@
                    (input)="sidecarVolumeInput.set($any($event.target).value)" />
             <button class="cache-button"
                     type="button"
-                    [disabled]="sidecarVolumeLoading() || !sidecarVolumeInput().trim()"
+                    [disabled]="sidecarVolumeLoading() || !isSidecarVolumeInputValid()"
                     (click)="addSidecarVolume()">Add drive</button>
           </div>
         </div>
