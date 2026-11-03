@@ -344,12 +344,12 @@ export class SettingsPanelComponent {
 
   protected readonly addSidecarVolume = async (): Promise<void> => {
     const input = this.sidecarVolumeInput().trim();
-    const drive = input.endsWith('\\') || input.endsWith('/') ? input.slice(0, -1) : input;
+    const drive = input.replace(/[\\/]+$/, '');
     if (!/^[a-zA-Z]:$/.test(drive)) {
-      this.sidecarVolumeError.set('Enter a drive root such as D:\\.');
+      this.sidecarVolumeError.set('Enter a drive root such as D:\\\\.');
       return;
     }
-    await this.updateSidecarVolume(`${drive}\\`, true);
+    await this.updateSidecarVolume(`${drive}\\\\`, true);
     if (this.sidecarVolumeError() === null) this.sidecarVolumeInput.set('');
   };
 

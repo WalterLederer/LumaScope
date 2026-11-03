@@ -31,12 +31,12 @@
         <div class="setting-row">
           <div class="setting-description">
             <strong>Enable sidecar storage for a drive</strong>
-            <span>Enter a drive root, for example D:\\ or E:\\.</span>
+            <span>Enter a drive root, for example D:\ or E:\.</span>
           </div>
           <div class="cache-actions">
             <input type="text"
                    aria-label="Drive root"
-                   placeholder="D:\\"
+                   placeholder="D:\"
                    [value]="sidecarVolumeInput()"
                    [disabled]="sidecarVolumeLoading()"
                    (input)="sidecarVolumeInput.set($any($event.target).value)" />
@@ -50,7 +50,7 @@
           @for (volume of sidecarVolumes(); track volume) {
             <div class="setting-row">
               <div class="setting-description">
-                <strong>{{ volume }}</strong>
+                <strong>{{ volume.toUpperCase() }}</strong>
                 <span>Full-size conversions are stored beside the source photos.</span>
               </div>
               <button class="cache-button warning"
