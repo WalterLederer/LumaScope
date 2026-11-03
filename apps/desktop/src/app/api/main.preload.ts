@@ -56,6 +56,7 @@ const api: Desktop = {
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     cacheInfo: () => ipcRenderer.invoke('CacheManager.cacheInfo'),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
+    getImageCacheStatuses: (sourceNames: string[]) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames),
     openCacheFolder: () => ipcRenderer.invoke('CacheManager.openCacheFolder'),
     getSidecarVolumes: () => ipcRenderer.invoke('CacheManager.getSidecarVolumes'),
     setSidecarVolumeEnabled: (volumeRoot: string, enabled: boolean) => ipcRenderer.invoke('CacheManager.setSidecarVolumeEnabled', volumeRoot, enabled)
