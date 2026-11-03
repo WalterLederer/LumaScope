@@ -53,6 +53,9 @@ export class CacheManager {
     // SQLite does not create its parent directory, unlike the image cache below.
     mkdirSync(this.userData, { recursive: true });
     this.db = new DatabaseSync(this.cacheConfigFile);
+    // Wait briefly for another process or a transient filesystem lock instead
+    // of failing application startup immediately.
+    this.db.exec('PRAGMA busy_timeout = 10000;');
     this.init();
     for (const row of this.db.prepare('SELECT volume_root FROM cache_volume_settings WHERE sidecar_enabled = 1').all() as Array<{ volume_root: string }>) {
       this.sidecarVolumes.add(row.volume_root.toLowerCase());
