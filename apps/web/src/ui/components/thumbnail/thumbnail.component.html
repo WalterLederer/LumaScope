@@ -4,7 +4,7 @@
 <div class="thumbnail-preview">
   @if (loading) {
     <div class="message">
-      <ui-caption>Loading...</ui-caption>
+      <ui-caption>{{ isCaching() ? 'Caching...' : 'Loading...' }}</ui-caption>
     </div>
   }
 
