@@ -1045,14 +1045,14 @@ if (parentPort) {
           }
         } else {
           const rgba = await decodeHeifToRgba(heifData);
-          using sourceImage = vips.Image.newFromMemory(
+          using decodedImage = vips.Image.newFromMemory(
             new Uint8Array(rgba.data.buffer, rgba.data.byteOffset, rgba.data.byteLength),
             rgba.width,
             rgba.height,
             4,
             vips.BandFormat.uchar
           );
-          using rgb = sourceImage.extractBand(0, { n: 3 }).copy({ interpretation: vips.Interpretation.srgb });
+          using rgb = decodedImage.extractBand(0, { n: 3 }).copy({ interpretation: vips.Interpretation.srgb });
 
           if (width > 0 && height > 0) {
             const scale = preserveAspectRatio
