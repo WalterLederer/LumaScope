@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { CacheClearResult, CacheInfo, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -17,7 +17,14 @@ import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SettingsPanelComponent {
-  readonly mode = input<'all' | 'general' | 'cache'>('all');
+  readonly mode = input<'all' | 'general' | 'cache'>('all');  readonly cacheBuildActive = input(false);
+  readonly cacheBuildProgress = input({ completed: 0, total: 0 });
+  readonly verifyCacheFiles = input(false);
+  readonly verifyCacheFilesChange = output<boolean>();
+  readonly startCacheBuild = input<(() => void) | null>(null);
+  readonly startRecursiveCacheBuild = input<(() => void) | null>(null);
+  readonly cancelCacheBuild = input<(() => void) | null>(null);
+  protected readonly cacheBuildLogPath = signal('');
   /* DI */
   readonly cacheManager = inject(CacheManager);
 
@@ -237,6 +244,7 @@ export class SettingsPanelComponent {
     this.loadGlobalShortcutStatus().then();
     this.loadExternalProcessCalls().then();
     this.updateCacheInfo().then();
+    this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
