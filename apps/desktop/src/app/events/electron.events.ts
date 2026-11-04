@@ -1173,7 +1173,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
     const rows: CaptureSources['windows'] = [];
   let callbackError: Error | null = null;
 
-  const enumerate = (handle: number, _lParam: number): boolean => {
+  const enumerate = (handle: number, _lParam: number): number => {
     try {
       if (IsWindowVisible(handle) === 0) return 1;
 
