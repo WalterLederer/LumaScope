@@ -73,6 +73,11 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    let mapErrorCount = 0;
+    this.map.on('error', event => {
+      if (mapErrorCount++ < 20) console.error('[OfflineMap] MapLibre error:', event.error);
+    });
+    this.map.on('load', () => console.info('[OfflineMap] MapLibre style loaded.'));
     this.ready = new Promise(resolve => {
       this.map.once('load', () => {
         this.initializePhotoLayers();
