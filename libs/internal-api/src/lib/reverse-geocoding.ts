@@ -4,6 +4,7 @@ export interface ReverseGeocodingResult {
   countryCode: string | null;
   region: string | null;
   locality: string | null;
+  street: string | null;
 }
 
 interface NominatimReverseResponse {
@@ -21,6 +22,18 @@ interface NominatimReverseResponse {
     suburb?: string;
     hamlet?: string;
     county?: string;
+    road?: string;
+    pedestrian?: string;
+    residential?: string;
+    footway?: string;
+    path?: string;
+    cycleway?: string;
+    living_street?: string;
+    service?: string;
+    track?: string;
+    steps?: string;
+    corridor?: string;
+    busway?: string;
   };
 }
 
@@ -85,8 +98,12 @@ export const lookupReverseGeocoding = (
       const locality = address.city ?? address.town ?? address.village
         ?? address.municipality ?? address.suburb ?? address.hamlet ?? address.county ?? null;
       const placeName = result.name?.trim() || locality || displayName;
+      const street = address.road ?? address.pedestrian ?? address.residential
+        ?? address.footway ?? address.path ?? address.cycleway ?? address.living_street
+        ?? address.service ?? address.track ?? address.steps ?? address.corridor ?? address.busway ?? null;
       console.info('[ReverseGeocoding] Resolved location', {
-        latitude, longitude, placeName, countryCode: address.country_code?.toUpperCase() ?? null,
+        latitude, longitude, placeName, street,
+        countryCode: address.country_code?.toUpperCase() ?? null,
         durationMs: Date.now() - startedAt
       });
 
@@ -95,7 +112,8 @@ export const lookupReverseGeocoding = (
         placeName,
         countryCode: address.country_code?.toUpperCase() ?? null,
         region: address.state ?? address.region ?? address.state_district ?? null,
-        locality
+        locality,
+        street
       };
     } catch (error) {
       console.error('[ReverseGeocoding] Request failed', {
