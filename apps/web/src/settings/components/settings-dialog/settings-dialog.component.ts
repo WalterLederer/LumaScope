@@ -60,6 +60,7 @@ export class SettingsPanelComponent {
   protected readonly cacheCheckState = signal<'idle' | 'checking' | 'complete' | 'missing' | 'error'>('idle');
   protected readonly cacheCheckResult = signal<{ directory: string; recursive: boolean; images: number; missingThumbnails: string[]; missingFullSize: string[] } | null>(null);
   protected readonly cacheCheckError = signal<string | null>(null);
+  protected readonly cacheCheckLog = signal<string[]>([]);
   private cacheCheckRequestId = 0;
 
   protected readonly isClearing = signal(false);
@@ -310,6 +311,7 @@ export class SettingsPanelComponent {
       this.cacheCheckState.set('idle');
       this.cacheCheckResult.set(null);
       this.cacheCheckError.set(null);
+      this.cacheCheckLog.set([]);
     });
     effect(() => {
       const buildActive = this.cacheBuildActive();
@@ -466,6 +468,7 @@ export class SettingsPanelComponent {
     this.cacheCheckState.set('checking');
     this.cacheCheckResult.set(null);
     this.cacheCheckError.set(null);
+    this.cacheCheckLog.set([`Starting directory enumeration: ${directory}`]);
 
     try {
       const pendingDirectories = [directory];
@@ -482,6 +485,7 @@ export class SettingsPanelComponent {
           size: file.size,
           modifiedAt: file.modifiedAt ?? 0
         })));
+        this.cacheCheckLog.update(log => [...log, `Enumerated: ${currentDirectory} · ${imageResponse.data.length} images`].slice(-500));
 
         if (recursive) {
           const directoryResponse = await window.desktop.FileSystem.readDirectories(currentDirectory);
@@ -489,12 +493,15 @@ export class SettingsPanelComponent {
             throw new Error(directoryResponse.errorMessage || `Could not read subfolders in: ${currentDirectory}`);
           }
           pendingDirectories.push(...directoryResponse.data.map(folder => folder.path));
+          this.cacheCheckLog.update(log => [...log, `Subfolders found: ${directoryResponse.data.length} · ${currentDirectory}`].slice(-500));
         }
 
         if (requestId !== this.cacheCheckRequestId
           || directory !== this.currentFolderPath().trim()
           || recursive !== this.recursiveBuild()) return;
       }
+
+      this.cacheCheckLog.update(log => [...log, `Directory enumeration complete · ${images.length} images found`, 'Checking cache files…'].slice(-500));
 
       const missingThumbnails: string[] = [];
       const missingFullSize: string[] = [];
