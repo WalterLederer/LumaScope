@@ -47,7 +47,7 @@ export class CacheManager {
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
   private readonly db: DatabaseSync;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
-  private readonly pendingLocationLookups = new Map<number, Promise<void>>();
+  private readonly pendingLocationLookups = new Map<number, Promise<string | null>>();
 
   private readonly activeClearOperations = new Set<string>();
 
@@ -526,12 +526,13 @@ export class CacheManager {
 
     const updated = this.getPhoto(sourceName);
     if (!updated) return null;
-    await this.ensureLocationName(updated, true);
+    const resolvedDisplayName = await this.ensureLocationName(updated, true);
 
     const saved = this.db.prepare(`SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
       FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id`)
       .get({ id: row.id }) as { place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
     if (!saved) return null;
+    if (resolvedDisplayName) return resolvedDisplayName;
     return [saved.place_name, saved.locality, saved.region, saved.country_code]
       .filter((part, index, values): part is string => !!part && values.indexOf(part) === index)
       .join(', ');
@@ -684,19 +685,21 @@ export class CacheManager {
     return this.getPhoto(sourceName)!;
   };
 
-  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false): Promise<void> => {
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false): Promise<string | null> => {
     if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0)) || photo.latitude === null || photo.longitude === null
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
-      || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return;
+      || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return null;
 
     const pending = this.pendingLocationLookups.get(photo.id);
     if (pending) return pending;
 
-    const operation = (async (): Promise<void> => {
+    const operation = (async (): Promise<string | null> => {
       let locationNameId = 0;
+      let displayName: string | null = null;
       try {
         const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
         if (location) {
+          displayName = location.displayName;
           this.db.prepare(`INSERT OR IGNORE INTO location_names
             (latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
             VALUES (:latitude, :longitude, :placeName, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
@@ -720,6 +723,7 @@ export class CacheManager {
 
       this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND (location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))')
         .run({ locationNameId, photoId: photo.id, retryUnknown: retryUnknown ? 1 : 0 });
+      return displayName;
     })();
 
     this.pendingLocationLookups.set(photo.id, operation);
