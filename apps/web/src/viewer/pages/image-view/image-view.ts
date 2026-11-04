@@ -570,7 +570,7 @@ export class ImageView {
     ]);
     const timestampFields = new Set(['modified_at']);
     return Object.entries(record)
-      .filter(([key]) => !key.endsWith('_expanded'))
+      .filter(([key]) => !key.endsWith('_expanded') && !key.endsWith('_type'))
       .map(([key, value]) => {
         const isTimestamp = timestampFields.has(key) && typeof value === 'number' && Number.isFinite(value);
         const isFileSize = key === 'file_size' && typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -588,6 +588,7 @@ export class ImageView {
         };
         return {
           key,
+          type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
           value: JSON.stringify(value) ?? 'null',
           expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
             ? JSON.stringify(record[`${key}_expanded`])
