@@ -69,31 +69,6 @@
   font-size: 12px;
   font-weight: 600;
 
-  .detail-refresh-button {
-    width: 24px;
-    height: 24px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
-    border-radius: 4px;
-    font-size: 16px;
-    text-align: center;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--color-surface-default-medium);
-      text-decoration: none;
-    }
-  }
-
-  .detail-cache-button {
-    width: auto;
-    min-width: 48px;
-    padding: 0 5px;
-    font-size: 11px;
-  }
-
   > :nth-child(n + 2) {
     border-left: 1px solid var(--color-border-default, rgb(128 128 128 / 22%));
     padding-left: 12px;
