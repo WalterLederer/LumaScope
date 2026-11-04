@@ -163,7 +163,7 @@ export class OfflineMapRenderer {
       'label-streets-anchor'
     ];
     const features = this.map.queryRenderedFeatures({ layers });
-    const candidates: Array<{ x: number; y: number; text: string; kind: string; priority: number }> = [];
+    const candidates: Array<{ x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
     for (const feature of features) {
       const properties = feature.properties ?? {};
@@ -188,12 +188,23 @@ export class OfflineMapRenderer {
       }
       if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
 
+      // queryRenderedFeatures() returns geographic coordinates, not screen pixels.
+      // Keep the original coordinates for the DOM marker and project a copy for
+      // viewport and collision calculations.
+      const screenPoint = this.map.project(point);
+      if (!Number.isFinite(screenPoint.x) || !Number.isFinite(screenPoint.y)) continue;
+
       const isStreet = layerId === 'label-streets-anchor';
       const isWater = layerId === 'label-water-anchor';
       const isBoundary = layerId === 'label-boundaries-anchor';
       const placeKind = String(properties['kind'] ?? '');
       const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : 0;
-      candidates.push({ x: point[0], y: point[1], text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : placeKind, priority });
+      candidates.push({
+        x: screenPoint.x, y: screenPoint.y,
+        longitude: point[0], latitude: point[1],
+        text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : placeKind,
+        priority
+      });
     }
 
     candidates.sort((a, b) => a.priority - b.priority);
@@ -204,7 +215,7 @@ export class OfflineMapRenderer {
 
     for (const candidate of candidates) {
       if (this.textLabels.length >= 180) break;
-      const { x, y, text, kind } = candidate;
+      const { x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
       const key = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
       if (seen.has(key)) continue;
@@ -224,7 +235,7 @@ export class OfflineMapRenderer {
       const style = kind === 'water' ? 'italic' : 'normal';
       element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
       const marker = new Marker({ element, anchor: 'center' })
-        .setLngLat(this.map.unproject([x, y]))
+        .setLngLat([longitude, latitude])
         .addTo(this.map);
       this.textLabels.push(marker);
     }
