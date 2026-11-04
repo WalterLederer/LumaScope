@@ -36,6 +36,7 @@ export class OfflineMapManager {
   private readonly settingsPath = join(app.getPath('userData'), 'offline-map.json');
   private opened: OpenOfflineMap | null = null;
   private status: OfflineMapStatus = { ...EMPTY_STATUS };
+  private tileDiagnosticsCount = 0;
 
   constructor() {
     this.restoreSelection();
@@ -78,8 +79,12 @@ export class OfflineMapManager {
     // MBTiles stores TMS rows; MapLibre requests XYZ rows.
     const tmsY = dimension - 1 - xyzY;
     const row = opened.tileStatement.get(z, x, tmsY) as { tile_data?: Uint8Array } | undefined;
-    if (!row?.tile_data) return null;
-    return Buffer.from(row.tile_data);
+    const tile = row?.tile_data ? Buffer.from(row.tile_data) : null;
+    if (this.tileDiagnosticsCount < 12) {
+      console.info('[OfflineMap] Tile lookup:', { z, x, xyzY, tmsY, found: tile !== null, bytes: tile?.byteLength ?? 0 });
+      this.tileDiagnosticsCount++;
+    }
+    return tile;
   }
 
   private restoreSelection(): void {
@@ -158,6 +163,7 @@ export class OfflineMapManager {
       };
 
       const previous = this.opened;
+      this.tileDiagnosticsCount = 0;
       this.opened = next;
       this.status = next.status;
       previous?.database.close();
