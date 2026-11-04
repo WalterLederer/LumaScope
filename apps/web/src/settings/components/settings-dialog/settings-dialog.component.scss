@@ -47,6 +47,50 @@
   font-weight: 700;
 }
 
+.appearance-settings {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--dim-small);
+  padding: var(--dim-medium);
+  border-top: 0;
+}
+
+.theme-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-content-default-low);
+  border-radius: var(--border-radius-medium);
+  background: var(--color-surface-default-high);
+  color: var(--color-content-default-highest);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-content-primary-highest);
+    outline-offset: 2px;
+  }
+}
+
+.theme-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+
 .cache-section-title {
   grid-column: 1 / -1;
 }
