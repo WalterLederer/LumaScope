@@ -195,7 +195,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           </details>
           <div class="settings-group address-settings">
             <strong class="settings-row-title">Address:</strong>
-            <span class="location-address">{{ locationAddress() || 'Looking up address…' }}</span>
+            <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
           </div>
         </section>
       }
@@ -222,7 +222,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
-    .settings-row-title{flex:0 0 auto;white-space:nowrap}
+    .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
     .marker-appearance-settings,.marker-current-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
     .marker-appearance-settings>label,.marker-current-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -475,7 +475,7 @@ export class MapWindow implements OnInit, OnDestroy {
     } catch (error) {
       if (lookupVersion !== this.locationLookupVersion) return;
       console.error('Could not resolve and save the photo location:', error);
-      this.locationAddress.set('Address lookup unavailable.');
+      this.locationAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
