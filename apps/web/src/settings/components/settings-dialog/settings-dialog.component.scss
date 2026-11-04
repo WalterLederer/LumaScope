@@ -327,6 +327,87 @@ section {
   }
 }
 
+.reverse-geocoding-status-box {
+  margin-top: var(--dim-medium);
+}
+
+.reverse-geocoding-status-box > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dim-medium);
+}
+
+.reverse-geocoding-state {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-small);
+  background: var(--color-surface-default-high);
+  color: var(--color-content-default-medium);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+
+  &.running {
+    color: var(--color-content-primary-highest);
+  }
+
+  &.completed {
+    color: var(--color-content-default-high);
+  }
+}
+
+.reverse-geocoding-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--dim-medium);
+  margin: var(--dim-small) 0 var(--dim-medium);
+
+  progress {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.reverse-geocoding-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--dim-medium);
+
+  > div {
+    display: grid;
+    gap: var(--dim-small);
+    min-width: 0;
+  }
+
+  span {
+    color: var(--color-content-default-medium);
+    font-size: 0.75rem;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+
+    &.has-errors {
+      color: #d33;
+    }
+  }
+}
+
+.reverse-geocoding-note {
+  margin: var(--dim-medium) 0 0;
+  color: var(--color-content-default-medium);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 700px) {
+  .reverse-geocoding-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .build-cache-current-folder {
   display: grid;
   grid-column: 1 / -1;
