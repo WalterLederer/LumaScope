@@ -432,6 +432,9 @@
                       (click)="resolveCurrentPhotoLocation()">{{ photoLocationResolveActive() ? 'Resolving location…' : 'Resolve location' }}</button>
               <button type="button" class="image-database-refresh-button" (click)="loadPhotoDatabaseRecord()">Refresh database record</button>
             </div>
+            @if (photoLocationResolveError()) {
+              <textarea class="image-location-resolve-error" aria-label="Location lookup error" readonly rows="3" [value]="photoLocationResolveError()"></textarea>
+            }
           }
         </section>
         <section class="image-actions-section">
