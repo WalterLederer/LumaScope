@@ -81,20 +81,45 @@ export const lookupReverseGeocoding = (
         },
         signal: AbortSignal.timeout(15000)
       });
-      console.info('[ReverseGeocoding] Provider response', {
-        status: response.status, statusText: response.statusText,
-        durationMs: Date.now() - startedAt
-      });
-      if (!response.ok) throw new Error(`Nominatim returned HTTP ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        console.info('[ReverseGeocoding] Provider response', {
+          status: response.status, statusText: response.statusText,
+          durationMs: Date.now() - startedAt
+        });
+        throw new Error(`Nominatim returned HTTP ${response.status} ${response.statusText}`);
+      }
 
       const result = await response.json() as NominatimReverseResponse;
+      const address = result.address ?? {};
+      const streetFields = {
+        road: address.road ?? null,
+        pedestrian: address.pedestrian ?? null,
+        residential: address.residential ?? null,
+        footway: address.footway ?? null,
+        path: address.path ?? null,
+        cycleway: address.cycleway ?? null,
+        living_street: address.living_street ?? null,
+        service: address.service ?? null,
+        track: address.track ?? null,
+        steps: address.steps ?? null,
+        corridor: address.corridor ?? null,
+        busway: address.busway ?? null
+      };
+      console.info('[ReverseGeocoding] Provider response', {
+        status: response.status, statusText: response.statusText,
+        display_name: result.display_name ?? null,
+        street: address.road ?? address.pedestrian ?? address.residential ?? address.footway ?? address.path
+          ?? address.cycleway ?? address.living_street ?? address.service ?? address.track ?? address.steps
+          ?? address.corridor ?? address.busway ?? null,
+        streetFields,
+        durationMs: Date.now() - startedAt
+      });
       const displayName = result.display_name?.trim();
       if (!displayName) {
         console.warn('[ReverseGeocoding] Provider returned no display_name', { latitude, longitude });
         return null;
       }
 
-      const address = result.address ?? {};
       const locality = address.city ?? address.town ?? address.village
         ?? address.municipality ?? address.suburb ?? address.hamlet ?? address.county ?? null;
       const placeName = result.name?.trim() || locality || displayName;
@@ -102,7 +127,9 @@ export const lookupReverseGeocoding = (
         ?? address.footway ?? address.path ?? address.cycleway ?? address.living_street
         ?? address.service ?? address.track ?? address.steps ?? address.corridor ?? address.busway ?? null;
       console.info('[ReverseGeocoding] Resolved location', {
-        latitude, longitude, placeName, street,
+        latitude, longitude, placeName,
+        display_name: displayName,
+        street, streetFields,
         countryCode: address.country_code?.toUpperCase() ?? null,
         durationMs: Date.now() - startedAt
       });
