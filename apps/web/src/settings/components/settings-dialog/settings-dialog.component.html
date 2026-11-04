@@ -121,11 +121,15 @@
     @if (isClearing()) {
       <div class="cache-status-row">
         <p class="cache-status" role="status">Clearing cache…</p>
-        <button class="cache-button warning" type="button" (click)="cancelDeleteCache()">Cancel</button>
+        <button class="cache-button warning" type="button" [disabled]="deleteCancelRequested()" (click)="cancelDeleteCache()">{{ deleteCancelRequested() ? 'Cancelling…' : 'Cancel' }}</button>
       </div>
     } @else if (clearResult !== null) {
       <p class="cache-status" role="status">
-        Deleted {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
+        @if (clearResult.cancelled) {
+          Cancellation completed after deleting {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
+        } @else {
+          Deleted {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
+        }
       </p>
     } @else if (clearError() !== null) {
       <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
