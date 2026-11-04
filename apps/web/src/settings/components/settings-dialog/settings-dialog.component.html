@@ -92,6 +92,11 @@
           <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
           @if (cacheBuildActive()) {
             <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
+            <progress class="build-cache-progress-bar"
+                      [value]="cacheBuildProgress().completed"
+                      [max]="cacheBuildProgress().total || 1"
+                      aria-label="Cache build progress"
+                      [attr.aria-valuetext]="cacheBuildProgress().completed + ' of ' + cacheBuildProgress().total + ' entries processed'"></progress>
             <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
           }
         </div>
