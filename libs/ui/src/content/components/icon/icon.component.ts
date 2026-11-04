@@ -16,7 +16,7 @@ import { iconMapping, IconName } from './icons/icon.mapping';
     '[style.--icon-size]': '`var(--icon-size-${size()})`',
     '[style.--stroke-width]': 'strokeWidth()',
     '[style.--color]': 'color()',
-    '[class.multicolor]': "icon() === 'desktopColor' || icon() === 'folderFilled' || icon() === 'folderOpenFilled'"
+    '[class.multicolor]': "icon() === 'desktopColor' || icon() === 'desktopOff' || icon() === 'folderFilled' || icon() === 'folderOpenFilled'"
   }
 })
 export class IconComponent {
