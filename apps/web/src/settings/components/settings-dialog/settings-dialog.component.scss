@@ -347,6 +347,7 @@ section {
 }
 
 .build-cache-verify { justify-self: start; }
+.build-cache-current-folder,
 .build-cache-current-operation {
   display: grid;
   gap: var(--dim-small);
