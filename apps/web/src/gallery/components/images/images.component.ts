@@ -278,8 +278,7 @@ export class ImagesComponent {
           sourceMetadata.slice(offset, offset + 10000)
         ));
       }
-      if (signal?.aborted) return;
-      const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
+      if (signal?.aborted) {\n        await this.cacheManager.appendBuildLog('Cache build cancelled during status preparation.');\n        return;\n      }\n      const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
       const logBuffer: string[] = [];
       let logWrite = Promise.resolve();
       const appendLog = (line: string): Promise<void> => {
@@ -299,7 +298,7 @@ export class ImagesComponent {
             const thumbnailValid = status?.thumbnail?.status === 'valid';
             const fullSizeValid = !status?.fullSizeRequired || status.fullSize?.status === 'valid';
             if (thumbnailValid && fullSizeValid) {
-              await appendLog(`[${index + 1}/${images.length}] SKIP (database status complete): ${image.path}`);
+              await appendLog(`[${index + 1}/${images.length}] SKIP (cache status complete): ${image.path}`);
             } else {
               if (!thumbnailValid) {
                 this.setCacheWorkerOperation(workerId, `Thumbnail generation for file ${image.path}`);
