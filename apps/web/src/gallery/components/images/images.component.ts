@@ -328,7 +328,12 @@ export class ImagesComponent {
         }
       };
       await Promise.all([worker(0), worker(1)]);
-      if (logBuffer.length > 0) {\n        const chunk = logBuffer.splice(0).join('\\n');\n        logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));\n      }\n      await logWrite;\n      await this.cacheManager.appendBuildLog(signal?.aborted ? 'Cache build cancelled.' : 'Cache build completed.');
+      if (logBuffer.length > 0) {
+        const chunk = logBuffer.splice(0).join('\n');
+        logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
+      }
+      await logWrite;
+      await this.cacheManager.appendBuildLog(signal?.aborted ? 'Cache build cancelled.' : 'Cache build completed.');
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
       await this.cacheManager.appendBuildLog(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`).catch(() => undefined);
