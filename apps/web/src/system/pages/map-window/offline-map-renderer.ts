@@ -82,6 +82,8 @@ export class OfflineMapRenderer {
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
   private readonly resizeObserver: ResizeObserver;
+  private lastPointerObservation: Record<string, unknown> | null = null;
+  private dragEventCount = 0;
   private dragDiagnostic: {
     pointerId: number;
     startX: number;
@@ -128,6 +130,12 @@ export class OfflineMapRenderer {
     });
   };
   private readonly onDiagnosticPointerMove = (event: PointerEvent): void => {
+    this.lastPointerObservation = {
+      timeMs: performance.now(), pointerId: event.pointerId,
+      x: event.clientX, y: event.clientY,
+      movementX: event.movementX, movementY: event.movementY,
+      buttons: event.buttons, target: (event.target as HTMLElement | null)?.tagName ?? null
+    };
     if (!this.dragDiagnostic || event.pointerId !== this.dragDiagnostic.pointerId) return;
     this.dragDiagnostic.lastX = event.clientX;
     this.dragDiagnostic.lastY = event.clientY;
@@ -141,16 +149,34 @@ export class OfflineMapRenderer {
       });
     }
   };
-  private readonly onDiagnosticMapDrag = (): void => {
-    const diagnostic = this.dragDiagnostic;
-    if (!diagnostic || diagnostic.dragSamples.length >= 300) return;
-    diagnostic.dragSamples.push({
+  private readonly onDiagnosticMapDragStart = (): void => {
+    this.dragEventCount = 0;
+    console.info('[OfflineMap][DragStart]', {
       timeMs: performance.now(),
-      pointer: [diagnostic.lastX, diagnostic.lastY],
+      pointer: this.lastPointerObservation,
       center: this.map.getCenter().toArray(),
-      zoom: this.map.getZoom(),
-      pitch: this.map.getPitch(),
-      bearing: this.map.getBearing()
+      zoom: this.map.getZoom(), pitch: this.map.getPitch(), bearing: this.map.getBearing()
+    });
+  };
+  private readonly onDiagnosticMapDrag = (): void => {
+    const sample = {
+      timeMs: performance.now(),
+      pointer: this.lastPointerObservation,
+      trackedPointer: this.dragDiagnostic ? [this.dragDiagnostic.lastX, this.dragDiagnostic.lastY] : null,
+      center: this.map.getCenter().toArray(),
+      zoom: this.map.getZoom(), pitch: this.map.getPitch(), bearing: this.map.getBearing()
+    };
+    this.dragEventCount++;
+    console.info('[OfflineMap][DragFrame]', sample);
+    const diagnostic = this.dragDiagnostic;
+    if (diagnostic && diagnostic.dragSamples.length < 300) diagnostic.dragSamples.push(sample);
+  };
+  private readonly onDiagnosticMapDragEnd = (): void => {
+    console.info('[OfflineMap][DragEnd]', {
+      timeMs: performance.now(), dragEventCount: this.dragEventCount,
+      pointer: this.lastPointerObservation,
+      center: this.map.getCenter().toArray(),
+      zoom: this.map.getZoom(), pitch: this.map.getPitch(), bearing: this.map.getBearing()
     });
   };
   private readonly onDiagnosticMapMove = (): void => {
@@ -260,7 +286,9 @@ export class OfflineMapRenderer {
     this.map.on('move', this.onDiagnosticMapMove);
     // MapLibre emits 'drag' after its drag-pan handler has updated the camera.
     // Pair this with the window-level pointer samples to compare input and output.
+    this.map.on('dragstart', this.onDiagnosticMapDragStart);
     this.map.on('drag', this.onDiagnosticMapDrag);
+    this.map.on('dragend', this.onDiagnosticMapDragEnd);
     // Keep the WebGL canvas synchronized with layout changes in the settings panel.
     this.resizeObserver = new ResizeObserver(() => this.map.resize());
     this.resizeObserver.observe(container);
@@ -671,7 +699,9 @@ export class OfflineMapRenderer {
     window.removeEventListener('pointerup', this.onDiagnosticPointerEnd, true);
     window.removeEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     this.map.off('move', this.onDiagnosticMapMove);
+    this.map.off('dragstart', this.onDiagnosticMapDragStart);
     this.map.off('drag', this.onDiagnosticMapDrag);
+    this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
