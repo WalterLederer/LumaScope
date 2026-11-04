@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS photos (
   modified_at REAL NOT NULL DEFAULT 0,
   is_hdr INTEGER NOT NULL DEFAULT 0 CHECK (is_hdr IN (0, 1)),
   thumbnail_cache_id INTEGER REFERENCES cache_storage_types(id),
-  thumbnail_cache_version TEXT,
+  thumbnail_cache_version INTEGER,
   fullsize_cache_id INTEGER REFERENCES cache_storage_types(id),
   fullsize_cache_version TEXT,
   latitude REAL,
@@ -165,6 +165,19 @@ INSERT OR IGNORE INTO location_names
   (id, latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
 VALUES
   (0, 999, 999, 'Unknown', NULL, NULL, NULL, 'system', 0);
+`
+  },
+  {
+    name: 'storeThumbnailCacheVersionAsIntegerV10',
+    query: `
+ALTER TABLE photos ADD COLUMN thumbnail_cache_version_code INTEGER;
+UPDATE photos
+SET thumbnail_cache_version_code = CASE
+  WHEN thumbnail_cache_version = 'sidecar-thumbnail-v2' THEN 2
+  ELSE NULL
+END;
+ALTER TABLE photos DROP COLUMN thumbnail_cache_version;
+ALTER TABLE photos RENAME COLUMN thumbnail_cache_version_code TO thumbnail_cache_version;
 `
   }
 
