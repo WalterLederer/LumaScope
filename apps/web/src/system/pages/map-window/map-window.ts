@@ -596,6 +596,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
     } else return;
     this.markerColorMenuOpen.set(false); this.directoryMarkerGroup?.refreshClusters?.();
+    this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible());
   };
   protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
   protected readonly changeAlwaysOnTop = (enabled: boolean): void => {
@@ -711,8 +712,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
       if (this.offlineRenderer) {
-        const offlineMarkers: OfflinePhotoMarker[] = markers.map(item => ({ ...item }));
+        const offlineMarkers: OfflinePhotoMarker[] = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
+        this.markerCount.set(offlineMarkers.length);
         this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, this.markerOpacity() / 100);
+        this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible());
       } else this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
