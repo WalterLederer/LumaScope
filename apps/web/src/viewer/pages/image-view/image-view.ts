@@ -1700,6 +1700,7 @@ export class ImageView {
       .pipe(takeUntilDestroyed())
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
+        if (image && this.activeImageSidebarTab() === 'image' && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
         this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
