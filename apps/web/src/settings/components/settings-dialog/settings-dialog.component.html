@@ -24,10 +24,10 @@
   }
 
   @if (mode() === 'cache') {
-    <label class="build-cache-current-folder">
+    <div class="build-cache-current-folder">
       <span>Current folder</span>
       <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
-    </label>
+    </div>
     <section class="build-cache-section">
       <details class="build-cache-box" open>
         <summary>Build cache</summary>
