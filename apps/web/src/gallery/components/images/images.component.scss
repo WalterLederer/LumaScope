@@ -43,7 +43,7 @@
 
  .detail-table {
   display: grid;
-  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
+  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
   column-gap: 16px;
   row-gap: 0;
   width: max-content;
@@ -52,7 +52,7 @@
   box-sizing: border-box;
 
   &.without-thumbnails {
-    grid-template-columns: repeat(9, max-content);
+    grid-template-columns: repeat(10, max-content);
   }
 }
 
@@ -137,7 +137,7 @@
 
 @media (max-width: 900px) {
   .detail-table:not(.without-thumbnails) {
-    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
+    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
     column-gap: 12px;
   }
 
