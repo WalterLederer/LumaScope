@@ -62,8 +62,8 @@ export class OfflineMapRenderer {
   readonly map: MapLibreMap;
   readonly ready: Promise<void>;
   private currentMarker: Marker | null = null;
-  private readonly clusterLabels: Marker[] = [];
-  private readonly textLabels: Marker[] = [];
+  private readonly clusterLabels = new Map<number, Marker>();
+  private readonly textLabels = new Map<string, Marker>();
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
@@ -134,11 +134,8 @@ export class OfflineMapRenderer {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#ff3b30', 'line-width': 4, 'line-opacity': 0.92 }
     });
+    // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     this.map.on('idle', () => {
-      this.refreshClusterLabels();
-      this.refreshTextLabels();
-    });
-    this.map.on('moveend', () => {
       this.refreshClusterLabels();
       this.refreshTextLabels();
     });
@@ -165,27 +162,35 @@ export class OfflineMapRenderer {
   }
 
   private refreshClusterLabels(): void {
-    for (const marker of this.clusterLabels) marker.remove();
-    this.clusterLabels.length = 0;
     if (!this.map.getLayer('photo-clusters')) return;
+    const visible = new Set<number>();
     const features = this.map.queryRenderedFeatures({ layers: ['photo-clusters'] });
     for (const feature of features) {
       if (feature.geometry.type !== 'Point') continue;
       const count = feature.properties?.['point_count'];
-      if (typeof count !== 'number') continue;
-      const element = document.createElement('span');
-      element.textContent = String(count);
-      element.style.cssText = 'display:block;color:#fff;font:700 12px/1 Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;pointer-events:none;';
-      const marker = new Marker({ element, anchor: 'center' })
-        .setLngLat(feature.geometry.coordinates as [number, number]).addTo(this.map);
-      this.clusterLabels.push(marker);
+      const clusterId = feature.properties?.['cluster_id'];
+      if (typeof count !== 'number' || typeof clusterId !== 'number') continue;
+      visible.add(clusterId);
+      let marker = this.clusterLabels.get(clusterId);
+      if (!marker) {
+        const element = document.createElement('span');
+        element.style.cssText = 'display:block;color:#fff;font:700 12px/1 Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;pointer-events:none;';
+        marker = new Marker({ element, anchor: 'center' }).addTo(this.map);
+        this.clusterLabels.set(clusterId, marker);
+      }
+      marker.getElement().textContent = String(count);
+      marker.setLngLat(feature.geometry.coordinates as [number, number]);
+    }
+    for (const [clusterId, marker] of this.clusterLabels) {
+      if (visible.has(clusterId)) continue;
+      marker.remove();
+      this.clusterLabels.delete(clusterId);
     }
   }
 
 
   private refreshTextLabels(): void {
-    for (const marker of this.textLabels) marker.remove();
-    this.textLabels.length = 0;
+    const visible = new Set<string>();
 
     const layers = [
       'label-places-anchor',
@@ -199,7 +204,7 @@ export class OfflineMapRenderer {
       'label-streets-anchor'
     ];
     const features = this.map.queryRenderedFeatures({ layers });
-    const candidates: Array<{ x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
+    const candidates: Array<{ key: string; x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
     for (const feature of features) {
       const properties = feature.properties ?? {};
@@ -232,7 +237,15 @@ export class OfflineMapRenderer {
       const isPoi = layerId === 'label-public-transport-anchor' || layerId === 'label-pois-anchor';
       const placeKind = String(properties['kind'] ?? '');
       const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : isPoi ? 4 : 0;
+      const rawCoordinates = geometry.coordinates as unknown;
+      const firstCoordinate = geometry.type === 'Point'
+        ? rawCoordinates as [number, number]
+        : geometry.type === 'MultiLineString'
+          ? (rawCoordinates as [number, number][][])[0]?.[0]
+          : (rawCoordinates as [number, number][])[0];
+      const featureKey = layerId + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
       candidates.push({
+        key: featureKey,
         x: screenPoint.x, y: screenPoint.y,
         longitude: point[0], latitude: point[1],
         text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : isPoi ? 'poi' : placeKind,
@@ -247,8 +260,8 @@ export class OfflineMapRenderer {
     const height = this.map.getContainer().clientHeight;
 
     for (const candidate of candidates) {
-      if (this.textLabels.length >= 180) break;
-      const { x, y, longitude, latitude, text, kind } = candidate;
+      if (visible.size >= 240) break;
+      const { key, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
       const key = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
       if (seen.has(key)) continue;
@@ -260,7 +273,12 @@ export class OfflineMapRenderer {
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
       if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
       occupied.push(box);
-
+      visible.add(key);
+      const existingMarker = this.textLabels.get(key);
+      if (existingMarker) {
+        existingMarker.setLngLat([longitude, latitude]);
+        continue;
+      }
       const element = document.createElement('span');
       element.textContent = text;
       const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
@@ -270,7 +288,12 @@ export class OfflineMapRenderer {
       const marker = new Marker({ element, anchor: 'center' })
         .setLngLat([longitude, latitude])
         .addTo(this.map);
-      this.textLabels.push(marker);
+      this.textLabels.set(key, marker);
+    }
+    for (const [key, marker] of this.textLabels) {
+      if (visible.has(key)) continue;
+      marker.remove();
+      this.textLabels.delete(key);
     }
   }
 
@@ -323,6 +346,8 @@ export class OfflineMapRenderer {
     element.style.cssText = `width:24px;height:24px;border:3px solid #fff;border-radius:${shape === 'circle' ? '50%' : shape === 'square' ? '3px' : '0'};clip-path:${clip};background:${color};box-shadow:0 1px 6px #000b;opacity:${opacity};`;
     if (this.currentMarker) this.currentMarker.remove();
     this.currentMarker = new Marker({ element, anchor: 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
+    this.currentMarker.getElement().style.zIndex = '1000';
+    this.currentMarker.getElement().style.pointerEvents = 'none';
   }
 
   updateCurrentLocation(latitude: number, longitude: number): void {
@@ -395,10 +420,10 @@ export class OfflineMapRenderer {
   resize(): void { this.map.resize(); }
   remove(): void {
     this.currentMarker?.remove();
-    for (const marker of this.clusterLabels) marker.remove();
-    this.clusterLabels.length = 0;
-    for (const marker of this.textLabels) marker.remove();
-    this.textLabels.length = 0;
+    for (const marker of this.clusterLabels.values()) marker.remove();
+    this.clusterLabels.clear();
+    for (const marker of this.textLabels.values()) marker.remove();
+    this.textLabels.clear();
     this.map.remove();
   }
 }
