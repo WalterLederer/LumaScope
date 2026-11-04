@@ -136,8 +136,13 @@
 }
 
 @media (max-width: 900px) {
-  .detail-table {
+  .detail-table:not(.without-thumbnails) {
     grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
+    column-gap: 12px;
+  }
+
+  .detail-table.without-thumbnails {
+    grid-template-columns: repeat(9, max-content);
     column-gap: 12px;
   }
 }
