@@ -133,12 +133,12 @@ interface Win32MonitorInfoEx {
 }
 
 interface Win32NativeApi {
-  Rect: unknown;
-  MonitorInfoEx: unknown;
-  PathInfo: unknown;
-  SourceName: unknown;
-  AdvancedColorInfo: unknown;
-  AdvancedColorInfo2: unknown;
+  Rect: ReturnType<typeof koffi.struct>;
+  MonitorInfoEx: ReturnType<typeof koffi.struct>;
+  PathInfo: ReturnType<typeof koffi.struct>;
+  SourceName: ReturnType<typeof koffi.struct>;
+  AdvancedColorInfo: ReturnType<typeof koffi.struct>;
+  AdvancedColorInfo2: ReturnType<typeof koffi.struct>;
   user32: {
     IsWindow: (handle: number) => number;
     IsWindowVisible: (handle: number) => number;
