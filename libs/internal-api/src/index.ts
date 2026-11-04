@@ -10,3 +10,4 @@ declare global {
     desktop: Desktop;
   }
 }
+export * from './lib/reverse-geocoding';
