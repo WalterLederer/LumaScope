@@ -635,7 +635,12 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.scanDirectoryMarkers();
     }
   };
-  private clearDirectoryMarkers(): void { this.directoryMarkerGroup?.clearLayers(); this.directoryMarkers.length = 0; this.markerCount.set(0); }
+  private clearDirectoryMarkers(): void {
+    this.directoryMarkerGroup?.clearLayers();
+    this.directoryMarkers.length = 0;
+    this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, this.markerOpacity() / 100);
+    this.markerCount.set(0);
+  }
   private createImageMarkerIcon(selected: boolean): unknown {
     if (selected) return this.createCurrentLocationIcon();
     const size = 13, color = '#2688e8';
@@ -807,7 +812,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
-    renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    const latestLatitude = this.currentLatitude ?? latitude;
+    const latestLongitude = this.currentLongitude ?? longitude;
+    renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     const syncOfflineZoom = (): void => {
       const zoom = Math.round(this.validZoom(renderer.map.getZoom()));
