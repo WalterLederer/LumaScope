@@ -54,6 +54,7 @@ export class ImagesComponent {
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
   private cacheStatusRequest = 0;
+  private cacheAbortController: AbortController | null = null;
   private readonly cacheStatusPathRequests = new Map<string, number>();
   readonly cacheStatuses = signal<Map<string, CacheImageStatus>>(new Map());
   readonly cacheStatusLoading = signal(false);
@@ -183,7 +184,17 @@ export class ImagesComponent {
 
   readonly cacheUpdated = output<string>();
   readonly cacheAllImages = async (): Promise<void> => {
-    await this.runCacheForImages(this.images() ?? []);
+    if (this.cacheRunActive()) return;
+    const controller = new AbortController();
+    this.cacheAbortController = controller;
+    this.cacheRunActive.set(true);
+    await this.runCacheForImages(this.images() ?? [], true, controller.signal);
+    if (this.cacheAbortController === controller) this.cacheAbortController = null;
+    this.cacheRunActive.set(false);
+  };
+
+  readonly cancelCacheRun = (): void => {
+    this.cacheAbortController?.abort();
   };
 
   readonly cacheAllImagesRecursive = async (): Promise<void> => {
@@ -191,15 +202,18 @@ export class ImagesComponent {
     const rootPath = this.folderPath() ?? this.images()?.[0]?.parent ?? null;
     if (!rootPath) return;
 
+    const controller = new AbortController();
+    this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
     try {
       const allImages: FileInfo[] = [...(this.images() ?? [])];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
 
-      while (pendingDirectories.length > 0) {
+      while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directory = pendingDirectories.shift()!;
         const directoriesResult = await this.fileSystem.readDirectories(directory);
+        if (controller.signal.aborted) break;
         if (!directoriesResult.success) {
           console.warn('Failed to enumerate gallery subfolders', directory, directoriesResult.errorMessage);
           continue;
@@ -213,23 +227,28 @@ export class ImagesComponent {
         }
 
         for (const child of directoriesResult.data) {
+          if (controller.signal.aborted) break;
           const imagesResult = await this.fileSystem.readImages(child.path, this.sortBy(), this.sortDirection());
+          if (controller.signal.aborted) break;
           if (imagesResult.success) allImages.push(...imagesResult.data);
           else console.warn('Failed to read images in gallery subfolder', child.path, imagesResult.errorMessage);
         }
       }
 
-      const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
-      await this.runCacheForImages(uniqueImages, true);
+      if (!controller.signal.aborted) {
+        const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
+        await this.runCacheForImages(uniqueImages, true, controller.signal);
+      }
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
     } finally {
+      if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
     }
   };
 
-  private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false): Promise<void> => {
+  private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false, signal?: AbortSignal): Promise<void> => {
     if (images.length === 0 || (this.cacheRunActive() && !alreadyActive)) return;
 
     if (!alreadyActive) this.cacheRunActive.set(true);
@@ -240,24 +259,25 @@ export class ImagesComponent {
       for (let offset = 0; offset < imagePaths.length; offset += 10000) {
         statuses.push(...await this.cacheManager.getImageCacheStatuses(imagePaths.slice(offset, offset + 10000)));
       }
+      if (signal?.aborted) return;
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
       let nextIndex = 0;
       const worker = async (): Promise<void> => {
-        while (nextIndex < images.length) {
+        while (nextIndex < images.length && !signal?.aborted) {
           const index = nextIndex++;
           const image = images[index];
           try {
-            const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store' });
+            const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
             if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
             await thumbnailResponse.body?.cancel();
 
-            if (statusByPath.get(image.path)?.fullSizeRequired) {
-              const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store' });
+            if (!signal?.aborted && statusByPath.get(image.path)?.fullSizeRequired) {
+              const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
               if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
               await fullSizeResponse.body?.cancel();
             }
           } catch (error) {
-            console.error('Failed to cache gallery image', image.path, error);
+            if (!signal?.aborted) console.error('Failed to cache gallery image', image.path, error);
           } finally {
             this.cacheRunProgress.update(progress => ({ ...progress, completed: progress.completed + 1 }));
           }
@@ -267,7 +287,10 @@ export class ImagesComponent {
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
     } finally {
-      if (!alreadyActive) this.cacheRunActive.set(false);
+      if (!alreadyActive) {
+        if (this.cacheAbortController?.signal === signal) this.cacheAbortController = null;
+        this.cacheRunActive.set(false);
+      }
       this.cacheUpdated.emit('');
     }
   };
