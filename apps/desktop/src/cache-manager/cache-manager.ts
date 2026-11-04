@@ -1,7 +1,7 @@
 import { app, type IpcMainInvokeEvent } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
-import { copyFile, mkdir, rm, stat } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
@@ -114,24 +114,49 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.cacheSize' })
   readonly cacheSize = async (): Promise<number> => (await this.cacheInfo()).bytes;
 
+  @IpcHandler({ name: 'CacheManager.getBuildLogPath' })
+  readonly getBuildLogPath = async (): Promise<string> => join(this.userData, 'cache-build.log');
+
+  @IpcHandler({ name: 'CacheManager.resetBuildLog' })
+  readonly resetBuildLog = async (): Promise<void> => {
+    await writeFile(join(this.userData, 'cache-build.log'), '', 'utf-8');
+  };
+
+  @IpcHandler({ name: 'CacheManager.appendBuildLog' })
+  readonly appendBuildLog = async (_event: IpcMainInvokeEvent, line: string): Promise<void> => {
+    if (typeof line !== 'string' || line.length > 16384) throw new Error('Invalid cache log entry.');
+    await appendFile(join(this.userData, 'cache-build.log'), line.endsWith('\n') ? line : line + '\n', 'utf-8');
+  };
+
   @IpcHandler({ name: 'CacheManager.getImageCacheStatuses' })
-  readonly getImageCacheStatuses = async (_event: IpcMainInvokeEvent, sourceNames: string[]): Promise<CacheImageStatus[]> => {
+  readonly getImageCacheStatuses = async (
+    _event: IpcMainInvokeEvent,
+    sourceNames: string[],
+    verifyCacheFiles = false,
+    sourceMetadata: Array<{ path: string; size: number; modifiedAt: number }> = []
+  ): Promise<CacheImageStatus[]> => {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
 
-    // Gallery detail columns are read from SQLite only; folder changes must not trigger filesystem checks.
+    const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));
     const findPhoto = this.db.prepare(`SELECT photos.* FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE`);
 
-    return [...new Set(sourceNames)].map(sourceName => {
+    return Promise.all([...new Set(sourceNames)].map(async sourceName => {
       const row = findPhoto.get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
+      const extension = extname(sourceName).toLowerCase();
+      const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
+      const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const metadata = metadataByPath.get(sourceName);
+      const sourceMatches = !metadata || (!!row && row.file_size === metadata.size && row.modified_at === metadata.modifiedAt);
       const getStatus = (kind: 'thumbnail' | 'fullsize') => {
-        if (!row) return null;
+        if (!row || !sourceMatches) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
         const version = kind === 'thumbnail' ? row.thumbnail_cache_version : row.fullsize_cache_version;
-        if (id === null || !version) return null;
+        const expectedVersion = kind === 'thumbnail' ? 'sidecar-thumbnail-v2' : expectedFullSizeTag;
+        if (id === null || version !== expectedVersion) return null;
         const parallel = id === CACHE_STORAGE_TYPE.PARALLEL && kind === 'fullsize';
         return {
           status: 'valid' as const,
@@ -140,16 +165,21 @@ export class CacheManager {
           sourceTag: version
         };
       };
-
-      return {
-        sourceName,
-        thumbnail: getStatus('thumbnail'),
-        fullSize: getStatus('fullsize'),
-        fullSizeRequired: FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase()),
-        latitude: row?.latitude ?? null,
-        longitude: row?.longitude ?? null
-      };
-    });
+      let thumbnail = getStatus('thumbnail');
+      let fullSize = fullSizeRequired ? getStatus('fullsize') : null;
+      if (verifyCacheFiles && row && sourceMatches && (thumbnail || fullSize)) {
+        try {
+          const sourceStats = await stat(sourceName);
+          if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) {
+            thumbnail = null; fullSize = null;
+          } else {
+            if (thumbnail) { try { const info = await stat(thumbnail.path); if (!info.isFile()) thumbnail = null; } catch { thumbnail = null; } }
+            if (fullSize) { try { const info = await stat(fullSize.path); if (!info.isFile()) fullSize = null; } catch { fullSize = null; } }
+          }
+        } catch { thumbnail = null; fullSize = null; }
+      }
+      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null };
+    }));
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
