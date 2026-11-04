@@ -62,14 +62,21 @@ export interface CacheSummary {
 
 export type PhotoDatabaseRecord = Record<string, string | number | null>;
 
-export interface ResolveLocationNamesResult {\n  total: number;\n  resolved: number;\n  unresolved: number;\n}\n\nexport interface DesktopCacheManager {
+export interface ResolveLocationNamesResult {
+  total: number;
+  resolved: number;
+  unresolved: number;
+}
+
+export interface DesktopCacheManager {
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearThumbnails: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly cancelClear: (operationId: string) => Promise<boolean>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
-  readonly getCacheSummary: () => Promise<CacheSummary>;\n  readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
+  readonly getCacheSummary: () => Promise<CacheSummary>;
+  readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => Promise<CacheImageStatus[]>;
@@ -79,6 +86,7 @@ export interface ResolveLocationNamesResult {\n  total: number;\n  resolved: num
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
   readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
+  readonly resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => Promise<string | null>;
 }
 
 export interface PhotoLocation {
