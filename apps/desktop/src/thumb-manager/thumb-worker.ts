@@ -773,9 +773,11 @@ function hasHdrHeadroom(values: ArrayLike<number>): boolean {
 function hasUltraHdrGainMap(vips: typeof Vips, source: string): boolean {
   if (![ '.jpg', '.jpeg' ].includes(extname(source).toLowerCase())) return false;
   try {
+    // Read the Ultra HDR metadata only. Decoding the full HDR image merely to
+    // determine whether a gain map exists is wasteful for ordinary JPEG files
+    // and repeatedly allocates large buffers in the WASM heap.
     using image = vips.Image.newFromFile(source);
-    using hdr = image.uhdr2scRGB();
-    return hdr.width > 0 && hdr.height > 0;
+    return image.getTypeof('gainmap-data') !== 0;
   } catch {
     return false;
   }
@@ -1395,6 +1397,7 @@ if (parentPort) {
           }
         }
       } else {
+        processingStage = 'checking Ultra HDR metadata';
         isHdr = hasUltraHdrGainMap(vips, source);
         const sourceExtension = extname(source).toLowerCase();
         if (sourceExtension === '.png') {
@@ -1405,6 +1408,7 @@ if (parentPort) {
           const profile = getHeifColorProfile(await readFile(source));
           isHdr = profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18);
         }
+        processingStage = 'generating thumbnail with libvips';
         using thumb = vips.Image.thumbnail(
           source,
           width,
