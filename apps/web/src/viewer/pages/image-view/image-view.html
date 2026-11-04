@@ -411,6 +411,18 @@
       }
       @if (activeImageSidebarTab() === 'image') {
       <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
+        <section class="image-database-section">
+          <button class="section-heading" type="button" (click)="toggleSidebarSection('database')">
+            <span class="section-chevron">{{sidebarSectionExpanded('database') ? 'v' : '>'}}</span>SQLite database record
+          </button>
+          @if (sidebarSectionExpanded('database')) {
+            <div class="image-database-record-status" role="status">{{photoDatabaseRecordStatus()}}</div>
+            @if (photoDatabaseRecord()) {
+              <pre class="image-database-record">{{photoDatabaseRecord() | json}}</pre>
+            }
+            <button type="button" class="image-database-refresh-button" (click)="loadPhotoDatabaseRecord()">Refresh database record</button>
+          }
+        </section>
         <section class="image-actions-section">
           <button class="section-heading" type="button" (click)="toggleSidebarSection('actions')"><span class="section-chevron">{{sidebarSectionExpanded('actions') ? 'v' : '>'}}</span>Actions</button>
           @if (sidebarSectionExpanded('actions')) {
