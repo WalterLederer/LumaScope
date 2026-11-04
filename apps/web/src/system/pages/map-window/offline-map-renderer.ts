@@ -95,7 +95,8 @@ export class OfflineMapRenderer {
     this.resizeObserver.observe(container);
     // Wheel zoom should be gentle and remain anchored to the map center, not the cursor.
     this.map.scrollZoom.setWheelZoomRate(1 / 1200);
-    this.map.scrollZoom.setAroundCenter(true);
+    // MapLibre exposes this behavior as an internal flag (unlike Mapbox GL JS).
+    (this.map.scrollZoom as unknown as { _aroundCenter: boolean })._aroundCenter = true;
     let mapErrorCount = 0;
     this.map.on('error', event => {
       this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
