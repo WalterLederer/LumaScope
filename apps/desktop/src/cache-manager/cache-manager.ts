@@ -163,7 +163,8 @@ export class CacheManager {
     const folder = dirname(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
     const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
-      JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder`)
+      JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder
+      AND (photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL)`)
       .all({ folder }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
     const thumbnailPaths: string[] = [];
