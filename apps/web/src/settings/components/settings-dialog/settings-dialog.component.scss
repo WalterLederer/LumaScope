@@ -434,6 +434,14 @@ section {
   filter: none;
 }
 
+.build-cache-progress-bar {
+  display: inline-block;
+  width: 180px;
+  height: 12px;
+  vertical-align: middle;
+  accent-color: var(--color-content-primary-highest);
+}
+
 .build-cache-progress {
   color: var(--color-content-default-medium);
   font-size: 0.85rem;
