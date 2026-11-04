@@ -84,11 +84,6 @@ export class OfflineMapRenderer {
       }
     });
     this.map.addLayer({
-      id: 'photo-cluster-count', type: 'symbol', source: 'photo-markers', filter: ['has', 'point_count'],
-      layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Bold'], 'text-size': 12 },
-      paint: { 'text-color': '#ffffff' }
-    });
-    this.map.addLayer({
       id: 'photo-unclustered', type: 'circle', source: 'photo-markers', filter: ['!', ['has', 'point_count']],
       paint: { 'circle-radius': 6, 'circle-color': '#2688e8', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2, 'circle-opacity': 1 }
     });
@@ -119,10 +114,11 @@ export class OfflineMapRenderer {
     this.map.on('mouseleave', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = ''; });
   }
 
-  setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number): void {
+  setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
     const element = document.createElement('div');
     element.className = 'offline-current-location-marker';
-    element.style.cssText = `width:24px;height:24px;border:3px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 6px #000b;opacity:${opacity};`;
+    const clip = shape === 'diamond' ? 'polygon(50% 0,100% 50%,50% 100%,0 50%)' : shape === 'pin' ? 'polygon(50% 100%,8% 38%,8% 18%,20% 4%,50% 0,80% 4%,92% 18%,92% 38%)' : 'none';
+    element.style.cssText = `width:24px;height:24px;border:3px solid #fff;border-radius:${shape === 'circle' ? '50%' : shape === 'square' ? '3px' : '0'};clip-path:${clip};background:${color};box-shadow:0 1px 6px #000b;opacity:${opacity};`;
     if (this.currentMarker) this.currentMarker.remove();
     this.currentMarker = new Marker({ element, anchor: 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
   }
