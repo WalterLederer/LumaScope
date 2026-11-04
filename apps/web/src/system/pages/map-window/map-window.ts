@@ -623,7 +623,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private saveSetting(key: string, value: string | number | boolean): void {
     try { localStorage.setItem(this.storagePrefix + key, String(value)); } catch { /* Keep the current session setting. */ }
   }
-  private validZoom(value: number): number { return Math.max(1, Math.min(this.mapSource() === 'offline' ? 20 : 20, Math.round(value))); }
+  private validZoom(value: number): number { return Math.max(1, Math.min(20, Math.round(value))); }
 
   protected readonly onMarkerSectionToggle = (event: Event): void => {
     const section = event.currentTarget;
