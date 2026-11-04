@@ -40,6 +40,10 @@
           <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
           <span>Verify cache files</span>
         </label>
+        <label class="build-cache-current-operation">
+          <span>Current operation</span>
+          <input type="text" readonly [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation" />
+        </label>
         <div class="build-cache-log-path">
           <span>Build log file</span>
           <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
@@ -49,8 +53,11 @@
   }
 
   @if (mode() !== 'general') {
-  <section>
-    <div class="cache-details">
+  <section class="delete-cache-section">
+    <div class="delete-cache-box">
+      <h3>Delete cache</h3>
+      <section>
+        <div class="cache-details">
       <div class="cache-overview">
         <div class="cache-categories">
           <div class="cache-category">
@@ -97,6 +104,8 @@
       <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
     }
 
+        </div>
+      </section>
     </div>
   </section>
   }
