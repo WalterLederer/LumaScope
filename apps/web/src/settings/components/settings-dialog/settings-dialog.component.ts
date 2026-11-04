@@ -28,8 +28,14 @@ export class SettingsPanelComponent {
   readonly startRecursiveCacheBuild = input<(() => void) | null>(null);
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
-  protected readonly runCacheBuild = (): void => this.startCacheBuild()?.();
-  protected readonly runRecursiveCacheBuild = (): void => this.startRecursiveCacheBuild()?.();
+  protected readonly recursiveBuild = signal(false);
+  protected readonly runCacheBuild = (): void => {
+    if (this.recursiveBuild()) {
+      this.startRecursiveCacheBuild()?.();
+    } else {
+      this.startCacheBuild()?.();
+    }
+  };
   protected readonly stopCacheBuild = (): void => this.cancelCacheBuild()?.();
   /* DI */
   readonly cacheManager = inject(CacheManager);
