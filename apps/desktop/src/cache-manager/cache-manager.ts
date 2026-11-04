@@ -35,6 +35,10 @@ export class CacheManager {
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
   private readonly db: DatabaseSync;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
+
+  private readonly activeClearOperations = new Set<string>();
+
+  private readonly cancelledClearOperations = new Set<string>();
   private readonly deletingSources = new Map<string, Promise<CacheClearResult>>();
 
   constructor() {
@@ -45,13 +49,43 @@ export class CacheManager {
   }
 
   @IpcHandler({ name: 'CacheManager.clear' })
-  readonly clear = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> => {
-    const [thumbnails, fullSize] = await Promise.all([
-      this.clearKind('thumbnail', directory, recursive),
-      this.clearKind('fullsize', directory, recursive)
-    ]);
-    return { entries: thumbnails.entries + fullSize.entries, bytes: thumbnails.bytes + fullSize.bytes };
+  readonly clear = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false, operationId?: string): Promise<CacheClearResult> =>
+    this.runClearOperation(operationId, async () => {
+      const [thumbnails, fullSize] = await Promise.all([
+        this.clearKind('thumbnail', directory, recursive, operationId),
+        this.clearKind('fullsize', directory, recursive, operationId)
+      ]);
+      return {
+        entries: thumbnails.entries + fullSize.entries,
+        bytes: thumbnails.bytes + fullSize.bytes,
+        cancelled: this.isClearCancelled(operationId)
+      };
+    });
+
+  @IpcHandler({ name: 'CacheManager.cancelClear' })
+  readonly cancelClear = async (_event: IpcMainInvokeEvent, operationId: string): Promise<boolean> => {
+    if (!operationId || !this.activeClearOperations.has(operationId)) return false;
+    this.cancelledClearOperations.add(operationId);
+    return true;
   };
+
+  private readonly runClearOperation = async (
+    operationId: string | undefined,
+    operation: () => Promise<CacheClearResult>
+  ): Promise<CacheClearResult> => {
+    if (operationId) this.activeClearOperations.add(operationId);
+    try {
+      return await operation();
+    } finally {
+      if (operationId) {
+        this.activeClearOperations.delete(operationId);
+        this.cancelledClearOperations.delete(operationId);
+      }
+    }
+  };
+
+  private readonly isClearCancelled = (operationId?: string): boolean =>
+    !!operationId && this.cancelledClearOperations.has(operationId);
 
   @IpcHandler({ name: 'CacheManager.deleteImage' })
   readonly deleteImage = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<CacheClearResult> => {
@@ -88,17 +122,24 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.clearFullSize' })
-  readonly clearFullSize = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> =>
-    this.clearKind('fullsize', directory, recursive);
+  readonly clearFullSize = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false, operationId?: string): Promise<CacheClearResult> =>
+    this.runClearOperation(operationId, async () => {
+      const result = await this.clearKind('fullsize', directory, recursive, operationId);
+      return { ...result, cancelled: this.isClearCancelled(operationId) };
+    });
 
   @IpcHandler({ name: 'CacheManager.clearThumbnails' })
-  readonly clearThumbnails = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> =>
-    this.clearKind('thumbnail', directory, recursive);
+  readonly clearThumbnails = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false, operationId?: string): Promise<CacheClearResult> =>
+    this.runClearOperation(operationId, async () => {
+      const result = await this.clearKind('thumbnail', directory, recursive, operationId);
+      return { ...result, cancelled: this.isClearCancelled(operationId) };
+    });
 
   private readonly clearKind = async (
     kind: 'thumbnail' | 'fullsize',
     directory?: string,
-    recursive = false
+    recursive = false,
+    operationId?: string
   ): Promise<CacheClearResult> => {
     if (directory !== undefined && (typeof directory !== 'string' || !directory.trim())) {
       throw new Error('A valid cache directory is required.');
@@ -117,13 +158,16 @@ export class CacheManager {
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
     let bytes = 0;
+    let entries = 0;
     for (const row of rows) {
+      if (this.isClearCancelled(operationId)) break;
       const source = join(row.folder_path, row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       this.db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
+      entries++;
     }
-    return { entries: rows.length, bytes };
+    return { entries, bytes, cancelled: this.isClearCancelled(operationId) };
   };
 
   @IpcHandler({ name: 'CacheManager.cacheInfo' })
