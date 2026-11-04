@@ -83,7 +83,7 @@ export class OfflineMapRenderer {
   constructor(container: HTMLElement, center: [number, number], zoom: number, onError?: (message: string) => void) {
     const options: MapOptions = {
       container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
-      minZoom: 0, maxZoom: 18, attributionControl: { compact: false },
+      minZoom: 0, maxZoom: 20, attributionControl: { compact: false },
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
@@ -272,11 +272,11 @@ export class OfflineMapRenderer {
 
     for (const candidate of candidates) {
       if (visible.size >= 240) break;
-      const { key, x, y, longitude, latitude, text, kind } = candidate;
+      const { key: labelKey, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
-      const key = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      const dedupeKey = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
 
       const fontSize = kind === 'capital' ? 16 : kind === 'state_capital' ? 15 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'village' ? 12 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : kind === 'poi' ? 9 : 11;
       const labelWidth = Math.min(260, Math.max(24, text.length * fontSize * 0.56 + 8));
@@ -284,8 +284,8 @@ export class OfflineMapRenderer {
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
       if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
       occupied.push(box);
-      visible.add(key);
-      const existingMarker = this.textLabels.get(key);
+      visible.add(labelKey);
+      const existingMarker = this.textLabels.get(labelKey);
       if (existingMarker) {
         existingMarker.setLngLat([longitude, latitude]);
         continue;
@@ -299,7 +299,7 @@ export class OfflineMapRenderer {
       const marker = new Marker({ element, anchor: 'center' })
         .setLngLat([longitude, latitude])
         .addTo(this.map);
-      this.textLabels.set(key, marker);
+      this.textLabels.set(labelKey, marker);
     }
     for (const [key, marker] of this.textLabels) {
       if (visible.has(key)) continue;
