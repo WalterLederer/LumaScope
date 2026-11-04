@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS photos (
   thumbnail_cache_id INTEGER REFERENCES cache_storage_types(id),
   thumbnail_cache_version INTEGER,
   fullsize_cache_id INTEGER REFERENCES cache_storage_types(id),
-  fullsize_cache_version TEXT,
+  fullsize_cache_version INTEGER,
   latitude REAL,
   longitude REAL,
   altitude_m REAL,
@@ -178,6 +178,26 @@ SET thumbnail_cache_version_code = CASE
 END;
 ALTER TABLE photos DROP COLUMN thumbnail_cache_version;
 ALTER TABLE photos RENAME COLUMN thumbnail_cache_version_code TO thumbnail_cache_version;
+`
+  },
+  {
+    name: 'storeFullSizeCacheVersionAsIntegerV11',
+    query: `
+ALTER TABLE photos ADD COLUMN fullsize_cache_version_code INTEGER;
+UPDATE photos
+SET fullsize_cache_version_code = CASE fullsize_cache_version
+  WHEN 'jxr-full-uhdr' THEN 10
+  WHEN 'avif-full-uhdr' THEN 11
+  WHEN 'heif-full-uhdr' THEN 12
+  WHEN 'heic-full-uhdr' THEN 13
+  WHEN 'hdr-full-uhdr' THEN 14
+  WHEN 'exr-full-uhdr-v2' THEN 15
+  WHEN 'tif-full-hdr-v6' THEN 16
+  WHEN 'tiff-full-hdr-v6' THEN 17
+  ELSE NULL
+END;
+ALTER TABLE photos DROP COLUMN fullsize_cache_version;
+ALTER TABLE photos RENAME COLUMN fullsize_cache_version_code TO fullsize_cache_version;
 `
   }
 
