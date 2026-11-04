@@ -327,12 +327,12 @@ export class SettingsPanelComponent {
       if (!cacheBuildWasActive) return;
       cacheBuildWasActive = false;
 
-      if (/^Cache build completed\\b/i.test(operation)) {
+      if (/^Cache build completed\b/i.test(operation)) {
         this.cacheCheckState.set('complete');
         this.cacheCheckError.set(null);
-      } else if (/^Cache build (?:cancelled|failed)\\b/i.test(operation)) {
+      } else if (/^Cache build (?:cancelled|failed)\b/i.test(operation)) {
         this.cacheCheckState.set('error');
-        this.cacheCheckError.set(operation.split('\\n')[0]);
+        this.cacheCheckError.set(operation.split('\n')[0]);
       }
     });
     effect(() => {
