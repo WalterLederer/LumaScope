@@ -255,23 +255,27 @@ export class CacheManager {
   readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
     const totals = this.db.prepare(`SELECT
         COUNT(*) AS total,
-        SUM(CASE WHEN location_name_id IS NOT NULL AND location_name_id <> 0 THEN 1 ELSE 0 END) AS resolved,
-        SUM(CASE WHEN (location_name_id IS NULL OR location_name_id = 0) AND location_lookup_error IS NOT NULL THEN 1 ELSE 0 END) AS errors
+        SUM(CASE WHEN location_names.id IS NOT NULL AND location_names.display_name IS NOT NULL THEN 1 ELSE 0 END) AS resolved,
+        SUM(CASE WHEN (photos.location_name_id IS NULL OR photos.location_name_id = 0 OR location_names.display_name IS NULL)
+          AND photos.location_lookup_error IS NOT NULL THEN 1 ELSE 0 END) AS errors
       FROM photos
-      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180`)
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id
+      WHERE photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND photos.latitude BETWEEN -90 AND 90 AND photos.longitude BETWEEN -180 AND 180`)
       .get() as { total: number; resolved: number | null; errors: number | null };
 
     const total = Number(totals.total ?? 0);
     const resolved = Number(totals.resolved ?? 0);
     const errors = Number(totals.errors ?? 0);
     let inProgress = 0;
-    const findActivePhoto = this.db.prepare(`SELECT location_name_id, location_lookup_error
-      FROM photos WHERE id = :id
-        AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180`);
+    const findActivePhoto = this.db.prepare(`SELECT photos.location_lookup_error, location_names.display_name
+      FROM photos
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id
+      WHERE photos.id = :id
+        AND photos.latitude BETWEEN -90 AND 90 AND photos.longitude BETWEEN -180 AND 180`);
     for (const photoId of this.pendingLocationLookups.keys()) {
-      const active = findActivePhoto.get({ id: photoId }) as { location_name_id: number | null; location_lookup_error: string | null } | undefined;
-      if (active && (active.location_name_id === null || active.location_name_id === 0) && active.location_lookup_error === null) inProgress++;
+      const active = findActivePhoto.get({ id: photoId }) as { display_name: string | null; location_lookup_error: string | null } | undefined;
+      if (active && active.display_name === null && active.location_lookup_error === null) inProgress++;
     }
 
     const pending = Math.max(0, total - resolved - errors - inProgress);
@@ -841,12 +845,11 @@ export class CacheManager {
       }
 
       this.db.prepare(`UPDATE photos SET
-          location_name_id = :locationNameId,
+          location_name_id = CASE WHEN :locationNameId IS NOT NULL THEN :locationNameId ELSE location_name_id END,
           location_lookup_error = :lookupError,
           location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId
-          AND (:locationNameId IS NOT NULL OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))
-          AND (:forceRefresh = 1 OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))`)
+          AND (:locationNameId IS NOT NULL OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0) OR :forceRefresh = 1)`)
         .run({
           locationNameId,
           lookupError,
