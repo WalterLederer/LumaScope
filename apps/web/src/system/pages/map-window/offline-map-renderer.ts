@@ -95,6 +95,7 @@ export class OfflineMapRenderer {
     startCanvasWidth: number;
     startCanvasHeight: number;
     pointerSamples: Array<Record<string, unknown>>;
+    dragSamples: Array<Record<string, unknown>>;
     cameraSamples: Array<Record<string, unknown>>;
   } | null = null;
   private readonly onDiagnosticPointerDown = (event: PointerEvent): void => {
@@ -114,12 +115,15 @@ export class OfflineMapRenderer {
       startCanvasWidth: canvas.width,
       startCanvasHeight: canvas.height,
       pointerSamples: [],
+      dragSamples: [],
       cameraSamples: [this.getCameraDiagnosticSnapshot()]
     };
     this.dragDiagnostic.pointerSamples.push({
       timeMs: performance.now(),
       x: event.clientX,
       y: event.clientY,
+      movementX: event.movementX,
+      movementY: event.movementY,
       camera: this.getCameraDiagnosticSnapshot()
     });
   };
@@ -131,9 +135,23 @@ export class OfflineMapRenderer {
       this.dragDiagnostic.pointerSamples.push({
         timeMs: performance.now(),
         x: event.clientX,
-        y: event.clientY
+        y: event.clientY,
+        movementX: event.movementX,
+        movementY: event.movementY
       });
     }
+  };
+  private readonly onDiagnosticMapDrag = (): void => {
+    const diagnostic = this.dragDiagnostic;
+    if (!diagnostic || diagnostic.dragSamples.length >= 300) return;
+    diagnostic.dragSamples.push({
+      timeMs: performance.now(),
+      pointer: [diagnostic.lastX, diagnostic.lastY],
+      center: this.map.getCenter().toArray(),
+      zoom: this.map.getZoom(),
+      pitch: this.map.getPitch(),
+      bearing: this.map.getBearing()
+    });
   };
   private readonly onDiagnosticMapMove = (): void => {
     const diagnostic = this.dragDiagnostic;
@@ -204,6 +222,7 @@ export class OfflineMapRenderer {
       },
       devicePixelRatio: window.devicePixelRatio,
       lastObservedPointer: [start.lastX, start.lastY],
+      dragSamples: start.dragSamples,
       cameraSamples: start.cameraSamples,
       pointerSamples: start.pointerSamples
     });
@@ -239,6 +258,9 @@ export class OfflineMapRenderer {
     window.addEventListener('pointerup', this.onDiagnosticPointerEnd, true);
     window.addEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     this.map.on('move', this.onDiagnosticMapMove);
+    // MapLibre emits 'drag' after its drag-pan handler has updated the camera.
+    // Pair this with the window-level pointer samples to compare input and output.
+    this.map.on('drag', this.onDiagnosticMapDrag);
     // Keep the WebGL canvas synchronized with layout changes in the settings panel.
     this.resizeObserver = new ResizeObserver(() => this.map.resize());
     this.resizeObserver.observe(container);
@@ -649,6 +671,7 @@ export class OfflineMapRenderer {
     window.removeEventListener('pointerup', this.onDiagnosticPointerEnd, true);
     window.removeEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     this.map.off('move', this.onDiagnosticMapMove);
+    this.map.off('drag', this.onDiagnosticMapDrag);
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
