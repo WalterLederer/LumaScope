@@ -46,7 +46,7 @@
         </label>
         <label class="build-cache-current-operation">
           <span>Current operation</span>
-          <input type="text" readonly [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation" />
+          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
         </label>
         <div class="build-cache-log-path">
           <span>Build log file</span>
