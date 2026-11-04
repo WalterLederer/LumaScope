@@ -6,7 +6,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheImageStatus, CacheInfo, PhotoLocation } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation } from 'internal-api';
 import type { Exif } from '../exif/exif';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
 
