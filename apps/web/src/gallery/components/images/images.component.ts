@@ -252,7 +252,11 @@ export class ImagesComponent {
       console.error('Failed to enumerate recursive gallery cache workload', error);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
-      this.cacheRunCurrentOperation.set('');
+      if (controller.signal.aborted && !this.cacheRunCurrentOperation().startsWith('Cache build ')) {
+        this.cacheRunCurrentOperation.set('Cache build cancelled during folder enumeration.');
+      } else if (!this.cacheRunCurrentOperation() && allImages.length === 0) {
+        this.cacheRunCurrentOperation.set('No images found to cache.');
+      }
       this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
     }
@@ -264,10 +268,13 @@ export class ImagesComponent {
     if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
     this.cacheRunCurrentOperation.set('Preparing cache status for files...');
+    const buildStartedAt = performance.now();
+    let verificationSummary = '';
     try {
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Cache build started: ' + new Date().toISOString());
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+      const statusPreparationStartedAt = performance.now();
       const statuses: CacheImageStatus[] = [];
       const imagePaths = images.map(image => image.path);
       const sourceMetadata = images.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }));
@@ -278,8 +285,24 @@ export class ImagesComponent {
           sourceMetadata.slice(offset, offset + 10000)
         ));
       }
+      const verificationTimeMs = Math.round(performance.now() - statusPreparationStartedAt);
+      const sourceFilesVerified = statuses.filter(status => status.verification?.sourceChecked).length;
+      const thumbnailsVerified = statuses.filter(status => status.verification?.thumbnailChecked).length;
+      const fullSizeFilesVerified = statuses.filter(status => status.verification?.fullSizeChecked).length;
+      const invalidCacheEntries = statuses.reduce((total, status) => total + (status.verification?.invalidEntries ?? 0), 0);
+      verificationSummary = [
+        `Files: ${images.length}`,
+        this.verifyCacheFiles()
+          ? `Verified: ${sourceFilesVerified} source, ${thumbnailsVerified} thumbnails, ${fullSizeFilesVerified} full-size files`
+          : 'Verification: disabled',
+        this.verifyCacheFiles() ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
+        `Verification time: ${verificationTimeMs} ms`
+      ].filter(Boolean).join('\\n');
+      await this.cacheManager.appendBuildLog('Cache verification summary:\\n' + verificationSummary);
       if (signal?.aborted) {
-        await this.cacheManager.appendBuildLog('Cache build cancelled during status preparation.');
+        const summary = `Cache build cancelled during status preparation\\n${verificationSummary}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+        await this.cacheManager.appendBuildLog(summary);
+        this.cacheRunCurrentOperation.set(summary);
         return;
       }
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
@@ -336,13 +359,16 @@ export class ImagesComponent {
         logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
       }
       await logWrite;
-      await this.cacheManager.appendBuildLog(signal?.aborted ? 'Cache build cancelled.' : 'Cache build completed.');
+      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\\n${verificationSummary}\\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      await this.cacheManager.appendBuildLog(summary);
+      this.cacheRunCurrentOperation.set(summary);
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
-      await this.cacheManager.appendBuildLog(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`).catch(() => undefined);
+      const summary = `Cache build failed\\n${error instanceof Error ? error.message : String(error)}${verificationSummary ? `\\n${verificationSummary}` : ''}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
+      this.cacheRunCurrentOperation.set(summary);
     } finally {
       this.cacheWorkerOperations.clear();
-      this.cacheRunCurrentOperation.set('');
       if (!alreadyActive) {
         if (this.cacheAbortController?.signal === signal) this.cacheAbortController = null;
         this.cacheRunActive.set(false);
