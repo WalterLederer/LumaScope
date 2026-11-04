@@ -43,5 +43,6 @@
     <span class="detail-thumb" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
     <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
+    <span class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</span>
   </div>
 }
