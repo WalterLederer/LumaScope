@@ -549,12 +549,12 @@ export class CacheManager {
 
     const updated = this.getPhoto(sourceName);
     if (!updated) return null;
-    const resolvedDisplayName = await this.ensureLocationName(updated, true);
+    const resolvedDisplayName = await this.ensureLocationName(updated, true, true);
 
     const saved = this.db.prepare(`SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
       FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id`)
       .get({ id: row.id }) as { place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
-    if (!saved) return null;
+    if (!saved) throw new Error('The reverse-geocoding provider returned no location for these GPS coordinates.');
     if (resolvedDisplayName) return resolvedDisplayName;
     return [saved.place_name, saved.locality, saved.region, saved.country_code]
       .filter((part, index, values): part is string => !!part && values.indexOf(part) === index)
@@ -710,7 +710,7 @@ export class CacheManager {
     return this.getPhoto(sourceName)!;
   };
 
-  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false): Promise<string | null> => {
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false, throwOnError = false): Promise<string | null> => {
     if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0)) || photo.latitude === null || photo.longitude === null
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return null;
@@ -749,6 +749,7 @@ export class CacheManager {
           longitude: photo.longitude,
           error: error instanceof Error ? error.message : String(error)
         });
+        if (throwOnError) throw error;
       }
 
       this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND (location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))')
