@@ -5,7 +5,7 @@ export const galleryRoot = (): TreeNode<string> => ({
   id: '',
   label: 'My PC',
   openIcon: 'desktopFilled',
-  closedIcon: 'desktopColor',
+  closedIcon: 'desktop',
   isOpen: true,
   children: []
 });
