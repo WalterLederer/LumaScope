@@ -50,6 +50,8 @@ export class OfflineMapRenderer {
   readonly ready: Promise<void>;
   private currentMarker: Marker | null = null;
   private readonly clusterLabels: Marker[] = [];
+  private photoOpacity = 1;
+  private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number) {
@@ -165,8 +167,9 @@ export class OfflineMapRenderer {
         properties: { path: marker.path, fileName: marker.fileName }
       }))
     });
+    this.photoOpacity = opacity;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', opacity);
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
   }
 
   setBasemapOpacity(opacity: number): void {
@@ -183,14 +186,16 @@ export class OfflineMapRenderer {
     const fill = !visible ? 'transparent' : color === 'dynamic'
       ? ['step', ['get', 'point_count'], '#34c759', 10, '#ffd60a', 100, '#ff3b30']
       : color;
-    this.map.setPaintProperty('photo-clusters', 'circle-color', fill as string | import('maplibre-gl').ExpressionSpecification);
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', visible ? 0.95 : 0);
+    this.photoClustersVisible = visible;
+    this.map.setPaintProperty('photo-clusters', 'circle-color', fill as never);
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', visible ? 0.95 * this.photoOpacity : 0);
   }
 
   setPhotoOpacity(opacity: number): void {
+    this.photoOpacity = opacity;
     if (!this.map.getLayer('photo-unclustered')) return;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', opacity);
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
   }
 
   setTrack(segments: [number, number][][], color: string, opacity: number): void {
