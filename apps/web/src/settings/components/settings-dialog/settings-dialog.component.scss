@@ -691,10 +691,10 @@ section {
 }
 
 .build-cache-scope-stats {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  justify-items: start;
   gap: var(--dim-small);
   padding: var(--dim-small) 0;
+
+  span { color: var(--color-content-default-medium); font-size: 0.8rem; }
 }
