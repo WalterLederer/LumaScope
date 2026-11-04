@@ -68,7 +68,6 @@
             <div>
               <span>Full-size conversions</span>
               <strong>{{ currentCache.fullSize.entries }} files · {{ currentCache.fullSize.bytes | byteSize }}</strong>
-              <span class="cache-hint">See the “Full-size cache” column in Supported image formats below.</span>
             </div>
             <button class="cache-button warning" type="button"
                     [disabled]="currentCache.fullSize.entries === 0 || isClearing()"
