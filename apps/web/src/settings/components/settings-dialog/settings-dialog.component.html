@@ -87,9 +87,12 @@
                   [class.cache-check-complete]="cacheCheckState() === 'complete'"
                   [class.cache-check-missing]="cacheCheckState() === 'missing' || cacheCheckState() === 'error'"
                   [class.cache-check-running]="cacheCheckState() === 'checking'"
-                  [disabled]="!currentFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking'"
+                  [disabled]="!currentFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive()"
                   (click)="checkCache()">Check cache</button>
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || locationLookupActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
+          <button class="cache-button" type="button"
+                  [disabled]="!currentFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive() || isClearing()"
+                  (click)="resolveMissingLocations()">{{ locationLookupActive() ? 'Resolving locations…' : 'Resolve locations' }}</button>
           @if (cacheBuildActive()) {
             <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
             <progress class="build-cache-progress-bar"
@@ -116,10 +119,10 @@
         </div>
         <div class="build-cache-current-operation">
           <textarea readonly rows="6"
-                    [value]="cacheOutputMode() === 'build' ? cacheBuildCurrentOperation() : cacheCheckOutput()"
+                    [value]="cacheOutputMode() === 'build' ? cacheBuildCurrentOperation() : cacheOutputMode() === 'check' ? cacheCheckOutput() : locationLookupOutput()"
                     [placeholder]="cacheOutputMode() === 'build'
                       ? (cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running')
-                      : (cacheCheckState() === 'checking' ? 'Checking cache files…' : 'No cache operation running')"
+                      : (cacheOutputMode() === 'check' ? (cacheCheckState() === 'checking' ? 'Checking cache files…' : 'No cache operation running') : (locationLookupActive() ? 'Resolving location names…' : 'No location lookup running'))"
                     aria-label="Cache check and build output"></textarea>
         </div>
         <div class="build-cache-log-path">
