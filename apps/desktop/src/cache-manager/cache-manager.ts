@@ -175,25 +175,28 @@ export class CacheManager {
       try {
         const sourceStats = await stat(sourceName);
         if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) return;
+      } catch {
+        return;
+      }
 
-        if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR && row.thumbnail_cache_version === 'sidecar-thumbnail-v2') {
-          const thumbnailPath = this.getSidecarPath(sourceName, false);
-          const thumbnailStats = await stat(thumbnailPath);
+      if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR && row.thumbnail_cache_version === 'sidecar-thumbnail-v2') {
+        try {
+          const thumbnailStats = await stat(this.getSidecarPath(sourceName, false));
           if (thumbnailStats.isFile()) thumbnailPaths.push(sourceName);
-        }
+        } catch { /* Missing thumbnail cache file. */ }
+      }
 
-        const extension = extname(sourceName).toLowerCase();
-        const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
-        if (FULL_SIZE_EXTENSIONS.has(extension)
-          && row.fullsize_cache_id !== null && row.fullsize_cache_version === expectedFullSizeTag) {
-          const fullSizePath = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL
-            ? this.getParallelPath(sourceName)
-            : this.getSidecarPath(sourceName, true);
+      const extension = extname(sourceName).toLowerCase();
+      const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      if (FULL_SIZE_EXTENSIONS.has(extension)
+        && row.fullsize_cache_id !== null && row.fullsize_cache_version === expectedFullSizeTag) {
+        const fullSizePath = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL
+          ? this.getParallelPath(sourceName)
+          : this.getSidecarPath(sourceName, true);
+        try {
           const fullSizeStats = await stat(fullSizePath);
           if (fullSizeStats.isFile()) fullSizePaths.push(sourceName);
-        }
-      } catch {
-        // Missing source or cache files are not counted as completed conversions.
+        } catch { /* Missing full-size cache file. */ }
       }
     }));
 
