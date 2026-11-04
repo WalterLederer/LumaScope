@@ -266,10 +266,12 @@ export class CacheManager {
     const resolved = Number(totals.resolved ?? 0);
     const errors = Number(totals.errors ?? 0);
     let inProgress = 0;
-    const findActivePhoto = this.db.prepare('SELECT location_name_id FROM photos WHERE id = :id');
+    const findActivePhoto = this.db.prepare(`SELECT location_name_id, location_lookup_error
+      FROM photos WHERE id = :id
+        AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180`);
     for (const photoId of this.pendingLocationLookups.keys()) {
-      const active = findActivePhoto.get({ id: photoId }) as { location_name_id: number | null } | undefined;
-      if (active && (active.location_name_id === null || active.location_name_id === 0)) inProgress++;
+      const active = findActivePhoto.get({ id: photoId }) as { location_name_id: number | null; location_lookup_error: string | null } | undefined;
+      if (active && (active.location_name_id === null || active.location_name_id === 0) && active.location_lookup_error === null) inProgress++;
     }
 
     const pending = Math.max(0, total - resolved - errors - inProgress);
