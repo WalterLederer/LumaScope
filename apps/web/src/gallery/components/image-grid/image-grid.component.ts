@@ -14,7 +14,7 @@ import {
   TitleComponent,
   ToolbarComponent
 } from '@light-matter/ui';
-import { ExifTags } from 'internal-api';
+import { CacheDirectoryStats, ExifTags } from 'internal-api';
 import {
   allSortDirections,
   allSortTypes,
@@ -28,6 +28,7 @@ import {
 } from 'internal-api';
 import { ImagesComponent } from '../images/images.component';
 import { ExifService } from '../../../ipc/exif';
+import { CacheManager } from '../../../ipc/cache-manager';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { GalleryViewMode } from '../images/images.component.types';
 
@@ -112,6 +113,31 @@ export class ImageGridComponent {
 
   private readonly exif = inject(ExifService);
 
+  private readonly cacheManager = inject(CacheManager);
+
+  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0 });
+
+  private cacheStatsRequest = 0;
+
+  readonly refreshDirectoryCacheStats = async (): Promise<void> => {
+    const images = this.images() ?? [];
+    const request = ++this.cacheStatsRequest;
+    if (images.length === 0) {
+      this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0 });
+      return;
+    }
+    try {
+      const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path));
+      if (request === this.cacheStatsRequest) this.cacheStats.set(stats);
+    } catch (error) {
+      console.error('Failed to refresh gallery cache statistics', error);
+    }
+  };
+
+  readonly onCacheUpdated = (_sourceName: string): void => {
+    void this.refreshDirectoryCacheStats();
+  };
+
 
 
   private readonly destroyRef = inject(DestroyRef);
@@ -138,9 +164,8 @@ export class ImageGridComponent {
   private readonly imagesComponent = viewChild(ImagesComponent);
 
   readonly refreshDetailCacheStatus = (): void => {
-    if (this.viewMode() === 'details') {
-      this.imagesComponent()?.refreshGallery();
-    }
+    if (this.viewMode() === 'details') this.imagesComponent()?.refreshGallery();
+    void this.refreshDirectoryCacheStats();
   };
 
   readonly onThumbnailHovered = async (image: FileInfo | null) => {
@@ -184,6 +209,12 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    effect(() => {
+      this.images();
+      this.selectedLocation();
+      void this.refreshDirectoryCacheStats();
+    });
+
     console.warn('[ImageGrid] CONSTRUCTOR START');
     fromEvent<KeyboardEvent>(this.document, 'keyup')
       .pipe(takeUntilDestroyed())
