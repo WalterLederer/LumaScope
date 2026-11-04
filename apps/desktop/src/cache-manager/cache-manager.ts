@@ -421,6 +421,41 @@ export class CacheManager {
     }));
   };
 
+  @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
+  readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
+    if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
+    const row = this.db.prepare(`SELECT
+        photos.id,
+        paths.folder_path AS path_id,
+        photos.file_name,
+        photos.file_size,
+        photos.modified_at,
+        photos.is_hdr,
+        cache_thumb.name AS thumbnail_cache_id,
+        photos.thumbnail_cache_version,
+        cache_full.name AS fullsize_cache_id,
+        photos.fullsize_cache_version,
+        photos.latitude,
+        photos.longitude,
+        photos.altitude_m,
+        photos.gps_timestamp,
+        photos.direction_deg,
+        coordinate_sources.name AS coordinate_source_id,
+        CASE WHEN location_names.id IS NULL THEN NULL ELSE
+          location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
+          COALESCE(', ' || location_names.region, '') ||
+          COALESCE(', ' || location_names.country_code, '') END AS location_name_id
+      FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN cache_storage_types AS cache_thumb ON cache_thumb.id = photos.thumbnail_cache_id
+      LEFT JOIN cache_storage_types AS cache_full ON cache_full.id = photos.fullsize_cache_id
+      LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id
+      WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE
+    `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
+    return row ?? null;
+  };
+
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
   readonly imageCachePath = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<string | null> => {
     const row = this.getPhoto(sourceName);
