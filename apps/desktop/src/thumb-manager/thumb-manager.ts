@@ -12,6 +12,10 @@ import type {
 export class ThumbManager {
   private static readonly workerRecycleAfterHeavyImages = 8;
 
+  // wasm-vips also allocates WASM memory while processing ordinary JPEG/PNG files.
+  // Periodically recreate the worker so long gallery scans cannot accumulate heap fragmentation.
+  private static readonly workerRecycleAfterImages = 250;
+
   private static readonly heavyExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
 
   private worker: Worker | null = null;
@@ -23,6 +27,8 @@ export class ThumbManager {
   private workerQueue: Promise<void> = Promise.resolve();
 
   private heavyImagesSinceRestart = 0;
+
+  private imagesSinceRestart = 0;
 
   private readonly fullSizeConversionDurations = new Map<string, number>();
 
@@ -214,6 +220,7 @@ export class ThumbManager {
 
     try {
       this.heavyImagesSinceRestart = 0;
+      this.imagesSinceRestart = 0;
       this.worker = new Worker(this.workerPath, {
         execArgv: this.workerPath.endsWith('.ts') ? [ '--require', 'ts-node/register' ] : undefined
       });
@@ -259,12 +266,17 @@ export class ThumbManager {
     try {
       return await operation();
     } finally {
+      this.imagesSinceRestart++;
+
       if (ThumbManager.heavyExtensions.has(extname(source).toLowerCase())) {
         this.heavyImagesSinceRestart++;
+      }
 
-        if (this.heavyImagesSinceRestart >= ThumbManager.workerRecycleAfterHeavyImages) {
-          await this.recycleWorker();
-        }
+      if (
+        this.heavyImagesSinceRestart >= ThumbManager.workerRecycleAfterHeavyImages
+        || this.imagesSinceRestart >= ThumbManager.workerRecycleAfterImages
+      ) {
+        await this.recycleWorker();
       }
     }
   };
