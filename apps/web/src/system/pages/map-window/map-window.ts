@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Desktop } from 'internal-api';
+import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
@@ -459,14 +459,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
     this.locationAddress.set('Looking up address…');
     try {
-      const url = new URL('https://nominatim.openstreetmap.org/reverse');
-      url.search = new URLSearchParams({
-        format: 'jsonv2', lat: String(latitude), lon: String(longitude), zoom: '18', addressdetails: '1'
-      }).toString();
-      const response = await fetch(url.toString(), { headers: { 'Accept-Language': navigator.language || 'en' } });
-      if (!response.ok) throw new Error('Reverse geocoding request failed.');
-      const result = await response.json() as { display_name?: string };
-      this.locationAddress.set(result.display_name?.trim() || 'No street address available for this location.');
+      const result = await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en');
+      this.locationAddress.set(result?.displayName || 'No street address available for this location.');
     } catch {
       this.locationAddress.set('Address lookup unavailable.');
     }
