@@ -568,16 +568,24 @@ export class ImageView {
       'coordinate_source_id',
       'location_name_id'
     ]);
+    const timestampFields = new Set(['modified_at']);
     return Object.entries(record)
       .filter(([key]) => !key.endsWith('_expanded'))
-      .map(([key, value]) => ({
-        key,
-        value: JSON.stringify(value) ?? 'null',
-        expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
-          ? JSON.stringify(record[`${key}_expanded`])
-          : null,
-        isExpandedId: expandedFields.has(key) && record[`${key}_expanded`] != null
-      }));
+      .map(([key, value]) => {
+        const isTimestamp = timestampFields.has(key) && typeof value === 'number' && Number.isFinite(value);
+        const dateValue = isTimestamp ? new Date(value as number) : null;
+        return {
+          key,
+          value: JSON.stringify(value) ?? 'null',
+          expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
+            ? JSON.stringify(record[`${key}_expanded`])
+            : isTimestamp && dateValue && !Number.isNaN(dateValue.getTime())
+              ? JSON.stringify(dateValue.toLocaleString())
+              : null,
+          isExpandedId: expandedFields.has(key) && record[`${key}_expanded`] != null,
+          isTimestamp
+        };
+      });
   });
   protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
   private photoDatabaseRecordRequest = 0;
