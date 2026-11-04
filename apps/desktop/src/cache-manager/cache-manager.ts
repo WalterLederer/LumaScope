@@ -171,9 +171,15 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.cacheInfo' })
-  readonly cacheInfo = async (): Promise<CacheInfo> => {
-    const thumbnails = await this.getKindStats('thumbnail');
-    const fullSize = await this.getKindStats('fullsize');
+  readonly cacheInfo = async (_event?: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheInfo> => {
+    if (directory !== undefined && (typeof directory !== 'string' || !directory.trim())) {
+      throw new Error('A valid cache directory is required.');
+    }
+    if (recursive && !directory) {
+      throw new Error('Recursive cache statistics require a directory.');
+    }
+    const thumbnails = await this.getKindStats('thumbnail', directory, recursive);
+    const fullSize = await this.getKindStats('fullsize', directory, recursive);
     return { entries: thumbnails.entries + fullSize.entries, bytes: thumbnails.bytes + fullSize.bytes, thumbnails, fullSize };
   };
 
@@ -481,16 +487,27 @@ export class CacheManager {
     if (process.platform === 'win32') await execFileAsync('attrib', ['+h', directory]);
   };
 
-  private readonly getKindStats = async (kind: 'thumbnail' | 'fullsize'): Promise<CacheClearResult> => {
+  private readonly getKindStats = async (kind: 'thumbnail' | 'fullsize', directory?: string, recursive = false): Promise<CacheClearResult> => {
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const rows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+    const allRows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
+    const root = directory ? resolve(directory) : null;
+    const rows = root === null ? allRows : allRows.filter(row => {
+      const relativeFolder = relative(root, resolve(row.folder_path));
+      if (relativeFolder === '') return true;
+      return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
+    });
     let bytes = 0;
+    let existingEntries = 0;
     for (const row of rows) {
       const path = this.getSidecarPath(join(row.folder_path, row.file_name), kind === 'fullsize');
-      try { bytes += (await stat(path)).size; } catch { /* Missing cache file. */ }
+      try {
+        const info = await stat(path);
+        bytes += info.size;
+        existingEntries++;
+      } catch { /* Missing cache file. */ }
     }
-    return { entries: rows.length, bytes };
+    return { entries: existingEntries, bytes };
   };
 
   private readonly init = (): void => {
