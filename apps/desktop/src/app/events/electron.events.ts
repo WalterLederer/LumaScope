@@ -278,8 +278,6 @@ const getWin32NativeApi = (): Win32NativeApi => {
     }
   };
 
-  // Keep the callback type reachable so Koffi retains its native trampoline.
-  void EnumWindowsProc;
   cachedWin32NativeApi = api;
   return api;
 };
