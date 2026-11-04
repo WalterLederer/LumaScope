@@ -175,6 +175,11 @@ export class OfflineMapRenderer {
 
   private refreshClusterLabels(): void {
     if (!this.map.getLayer('photo-clusters')) return;
+    if (!this.photoClustersVisible || this.photoOpacity <= 0) {
+      for (const marker of this.clusterLabels.values()) marker.remove();
+      this.clusterLabels.clear();
+      return;
+    }
     const visible = new Set<number>();
     const features = this.map.queryRenderedFeatures({ layers: ['photo-clusters'] });
     for (const feature of features) {
