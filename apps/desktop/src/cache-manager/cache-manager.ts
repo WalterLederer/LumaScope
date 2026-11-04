@@ -158,7 +158,7 @@ export class CacheManager {
       throw new Error('A list of valid image paths is required.');
     }
 
-    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0 };
+    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] };
 
     const folder = dirname(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
