@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
+import { OfflineMapRenderer, type OfflinePhotoMarker } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -59,6 +60,15 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <option value="apple-maps">Apple Maps</option>
               </select>
             </label>
+          </div>
+          <div class="settings-group">
+            <label><strong>Map source:</strong>
+              <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
+                <option value="online">Online</option><option value="offline">Offline (Austria)</option>
+              </select>
+            </label>
+            <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
+            <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
           </div>
           <div class="settings-group">
             <label><strong>Map:</strong> Style
@@ -224,7 +234,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
-    .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .settings-group:last-child{border-right:0;padding-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
@@ -289,6 +299,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly themeService = inject(ThemeService);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
+  private offlineRenderer: OfflineMapRenderer | null = null;
+  private currentLatitude: number | null = null;
+  private currentLongitude: number | null = null;
   private marker: MapMarker | null = null;
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private readonly directoryMarkers: MapMarker[] = [];
@@ -308,6 +321,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
+  protected readonly mapSource = signal<'online' | 'offline'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : 'online');
+  protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
+  protected readonly offlineMapStatusText = computed(() => {
+    const status = this.offlineMapStatus();
+    if (!status) return 'Checking offline map…';
+    if (status.error) return status.error;
+    return status.available ? (status.name ?? 'Offline map ready') + ' · zoom ' + status.minZoom + '–' + status.maxZoom : 'No MBTiles selected';
+  });
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
@@ -368,6 +389,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
+    void this.desktop?.OfflineMap.getStatus().then(status => this.offlineMapStatus.set(status)).catch(error => console.error('Could not read offline map status:', error));
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
@@ -378,6 +400,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
       this.coordinatesAvailable.set(true);
+      this.currentLatitude = latitude; this.currentLongitude = longitude;
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
       void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
@@ -386,6 +409,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
+      this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
       if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
@@ -398,6 +422,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.locationAddress.set('This image does not contain GPS coordinates.');
         this.map?.remove();
         this.map = null;
+        this.offlineRenderer?.remove(); this.offlineRenderer = null;
         this.marker = null;
         this.clearDirectoryMarkers();
         return;
@@ -406,7 +431,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (!this.map) {
+      if (this.offlineRenderer) {
+        this.offlineRenderer.updateCurrentLocation(nextLatitude!, nextLongitude!);
+        this.offlineRenderer.map.easeTo({ center: [nextLongitude!, nextLatitude!] });
+      } else if (!this.map) {
         void this.initialize(nextLatitude!, nextLongitude!);
       } else {
         this.marker?.setLatLng([nextLatitude!, nextLongitude!]);
@@ -433,18 +461,25 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.onResize);
     this.map?.remove();
     this.map = null;
+    this.offlineRenderer?.remove(); this.offlineRenderer = null;
   }
 
-  private readonly onResize = (): void => { this.map?.invalidateSize(); };
+  private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
 
   protected readonly copyCoordinates = async (): Promise<void> => {
-    const marker = this.marker?.getLatLng(); if (!marker) return;
-    try { await navigator.clipboard.writeText(marker.lat.toFixed(6) + ', ' + marker.lng.toFixed(6)); }
+    const marker = this.marker?.getLatLng();
+    const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
+    if (latitude === null || longitude === null) return;
+    try { await navigator.clipboard.writeText(latitude.toFixed(6) + ', ' + longitude.toFixed(6)); }
     catch (error) { console.error('Failed to copy GPS coordinates', error); }
   };
   protected readonly centerMarker = (): void => {
     const marker = this.marker?.getLatLng();
-    if (marker) this.map?.setView([marker.lat, marker.lng], this.map.getZoom());
+    const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
+    if (latitude !== null && longitude !== null) {
+      if (this.offlineRenderer) this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+      else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
+    }
   };
   private formatCoordinateDms(value: number, latitude: boolean): string {
     const hemisphere = latitude ? (value < 0 ? 'S' : 'N') : (value < 0 ? 'W' : 'E');
@@ -542,6 +577,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
     this.currentMarkerShape.set(value); this.saveSetting('currentMarkerShape', value);
     this.marker?.setIcon(this.createCurrentLocationIcon());
+    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100);
   };
   protected readonly changeCurrentMarkerColor = (value: string): void => {
     if (!this.gpxColors.some(color => color.value === value)) return;
@@ -673,13 +709,25 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
-      this.renderDirectoryMarkers(markers, imagePath);
+      if (this.offlineRenderer) {
+        const offlineMarkers: OfflinePhotoMarker[] = markers.map(item => ({ ...item }));
+        this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, this.markerOpacity() / 100);
+      } else this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
       if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Location database query failed.');
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
+    if (this.mapSource() === 'offline') {
+      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); return; }
+      if (this.mapInitialization) await this.mapInitialization;
+      if (this.offlineRenderer || this.map) return;
+      const initialization = this.createOfflineMap(latitude, longitude);
+      this.mapInitialization = initialization;
+      try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
+      return;
+    }
     // The initial route parameters and the main-process location snapshot can
     // arrive almost simultaneously. Serialize initialization so Leaflet never
     // creates two maps on the same container while its library is still loading.
@@ -708,7 +756,29 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  private async createOfflineMap(latitude: number, longitude: number): Promise<void> {
+    const status = await this.desktop?.OfflineMap.getStatus();
+    this.offlineMapStatus.set(status ?? null);
+    if (!status?.available) {
+      this.locationAddress.set(status?.error ?? 'Select a valid Austria MBTiles file in Map settings.');
+      this.mapSource.set('online'); this.saveSetting('source', 'online');
+      await this.createMap(latitude, longitude);
+      return;
+    }
+    const renderer = new OfflineMapRenderer(this.mapElement().nativeElement, [longitude, latitude], this.validZoom(this.zoomLevel()));
+    this.offlineRenderer = renderer;
+    await renderer.ready;
+    renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100);
+    renderer.map.on('zoomend', () => {
+      const zoom = this.validZoom(renderer.map.getZoom()); this.zoomLevel.set(zoom); this.saveSetting('zoom', zoom);
+    });
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+    await this.restoreGpxTrack();
+    window.addEventListener('resize', this.onResize);
+  }
+
   private async createMap(latitude: number, longitude: number): Promise<void> {
+    this.offlineRenderer?.remove(); this.offlineRenderer = null;
     this.leaflet = await this.loadLeaflet();
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
@@ -763,6 +833,20 @@ export class MapWindow implements OnInit, OnDestroy {
     contrast: 'saturate(1.35) contrast(1.22)', night: 'brightness(.48) contrast(1.35) saturate(.72) hue-rotate(12deg)'
   };
 
+  protected readonly changeMapSource = (value: string): void => {
+    if (value !== 'online' && value !== 'offline') return;
+    this.mapSource.set(value); this.saveSetting('source', value);
+    if (this.currentLatitude !== null && this.currentLongitude !== null) {
+      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly chooseOfflineMap = async (): Promise<void> => {
+    if (!this.desktop) return;
+    const status = await this.desktop.OfflineMap.chooseFile(); this.offlineMapStatus.set(status);
+    if (status.available) this.changeMapSource('offline');
+  };
   protected readonly changeMapStyle = (value: string): void => {
     if (!(value in this.styles)) return;
     this.mapStyle.set(value as MapStyle); this.saveSetting('style', value); this.applyMapStyle();
@@ -778,7 +862,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
-    const next = this.validZoom(zoom); this.zoomLevel.set(next); this.saveSetting('zoom', next); this.map?.setZoom(next);
+    const next = this.validZoom(zoom); this.zoomLevel.set(next); this.saveSetting('zoom', next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.map?.getZoom() ?? this.zoomLevel()) + direction);
@@ -791,12 +875,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
     this.directoryMarkerGroup?.refreshClusters?.();
+    this.offlineRenderer?.setPhotoOpacity(markerOpacity);
   };
   protected readonly changeLocationOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.locationOpacity.set(next); this.saveSetting('locationOpacity', next);
     this.marker?.setOpacity(next / 100);
+    this.offlineRenderer?.setCurrentOpacity(next / 100);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
@@ -852,7 +938,12 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!segments.length) throw new Error('No valid track or route points were found in the GPX file.');
     this.gpxSegments = segments; this.gpxFileName.set(fileName); this.gpxError.set('');
     this.applyGpxTrack();
-    if (fitTrack && this.map) {
+    if (fitTrack && this.offlineRenderer) {
+      const points = segments.flat();
+      const longitudes = points.map(point => point[1]), latitudes = points.map(point => point[0]);
+      this.offlineRenderer.map.fitBounds([[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]], { padding: 24, maxZoom: 16, duration: 0 });
+      this.zoomLevel.set(this.offlineRenderer.map.getZoom()); this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
+    } else if (fitTrack && this.map) {
       const points = segments.flat();
       const bounds: [[number, number], [number, number]] = [
         [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
@@ -879,10 +970,16 @@ export class MapWindow implements OnInit, OnDestroy {
     if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
   private applyMapOpacity(): void {
+    const mapLibreCanvas = this.mapElement().nativeElement.querySelector<HTMLElement>('.maplibregl-canvas');
+    if (mapLibreCanvas) mapLibreCanvas.style.opacity = String(this.mapOpacity() / 100);
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
     if (pane) pane.style.opacity = String(this.mapOpacity() / 100);
   }
   private applyGpxTrack(): void {
+    if (this.offlineRenderer) {
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxSegments : [], this.gpxColor(), .92 * this.gpxOpacity() / 100);
+      return;
+    }
     for (const layer of this.trackLayers) layer.remove();
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
