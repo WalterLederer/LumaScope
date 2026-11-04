@@ -379,7 +379,15 @@ section {
   font-variant-numeric: tabular-nums;
 }
 
-.build-cache-verify { justify-self: start; }
+.build-cache-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dim-large);
+}
+
+.build-cache-verify,
+.build-cache-recursive { justify-self: start; }
 .build-cache-current-folder,
 .build-cache-current-operation,
 .delete-cache-summary {
