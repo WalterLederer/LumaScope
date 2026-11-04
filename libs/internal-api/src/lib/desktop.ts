@@ -215,6 +215,8 @@ export interface CapturePreview {
   pixels: Uint16Array;
   /** Browser-decodable Ultra HDR JPEG used as the SDR readback reference. */
   sdrImage?: Uint8Array;
+  /** Native source details for diagnosing Top Window selection. */
+  sourceDetails?: string;
 }
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
