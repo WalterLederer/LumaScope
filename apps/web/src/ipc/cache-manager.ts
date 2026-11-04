@@ -36,8 +36,14 @@ export class CacheManager implements DesktopCacheManager {
   readonly imageCachePath = (sourceName: string): Promise<string | null> =>
     window.desktop.CacheManager.imageCachePath(sourceName);
 
-  readonly getImageCacheStatuses = (sourceNames: string[]): Promise<CacheImageStatus[]> =>
-    window.desktop.CacheManager.getImageCacheStatuses(sourceNames);
+  readonly getImageCacheStatuses = (sourceNames: string[], verifyCacheFiles = false, sourceMetadata: Array<{ path: string; size: number; modifiedAt: number }> = []): Promise<CacheImageStatus[]> =>
+    window.desktop.CacheManager.getImageCacheStatuses(sourceNames, verifyCacheFiles, sourceMetadata);
+
+  readonly getBuildLogPath = (): Promise<string> => window.desktop.CacheManager.getBuildLogPath();
+
+  readonly resetBuildLog = (): Promise<void> => window.desktop.CacheManager.resetBuildLog();
+
+  readonly appendBuildLog = (line: string): Promise<void> => window.desktop.CacheManager.appendBuildLog(line);
 
   readonly getDirectoryCacheStats = (sourceNames: string[]): Promise<CacheDirectoryStats> =>
     window.desktop.CacheManager.getDirectoryCacheStats(sourceNames);
