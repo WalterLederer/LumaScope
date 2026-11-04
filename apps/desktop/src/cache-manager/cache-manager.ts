@@ -242,9 +242,12 @@ export class CacheManager {
         ...row,
         location_name_id: row.needs_refresh === 1 ? null : row.location_name_id
       }, true, false, row.needs_refresh === 1);
-      const saved = this.db.prepare('SELECT location_name_id FROM photos WHERE id = :id')
-        .get({ id: row.id }) as { location_name_id: number | null } | undefined;
-      if (saved?.location_name_id !== null && saved?.location_name_id !== undefined && saved.location_name_id !== 0) resolved++;
+      const saved = this.db.prepare(`SELECT photos.location_name_id, location_names.display_name
+        FROM photos LEFT JOIN location_names ON location_names.id = photos.location_name_id
+        WHERE photos.id = :id`)
+        .get({ id: row.id }) as { location_name_id: number | null; display_name: string | null } | undefined;
+      if (saved?.location_name_id !== null && saved?.location_name_id !== undefined
+        && saved.location_name_id !== 0 && saved.display_name !== null) resolved++;
       else unresolved++;
     }
     return { total: candidates.length, resolved, unresolved };
