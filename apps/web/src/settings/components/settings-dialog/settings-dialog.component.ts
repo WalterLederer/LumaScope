@@ -75,7 +75,7 @@ export class SettingsPanelComponent {
     }
     const error = this.cacheCheckError();
     if (error) lines.push(`Cache check failed: ${error}`);
-    return lines.join('\\n');
+    return lines.join('\n');
   });
   private cacheCheckRequestId = 0;
 
