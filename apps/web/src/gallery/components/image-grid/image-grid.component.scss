@@ -195,6 +195,19 @@ ui-toolbar {
     white-space: nowrap;
   }
 
+  .thumb-count {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+
+    &.incomplete {
+      color: #fff;
+      background: #c62828;
+      font-weight: 700;
+    }
+  }
+
   .dynamic-range {
     color: var(--color-content-default-medium);
 
