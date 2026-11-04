@@ -57,6 +57,11 @@ export class SettingsPanelComponent {
   private cacheInfoRequestId = 0;
   private buildCacheInfoRequestId = 0;
 
+  protected readonly cacheCheckState = signal<'idle' | 'checking' | 'complete' | 'missing' | 'error'>('idle');
+  protected readonly cacheCheckResult = signal<{ directory: string; images: number; missingThumbnails: string[]; missingFullSize: string[] } | null>(null);
+  protected readonly cacheCheckError = signal<string | null>(null);
+  private cacheCheckRequestId = 0;
+
   protected readonly isClearing = signal(false);
 
   protected readonly deleteCacheGlobal = signal(false);
@@ -299,6 +304,13 @@ export class SettingsPanelComponent {
       void this.updateBuildCacheInfo(directory || null, recursive);
     });
     effect(() => {
+      this.currentFolderPath();
+      this.cacheCheckRequestId++;
+      this.cacheCheckState.set('idle');
+      this.cacheCheckResult.set(null);
+      this.cacheCheckError.set(null);
+    });
+    effect(() => {
       const buildActive = this.cacheBuildActive();
       if (!buildActive) {
         const directory = this.currentFolderPath().trim();
@@ -444,6 +456,42 @@ export class SettingsPanelComponent {
   };
 
   /* Event handlers */
+  protected readonly checkCache = async (): Promise<void> => {
+    const directory = this.currentFolderPath().trim();
+    if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive()) return;
+
+    const requestId = ++this.cacheCheckRequestId;
+    this.cacheCheckState.set('checking');
+    this.cacheCheckResult.set(null);
+    this.cacheCheckError.set(null);
+
+    try {
+      const response = await window.desktop.FileSystem.readImages(directory, 'name', 'asc');
+      if (!response.success) throw new Error(response.errorMessage || 'Could not read the selected folder.');
+      const images = response.data;
+      const sourceNames = images.map(file => file.path);
+      const sourceMetadata = images.map(file => ({
+        path: file.path,
+        size: file.size,
+        modifiedAt: file.modifiedAt ?? 0
+      }));
+      const statuses = await this.cacheManager.getImageCacheStatuses(sourceNames, true, sourceMetadata);
+      if (requestId !== this.cacheCheckRequestId || directory !== this.currentFolderPath().trim()) return;
+
+      const missingThumbnails = statuses.filter(status => status.thumbnail === null).map(status => status.sourceName);
+      const missingFullSize = statuses
+        .filter(status => status.fullSizeRequired && status.fullSize === null)
+        .map(status => status.sourceName);
+      this.cacheCheckResult.set({ directory, images: images.length, missingThumbnails, missingFullSize });
+      this.cacheCheckState.set(missingThumbnails.length || missingFullSize.length ? 'missing' : 'complete');
+      await this.updateCacheSummary();
+    } catch (error) {
+      if (requestId !== this.cacheCheckRequestId) return;
+      this.cacheCheckError.set(error instanceof Error ? error.message : String(error));
+      this.cacheCheckState.set('error');
+    }
+  };
+
   protected readonly deleteCache = () => this.clearCache(
     'Delete all cache files',
     (directory, recursive, operationId) => this.cacheManager.clear(directory, recursive, operationId),
