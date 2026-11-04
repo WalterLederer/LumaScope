@@ -1,10 +1,10 @@
 import { Dialog } from '@angular/cdk/dialog';
-import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
+import { AsyncPipe, DecimalPipe, DOCUMENT, JsonPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, OverlayService, SliderComponent } from '@light-matter/ui';
-import { CapturePreview, Desktop, ExifTags, ImageHistogram } from 'internal-api';
+import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
@@ -557,6 +557,30 @@ export class ImageView {
   }
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
+  protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
+  protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
+  private photoDatabaseRecordRequest = 0;
+  protected readonly loadPhotoDatabaseRecord = async (): Promise<void> => {
+    const request = ++this.photoDatabaseRecordRequest;
+    const image = await this.selectedImage$.pipe(take(1)).toPromise();
+    if (!image) {
+      this.photoDatabaseRecord.set(null);
+      this.photoDatabaseRecordStatus.set('No image selected.');
+      return;
+    }
+    this.photoDatabaseRecord.set(null);
+    this.photoDatabaseRecordStatus.set('Loading database record…');
+    try {
+      const record = await this.cacheManager.getPhotoDatabaseRecord(image.path);
+      if (request !== this.photoDatabaseRecordRequest) return;
+      this.photoDatabaseRecord.set(record);
+      this.photoDatabaseRecordStatus.set(record ? 'Database record loaded.' : 'No database record exists for this image.');
+    } catch (error) {
+      if (request !== this.photoDatabaseRecordRequest) return;
+      this.photoDatabaseRecord.set(null);
+      this.photoDatabaseRecordStatus.set(`Could not load database record: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
   protected readonly refreshCurrentImageCache = (): void => {
     this.selectedImage$.pipe(take(1)).subscribe(image => {
       if (!image) { this.currentImageCacheStatus.set('No image selected.'); return; }
@@ -573,6 +597,7 @@ export class ImageView {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     this.activeImageSidebarTab.set(tab);
     if (tab === 'cache') this.refreshCurrentImageCache();
+    if (tab === 'image' && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
     if (tab === 'image') {
       // The EXIF stream may have completed while the Image tab was inactive.
       // Expose its latest result immediately; the active request updates it
@@ -584,7 +609,7 @@ export class ImageView {
     try { this.document.defaultView?.localStorage.setItem('light-matter.activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
   };
 
-  protected readonly sidebarSections = signal<Record<string, boolean>>({ zoom: true, brightness: true, basic: true, rgb: true, rgbLevels: false, inverse: false, loupe: true, loupeRenderer: false, highlight: true, toneCurve: false, mode: true, histogram: false, info: true, general: true, actions: false, copy: false });
+  protected readonly sidebarSections = signal<Record<string, boolean>>({ zoom: true, brightness: true, basic: true, rgb: true, rgbLevels: false, inverse: false, loupe: true, loupeRenderer: false, highlight: true, toneCurve: false, mode: true, histogram: false, info: true, database: false, general: true, actions: false, copy: false });
   protected readonly sidebarSectionExpanded = (key: string): boolean => ['corrections', 'highlight', 'mode', 'info', 'general'].includes(key) || this.sidebarSections()[key] === true;
   protected readonly toggleSidebarSection = (key: string): void => {
     const sections = { ...this.sidebarSections(), [key]: !this.sidebarSectionExpanded(key) };
@@ -593,6 +618,7 @@ export class ImageView {
     if (key === 'loupe') {
       void this.toggleLoupe(sections['loupe']);
     }
+    if (key === 'database' && sections['database']) void this.loadPhotoDatabaseRecord();
     if (key === 'info') {
       this.exifVisible.set(sections['info']);
       this.configuration.updateSystemConfig({ exifVisible: sections['info'] });
