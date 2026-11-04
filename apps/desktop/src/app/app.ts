@@ -243,12 +243,18 @@ export default class App {
     });
   }
 
+  private static getApplicationWindows(): Electron.BrowserWindow[] {
+    return [App.mainWindow, App.mapWindow, App.capturePreviewWindow]
+      .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
+  }
+
   static setDevToolsOpen(open: boolean) {
-    if (App.mainWindow !== null && App.mainWindow !== undefined) {
+    for (const window of App.getApplicationWindows()) {
+      if (window.webContents.isDestroyed()) continue;
       if (open) {
-        App.mainWindow.webContents.openDevTools();
-      } else {
-        App.mainWindow.webContents.closeDevTools();
+        if (!window.webContents.isDevToolsOpened()) window.webContents.openDevTools();
+      } else if (window.webContents.isDevToolsOpened()) {
+        window.webContents.closeDevTools();
       }
     }
 
@@ -303,7 +309,9 @@ export default class App {
       }));
     }
     App.capturePreviewWindow.once('ready-to-show', () => {
-      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.show();
+      if (!App.isCapturePreviewWindowOpen()) return;
+      if (App.startupConfig.devToolsOpen()) App.capturePreviewWindow.webContents.openDevTools();
+      App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.capturePreviewWindow = null;
@@ -393,7 +401,9 @@ export default class App {
       }));
     }
     App.mapWindow.once('ready-to-show', () => {
-      if (App.isMapWindowOpen()) App.mapWindow.showInactive();
+      if (!App.isMapWindowOpen()) return;
+      if (App.startupConfig.devToolsOpen()) App.mapWindow.webContents.openDevTools();
+      App.mapWindow.showInactive();
     });
     App.mapWindow.on('closed', () => {
       App.mapWindow = null;
