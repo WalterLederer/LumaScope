@@ -238,7 +238,7 @@ export class OfflineMapRenderer {
       const element = document.createElement('span');
       element.textContent = text;
       const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
-      const weight = kind === 'capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
+      const weight = kind === 'capital' || kind === 'state_capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
       element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
       const marker = new Marker({ element, anchor: 'center' })
