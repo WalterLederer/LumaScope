@@ -139,6 +139,7 @@ interface Win32NativeApi {
   SourceName: ReturnType<typeof koffi.struct>;
   AdvancedColorInfo: ReturnType<typeof koffi.struct>;
   AdvancedColorInfo2: ReturnType<typeof koffi.struct>;
+  EnumWindowsProc: ReturnType<typeof koffi.proto>;
   user32: {
     IsWindow: (handle: number) => number;
     IsWindowVisible: (handle: number) => number;
@@ -253,6 +254,7 @@ const getWin32NativeApi = (): Win32NativeApi => {
     SourceName,
     AdvancedColorInfo,
     AdvancedColorInfo2,
+    EnumWindowsProc,
     user32: {
       IsWindow: user32.func('int32_t __stdcall IsWindow(uintptr_t hWnd)'),
       IsWindowVisible: user32.func('int32_t __stdcall IsWindowVisible(uintptr_t hWnd)'),
