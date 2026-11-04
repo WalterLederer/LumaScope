@@ -166,8 +166,8 @@ export class CacheManager {
       JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder`)
       .all({ folder }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
-    let thumbnails = 0;
-    let fullSizeConversions = 0;
+    const thumbnailPaths: string[] = [];
+    const fullSizePaths: string[] = [];
 
     await Promise.all(matching.map(async row => {
       const sourceName = join(folder, row.file_name);
@@ -178,7 +178,7 @@ export class CacheManager {
         if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR && row.thumbnail_cache_version === 'sidecar-thumbnail-v2') {
           const thumbnailPath = this.getSidecarPath(sourceName, false);
           const thumbnailStats = await stat(thumbnailPath);
-          if (thumbnailStats.isFile()) thumbnails++;
+          if (thumbnailStats.isFile()) thumbnailPaths.push(sourceName);
         }
 
         const extension = extname(sourceName).toLowerCase();
@@ -189,14 +189,20 @@ export class CacheManager {
             ? this.getParallelPath(sourceName)
             : this.getSidecarPath(sourceName, true);
           const fullSizeStats = await stat(fullSizePath);
-          if (fullSizeStats.isFile()) fullSizeConversions++;
+          if (fullSizeStats.isFile()) fullSizePaths.push(sourceName);
         }
       } catch {
         // Missing source or cache files are not counted as completed conversions.
       }
     }));
 
-    return { total: sourceNames.length, thumbnails, fullSizeConversions };
+    return {
+      total: sourceNames.length,
+      thumbnails: thumbnailPaths.length,
+      fullSizeConversions: fullSizePaths.length,
+      thumbnailPaths,
+      fullSizePaths
+    };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
