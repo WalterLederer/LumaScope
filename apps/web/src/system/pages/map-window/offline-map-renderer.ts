@@ -141,22 +141,13 @@ export class OfflineMapRenderer {
     diagnostic.cameraSamples.push(this.getCameraDiagnosticSnapshot());
   };
   private getCameraDiagnosticSnapshot(): Record<string, unknown> {
-    const freeCamera = this.map.getFreeCameraOptions();
-    const position = freeCamera.position;
-    const orientation = freeCamera.orientation;
     return {
       timeMs: performance.now(),
       zoom: this.map.getZoom(),
       pitch: this.map.getPitch(),
       bearing: this.map.getBearing(),
       center: this.map.getCenter().toArray(),
-      projection: this.map.getProjection(),
-      freeCamera: {
-        position: position ? { x: position.x, y: position.y, z: position.z } : null,
-        orientation: orientation
-          ? { x: orientation.x, y: orientation.y, z: orientation.z, w: orientation.w }
-          : null
-      }
+      projection: this.map.getProjection()
     };
   }
   private readonly onDiagnosticPointerEnd = (event: PointerEvent): void => {
