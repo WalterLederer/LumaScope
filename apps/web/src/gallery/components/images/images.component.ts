@@ -59,7 +59,10 @@ export class ImagesComponent {
   readonly cacheRunProgress = signal({ completed: 0, total: 0 });
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
-  readonly refreshGallery = (): void => this.manualRefresh.update(value => value + 1);
+  readonly refreshGallery = (): void => {
+    this.manualRefresh.update(value => value + 1);
+    this.cacheUpdated.emit('');
+  };
   private observer: IntersectionObserver | null = null;
   private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
