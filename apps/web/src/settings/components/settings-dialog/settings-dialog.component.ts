@@ -29,7 +29,9 @@ export class SettingsPanelComponent {
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
   protected readonly recursiveBuild = signal(false);
-  protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');\n  protected readonly locationLookupActive = signal(false);\n  protected readonly locationLookupOutput = signal('No location lookup has run yet.');
+  protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');
+  protected readonly locationLookupActive = signal(false);
+  protected readonly locationLookupOutput = signal('No location lookup has run yet.');
   protected readonly runCacheBuild = (): void => {
     this.cacheOutputMode.set('build');
     this.cacheCheckLog.set([]);
