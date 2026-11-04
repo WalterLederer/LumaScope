@@ -220,12 +220,14 @@ export class CacheManager {
     }
 
     const root = resolve(directory);
-    const rows = this.db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path
+    const rows = this.db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path,
+          CASE WHEN location_names.display_name IS NULL THEN 1 ELSE 0 END AS needs_refresh
       FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id
       WHERE photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
-        AND (photos.location_name_id IS NULL OR photos.location_name_id = 0)
+        AND (photos.location_name_id IS NULL OR photos.location_name_id = 0 OR location_names.display_name IS NULL)
       ORDER BY paths.folder_path, photos.file_name`)
-      .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { folder_path: string }>;
+      .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { folder_path: string; needs_refresh: number }>;
     const candidates = rows.filter(row => {
       const relativeFolder = relative(root, resolve(row.folder_path));
       if (relativeFolder === '') return true;
@@ -235,8 +237,11 @@ export class CacheManager {
     let resolved = 0;
     let unresolved = 0;
     for (const row of candidates) {
-      // Allow this explicit batch action to retry previous Unknown (ID 0) results.
-      await this.ensureLocationName({ ...row, location_name_id: null }, true);
+      // Also refresh older location records that predate persistent full-address storage.
+      await this.ensureLocationName({
+        ...row,
+        location_name_id: row.needs_refresh === 1 ? null : row.location_name_id
+      }, true, false, row.needs_refresh === 1);
       const saved = this.db.prepare('SELECT location_name_id FROM photos WHERE id = :id')
         .get({ id: row.id }) as { location_name_id: number | null } | undefined;
       if (saved?.location_name_id !== null && saved?.location_name_id !== undefined && saved.location_name_id !== 0) resolved++;
