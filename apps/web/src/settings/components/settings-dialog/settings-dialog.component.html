@@ -40,6 +40,10 @@
             <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
           }
         </div>
+        <div class="build-cache-scope-stats">
+          <span>Existing cache entries in build scope</span>
+          <strong>{{ buildCacheInfo().entries }} files · {{ buildCacheInfo().bytes | byteSize }}</strong>
+        </div>
         <div class="build-cache-options">
           <label class="setting-toggle build-cache-verify">
             <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
@@ -50,10 +54,6 @@
             <span>Recursive build</span>
           </label>
         </div>
-        <label class="build-cache-current-operation">
-          <span>Current operation</span>
-          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
-        </label>
         <div class="build-cache-log-path">
           <span>Build log file</span>
           <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
@@ -134,11 +134,6 @@
     } @else if (clearError() !== null) {
       <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
     }
-        <label class="delete-cache-summary">
-          <span>Delete operation summary</span>
-          <textarea readonly rows="4" [value]="deleteCacheSummary()" aria-label="Delete cache operation summary"></textarea>
-        </label>
-
         </div>
       </section>
       </div>
