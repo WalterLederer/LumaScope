@@ -17,7 +17,8 @@ import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SettingsPanelComponent {
-  readonly mode = input<'all' | 'general' | 'cache'>('all');  readonly cacheBuildActive = input(false);
+  readonly mode = input<'all' | 'general' | 'cache'>('all');
+  readonly cacheBuildActive = input(false);
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
