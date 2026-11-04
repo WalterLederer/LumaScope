@@ -62,14 +62,14 @@ export interface CacheSummary {
 
 export type PhotoDatabaseRecord = Record<string, string | number | null>;
 
-export interface DesktopCacheManager {
+export interface ResolveLocationNamesResult {\n  total: number;\n  resolved: number;\n  unresolved: number;\n}\n\nexport interface DesktopCacheManager {
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearThumbnails: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly cancelClear: (operationId: string) => Promise<boolean>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
-  readonly getCacheSummary: () => Promise<CacheSummary>;
+  readonly getCacheSummary: () => Promise<CacheSummary>;\n  readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => Promise<CacheImageStatus[]>;
