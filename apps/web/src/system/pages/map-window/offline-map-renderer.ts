@@ -91,16 +91,20 @@ export class OfflineMapRenderer {
       // consistently above the MBTiles native maxzoom (14) to avoid unstable camera transforms.
       zoomLevelsToOverscale: 0,
       attributionControl: { compact: false },
+      // Disable drag inertia: at high zoom levels it can make the map continue
+      // moving far beyond the user's drag distance.
+      reduceMotion: true,
+      // Use the public MapLibre API to anchor wheel zoom to the map center.
+      scrollZoom: { around: 'center' },
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
     // Keep the WebGL canvas synchronized with layout changes in the settings panel.
     this.resizeObserver = new ResizeObserver(() => this.map.resize());
     this.resizeObserver.observe(container);
-    // Wheel zoom should be gentle and remain anchored to the map center, not the cursor.
+    // Keep mouse-wheel zoom deliberately slow; the anchor is configured
+    // through MapOptions.scrollZoom above (no private MapLibre fields).
     this.map.scrollZoom.setWheelZoomRate(1 / 1200);
-    // MapLibre exposes this behavior as an internal flag (unlike Mapbox GL JS).
-    (this.map.scrollZoom as unknown as { _aroundCenter: boolean })._aroundCenter = true;
     let mapErrorCount = 0;
     this.map.on('error', event => {
       this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
