@@ -94,7 +94,8 @@ button {
   }
 }
 
-:host(.view-details) {
+:host(.view-details),
+:host(.view-details-no-thumbnails) {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
@@ -115,6 +116,11 @@ button {
     background: var(--color-surface-default-medium);
   }
 
+  &.view-details-no-thumbnails {
+    grid-template-columns: repeat(9, max-content);
+    min-height: 36px;
+  }
+
   .detail-columns {
     display: contents;
     font-size: 12px;
@@ -127,6 +133,11 @@ button {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  &.view-details-no-thumbnails .detail-columns > span:first-child {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .detail-name {
