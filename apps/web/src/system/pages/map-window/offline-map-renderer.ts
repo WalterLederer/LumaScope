@@ -289,8 +289,47 @@ export class OfflineMapRenderer {
     this.map.on('dragstart', this.onDiagnosticMapDragStart);
     this.map.on('drag', this.onDiagnosticMapDrag);
     this.map.on('dragend', this.onDiagnosticMapDragEnd);
-    // Keep the WebGL canvas synchronized with layout changes in the settings panel.
-    this.resizeObserver = new ResizeObserver(() => this.map.resize());
+    // Log the exact layout transition when the settings panel changes the map viewport.
+    // This helps distinguish stale canvas dimensions from incorrect drag coordinate mapping.
+    let previousObservedSize: [number, number] | null = null;
+    this.resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      const rect = container.getBoundingClientRect();
+      const observedSize: [number, number] = [rect.width, rect.height];
+      const changed = !previousObservedSize
+        || previousObservedSize[0] !== observedSize[0]
+        || previousObservedSize[1] !== observedSize[1];
+      if (!changed) return;
+
+      const previousSize = previousObservedSize;
+      previousObservedSize = observedSize;
+      const canvas = this.map.getCanvas();
+      console.info('[OfflineMap][ResizeObserver]', {
+        timeMs: performance.now(),
+        previousContainerSize: previousSize,
+        observedContentRect: entry ? [entry.contentRect.width, entry.contentRect.height] : null,
+        containerClientSize: [container.clientWidth, container.clientHeight],
+        containerRect: observedSize,
+        canvasRectBeforeResize: (() => {
+          const canvasRect = canvas.getBoundingClientRect();
+          return [canvasRect.width, canvasRect.height];
+        })(),
+        canvasBackingStoreBeforeResize: [canvas.width, canvas.height]
+      });
+
+      this.map.resize();
+
+      const resizedCanvasRect = canvas.getBoundingClientRect();
+      console.info('[OfflineMap][ResizeComplete]', {
+        timeMs: performance.now(),
+        containerClientSize: [container.clientWidth, container.clientHeight],
+        containerRect: [rect.width, rect.height],
+        canvasRect: [resizedCanvasRect.width, resizedCanvasRect.height],
+        canvasBackingStore: [canvas.width, canvas.height],
+        mapCenter: this.map.getCenter().toArray(),
+        zoom: this.map.getZoom()
+      });
+    });
     this.resizeObserver.observe(container);
     // Keep mouse-wheel zoom deliberately slow; the anchor is configured
     // through MapOptions.scrollZoom above (no private MapLibre fields).
