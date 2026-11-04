@@ -21,6 +21,7 @@ import { chevronRight } from './chevron_right_16_regular';
 import { chevronUp } from './chevron_up_16_regular';
 import { circleSmallFilled } from './circle_small_20_filled';
 import { circleSmall } from './circle_small_20_regular';
+import { desktopColor } from './desktop_color_16_filled';
 import { desktopFilled } from './desktop_16_filled';
 import { desktop } from './desktop_16_regular';
 import { dismissCircleFilled } from './dismiss_circle_16_filled';
@@ -29,6 +30,7 @@ import { folderFilled } from './folder_16_filled';
 import { folder } from './folder_16_regular';
 import { folderAddFilled } from './folder_add_16_filled';
 import { folderAdd } from './folder_add_16_regular';
+import { folderOpenFilled } from './folder_open_16_filled';
 import { folderOpen } from './folder_open_16_regular';
 import { folderProhibitedFilled } from './folder_prohibited_16_filled';
 import { folderProhibited } from './folder_prohibited_16_regular';
@@ -76,6 +78,7 @@ export const allIcons = [
   'chevronUp',
   'circleSmall',
   'circleSmallFilled',
+  'desktopColor',
   'desktopFilled',
   'desktop',
   'dismissCircleFilled',
@@ -84,6 +87,7 @@ export const allIcons = [
   'folder',
   'folderAddFilled',
   'folderAdd',
+  'folderOpenFilled',
   'folderOpen',
   'folderProhibitedFilled',
   'folderProhibited',
@@ -134,6 +138,7 @@ export const iconMapping: Record<IconName, string> = {
   chevronUp,
   circleSmall,
   circleSmallFilled,
+  desktopColor,
   desktopFilled,
   desktop,
   dismissCircleFilled,
@@ -142,6 +147,7 @@ export const iconMapping: Record<IconName, string> = {
   folder,
   folderAddFilled,
   folderAdd,
+  folderOpenFilled,
   folderOpen,
   folderProhibitedFilled,
   folderProhibited,
