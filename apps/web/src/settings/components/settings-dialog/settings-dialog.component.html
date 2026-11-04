@@ -58,6 +58,7 @@
           @if (cacheCheckResult(); as check) {
             <div class="cache-summary-check">
               <strong>Cache check · {{ check.directory }}</strong>
+              <span>Scope: {{ check.recursive ? 'Current folder and all subfolders' : 'Current folder only' }}</span>
               <span>Images checked: {{ check.images }}</span>
               <span>Missing thumbnails: {{ check.missingThumbnails.length }}</span>
               <span>Missing full-size conversions: {{ check.missingFullSize.length }}</span>
