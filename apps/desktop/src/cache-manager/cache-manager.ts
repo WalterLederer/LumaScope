@@ -152,6 +152,51 @@ export class CacheManager {
     });
   };
 
+  @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
+  readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[]): Promise<CacheDirectoryStats> => {
+    if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
+      throw new Error('A list of valid image paths is required.');
+    }
+
+    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0 };
+
+    const folder = dirname(sourceNames[0]);
+    const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
+    const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
+      JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder`)
+      .all({ folder }) as unknown as Array<PhotoRow & { folder_path: string }>;
+    const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
+    let thumbnails = 0;
+    let fullSizeConversions = 0;
+
+    await Promise.all(matching.map(async row => {
+      const sourceName = join(folder, row.file_name);
+      try {
+        const sourceStats = await stat(sourceName);
+        if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) return;
+
+        if (row.thumbnail_cache_id !== null && row.thumbnail_cache_version) {
+          const thumbnailPath = this.getSidecarPath(sourceName, false);
+          const thumbnailStats = await stat(thumbnailPath);
+          if (thumbnailStats.isFile()) thumbnails++;
+        }
+
+        if (FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase())
+          && row.fullsize_cache_id !== null && row.fullsize_cache_version) {
+          const fullSizePath = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL
+            ? this.getParallelPath(sourceName)
+            : this.getSidecarPath(sourceName, true);
+          const fullSizeStats = await stat(fullSizePath);
+          if (fullSizeStats.isFile()) fullSizeConversions++;
+        }
+      } catch {
+        // Missing source or cache files are not counted as completed conversions.
+      }
+    }));
+
+    return { total: sourceNames.length, thumbnails, fullSizeConversions };
+  };
+
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
