@@ -313,6 +313,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private locationUpdateVersion = 0;
   private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
+  private mapSourceGeneration = 0;
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
@@ -417,6 +418,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
         || nextLatitude! < -90 || nextLatitude! > 90 || nextLongitude! < -180 || nextLongitude! > 180) {
         this.locationLookupVersion++;
+        this.mapSourceGeneration++;
+        this.mapInitialization = null;
         this.coordinatesAvailable.set(false);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('This image does not contain GPS coordinates.');
@@ -455,6 +458,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.mapSourceGeneration++;
+    this.mapInitialization = null;
     this.unsubscribeLocation?.();
     this.markerScanGeneration++;
     this.clearDirectoryMarkers();
@@ -723,11 +728,13 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
+    const generation = this.mapSourceGeneration;
     if (this.mapSource() === 'offline') {
       if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); return; }
       if (this.mapInitialization) await this.mapInitialization;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
       if (this.offlineRenderer || this.map) return;
-      const initialization = this.createOfflineMap(latitude, longitude);
+      const initialization = this.createOfflineMap(latitude, longitude, generation);
       this.mapInitialization = initialization;
       try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
       return;
@@ -742,6 +749,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (this.mapInitialization) {
       await this.mapInitialization;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
       // TypeScript cannot see that createMap() assigns this.map across the await.
       const map = this.map as MapInstance | null;
       if (map) {
@@ -751,7 +759,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    const initialization = this.createMap(latitude, longitude);
+    const initialization = this.createMap(latitude, longitude, generation);
     this.mapInitialization = initialization;
     try {
       await initialization;
@@ -760,18 +768,36 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private async createOfflineMap(latitude: number, longitude: number): Promise<void> {
+  private async createOfflineMap(latitude: number, longitude: number, generation: number): Promise<void> {
     const status = await this.desktop?.OfflineMap.getStatus();
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
     this.offlineMapStatus.set(status ?? null);
     if (!status?.available) {
       this.locationAddress.set(status?.error ?? 'Select a valid Austria MBTiles file in Map settings.');
       this.mapSource.set('online'); this.saveSetting('source', 'online');
-      await this.createMap(latitude, longitude);
+      await this.createMap(latitude, longitude, generation);
       return;
     }
     const renderer = new OfflineMapRenderer(this.mapElement().nativeElement, [longitude, latitude], this.validZoom(this.zoomLevel()));
     this.offlineRenderer = renderer;
-    await renderer.ready;
+    try {
+      await renderer.ready;
+    } catch (error) {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      if (generation === this.mapSourceGeneration) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.offlineMapStatus.set({ ...status, error: message });
+        this.locationAddress.set('Offline map could not be initialized: ' + message);
+        console.error('[OfflineMap] Initialization failed:', error);
+      }
+      return;
+    }
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      return;
+    }
     renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
     this.applyMapColor(); this.applyMapOpacity();
     renderer.map.on('zoomend', () => {
@@ -782,9 +808,11 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
-  private async createMap(latitude: number, longitude: number): Promise<void> {
+  private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
-    this.leaflet = await this.loadLeaflet();
+    const leaflet = await this.loadLeaflet();
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
+    this.leaflet = leaflet;
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
@@ -840,6 +868,8 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly changeMapSource = (value: string): void => {
     if (value !== 'online' && value !== 'offline') return;
+    this.mapSourceGeneration++;
+    this.mapInitialization = null;
     this.mapSource.set(value); this.saveSetting('source', value);
     if (this.currentLatitude !== null && this.currentLongitude !== null) {
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
