@@ -41,6 +41,10 @@ export class SettingsPanelComponent {
 
   protected readonly isClearing = signal(false);
 
+  protected readonly deleteCacheGlobal = signal(false);
+
+  protected readonly recursiveDelete = signal(false);
+
   protected readonly externalProcessCalls = signal<ExternalProcessCall[]>([]);
 
   protected readonly profilingError = signal<string | null>(null);
@@ -333,22 +337,40 @@ export class SettingsPanelComponent {
 
   /* Event handlers */
   protected readonly deleteCache = () => this.clearCache(
-    () => this.cacheManager.clear(),
-    'Delete ALL cache files (thumbnails and full-size conversions) from EVERY registered folder? This cannot be undone.'
+    (directory, recursive) => this.cacheManager.clear(directory, recursive),
+    'Delete all selected cache files from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteFullSizeCache = () => this.clearCache(
-    () => this.cacheManager.clearFullSize(),
-    'Delete all full-size cache conversions from EVERY registered folder? This cannot be undone.'
+    (directory, recursive) => this.cacheManager.clearFullSize(directory, recursive),
+    'Delete full-size cache conversions from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteThumbnailsCache = () => this.clearCache(
-    () => this.cacheManager.clearThumbnails(),
-    'Delete all thumbnail files from EVERY registered folder? This cannot be undone.'
+    (directory, recursive) => this.cacheManager.clearThumbnails(directory, recursive),
+    'Delete thumbnail files from the chosen scope? This cannot be undone.'
   );
 
-  private readonly clearCache = async (clear: () => Promise<CacheClearResult>, confirmationMessage: string) => {
-    if (this.isClearing() || !window.confirm(confirmationMessage)) {
+  private readonly clearCache = async (
+    clear: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>,
+    confirmationMessage: string
+  ) => {
+    if (this.isClearing()) return;
+
+    const global = this.deleteCacheGlobal();
+    const directory = global ? undefined : this.currentFolderPath().trim();
+    const recursive = !global && this.recursiveDelete();
+    if (!global && !directory) {
+      this.clearError.set('Select a gallery folder, or enable Delete cache global.');
+      return;
+    }
+
+    const scope = global
+      ? 'EVERY registered folder'
+      : recursive
+        ? 'the current folder and all its subfolders'
+        : 'the current folder only';
+    if (!window.confirm(confirmationMessage.replace('the chosen scope', scope) + (global ? '' : '')) {
       return;
     }
 
@@ -357,7 +379,7 @@ export class SettingsPanelComponent {
     this.clearError.set(null);
 
     try {
-      const result = await clear();
+      const result = await clear(directory, recursive);
       await this.updateCacheInfo();
       this.lastClearResult.set(result);
     } catch (error) {
