@@ -577,7 +577,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
     this.currentMarkerShape.set(value); this.saveSetting('currentMarkerShape', value);
     this.marker?.setIcon(this.createCurrentLocationIcon());
-    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100);
+    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
   };
   protected readonly changeCurrentMarkerColor = (value: string): void => {
     if (!this.gpxColors.some(color => color.value === value)) return;
@@ -974,8 +974,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
   private applyMapOpacity(): void {
-    const mapLibreCanvas = this.mapElement().nativeElement.querySelector<HTMLElement>('.maplibregl-canvas');
-    if (mapLibreCanvas) mapLibreCanvas.style.opacity = String(this.mapOpacity() / 100);
+    this.offlineRenderer?.setBasemapOpacity(this.mapOpacity() / 100);
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
     if (pane) pane.style.opacity = String(this.mapOpacity() / 100);
   }
