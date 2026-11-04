@@ -310,7 +310,8 @@ export class CacheManager {
 
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
       const row = findPhoto.get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
-      if (row) await this.ensureLocationName(row);
+      // Cache status checks must never wait for reverse geocoding. Geocoding is
+      // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
       const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
