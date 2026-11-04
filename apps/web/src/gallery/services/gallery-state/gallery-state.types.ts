@@ -4,7 +4,7 @@ import { allSortDirections, allSortTypes, SortDirection, SortType } from 'intern
 export const galleryRoot = (): TreeNode<string> => ({
   id: '',
   label: 'My PC',
-  openIcon: 'desktopColor',
+  openIcon: 'desktopFilled',
   closedIcon: 'desktopColor',
   isOpen: true,
   children: []
