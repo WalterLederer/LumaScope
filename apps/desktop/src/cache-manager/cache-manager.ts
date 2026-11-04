@@ -603,7 +603,9 @@ export class CacheManager {
 
     const updated = this.getPhoto(sourceName);
     if (!updated) return null;
-    const resolvedDisplayName = await this.ensureLocationName(updated, true, true, true);
+    // Map-window address display is a normal read path: reuse the saved DB location
+    // and only contact the provider when this photo has no linked location yet.
+    const resolvedDisplayName = await this.ensureLocationName(updated, true, true, false);
 
     const saved = this.db.prepare(`SELECT location_names.display_name, location_names.place_name,
         location_names.locality, location_names.region, location_names.country_code
