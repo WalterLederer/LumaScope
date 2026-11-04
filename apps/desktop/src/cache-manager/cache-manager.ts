@@ -502,6 +502,41 @@ export class CacheManager {
     return row ?? null;
   };
 
+  @IpcHandler({ name: 'CacheManager.resolvePhotoLocation' })
+  readonly resolvePhotoLocation = async (
+    _event: IpcMainInvokeEvent,
+    sourceName: string,
+    latitude: number,
+    longitude: number
+  ): Promise<string | null> => {
+    if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      throw new Error('Valid GPS coordinates are required.');
+    }
+
+    const sourceStats = await stat(sourceName);
+    if (!sourceStats.isFile()) throw new Error('The selected image file is not available.');
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+
+    if (row.latitude !== latitude || row.longitude !== longitude) {
+      this.db.prepare('UPDATE photos SET latitude = :latitude, longitude = :longitude, location_name_id = NULL WHERE id = :id')
+        .run({ latitude, longitude, id: row.id });
+    }
+
+    const updated = this.getPhoto(sourceName);
+    if (!updated) return null;
+    await this.ensureLocationName(updated, true);
+
+    const saved = this.db.prepare('SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
+      FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id')
+      .get({ id: row.id }) as { place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
+    if (!saved) return null;
+    return [saved.place_name, saved.locality, saved.region, saved.country_code]
+      .filter((part, index, values): part is string => !!part && values.indexOf(part) === index)
+      .join(', ');
+  };
+
   @IpcHandler({ name: 'CacheManager.imageCachePath' })
   readonly imageCachePath = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<string | null> => {
     const row = this.getPhoto(sourceName);
