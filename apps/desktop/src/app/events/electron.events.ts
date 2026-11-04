@@ -1138,6 +1138,7 @@ let cachedTopLevelWindowEnumerator: (() => CaptureSources['windows']) | null = n
 
 const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   if (cachedTopLevelWindowEnumerator) return cachedTopLevelWindowEnumerator();
+
   const user32 = koffi.load('user32.dll');
   const kernel32 = koffi.load('kernel32.dll');
 
@@ -1171,85 +1172,86 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
 
   const runEnumeration = (): CaptureSources['windows'] => {
     const rows: CaptureSources['windows'] = [];
-  let callbackError: Error | null = null;
+    let callbackError: Error | null = null;
 
-  const enumerate = (handle: number, _lParam: number): number => {
-    try {
-      if (IsWindowVisible(handle) === 0) return 1;
+    const enumerate = (handle: number, _lParam: number): number => {
+      try {
+        if (IsWindowVisible(handle) === 0) return 1;
 
-      const titleBuffer = Buffer.alloc(2048);
-      const titleLength = GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2);
-      const title = titleLength > 0 ? String(koffi.decode(titleBuffer, 'char16_t', titleLength)).trim() : '';
-      if (!title) return 1;
+        const titleBuffer = Buffer.alloc(2048);
+        const titleLength = GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2);
+        const title = titleLength > 0
+          ? String(koffi.decode(titleBuffer, 'char16_t', titleLength)).trim()
+          : '';
+        if (!title) return 1;
 
-      const processIdOut = [0];
-      GetWindowThreadProcessId(handle, processIdOut);
-      const processId = Number(processIdOut[0]) || 0;
+        const processIdOut = [0];
+        GetWindowThreadProcessId(handle, processIdOut);
+        const processId = Number(processIdOut[0]) || 0;
 
-      const rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
-      const hasRect = GetWindowRect(handle, rect);
-      const width = hasRect ? Math.max(0, rect.Right - rect.Left) : 0;
-      const height = hasRect ? Math.max(0, rect.Bottom - rect.Top) : 0;
-      const isMinimized = IsIconic(handle) !== 0;
+        const rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
+        const hasRect = GetWindowRect(handle, rect) !== 0;
+        const width = hasRect ? Math.max(0, rect.Right - rect.Left) : 0;
+        const height = hasRect ? Math.max(0, rect.Bottom - rect.Top) : 0;
+        const isMinimized = IsIconic(handle) !== 0;
 
-      let executablePath: string | undefined;
-      // Process access is deliberately deferred until the window is large enough
-      // to be a useful capture source. Tiny helper windows do not need an EXE lookup.
-      if (processId !== 0 && width > 100 && height > 100) {
-        const process = OpenProcess(0x1000, false, processId);
-        if (process !== 0) {
-          try {
-            const pathBuffer = Buffer.alloc(32768 * 2);
-            const pathSize = [32768];
-            if (QueryFullProcessImageNameW(process, 0, pathBuffer, pathSize) !== 0 && pathSize[0] > 0) {
-              executablePath = String(koffi.decode(pathBuffer, 'char16_t', Number(pathSize[0])));
+        let executablePath: string | undefined;
+        // Only inspect a process when its window is large enough to be a useful capture source.
+        if (processId !== 0 && width > 100 && height > 100) {
+          const process = OpenProcess(0x1000, false, processId);
+          if (process !== 0) {
+            try {
+              const pathBuffer = Buffer.alloc(32768 * 2);
+              const pathSize = [32768];
+              if (QueryFullProcessImageNameW(process, 0, pathBuffer, pathSize) !== 0 && pathSize[0] > 0) {
+                executablePath = String(koffi.decode(pathBuffer, 'char16_t', Number(pathSize[0])));
+              }
+            } finally {
+              CloseHandle(process);
             }
-          } finally {
-            CloseHandle(process);
           }
         }
-      }
 
-      let monitorDeviceName: string | undefined;
-      if (hasRect && width > 100 && height > 100 && !isMinimized) {
-        const monitor = MonitorFromRect(rect, 2); // MONITOR_DEFAULTTONEAREST
-        if (monitor !== 0) {
-          const info = {
-            cbSize: koffi.sizeof(MonitorInfoEx),
-            rcMonitor: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
-            rcWork: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
-            dwFlags: 0,
-            szDevice: ''
-          };
-          if (GetMonitorInfoW(monitor, info) !== 0) {
-            const device = String(info.szDevice ?? '').trim();
-            if (device) monitorDeviceName = device;
+        let monitorDeviceName: string | undefined;
+        if (hasRect && width > 100 && height > 100 && !isMinimized) {
+          const monitor = MonitorFromRect(rect, 2); // MONITOR_DEFAULTTONEAREST
+          if (monitor !== 0) {
+            const info = {
+              cbSize: koffi.sizeof(MonitorInfoEx),
+              rcMonitor: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+              rcWork: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+              dwFlags: 0,
+              szDevice: ''
+            };
+            if (GetMonitorInfoW(monitor, info) !== 0) {
+              const device = String(info.szDevice ?? '').trim();
+              if (device) monitorDeviceName = device;
+            }
           }
         }
+
+        rows.push({
+          title,
+          processName: executablePath ? path.basename(executablePath) : 'Unknown executable',
+          executablePath,
+          processId,
+          handle,
+          width,
+          height,
+          monitorIndex: -1,
+          monitorDeviceName,
+          isMinimized
+        });
+        return 1;
+      } catch (error) {
+        callbackError = error instanceof Error ? error : new Error(String(error));
+        return 0;
       }
+    };
 
-      rows.push({
-        title,
-        processName: executablePath ? path.basename(executablePath) : 'Unknown executable',
-        executablePath,
-        processId,
-        handle,
-        width,
-        height,
-        monitorIndex: -1,
-        monitorDeviceName,
-        isMinimized
-      });
-      return 1;
-    } catch (error) {
-      callbackError = error instanceof Error ? error : new Error(String(error));
-      return 0;
-    }
-  };
-
-  const completed = EnumWindows(enumerate, 0);
-  if (callbackError) throw callbackError;
-  if (completed === 0) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
+    const completed = EnumWindows(enumerate, 0);
+    if (callbackError) throw callbackError;
+    if (completed === 0) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
 
     return rows.sort((a, b) =>
       a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
