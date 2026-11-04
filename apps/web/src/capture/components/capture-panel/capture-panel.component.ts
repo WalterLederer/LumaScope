@@ -32,6 +32,8 @@ type CaptureSourceRow = {
   exe: string;
   title: string;
   size: string;
+  zOrder: string;
+  hwnd: string;
   displayMode: string;
   status: string;
   minimized: boolean;
@@ -121,6 +123,8 @@ export class CapturePanelComponent {
         exe: `Monitor ${monitor.index}`,
         title: monitor.name || monitor.deviceName || `Monitor ${monitor.index}`,
         size: `${monitor.width} × ${monitor.height}`,
+        zOrder: '—',
+        hwnd: '—',
         displayMode: monitor.isHdr === undefined ? 'Unknown' : monitor.isHdr ? 'HDR' : 'SDR',
         status: `${monitor.isHdr === undefined ? 'Mode unknown' : monitor.isHdr ? 'HDR' : 'SDR'}${monitor.refreshRate ? ` · ${monitor.refreshRate} Hz` : ''}`,
         minimized: false,
@@ -139,6 +143,8 @@ export class CapturePanelComponent {
         exe: this.windowExecutableName(window),
         title: window.title,
         size: `${window.width} × ${window.height}`,
+        zOrder: String(window.zOrder),
+        hwnd: this.formatWindowHandle(window.handle),
         displayMode: this.windowDisplayMode({ ...window, monitorIndex: resolvedMonitorIndex }),
         status: window.isMinimized
           ? '[Minimized]'
@@ -161,7 +167,7 @@ export class CapturePanelComponent {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
       title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding the application',
-      size: 'Automatic', displayMode: '—',
+      size: 'Automatic', zOrder: '—', hwnd: '—', displayMode: '—',
       status: this.includeLightMatterWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
       minimized: false, unavailable: false
     };
@@ -169,19 +175,17 @@ export class CapturePanelComponent {
       value: 'rectangle', kind: 'rectangle', favoriteKey: 'rectangle',
       favorite: favorites.has('rectangle'), exe: 'Rectangle',
       title: 'Select an area directly on the screen',
-      size: 'Custom', displayMode: 'HDR',
+      size: 'Custom', zOrder: '—', hwnd: '—', displayMode: 'HDR',
       status: 'Drag to select · Esc to cancel',
       minimized: false, unavailable: false
     };
-    return [topWindow, rectangle, ...[...monitors, ...windows].sort((a, b) =>
-      capturabilityTier(a) - capturabilityTier(b) ||
-      Number(b.favorite) - Number(a.favorite) ||
-      Number(b.kind === 'monitor') - Number(a.kind === 'monitor') ||
-      a.exe.localeCompare(b.exe, undefined, { sensitivity: 'base' }) ||
-      a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-    )];
+    // Native EnumWindows order is front-to-back. Preserve it exactly in the list.
+    return [topWindow, rectangle, ...monitors, ...windows];
   };
 
+
+  private readonly formatWindowHandle = (handle: number): string =>
+    `0x${handle.toString(16).toUpperCase().padStart(8, '0')}`;
 
   private readonly normalizeDisplayName = (name?: string): string => (name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -197,15 +201,22 @@ export class CapturePanelComponent {
       return;
     }
     const trigger = this.hostElement.nativeElement.querySelector('.capture-source-trigger');
+    const menu = this.hostElement.nativeElement.querySelector('.capture-source-menu') as HTMLElement & { showPopover?: () => void };
     if (trigger) {
       const rect = trigger.getBoundingClientRect();
       const viewportPadding = 16;
       const maxWidth = Math.max(320, window.innerWidth - viewportPadding * 2);
-      const width = Math.min(900, maxWidth);
+      const width = Math.min(1120, maxWidth);
       const left = Math.max(viewportPadding, Math.min(rect.right - width, window.innerWidth - width - viewportPadding));
-      this.sourceMenuStyle.set(`position:fixed;top:${Math.min(rect.bottom + 3, window.innerHeight - 120)}px;left:${left}px;width:${width}px;max-width:calc(100vw - ${viewportPadding * 2}px);`);
+      const preferredTop = rect.bottom + 3;
+      const availableBelow = window.innerHeight - preferredTop - viewportPadding;
+      const top = availableBelow >= 220
+        ? preferredTop
+        : Math.max(viewportPadding, rect.top - Math.min(360, window.innerHeight - viewportPadding * 2) - 3);
+      this.sourceMenuStyle.set(`position:fixed;top:${top}px;left:${left}px;width:${width}px;max-width:calc(100vw - ${viewportPadding * 2}px);`);
     }
     this.sourceMenuOpen.set(true);
+    if (menu && !menu.matches(':popover-open')) menu.showPopover?.();
   };
 
   @HostListener('document:click', ['$event'])
@@ -213,12 +224,16 @@ export class CapturePanelComponent {
     const target = event.target;
     if (!(target instanceof Element) || !this.hostElement.nativeElement.querySelector('.capture-source-picker')?.contains(target)) {
       this.sourceMenuOpen.set(false);
+      const menu = this.hostElement.nativeElement.querySelector('.capture-source-menu') as HTMLElement & { hidePopover?: () => void };
+      if (menu?.matches(':popover-open')) menu.hidePopover?.();
     }
   };
 
   @HostListener('document:keydown.escape')
   protected readonly closeSourceMenuOnEscape = (): void => {
     this.sourceMenuOpen.set(false);
+    const menu = this.hostElement.nativeElement.querySelector('.capture-source-menu') as HTMLElement & { hidePopover?: () => void };
+    if (menu?.matches(':popover-open')) menu.hidePopover?.();
   };
 
   @HostListener('window:keydown', ['$event'])
