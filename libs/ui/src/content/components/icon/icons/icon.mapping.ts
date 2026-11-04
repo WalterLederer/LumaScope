@@ -22,6 +22,7 @@ import { chevronUp } from './chevron_up_16_regular';
 import { circleSmallFilled } from './circle_small_20_filled';
 import { circleSmall } from './circle_small_20_regular';
 import { desktopColor } from './desktop_color_16_filled';
+import { desktopOff } from './desktop_off_16_filled';
 import { desktopFilled } from './desktop_16_filled';
 import { desktop } from './desktop_16_regular';
 import { dismissCircleFilled } from './dismiss_circle_16_filled';
@@ -79,6 +80,7 @@ export const allIcons = [
   'circleSmall',
   'circleSmallFilled',
   'desktopColor',
+  'desktopOff',
   'desktopFilled',
   'desktop',
   'dismissCircleFilled',
@@ -139,6 +141,7 @@ export const iconMapping: Record<IconName, string> = {
   circleSmall,
   circleSmallFilled,
   desktopColor,
+  desktopOff,
   desktopFilled,
   desktop,
   dismissCircleFilled,
