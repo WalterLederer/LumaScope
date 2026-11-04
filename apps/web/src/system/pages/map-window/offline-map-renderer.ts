@@ -105,9 +105,10 @@ export class OfflineMapRenderer {
       if (typeof clusterId !== 'number' || !coordinates) return;
       const source = this.map.getSource('photo-markers');
       if (!source || !('getClusterExpansionZoom' in source)) return;
-      (source as import('maplibre-gl').GeoJSONSource).getClusterExpansionZoom(clusterId, (error, zoom) => {
-        if (!error && zoom !== undefined) this.map.easeTo({ center: coordinates as [number, number], zoom });
-      });
+      void (source as import('maplibre-gl').GeoJSONSource)
+        .getClusterExpansionZoom(clusterId)
+        .then(zoom => this.map.easeTo({ center: coordinates as [number, number], zoom }))
+        .catch(() => undefined);
     });
     this.map.on('click', 'photo-unclustered', event => {
       const path = event.features?.[0]?.properties?.['path'];
@@ -173,11 +174,11 @@ export class OfflineMapRenderer {
   }
 
   setBasemapOpacity(opacity: number): void {
-    const layers: Array<[string, string]> = [
+    const layers = [
       ['background', 'background-opacity'], ['land', 'fill-opacity'], ['ocean', 'fill-opacity'],
       ['water-polygons', 'fill-opacity'], ['water-lines', 'line-opacity'], ['boundaries', 'line-opacity'],
       ['streets', 'line-opacity'], ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
-    ];
+    ] as const;
     for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
   }
 
