@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, DesktopCacheManager, PhotoLocation } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, CacheSummary, DesktopCacheManager, PhotoLocation } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class CacheManager implements DesktopCacheManager {
@@ -32,6 +32,8 @@ export class CacheManager implements DesktopCacheManager {
   };
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
+
+  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();
 
   readonly cacheInfo = (directory?: string, recursive = false): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo(directory, recursive);
 
