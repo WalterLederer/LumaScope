@@ -117,7 +117,7 @@ button {
   }
 
   &.view-details-no-thumbnails {
-    grid-template-columns: repeat(9, max-content);
+    grid-template-columns: repeat(10, max-content);
     min-height: 36px;
   }
 
@@ -138,6 +138,10 @@ button {
   &.view-details-no-thumbnails .detail-columns > span:first-child {
     border-left: 0;
     padding-left: 0;
+  }
+
+  .detail-location {
+    max-width: 420px;
   }
 
   .detail-name {
