@@ -23,6 +23,31 @@
 
   }
 
+  @if (mode() === 'cache') {
+    <section class="build-cache-section">
+      <div class="build-cache-box">
+        <h3>Build cache</h3>
+        <p>Generate missing thumbnails and full-size conversions for the current folder or recursively for all subfolders.</p>
+        <div class="build-cache-actions">
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild()" (click)="startCacheBuild()?.()">Cache</button>
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startRecursiveCacheBuild()" (click)="startRecursiveCacheBuild()?.()">Cache recursive</button>
+          @if (cacheBuildActive()) {
+            <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="cancelCacheBuild()?.()">Cancel</button>
+            <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
+          }
+        </div>
+        <label class="setting-toggle build-cache-verify">
+          <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
+          <span>Verify cache files</span>
+        </label>
+        <div class="build-cache-log-path">
+          <span>Build log file</span>
+          <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
+        </div>
+      </div>
+    </section>
+  }
+
   @if (mode() !== 'general') {
   <section>
     <div class="cache-details">
