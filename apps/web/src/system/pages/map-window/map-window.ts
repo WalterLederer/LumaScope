@@ -778,7 +778,16 @@ export class MapWindow implements OnInit, OnDestroy {
       await this.createMap(latitude, longitude, generation);
       return;
     }
-    const renderer = new OfflineMapRenderer(this.mapElement().nativeElement, [longitude, latitude], this.validZoom(this.zoomLevel()));
+    const renderer = new OfflineMapRenderer(
+      this.mapElement().nativeElement,
+      [longitude, latitude],
+      this.validZoom(this.zoomLevel()),
+      message => {
+        if (generation !== this.mapSourceGeneration) return;
+        this.offlineMapStatus.update(current => current ? { ...current, error: message } : current);
+        this.locationAddress.set('Offline map rendering error: ' + message);
+      }
+    );
     this.offlineRenderer = renderer;
     try {
       await renderer.ready;
