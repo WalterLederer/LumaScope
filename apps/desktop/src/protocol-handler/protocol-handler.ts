@@ -58,6 +58,11 @@ const fullSizeCacheStatus = new Map<string, boolean>();
 export const protocolHandler = async (request: GlobalRequest): Promise<GlobalResponse> => {
   const parsed = new url.URL(request.url);
 
+  // Tile URLs include zoom/x/y after the route prefix; match the prefix, not only the bare path.
+  if (parsed.pathname.startsWith(`${appPaths.offlineTiles}/`)) {
+    return offlineTile(parsed.pathname);
+  }
+
   switch (parsed.pathname) {
     case appPaths.thumbs:
       return await thumb(parsed.searchParams, request.signal);
@@ -70,9 +75,6 @@ export const protocolHandler = async (request: GlobalRequest): Promise<GlobalRes
 
     case appPaths.conversionTime:
       return await conversionTime(parsed.searchParams);
-
-    case appPaths.offlineTiles:
-      return offlineTile(parsed.pathname);
 
     default:
       return notFound();
