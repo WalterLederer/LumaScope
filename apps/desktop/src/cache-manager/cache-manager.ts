@@ -499,8 +499,8 @@ export class CacheManager {
         photos.direction_deg,
         photos.coordinate_source_id,
         coordinate_sources.name AS coordinate_source_id_expanded,
-        photos.location_name_id,
-        CASE WHEN location_names.id IS NULL THEN NULL ELSE
+        CASE WHEN photos.location_name_id = 0 THEN NULL ELSE photos.location_name_id END AS location_name_id,
+        CASE WHEN photos.location_name_id = 0 OR location_names.id IS NULL THEN NULL ELSE
           location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
           COALESCE(', ' || location_names.region, '') ||
           COALESCE(', ' || location_names.country_code, '') END AS location_name_id_expanded
@@ -509,7 +509,7 @@ export class CacheManager {
       LEFT JOIN cache_storage_types AS cache_thumb ON cache_thumb.id = photos.thumbnail_cache_id
       LEFT JOIN cache_storage_types AS cache_full ON cache_full.id = photos.fullsize_cache_id
       LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
-      LEFT JOIN location_names ON location_names.id = photos.location_name_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
@@ -719,7 +719,7 @@ export class CacheManager {
     if (pending) return pending;
 
     const operation = (async (): Promise<string | null> => {
-      let locationNameId = 0;
+      let locationNameId: number | null = null;
       let displayName: string | null = null;
       try {
         const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
@@ -742,8 +742,13 @@ export class CacheManager {
             .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
           if (saved) locationNameId = saved.id;
         }
-      } catch {
-        // Store the sentinel ID so an unavailable lookup is not repeated on every cache check.
+      } catch (error) {
+        console.error('[CacheManager] Reverse geocoding failed', {
+          photoId: photo.id,
+          latitude: photo.latitude,
+          longitude: photo.longitude,
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
 
       this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND (location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))')
