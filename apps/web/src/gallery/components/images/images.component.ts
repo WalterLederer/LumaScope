@@ -262,6 +262,7 @@ export class ImagesComponent {
 
     if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheRunCurrentOperation.set('Preparing cache status for files...');
     try {
       const statuses: CacheImageStatus[] = [];
       const imagePaths = images.map(image => image.path);
@@ -271,7 +272,6 @@ export class ImagesComponent {
       if (signal?.aborted) return;
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
       let nextIndex = 0;
-      this.cacheRunCurrentOperation.set('Preparing cache operations...');
       const worker = async (workerId: number): Promise<void> => {
         while (nextIndex < images.length && !signal?.aborted) {
           const index = nextIndex++;
@@ -296,7 +296,6 @@ export class ImagesComponent {
           }
         }
       };
-      this.cacheRunCurrentOperation.set('');
       await Promise.all([worker(0), worker(1)]);
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
