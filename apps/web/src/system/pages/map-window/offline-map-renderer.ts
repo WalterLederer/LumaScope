@@ -1,7 +1,9 @@
 import { Map as MapLibreMap, Marker, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
+// Angular copies the worker and its shared module to the renderer root.
+// Resolve against the page URL so this also works in the packaged file:// app.
+setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).toString());
 
 const AUSTRIA_BOUNDS: [number, number, number, number] = [9.52678, 46.36979, 17.16408, 49.02403];
 
