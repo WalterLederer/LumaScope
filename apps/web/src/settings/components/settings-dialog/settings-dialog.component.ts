@@ -169,9 +169,12 @@ export class SettingsPanelComponent {
 
   private activeDeleteOperationId: string | null = null;
 
+  protected readonly deleteCancelRequested = signal(false);
+
   protected readonly cancelDeleteCache = (): void => {
     const operationId = this.activeDeleteOperationId;
-    if (!operationId) return;
+    if (!operationId || this.deleteCancelRequested()) return;
+    this.deleteCancelRequested.set(true);
     this.deleteCacheSummary.update(summary => `${summary}\nCancellation requested…`);
     this.cacheManager.cancelClear(operationId).catch(error => {
       this.clearError.set(error instanceof Error ? error.message : String(error));
@@ -400,6 +403,7 @@ export class SettingsPanelComponent {
     this.isClearing.set(true);
     const operationId = crypto.randomUUID();
     this.activeDeleteOperationId = operationId;
+    this.deleteCancelRequested.set(false);
     this.lastClearResult.set(null);
     this.clearError.set(null);
     const startedAt = performance.now();
@@ -430,6 +434,7 @@ export class SettingsPanelComponent {
       ].join('\n'));
     } finally {
       this.activeDeleteOperationId = null;
+      this.deleteCancelRequested.set(false);
       this.isClearing.set(false);
     }
   };
