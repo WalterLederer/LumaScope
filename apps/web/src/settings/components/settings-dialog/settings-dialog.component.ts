@@ -20,6 +20,7 @@ export class SettingsPanelComponent {
   readonly mode = input<'all' | 'general' | 'cache'>('all');
   readonly cacheBuildActive = input(false);
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
+  readonly cacheBuildCurrentOperation = input('');
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
   readonly startCacheBuild = input<(() => void) | null>(null);
