@@ -78,6 +78,18 @@ export class GalleryPage {
   protected readonly tree = viewChild.required(TreeComponent);
 
   protected readonly imageGrid = viewChild(ImageGridComponent);
+  private readonly readVerifyCacheFiles = (): boolean => {
+    try { return this.document.defaultView?.localStorage.getItem('light-matter.verifyCacheFiles') === 'true'; }
+    catch { return false; }
+  };
+  protected readonly verifyCacheFiles = signal(this.readVerifyCacheFiles());
+  protected readonly setVerifyCacheFiles = (enabled: boolean): void => {
+    this.verifyCacheFiles.set(enabled);
+    try { this.document.defaultView?.localStorage.setItem('light-matter.verifyCacheFiles', String(enabled)); } catch { /* Keep the session setting. */ }
+  };
+  protected readonly startGalleryCache = (): void => this.imageGrid()?.cacheAllImages();
+  protected readonly startRecursiveGalleryCache = (): void => this.imageGrid()?.cacheAllImagesRecursive();
+  protected readonly cancelGalleryCache = (): void => this.imageGrid()?.cancelCacheRun();
 
   protected readonly defaultSortMode = defaultSortMode();
 
