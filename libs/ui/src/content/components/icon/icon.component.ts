@@ -15,7 +15,8 @@ import { iconMapping, IconName } from './icons/icon.mapping';
     '[innerHTML]': 'iconCode()',
     '[style.--icon-size]': '`var(--icon-size-${size()})`',
     '[style.--stroke-width]': 'strokeWidth()',
-    '[style.--color]': 'color()'
+    '[style.--color]': 'color()',
+    '[class.multicolor]': 'icon() === \'desktopColor\''
   }
 })
 export class IconComponent {
