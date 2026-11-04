@@ -98,11 +98,15 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly imageTags = signal<ExifTags | null>(null);
 
+  readonly imageInfoReady = signal<boolean>(false);
+
   readonly dynamicRange = computed(() => {
     const tags = this.imageTags();
     const bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
     return imageDynamicRange(this.image().path, tags, bits === null ? null : `${bits}-bit`);
   });
+
+  readonly dynamicRangeLabel = computed(() => this.imageInfoReady() ? this.dynamicRange() : '—');
 
   readonly imageDimensions = computed(() => {
     const tags = this.imageTags();
@@ -193,11 +197,17 @@ export class ThumbnailComponent implements OnDestroy {
       const image = this.image();
       if (!this.isVisible() || this.viewMode() === 'thumbnails') return;
       const request = ++this.infoRequest;
+      this.imageInfoReady.set(false);
+      this.imageTags.set(null);
       void this.exif.read(image.path).then(result => {
         if (request !== this.infoRequest || this.image().path !== image.path) return;
         this.imageTags.set(result.success ? result.data : null);
+        this.imageInfoReady.set(true);
       }).catch(() => {
-        if (request === this.infoRequest) this.imageTags.set(null);
+        if (request === this.infoRequest) {
+          this.imageTags.set(null);
+          this.imageInfoReady.set(true);
+        }
       });
     });
 
