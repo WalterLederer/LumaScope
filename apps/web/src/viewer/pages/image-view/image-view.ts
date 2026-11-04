@@ -116,6 +116,7 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
   selector: 'app-image-view',
   imports: [
     AsyncPipe,
+    JsonPipe,
     ImageRendererComponent,
     SettingsPanelComponent,
     ReactiveFormsModule,
