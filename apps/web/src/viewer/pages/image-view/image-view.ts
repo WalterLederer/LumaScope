@@ -573,7 +573,19 @@ export class ImageView {
       .filter(([key]) => !key.endsWith('_expanded'))
       .map(([key, value]) => {
         const isTimestamp = timestampFields.has(key) && typeof value === 'number' && Number.isFinite(value);
+        const isFileSize = key === 'file_size' && typeof value === 'number' && Number.isFinite(value) && value >= 0;
         const dateValue = isTimestamp ? new Date(value as number) : null;
+        const formatFileSize = (bytes: number): string => {
+          if (bytes < 1024) return `${bytes} B`;
+          const units = ['KB', 'MB', 'GB', 'TB'];
+          let size = bytes / 1024;
+          let unitIndex = 0;
+          while (size >= 1024 && unitIndex < units.length - 1) {
+            size /= 1024;
+            unitIndex++;
+          }
+          return `${size.toFixed(2)} ${units[unitIndex]}`;
+        };
         return {
           key,
           value: JSON.stringify(value) ?? 'null',
@@ -581,9 +593,12 @@ export class ImageView {
             ? JSON.stringify(record[`${key}_expanded`])
             : isTimestamp && dateValue && !Number.isNaN(dateValue.getTime())
               ? JSON.stringify(dateValue.toLocaleString())
-              : null,
+              : isFileSize
+                ? JSON.stringify(formatFileSize(value as number))
+                : null,
           isExpandedId: expandedFields.has(key) && record[`${key}_expanded`] != null,
-          isTimestamp
+          isTimestamp,
+          isFileSize
         };
       });
   });
