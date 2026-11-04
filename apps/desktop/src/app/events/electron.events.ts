@@ -8,6 +8,7 @@ import { encodeExr, init as initExr } from 'exrs';
 import { CaptureFormat, CapturePreview, CaptureResult, CaptureSources, CaptureTarget, FileListing, supportedFileExtensions } from 'internal-api';
 import Vips from 'wasm-vips';
 import { execFileSync } from 'node:child_process';
+import koffi from 'koffi';
 import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
@@ -1133,6 +1134,125 @@ public static class LightMatterDisplayConfig {
   }
 };
 
+const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
+  const user32 = koffi.load('user32.dll');
+  const kernel32 = koffi.load('kernel32.dll');
+
+  const Rect = koffi.struct('LightMatterWindowRect', {
+    Left: 'int32_t',
+    Top: 'int32_t',
+    Right: 'int32_t',
+    Bottom: 'int32_t'
+  });
+  const MonitorInfoEx = koffi.struct('LightMatterMonitorInfoEx', {
+    cbSize: 'uint32_t',
+    rcMonitor: Rect,
+    rcWork: Rect,
+    dwFlags: 'uint32_t',
+    szDevice: koffi.array('char16_t', 32, 'String')
+  });
+
+  const EnumWindowsProc = koffi.proto('bool __stdcall LightMatterEnumWindowsProc(uintptr_t hWnd, intptr_t lParam)');
+  const EnumWindows = user32.func('bool __stdcall EnumWindows(LightMatterEnumWindowsProc *callback, intptr_t lParam)');
+  const IsWindowVisible = user32.func('bool __stdcall IsWindowVisible(uintptr_t hWnd)');
+  const IsIconic = user32.func('bool __stdcall IsIconic(uintptr_t hWnd)');
+  const GetWindowTextW = user32.func('int32_t __stdcall GetWindowTextW(uintptr_t hWnd, _Out_ char16_t *text, int32_t maxCount)');
+  const GetWindowThreadProcessId = user32.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t hWnd, _Out_ uint32_t *processId)');
+  const GetWindowRect = user32.func('bool __stdcall GetWindowRect(uintptr_t hWnd, _Out_ LightMatterWindowRect *rect)');
+  const MonitorFromRect = user32.func('uintptr_t __stdcall MonitorFromRect(const LightMatterWindowRect *rect, uint32_t flags)');
+  const GetMonitorInfoW = user32.func('bool __stdcall GetMonitorInfoW(uintptr_t monitor, _Inout_ LightMatterMonitorInfoEx *info)');
+
+  const OpenProcess = kernel32.func('uintptr_t __stdcall OpenProcess(uint32_t access, bool inheritHandle, uint32_t processId)');
+  const QueryFullProcessImageNameW = kernel32.func('bool __stdcall QueryFullProcessImageNameW(uintptr_t process, uint32_t flags, _Out_ char16_t *path, _Inout_ uint32_t *size)');
+  const CloseHandle = kernel32.func('bool __stdcall CloseHandle(uintptr_t handle)');
+
+  const rows: NonNullable<CaptureSources['windows']> = [];
+  let callbackError: Error | null = null;
+
+  const enumerate = (handle: number, _lParam: number): boolean => {
+    try {
+      if (!IsWindowVisible(handle)) return true;
+
+      const titleBuffer = Buffer.alloc(2048);
+      const titleLength = GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2);
+      const title = titleLength > 0 ? String(koffi.decode(titleBuffer, 'char16_t', titleLength)).trim() : '';
+      if (!title) return true;
+
+      const processIdOut = [0];
+      GetWindowThreadProcessId(handle, processIdOut);
+      const processId = Number(processIdOut[0]) || 0;
+
+      const rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
+      const hasRect = GetWindowRect(handle, rect);
+      const width = hasRect ? Math.max(0, rect.Right - rect.Left) : 0;
+      const height = hasRect ? Math.max(0, rect.Bottom - rect.Top) : 0;
+      const isMinimized = Boolean(IsIconic(handle));
+
+      let executablePath: string | undefined;
+      // Process access is deliberately deferred until the window is large enough
+      // to be a useful capture source. Tiny helper windows do not need an EXE lookup.
+      if (processId !== 0 && width > 100 && height > 100) {
+        const process = OpenProcess(0x1000, false, processId);
+        if (process !== 0 && process !== 0n) {
+          try {
+            const pathBuffer = Buffer.alloc(32768 * 2);
+            const pathSize = [32768];
+            if (QueryFullProcessImageNameW(process, 0, pathBuffer, pathSize) && pathSize[0] > 0) {
+              executablePath = String(koffi.decode(pathBuffer, 'char16_t', Number(pathSize[0])));
+            }
+          } finally {
+            CloseHandle(process);
+          }
+        }
+      }
+
+      let monitorDeviceName: string | undefined;
+      if (hasRect && width > 100 && height > 100 && !isMinimized) {
+        const monitor = MonitorFromRect(rect, 2); // MONITOR_DEFAULTTONEAREST
+        if (monitor !== 0 && monitor !== 0n) {
+          const info = {
+            cbSize: koffi.sizeof(MonitorInfoEx),
+            rcMonitor: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+            rcWork: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+            dwFlags: 0,
+            szDevice: ''
+          };
+          if (GetMonitorInfoW(monitor, info)) {
+            const device = String(info.szDevice ?? '').trim();
+            if (device) monitorDeviceName = device;
+          }
+        }
+      }
+
+      rows.push({
+        title,
+        processName: executablePath ? path.basename(executablePath) : 'Unknown executable',
+        executablePath,
+        processId,
+        handle,
+        width,
+        height,
+        monitorIndex: -1,
+        monitorDeviceName,
+        isMinimized
+      });
+      return true;
+    } catch (error) {
+      callbackError = error instanceof Error ? error : new Error(String(error));
+      return false;
+    }
+  };
+
+  const completed = EnumWindows(enumerate, 0);
+  if (callbackError) throw callbackError;
+  if (!completed) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
+
+  return rows.sort((a, b) =>
+    a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
+    || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+  );
+};
+
 ipcMain.handle('Capture.listSources', async (): Promise<CaptureSources> => {
   if (process.platform !== 'win32') {
     throw new Error('HDR capture of individual windows and monitors is currently supported on Windows only.');
@@ -1171,146 +1291,14 @@ ipcMain.handle('Capture.listSources', async (): Promise<CaptureSources> => {
   const sourceErrors: string[] = [];
   let windows: CaptureSources['windows'] = [];
 
-  // @screen-capture/node's enumerateWindows() throws ACCESS_DENIED on some
-  // systems. Enumerate top-level windows through Win32 instead, and tolerate
-  // protected processes for which Windows will not provide an executable path.
-  const script = String.raw`
-    $ErrorActionPreference = 'Stop'
-    # Windows PowerShell 5.1 otherwise may emit redirected native output using the active OEM code page.
-    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Runtime.InteropServices;
-
-public sealed class LightMatterWindowRow {
-  public string handle { get; set; }
-  public string title { get; set; }
-  public uint processId { get; set; }
-  public string executablePath { get; set; }
-  public int width { get; set; }
-  public int height { get; set; }
-  public int monitorIndex { get; set; }
-  public string monitorDeviceName { get; set; }
-  public bool isMinimized { get; set; }
-}
-
-public static class LightMatterWindowEnumerator {
-  private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-  [StructLayout(LayoutKind.Sequential)]
-  private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-  private struct MONITORINFOEX {
-    public int cbSize;
-    public RECT rcMonitor;
-    public RECT rcWork;
-    public uint dwFlags;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string szDevice;
-  }
-  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
-  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
-  [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-  [DllImport("user32.dll", SetLastError=true)] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-  [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref RECT rect, uint flags);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] private static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFOEX info);
-  [DllImport("kernel32.dll", SetLastError=true)] private static extern IntPtr OpenProcess(uint access, bool inheritHandle, uint processId);
-  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] private static extern bool QueryFullProcessImageNameW(IntPtr process, uint flags, StringBuilder path, ref uint size);
-  [DllImport("kernel32.dll", SetLastError=true)] private static extern bool CloseHandle(IntPtr handle);
-
-  public static LightMatterWindowRow[] GetWindows() {
-    var rows = new List<LightMatterWindowRow>();
-    EnumWindows((hWnd, lParam) => {
-      if (!IsWindowVisible(hWnd)) return true;
-      var titleBuffer = new StringBuilder(1024);
-      GetWindowText(hWnd, titleBuffer, titleBuffer.Capacity);
-      var title = titleBuffer.ToString().Trim();
-      if (title.Length == 0) return true;
-      uint pid;
-      GetWindowThreadProcessId(hWnd, out pid);
-      string exePath = null;
-      if (pid != 0) {
-        IntPtr process = OpenProcess(0x1000, false, pid);
-        if (process != IntPtr.Zero) {
-          try {
-            var pathBuffer = new StringBuilder(32768);
-            uint size = (uint)pathBuffer.Capacity;
-            if (QueryFullProcessImageNameW(process, 0, pathBuffer, ref size)) exePath = pathBuffer.ToString();
-          } finally { CloseHandle(process); }
-        }
-      }
-      RECT rect;
-      int width = 0, height = 0;
-      string monitorDeviceName = null;
-      if (GetWindowRect(hWnd, out rect)) {
-        width = Math.Max(0, rect.Right - rect.Left);
-        height = Math.Max(0, rect.Bottom - rect.Top);
-        if (width >= 100 && height >= 100 && !IsIconic(hWnd)) {
-          IntPtr monitor = MonitorFromRect(ref rect, 2); // MONITOR_DEFAULTTONEAREST
-          if (monitor != IntPtr.Zero) {
-            var monitorInfo = new MONITORINFOEX();
-            monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFOEX));
-            if (GetMonitorInfoW(monitor, ref monitorInfo)) monitorDeviceName = monitorInfo.szDevice;
-          }
-        }
-      }
-      rows.Add(new LightMatterWindowRow { handle = hWnd.ToInt64().ToString(), title = title, processId = pid, executablePath = exePath, width = width, height = height, monitorIndex = -1, monitorDeviceName = monitorDeviceName, isMinimized = IsIconic(hWnd) });
-      return true;
-    }, IntPtr.Zero);
-    return rows.ToArray();
-  }
-}
-'@
-    [LightMatterWindowEnumerator]::GetWindows() | ConvertTo-Json -Compress -Depth 4
-  `;
-
+  // Enumerate top-level windows directly through Win32 using Koffi.
+  // OpenProcess and QueryFullProcessImageNameW are only called for windows
+  // whose width AND height are both greater than 100 physical pixels.
   try {
-    const nativeJson = runExternalProcessSync('powershell.exe', [
-      '-NoLogo',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      script
-    ], { encoding: 'utf8', windowsHide: true, timeout: 20000 }).toString().trim();
-    const nativeRows = JSON.parse(nativeJson || '[]') as Array<{
-      handle: string;
-      title: string;
-      processId: number;
-      executablePath?: string | null;
-      width: number;
-      height: number;
-      monitorIndex: number;
-      monitorDeviceName?: string | null;
-      isMinimized: boolean;
-    }>;
-    windows = nativeRows
-      .map(window => {
-        const executablePath = window.executablePath || undefined;
-        return {
-          title: window.title.trim(),
-          processName: executablePath ? path.basename(executablePath) : 'Unknown executable',
-          executablePath,
-          processId: Number(window.processId) || 0,
-          handle: Number(window.handle),
-          width: Number(window.width) || 0,
-          height: Number(window.height) || 0,
-          monitorIndex: Number(window.monitorIndex) || -1,
-          monitorDeviceName: window.monitorDeviceName || undefined,
-          isMinimized: Boolean(window.isMinimized)
-        };
-      })
-      .sort((a, b) =>
-        a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
-        || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-      );
+    windows = enumerateTopLevelWindows();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    sourceErrors.push(`PowerShell Win32 window enumeration failed: ${message}`);
+    sourceErrors.push(`Koffi Win32 window enumeration failed: ${message}`);
   }
 
   return { monitors, windows, sourceErrors };
