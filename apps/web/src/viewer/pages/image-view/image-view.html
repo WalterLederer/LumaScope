@@ -421,7 +421,7 @@
               <div class="image-database-record" role="list" aria-label="SQLite database fields">
                 @for (entry of photoDatabaseRecordEntries(); track entry.key) {
                   <div class="image-database-record-row" [class.is-expanded-id]="entry.isExpandedId" role="listitem">
-                    <span class="image-database-record-key">"{{entry.key}}"</span>: {{entry.value}}@if (entry.expanded !== null) { <span class="image-database-record-expanded">({{entry.expanded}})</span>}
+                    <span class="image-database-record-key">"{{entry.key}}"</span>: {{entry.value}}@if (entry.expanded !== null) { <span [class.image-database-record-expanded]="!entry.isTimestamp" [class.image-database-record-timestamp]="entry.isTimestamp">({{entry.expanded}})</span>}
                   </div>
                 }
               </div>
