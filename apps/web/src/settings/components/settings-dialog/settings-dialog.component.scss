@@ -406,6 +406,34 @@ section {
   gap: var(--dim-medium);
 }
 
+.cache-check-button {
+  background: #777;
+  border-color: #666;
+  color: #fff;
+
+  &.cache-check-complete {
+    background: linear-gradient(to bottom, #39a85a, #21843e);
+    border-color: #176b30;
+    color: #fff;
+  }
+
+  &.cache-check-missing {
+    background: linear-gradient(to bottom, #df5555, #b82f2f);
+    border-color: #922323;
+    color: #fff;
+  }
+
+  &.cache-check-running {
+    background: #777;
+    color: #fff;
+  }
+}
+
+.cache-check-button:disabled {
+  opacity: 0.75;
+  filter: none;
+}
+
 .build-cache-progress {
   color: var(--color-content-default-medium);
   font-size: 0.85rem;
@@ -756,6 +784,17 @@ section {
     color: var(--color-content-default-medium);
     font-size: 0.8rem;
   }
+}
+
+.cache-summary-check {
+  display: grid;
+  gap: var(--dim-small);
+  padding-top: var(--dim-medium);
+  border-top: 1px solid var(--color-content-default-low);
+  min-width: 0;
+
+  span { color: var(--color-content-default-medium); font-size: 0.8rem; }
+  code { overflow-wrap: anywhere; color: var(--color-content-default-high); font-size: 0.78rem; }
 }
 
 .cache-summary-databases {
