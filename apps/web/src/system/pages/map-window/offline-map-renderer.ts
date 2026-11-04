@@ -82,7 +82,7 @@ export class OfflineMapRenderer {
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, onError?: (message: string) => void) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void) {
     const options: MapOptions = {
       container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
       minZoom: 0, maxZoom: 20, attributionControl: { compact: false },
@@ -188,7 +188,9 @@ export class OfflineMapRenderer {
     }));
     console.info('[OfflineMap] Vector source feature counts:', counts);
     if (counts.every(item => item.count === 0)) {
-      console.error('[OfflineMap] Tiles were requested, but MapLibre exposes no vector features from the Shortbread source.');
+      const message = 'Offline tiles are being retrieved, but MapLibre exposes no vector features from the Shortbread source. Check the MBTiles tile contents and vector-layer metadata.';
+      console.error('[OfflineMap]', message);
+      this.onError?.(message);
     }
   }
 
