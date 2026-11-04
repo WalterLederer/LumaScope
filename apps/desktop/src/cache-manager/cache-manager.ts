@@ -47,6 +47,7 @@ export class CacheManager {
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
   private readonly db: DatabaseSync;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
+  private readonly pendingLocationLookups = new Map<number, Promise<void>>();
 
   private readonly activeClearOperations = new Set<string>();
 
@@ -611,33 +612,42 @@ export class CacheManager {
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return;
 
-    let locationNameId = 0;
-    try {
-      const location = await lookupReverseGeocoding(photo.latitude, photo.longitude, 'en');
-      if (location) {
-        this.db.prepare(`INSERT OR IGNORE INTO location_names
-          (latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
-          VALUES (:latitude, :longitude, :placeName, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
-          .run({
-            latitude: photo.latitude,
-            longitude: photo.longitude,
-            placeName: location.placeName,
-            countryCode: location.countryCode,
-            region: location.region,
-            locality: location.locality,
-            updatedAt: Date.now()
-          });
-        const saved = this.db.prepare(`SELECT id FROM location_names
-          WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
-          .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
-        if (saved) locationNameId = saved.id;
-      }
-    } catch {
-      // Store the sentinel ID so an unavailable lookup is not repeated on every cache check.
-    }
+    const pending = this.pendingLocationLookups.get(photo.id);
+    if (pending) return pending;
 
-    this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND location_name_id IS NULL')
-      .run({ locationNameId, photoId: photo.id });
+    const operation = (async (): Promise<void> => {
+      let locationNameId = 0;
+      try {
+        const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
+        if (location) {
+          this.db.prepare(`INSERT OR IGNORE INTO location_names
+            (latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
+            VALUES (:latitude, :longitude, :placeName, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
+            .run({
+              latitude: photo.latitude,
+              longitude: photo.longitude,
+              placeName: location.placeName,
+              countryCode: location.countryCode,
+              region: location.region,
+              locality: location.locality,
+              updatedAt: Date.now()
+            });
+          const saved = this.db.prepare(`SELECT id FROM location_names
+            WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
+            .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
+          if (saved) locationNameId = saved.id;
+        }
+      } catch {
+        // Store the sentinel ID so an unavailable lookup is not repeated on every cache check.
+      }
+
+      this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND location_name_id IS NULL')
+        .run({ locationNameId, photoId: photo.id });
+    })();
+
+    this.pendingLocationLookups.set(photo.id, operation);
+    try { await operation; }
+    finally { if (this.pendingLocationLookups.get(photo.id) === operation) this.pendingLocationLookups.delete(photo.id); }
   };
 
   private readonly getSidecarPath = (sourceName: string, full: boolean): string => {
