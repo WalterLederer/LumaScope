@@ -2,7 +2,7 @@ import { app, type IpcMainInvokeEvent } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { appendFile, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -45,8 +45,11 @@ export class CacheManager {
   }
 
   @IpcHandler({ name: 'CacheManager.clear' })
-  readonly clear = async (): Promise<CacheClearResult> => {
-    const [thumbnails, fullSize] = await Promise.all([this.clearThumbnails(), this.clearFullSize()]);
+  readonly clear = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> => {
+    const [thumbnails, fullSize] = await Promise.all([
+      this.clearKind('thumbnail', directory, recursive),
+      this.clearKind('fullsize', directory, recursive)
+    ]);
     return { entries: thumbnails.entries + fullSize.entries, bytes: thumbnails.bytes + fullSize.bytes };
   };
 
@@ -85,15 +88,34 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.clearFullSize' })
-  readonly clearFullSize = async (): Promise<CacheClearResult> => this.clearKind('fullsize');
+  readonly clearFullSize = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> =>
+    this.clearKind('fullsize', directory, recursive);
 
   @IpcHandler({ name: 'CacheManager.clearThumbnails' })
-  readonly clearThumbnails = async (): Promise<CacheClearResult> => this.clearKind('thumbnail');
+  readonly clearThumbnails = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false): Promise<CacheClearResult> =>
+    this.clearKind('thumbnail', directory, recursive);
 
-  private readonly clearKind = async (kind: 'thumbnail' | 'fullsize'): Promise<CacheClearResult> => {
+  private readonly clearKind = async (
+    kind: 'thumbnail' | 'fullsize',
+    directory?: string,
+    recursive = false
+  ): Promise<CacheClearResult> => {
+    if (directory !== undefined && (typeof directory !== 'string' || !directory.trim())) {
+      throw new Error('A valid cache directory is required.');
+    }
+    if (recursive && !directory) {
+      throw new Error('Recursive cache deletion requires a directory.');
+    }
+
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const rows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+    const allRows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
+    const root = directory ? resolve(directory) : null;
+    const rows = root === null ? allRows : allRows.filter(row => {
+      const relativeFolder = relative(root, resolve(row.folder_path));
+      if (relativeFolder === '') return true;
+      return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
+    });
     let bytes = 0;
     for (const row of rows) {
       const source = join(row.folder_path, row.file_name);
