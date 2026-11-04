@@ -28,8 +28,8 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     }
   },
   layers: [
-    { id: 'background', type: 'background', paint: { 'background-color': '#f1efe8' } },
-    { id: 'land', type: 'fill', source: 'shortbread', 'source-layer': 'land', paint: { 'fill-color': '#e8e5dc' } },
+    { id: 'background', type: 'background', paint: { 'background-color': '#f5f2ea' } },
+    { id: 'land', type: 'fill', source: 'shortbread', 'source-layer': 'land', paint: { 'fill-color': '#e6e1d5' } },
     { id: 'ocean', type: 'fill', source: 'shortbread', 'source-layer': 'ocean', paint: { 'fill-color': '#a9d5e5' } },
     { id: 'water-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'water_polygons', paint: { 'fill-color': '#a9d5e5' } },
     { id: 'water-lines', type: 'line', source: 'shortbread', 'source-layer': 'water_lines', paint: { 'line-color': '#a9d5e5', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 14, 2] } },
@@ -38,12 +38,12 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'pier-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'pier_polygons', paint: { 'fill-color': '#c9c4b8' } },
     { id: 'sites', type: 'fill', source: 'shortbread', 'source-layer': 'sites', minzoom: 10, paint: { 'fill-color': '#e3dfd4', 'fill-outline-color': '#c9c3b7', 'fill-opacity': 0.65 } },
     { id: 'street-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'street_polygons', minzoom: 12, paint: { 'fill-color': '#f8f5ed', 'fill-outline-color': '#e5dfd4' } },
-    { id: 'street-casing', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 7, paint: { 'line-color': '#c9c1b5', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.8, 14, 6, 18, 12], 'line-opacity': 0.9 } },
+    { id: 'street-casing', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 7, paint: { 'line-color': '#a9a294', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.9, 10, 2.4, 14, 7, 18, 13], 'line-opacity': 0.9 } },
     {
       id: 'streets', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 8,
       paint: {
-        'line-color': ['match', ['get', 'kind'], 'motorway', '#e58a83', 'trunk', '#edbd79', 'primary', '#edbd79', 'secondary', '#f7f4ed', 'tertiary', '#f7f4ed', '#ffffff'],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.5, 11, 1.4, 14, 3.2, 18, 6],
+        'line-color': ['match', ['get', 'kind'], 'motorway', '#d66f67', 'trunk', '#d99b4c', 'primary', '#e1ad64', 'secondary', '#fff9ec', 'tertiary', '#fff9ec', '#f5f0e5'],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 10, 1.5, 14, 3.5, 18, 7],
         'line-opacity': 0.95
       }
     },
@@ -80,6 +80,7 @@ export class OfflineMapRenderer {
   private onPhotoSelected: ((path: string) => void) | null = null;
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
+  private vectorSourceDiagnosticLogged = false;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number, onError?: (message: string) => void) {
     const options: MapOptions = {
@@ -150,6 +151,7 @@ export class OfflineMapRenderer {
     this.map.on('idle', () => {
       this.refreshClusterLabels();
       this.refreshTextLabels();
+      this.logVectorSourceDiagnostics();
     });
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
@@ -171,6 +173,23 @@ export class OfflineMapRenderer {
     this.map.on('mouseleave', 'photo-clusters', () => { this.map.getCanvas().style.cursor = ''; });
     this.map.on('mouseenter', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = 'pointer'; });
     this.map.on('mouseleave', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = ''; });
+  }
+
+  private logVectorSourceDiagnostics(): void {
+    if (this.vectorSourceDiagnosticLogged) return;
+    this.vectorSourceDiagnosticLogged = true;
+    const sourceLayers = [
+      'land', 'ocean', 'water_polygons', 'water_lines', 'boundaries',
+      'streets', 'buildings', 'pois', 'place_labels', 'street_labels'
+    ];
+    const counts = sourceLayers.map(sourceLayer => ({
+      layer: sourceLayer,
+      count: this.map.querySourceFeatures('shortbread', { sourceLayer }).length
+    }));
+    console.info('[OfflineMap] Vector source feature counts:', counts);
+    if (counts.every(item => item.count === 0)) {
+      console.error('[OfflineMap] Tiles were requested, but MapLibre exposes no vector features from the Shortbread source.');
+    }
   }
 
   private refreshClusterLabels(): void {
