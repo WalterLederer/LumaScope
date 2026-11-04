@@ -117,6 +117,173 @@ const captureTargetKey = (target: CaptureTarget, ownerWindow?: Electron.BrowserW
         ? 'rectangle'
         : target.includeLightMatterWindows ? `top-window:include-light-matter:${ownerWindow?.id ?? 'default'}` : 'top-window';
 
+interface Win32Rect {
+  Left: number;
+  Top: number;
+  Right: number;
+  Bottom: number;
+}
+
+interface Win32MonitorInfoEx {
+  cbSize: number;
+  rcMonitor: Win32Rect;
+  rcWork: Win32Rect;
+  dwFlags: number;
+  szDevice: string;
+}
+
+interface Win32NativeApi {
+  Rect: unknown;
+  MonitorInfoEx: unknown;
+  PathInfo: unknown;
+  SourceName: unknown;
+  AdvancedColorInfo: unknown;
+  AdvancedColorInfo2: unknown;
+  user32: {
+    IsWindow: (handle: number) => number;
+    IsWindowVisible: (handle: number) => number;
+    IsIconic: (handle: number) => number;
+    EnumWindows: (callback: (handle: number, lParam: number) => number, lParam: number) => number;
+    GetWindowTextW: (handle: number, text: Buffer, maxCount: number) => number;
+    GetClassNameW: (handle: number, text: Buffer, maxCount: number) => number;
+    GetWindowThreadProcessId: (handle: number, processId: number[]) => number;
+    GetWindowRect: (handle: number, rect: Win32Rect) => number;
+    GetWindow: (handle: number, command: number) => number;
+    GetWindowLongPtrW: (handle: number, index: number) => number | bigint;
+    MonitorFromWindow: (handle: number, flags: number) => number;
+    GetMonitorInfoW: (monitor: number, info: Win32MonitorInfoEx) => number;
+    SetProcessDpiAwarenessContext: (context: number) => number;
+    GetDisplayConfigBufferSizes: (flags: number, pathCount: number[], modeCount: number[]) => number;
+    QueryDisplayConfig: (
+      flags: number,
+      pathCount: number[],
+      paths: Buffer,
+      modeCount: number[],
+      modes: Buffer,
+      currentTopologyId: null
+    ) => number;
+    GetSourceName: (request: Record<string, unknown>) => number;
+    GetAdvancedColorInfo: (request: Record<string, unknown>) => number;
+    GetAdvancedColorInfo2: (request: Record<string, unknown>) => number;
+  };
+  dwmapi: {
+    DwmGetWindowAttribute: (handle: number, attribute: number, rect: Win32Rect, size: number) => number;
+  };
+}
+
+let cachedWin32NativeApi: Win32NativeApi | null = null;
+
+const getWin32NativeApi = (): Win32NativeApi => {
+  if (cachedWin32NativeApi) return cachedWin32NativeApi;
+
+  const user32 = koffi.load('user32.dll');
+  const dwmapi = koffi.load('dwmapi.dll');
+
+  const Rect = koffi.struct('LightMatterNativeRect', {
+    Left: 'int32_t',
+    Top: 'int32_t',
+    Right: 'int32_t',
+    Bottom: 'int32_t'
+  });
+  const MonitorInfoEx = koffi.struct('LightMatterNativeMonitorInfoEx', {
+    cbSize: 'uint32_t',
+    rcMonitor: Rect,
+    rcWork: Rect,
+    dwFlags: 'uint32_t',
+    szDevice: koffi.array('char16_t', 32, 'String')
+  });
+
+  const Luid = koffi.struct('LightMatterDisplayLuid', {
+    LowPart: 'uint32_t',
+    HighPart: 'int32_t'
+  });
+  const DisplayHeader = koffi.struct('LightMatterDisplayHeader', {
+    type: 'uint32_t',
+    size: 'uint32_t',
+    adapterId: Luid,
+    id: 'uint32_t'
+  });
+  const DisplayPathSource = koffi.struct('LightMatterDisplayPathSource', {
+    adapterId: Luid,
+    id: 'uint32_t',
+    modeInfoIdx: 'uint32_t',
+    statusFlags: 'uint32_t'
+  });
+  const DisplayPathTarget = koffi.struct('LightMatterDisplayPathTarget', {
+    adapterId: Luid,
+    id: 'uint32_t',
+    modeInfoIdx: 'uint32_t',
+    outputTechnology: 'uint32_t',
+    rotation: 'uint32_t',
+    scaling: 'uint32_t',
+    refreshNumerator: 'uint32_t',
+    refreshDenominator: 'uint32_t',
+    scanLineOrdering: 'uint32_t',
+    targetAvailable: 'int32_t',
+    statusFlags: 'uint32_t'
+  });
+  const PathInfo = koffi.struct('LightMatterDisplayPathInfo', {
+    sourceInfo: DisplayPathSource,
+    targetInfo: DisplayPathTarget,
+    flags: 'uint32_t'
+  });
+  const SourceName = koffi.struct('LightMatterDisplaySourceName', {
+    header: DisplayHeader,
+    viewGdiDeviceName: koffi.array('char16_t', 32, 'String')
+  });
+  const AdvancedColorInfo = koffi.struct('LightMatterAdvancedColorInfo', {
+    header: DisplayHeader,
+    value: 'uint32_t',
+    colorEncoding: 'uint32_t',
+    bitsPerColorChannel: 'uint32_t'
+  });
+  const AdvancedColorInfo2 = koffi.struct('LightMatterAdvancedColorInfo2', {
+    header: DisplayHeader,
+    value: 'uint32_t',
+    colorEncoding: 'uint32_t',
+    bitsPerColorChannel: 'uint32_t',
+    activeColorMode: 'uint32_t'
+  });
+
+  const EnumWindowsProc = koffi.proto('int32_t __stdcall LightMatterNativeEnumWindowsProc(uintptr_t hWnd, intptr_t lParam)');
+  const api: Win32NativeApi = {
+    Rect,
+    MonitorInfoEx,
+    PathInfo,
+    SourceName,
+    AdvancedColorInfo,
+    AdvancedColorInfo2,
+    user32: {
+      IsWindow: user32.func('int32_t __stdcall IsWindow(uintptr_t hWnd)'),
+      IsWindowVisible: user32.func('int32_t __stdcall IsWindowVisible(uintptr_t hWnd)'),
+      IsIconic: user32.func('int32_t __stdcall IsIconic(uintptr_t hWnd)'),
+      EnumWindows: user32.func('int32_t __stdcall EnumWindows(LightMatterNativeEnumWindowsProc *callback, intptr_t lParam)'),
+      GetWindowTextW: user32.func('int32_t __stdcall GetWindowTextW(uintptr_t hWnd, _Out_ char16_t *text, int32_t maxCount)'),
+      GetClassNameW: user32.func('int32_t __stdcall GetClassNameW(uintptr_t hWnd, _Out_ char16_t *className, int32_t maxCount)'),
+      GetWindowThreadProcessId: user32.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t hWnd, _Out_ uint32_t *processId)'),
+      GetWindowRect: user32.func('int32_t __stdcall GetWindowRect(uintptr_t hWnd, _Out_ LightMatterNativeRect *rect)'),
+      GetWindow: user32.func('uintptr_t __stdcall GetWindow(uintptr_t hWnd, uint32_t command)'),
+      GetWindowLongPtrW: user32.func('intptr_t __stdcall GetWindowLongPtrW(uintptr_t hWnd, int32_t index)'),
+      MonitorFromWindow: user32.func('uintptr_t __stdcall MonitorFromWindow(uintptr_t hWnd, uint32_t flags)'),
+      GetMonitorInfoW: user32.func('int32_t __stdcall GetMonitorInfoW(uintptr_t monitor, _Inout_ LightMatterNativeMonitorInfoEx *info)'),
+      SetProcessDpiAwarenessContext: user32.func('int32_t __stdcall SetProcessDpiAwarenessContext(intptr_t value)'),
+      GetDisplayConfigBufferSizes: user32.func('int32_t __stdcall GetDisplayConfigBufferSizes(uint32_t flags, _Out_ uint32_t *pathCount, _Out_ uint32_t *modeCount)'),
+      QueryDisplayConfig: user32.func('int32_t __stdcall QueryDisplayConfig(uint32_t flags, _Inout_ uint32_t *pathCount, _Out_ LightMatterDisplayPathInfo *paths, _Inout_ uint32_t *modeCount, _Out_ void *modes, void *currentTopologyId)'),
+      GetSourceName: user32.func('int32_t __stdcall DisplayConfigGetDeviceInfo(_Inout_ LightMatterDisplaySourceName *requestPacket)'),
+      GetAdvancedColorInfo: user32.func('int32_t __stdcall DisplayConfigGetDeviceInfo(_Inout_ LightMatterAdvancedColorInfo *requestPacket)'),
+      GetAdvancedColorInfo2: user32.func('int32_t __stdcall DisplayConfigGetDeviceInfo(_Inout_ LightMatterAdvancedColorInfo2 *requestPacket)')
+    },
+    dwmapi: {
+      DwmGetWindowAttribute: dwmapi.func('int32_t __stdcall DwmGetWindowAttribute(uintptr_t hWnd, uint32_t attribute, _Out_ LightMatterNativeRect *value, uint32_t size)')
+    }
+  };
+
+  // Keep the callback type reachable so Koffi retains its native trampoline.
+  void EnumWindowsProc;
+  cachedWin32NativeApi = api;
+  return api;
+};
+
 interface CaptureWindowState {
   exists: boolean;
   minimized: boolean;
@@ -126,67 +293,11 @@ const queryCaptureWindowState = (handle: number): CaptureWindowState => {
   if (!Number.isSafeInteger(handle) || handle <= 0) {
     throw new Error('The selected application window has an invalid handle.');
   }
-
-  const script = String.raw`
-    $ErrorActionPreference = 'Stop'
-
-    Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-
-public static class LightMatterCaptureWindowState {
-  [DllImport("user32.dll")]
-  public static extern bool IsWindow(IntPtr hWnd);
-
-  [DllImport("user32.dll")]
-  public static extern bool IsIconic(IntPtr hWnd);
-}
-'@
-
-    $handle = [long]::Parse(
-      $env:LIGHT_MATTER_CAPTURE_HWND,
-      [System.Globalization.CultureInfo]::InvariantCulture
-    )
-    $hwnd = [IntPtr]::new($handle)
-
-    [PSCustomObject]@{
-      exists = [LightMatterCaptureWindowState]::IsWindow($hwnd)
-      minimized = [LightMatterCaptureWindowState]::IsIconic($hwnd)
-    } | ConvertTo-Json -Compress
-  `;
-
-  const output = runExternalProcessSync(
-    'powershell.exe',
-    [
-      '-NoLogo',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      script
-    ],
-    {
-      encoding: 'utf8',
-      windowsHide: true,
-      timeout: 5000,
-      env: {
-        ...process.env,
-        LIGHT_MATTER_CAPTURE_HWND: String(handle)
-      }
-    }
-  ).toString().trim();
-
-  const state = JSON.parse(output) as CaptureWindowState;
-
-  if (
-    typeof state.exists !== 'boolean'
-    || typeof state.minimized !== 'boolean'
-  ) {
-    throw new Error('Windows returned an invalid window-state response.');
-  }
-
-  return state;
+  const { user32 } = getWin32NativeApi();
+  return {
+    exists: user32.IsWindow(handle) !== 0,
+    minimized: user32.IsIconic(handle) !== 0
+  };
 };
 
 const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame> => {
@@ -272,154 +383,103 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
 };
 
 const getForegroundWindowHandle = (): { handle: number; processId: number } => {
-  const script = String.raw`
-    $ErrorActionPreference = 'Stop'
-    Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
+  const { user32 } = getWin32NativeApi();
+  let foreground: { handle: number; processId: number } | null = null;
 
-public static class LightMatterExternalWindow {
-  private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-  private static IntPtr result;
+  const visitWindow = (handle: number): number => {
+    if (user32.IsWindowVisible(handle) === 0 || user32.IsIconic(handle) !== 0) return 1;
 
-  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
-  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
-  [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-  [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint command);
-  [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
-  [DllImport("user32.dll", SetLastError=true)] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-  [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
+    const processIdOut = [0];
+    user32.GetWindowThreadProcessId(handle, processIdOut);
+    const processId = Number(processIdOut[0]) || 0;
+    if (processId === 0) return 1;
 
-  private static bool VisitWindow(IntPtr hWnd, IntPtr lParam) {
-    if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
+    // EnumWindows is ordered by Z-order. Ignore owned/tool windows and tiny helper surfaces.
+    if (user32.GetWindow(handle, 4) !== 0) return 1; // GW_OWNER
+    const extendedStyle = Number(user32.GetWindowLongPtrW(handle, -20)); // GWL_EXSTYLE
+    if ((extendedStyle & 0x00000080) !== 0) return 1; // WS_EX_TOOLWINDOW
 
-    uint processId;
-    GetWindowThreadProcessId(hWnd, out processId);
-    if (processId == 0) return true;
+    const rect: Win32Rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
+    if (user32.GetWindowRect(handle, rect) === 0
+      || rect.Right - rect.Left < 160 || rect.Bottom - rect.Top < 120) return 1;
 
-    // Ignore owned/tool windows and tiny helper surfaces. EnumWindows is already
-    // in Z-order, so the first remaining entry is the topmost real application window.
-    if (GetWindow(hWnd, 4) != IntPtr.Zero) return true; // GW_OWNER
-    long extendedStyle = GetWindowLongPtr(hWnd, -20).ToInt64(); // GWL_EXSTYLE
-    if ((extendedStyle & 0x00000080L) != 0) return true; // WS_EX_TOOLWINDOW
-    RECT rect;
-    if (!GetWindowRect(hWnd, out rect) || rect.Right - rect.Left < 160 || rect.Bottom - rect.Top < 120) return true;
+    const titleBuffer = Buffer.alloc(2048);
+    if (user32.GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2) <= 0) return 1;
 
-    StringBuilder title = new StringBuilder(1024);
-    if (GetWindowText(hWnd, title, title.Capacity) <= 0) return true;
+    const classBuffer = Buffer.alloc(512);
+    user32.GetClassNameW(handle, classBuffer, classBuffer.length / 2);
+    const className = String(koffi.decode(classBuffer, 'char16_t')).trim();
+    if (className === 'Progman' || className === 'WorkerW'
+      || className === 'Shell_TrayWnd' || className === 'Shell_SecondaryTrayWnd') return 1;
 
-    StringBuilder className = new StringBuilder(256);
-    GetClassName(hWnd, className, className.Capacity);
-    string name = className.ToString();
-    if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" || name == "Shell_SecondaryTrayWnd") return true;
+    foreground = { handle, processId };
+    return 0;
+  };
 
-    result = hWnd;
-    return false;
+  const result = user32.EnumWindows(visitWindow, 0);
+  if (result === 0 && foreground === null) {
+    throw new Error('Windows stopped enumerating windows before a foreground application window was found.');
   }
-
-  public static IntPtr Find() {
-    result = IntPtr.Zero;
-    EnumWindows(new EnumWindowsProc(VisitWindow), IntPtr.Zero);
-    return result;
-  }
-
-  public static uint GetProcessId(IntPtr hWnd) {
-    uint processId;
-    GetWindowThreadProcessId(hWnd, out processId);
-    return processId;
-  }
-
-  public static string GetTitle(IntPtr hWnd) {
-    StringBuilder title = new StringBuilder(1024);
-    GetWindowText(hWnd, title, title.Capacity);
-    return title.ToString();
-  }
-}
-'@
-    $handle = [LightMatterExternalWindow]::Find()
-    if ($handle -eq [IntPtr]::Zero) {
-      throw 'No visible, non-minimized application window was found.'
-    }
-    [PSCustomObject]@{
-      handle = $handle.ToInt64()
-      processId = [LightMatterExternalWindow]::GetProcessId($handle)
-      title = [LightMatterExternalWindow]::GetTitle($handle)
-    } | ConvertTo-Json -Compress
-  `;
-  const output = runExternalProcessSync('powershell.exe', [
-    '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
-  ], {
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: 5000,
-    env: { ...process.env }
-  }).toString().trim();
-  const foreground = JSON.parse(output) as { handle: number; processId: number; title: string };
-  if (!Number.isSafeInteger(foreground.handle) || foreground.handle <= 0
-    || !Number.isSafeInteger(foreground.processId) || foreground.processId <= 0) {
+  if (!foreground) {
     throw new Error('No visible, non-minimized application window was found.');
   }
-  return { handle: foreground.handle, processId: foreground.processId };
+  return foreground;
 };
 
 const getWindowMonitorGeometry = (handle: number): {
   monitorHandle: number; windowLeft: number; windowTop: number; windowRight: number; windowBottom: number;
   monitorLeft: number; monitorTop: number; monitorRight: number; monitorBottom: number;
 } => {
-  const script = String.raw`
-    $ErrorActionPreference = 'Stop'
-    Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-public static class LightMatterWindowGeometry {
-  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
-  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public struct MONITORINFOEX {
-    public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string szDevice;
+  if (!Number.isSafeInteger(handle) || handle <= 0) {
+    throw new Error('The selected application window has an invalid handle.');
   }
-  [DllImport("user32.dll", SetLastError=true)] public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
-  [DllImport("user32.dll", SetLastError=true)] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-  [DllImport("dwmapi.dll", SetLastError=true)] public static extern int DwmGetWindowAttribute(IntPtr hWnd, uint attribute, out RECT value, uint size);
-  [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] public static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFOEX info);
-}
-'@
-    # Keep Win32 window and monitor coordinates in physical pixels, matching the captured monitor frame.
-    [void][LightMatterWindowGeometry]::SetProcessDpiAwarenessContext([IntPtr](-4))
-    $hwnd = [IntPtr]::new([long]::Parse($env:LIGHT_MATTER_WINDOW_HANDLE, [Globalization.CultureInfo]::InvariantCulture))
-    $windowRect = [LightMatterWindowGeometry+RECT]::new()
-    # DWMWA_EXTENDED_FRAME_BOUNDS excludes the invisible resize border returned by GetWindowRect.
-    $hasVisibleFrame = [LightMatterWindowGeometry]::DwmGetWindowAttribute($hwnd, 9, [ref]$windowRect, [Runtime.InteropServices.Marshal]::SizeOf($windowRect)) -eq 0
-    if (-not $hasVisibleFrame -and -not [LightMatterWindowGeometry]::GetWindowRect($hwnd, [ref]$windowRect)) { throw 'Could not read window bounds.' }
-    $monitor = [LightMatterWindowGeometry]::MonitorFromWindow($hwnd, 2)
-    if ($monitor -eq [IntPtr]::Zero) { throw 'Could not resolve the window monitor.' }
-    $info = [LightMatterWindowGeometry+MONITORINFOEX]::new()
-    $info.cbSize = [Runtime.InteropServices.Marshal]::SizeOf($info)
-    if (-not [LightMatterWindowGeometry]::GetMonitorInfoW($monitor, [ref]$info)) { throw 'Could not read monitor bounds.' }
-    [PSCustomObject]@{
-      monitorHandle = $monitor.ToInt64().ToString([Globalization.CultureInfo]::InvariantCulture)
-      windowLeft = $windowRect.Left; windowTop = $windowRect.Top; windowRight = $windowRect.Right; windowBottom = $windowRect.Bottom
-      monitorLeft = $info.rcMonitor.Left; monitorTop = $info.rcMonitor.Top; monitorRight = $info.rcMonitor.Right; monitorBottom = $info.rcMonitor.Bottom
-    } | ConvertTo-Json -Compress
-  `;
-  const output = runExternalProcessSync('powershell.exe', ['-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-Command',script], {
-    encoding:'utf8', windowsHide:true, timeout:5000,
-    env:{ ...process.env, LIGHT_MATTER_WINDOW_HANDLE:String(handle) }
-  }).toString().trim();
-  const value = JSON.parse(output) as Record<string, number | string>;
-  const geometry = {
-    monitorHandle:Number(value.monitorHandle),
-    windowLeft:Number(value.windowLeft), windowTop:Number(value.windowTop), windowRight:Number(value.windowRight), windowBottom:Number(value.windowBottom),
-    monitorLeft:Number(value.monitorLeft), monitorTop:Number(value.monitorTop), monitorRight:Number(value.monitorRight), monitorBottom:Number(value.monitorBottom)
+
+  const api = getWin32NativeApi();
+  const { user32, dwmapi } = api;
+  // Electron normally establishes per-monitor DPI awareness during startup.
+  // Ignore ERROR_ACCESS_DENIED if Windows has already fixed the process context.
+  user32.SetProcessDpiAwarenessContext(-4); // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+
+  const windowRect: Win32Rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
+  const hasVisibleFrame = dwmapi.DwmGetWindowAttribute(
+    handle,
+    9, // DWMWA_EXTENDED_FRAME_BOUNDS
+    windowRect,
+    koffi.sizeof(api.Rect)
+  ) === 0;
+  if (!hasVisibleFrame && user32.GetWindowRect(handle, windowRect) === 0) {
+    throw new Error('Could not read window bounds.');
+  }
+
+  const monitorHandle = user32.MonitorFromWindow(handle, 2); // MONITOR_DEFAULTTONEAREST
+  if (!monitorHandle) throw new Error('Could not resolve the window monitor.');
+
+  const info: Win32MonitorInfoEx = {
+    cbSize: koffi.sizeof(api.MonitorInfoEx),
+    rcMonitor: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+    rcWork: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
+    dwFlags: 0,
+    szDevice: ''
   };
-  if (!Number.isSafeInteger(geometry.monitorHandle) || geometry.monitorHandle<=0
+  if (user32.GetMonitorInfoW(monitorHandle, info) === 0) {
+    throw new Error('Could not read monitor bounds.');
+  }
+
+  const geometry = {
+    monitorHandle: Number(monitorHandle),
+    windowLeft: windowRect.Left,
+    windowTop: windowRect.Top,
+    windowRight: windowRect.Right,
+    windowBottom: windowRect.Bottom,
+    monitorLeft: info.rcMonitor.Left,
+    monitorTop: info.rcMonitor.Top,
+    monitorRight: info.rcMonitor.Right,
+    monitorBottom: info.rcMonitor.Bottom
+  };
+  if (!Number.isSafeInteger(geometry.monitorHandle)
     || !Object.values(geometry).every(Number.isFinite)
-    || geometry.windowRight<=geometry.windowLeft || geometry.windowBottom<=geometry.windowTop
-    || geometry.monitorRight<=geometry.monitorLeft || geometry.monitorBottom<=geometry.monitorTop) {
+    || geometry.windowRight <= geometry.windowLeft || geometry.windowBottom <= geometry.windowTop
+    || geometry.monitorRight <= geometry.monitorLeft || geometry.monitorBottom <= geometry.monitorTop) {
     throw new Error('Windows returned invalid window or monitor geometry.');
   }
   return geometry;
@@ -974,162 +1034,120 @@ ipcMain.handle(
 ipcMain.handle('Loupe.release', () => releaseLoupeFrame());
 
 const queryWindowsMonitorHdrModes = (): Record<string, boolean | null> => {
-  if (process.platform !== 'win32') {
-    return {};
-  }
-  const script = String.raw`
-    $ErrorActionPreference = 'Stop'
-    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+  if (process.platform !== 'win32') return {};
 
-public sealed class LightMatterDisplayMode {
-  public string deviceName { get; set; }
-  public bool? isHdr { get; set; }
-}
-public static class LightMatterDisplayConfig {
-  [StructLayout(LayoutKind.Sequential)] public struct LUID { public uint LowPart; public int HighPart; }
-  [StructLayout(LayoutKind.Sequential)] public struct HEADER { public int type; public uint size; public LUID adapterId; public uint id; }
-  [StructLayout(LayoutKind.Sequential)] public struct PATH_SOURCE { public uint adapterIdLow; public int adapterIdHigh; public uint id; public uint modeInfoIdx; public uint statusFlags; }
-  [StructLayout(LayoutKind.Sequential)] public struct PATH_TARGET { public uint adapterIdLow; public int adapterIdHigh; public uint id; public uint modeInfoIdx; public uint outputTechnology; public uint rotation; public uint scaling; public uint refreshNumerator; public uint refreshDenominator; public uint scanLineOrdering; public int targetAvailable; public uint statusFlags; }
-  [StructLayout(LayoutKind.Sequential)] public struct PATH_INFO { public PATH_SOURCE sourceInfo; public PATH_TARGET targetInfo; public uint flags; }
+  try {
+    const api = getWin32NativeApi();
+    const { user32 } = api;
+    const modes: Record<string, boolean | null> = {};
+    const activePathsOnly = 2; // QDC_ONLY_ACTIVE_PATHS
+    let paths: Array<Record<string, unknown>> = [];
+    let querySucceeded = false;
 
-  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-  public struct SOURCE_NAME {
-    public HEADER header;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)]
-    public string viewGdiDeviceName;
-  }
+    // The display topology can change between sizing and querying. Retry ERROR_INSUFFICIENT_BUFFER.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const pathCountOut = [0];
+      const modeCountOut = [0];
+      const sizeResult = user32.GetDisplayConfigBufferSizes(activePathsOnly, pathCountOut, modeCountOut);
+      if (sizeResult !== 0) {
+        throw new Error('GetDisplayConfigBufferSizes failed with Win32 error ' + sizeResult + '.');
+      }
 
-  [StructLayout(LayoutKind.Sequential)] public struct ADVANCED_COLOR_INFO { public HEADER header; public uint value; public uint colorEncoding; public uint bitsPerColorChannel; }
-  [StructLayout(LayoutKind.Sequential)] public struct ADVANCED_COLOR_INFO_2 { public HEADER header; public uint value; public uint colorEncoding; public uint bitsPerColorChannel; public uint activeColorMode; }
-  [DllImport("user32.dll")] public static extern int GetDisplayConfigBufferSizes(uint flags, out uint pathCount, out uint modeCount);
+      const pathCapacity = Number(pathCountOut[0]);
+      const modeCapacity = Number(modeCountOut[0]);
+      const pathBuffer = Buffer.alloc(Math.max(1, pathCapacity) * koffi.sizeof(api.PathInfo));
+      // DISPLAYCONFIG_MODE_INFO is 64 bytes on supported Windows x64 systems.
+      const modeBuffer = Buffer.alloc(Math.max(1, modeCapacity) * 64);
+      const returnedPathCount = [pathCapacity];
+      const returnedModeCount = [modeCapacity];
+      const result = user32.QueryDisplayConfig(
+        activePathsOnly,
+        returnedPathCount,
+        pathBuffer,
+        returnedModeCount,
+        modeBuffer,
+        null
+      );
 
-  [DllImport("user32.dll")]
-  public static extern int QueryDisplayConfig(
-    uint flags,
-    ref uint pathCount,
-    [Out] PATH_INFO[] paths,
-    ref uint modeCount,
-    IntPtr modes,
-    IntPtr currentTopologyId);
+      if (result === 122) continue; // ERROR_INSUFFICIENT_BUFFER
+      if (result !== 0) throw new Error('QueryDisplayConfig failed with Win32 error ' + result + '.');
 
-  [DllImport("user32.dll")] public static extern int DisplayConfigGetDeviceInfo(ref SOURCE_NAME requestPacket);
-  [DllImport("user32.dll")] public static extern int DisplayConfigGetDeviceInfo(ref ADVANCED_COLOR_INFO requestPacket);
-  [DllImport("user32.dll")] public static extern int DisplayConfigGetDeviceInfo(ref ADVANCED_COLOR_INFO_2 requestPacket);
-  public static LightMatterDisplayMode[] GetModes() {
-    uint pathCount, modeCount;
-    int sizeResult = GetDisplayConfigBufferSizes(2, out pathCount, out modeCount);
-    if (sizeResult != 0) {
-      Console.Error.WriteLine("[Capture HDR modes] GetDisplayConfigBufferSizes failed: " + sizeResult);
-      return new LightMatterDisplayMode[0];
+      paths = koffi.decode(pathBuffer, api.PathInfo, Number(returnedPathCount[0])) as Array<Record<string, unknown>>;
+      querySucceeded = true;
+      break;
     }
-    var paths = new PATH_INFO[pathCount];
-    uint pc = pathCount, mc = modeCount;
-    // QueryDisplayConfig requires storage for the returned DISPLAYCONFIG_MODE_INFO entries.
-    // The native structure is 64 bytes on supported Windows x64 systems; we only inspect paths.
-    IntPtr modeBuffer = Marshal.AllocHGlobal(checked((int)Math.Max(1u, modeCount) * 64));
-    int result;
-    try { result = QueryDisplayConfig(2, ref pc, paths, ref mc, modeBuffer, IntPtr.Zero); }
-    finally { Marshal.FreeHGlobal(modeBuffer); }
-    if (result != 0) {
-      Console.Error.WriteLine("[Capture HDR modes] QueryDisplayConfig failed: " + result + "; paths=" + pc + "; modes=" + mc);
-      return new LightMatterDisplayMode[0];
+
+    if (!querySucceeded) {
+      throw new Error('QueryDisplayConfig could not obtain a stable active display topology after three attempts.');
     }
-    var rows = new List<LightMatterDisplayMode>();
 
-/*
-    Console.Error.WriteLine(
-      "[Capture HDR modes] HEADER size=" + Marshal.SizeOf(typeof(HEADER)) +
-      "; SOURCE_NAME size=" + Marshal.SizeOf(typeof(SOURCE_NAME)) +
-      "; paths=" + pc);
-*/
+    for (const pathInfo of paths) {
+      const sourceInfo = pathInfo.sourceInfo as Record<string, unknown>;
+      const targetInfo = pathInfo.targetInfo as Record<string, unknown>;
+      const sourceAdapter = sourceInfo.adapterId as Record<string, number>;
+      const targetAdapter = targetInfo.adapterId as Record<string, number>;
 
-    for (int i = 0; i < pc; i++) {
-      var source = new SOURCE_NAME();
-      source.header.type = 1;
-      source.header.size = (uint)Marshal.SizeOf(typeof(SOURCE_NAME));
-      source.header.adapterId = new LUID { LowPart = paths[i].sourceInfo.adapterIdLow, HighPart = paths[i].sourceInfo.adapterIdHigh };
-      source.header.id = paths[i].sourceInfo.id;
-      int sourceResult = DisplayConfigGetDeviceInfo(ref source);
-      if (sourceResult != 0 || String.IsNullOrEmpty(source.viewGdiDeviceName)) {
-        Console.Error.WriteLine("[Capture HDR modes] DisplayConfigGetDeviceInfo(source) failed: " + sourceResult);
+      const sourceName: Record<string, unknown> = {
+        header: {
+          type: 1, // DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME
+          size: koffi.sizeof(api.SourceName),
+          adapterId: sourceAdapter,
+          id: Number(sourceInfo.id)
+        },
+        viewGdiDeviceName: ''
+      };
+      const sourceResult = user32.GetSourceName(sourceName);
+      const deviceName = String(sourceName.viewGdiDeviceName ?? '').trim();
+      if (sourceResult !== 0 || !deviceName) {
+        console.warn('[Capture HDR modes] DisplayConfigGetDeviceInfo(source) failed:', sourceResult);
         continue;
       }
-      var targetAdapter = new LUID { LowPart = paths[i].targetInfo.adapterIdLow, HighPart = paths[i].targetInfo.adapterIdHigh };
-      bool? hdr = null;
-      // Windows 11 24H2+ distinguishes HDR from wide-color-gamut (WCG).
-      // DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO_2 = 15 (Windows 11 24H2+).
-      var color2 = new ADVANCED_COLOR_INFO_2();
-      color2.header.type = 15;
-      color2.header.size = (uint)Marshal.SizeOf(typeof(ADVANCED_COLOR_INFO_2));
-      color2.header.adapterId = targetAdapter;
-      color2.header.id = paths[i].targetInfo.id;
-      int color2Result = DisplayConfigGetDeviceInfo(ref color2);
-      if (color2Result == 0) {
-        hdr = color2.activeColorMode == 2u; // DISPLAYCONFIG_ADVANCED_COLOR_MODE_HDR; SDR=0, WCG=1
-        // Console.Error.WriteLine("[Capture HDR modes] " + source.viewGdiDeviceName + ": API v2 activeColorMode=" + color2.activeColorMode);
+
+      const color2: Record<string, unknown> = {
+        header: {
+          type: 15, // DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO_2 (Windows 11 24H2+)
+          size: koffi.sizeof(api.AdvancedColorInfo2),
+          adapterId: targetAdapter,
+          id: Number(targetInfo.id)
+        },
+        value: 0,
+        colorEncoding: 0,
+        bitsPerColorChannel: 0,
+        activeColorMode: 0
+      };
+      const color2Result = user32.GetAdvancedColorInfo2(color2);
+      let isHdr: boolean | null = null;
+      if (color2Result === 0) {
+        isHdr = Number(color2.activeColorMode) === 2; // HDR; SDR=0, WCG=1
       } else {
-        // Legacy API for earlier Windows versions: bit 1 is advancedColorEnabled.
-        // On those versions Windows does not expose a distinct HDR/WCG active mode.
-        var color = new ADVANCED_COLOR_INFO();
-        color.header.type = 9;
-        color.header.size = (uint)Marshal.SizeOf(typeof(ADVANCED_COLOR_INFO));
-        color.header.adapterId = targetAdapter;
-        color.header.id = paths[i].targetInfo.id;
-        int legacyResult = DisplayConfigGetDeviceInfo(ref color);
-        if (legacyResult == 0) {
-          hdr = (color.value & 2u) != 0;
-          // Console.Error.WriteLine("[Capture HDR modes] " + source.viewGdiDeviceName + ": legacy advancedColorEnabled=" + ((color.value & 2u) != 0));
+        // Legacy API does not distinguish HDR from WCG on older Windows versions.
+        const color: Record<string, unknown> = {
+          header: {
+            type: 9, // DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO
+            size: koffi.sizeof(api.AdvancedColorInfo),
+            adapterId: targetAdapter,
+            id: Number(targetInfo.id)
+          },
+          value: 0,
+          colorEncoding: 0,
+          bitsPerColorChannel: 0
+        };
+        const legacyResult = user32.GetAdvancedColorInfo(color);
+        if (legacyResult === 0) {
+          isHdr = (Number(color.value) & 2) !== 0;
         } else {
-          Console.Error.WriteLine("[Capture HDR modes] " + source.viewGdiDeviceName + ": API v2 failed=" + color2Result + "; legacy failed=" + legacyResult);
+          console.warn(
+            '[Capture HDR modes] ' + deviceName + ': API v2 failed=' + color2Result + '; legacy failed=' + legacyResult
+          );
         }
       }
-      rows.Add(new LightMatterDisplayMode { deviceName = source.viewGdiDeviceName, isHdr = hdr });
+
+      modes[deviceName.toLowerCase().replace(/[^a-z0-9]/g, '')] = isHdr;
     }
-    return rows.ToArray();
-  }
-}
-'@
-    [LightMatterDisplayConfig]::GetModes() | ConvertTo-Json -Compress -Depth 4
-  `;
-  try {
-    const raw = runExternalProcessSync('powershell.exe', [
-      '-NoLogo',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      script
-    ], { encoding: 'utf8', windowsHide: true, timeout: 10000 }).toString().trim();
-    const parsed = JSON.parse(raw || '[]') as
-      | { deviceName: string; isHdr: boolean | null; }
-      | Array<{ deviceName: string; isHdr: boolean | null; }>;
-    const rows = Array.isArray(parsed) ? parsed : [ parsed ];
-    const modes: Record<string, boolean | null> = {};
-    for (const row of rows) {
-      modes[row.deviceName.toLowerCase().replace(/[^a-z0-9]/g, '')] = row.isHdr;
-    }
-    // console.info('[Capture HDR modes] Windows API rows:', rows, 'normalized keys:', Object.keys(modes));
+
     return modes;
   } catch (error) {
-    const e = error as NodeJS.ErrnoException & {
-      status?: number;
-      stdout?: string | Buffer;
-      stderr?: string | Buffer;
-    };
-
-    console.warn('[Capture] Failed to query Windows HDR monitor modes:', {
-      message: e.message,
-      status: e.status,
-      stdout: e.stdout?.toString(),
-      stderr: e.stderr?.toString()
-    });
-
+    console.warn('[Capture] Failed to query Windows HDR monitor modes through Koffi:', error);
     return {};
   }
 };
