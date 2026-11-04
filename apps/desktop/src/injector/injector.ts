@@ -4,6 +4,7 @@ import { Exif } from '../exif/exif';
 import { FileSystem } from '../file-system/file-system';
 import { Histogram } from '../histogram/histogram';
 import { ProcessManager } from '../process-manager/process-manager';
+import { OfflineMapManager } from '../offline-map/offline-map-manager';
 import { ThumbManager } from '../thumb-manager/thumb-manager';
 
 /**
@@ -19,7 +20,8 @@ export class Injector {
     ProcessManager: new ProcessManager(),
     CacheManager: new CacheManager(),
     ThumbManager: new ThumbManager(),
-    Histogram: new Histogram()
+    Histogram: new Histogram(),
+    OfflineMapManager: new OfflineMapManager()
   } as const;
 
   private constructor() {
