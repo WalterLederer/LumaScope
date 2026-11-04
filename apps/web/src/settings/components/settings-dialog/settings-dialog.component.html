@@ -29,10 +29,10 @@
         <h3>Build cache</h3>
         <p>Generate missing thumbnails and full-size conversions for the current folder or recursively for all subfolders.</p>
         <div class="build-cache-actions">
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild()" (click)="startCacheBuild()?.()">Cache</button>
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startRecursiveCacheBuild()" (click)="startRecursiveCacheBuild()?.()">Cache recursive</button>
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild()" (click)="runCacheBuild()">Cache</button>
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startRecursiveCacheBuild()" (click)="runRecursiveCacheBuild()">Cache recursive</button>
           @if (cacheBuildActive()) {
-            <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="cancelCacheBuild()?.()">Cancel</button>
+            <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
             <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
           }
         </div>
