@@ -366,7 +366,7 @@ export class CacheManager {
           status: 'valid' as const,
           path: parallel ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, kind === 'fullsize'),
           storageType: parallel ? 'parallel' as const : 'sidecar' as const,
-          sourceTag: kind === 'thumbnail' ? THUMBNAIL_CACHE_TAG : version
+          sourceTag: kind === 'thumbnail' ? THUMBNAIL_CACHE_TAG : expectedFullSizeTag
         };
       };
       let thumbnail = getStatus('thumbnail');
