@@ -58,7 +58,7 @@ export class SettingsPanelComponent {
   private buildCacheInfoRequestId = 0;
 
   protected readonly cacheCheckState = signal<'idle' | 'checking' | 'complete' | 'missing' | 'error'>('idle');
-  protected readonly cacheCheckResult = signal<{ directory: string; images: number; missingThumbnails: string[]; missingFullSize: string[] } | null>(null);
+  protected readonly cacheCheckResult = signal<{ directory: string; recursive: boolean; images: number; missingThumbnails: string[]; missingFullSize: string[] } | null>(null);
   protected readonly cacheCheckError = signal<string | null>(null);
   private cacheCheckRequestId = 0;
 
@@ -305,6 +305,7 @@ export class SettingsPanelComponent {
     });
     effect(() => {
       this.currentFolderPath();
+      this.recursiveBuild();
       this.cacheCheckRequestId++;
       this.cacheCheckState.set('idle');
       this.cacheCheckResult.set(null);
@@ -458,6 +459,7 @@ export class SettingsPanelComponent {
   /* Event handlers */
   protected readonly checkCache = async (): Promise<void> => {
     const directory = this.currentFolderPath().trim();
+    const recursive = this.recursiveBuild();
     if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive()) return;
 
     const requestId = ++this.cacheCheckRequestId;
@@ -466,23 +468,54 @@ export class SettingsPanelComponent {
     this.cacheCheckError.set(null);
 
     try {
-      const response = await window.desktop.FileSystem.readImages(directory, 'name', 'asc');
-      if (!response.success) throw new Error(response.errorMessage || 'Could not read the selected folder.');
-      const images = response.data;
-      const sourceNames = images.map(file => file.path);
-      const sourceMetadata = images.map(file => ({
-        path: file.path,
-        size: file.size,
-        modifiedAt: file.modifiedAt ?? 0
-      }));
-      const statuses = await this.cacheManager.getImageCacheStatuses(sourceNames, true, sourceMetadata);
-      if (requestId !== this.cacheCheckRequestId || directory !== this.currentFolderPath().trim()) return;
+      const pendingDirectories = [directory];
+      const images: Array<{ path: string; size: number; modifiedAt: number }> = [];
 
-      const missingThumbnails = statuses.filter(status => status.thumbnail === null).map(status => status.sourceName);
-      const missingFullSize = statuses
-        .filter(status => status.fullSizeRequired && status.fullSize === null)
-        .map(status => status.sourceName);
-      this.cacheCheckResult.set({ directory, images: images.length, missingThumbnails, missingFullSize });
+      while (pendingDirectories.length > 0) {
+        const currentDirectory = pendingDirectories.pop()!;
+        const imageResponse = await window.desktop.FileSystem.readImages(currentDirectory, 'name', 'asc');
+        if (!imageResponse.success) {
+          throw new Error(imageResponse.errorMessage || `Could not read folder: ${currentDirectory}`);
+        }
+        images.push(...imageResponse.data.map(file => ({
+          path: file.path,
+          size: file.size,
+          modifiedAt: file.modifiedAt ?? 0
+        })));
+
+        if (recursive) {
+          const directoryResponse = await window.desktop.FileSystem.readDirectories(currentDirectory);
+          if (!directoryResponse.success) {
+            throw new Error(directoryResponse.errorMessage || `Could not read subfolders in: ${currentDirectory}`);
+          }
+          pendingDirectories.push(...directoryResponse.data.map(folder => folder.path));
+        }
+
+        if (requestId !== this.cacheCheckRequestId
+          || directory !== this.currentFolderPath().trim()
+          || recursive !== this.recursiveBuild()) return;
+      }
+
+      const missingThumbnails: string[] = [];
+      const missingFullSize: string[] = [];
+      for (let offset = 0; offset < images.length; offset += 10000) {
+        const batch = images.slice(offset, offset + 10000);
+        const statuses = await this.cacheManager.getImageCacheStatuses(
+          batch.map(file => file.path),
+          true,
+          batch
+        );
+        missingThumbnails.push(...statuses.filter(status => status.thumbnail === null).map(status => status.sourceName));
+        missingFullSize.push(...statuses
+          .filter(status => status.fullSizeRequired && status.fullSize === null)
+          .map(status => status.sourceName));
+
+        if (requestId !== this.cacheCheckRequestId
+          || directory !== this.currentFolderPath().trim()
+          || recursive !== this.recursiveBuild()) return;
+      }
+
+      this.cacheCheckResult.set({ directory, recursive, images: images.length, missingThumbnails, missingFullSize });
       this.cacheCheckState.set(missingThumbnails.length || missingFullSize.length ? 'missing' : 'complete');
       await this.updateCacheSummary();
     } catch (error) {
