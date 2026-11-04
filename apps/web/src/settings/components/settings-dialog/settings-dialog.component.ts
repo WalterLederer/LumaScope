@@ -475,8 +475,6 @@ export class SettingsPanelComponent {
         `Space freed: ${result.bytes} bytes`,
         `Duration: ${durationMs} ms`
       ].join('\n'));
-      await this.updateCacheInfo(global ? undefined : directory || null, recursive);
-      await this.updateBuildCacheInfo(this.currentFolderPath().trim() || null, this.recursiveBuild());
     } catch (error) {
       const durationMs = Math.round(performance.now() - startedAt);
       const message = error instanceof Error ? error.message : String(error);
@@ -491,6 +489,8 @@ export class SettingsPanelComponent {
       this.activeDeleteOperationId = null;
       this.deleteCancelRequested.set(false);
       this.isClearing.set(false);
+      await this.updateCacheInfo(global ? undefined : directory || null, recursive);
+      await this.updateBuildCacheInfo(this.currentFolderPath().trim() || null, this.recursiveBuild());
     }
   };
 
