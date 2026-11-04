@@ -119,7 +119,10 @@
       </div>
 
     @if (isClearing()) {
-      <p class="cache-status" role="status">Clearing cache…</p>
+      <div class="cache-status-row">
+        <p class="cache-status" role="status">Clearing cache…</p>
+        <button class="cache-button warning" type="button" (click)="cancelDeleteCache()">Cancel</button>
+      </div>
     } @else if (clearResult !== null) {
       <p class="cache-status" role="status">
         Deleted {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
