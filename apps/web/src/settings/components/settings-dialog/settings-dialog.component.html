@@ -28,6 +28,10 @@
       <div class="build-cache-box">
         <h3>Build cache</h3>
         <p>Generate missing thumbnails and full-size conversions for the current folder or recursively for all subfolders.</p>
+        <label class="build-cache-current-folder">
+          <span>Current folder</span>
+          <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
+        </label>
         <div class="build-cache-actions">
           <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild()" (click)="runCacheBuild()">Cache</button>
           <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startRecursiveCacheBuild()" (click)="runRecursiveCacheBuild()">Cache recursive</button>
