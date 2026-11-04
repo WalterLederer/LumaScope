@@ -60,6 +60,8 @@ export interface CacheSummary {
   databases: Array<{ path: string; bytes: number }>;
 }
 
+export type PhotoDatabaseRecord = Record<string, string | number | null>;
+
 export interface DesktopCacheManager {
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
@@ -76,6 +78,7 @@ export interface DesktopCacheManager {
   readonly appendBuildLog: (line: string) => Promise<void>;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
+  readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
 }
 
 export interface PhotoLocation {
