@@ -29,7 +29,12 @@ export class SettingsPanelComponent {
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
   protected readonly recursiveBuild = signal(false);
+  protected readonly cacheOutputMode = signal<'build' | 'check'>('build');
   protected readonly runCacheBuild = (): void => {
+    this.cacheOutputMode.set('build');
+    this.cacheCheckLog.set([]);
+    this.cacheCheckResult.set(null);
+    this.cacheCheckError.set(null);
     if (this.recursiveBuild()) {
       this.startRecursiveCacheBuild()?.();
     } else {
@@ -503,6 +508,7 @@ export class SettingsPanelComponent {
     if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive()) return;
 
     const requestId = ++this.cacheCheckRequestId;
+    this.cacheOutputMode.set('check');
     this.cacheCheckState.set('checking');
     this.cacheCheckResult.set(null);
     this.cacheCheckError.set(null);
@@ -523,7 +529,7 @@ export class SettingsPanelComponent {
           size: file.size,
           modifiedAt: file.modifiedAt ?? 0
         })));
-        this.cacheCheckLog.update(log => [...log, `Enumerated: ${currentDirectory} · ${imageResponse.data.length} images`].slice(-500));
+        this.cacheCheckLog.set([`Enumerated: ${currentDirectory} · ${imageResponse.data.length} images`]);
 
         if (recursive) {
           const directoryResponse = await window.desktop.FileSystem.readDirectories(currentDirectory);
@@ -531,7 +537,7 @@ export class SettingsPanelComponent {
             throw new Error(directoryResponse.errorMessage || `Could not read subfolders in: ${currentDirectory}`);
           }
           pendingDirectories.push(...directoryResponse.data.map(folder => folder.path));
-          this.cacheCheckLog.update(log => [...log, `Subfolders found: ${directoryResponse.data.length} · ${currentDirectory}`].slice(-500));
+          this.cacheCheckLog.set([`Subfolders found: ${directoryResponse.data.length} · ${currentDirectory}`]);
         }
 
         if (requestId !== this.cacheCheckRequestId
@@ -539,7 +545,7 @@ export class SettingsPanelComponent {
           || recursive !== this.recursiveBuild()) return;
       }
 
-      this.cacheCheckLog.update(log => [...log, `Directory enumeration complete · ${images.length} images found`, 'Checking cache files…'].slice(-500));
+      this.cacheCheckLog.set([`Directory enumeration complete · ${images.length} images found`, 'Checking cache files…']);
 
       const missingThumbnails: string[] = [];
       const missingFullSize: string[] = [];
