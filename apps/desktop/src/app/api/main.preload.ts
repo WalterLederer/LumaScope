@@ -50,9 +50,10 @@ const api: Desktop = {
   },
 
   CacheManager: {
-    clear: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.clear', directory, recursive),
-    clearFullSize: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.clearFullSize', directory, recursive),
-    clearThumbnails: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.clearThumbnails', directory, recursive),
+    clear: (directory?: string, recursive = false, operationId?: string) => ipcRenderer.invoke('CacheManager.clear', directory, recursive, operationId),
+    clearFullSize: (directory?: string, recursive = false, operationId?: string) => ipcRenderer.invoke('CacheManager.clearFullSize', directory, recursive, operationId),
+    clearThumbnails: (directory?: string, recursive = false, operationId?: string) => ipcRenderer.invoke('CacheManager.clearThumbnails', directory, recursive, operationId),
+    cancelClear: (operationId: string) => ipcRenderer.invoke('CacheManager.cancelClear', operationId),
     deleteImage: (sourceName: string) => ipcRenderer.invoke('CacheManager.deleteImage', sourceName),
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     cacheInfo: () => ipcRenderer.invoke('CacheManager.cacheInfo'),
