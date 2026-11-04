@@ -148,6 +148,15 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', opacity);
   }
 
+  setBasemapOpacity(opacity: number): void {
+    const layers: Array<[string, string]> = [
+      ['background', 'background-opacity'], ['land', 'fill-opacity'], ['ocean', 'fill-opacity'],
+      ['water-polygons', 'fill-opacity'], ['water-lines', 'line-opacity'], ['boundaries', 'line-opacity'],
+      ['streets', 'line-opacity'], ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
+    ];
+    for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
+  }
+
   setPhotoOpacity(opacity: number): void {
     if (!this.map.getLayer('photo-unclustered')) return;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
