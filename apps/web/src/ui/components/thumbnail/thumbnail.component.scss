@@ -94,7 +94,7 @@ button {
   }
 }
 
-:host(.view-details),
+ :host(.view-details),
 :host(.view-details-no-thumbnails) {
   display: grid;
   grid-column: 1 / -1;
