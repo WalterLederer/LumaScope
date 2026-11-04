@@ -529,16 +529,20 @@ export class SettingsPanelComponent {
           size: file.size,
           modifiedAt: file.modifiedAt ?? 0
         })));
-        this.cacheCheckLog.set([`Enumerated: ${currentDirectory} · ${imageResponse.data.length} images`]);
 
+        let subfolderCount = 0;
         if (recursive) {
           const directoryResponse = await window.desktop.FileSystem.readDirectories(currentDirectory);
           if (!directoryResponse.success) {
             throw new Error(directoryResponse.errorMessage || `Could not read subfolders in: ${currentDirectory}`);
           }
+          subfolderCount = directoryResponse.data.length;
           pendingDirectories.push(...directoryResponse.data.map(folder => folder.path));
-          this.cacheCheckLog.set([`Subfolders found: ${directoryResponse.data.length} · ${currentDirectory}`]);
         }
+
+        this.cacheCheckLog.set([
+          `Enumerated: ${currentDirectory} · ${imageResponse.data.length} images${recursive ? ` · ${subfolderCount} subfolders` : ''}`
+        ]);
 
         if (requestId !== this.cacheCheckRequestId
           || directory !== this.currentFolderPath().trim()
