@@ -538,10 +538,12 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
   // Find the topmost visible application window in native Z-order.
   // Light Matter/LumaScope windows are intentionally included.
   const foreground = getForegroundWindowHandle();
-  // Native per-window capture can return only a tiny application icon for some
-  // window types. Crop the visible monitor frame for every process instead, using
-  // the same validated DWM window bounds and preserving the actual window size.
-  return cropWindowFromMonitorFrame(foreground.handle, 'top-window');
+  // Always capture the selected HWND directly. Window capture must continue to
+  // work for windows that are partially or completely obscured on the desktop.
+  const captured = await captureHdrFrame({ kind: 'window', handle: foreground.handle });
+  const frame: CapturedHdrFrame = { ...captured, targetKey: 'top-window' };
+  cachedHdrFrame = frame;
+  return frame;
 };
 
 const selectCaptureRectangle = async (): Promise<{
