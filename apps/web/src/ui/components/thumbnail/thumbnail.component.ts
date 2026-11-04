@@ -35,6 +35,7 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
     '[style.--fit]': 'fit()',
     '[class.view-tiles]': "viewMode() === 'tiles'",
     '[class.view-details]': "viewMode() === 'details'",
+    '[class.view-details-no-thumbnails]': "viewMode() === 'details-no-thumbnails'",
     '(mouseenter)': 'hovered.emit(image())',
     '(mouseleave)': 'hovered.emit(null)'
   }
