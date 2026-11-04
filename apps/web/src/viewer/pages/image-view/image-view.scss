@@ -1915,6 +1915,21 @@
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
+.image-controls-sidebar .image-location-resolve-error {
+  display: block;
+  width: 100%;
+  min-height: 58px;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 1px solid #b94a48;
+  border-radius: 4px;
+  background: var(--color-surface-default-low);
+  color: #ff8a80;
+  font: 11px/1.45 var(--font-family-monospace, monospace);
+  resize: vertical;
+  overflow-wrap: anywhere;
+}
 .image-controls-sidebar .image-database-record {
   max-width: 100%;
   max-height: 420px;
