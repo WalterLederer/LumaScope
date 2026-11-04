@@ -65,6 +65,7 @@ export class OfflineMapRenderer {
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
+  private lastMapError: string | null = null;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number) {
     const options: MapOptions = {
@@ -75,6 +76,7 @@ export class OfflineMapRenderer {
     this.map = new MapLibreMap(options);
     let mapErrorCount = 0;
     this.map.on('error', event => {
+      this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
       if (mapErrorCount++ < 20) console.error('[OfflineMap] MapLibre error:', event.error);
     });
     this.map.on('load', () => console.info('[OfflineMap] MapLibre style loaded.'));
@@ -83,7 +85,8 @@ export class OfflineMapRenderer {
       const timeout = window.setTimeout(() => {
         if (settled) return;
         settled = true;
-        reject(new Error('MapLibre did not finish loading the offline map within 15 seconds. Check the OfflineMap protocol and tile requests in the application log.'));
+        const detail = this.lastMapError ? ` Last MapLibre error: ${this.lastMapError}` : ' No MapLibre error event was reported.';
+        reject(new Error('MapLibre did not finish loading the offline map within 15 seconds.' + detail + ' Check whether [OfflineMap] Protocol request received appears in the application log.'));
       }, 15000);
       this.map.once('load', () => {
         if (settled) return;
