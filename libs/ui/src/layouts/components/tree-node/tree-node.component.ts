@@ -48,16 +48,6 @@ export class TreeNodeComponent<T> {
     return node.isOpen === true ? node.openIcon : node.closedIcon;
   });
 
-  protected readonly iconColor = computed(() => {
-    const node = this.node();
-
-    if (node.id === '') {
-      return node.isOpen === true ? '#8ccfff' : '#000000';
-    }
-
-    return null;
-  });
-
   protected readonly isSelected = computed(() => this.node().isSelected === true);
 
   protected readonly onClick = () => this.pressed.emit(this.node());
