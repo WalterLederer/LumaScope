@@ -61,6 +61,22 @@ export class SettingsPanelComponent {
   protected readonly cacheCheckResult = signal<{ directory: string; recursive: boolean; images: number; missingThumbnails: string[]; missingFullSize: string[] } | null>(null);
   protected readonly cacheCheckError = signal<string | null>(null);
   protected readonly cacheCheckLog = signal<string[]>([]);
+  protected readonly cacheCheckOutput = computed(() => {
+    const lines = [...this.cacheCheckLog()];
+    const result = this.cacheCheckResult();
+    if (result) {
+      lines.push(
+        'Cache check completed',
+        `Scope: ${result.recursive ? 'Current folder and all subfolders' : 'Current folder only'} · ${result.directory}`,
+        `Images checked: ${result.images}`,
+        `Missing thumbnails: ${result.missingThumbnails.length}`,
+        `Missing full-size conversions: ${result.missingFullSize.length}`
+      );
+    }
+    const error = this.cacheCheckError();
+    if (error) lines.push(`Cache check failed: ${error}`);
+    return lines.join('\\n');
+  });
   private cacheCheckRequestId = 0;
 
   protected readonly isClearing = signal(false);
