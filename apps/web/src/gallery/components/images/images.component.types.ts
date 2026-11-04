@@ -1,6 +1,6 @@
 import { FileInfo } from 'internal-api';
 
-export type GalleryViewMode = 'thumbnails' | 'tiles' | 'details';
+export type GalleryViewMode = 'thumbnails' | 'tiles' | 'details' | 'details-no-thumbnails';
 
 export interface MonthGroup {
   readonly year: number;
