@@ -100,7 +100,10 @@
   </div>
   <ui-text>
     <strong>Total: {{ cacheStats().total }}</strong>,
-    Thumb: {{ cacheStats().thumbnails }},
+    <span class="thumb-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total"
+          [attr.title]="cacheStats().thumbnails < cacheStats().total ? 'Some thumbnails have not been generated yet' : 'All thumbnails are generated'">
+      Thumb: {{ cacheStats().thumbnails }}
+    </span>,
     Full-Size Conversion: {{ cacheStats().fullSizeConversions }}
     @if (hoveredFolderPath(); as folderPath) {
       · {{ folderPath }}
