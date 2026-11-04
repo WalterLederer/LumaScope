@@ -80,7 +80,7 @@ export const protocolHandler = async (request: GlobalRequest): Promise<GlobalRes
 };
 
 const offlineTile = (pathname: string): GlobalResponse => {
-  const match = pathname.match(/^\\/offline-tiles\\/(\\d+)\\/(\\d+)\\/(\\d+)$/);
+  const match = pathname.match(/^\/offline-tiles\/(\d+)\/(\d+)\/(\d+)$/);
   if (!match) return notFound();
 
   const [ , zText, xText, yText ] = match;
