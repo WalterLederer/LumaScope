@@ -512,7 +512,17 @@ export class CacheManager {
       LEFT JOIN location_names ON location_names.id = photos.location_name_id
       WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
-    return row ?? null;
+    if (!row) return null;
+    const columnTypes = new Map(
+      (this.db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
+        .map(column => [column.name, column.type.toUpperCase()])
+    );
+    const typedRecord: Record<string, string | number | null> = { ...row };
+    for (const key of Object.keys(row)) {
+      if (key.endsWith('_expanded')) continue;
+      typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
+    }
+    return typedRecord;
   };
 
   @IpcHandler({ name: 'CacheManager.resolvePhotoLocation' })
