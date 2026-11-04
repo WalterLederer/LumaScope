@@ -29,6 +29,8 @@ export class IconComponent {
 
   readonly inherit = input(false);
 
+  readonly colorOverride = input<string | null>(null);
+
   protected readonly iconCode = computed(() => {
     const icon = this.icon();
 
@@ -51,11 +53,12 @@ export class IconComponent {
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly color = computed(() => {
+    const override = this.colorOverride();
     const inherit = this.inherit();
     const variant = this.variant();
 
-    return inherit
+    return override ?? (inherit
       ? 'currentColor'
-      : `var(--color-content-${variant}-highest)`;
+      : `var(--color-content-${variant}-highest)`);
   });
 }
