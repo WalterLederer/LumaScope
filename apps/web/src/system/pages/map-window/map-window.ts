@@ -70,7 +70,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
             <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
           </div>
-          <div class="settings-group">
+          <div class="settings-group map-style-settings">
             <label><strong>Map:</strong> Style
               <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                 <option value="standard">Standard</option><option value="satellite">Satellite</option>
@@ -234,7 +234,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
-    .settings-group:last-child{border-right:0;padding-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
