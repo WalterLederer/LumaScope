@@ -116,7 +116,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
               </div>
-              <input type="range" min="1" [max]="mapSource() === 'offline' ? 18 : 20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
@@ -623,7 +623,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private saveSetting(key: string, value: string | number | boolean): void {
     try { localStorage.setItem(this.storagePrefix + key, String(value)); } catch { /* Keep the current session setting. */ }
   }
-  private validZoom(value: number): number { return Math.max(1, Math.min(this.mapSource() === 'offline' ? 18 : 20, Math.round(value))); }
+  private validZoom(value: number): number { return Math.max(1, Math.min(this.mapSource() === 'offline' ? 20 : 20, Math.round(value))); }
 
   protected readonly onMarkerSectionToggle = (event: Event): void => {
     const section = event.currentTarget;
