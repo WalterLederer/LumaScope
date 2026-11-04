@@ -80,6 +80,8 @@ export interface CacheDirectoryStats {
   total: number;
   thumbnails: number;
   fullSizeConversions: number;
+  thumbnailPaths: string[];
+  fullSizePaths: string[];
 }
 
 export interface CacheInfo extends CacheClearResult {
