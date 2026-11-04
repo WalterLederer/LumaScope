@@ -62,7 +62,7 @@
   </aside>
 </ui-toolbar>
 
-<div class="wrapper" [class.details-mode]="viewMode() === 'details'" #scrollBox>
+<div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox>
   <app-images [images]="images()"
               [folderPath]="selectedLocation()"
               [sortBy]="sortBy()"
