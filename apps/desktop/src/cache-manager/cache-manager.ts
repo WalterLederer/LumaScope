@@ -430,25 +430,30 @@ export class CacheManager {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
     const row = this.db.prepare(`SELECT
         photos.id,
-        paths.folder_path AS path_id,
+        photos.path_id,
+        paths.folder_path AS path_id_expanded,
         photos.file_name,
         photos.file_size,
         photos.modified_at,
         photos.is_hdr,
-        cache_thumb.name AS thumbnail_cache_id,
+        photos.thumbnail_cache_id,
+        cache_thumb.name AS thumbnail_cache_id_expanded,
         photos.thumbnail_cache_version,
-        cache_full.name AS fullsize_cache_id,
+        photos.fullsize_cache_id,
+        cache_full.name AS fullsize_cache_id_expanded,
         photos.fullsize_cache_version,
         photos.latitude,
         photos.longitude,
         photos.altitude_m,
         photos.gps_timestamp,
         photos.direction_deg,
-        coordinate_sources.name AS coordinate_source_id,
+        photos.coordinate_source_id,
+        coordinate_sources.name AS coordinate_source_id_expanded,
+        photos.location_name_id,
         CASE WHEN location_names.id IS NULL THEN NULL ELSE
           location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
           COALESCE(', ' || location_names.region, '') ||
-          COALESCE(', ' || location_names.country_code, '') END AS location_name_id
+          COALESCE(', ' || location_names.country_code, '') END AS location_name_id_expanded
       FROM photos
       JOIN paths ON paths.id = photos.path_id
       LEFT JOIN cache_storage_types AS cache_thumb ON cache_thumb.id = photos.thumbnail_cache_id
