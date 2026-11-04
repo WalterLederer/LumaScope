@@ -400,6 +400,30 @@ section {
 .build-cache-verify,
 .build-cache-recursive { justify-self: start; }
 
+
+.build-cache-current-operation,
+.delete-cache-summary {
+  min-width: 0;
+
+  textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: var(--dim-small) var(--dim-medium);
+    border: 1px solid var(--color-content-default-low);
+    border-radius: var(--border-radius-small);
+    background: var(--color-surface-default-highest);
+    color: var(--color-content-default-high);
+    font: inherit;
+    resize: vertical;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+.build-cache-current-operation textarea { min-height: 3.5rem; }
+.delete-cache-summary textarea { min-height: 5.5rem; }
+
 .delete-cache-section { margin-top: var(--dim-large); }
 
 
