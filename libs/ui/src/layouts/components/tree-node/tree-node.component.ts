@@ -41,11 +41,7 @@ export class TreeNodeComponent<T> {
   protected readonly icon = computed(() => {
     const node = this.node();
 
-    return node.isLoading
-      ? 'arrowClockwise'
-      : node.isOpen
-      ? node.openIcon
-      : node.closedIcon;
+    return node.isLoading ? 'arrowClockwise' : 'folderFilled';
   });
 
   protected readonly isSelected = computed(() => this.node().isSelected === true);
