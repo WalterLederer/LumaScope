@@ -78,10 +78,23 @@ export class OfflineMapRenderer {
       if (mapErrorCount++ < 20) console.error('[OfflineMap] MapLibre error:', event.error);
     });
     this.map.on('load', () => console.info('[OfflineMap] MapLibre style loaded.'));
-    this.ready = new Promise(resolve => {
+    this.ready = new Promise((resolve, reject) => {
+      let settled = false;
+      const timeout = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('MapLibre did not finish loading the offline map within 15 seconds. Check the OfflineMap protocol and tile requests in the application log.'));
+      }, 15000);
       this.map.once('load', () => {
-        this.initializePhotoLayers();
-        resolve();
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        try {
+          this.initializePhotoLayers();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
     });
   }
