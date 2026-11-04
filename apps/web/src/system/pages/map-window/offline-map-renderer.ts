@@ -34,6 +34,10 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'water-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'water_polygons', paint: { 'fill-color': '#a9d5e5' } },
     { id: 'water-lines', type: 'line', source: 'shortbread', 'source-layer': 'water_lines', paint: { 'line-color': '#a9d5e5', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 14, 2] } },
     { id: 'boundaries', type: 'line', source: 'shortbread', 'source-layer': 'boundaries', paint: { 'line-color': '#a58aa2', 'line-width': 1, 'line-dasharray': [2, 2] } },
+    { id: 'dam-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'dam_polygons', paint: { 'fill-color': '#91bdce', 'fill-outline-color': '#6f9eaf' } },
+    { id: 'pier-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'pier_polygons', paint: { 'fill-color': '#c9c4b8' } },
+    { id: 'sites', type: 'fill', source: 'shortbread', 'source-layer': 'sites', minzoom: 10, paint: { 'fill-color': '#e3dfd4', 'fill-outline-color': '#c9c3b7', 'fill-opacity': 0.65 } },
+    { id: 'street-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'street_polygons', minzoom: 12, paint: { 'fill-color': '#f8f5ed', 'fill-outline-color': '#e5dfd4' } },
     {
       id: 'streets', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 8,
       paint: {
@@ -42,6 +46,12 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
         'line-opacity': 0.95
       }
     },
+    { id: 'bridges', type: 'line', source: 'shortbread', 'source-layer': 'bridges', minzoom: 11, paint: { 'line-color': '#b89d7e', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 16, 4] } },
+    { id: 'ferries', type: 'line', source: 'shortbread', 'source-layer': 'ferries', minzoom: 8, paint: { 'line-color': '#5797b3', 'line-width': 1.5, 'line-dasharray': [2, 2] } },
+    { id: 'aerialways', type: 'line', source: 'shortbread', 'source-layer': 'aerialways', minzoom: 10, paint: { 'line-color': '#9a7b9c', 'line-width': 1.2, 'line-dasharray': [1, 2] } },
+    { id: 'dam-lines', type: 'line', source: 'shortbread', 'source-layer': 'dam_lines', paint: { 'line-color': '#6f9eaf', 'line-width': 1.5 } },
+    { id: 'pier-lines', type: 'line', source: 'shortbread', 'source-layer': 'pier_lines', paint: { 'line-color': '#b9b1a2', 'line-width': 1.5 } },
+    { id: 'public-transport', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 12, paint: { 'circle-radius': 2.5, 'circle-color': '#765b9a', 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.6 } },
     { id: 'buildings', type: 'fill', source: 'shortbread', 'source-layer': 'buildings', minzoom: 13, paint: { 'fill-color': '#d4c9bd', 'fill-outline-color': '#c2b6aa', 'fill-opacity': 0.85 } },
     { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 3], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } },
     // Nearly transparent anchor layers let the renderer obtain label geometry
@@ -380,7 +390,10 @@ export class OfflineMapRenderer {
     const layers = [
       ['background', 'background-opacity'], ['land', 'fill-opacity'], ['ocean', 'fill-opacity'],
       ['water-polygons', 'fill-opacity'], ['water-lines', 'line-opacity'], ['boundaries', 'line-opacity'],
-      ['streets', 'line-opacity'], ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
+      ['dam-polygons', 'fill-opacity'], ['pier-polygons', 'fill-opacity'], ['sites', 'fill-opacity'], ['street-polygons', 'fill-opacity'],
+      ['streets', 'line-opacity'], ['bridges', 'line-opacity'], ['ferries', 'line-opacity'], ['aerialways', 'line-opacity'],
+      ['dam-lines', 'line-opacity'], ['pier-lines', 'line-opacity'], ['public-transport', 'circle-opacity'],
+      ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
     ] as const;
     for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
   }
