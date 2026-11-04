@@ -63,7 +63,7 @@ export interface DesktopCacheManager {
   readonly getBuildLogPath: () => Promise<string>;
   readonly resetBuildLog: () => Promise<void>;
   readonly appendBuildLog: (line: string) => Promise<void>;
-  readonly getDirectoryCacheStats: (sourceNames: string[]) => Promise<CacheDirectoryStats>;
+  readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
 }
 
