@@ -29,7 +29,7 @@ export class SettingsPanelComponent {
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
   protected readonly recursiveBuild = signal(false);
-  protected readonly cacheOutputMode = signal<'build' | 'check'>('build');
+  protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');\n  protected readonly locationLookupActive = signal(false);\n  protected readonly locationLookupOutput = signal('No location lookup has run yet.');
   protected readonly runCacheBuild = (): void => {
     this.cacheOutputMode.set('build');
     this.cacheCheckLog.set([]);
@@ -42,6 +42,37 @@ export class SettingsPanelComponent {
     }
   };
   protected readonly stopCacheBuild = (): void => this.cancelCacheBuild()?.();
+
+  protected readonly resolveMissingLocations = async (): Promise<void> => {
+    const directory = this.currentFolderPath().trim();
+    if (!directory || this.locationLookupActive() || this.cacheBuildActive() || this.cacheCheckState() === 'checking' || this.isClearing()) return;
+
+    const recursive = this.recursiveBuild();
+    this.cacheOutputMode.set('locations');
+    this.locationLookupActive.set(true);
+    this.locationLookupOutput.set([
+      'Reverse geocoding started',
+      `Scope: ${recursive ? 'Current folder and all subfolders' : 'Current folder only'} · ${directory}`,
+      'Processing photos with GPS coordinates and no location name…',
+      'Requests are sent sequentially using the existing reverse-geocoding provider.'
+    ].join('\n'));
+
+    try {
+      const result = await this.cacheManager.resolveMissingLocationNames(directory, recursive);
+      this.locationLookupOutput.set([
+        'Reverse geocoding completed',
+        `Scope: ${recursive ? 'Current folder and all subfolders' : 'Current folder only'} · ${directory}`,
+        `Photos processed: ${result.total}`,
+        `Location names resolved: ${result.resolved}`,
+        `Unresolved / provider returned no result: ${result.unresolved}`
+      ].join('\n'));
+      await this.updateCacheSummary();
+    } catch (error) {
+      this.locationLookupOutput.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this.locationLookupActive.set(false);
+    }
+  };
   /* DI */
   readonly cacheManager = inject(CacheManager);
 
@@ -505,7 +536,7 @@ export class SettingsPanelComponent {
   protected readonly checkCache = async (): Promise<void> => {
     const directory = this.currentFolderPath().trim();
     const recursive = this.recursiveBuild();
-    if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive()) return;
+    if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive() || this.locationLookupActive()) return;
 
     const requestId = ++this.cacheCheckRequestId;
     this.cacheOutputMode.set('check');
