@@ -472,7 +472,6 @@ export default class App {
     }
 
     App.application.setName('LumaScope');
-    App.application.setPath('userData', join(App.application.getPath('appData'), 'light-matter'));
     App.startupConfig = new StartupConfig(app);
 
     protocol.registerSchemesAsPrivileged([
