@@ -48,6 +48,9 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'label-boundaries-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'boundary_labels', minzoom: 3, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-streets-anchor', type: 'line', source: 'shortbread', 'source-layer': 'street_labels', minzoom: 11, paint: { 'line-width': 8, 'line-opacity': 0.01 } },
     { id: 'label-water-anchor', type: 'line', source: 'shortbread', 'source-layer': 'water_lines_labels', minzoom: 10, paint: { 'line-width': 6, 'line-opacity': 0.01 } }
+    { id: 'label-water-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'water_polygons_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-street-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'streets_polygons_labels', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-street-points-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'street_labels_points', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
   ]
 };
 
@@ -160,6 +163,9 @@ export class OfflineMapRenderer {
       'label-places-anchor',
       'label-boundaries-anchor',
       'label-water-anchor',
+      'label-water-polygons-anchor',
+      'label-street-polygons-anchor',
+      'label-street-points-anchor',
       'label-streets-anchor'
     ];
     const features = this.map.queryRenderedFeatures({ layers });
@@ -194,8 +200,8 @@ export class OfflineMapRenderer {
       const screenPoint = this.map.project(point);
       if (!Number.isFinite(screenPoint.x) || !Number.isFinite(screenPoint.y)) continue;
 
-      const isStreet = layerId === 'label-streets-anchor';
-      const isWater = layerId === 'label-water-anchor';
+      const isStreet = layerId === 'label-streets-anchor' || layerId === 'label-street-polygons-anchor' || layerId === 'label-street-points-anchor';
+      const isWater = layerId === 'label-water-anchor' || layerId === 'label-water-polygons-anchor';
       const isBoundary = layerId === 'label-boundaries-anchor';
       const placeKind = String(properties['kind'] ?? '');
       const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : 0;
@@ -221,7 +227,7 @@ export class OfflineMapRenderer {
       if (seen.has(key)) continue;
       seen.add(key);
 
-      const fontSize = kind === 'capital' ? 16 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : 11;
+      const fontSize = kind === 'capital' ? 16 : kind === 'state_capital' ? 15 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'village' ? 12 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : 11;
       const labelWidth = Math.min(260, Math.max(24, text.length * fontSize * 0.56 + 8));
       const labelHeight = fontSize + 7;
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
