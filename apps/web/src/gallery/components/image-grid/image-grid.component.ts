@@ -135,7 +135,7 @@ export class ImageGridComponent {
       return;
     }
     try {
-      const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path));
+      const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path), this.verifyCacheFiles());
       if (request !== this.cacheStatsRequest) return;
       if (pathUpdateRevision !== this.cachePathUpdateRevision) {
         void this.refreshDirectoryCacheStats();
@@ -164,7 +164,7 @@ export class ImageGridComponent {
     }
     if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
     this.cachePathUpdateRevision++;
-    void this.cacheManager.getDirectoryCacheStats([sourceName]).then(stats => {
+    void this.cacheManager.getDirectoryCacheStats([sourceName], this.verifyCacheFiles()).then(stats => {
       if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
       stats.thumbnailPaths.includes(sourceName)
         ? this.thumbnailCachePaths.add(sourceName)
