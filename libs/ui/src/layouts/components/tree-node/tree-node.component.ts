@@ -48,11 +48,7 @@ export class TreeNodeComponent<T> {
     return node.isOpen === true ? node.openIcon : node.closedIcon;
   });
 
-  protected readonly iconColor = computed(() => {
-    const icon = this.icon();
-
-    return icon === 'folderFilled' || icon === 'folderOpenFilled' ? '#f5c542' : null;
-  });
+  protected readonly iconColor = computed(() => null);
 
   protected readonly isSelected = computed(() => this.node().isSelected === true);
 
