@@ -175,6 +175,8 @@ export class ImagesComponent {
 
   readonly hovered = output<FileInfo | null>();
 
+  readonly cacheUpdated = output<string>();
+
   async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
     if (this.detailSortColumn() === column) {
       this.detailSortDirection.update(direction => direction === 'asc' ? 'desc' : 'asc');
