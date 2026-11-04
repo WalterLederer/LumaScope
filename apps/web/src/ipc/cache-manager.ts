@@ -33,7 +33,7 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 
-  readonly cacheInfo = (): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo();
+  readonly cacheInfo = (directory?: string, recursive = false): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo(directory, recursive);
 
   readonly imageCachePath = (sourceName: string): Promise<string | null> =>
     window.desktop.CacheManager.imageCachePath(sourceName);
