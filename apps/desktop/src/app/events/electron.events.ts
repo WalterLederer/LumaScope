@@ -104,6 +104,7 @@ interface CapturedHdrFrame {
   width: number;
   height: number;
   buffer: Buffer;
+  sourceDetails?: string;
 }
 
 let cachedHdrFrame: CapturedHdrFrame | null = null;
@@ -382,13 +383,34 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
   }
 };
 
-const getForegroundWindowHandle = (): { handle: number; processId: number } => {
-  // Reuse the exact same EnumWindows snapshot and Z-order used by the source list.
+const getForegroundWindowHandle = () => {
+  // Reuse the same EnumWindows snapshot and eligibility rules as the source list.
   const candidate = enumerateTopLevelWindows().find(window => window.isTopWindowCandidate);
   if (!candidate) {
-    throw new Error('No visible, non-minimized application window meeting the Top Window size requirements was found.');
+    throw new Error('No eligible Top Window was found. Refresh the source list and inspect the window sizes and minimized states.');
   }
-  return { handle: candidate.handle, processId: candidate.processId };
+  return candidate;
+};
+
+const describeTopWindow = (candidate: CaptureSources['windows'][number]): string => {
+  const monitorKey = (candidate.monitorDeviceName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const hdrModes = queryWindowsMonitorHdrModes();
+  const displayMode = monitorKey in hdrModes
+    ? hdrModes[monitorKey] === null ? 'Unknown' : hdrModes[monitorKey] ? 'HDR' : 'SDR'
+    : 'Unknown';
+  return [
+    'Top Window selected',
+    `Z-Order: ${candidate.zOrder}`,
+    `HWND: 0x${candidate.handle.toString(16).toUpperCase().padStart(8, '0')} (${candidate.handle})`,
+    `Exe: ${candidate.processName}`,
+    `Executable: ${candidate.executablePath ?? 'Unknown'}`,
+    `Window title: ${candidate.title}`,
+    `Size: ${candidate.width} × ${candidate.height}`,
+    `Display mode: ${displayMode}`,
+    `Monitor: ${candidate.monitorDeviceName ?? 'Unknown'}`,
+    `Process ID: ${candidate.processId}`,
+    `Status: ${candidate.isMinimized ? 'Minimized' : candidate.isTopWindowCandidate ? 'Eligible Top Window' : 'Not eligible'}`
+  ].join('\\n');
 };
 
 const getWindowMonitorGeometry = (handle: number): {
@@ -480,24 +502,37 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
   if (includeLightMatterWindows) {
     const captureWindow = ownerWindow && !ownerWindow.isDestroyed() ? ownerWindow : App.capturePreviewWindow;
     if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible() || captureWindow.isMinimized()) {
-      throw new Error('The Light Matter Capture window must be visible and restored to capture it as the Top Window.');
+      throw new Error('The LumaScope Capture window must be visible and restored to capture it as the Top Window.');
     }
-    const nativeHandle=captureWindow.getNativeWindowHandle();
-    const handle=Number(nativeHandle.readBigUInt64LE(0));
-    if(!Number.isSafeInteger(handle)||handle<=0) throw new Error('Could not resolve the Light Matter Capture window handle.');
-    const key=captureTargetKey({kind:'top-window',includeLightMatterWindows:true},captureWindow);
-    // Use visible monitor pixels for Chromium/Electron windows; native window capture
-    // can return only the application icon instead of the rendered window contents.
-    return cropWindowFromMonitorFrame(handle,key);
+    const nativeHandle = captureWindow.getNativeWindowHandle();
+    const handle = Number(nativeHandle.readBigUInt64LE(0));
+    if (!Number.isSafeInteger(handle) || handle <= 0) throw new Error('Could not resolve the LumaScope Capture window handle.');
+    const bounds = captureWindow.getBounds();
+    const sourceDetails = [
+      'Top Window selected',
+      'Z-Order: forced application window',
+      `HWND: 0x${handle.toString(16).toUpperCase().padStart(8, '0')} (${handle})`,
+      'Exe: LumaScope',
+      `Window title: ${captureWindow.getTitle() || 'LumaScope Capture'}`,
+      `Size: ${bounds.width} × ${bounds.height}`,
+      'Display mode: determined by native capture',
+      `Process ID: ${process.pid}`,
+      'Status: Forced application window'
+    ].join('\\n');
+    console.info('[HDR Capture] Top Window source:', sourceDetails);
+    // Capture the selected HWND directly, including when another window covers it.
+    const captured = await captureHdrFrame({ kind: 'window', handle });
+    const frame: CapturedHdrFrame = { ...captured, targetKey: 'top-window', sourceDetails };
+    cachedHdrFrame = frame;
+    return frame;
   }
 
-  // Find the topmost visible application window in native Z-order.
-  // Light Matter/LumaScope windows are intentionally included.
   const foreground = getForegroundWindowHandle();
-  // Always capture the selected HWND directly. Window capture must continue to
-  // work for windows that are partially or completely obscured on the desktop.
+  const sourceDetails = describeTopWindow(foreground);
+  console.info('[HDR Capture] Top Window source:', sourceDetails);
+  // Always capture the selected HWND directly, including when it is obscured.
   const captured = await captureHdrFrame({ kind: 'window', handle: foreground.handle });
-  const frame: CapturedHdrFrame = { ...captured, targetKey: 'top-window' };
+  const frame: CapturedHdrFrame = { ...captured, targetKey: 'top-window', sourceDetails };
   cachedHdrFrame = frame;
   return frame;
 };
@@ -1356,7 +1391,7 @@ ipcMain.handle('CapturePreviewWindow.getFrame', async (): Promise<{ width: numbe
 
 ipcMain.handle(
   'Capture.preview',
-  async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; sdrImage: Uint8Array; }> => {
+  async (event, target: CaptureTarget): Promise<{ width: number; height: number; pixels: Uint16Array; sdrImage: Uint8Array; sourceDetails?: string; }> => {
     // console.info('[HDR Capture] preview requested');
     // Always capture a fresh frame for Preview. The resulting frame remains cached
     // so Save can reuse exactly the image the user just inspected.
@@ -1367,7 +1402,7 @@ ipcMain.handle(
     );
     // SDR preview and clipboard output are tone-mapped directly from this FP16 frame in the renderer.
     // Keep the empty field for compatibility with the existing CapturePreview IPC contract.
-    return { width: frame.width, height: frame.height, pixels, sdrImage: new Uint8Array() };
+    return { width: frame.width, height: frame.height, pixels, sdrImage: new Uint8Array(), sourceDetails: frame.sourceDetails };
   }
 );
 
