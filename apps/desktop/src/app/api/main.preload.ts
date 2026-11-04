@@ -87,6 +87,11 @@ const api: Desktop = {
     }
   },
 
+  OfflineMap: {
+    chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
+    getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus')
+  },
+
   MapWindow: {
     open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath),
     getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>,
