@@ -93,6 +93,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
               <span class="range-value">{{ markerOpacity() }}%</span>
             </label>
+            <span class="opacity-divider" aria-hidden="true"></span>
+            <label class="range-setting">Location
+              <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+              <span class="range-value">{{ locationOpacity() }}%</span>
+            </label>
           </div>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
@@ -309,6 +314,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
+  protected readonly locationOpacity = signal(this.readNumber('locationOpacity', 100, 0, 100));
   protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'double-circle') as MarkerShape);
   protected readonly currentMarkerShape = signal<CurrentMarkerShape>(this.readSetting('currentMarkerShape', 'pin') as CurrentMarkerShape);
   protected readonly currentMarkerColor = signal(this.readSetting('currentMarkerColor', '#ff3b30'));
@@ -713,7 +719,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.zoomLevel.set(zoom);
       this.saveSetting('zoom', zoom);
     });
-    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity(this.markerOpacity() / 100);
+    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity(this.locationOpacity() / 100);
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
@@ -783,9 +789,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
     const markerOpacity = next / 100;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
-    this.marker?.setOpacity(markerOpacity);
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
     this.directoryMarkerGroup?.refreshClusters?.();
+  };
+  protected readonly changeLocationOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.locationOpacity.set(next); this.saveSetting('locationOpacity', next);
+    this.marker?.setOpacity(next / 100);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
