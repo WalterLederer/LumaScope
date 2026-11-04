@@ -179,6 +179,10 @@ export interface CaptureWindow {
   handle: number;
   width: number;
   height: number;
+  /** Zero-based position in the native Windows Z-order (0 is frontmost). */
+  zOrder: number;
+  /** Whether this window passes the current Top Window selection filters. */
+  isTopWindowCandidate: boolean;
   monitorIndex?: number;
   /** Win32 monitor device name (for example, \\.\DISPLAY1), when resolved. */
   monitorDeviceName?: string;
