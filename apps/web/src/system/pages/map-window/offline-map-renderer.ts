@@ -94,6 +94,8 @@ export class OfflineMapRenderer {
     startCanvasRect: DOMRect;
     startCanvasWidth: number;
     startCanvasHeight: number;
+    pointerSamples: Array<Record<string, unknown>>;
+    cameraSamples: Array<Record<string, unknown>>;
   } | null = null;
   private readonly onDiagnosticPointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) return;
@@ -110,14 +112,53 @@ export class OfflineMapRenderer {
       startContainerRect: container.getBoundingClientRect(),
       startCanvasRect: canvas.getBoundingClientRect(),
       startCanvasWidth: canvas.width,
-      startCanvasHeight: canvas.height
+      startCanvasHeight: canvas.height,
+      pointerSamples: [],
+      cameraSamples: [this.getCameraDiagnosticSnapshot()]
     };
+    this.dragDiagnostic.pointerSamples.push({
+      timeMs: performance.now(),
+      x: event.clientX,
+      y: event.clientY,
+      camera: this.getCameraDiagnosticSnapshot()
+    });
   };
   private readonly onDiagnosticPointerMove = (event: PointerEvent): void => {
     if (!this.dragDiagnostic || event.pointerId !== this.dragDiagnostic.pointerId) return;
     this.dragDiagnostic.lastX = event.clientX;
     this.dragDiagnostic.lastY = event.clientY;
+    if (this.dragDiagnostic.pointerSamples.length < 300) {
+      this.dragDiagnostic.pointerSamples.push({
+        timeMs: performance.now(),
+        x: event.clientX,
+        y: event.clientY
+      });
+    }
   };
+  private readonly onDiagnosticMapMove = (): void => {
+    const diagnostic = this.dragDiagnostic;
+    if (!diagnostic || diagnostic.cameraSamples.length >= 300) return;
+    diagnostic.cameraSamples.push(this.getCameraDiagnosticSnapshot());
+  };
+  private getCameraDiagnosticSnapshot(): Record<string, unknown> {
+    const freeCamera = this.map.getFreeCameraOptions();
+    const position = freeCamera.position;
+    const orientation = freeCamera.orientation;
+    return {
+      timeMs: performance.now(),
+      zoom: this.map.getZoom(),
+      pitch: this.map.getPitch(),
+      bearing: this.map.getBearing(),
+      center: this.map.getCenter().toArray(),
+      projection: this.map.getProjection(),
+      freeCamera: {
+        position: position ? { x: position.x, y: position.y, z: position.z } : null,
+        orientation: orientation
+          ? { x: orientation.x, y: orientation.y, z: orientation.z, w: orientation.w }
+          : null
+      }
+    };
+  }
   private readonly onDiagnosticPointerEnd = (event: PointerEvent): void => {
     const start = this.dragDiagnostic;
     if (!start || event.pointerId !== start.pointerId) return;
@@ -171,7 +212,9 @@ export class OfflineMapRenderer {
           canvas.height / Math.max(1, canvasRect.height)]
       },
       devicePixelRatio: window.devicePixelRatio,
-      lastObservedPointer: [start.lastX, start.lastY]
+      lastObservedPointer: [start.lastX, start.lastY],
+      cameraSamples: start.cameraSamples,
+      pointerSamples: start.pointerSamples
     });
   };
 
@@ -198,6 +241,7 @@ export class OfflineMapRenderer {
     window.addEventListener('pointermove', this.onDiagnosticPointerMove, true);
     window.addEventListener('pointerup', this.onDiagnosticPointerEnd, true);
     window.addEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
+    this.map.on('move', this.onDiagnosticMapMove);
     // Keep the WebGL canvas synchronized with layout changes in the settings panel.
     this.resizeObserver = new ResizeObserver(() => this.map.resize());
     this.resizeObserver.observe(container);
@@ -607,6 +651,7 @@ export class OfflineMapRenderer {
     window.removeEventListener('pointermove', this.onDiagnosticPointerMove, true);
     window.removeEventListener('pointerup', this.onDiagnosticPointerEnd, true);
     window.removeEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
+    this.map.off('move', this.onDiagnosticMapMove);
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
