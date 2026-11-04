@@ -259,7 +259,7 @@ export class CacheManager {
         const path = join(directory, entry.name);
         if (entry.isDirectory()) {
           await findDatabases(path);
-        } else if (entry.isFile() && /\\.(?:sqlite|sqlite3|db)$/i.test(entry.name)) {
+        } else if (entry.isFile() && /\.(?:sqlite|sqlite3|db)$/i.test(entry.name)) {
           try {
             const info = await stat(path);
             summary.databases.push({ path, bytes: info.size });
