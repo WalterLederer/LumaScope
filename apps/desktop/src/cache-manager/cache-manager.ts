@@ -14,6 +14,8 @@ import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigratio
 
 const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
+const THUMBNAIL_CACHE_VERSION = 2;
+const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
 
 export interface CacheSummary {
@@ -33,7 +35,7 @@ interface PhotoRow {
   modified_at: number;
   is_hdr: number;
   thumbnail_cache_id: number | null;
-  thumbnail_cache_version: string | null;
+  thumbnail_cache_version: number | null;
   fullsize_cache_id: number | null;
   fullsize_cache_version: string | null;
   latitude: number | null;
@@ -357,14 +359,14 @@ export class CacheManager {
         if (!row || !sourceMatches) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
         const version = kind === 'thumbnail' ? row.thumbnail_cache_version : row.fullsize_cache_version;
-        const expectedVersion = kind === 'thumbnail' ? 'sidecar-thumbnail-v2' : expectedFullSizeTag;
+        const expectedVersion = kind === 'thumbnail' ? THUMBNAIL_CACHE_VERSION : expectedFullSizeTag;
         if (id === null || version !== expectedVersion) return null;
         const parallel = id === CACHE_STORAGE_TYPE.PARALLEL && kind === 'fullsize';
         return {
           status: 'valid' as const,
           path: parallel ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, kind === 'fullsize'),
           storageType: parallel ? 'parallel' as const : 'sidecar' as const,
-          sourceTag: version
+          sourceTag: kind === 'thumbnail' ? THUMBNAIL_CACHE_TAG : version
         };
       };
       let thumbnail = getStatus('thumbnail');
@@ -419,7 +421,7 @@ export class CacheManager {
       const sourceName = join(folder, row.file_name);
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
-        && row.thumbnail_cache_version === 'sidecar-thumbnail-v2';
+        && row.thumbnail_cache_version === THUMBNAIL_CACHE_VERSION;
       const fullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === fullSizeTag;
@@ -581,7 +583,7 @@ export class CacheManager {
     const full = sourceTag.includes('-full-');
     const cacheId = full ? row.fullsize_cache_id : row.thumbnail_cache_id;
     const version = full ? row.fullsize_cache_version : row.thumbnail_cache_version;
-    if (cacheId === null || version !== sourceTag) return null;
+    if (cacheId === null || (full ? version !== sourceTag : version !== THUMBNAIL_CACHE_VERSION || sourceTag !== THUMBNAIL_CACHE_TAG)) return null;
     return {
       storage_type_id: cacheId,
       source_size: row.file_size,
@@ -645,8 +647,9 @@ export class CacheManager {
     const cacheId = full ? previous?.fullsize_cache_id : previous?.thumbnail_cache_id;
     const cacheVersion = full ? previous?.fullsize_cache_version : previous?.thumbnail_cache_version;
     const sourceChanged = previous !== null && (previousSize !== sourceStats.size || previousModified !== sourceStats.mtimeMs);
-    if (sourceChanged || (cacheVersion && cacheVersion !== sourceTag)) await rm(targetPath, { force: true });
-    if (!sourceChanged && cacheId === CACHE_STORAGE_TYPE.SIDECAR && cacheVersion === sourceTag && existsSync(targetPath)) return targetPath;
+    const storedVersion = full ? sourceTag : sourceTag === THUMBNAIL_CACHE_TAG ? THUMBNAIL_CACHE_VERSION : null;
+    if (sourceChanged || (cacheVersion !== null && cacheVersion !== storedVersion)) await rm(targetPath, { force: true });
+    if (!sourceChanged && cacheId === CACHE_STORAGE_TYPE.SIDECAR && cacheVersion === storedVersion && storedVersion !== null && existsSync(targetPath)) return targetPath;
     await this.ensureCacheDirectory(dirname(targetPath));
     if (!existsSync(targetPath)) {
       const generated = callback ? await callback(targetPath) : (await copyFile(sourceName, targetPath), true);
@@ -654,7 +657,7 @@ export class CacheManager {
     }
     this.db.prepare('UPDATE photos SET ' + (full ? 'fullsize' : 'thumbnail') + '_cache_id = :cacheId, ' +
       (full ? 'fullsize' : 'thumbnail') + '_cache_version = :version WHERE id = :id')
-      .run({ cacheId: CACHE_STORAGE_TYPE.SIDECAR, version: sourceTag, id: row.id });
+      .run({ cacheId: CACHE_STORAGE_TYPE.SIDECAR, version: storedVersion, id: row.id });
     return targetPath;
   };
 
@@ -807,7 +810,7 @@ export class CacheManager {
       insertPath.run({ folder });
       const path = findPath.get({ folder }) as { id: number };
       insertPhoto.run({ pathId: path.id, file, size: Number(row.source_size ?? 0), modified: Number(row.updated_at ?? 0), hdr: 0 });
-      updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: tag, pathId: path.id, file });
+      updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: full ? tag : tag === THUMBNAIL_CACHE_TAG ? THUMBNAIL_CACHE_VERSION : null, pathId: path.id, file });
     }
     this.db.exec('DROP TABLE cache_files; DROP TABLE IF EXISTS cache_volume_settings;');
   };
