@@ -89,6 +89,9 @@
           }
         </div>
         <figure class="capture-preview">
+          @if (sourceDiagnostics()) {
+            <pre class="capture-source-diagnostics" aria-live="polite">{{ sourceDiagnostics() }}</pre>
+          }
           @if (error()) {
             <div class="capture-preview-error" role="alert">{{ error() }}</div>
           }
