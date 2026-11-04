@@ -370,7 +370,7 @@ export class SettingsPanelComponent {
       : recursive
         ? 'the current folder and all its subfolders'
         : 'the current folder only';
-    if (!window.confirm(confirmationMessage.replace('the chosen scope', scope) + (global ? '' : '')) {
+    if (!window.confirm(confirmationMessage.replace('the chosen scope', scope))) {
       return;
     }
 
