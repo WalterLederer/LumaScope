@@ -399,8 +399,17 @@ const getForegroundWindowHandle = (): { handle: number; processId: number } => {
     const extendedStyle = Number(user32.GetWindowLongPtrW(handle, -20)); // GWL_EXSTYLE
     if ((extendedStyle & 0x00000080) !== 0) return 1; // WS_EX_TOOLWINDOW
 
+    // GetWindowRect can include invisible resize borders. Use the actual visible
+    // DWM frame first so tiny helper surfaces cannot pass the Top Window size filter.
     const rect: Win32Rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
-    if (user32.GetWindowRect(handle, rect) === 0
+    const { dwmapi } = getWin32NativeApi();
+    const hasVisibleFrame = dwmapi.DwmGetWindowAttribute(
+      handle,
+      9, // DWMWA_EXTENDED_FRAME_BOUNDS
+      rect,
+      koffi.sizeof(getWin32NativeApi().Rect)
+    ) === 0;
+    if ((!hasVisibleFrame && user32.GetWindowRect(handle, rect) === 0)
       || rect.Right - rect.Left < 160 || rect.Bottom - rect.Top < 120) return 1;
 
     const titleBuffer = Buffer.alloc(2048);
