@@ -1,6 +1,7 @@
 import { app, type IpcMainInvokeEvent } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { appendFile, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
@@ -13,6 +14,15 @@ import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigratio
 const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+
+export interface CacheSummary {
+  total: CacheClearResult;
+  fullSize: CacheClearResult;
+  thumbnails: CacheClearResult;
+  sidecar: CacheClearResult;
+  gps: CacheClearResult;
+  databases: Array<{ path: string; bytes: number }>;
+}
 
 interface PhotoRow {
   id: number;
@@ -181,6 +191,85 @@ export class CacheManager {
     const thumbnails = await this.getKindStats('thumbnail', directory, recursive);
     const fullSize = await this.getKindStats('fullsize', directory, recursive);
     return { entries: thumbnails.entries + fullSize.entries, bytes: thumbnails.bytes + fullSize.bytes, thumbnails, fullSize };
+  };
+
+  @IpcHandler({ name: 'CacheManager.getCacheSummary' })
+  readonly getCacheSummary = async (): Promise<CacheSummary> => {
+    const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
+      OR (photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL)`)
+      .all() as unknown as Array<PhotoRow & { folder_path: string }>;
+    const summary: CacheSummary = {
+      total: { entries: 0, bytes: 0 },
+      fullSize: { entries: 0, bytes: 0 },
+      thumbnails: { entries: 0, bytes: 0 },
+      sidecar: { entries: 0, bytes: 0 },
+      gps: { entries: 0, bytes: 0 },
+      databases: []
+    };
+
+    for (const row of rows) {
+      const source = join(row.folder_path, row.file_name);
+      if (row.latitude !== null && row.longitude !== null
+        && Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
+        && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
+        summary.gps.entries++;
+        summary.gps.bytes += row.file_size;
+      }
+
+      if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
+        const path = this.getSidecarPath(source, false);
+        try {
+          const info = await stat(path);
+          if (info.isFile()) {
+            summary.thumbnails.entries++;
+            summary.thumbnails.bytes += info.size;
+            summary.sidecar.entries++;
+            summary.sidecar.bytes += info.size;
+          }
+        } catch { /* Missing thumbnail cache file. */ }
+      }
+
+      if (row.fullsize_cache_id !== null) {
+        const parallel = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL;
+        const path = parallel ? this.getParallelPath(source) : this.getSidecarPath(source, true);
+        try {
+          const info = await stat(path);
+          if (info.isFile()) {
+            summary.fullSize.entries++;
+            summary.fullSize.bytes += info.size;
+            if (!parallel) {
+              summary.sidecar.entries++;
+              summary.sidecar.bytes += info.size;
+            }
+          }
+        } catch { /* Missing full-size cache file. */ }
+      }
+    }
+
+    summary.total.entries = summary.fullSize.entries + summary.thumbnails.entries;
+    summary.total.bytes = summary.fullSize.bytes + summary.thumbnails.bytes;
+
+    const findDatabases = async (directory: string): Promise<void> => {
+      let entries;
+      try { entries = await readdir(directory, { withFileTypes: true }); }
+      catch { return; }
+      for (const entry of entries) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          await findDatabases(path);
+        } else if (entry.isFile() && /\\.(?:sqlite|sqlite3|db)$/i.test(entry.name)) {
+          try {
+            const info = await stat(path);
+            summary.databases.push({ path, bytes: info.size });
+          } catch { /* Database may disappear during enumeration. */ }
+        }
+      }
+    };
+    await findDatabases(this.userData);
+    summary.databases.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: 'base' }));
+    return summary;
   };
 
   @IpcHandler({ name: 'CacheManager.cacheSize' })
