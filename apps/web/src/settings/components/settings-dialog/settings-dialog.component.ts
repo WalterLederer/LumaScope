@@ -290,6 +290,13 @@ export class SettingsPanelComponent {
       const directory = this.currentFolderPath().trim();
       void this.updateBuildCacheInfo(directory || null, recursive);
     });
+    effect(() => {
+      const buildActive = this.cacheBuildActive();
+      if (!buildActive) {
+        const directory = this.currentFolderPath().trim();
+        void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
+      }
+    });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
