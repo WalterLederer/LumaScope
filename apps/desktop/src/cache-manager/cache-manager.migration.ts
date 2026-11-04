@@ -199,6 +199,12 @@ END;
 ALTER TABLE photos DROP COLUMN fullsize_cache_version;
 ALTER TABLE photos RENAME COLUMN fullsize_cache_version_code TO fullsize_cache_version;
 `
+  },
+  {
+    name: 'useNullForUnknownPhotoLocationsV12',
+    query: `
+UPDATE photos SET location_name_id = NULL WHERE location_name_id = 0;
+`
   }
 
 ];
