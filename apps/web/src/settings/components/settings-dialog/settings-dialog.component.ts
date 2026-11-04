@@ -332,14 +332,23 @@ export class SettingsPanelComponent {
   private readonly updateCacheInfo = async () => this.cacheInfo.set(await this.cacheManager.cacheInfo());
 
   /* Event handlers */
-  protected readonly deleteCache = () => this.clearCache(() => this.cacheManager.clear());
+  protected readonly deleteCache = () => this.clearCache(
+    () => this.cacheManager.clear(),
+    'Delete ALL cache files (thumbnails and full-size conversions) from EVERY registered folder? This cannot be undone.'
+  );
 
-  protected readonly deleteFullSizeCache = () => this.clearCache(() => this.cacheManager.clearFullSize());
+  protected readonly deleteFullSizeCache = () => this.clearCache(
+    () => this.cacheManager.clearFullSize(),
+    'Delete all full-size cache conversions from EVERY registered folder? This cannot be undone.'
+  );
 
-  protected readonly deleteThumbnailsCache = () => this.clearCache(() => this.cacheManager.clearThumbnails());
+  protected readonly deleteThumbnailsCache = () => this.clearCache(
+    () => this.cacheManager.clearThumbnails(),
+    'Delete all thumbnail files from EVERY registered folder? This cannot be undone.'
+  );
 
-  private readonly clearCache = async (clear: () => Promise<CacheClearResult>) => {
-    if (this.isClearing()) {
+  private readonly clearCache = async (clear: () => Promise<CacheClearResult>, confirmationMessage: string) => {
+    if (this.isClearing() || !window.confirm(confirmationMessage)) {
       return;
     }
 
