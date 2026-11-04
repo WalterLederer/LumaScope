@@ -16,9 +16,12 @@
       height: var(--icon-size);
 
       path {
+        stroke-width: var(--stroke-width);
+      }
+
+      :host(:not(.multicolor)) & path {
         fill: var(--color);
         stroke: var(--color);
-        stroke-width: var(--stroke-width);
       }
     }
   }
