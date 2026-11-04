@@ -549,7 +549,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
     // Let Angular update the settings section and flex layout before Leaflet measures the map.
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => this.map?.invalidateSize());
+      requestAnimationFrame(() => {
+        this.map?.invalidateSize();
+        this.offlineRenderer?.resize();
+      });
     });
   };
   protected readonly toggleColorMenu = (): void => {
