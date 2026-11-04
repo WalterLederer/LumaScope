@@ -25,6 +25,7 @@ import {
 } from 'internal-api';
 import { ThumbnailComponent } from '../../../ui/components/thumbnail/thumbnail.component';
 import { TimelineIndicatorsComponent } from '../timeline-indicators/timeline-indicators.component';
+import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
 @Component({
@@ -54,6 +55,8 @@ export class ImagesComponent {
   private readonly cacheStatusPathRequests = new Map<string, number>();
   readonly cacheStatuses = signal<Map<string, CacheImageStatus>>(new Map());
   readonly cacheStatusLoading = signal(false);
+  readonly cacheRunActive = signal(false);
+  readonly cacheRunProgress = signal({ completed: 0, total: 0 });
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
   readonly refreshGallery = (): void => this.manualRefresh.update(value => value + 1);
