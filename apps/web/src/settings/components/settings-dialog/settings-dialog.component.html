@@ -131,6 +131,36 @@
         </div>
         </div>
       </details>
+      <details class="build-cache-box reverse-geocoding-status-box" open>
+        <summary>
+          <span>Background Reverse Geocoding</span>
+          <span class="reverse-geocoding-state" [class.running]="reverseGeocodingStatus().status === 'running'"
+                [class.completed]="reverseGeocodingStatus().status === 'completed'">
+            {{ reverseGeocodingStatus().status === 'running' ? 'Running' : reverseGeocodingStatus().status === 'completed' ? 'Completed' : 'Idle' }}
+          </span>
+        </summary>
+        <div class="cache-box-content">
+          @if (reverseGeocodingStatusError()) {
+            <p class="cache-status error" role="alert">Could not read reverse-geocoding status: {{ reverseGeocodingStatusError() }}</p>
+          } @else {
+            <div class="reverse-geocoding-progress">
+              <progress [value]="reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors"
+                        [max]="reverseGeocodingStatus().total || 1"
+                        aria-label="Reverse geocoding progress"
+                        [attr.aria-valuetext]="(reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors) + ' of ' + reverseGeocodingStatus().total + ' GPS images processed'"></progress>
+              <strong>{{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors }} / {{ reverseGeocodingStatus().total }}</strong>
+            </div>
+            <div class="reverse-geocoding-stats">
+              <div><span>Total GPS images</span><strong>{{ reverseGeocodingStatus().total }}</strong></div>
+              <div><span>Resolved</span><strong>{{ reverseGeocodingStatus().resolved }}</strong></div>
+              <div><span>Pending</span><strong>{{ reverseGeocodingStatus().pending }}</strong></div>
+              <div><span>In progress</span><strong>{{ reverseGeocodingStatus().inProgress }}</strong></div>
+              <div><span>Errors</span><strong [class.has-errors]="reverseGeocodingStatus().errors > 0">{{ reverseGeocodingStatus().errors }}</strong></div>
+            </div>
+          }
+          <p class="reverse-geocoding-note">Includes background lookups started while browsing the gallery and via Resolve locations. Cache building does not wait for reverse geocoding.</p>
+        </div>
+      </details>
     </section>
   }
 
