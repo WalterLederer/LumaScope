@@ -74,7 +74,7 @@ export class ImageGridComponent {
   private readonly readStoredViewMode = (): GalleryViewMode => {
     try {
       const stored = this.document.defaultView?.localStorage.getItem('light-matter.galleryViewMode');
-      return stored === 'tiles' || stored === 'details' ? stored : 'thumbnails';
+      return stored === 'tiles' || stored === 'details' || stored === 'details-no-thumbnails' ? stored : 'thumbnails';
     } catch { return 'thumbnails'; }
   };
 
@@ -190,7 +190,7 @@ export class ImageGridComponent {
 
   readonly thumbnailZoomFactor = computed(() => {
     const width = thumbnailDimensions[this.thumbSize()].width;
-    const factor = this.viewMode() === 'details'
+    const factor = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails'
       ? (24 + ((width - 96) / (512 - 96)) * 296) / (24 + ((192 - 96) / (512 - 96)) * 296)
       : width / thumbnailDimensions.small.width;
     return `${factor.toFixed(1)}×`;
@@ -207,6 +207,10 @@ export class ImageGridComponent {
 
   readonly cacheRunActive = computed(() => this.imagesComponent()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunProgress() ?? { completed: 0, total: 0 });
+
+  readonly cancelCacheRun = (): void => {
+    this.imagesComponent()?.cancelCacheRun();
+  };
 
   readonly refreshGallery = (): void => {
     this.imagesComponent()?.refreshGallery();
