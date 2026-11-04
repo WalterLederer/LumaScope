@@ -37,10 +37,16 @@ export const lookupReverseGeocoding = (
   longitude: number,
   language = 'en'
 ): Promise<ReverseGeocodingResult | null> => {
+  const queuedAt = Date.now();
+  console.debug('[ReverseGeocoding] Queued request', { latitude, longitude, language });
   const request = requestQueue.then(async () => {
     const wait = Math.max(0, 1000 - (Date.now() - lastRequestAt));
-    if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
+    if (wait > 0) {
+      console.debug('[ReverseGeocoding] Waiting for provider rate limit', { waitMs: wait, latitude, longitude });
+      await new Promise(resolve => setTimeout(resolve, wait));
+    }
     lastRequestAt = Date.now();
+    const startedAt = Date.now();
 
     const url = new URL('https://nominatim.openstreetmap.org/reverse');
     url.search = new URLSearchParams({
@@ -51,27 +57,50 @@ export const lookupReverseGeocoding = (
       addressdetails: '1'
     }).toString();
 
-    const response = await fetch(url.toString(), {
-      headers: { 'Accept-Language': language || 'en' }
+    console.info('[ReverseGeocoding] Request started', {
+      latitude, longitude, queueWaitMs: startedAt - queuedAt, url: url.toString()
     });
-    if (!response.ok) throw new Error('Reverse geocoding request failed.');
+    try {
+      const response = await fetch(url.toString(), {
+        headers: { 'Accept-Language': language || 'en' },
+        signal: AbortSignal.timeout(15000)
+      });
+      console.info('[ReverseGeocoding] Provider response', {
+        status: response.status, statusText: response.statusText,
+        durationMs: Date.now() - startedAt
+      });
+      if (!response.ok) throw new Error(`Nominatim returned HTTP ${response.status} ${response.statusText}`);
 
-    const result = await response.json() as NominatimReverseResponse;
-    const displayName = result.display_name?.trim();
-    if (!displayName) return null;
+      const result = await response.json() as NominatimReverseResponse;
+      const displayName = result.display_name?.trim();
+      if (!displayName) {
+        console.warn('[ReverseGeocoding] Provider returned no display_name', { latitude, longitude });
+        return null;
+      }
 
-    const address = result.address ?? {};
-    const locality = address.city ?? address.town ?? address.village
-      ?? address.municipality ?? address.suburb ?? address.hamlet ?? address.county ?? null;
-    const placeName = result.name?.trim() || locality || displayName;
+      const address = result.address ?? {};
+      const locality = address.city ?? address.town ?? address.village
+        ?? address.municipality ?? address.suburb ?? address.hamlet ?? address.county ?? null;
+      const placeName = result.name?.trim() || locality || displayName;
+      console.info('[ReverseGeocoding] Resolved location', {
+        latitude, longitude, placeName, countryCode: address.country_code?.toUpperCase() ?? null,
+        durationMs: Date.now() - startedAt
+      });
 
-    return {
-      displayName,
-      placeName,
-      countryCode: address.country_code?.toUpperCase() ?? null,
-      region: address.state ?? address.region ?? address.state_district ?? null,
-      locality
-    };
+      return {
+        displayName,
+        placeName,
+        countryCode: address.country_code?.toUpperCase() ?? null,
+        region: address.state ?? address.region ?? address.state_district ?? null,
+        locality
+      };
+    } catch (error) {
+      console.error('[ReverseGeocoding] Request failed', {
+        latitude, longitude, durationMs: Date.now() - startedAt,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   });
 
   requestQueue = request.then(() => undefined, () => undefined);
