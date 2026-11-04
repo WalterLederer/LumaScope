@@ -21,6 +21,7 @@ export class SettingsPanelComponent {
   readonly cacheBuildActive = input(false);
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
   readonly cacheBuildCurrentOperation = input('');
+  readonly currentFolderPath = input('');
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
   readonly startCacheBuild = input<(() => void) | null>(null);
