@@ -60,7 +60,17 @@
   <section class="delete-cache-section">
     <div class="delete-cache-box">
       <h3>Delete cache</h3>
-      <p class="cache-warning" role="note"><strong>Global operation:</strong> Cache deletion affects all registered folders throughout the application, not just the currently selected folder. The selected cache category will be deleted everywhere it is registered.</p>
+      <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
+      <div class="delete-cache-options">
+        <label class="setting-toggle">
+          <input type="checkbox" [checked]="deleteCacheGlobal()" (change)="deleteCacheGlobal.set($any($event.target).checked)" />
+          <span>Delete cache global</span>
+        </label>
+        <label class="setting-toggle">
+          <input type="checkbox" [checked]="recursiveDelete()" [disabled]="deleteCacheGlobal()" (change)="recursiveDelete.set($any($event.target).checked)" />
+          <span>Recursive delete</span>
+        </label>
+      </div>
       <section>
         <div class="cache-details">
       <div class="cache-overview">
