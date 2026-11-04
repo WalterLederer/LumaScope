@@ -74,6 +74,7 @@
                           [cacheBuildActive]="imageGrid()?.cacheRunActive() ?? false"
                           [cacheBuildProgress]="imageGrid()?.cacheRunProgress() ?? { completed: 0, total: 0 }"
                           [cacheBuildCurrentOperation]="imageGrid()?.cacheRunCurrentOperation() ?? ''"
+                          [currentFolderPath]="selectedLocation ?? ''"
                           [verifyCacheFiles]="verifyCacheFiles()"
                           (verifyCacheFilesChange)="setVerifyCacheFiles($event)"
                           [startCacheBuild]="startGalleryCache"
