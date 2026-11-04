@@ -559,6 +559,27 @@ export class ImageView {
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
   protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
+  protected readonly photoDatabaseRecordEntries = computed(() => {
+    const record = this.photoDatabaseRecord();
+    if (!record) return [];
+    const expandedFields = new Set([
+      'path_id',
+      'thumbnail_cache_id',
+      'fullsize_cache_id',
+      'coordinate_source_id',
+      'location_name_id'
+    ]);
+    return Object.entries(record)
+      .filter(([key]) => !key.endsWith('_expanded'))
+      .map(([key, value]) => ({
+        key,
+        value: JSON.stringify(value) ?? 'null',
+        expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
+          ? JSON.stringify(record[`${key}_expanded`])
+          : null,
+        isExpandedId: expandedFields.has(key)
+      }));
+  });
   protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
   private photoDatabaseRecordRequest = 0;
   protected readonly loadPhotoDatabaseRecord = async (): Promise<void> => {
