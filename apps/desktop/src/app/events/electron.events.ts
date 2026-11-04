@@ -1155,19 +1155,19 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
     szDevice: koffi.array('char16_t', 32, 'String')
   });
 
-  const EnumWindowsProc = koffi.proto('bool __stdcall LightMatterEnumWindowsProc(uintptr_t hWnd, intptr_t lParam)');
-  const EnumWindows = user32.func('bool __stdcall EnumWindows(LightMatterEnumWindowsProc *callback, intptr_t lParam)');
-  const IsWindowVisible = user32.func('bool __stdcall IsWindowVisible(uintptr_t hWnd)');
-  const IsIconic = user32.func('bool __stdcall IsIconic(uintptr_t hWnd)');
+  const EnumWindowsProc = koffi.proto('int32_t __stdcall LightMatterEnumWindowsProc(uintptr_t hWnd, intptr_t lParam)');
+  const EnumWindows = user32.func('int32_t __stdcall EnumWindows(LightMatterEnumWindowsProc *callback, intptr_t lParam)');
+  const IsWindowVisible = user32.func('int32_t __stdcall IsWindowVisible(uintptr_t hWnd)');
+  const IsIconic = user32.func('int32_t __stdcall IsIconic(uintptr_t hWnd)');
   const GetWindowTextW = user32.func('int32_t __stdcall GetWindowTextW(uintptr_t hWnd, _Out_ char16_t *text, int32_t maxCount)');
   const GetWindowThreadProcessId = user32.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t hWnd, _Out_ uint32_t *processId)');
-  const GetWindowRect = user32.func('bool __stdcall GetWindowRect(uintptr_t hWnd, _Out_ LightMatterWindowRect *rect)');
+  const GetWindowRect = user32.func('int32_t __stdcall GetWindowRect(uintptr_t hWnd, _Out_ LightMatterWindowRect *rect)');
   const MonitorFromRect = user32.func('uintptr_t __stdcall MonitorFromRect(const LightMatterWindowRect *rect, uint32_t flags)');
-  const GetMonitorInfoW = user32.func('bool __stdcall GetMonitorInfoW(uintptr_t monitor, _Inout_ LightMatterMonitorInfoEx *info)');
+  const GetMonitorInfoW = user32.func('int32_t __stdcall GetMonitorInfoW(uintptr_t monitor, _Inout_ LightMatterMonitorInfoEx *info)');
 
   const OpenProcess = kernel32.func('uintptr_t __stdcall OpenProcess(uint32_t access, bool inheritHandle, uint32_t processId)');
-  const QueryFullProcessImageNameW = kernel32.func('bool __stdcall QueryFullProcessImageNameW(uintptr_t process, uint32_t flags, _Out_ char16_t *path, _Inout_ uint32_t *size)');
-  const CloseHandle = kernel32.func('bool __stdcall CloseHandle(uintptr_t handle)');
+  const QueryFullProcessImageNameW = kernel32.func('int32_t __stdcall QueryFullProcessImageNameW(uintptr_t process, uint32_t flags, _Out_ char16_t *path, _Inout_ uint32_t *size)');
+  const CloseHandle = kernel32.func('int32_t __stdcall CloseHandle(uintptr_t handle)');
 
   const runEnumeration = (): CaptureSources['windows'] => {
     const rows: CaptureSources['windows'] = [];
@@ -1175,12 +1175,12 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
 
   const enumerate = (handle: number, _lParam: number): boolean => {
     try {
-      if (!IsWindowVisible(handle)) return true;
+      if (IsWindowVisible(handle) === 0) return 1;
 
       const titleBuffer = Buffer.alloc(2048);
       const titleLength = GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2);
       const title = titleLength > 0 ? String(koffi.decode(titleBuffer, 'char16_t', titleLength)).trim() : '';
-      if (!title) return true;
+      if (!title) return 1;
 
       const processIdOut = [0];
       GetWindowThreadProcessId(handle, processIdOut);
@@ -1190,7 +1190,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
       const hasRect = GetWindowRect(handle, rect);
       const width = hasRect ? Math.max(0, rect.Right - rect.Left) : 0;
       const height = hasRect ? Math.max(0, rect.Bottom - rect.Top) : 0;
-      const isMinimized = Boolean(IsIconic(handle));
+      const isMinimized = IsIconic(handle) !== 0;
 
       let executablePath: string | undefined;
       // Process access is deliberately deferred until the window is large enough
@@ -1201,7 +1201,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
           try {
             const pathBuffer = Buffer.alloc(32768 * 2);
             const pathSize = [32768];
-            if (QueryFullProcessImageNameW(process, 0, pathBuffer, pathSize) && pathSize[0] > 0) {
+            if (QueryFullProcessImageNameW(process, 0, pathBuffer, pathSize) !== 0 && pathSize[0] > 0) {
               executablePath = String(koffi.decode(pathBuffer, 'char16_t', Number(pathSize[0])));
             }
           } finally {
@@ -1221,7 +1221,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
             dwFlags: 0,
             szDevice: ''
           };
-          if (GetMonitorInfoW(monitor, info)) {
+          if (GetMonitorInfoW(monitor, info) !== 0) {
             const device = String(info.szDevice ?? '').trim();
             if (device) monitorDeviceName = device;
           }
@@ -1240,16 +1240,16 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
         monitorDeviceName,
         isMinimized
       });
-      return true;
+      return 1;
     } catch (error) {
       callbackError = error instanceof Error ? error : new Error(String(error));
-      return false;
+      return 0;
     }
   };
 
   const completed = EnumWindows(enumerate, 0);
   if (callbackError) throw callbackError;
-  if (!completed) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
+  if (completed === 0) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
 
     return rows.sort((a, b) =>
       a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
