@@ -4,8 +4,8 @@ import { allSortDirections, allSortTypes, SortDirection, SortType } from 'intern
 export const galleryRoot = (): TreeNode<string> => ({
   id: '',
   label: 'My PC',
-  openIcon: 'desktop',
-  closedIcon: 'desktop',
+  openIcon: 'desktopColor',
+  closedIcon: 'desktopColor',
   isOpen: true,
   children: []
 });
@@ -13,8 +13,8 @@ export const galleryRoot = (): TreeNode<string> => ({
 export const treeNode = (location: string, hideMenu: boolean): TreeNode<string> => ({
   id: location,
   label: formatLocationName(location),
-  openIcon: 'folderOpen',
-  closedIcon: 'folder',
+  openIcon: 'folderOpenFilled',
+  closedIcon: 'folderFilled',
   hideMenu
 });
 
