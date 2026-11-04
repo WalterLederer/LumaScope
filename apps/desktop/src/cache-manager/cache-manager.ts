@@ -727,7 +727,7 @@ export class CacheManager {
     })();
 
     this.pendingLocationLookups.set(photo.id, operation);
-    try { await operation; }
+    try { return await operation; }
     finally { if (this.pendingLocationLookups.get(photo.id) === operation) this.pendingLocationLookups.delete(photo.id); }
   };
 
