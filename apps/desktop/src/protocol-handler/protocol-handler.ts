@@ -54,12 +54,21 @@ export const streamFile = (filePath: string): GlobalResponse => {
 };
 
 const fullSizeCacheStatus = new Map<string, boolean>();
+let offlineProtocolRequestCount = 0;
 
 export const protocolHandler = async (request: GlobalRequest): Promise<GlobalResponse> => {
   const parsed = new url.URL(request.url);
 
   // Tile URLs include zoom/x/y after the route prefix; match the prefix, not only the bare path.
   if (parsed.pathname.startsWith(`${appPaths.offlineTiles}/`)) {
+    if (offlineProtocolRequestCount < 20) {
+      console.info('[OfflineMap] Protocol request received:', {
+        url: request.url,
+        method: request.method,
+        pathname: parsed.pathname
+      });
+      offlineProtocolRequestCount++;
+    }
     return offlineTile(parsed.pathname);
   }
 
