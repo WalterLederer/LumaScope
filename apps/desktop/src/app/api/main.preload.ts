@@ -56,7 +56,8 @@ const api: Desktop = {
     cancelClear: (operationId: string) => ipcRenderer.invoke('CacheManager.cancelClear', operationId),
     deleteImage: (sourceName: string) => ipcRenderer.invoke('CacheManager.deleteImage', sourceName),
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
-    getCacheSummary: () => ipcRenderer.invoke('CacheManager.getCacheSummary'),\n    resolveMissingLocationNames: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.resolveMissingLocationNames', directory, recursive),
+    getCacheSummary: () => ipcRenderer.invoke('CacheManager.getCacheSummary'),
+    resolveMissingLocationNames: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.resolveMissingLocationNames', directory, recursive),
     cacheInfo: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.cacheInfo', directory, recursive),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
     getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames, verifyCacheFiles, sourceMetadata),
@@ -65,7 +66,8 @@ const api: Desktop = {
     appendBuildLog: (line: string) => ipcRenderer.invoke('CacheManager.appendBuildLog', line),
     getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles),
     getDirectoryPhotoLocations: (directory: string) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory),
-    getPhotoDatabaseRecord: (sourceName: string) => ipcRenderer.invoke('CacheManager.getPhotoDatabaseRecord', sourceName)
+    getPhotoDatabaseRecord: (sourceName: string) => ipcRenderer.invoke('CacheManager.getPhotoDatabaseRecord', sourceName),
+    resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => ipcRenderer.invoke('CacheManager.resolvePhotoLocation', sourceName, latitude, longitude)
   },
 
   Histogram: {
