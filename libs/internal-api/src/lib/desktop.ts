@@ -51,6 +51,15 @@ export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
 }
 
+export interface CacheSummary {
+  total: CacheClearResult;
+  fullSize: CacheClearResult;
+  thumbnails: CacheClearResult;
+  sidecar: CacheClearResult;
+  gps: CacheClearResult;
+  databases: Array<{ path: string; bytes: number }>;
+}
+
 export interface DesktopCacheManager {
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
@@ -58,6 +67,7 @@ export interface DesktopCacheManager {
   readonly cancelClear: (operationId: string) => Promise<boolean>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
+  readonly getCacheSummary: () => Promise<CacheSummary>;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => Promise<CacheImageStatus[]>;
