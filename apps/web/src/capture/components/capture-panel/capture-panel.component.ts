@@ -157,12 +157,6 @@ export class CapturePanelComponent {
         unavailable: window.width < 100 || window.height < 100 || !!window.isMinimized || this.unavailableTargets().includes(value)
       };
     });
-    // Sort by an explicit capturability tier first. Favorites and source type
-    // must never pull disabled rows back above capturable sources.
-    const capturabilityTier = (row: CaptureSourceRow): number =>
-      row.status.startsWith('[Not capturable]') ? 2 :
-      row.minimized ? 1 :
-      row.unavailable ? 2 : 0;
     const topWindow: CaptureSourceRow = {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
@@ -198,6 +192,8 @@ export class CapturePanelComponent {
   protected readonly toggleSourceMenu = (): void => {
     if (this.sourceMenuOpen()) {
       this.sourceMenuOpen.set(false);
+      const menu = this.hostElement.nativeElement.querySelector('.capture-source-menu') as HTMLElement & { hidePopover?: () => void };
+      if (menu?.matches(':popover-open')) menu.hidePopover?.();
       return;
     }
     const trigger = this.hostElement.nativeElement.querySelector('.capture-source-trigger');
@@ -255,6 +251,8 @@ export class CapturePanelComponent {
     const row = this.sourceRows().find(item => item.value === value);
     if (row?.minimized || row?.unavailable) return;
     this.sourceMenuOpen.set(false);
+    const menu = this.hostElement.nativeElement.querySelector('.capture-source-menu') as HTMLElement & { hidePopover?: () => void };
+    if (menu?.matches(':popover-open')) menu.hidePopover?.();
     this.changeTarget(value);
   };
 
