@@ -79,6 +79,7 @@ export class OfflineMapRenderer {
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
   private lastMapError: string | null = null;
+  private labelSourceDiagnosticLogged = false;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number, onError?: (message: string) => void) {
     const options: MapOptions = {
@@ -202,66 +203,61 @@ export class OfflineMapRenderer {
 
   private refreshTextLabels(): void {
     const visible = new Set<string>();
-
-    const layers = [
-      'label-places-anchor',
-      'label-boundaries-anchor',
-      'label-water-anchor',
-      'label-water-polygons-anchor',
-      'label-street-polygons-anchor',
-      'label-street-points-anchor',
-      'label-public-transport-anchor',
-      'label-pois-anchor',
-      'label-streets-anchor'
+    const labelSources = [
+      { sourceLayer: 'place_labels', kind: 'place' },
+      { sourceLayer: 'boundary_labels', kind: 'boundary' },
+      { sourceLayer: 'water_lines_labels', kind: 'water' },
+      { sourceLayer: 'water_polygons_labels', kind: 'water' },
+      { sourceLayer: 'streets_polygons_labels', kind: 'street' },
+      { sourceLayer: 'street_labels_points', kind: 'street' },
+      { sourceLayer: 'street_labels', kind: 'street' },
+      { sourceLayer: 'public_transport', kind: 'poi' },
+      { sourceLayer: 'pois', kind: 'poi' }
     ];
-    const features = this.map.queryRenderedFeatures({ layers });
     const candidates: Array<{ key: string; x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
-    for (const feature of features) {
-      const properties = feature.properties ?? {};
-      const layerId = feature.layer.id;
-      const text = String(properties['name_de'] || properties['name'] || properties['name_en'] || properties['ref'] || '').trim();
-      if (!text) continue;
+    for (const source of labelSources) {
+      const features = this.map.querySourceFeatures('shortbread', { sourceLayer: source.sourceLayer });
+      for (const feature of features) {
+        const properties = feature.properties ?? {};
+        const text = String(properties['name_de'] || properties['name'] || properties['name_en'] || properties['ref'] || '').trim();
+        if (!text) continue;
 
-      const geometry = feature.geometry as unknown as { type: string; coordinates: unknown };
-      let point: [number, number] | null = null;
-      if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) {
-        point = geometry.coordinates as [number, number];
-      } else if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-        point = this.getLineMidpoint(geometry.coordinates as [number, number][]);
-      } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
-        const lines = geometry.coordinates as [number, number][][];
-        const longest = lines.reduce((best, line) => this.getProjectedLineLength(line) > this.getProjectedLineLength(best) ? line : best, []);
-        point = this.getLineMidpoint(longest);
+        const geometry = feature.geometry as unknown as { type: string; coordinates: unknown };
+        let point: [number, number] | null = null;
+        if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) {
+          point = geometry.coordinates as [number, number];
+        } else if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
+          point = this.getLineMidpoint(geometry.coordinates as [number, number][]);
+        } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
+          const lines = geometry.coordinates as [number, number][][];
+          const longest = lines.reduce((best, line) => this.getProjectedLineLength(line) > this.getProjectedLineLength(best) ? line : best, []);
+          point = this.getLineMidpoint(longest);
+        }
+        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
+
+        const screenPoint = this.map.project(point);
+        const width = this.map.getContainer().clientWidth;
+        const height = this.map.getContainer().clientHeight;
+        if (!Number.isFinite(screenPoint.x) || !Number.isFinite(screenPoint.y)
+          || screenPoint.x < -260 || screenPoint.y < -30
+          || screenPoint.x > width + 260 || screenPoint.y > height + 30) continue;
+
+        const placeKind = String(properties['kind'] ?? source.kind);
+        const priority = source.kind === 'place' ? 0 : source.kind === 'boundary' ? 1 : source.kind === 'water' ? 2 : source.kind === 'street' ? 3 : 4;
+        const rawCoordinates = geometry.coordinates as unknown;
+        const firstCoordinate = geometry.type === 'Point'
+          ? rawCoordinates as [number, number]
+          : geometry.type === 'MultiLineString'
+            ? (rawCoordinates as [number, number][][])[0]?.[0]
+            : (rawCoordinates as [number, number][])[0];
+        const key = source.sourceLayer + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
+        candidates.push({
+          key, x: screenPoint.x, y: screenPoint.y,
+          longitude: point[0], latitude: point[1],
+          text, kind: placeKind, priority
+        });
       }
-      if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
-
-      // queryRenderedFeatures() returns geographic coordinates, not screen pixels.
-      // Keep the original coordinates for the DOM marker and project a copy for
-      // viewport and collision calculations.
-      const screenPoint = this.map.project(point);
-      if (!Number.isFinite(screenPoint.x) || !Number.isFinite(screenPoint.y)) continue;
-
-      const isStreet = layerId === 'label-streets-anchor' || layerId === 'label-street-polygons-anchor' || layerId === 'label-street-points-anchor';
-      const isWater = layerId === 'label-water-anchor' || layerId === 'label-water-polygons-anchor';
-      const isBoundary = layerId === 'label-boundaries-anchor';
-      const isPoi = layerId === 'label-public-transport-anchor' || layerId === 'label-pois-anchor';
-      const placeKind = String(properties['kind'] ?? '');
-      const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : isPoi ? 4 : 0;
-      const rawCoordinates = geometry.coordinates as unknown;
-      const firstCoordinate = geometry.type === 'Point'
-        ? rawCoordinates as [number, number]
-        : geometry.type === 'MultiLineString'
-          ? (rawCoordinates as [number, number][][])[0]?.[0]
-          : (rawCoordinates as [number, number][])[0];
-      const featureKey = layerId + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
-      candidates.push({
-        key: featureKey,
-        x: screenPoint.x, y: screenPoint.y,
-        longitude: point[0], latitude: point[1],
-        text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : isPoi ? 'poi' : placeKind,
-        priority
-      });
     }
 
     candidates.sort((a, b) => a.priority - b.priority);
@@ -271,8 +267,8 @@ export class OfflineMapRenderer {
     const height = this.map.getContainer().clientHeight;
 
     for (const candidate of candidates) {
-      if (visible.size >= 240) break;
-      const { key: labelKey, x, y, longitude, latitude, text, kind } = candidate;
+      if (visible.size >= 300) break;
+      const { key, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
       const dedupeKey = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
       if (seen.has(dedupeKey)) continue;
@@ -284,8 +280,8 @@ export class OfflineMapRenderer {
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
       if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
       occupied.push(box);
-      visible.add(labelKey);
-      const existingMarker = this.textLabels.get(labelKey);
+      visible.add(key);
+      const existingMarker = this.textLabels.get(key);
       if (existingMarker) {
         existingMarker.setLngLat([longitude, latitude]);
         continue;
@@ -299,12 +295,19 @@ export class OfflineMapRenderer {
       const marker = new Marker({ element, anchor: 'center' })
         .setLngLat([longitude, latitude])
         .addTo(this.map);
-      this.textLabels.set(labelKey, marker);
+      this.textLabels.set(key, marker);
     }
     for (const [key, marker] of this.textLabels) {
       if (visible.has(key)) continue;
       marker.remove();
       this.textLabels.delete(key);
+    }
+    if (!this.labelSourceDiagnosticLogged) {
+      this.labelSourceDiagnosticLogged = true;
+      console.info('[OfflineMap] Label source features:', labelSources.map(source => ({
+        layer: source.sourceLayer,
+        count: this.map.querySourceFeatures('shortbread', { sourceLayer: source.sourceLayer }).length
+      })));
     }
   }
 
@@ -353,12 +356,22 @@ export class OfflineMapRenderer {
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
     const element = document.createElement('div');
     element.className = 'offline-current-location-marker';
-    const clip = shape === 'diamond' ? 'polygon(50% 0,100% 50%,50% 100%,0 50%)' : shape === 'pin' ? 'polygon(50% 100%,8% 38%,8% 18%,20% 4%,50% 0,80% 4%,92% 18%,92% 38%)' : 'none';
-    element.style.cssText = `width:24px;height:24px;border:3px solid #fff;border-radius:${shape === 'circle' ? '50%' : shape === 'square' ? '3px' : '0'};clip-path:${clip};background:${color};box-shadow:0 1px 6px #000b;opacity:${opacity};`;
+    const shapeMarkup = shape === 'pin'
+      ? `<path d="M24 2C12.4 2 4 10.5 4 21c0 14 20 35 20 35s20-21 20-35C44 10.5 35.6 2 24 2Z" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="24" cy="21" r="7.5" fill="#fff" stroke="#222" stroke-width="1.5"/>`
+      : shape === 'circle'
+        ? `<circle cx="20" cy="20" r="16" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="20" cy="20" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/>`
+        : shape === 'square'
+          ? `<rect x="4" y="4" width="32" height="32" rx="3" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="20" cy="20" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/>`
+          : `<polygon points="20,2 38,20 20,38 2,20" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="20" cy="20" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/>`;
+    const width = shape === 'pin' ? 36 : 36;
+    const height = shape === 'pin' ? 44 : 36;
+    element.style.cssText = `width:${width}px;height:${height}px;display:block;pointer-events:none;filter:drop-shadow(0 1px 3px #000b);opacity:${opacity};`;
+    element.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}" style="display:block;overflow:visible">${shapeMarkup}</svg>`;
     if (this.currentMarker) this.currentMarker.remove();
-    this.currentMarker = new Marker({ element, anchor: 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
-    this.currentMarker.getElement().style.zIndex = '1000';
+    this.currentMarker = new Marker({ element, anchor: shape === 'pin' ? 'bottom' : 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
+    this.currentMarker.getElement().style.zIndex = '10000';
     this.currentMarker.getElement().style.pointerEvents = 'none';
+    this.currentMarker.getElement().style.display = 'block';
   }
 
   updateCurrentLocation(latitude: number, longitude: number): void {
@@ -384,7 +397,10 @@ export class OfflineMapRenderer {
     });
     this.photoOpacity = opacity;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
+    this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', this.photoClustersVisible ? opacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', this.photoClustersVisible ? 2 : 0);
   }
 
   setBasemapOpacity(opacity: number): void {
@@ -407,13 +423,26 @@ export class OfflineMapRenderer {
     this.photoClustersVisible = visible;
     this.map.setPaintProperty('photo-clusters', 'circle-color', fill as never);
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', visible ? 0.95 * this.photoOpacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', visible ? this.photoOpacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', visible ? 2 : 0);
+    if (!visible) {
+      for (const marker of this.clusterLabels.values()) marker.remove();
+      this.clusterLabels.clear();
+    }
   }
 
   setPhotoOpacity(opacity: number): void {
     this.photoOpacity = opacity;
     if (!this.map.getLayer('photo-unclustered')) return;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
+    this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', this.photoClustersVisible ? opacity : 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', this.photoClustersVisible ? 2 : 0);
+    if (opacity <= 0) {
+      for (const marker of this.clusterLabels.values()) marker.remove();
+      this.clusterLabels.clear();
+    }
   }
 
   setTrack(segments: [number, number][][], color: string, opacity: number): void {
