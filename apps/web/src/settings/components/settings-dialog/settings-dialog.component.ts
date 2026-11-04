@@ -159,6 +159,8 @@ export class SettingsPanelComponent {
 
   protected readonly clearError = signal<string | null>(null);
 
+  protected readonly deleteCacheSummary = signal('No cache deletion operation has run yet.');
+
 
   protected readonly supportedFormats = supportedFileFormats;
 
@@ -337,21 +339,25 @@ export class SettingsPanelComponent {
 
   /* Event handlers */
   protected readonly deleteCache = () => this.clearCache(
+    'Delete all cache files',
     (directory, recursive) => this.cacheManager.clear(directory, recursive),
     'Delete all selected cache files from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteFullSizeCache = () => this.clearCache(
+    'Delete full-size cache conversions',
     (directory, recursive) => this.cacheManager.clearFullSize(directory, recursive),
     'Delete full-size cache conversions from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteThumbnailsCache = () => this.clearCache(
+    'Delete thumbnails',
     (directory, recursive) => this.cacheManager.clearThumbnails(directory, recursive),
     'Delete thumbnail files from the chosen scope? This cannot be undone.'
   );
 
   private readonly clearCache = async (
+    operation: string,
     clear: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>,
     confirmationMessage: string
   ) => {
@@ -377,13 +383,32 @@ export class SettingsPanelComponent {
     this.isClearing.set(true);
     this.lastClearResult.set(null);
     this.clearError.set(null);
+    const startedAt = performance.now();
+    const started = new Date().toLocaleString();
+    this.deleteCacheSummary.set(`${operation} started: ${started}\nScope: ${scope}\nWaiting for completion…`);
 
     try {
       const result = await clear(directory, recursive);
-      await this.updateCacheInfo();
+      const durationMs = Math.round(performance.now() - startedAt);
       this.lastClearResult.set(result);
+      this.deleteCacheSummary.set([
+        `${operation} completed`,
+        `Scope: ${scope}`,
+        `Deleted: ${result.entries} cache entries`,
+        `Space freed: ${result.bytes} bytes`,
+        `Duration: ${durationMs} ms`
+      ].join('\n'));
+      await this.updateCacheInfo();
     } catch (error) {
-      this.clearError.set(error instanceof Error ? error.message : String(error));
+      const durationMs = Math.round(performance.now() - startedAt);
+      const message = error instanceof Error ? error.message : String(error);
+      this.clearError.set(message);
+      this.deleteCacheSummary.set([
+        `${operation} failed`,
+        `Scope: ${scope}`,
+        `Error: ${message}`,
+        `Duration: ${durationMs} ms`
+      ].join('\n'));
     } finally {
       this.isClearing.set(false);
     }
