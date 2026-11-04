@@ -18,7 +18,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { map, switchMap } from 'rxjs';
+import { combineLatest, filter, map, pairwise, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -75,6 +75,8 @@ export class GalleryPage {
   readonly overlayService = inject(OverlayService);
 
   protected readonly tree = viewChild.required(TreeComponent);
+
+  protected readonly imageGrid = viewChild(ImageGridComponent);
 
   protected readonly defaultSortMode = defaultSortMode();
 
@@ -188,6 +190,17 @@ export class GalleryPage {
     this.selectedLocation$.subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
     });
+
+    // Refresh cache details only when returning from the image viewer.
+    combineLatest([this.overlayService.isVisible(), this.overlayService.component()])
+      .pipe(
+        pairwise(),
+        filter(([[wasVisible], [isVisible, component]]) =>
+          wasVisible && !isVisible && component === ImageView
+        ),
+        takeUntilDestroyed()
+      )
+      .subscribe(() => this.imageGrid()?.refreshDetailCacheStatus());
 
   }
 
