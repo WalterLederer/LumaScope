@@ -383,56 +383,12 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
 };
 
 const getForegroundWindowHandle = (): { handle: number; processId: number } => {
-  const { user32 } = getWin32NativeApi();
-  let foreground: { handle: number; processId: number } | null = null;
-
-  const visitWindow = (handle: number): number => {
-    if (user32.IsWindowVisible(handle) === 0 || user32.IsIconic(handle) !== 0) return 1;
-
-    const processIdOut = [0];
-    user32.GetWindowThreadProcessId(handle, processIdOut);
-    const processId = Number(processIdOut[0]) || 0;
-    if (processId === 0) return 1;
-
-    // EnumWindows is ordered by Z-order. Ignore owned/tool windows and tiny helper surfaces.
-    if (user32.GetWindow(handle, 4) !== 0) return 1; // GW_OWNER
-    const extendedStyle = Number(user32.GetWindowLongPtrW(handle, -20)); // GWL_EXSTYLE
-    if ((extendedStyle & 0x00000080) !== 0) return 1; // WS_EX_TOOLWINDOW
-
-    // GetWindowRect can include invisible resize borders. Use the actual visible
-    // DWM frame first so tiny helper surfaces cannot pass the Top Window size filter.
-    const rect: Win32Rect = { Left: 0, Top: 0, Right: 0, Bottom: 0 };
-    const { dwmapi } = getWin32NativeApi();
-    const hasVisibleFrame = dwmapi.DwmGetWindowAttribute(
-      handle,
-      9, // DWMWA_EXTENDED_FRAME_BOUNDS
-      rect,
-      koffi.sizeof(getWin32NativeApi().Rect)
-    ) === 0;
-    if ((!hasVisibleFrame && user32.GetWindowRect(handle, rect) === 0)
-      || rect.Right - rect.Left < 160 || rect.Bottom - rect.Top < 120) return 1;
-
-    const titleBuffer = Buffer.alloc(2048);
-    if (user32.GetWindowTextW(handle, titleBuffer, titleBuffer.length / 2) <= 0) return 1;
-
-    const classBuffer = Buffer.alloc(512);
-    user32.GetClassNameW(handle, classBuffer, classBuffer.length / 2);
-    const className = String(koffi.decode(classBuffer, 'char16_t')).trim();
-    if (className === 'Progman' || className === 'WorkerW'
-      || className === 'Shell_TrayWnd' || className === 'Shell_SecondaryTrayWnd') return 1;
-
-    foreground = { handle, processId };
-    return 0;
-  };
-
-  const result = user32.EnumWindows(visitWindow, 0);
-  if (result === 0 && foreground === null) {
-    throw new Error('Windows stopped enumerating windows before a foreground application window was found.');
+  // Reuse the exact same EnumWindows snapshot and Z-order used by the source list.
+  const candidate = enumerateTopLevelWindows().find(window => window.isTopWindowCandidate);
+  if (!candidate) {
+    throw new Error('No visible, non-minimized application window meeting the Top Window size requirements was found.');
   }
-  if (!foreground) {
-    throw new Error('No visible, non-minimized application window was found.');
-  }
-  return foreground;
+  return { handle: candidate.handle, processId: candidate.processId };
 };
 
 const getWindowMonitorGeometry = (handle: number): {
@@ -1183,6 +1139,9 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   const EnumWindows = user32.func('int32_t __stdcall EnumWindows(LightMatterEnumWindowsProc *callback, intptr_t lParam)');
   const IsWindowVisible = user32.func('int32_t __stdcall IsWindowVisible(uintptr_t hWnd)');
   const IsIconic = user32.func('int32_t __stdcall IsIconic(uintptr_t hWnd)');
+  const GetWindow = user32.func('uintptr_t __stdcall GetWindow(uintptr_t hWnd, uint32_t command)');
+  const GetWindowLongPtrW = user32.func('intptr_t __stdcall GetWindowLongPtrW(uintptr_t hWnd, int32_t index)');
+  const GetClassNameW = user32.func('int32_t __stdcall GetClassNameW(uintptr_t hWnd, _Out_ char16_t *className, int32_t maxCount)');
   const GetWindowTextW = user32.func('int32_t __stdcall GetWindowTextW(uintptr_t hWnd, _Out_ char16_t *text, int32_t maxCount)');
   const GetWindowThreadProcessId = user32.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t hWnd, _Out_ uint32_t *processId)');
   const GetWindowRect = user32.func('int32_t __stdcall GetWindowRect(uintptr_t hWnd, _Out_ LightMatterWindowRect *rect)');
@@ -1196,8 +1155,10 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   const runEnumeration = (): CaptureSources['windows'] => {
     const rows: CaptureSources['windows'] = [];
     let callbackError: Error | null = null;
+    let zOrder = 0;
 
     const enumerate = (handle: number, _lParam: number): number => {
+      const currentZOrder = zOrder++;
       try {
         if (IsWindowVisible(handle) === 0) return 1;
 
@@ -1253,6 +1214,21 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
           }
         }
 
+        const ownerHandle = GetWindow(handle, 4); // GW_OWNER
+        const extendedStyle = Number(GetWindowLongPtrW(handle, -20)); // GWL_EXSTYLE
+        const classBuffer = Buffer.alloc(512);
+        GetClassNameW(handle, classBuffer, classBuffer.length / 2);
+        const className = String(koffi.decode(classBuffer, 'char16_t')).trim();
+        const topWindowCandidate = !isMinimized
+          && ownerHandle === 0
+          && (extendedStyle & 0x00000080) === 0 // WS_EX_TOOLWINDOW
+          && width >= 160
+          && height >= 120
+          && className !== 'Progman'
+          && className !== 'WorkerW'
+          && className !== 'Shell_TrayWnd'
+          && className !== 'Shell_SecondaryTrayWnd';
+
         rows.push({
           title,
           processName: executablePath ? path.basename(executablePath) : 'Unknown executable',
@@ -1261,6 +1237,8 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
           handle,
           width,
           height,
+          zOrder: currentZOrder,
+          isTopWindowCandidate: topWindowCandidate,
           monitorIndex: -1,
           monitorDeviceName,
           isMinimized
@@ -1276,10 +1254,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
     if (callbackError) throw callbackError;
     if (completed === 0) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
 
-    return rows.sort((a, b) =>
-      a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
-      || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-    );
+    return rows.sort((a, b) => a.zOrder - b.zOrder);
   };
 
   cachedTopLevelWindowEnumerator = runEnumeration;
