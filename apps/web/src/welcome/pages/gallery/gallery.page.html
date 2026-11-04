@@ -73,6 +73,7 @@
       <app-settings-panel mode="cache"
                           [cacheBuildActive]="imageGrid()?.cacheRunActive() ?? false"
                           [cacheBuildProgress]="imageGrid()?.cacheRunProgress() ?? { completed: 0, total: 0 }"
+                          [cacheBuildCurrentOperation]="imageGrid()?.cacheRunCurrentOperation() ?? ''"
                           [verifyCacheFiles]="verifyCacheFiles()"
                           (verifyCacheFilesChange)="setVerifyCacheFiles($event)"
                           [startCacheBuild]="startGalleryCache"
