@@ -73,7 +73,7 @@
               (selected)="selected.emit($event)" />
 </div>
 
-<ui-toolbar class="image-status" [class.visible]="(images()?.length ?? 0) > 0 || hoveredFolderPath() !== null">
+<ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
   <ui-text>
     <strong>Total: {{ cacheStats().total }}</strong>,
     Thumb: {{ cacheStats().thumbnails }},
