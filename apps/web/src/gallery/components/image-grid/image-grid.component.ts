@@ -207,6 +207,7 @@ export class ImageGridComponent {
 
   readonly cacheRunActive = computed(() => this.imagesComponent()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunProgress() ?? { completed: 0, total: 0 });
+  readonly cacheRunCurrentOperation = computed(() => this.imagesComponent()?.cacheRunCurrentOperation() ?? '');
 
   readonly cancelCacheRun = (): void => {
     this.imagesComponent()?.cancelCacheRun();
