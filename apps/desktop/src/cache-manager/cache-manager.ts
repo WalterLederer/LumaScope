@@ -7,7 +7,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } 
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation, ResolveLocationNamesResult } from 'internal-api';
 import type { Exif } from '../exif/exif';
 import { lookupReverseGeocoding } from 'internal-api';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
@@ -194,6 +194,42 @@ export class CacheManager {
     const thumbnails = await this.getKindStats('thumbnail', directory, recursive);
     const fullSize = await this.getKindStats('fullsize', directory, recursive);
     return { entries: thumbnails.entries + fullSize.entries, bytes: thumbnails.bytes + fullSize.bytes, thumbnails, fullSize };
+  };
+
+  @IpcHandler({ name: 'CacheManager.resolveMissingLocationNames' })
+  readonly resolveMissingLocationNames = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false
+  ): Promise<ResolveLocationNamesResult> => {
+    if (typeof directory !== 'string' || !directory.trim()) {
+      throw new Error('A valid location lookup directory is required.');
+    }
+
+    const root = resolve(directory);
+    const rows = this.db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND (photos.location_name_id IS NULL OR photos.location_name_id = 0)
+      ORDER BY paths.folder_path, photos.file_name`)
+      .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { folder_path: string }>;
+    const candidates = rows.filter(row => {
+      const relativeFolder = relative(root, resolve(row.folder_path));
+      if (relativeFolder === '') return true;
+      return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
+    });
+
+    let resolved = 0;
+    let unresolved = 0;
+    for (const row of candidates) {
+      // Allow this explicit batch action to retry previous Unknown (ID 0) results.
+      await this.ensureLocationName({ ...row, location_name_id: null }, true);
+      const saved = this.db.prepare('SELECT location_name_id FROM photos WHERE id = :id')
+        .get({ id: row.id }) as { location_name_id: number | null } | undefined;
+      if (saved?.location_name_id !== null && saved?.location_name_id !== undefined && saved.location_name_id !== 0) resolved++;
+      else unresolved++;
+    }
+    return { total: candidates.length, resolved, unresolved };
   };
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
@@ -613,8 +649,8 @@ export class CacheManager {
     return this.getPhoto(sourceName)!;
   };
 
-  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>): Promise<void> => {
-    if (photo.location_name_id !== null || photo.latitude === null || photo.longitude === null
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false): Promise<void> => {
+    if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0)) || photo.latitude === null || photo.longitude === null
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return;
 
@@ -647,8 +683,8 @@ export class CacheManager {
         // Store the sentinel ID so an unavailable lookup is not repeated on every cache check.
       }
 
-      this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND location_name_id IS NULL')
-        .run({ locationNameId, photoId: photo.id });
+      this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND (location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))')
+        .run({ locationNameId, photoId: photo.id, retryUnknown: retryUnknown ? 1 : 0 });
     })();
 
     this.pendingLocationLookups.set(photo.id, operation);
