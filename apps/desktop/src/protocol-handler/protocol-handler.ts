@@ -71,8 +71,37 @@ export const protocolHandler = async (request: GlobalRequest): Promise<GlobalRes
     case appPaths.conversionTime:
       return await conversionTime(parsed.searchParams);
 
+    case appPaths.offlineTiles:
+      return offlineTile(parsed.pathname);
+
     default:
       return notFound();
+  }
+};
+
+const offlineTile = (pathname: string): GlobalResponse => {
+  const match = pathname.match(/^\\/offline-tiles\\/(\\d+)\\/(\\d+)\\/(\\d+)$/);
+  if (!match) return notFound();
+
+  const [ , zText, xText, yText ] = match;
+  const z = Number(zText), x = Number(xText), y = Number(yText);
+  if (![z, x, y].every(Number.isSafeInteger) || z < 0 || z > 22) return notFound();
+
+  try {
+    const tile = Injector.getInstance().inject('OfflineMapManager').getTile(z, x, y);
+    if (!tile) return notFound();
+    return new Response(new Uint8Array(tile), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.mapbox-vector-tile',
+        'Content-Encoding': 'gzip',
+        'Cache-Control': 'public, max-age=86400, immutable',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    console.error('[protocolHandler] Failed to read offline map tile:', error);
+    return new Response('Offline map tile read failed.', { status: 500 });
   }
 };
 
