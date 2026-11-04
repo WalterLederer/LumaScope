@@ -167,6 +167,17 @@ export class SettingsPanelComponent {
 
   protected readonly deleteCacheSummary = signal('No cache deletion operation has run yet.');
 
+  private activeDeleteOperationId: string | null = null;
+
+  protected readonly cancelDeleteCache = (): void => {
+    const operationId = this.activeDeleteOperationId;
+    if (!operationId) return;
+    this.deleteCacheSummary.update(summary => `${summary}\nCancellation requested…`);
+    this.cacheManager.cancelClear(operationId).catch(error => {
+      this.clearError.set(error instanceof Error ? error.message : String(error));
+    });
+  };
+
 
   protected readonly supportedFormats = supportedFileFormats;
 
@@ -346,25 +357,25 @@ export class SettingsPanelComponent {
   /* Event handlers */
   protected readonly deleteCache = () => this.clearCache(
     'Delete all cache files',
-    (directory, recursive) => this.cacheManager.clear(directory, recursive),
+    (directory, recursive, operationId) => this.cacheManager.clear(directory, recursive, operationId),
     'Delete all selected cache files from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteFullSizeCache = () => this.clearCache(
     'Delete full-size cache conversions',
-    (directory, recursive) => this.cacheManager.clearFullSize(directory, recursive),
+    (directory, recursive, operationId) => this.cacheManager.clearFullSize(directory, recursive, operationId),
     'Delete full-size cache conversions from the chosen scope? This cannot be undone.'
   );
 
   protected readonly deleteThumbnailsCache = () => this.clearCache(
     'Delete thumbnails',
-    (directory, recursive) => this.cacheManager.clearThumbnails(directory, recursive),
+    (directory, recursive, operationId) => this.cacheManager.clearThumbnails(directory, recursive, operationId),
     'Delete thumbnail files from the chosen scope? This cannot be undone.'
   );
 
   private readonly clearCache = async (
     operation: string,
-    clear: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>,
+    clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>,
     confirmationMessage: string
   ) => {
     if (this.isClearing()) return;
@@ -387,6 +398,8 @@ export class SettingsPanelComponent {
     }
 
     this.isClearing.set(true);
+    const operationId = crypto.randomUUID();
+    this.activeDeleteOperationId = operationId;
     this.lastClearResult.set(null);
     this.clearError.set(null);
     const startedAt = performance.now();
@@ -394,11 +407,11 @@ export class SettingsPanelComponent {
     this.deleteCacheSummary.set(`${operation} started: ${started}\nScope: ${scope}\nWaiting for completion…`);
 
     try {
-      const result = await clear(directory, recursive);
+      const result = await clear(directory, recursive, operationId);
       const durationMs = Math.round(performance.now() - startedAt);
       this.lastClearResult.set(result);
       this.deleteCacheSummary.set([
-        `${operation} completed`,
+        result.cancelled ? `${operation} cancelled` : `${operation} completed`,
         `Scope: ${scope}`,
         `Deleted: ${result.entries} cache entries`,
         `Space freed: ${result.bytes} bytes`,
@@ -416,6 +429,7 @@ export class SettingsPanelComponent {
         `Duration: ${durationMs} ms`
       ].join('\n'));
     } finally {
+      this.activeDeleteOperationId = null;
       this.isClearing.set(false);
     }
   };
