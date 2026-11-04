@@ -256,7 +256,7 @@ export class ThumbnailComponent implements OnDestroy {
           .subscribe({
             next: success => {
               this.hasError.set(!success);
-              if (success && this.viewMode() === 'details') {
+              if (success) {
                 this.cacheUpdated.emit(this.image().path);
               }
             },
