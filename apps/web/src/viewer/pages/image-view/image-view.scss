@@ -1919,18 +1919,31 @@
   max-width: 100%;
   max-height: 420px;
   margin: 6px 0;
-  padding: 8px;
+  padding: 6px 0;
   overflow: auto;
   border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
   border-radius: 4px;
   background: var(--color-surface-default-low);
   color: var(--color-content-default);
   font-family: var(--font-family-monospace, monospace);
-  font-size: 10px;
-  line-height: 1.45;
-  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.55;
   overflow-wrap: anywhere;
   user-select: text;
+}
+.image-controls-sidebar .image-database-record-row {
+  padding: 2px 8px;
+}
+.image-controls-sidebar .image-database-record-row.is-expanded-id {
+  background: color-mix(in srgb, var(--color-element-accent-low, #8ccfff) 24%, transparent);
+  border-left: 3px solid var(--color-content-accent, #398acb);
+  padding-left: 5px;
+}
+.image-controls-sidebar .image-database-record-key {
+  color: var(--color-content-default);
+}
+.image-controls-sidebar .image-database-record-expanded {
+  color: var(--color-content-accent, #2879b8);
 }
 .image-controls-sidebar .image-database-refresh-button {
   margin: 4px 0 8px;
