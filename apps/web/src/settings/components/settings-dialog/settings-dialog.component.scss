@@ -381,7 +381,8 @@ section {
 
 .build-cache-verify { justify-self: start; }
 .build-cache-current-folder,
-.build-cache-current-operation {
+.build-cache-current-operation,
+.delete-cache-summary {
   display: grid;
   gap: var(--dim-small);
   min-width: 0;
