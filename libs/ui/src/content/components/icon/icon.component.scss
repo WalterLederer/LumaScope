@@ -18,11 +18,11 @@
       stroke-width: var(--stroke-width);
     }
   }
+}
 
-  &:not(.multicolor) {
-    ::ng-deep svg path {
-      fill: var(--color);
-      stroke: var(--color);
-    }
+:host(:not(.multicolor)) {
+  ::ng-deep svg path {
+    fill: var(--color);
+    stroke: var(--color);
   }
 }
