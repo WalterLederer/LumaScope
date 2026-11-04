@@ -418,7 +418,13 @@
           @if (sidebarSectionExpanded('database')) {
             <div class="image-database-record-status" role="status">{{photoDatabaseRecordStatus()}}</div>
             @if (photoDatabaseRecord()) {
-              <pre class="image-database-record">{{photoDatabaseRecord() | json}}</pre>
+              <div class="image-database-record" role="list" aria-label="SQLite database fields">
+                @for (entry of photoDatabaseRecordEntries(); track entry.key) {
+                  <div class="image-database-record-row" [class.is-expanded-id]="entry.isExpandedId" role="listitem">
+                    <span class="image-database-record-key">"{{entry.key}}"</span>: {{entry.value}}@if (entry.expanded !== null) { <span class="image-database-record-expanded">({{entry.expanded}})</span>}
+                  </div>
+                }
+              </div>
             }
             <button type="button" class="image-database-refresh-button" (click)="loadPhotoDatabaseRecord()">Refresh database record</button>
           }
