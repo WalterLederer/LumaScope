@@ -270,7 +270,7 @@ export class ImagesComponent {
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       const statuses: CacheImageStatus[] = [];
       const imagePaths = images.map(image => image.path);
-      const sourceMetadata = images.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt }));
+      const sourceMetadata = images.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }));
       for (let offset = 0; offset < imagePaths.length; offset += 10000) {
         statuses.push(...await this.cacheManager.getImageCacheStatuses(
           imagePaths.slice(offset, offset + 10000),
@@ -280,6 +280,15 @@ export class ImagesComponent {
       }
       if (signal?.aborted) return;
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
+      const logBuffer: string[] = [];
+      let logWrite = Promise.resolve();
+      const appendLog = (line: string): Promise<void> => {
+        logBuffer.push(line);
+        if (logBuffer.length < 100) return Promise.resolve();
+        const chunk = logBuffer.splice(0).join('\n');
+        logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
+        return logWrite;
+      };
       let nextIndex = 0;
       const worker = async (workerId: number): Promise<void> => {
         while (nextIndex < images.length && !signal?.aborted) {
@@ -290,18 +299,18 @@ export class ImagesComponent {
             const thumbnailValid = status?.thumbnail?.status === 'valid';
             const fullSizeValid = !status?.fullSizeRequired || status.fullSize?.status === 'valid';
             if (thumbnailValid && fullSizeValid) {
-              await this.cacheManager.appendBuildLog(`[${index + 1}/${images.length}] SKIP (database status complete): ${image.path}`);
+              await appendLog(`[${index + 1}/${images.length}] SKIP (database status complete): ${image.path}`);
             } else {
               if (!thumbnailValid) {
                 this.setCacheWorkerOperation(workerId, `Thumbnail generation for file ${image.path}`);
-                await this.cacheManager.appendBuildLog(`[${index + 1}/${images.length}] THUMBNAIL: ${image.path}`);
+                await appendLog(`[${index + 1}/${images.length}] THUMBNAIL: ${image.path}`);
                 const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
                 if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
                 await thumbnailResponse.body?.cancel();
               }
               if (!signal?.aborted && status?.fullSizeRequired && !fullSizeValid) {
                 this.setCacheWorkerOperation(workerId, `Full-Size conversion for file ${image.path}`);
-                await this.cacheManager.appendBuildLog(`[${index + 1}/${images.length}] FULL-SIZE: ${image.path}`);
+                await appendLog(`[${index + 1}/${images.length}] FULL-SIZE: ${image.path}`);
                 const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
                 if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
                 await fullSizeResponse.body?.cancel();
@@ -310,7 +319,7 @@ export class ImagesComponent {
           } catch (error) {
             if (!signal?.aborted) {
               console.error('Failed to cache gallery image', image.path, error);
-              await this.cacheManager.appendBuildLog(`[${index + 1}/${images.length}] ERROR: ${image.path} :: ${error instanceof Error ? error.message : String(error)}`);
+              await appendLog(`[${index + 1}/${images.length}] ERROR: ${image.path} :: ${error instanceof Error ? error.message : String(error)}`);
             }
           } finally {
             this.setCacheWorkerOperation(workerId, null);
@@ -319,7 +328,7 @@ export class ImagesComponent {
         }
       };
       await Promise.all([worker(0), worker(1)]);
-      await this.cacheManager.appendBuildLog(signal?.aborted ? 'Cache build cancelled.' : 'Cache build completed.');
+      if (logBuffer.length > 0) {\n        const chunk = logBuffer.splice(0).join('\\n');\n        logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));\n      }\n      await logWrite;\n      await this.cacheManager.appendBuildLog(signal?.aborted ? 'Cache build cancelled.' : 'Cache build completed.');
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
       await this.cacheManager.appendBuildLog(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`).catch(() => undefined);
