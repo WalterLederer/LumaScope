@@ -178,6 +178,15 @@ export class OfflineMapRenderer {
     for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
   }
 
+  setPhotoClusterStyle(color: string, visible: boolean): void {
+    if (!this.map.getLayer('photo-clusters')) return;
+    const fill = !visible ? 'transparent' : color === 'dynamic'
+      ? ['step', ['get', 'point_count'], '#34c759', 10, '#ffd60a', 100, '#ff3b30']
+      : color;
+    this.map.setPaintProperty('photo-clusters', 'circle-color', fill as string | import('maplibre-gl').ExpressionSpecification);
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', visible ? 0.95 : 0);
+  }
+
   setPhotoOpacity(opacity: number): void {
     if (!this.map.getLayer('photo-unclustered')) return;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
