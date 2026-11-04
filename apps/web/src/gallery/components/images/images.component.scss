@@ -87,6 +87,13 @@
     }
   }
 
+  .detail-cache-button {
+    width: auto;
+    min-width: 48px;
+    padding: 0 5px;
+    font-size: 11px;
+  }
+
   > :nth-child(n + 2) {
     border-left: 1px solid var(--color-border-default, rgb(128 128 128 / 22%));
     padding-left: 12px;
