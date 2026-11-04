@@ -739,8 +739,22 @@ export class CacheManager {
               updatedAt: Date.now()
             });
           const saved = this.db.prepare(`SELECT id FROM location_names
-            WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
-            .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
+            WHERE lower(trim(place_name)) = lower(trim(:placeName))
+              AND lower(trim(COALESCE(country_code, ''))) = lower(trim(COALESCE(:countryCode, '')))
+              AND lower(trim(COALESCE(region, ''))) = lower(trim(COALESCE(:region, '')))
+              AND lower(trim(COALESCE(locality, ''))) = lower(trim(COALESCE(:locality, '')))
+              AND lower(trim(COALESCE(provider, ''))) = 'nominatim'
+            ORDER BY id
+            LIMIT 1`)
+            .get({
+              placeName: location.placeName,
+              countryCode: location.countryCode,
+              region: location.region,
+              locality: location.locality
+            }) as { id: number } | undefined
+            ?? this.db.prepare(`SELECT id FROM location_names
+              WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
+              .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
           if (saved) locationNameId = saved.id;
         }
       } catch (error) {
