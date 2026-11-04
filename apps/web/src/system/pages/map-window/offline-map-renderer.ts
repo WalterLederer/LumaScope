@@ -81,6 +81,7 @@ export class OfflineMapRenderer {
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
+  private readonly resizeObserver: ResizeObserver;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void) {
     const options: MapOptions = {
@@ -89,6 +90,12 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    // Keep the WebGL canvas synchronized with layout changes in the settings panel.
+    this.resizeObserver = new ResizeObserver(() => this.map.resize());
+    this.resizeObserver.observe(container);
+    // Wheel zoom should be gentle and remain anchored to the map center, not the cursor.
+    this.map.scrollZoom.setWheelZoomRate(1 / 1200);
+    this.map.scrollZoom.setAroundCenter(true);
     let mapErrorCount = 0;
     this.map.on('error', event => {
       this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
@@ -148,11 +155,14 @@ export class OfflineMapRenderer {
       paint: { 'line-color': '#ff3b30', 'line-width': 4, 'line-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
-    this.map.on('idle', () => {
+    const refreshOverlays = (): void => {
       this.refreshClusterLabels();
       this.refreshTextLabels();
       this.logVectorSourceDiagnostics();
-    });
+    };
+    this.map.on('idle', refreshOverlays);
+    this.map.on('moveend', refreshOverlays);
+    this.map.on('zoomend', refreshOverlays);
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -212,7 +222,7 @@ export class OfflineMapRenderer {
       let marker = this.clusterLabels.get(clusterId);
       if (!marker) {
         const element = document.createElement('span');
-        element.style.cssText = 'display:block;color:#fff;font:700 12px/1 Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;pointer-events:none;';
+        element.style.cssText = 'display:flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 3px;box-sizing:border-box;color:#fff;font:700 12px/22px Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;white-space:nowrap;pointer-events:none;position:relative;z-index:10000;';
         marker = new Marker({ element, anchor: 'center' }).addTo(this.map);
         this.clusterLabels.set(clusterId, marker);
       }
@@ -230,20 +240,22 @@ export class OfflineMapRenderer {
   private refreshTextLabels(): void {
     const visible = new Set<string>();
     const labelSources = [
-      { sourceLayer: 'place_labels', kind: 'place' },
-      { sourceLayer: 'boundary_labels', kind: 'boundary' },
-      { sourceLayer: 'water_lines_labels', kind: 'water' },
-      { sourceLayer: 'water_polygons_labels', kind: 'water' },
-      { sourceLayer: 'streets_polygons_labels', kind: 'street' },
-      { sourceLayer: 'street_labels_points', kind: 'street' },
-      { sourceLayer: 'street_labels', kind: 'street' },
-      { sourceLayer: 'public_transport', kind: 'poi' },
-      { sourceLayer: 'pois', kind: 'poi' }
+      { layerId: 'label-places-anchor', sourceLayer: 'place_labels', kind: 'place' },
+      { layerId: 'label-boundaries-anchor', sourceLayer: 'boundary_labels', kind: 'boundary' },
+      { layerId: 'label-water-anchor', sourceLayer: 'water_lines_labels', kind: 'water' },
+      { layerId: 'label-water-polygons-anchor', sourceLayer: 'water_polygons_labels', kind: 'water' },
+      { layerId: 'label-street-polygons-anchor', sourceLayer: 'streets_polygons_labels', kind: 'street' },
+      { layerId: 'label-street-points-anchor', sourceLayer: 'street_labels_points', kind: 'street' },
+      { layerId: 'label-streets-anchor', sourceLayer: 'street_labels', kind: 'street' },
+      { layerId: 'label-public-transport-anchor', sourceLayer: 'public_transport', kind: 'poi' },
+      { layerId: 'label-pois-anchor', sourceLayer: 'pois', kind: 'poi' }
     ];
     const candidates: Array<{ key: string; x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
     for (const source of labelSources) {
-      const features = this.map.querySourceFeatures('shortbread', { sourceLayer: source.sourceLayer });
+      // Rendered features expose geographic coordinates. Raw source features can
+      // retain vector-tile coordinates, which must not be passed to project()/Marker.
+      const features = this.map.queryRenderedFeatures({ layers: [source.layerId] });
       for (const feature of features) {
         const properties = feature.properties ?? {};
         const text = String(properties['name_de'] || properties['name'] || properties['name_en'] || properties['ref'] || '').trim();
@@ -260,7 +272,8 @@ export class OfflineMapRenderer {
           const longest = lines.reduce((best, line) => this.getProjectedLineLength(line) > this.getProjectedLineLength(best) ? line : best, []);
           point = this.getLineMidpoint(longest);
         }
-        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
+        if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])
+          || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90) continue;
 
         const screenPoint = this.map.project(point);
         const width = this.map.getContainer().clientWidth;
@@ -278,11 +291,7 @@ export class OfflineMapRenderer {
             ? (rawCoordinates as [number, number][][])[0]?.[0]
             : (rawCoordinates as [number, number][])[0];
         const key = source.sourceLayer + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
-        candidates.push({
-          key, x: screenPoint.x, y: screenPoint.y,
-          longitude: point[0], latitude: point[1],
-          text, kind: placeKind, priority
-        });
+        candidates.push({ key, x: screenPoint.x, y: screenPoint.y, longitude: point[0], latitude: point[1], text, kind: placeKind, priority });
       }
     }
 
@@ -318,9 +327,7 @@ export class OfflineMapRenderer {
       const weight = kind === 'capital' || kind === 'state_capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
       element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
-      const marker = new Marker({ element, anchor: 'center' })
-        .setLngLat([longitude, latitude])
-        .addTo(this.map);
+      const marker = new Marker({ element, anchor: 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
       this.textLabels.set(key, marker);
     }
     for (const [key, marker] of this.textLabels) {
@@ -330,13 +337,12 @@ export class OfflineMapRenderer {
     }
     if (!this.labelSourceDiagnosticLogged) {
       this.labelSourceDiagnosticLogged = true;
-      console.info('[OfflineMap] Label source features:', labelSources.map(source => ({
+      console.info('[OfflineMap] Rendered label features:', labelSources.map(source => ({
         layer: source.sourceLayer,
-        count: this.map.querySourceFeatures('shortbread', { sourceLayer: source.sourceLayer }).length
+        count: this.map.queryRenderedFeatures({ layers: [source.layerId] }).length
       })));
     }
   }
-
 
   private getProjectedLineLength(coordinates: [number, number][]): number {
     if (coordinates.length < 2) return 0;
@@ -488,6 +494,7 @@ export class OfflineMapRenderer {
 
   resize(): void { this.map.resize(); }
   remove(): void {
+    this.resizeObserver.disconnect();
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
