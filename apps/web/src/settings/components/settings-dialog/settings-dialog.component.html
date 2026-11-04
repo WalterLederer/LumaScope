@@ -3,88 +3,6 @@
 
 <div class="settings-panel">
 
-  @if (mode() !== 'general') {
-  <section class="delete-cache-section">
-    <details class="delete-cache-box" open>
-      <summary>Delete cache</summary>
-      <div class="cache-box-content">
-      <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
-      <div class="delete-cache-options">
-        <label class="setting-toggle">
-          <input type="checkbox" [checked]="deleteCacheGlobal()" (change)="deleteCacheGlobal.set($any($event.target).checked)" />
-          <span>Delete cache global</span>
-        </label>
-        @if (!deleteCacheGlobal()) {
-          <label class="setting-toggle">
-            <input type="checkbox" [checked]="recursiveDelete()" (change)="recursiveDelete.set($any($event.target).checked)" />
-            <span>Recursive delete</span>
-          </label>
-        }
-      </div>
-      <section>
-        <div class="cache-details">
-      <div class="cache-overview">
-        <div class="cache-categories">
-          <div class="cache-category">
-            <div>
-              <span>Full-size conversions</span>
-              <strong>{{ currentCache.fullSize.entries }} files · {{ currentCache.fullSize.bytes | byteSize }}</strong>
-            </div>
-            <button class="cache-button warning" type="button"
-                    [disabled]="currentCache.fullSize.entries === 0 || isClearing()"
-                    (click)="deleteFullSizeCache()">Delete full-size cache</button>
-          </div>
-          <div class="cache-category">
-            <div>
-              <span>Thumbnail files</span>
-              <strong>{{ currentCache.thumbnails.entries }} files · {{ currentCache.thumbnails.bytes | byteSize }}</strong>
-            </div>
-            <button class="cache-button warning" type="button"
-                    [disabled]="currentCache.thumbnails.entries === 0 || isClearing()"
-                    (click)="deleteThumbnailsCache()">Delete thumbnails</button>
-          </div>
-          <div class="cache-total">
-            <div>
-              <span>Sidecar cache</span>
-              <strong>{{ currentCache.entries }} files · {{ currentCache.bytes | byteSize }}</strong>
-            </div>
-            <aside class="cache-total-actions">
-              <button class="cache-button warning" type="button"
-                      [disabled]="currentCache.entries === 0 || isClearing()"
-                      (click)="deleteCache()">Delete all cache files</button>
-            </aside>
-          </div>
-        </div>
-        <p class="format-note">Cache files are stored in each photo folder's hidden .cache subfolder. Parallel JPG files in the adjacent jpg folder are detected but never deleted by cache cleanup.</p>
-      </div>
-
-    @if (isClearing()) {
-      <div class="cache-status-row">
-        <p class="cache-status" role="status">Clearing cache…</p>
-        <button class="cache-button warning" type="button" [disabled]="deleteCancelRequested()" (click)="cancelDeleteCache()">{{ deleteCancelRequested() ? 'Cancelling…' : 'Cancel' }}</button>
-      </div>
-    } @else if (clearResult !== null) {
-      <p class="cache-status" role="status">
-        @if (clearResult.cancelled) {
-          Cancellation completed after deleting {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
-        } @else {
-          Deleted {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
-        }
-      </p>
-    } @else if (clearError() !== null) {
-      <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
-    }
-        <div class="delete-cache-summary">
-          <textarea readonly rows="4" [value]="deleteCacheSummary()" aria-label="Delete cache operation summary"></textarea>
-        </div>
-        </div>
-      </section>
-      </div>
-    </details>
-  </section>
-  }
-
-
   @if (mode() !== 'cache') {
   <section>
     <div class="setting-row setting-config-path">
@@ -105,50 +23,6 @@
   </section>
 
   }
-
-  @if (mode() === 'cache') {
-    <div class="build-cache-current-folder">
-      <span>Current folder</span>
-      <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
-    </div>
-    <section class="build-cache-section">
-      <details class="build-cache-box" open>
-        <summary>Build cache</summary>
-        <div class="cache-box-content">
-        <p>Build cache processes files in the selected folder. Enable <strong>Recursive build</strong> to include all subfolders. No other registered folders are affected.</p>
-        <div class="build-cache-actions">
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
-          @if (cacheBuildActive()) {
-            <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
-            <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
-          }
-        </div>
-        <div class="build-cache-scope-stats">
-          <span>Existing cache entries in build scope</span>
-          <strong>{{ buildCacheInfo().entries }} files · {{ buildCacheInfo().bytes | byteSize }}</strong>
-        </div>
-        <div class="build-cache-options">
-          <label class="setting-toggle build-cache-verify">
-            <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
-            <span>Verify cache files</span>
-          </label>
-          <label class="setting-toggle build-cache-recursive">
-            <input type="checkbox" [checked]="recursiveBuild()" (change)="recursiveBuild.set(($any($event.target)).checked)" />
-            <span>Recursive build</span>
-          </label>
-        </div>
-        <div class="build-cache-current-operation">
-          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
-        </div>
-        <div class="build-cache-log-path">
-          <span>Build log file</span>
-          <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
-        </div>
-        </div>
-      </details>
-    </section>
-  }
-
 
   @if (mode() === 'cache') {
     <section class="cache-summary-section">
@@ -192,6 +66,49 @@
               <span>No SQLite database files found.</span>
             }
           </div>
+        </div>
+      </details>
+    </section>
+  }
+
+  @if (mode() === 'cache') {
+    <div class="build-cache-current-folder">
+      <span>Current folder</span>
+      <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
+    </div>
+    <section class="build-cache-section">
+      <details class="build-cache-box" open>
+        <summary>Build cache</summary>
+        <div class="cache-box-content">
+        <p>Build cache processes files in the selected folder. Enable <strong>Recursive build</strong> to include all subfolders. No other registered folders are affected.</p>
+        <div class="build-cache-actions">
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
+          @if (cacheBuildActive()) {
+            <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
+            <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
+          }
+        </div>
+        <div class="build-cache-scope-stats">
+          <span>Existing cache entries in build scope</span>
+          <strong>{{ buildCacheInfo().entries }} files · {{ buildCacheInfo().bytes | byteSize }}</strong>
+        </div>
+        <div class="build-cache-options">
+          <label class="setting-toggle build-cache-verify">
+            <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
+            <span>Verify cache files</span>
+          </label>
+          <label class="setting-toggle build-cache-recursive">
+            <input type="checkbox" [checked]="recursiveBuild()" (change)="recursiveBuild.set(($any($event.target)).checked)" />
+            <span>Recursive build</span>
+          </label>
+        </div>
+        <div class="build-cache-current-operation">
+          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
+        </div>
+        <div class="build-cache-log-path">
+          <span>Build log file</span>
+          <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
+        </div>
         </div>
       </details>
     </section>
@@ -381,6 +298,89 @@
             </table>
           </div>
         </details>
+      </div>
+    </details>
+  </section>
+  }
+
+
+
+  @if (mode() !== 'general') {
+  <section class="delete-cache-section">
+    <details class="delete-cache-box" open>
+      <summary>Delete cache</summary>
+      <div class="cache-box-content">
+      <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
+      <div class="delete-cache-options">
+        <label class="setting-toggle">
+          <input type="checkbox" [checked]="deleteCacheGlobal()" (change)="deleteCacheGlobal.set($any($event.target).checked)" />
+          <span>Delete cache global</span>
+        </label>
+        @if (!deleteCacheGlobal()) {
+          <label class="setting-toggle">
+            <input type="checkbox" [checked]="recursiveDelete()" (change)="recursiveDelete.set($any($event.target).checked)" />
+            <span>Recursive delete</span>
+          </label>
+        }
+      </div>
+      <section>
+        <div class="cache-details">
+      <div class="cache-overview">
+        <div class="cache-categories">
+          <div class="cache-category">
+            <div>
+              <span>Full-size conversions</span>
+              <strong>{{ currentCache.fullSize.entries }} files · {{ currentCache.fullSize.bytes | byteSize }}</strong>
+            </div>
+            <button class="cache-button warning" type="button"
+                    [disabled]="currentCache.fullSize.entries === 0 || isClearing()"
+                    (click)="deleteFullSizeCache()">Delete full-size cache</button>
+          </div>
+          <div class="cache-category">
+            <div>
+              <span>Thumbnail files</span>
+              <strong>{{ currentCache.thumbnails.entries }} files · {{ currentCache.thumbnails.bytes | byteSize }}</strong>
+            </div>
+            <button class="cache-button warning" type="button"
+                    [disabled]="currentCache.thumbnails.entries === 0 || isClearing()"
+                    (click)="deleteThumbnailsCache()">Delete thumbnails</button>
+          </div>
+          <div class="cache-total">
+            <div>
+              <span>Sidecar cache</span>
+              <strong>{{ currentCache.entries }} files · {{ currentCache.bytes | byteSize }}</strong>
+            </div>
+            <aside class="cache-total-actions">
+              <button class="cache-button warning" type="button"
+                      [disabled]="currentCache.entries === 0 || isClearing()"
+                      (click)="deleteCache()">Delete all cache files</button>
+            </aside>
+          </div>
+        </div>
+        <p class="format-note">Cache files are stored in each photo folder's hidden .cache subfolder. Parallel JPG files in the adjacent jpg folder are detected but never deleted by cache cleanup.</p>
+      </div>
+
+    @if (isClearing()) {
+      <div class="cache-status-row">
+        <p class="cache-status" role="status">Clearing cache…</p>
+        <button class="cache-button warning" type="button" [disabled]="deleteCancelRequested()" (click)="cancelDeleteCache()">{{ deleteCancelRequested() ? 'Cancelling…' : 'Cancel' }}</button>
+      </div>
+    } @else if (clearResult !== null) {
+      <p class="cache-status" role="status">
+        @if (clearResult.cancelled) {
+          Cancellation completed after deleting {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
+        } @else {
+          Deleted {{ clearResult.entries }} entries · freed {{ clearResult.bytes | byteSize }}.
+        }
+      </p>
+    } @else if (clearError() !== null) {
+      <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
+    }
+        <div class="delete-cache-summary">
+          <textarea readonly rows="4" [value]="deleteCacheSummary()" aria-label="Delete cache operation summary"></textarea>
+        </div>
+        </div>
+      </section>
       </div>
     </details>
   </section>
