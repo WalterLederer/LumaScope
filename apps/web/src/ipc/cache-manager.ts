@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, CacheSummary, DesktopCacheManager, PhotoLocation } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, CacheSummary, DesktopCacheManager, PhotoLocation, PhotoDatabaseRecord } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class CacheManager implements DesktopCacheManager {
@@ -54,5 +54,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getDirectoryPhotoLocations = (directory: string): Promise<PhotoLocation[]> =>
     window.desktop.CacheManager.getDirectoryPhotoLocations(directory);
+
+  readonly getPhotoDatabaseRecord = (sourceName: string): Promise<PhotoDatabaseRecord | null> =>
+    window.desktop.CacheManager.getPhotoDatabaseRecord(sourceName);
 
 }
