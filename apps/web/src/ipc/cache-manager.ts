@@ -33,7 +33,10 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 
-  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();\n\n  readonly resolveMissingLocationNames = (directory: string, recursive = false) =>\n    window.desktop.CacheManager.resolveMissingLocationNames(directory, recursive);
+  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();
+
+  readonly resolveMissingLocationNames = (directory: string, recursive = false) =>
+    window.desktop.CacheManager.resolveMissingLocationNames(directory, recursive);
 
   readonly cacheInfo = (directory?: string, recursive = false): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo(directory, recursive);
 
@@ -57,5 +60,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getPhotoDatabaseRecord = (sourceName: string): Promise<PhotoDatabaseRecord | null> =>
     window.desktop.CacheManager.getPhotoDatabaseRecord(sourceName);
+
+  readonly resolvePhotoLocation = (sourceName: string, latitude: number, longitude: number): Promise<string | null> =>
+    window.desktop.CacheManager.resolvePhotoLocation(sourceName, latitude, longitude);
 
 }
