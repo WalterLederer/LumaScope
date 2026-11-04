@@ -205,6 +205,17 @@ export class ImageGridComponent {
 
   private readonly imagesComponent = viewChild(ImagesComponent);
 
+  readonly cacheRunActive = computed(() => this.imagesComponent()?.cacheRunActive() ?? false);
+  readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunProgress() ?? { completed: 0, total: 0 });
+
+  readonly refreshGallery = (): void => {
+    this.imagesComponent()?.refreshGallery();
+  };
+
+  readonly cacheAllImages = (): void => {
+    void this.imagesComponent()?.cacheAllImages();
+  };
+
   readonly refreshDetailCacheStatus = (): void => {
     if (this.viewMode() === 'details') this.imagesComponent()?.refreshGallery();
     void this.refreshDirectoryCacheStats();
