@@ -205,6 +205,53 @@ ALTER TABLE photos RENAME COLUMN fullsize_cache_version_code TO fullsize_cache_v
     query: `
 UPDATE photos SET location_name_id = NULL WHERE location_name_id = 0;
 `
+  },
+  {
+    name: 'deduplicateLocationNamesV13',
+    query: `
+BEGIN IMMEDIATE;
+
+-- Repoint every photo to the lowest ID for its normalized location name.
+UPDATE photos
+SET location_name_id = (
+  SELECT MIN(candidate.id)
+  FROM location_names AS current
+  JOIN location_names AS candidate
+    ON lower(trim(candidate.place_name)) = lower(trim(current.place_name))
+   AND lower(trim(COALESCE(candidate.country_code, ''))) = lower(trim(COALESCE(current.country_code, '')))
+   AND lower(trim(COALESCE(candidate.region, ''))) = lower(trim(COALESCE(current.region, '')))
+   AND lower(trim(COALESCE(candidate.locality, ''))) = lower(trim(COALESCE(current.locality, '')))
+   AND lower(trim(COALESCE(candidate.provider, ''))) = lower(trim(COALESCE(current.provider, '')))
+  WHERE current.id = photos.location_name_id
+)
+WHERE location_name_id IS NOT NULL
+  AND EXISTS (SELECT 1 FROM location_names WHERE id = photos.location_name_id);
+
+-- Remove duplicate rows only after all photo references have been redirected.
+DELETE FROM location_names
+WHERE id NOT IN (
+  SELECT MIN(id)
+  FROM location_names
+  GROUP BY
+    lower(trim(place_name)),
+    lower(trim(COALESCE(country_code, ''))),
+    lower(trim(COALESCE(region, ''))),
+    lower(trim(COALESCE(locality, ''))),
+    lower(trim(COALESCE(provider, '')))
+);
+
+-- Prevent future duplicates regardless of coordinate differences or letter casing.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_location_names_normalized_unique
+ON location_names (
+  lower(trim(place_name)),
+  lower(trim(COALESCE(country_code, ''))),
+  lower(trim(COALESCE(region, ''))),
+  lower(trim(COALESCE(locality, ''))),
+  lower(trim(COALESCE(provider, '')))
+);
+
+COMMIT;
+`
   }
 
 ];
