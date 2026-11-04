@@ -277,6 +277,15 @@ ON location_names (
 
 COMMIT;
 `
+  },
+  {
+    name: 'trackReverseGeocodingLookupStatusV15',
+    query: `
+ALTER TABLE photos ADD COLUMN location_lookup_error TEXT;
+ALTER TABLE photos ADD COLUMN location_lookup_attempted_at INTEGER;
+CREATE INDEX IF NOT EXISTS idx_photos_location_lookup_status
+ON photos (location_name_id, location_lookup_attempted_at);
+`
   }
 
 ];
