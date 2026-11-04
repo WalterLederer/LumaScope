@@ -61,7 +61,7 @@ const api: Desktop = {
     getBuildLogPath: () => ipcRenderer.invoke('CacheManager.getBuildLogPath'),
     resetBuildLog: () => ipcRenderer.invoke('CacheManager.resetBuildLog'),
     appendBuildLog: (line: string) => ipcRenderer.invoke('CacheManager.appendBuildLog', line),
-    getDirectoryCacheStats: (sourceNames: string[]) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames),
+    getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles),
     getDirectoryPhotoLocations: (directory: string) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory)
   },
 
