@@ -41,7 +41,13 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
       }
     },
     { id: 'buildings', type: 'fill', source: 'shortbread', 'source-layer': 'buildings', minzoom: 13, paint: { 'fill-color': '#d4c9bd', 'fill-outline-color': '#c2b6aa', 'fill-opacity': 0.85 } },
-    { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 3], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } }
+    { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 3], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } },
+    // Nearly transparent anchor layers let the renderer obtain label geometry
+    // without requesting remote MapLibre glyph PBF files.
+    { id: 'label-places-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'place_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-boundaries-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'boundary_labels', minzoom: 3, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-streets-anchor', type: 'line', source: 'shortbread', 'source-layer': 'street_labels', minzoom: 11, paint: { 'line-width': 8, 'line-opacity': 0.01 } },
+    { id: 'label-water-anchor', type: 'line', source: 'shortbread', 'source-layer': 'water_lines_labels', minzoom: 10, paint: { 'line-width': 6, 'line-opacity': 0.01 } }
   ]
 };
 
@@ -50,6 +56,7 @@ export class OfflineMapRenderer {
   readonly ready: Promise<void>;
   private currentMarker: Marker | null = null;
   private readonly clusterLabels: Marker[] = [];
+  private readonly textLabels: Marker[] = [];
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
@@ -96,8 +103,14 @@ export class OfflineMapRenderer {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#ff3b30', 'line-width': 4, 'line-opacity': 0.92 }
     });
-    this.map.on('idle', () => this.refreshClusterLabels());
-    this.map.on('moveend', () => this.refreshClusterLabels());
+    this.map.on('idle', () => {
+      this.refreshClusterLabels();
+      this.refreshTextLabels();
+    });
+    this.map.on('moveend', () => {
+      this.refreshClusterLabels();
+      this.refreshTextLabels();
+    });
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -135,6 +148,85 @@ export class OfflineMapRenderer {
       const marker = new Marker({ element, anchor: 'center' })
         .setLngLat(feature.geometry.coordinates as [number, number]).addTo(this.map);
       this.clusterLabels.push(marker);
+    }
+  }
+
+
+  private refreshTextLabels(): void {
+    for (const marker of this.textLabels) marker.remove();
+    this.textLabels.length = 0;
+
+    const layers = [
+      'label-places-anchor',
+      'label-boundaries-anchor',
+      'label-water-anchor',
+      'label-streets-anchor'
+    ];
+    const features = this.map.queryRenderedFeatures({ layers });
+    const candidates: Array<{ x: number; y: number; text: string; kind: string; priority: number }> = [];
+
+    for (const feature of features) {
+      const properties = feature.properties ?? {};
+      const layerId = feature.layer.id;
+      const text = String(properties['name_de'] || properties['name'] || properties['name_en'] || properties['ref'] || '').trim();
+      if (!text) continue;
+
+      const geometry = feature.geometry as unknown as { type: string; coordinates: unknown };
+      let point: [number, number] | null = null;
+      if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) {
+        point = geometry.coordinates as [number, number];
+      } else if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
+        const coordinates = geometry.coordinates as [number, number][];
+        if (coordinates.length > 1) {
+          const middle = Math.floor(coordinates.length / 2);
+          point = coordinates[middle];
+        }
+      } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
+        const lines = geometry.coordinates as [number, number][][];
+        const longest = lines.reduce((best, line) => line.length > best.length ? line : best, []);
+        if (longest.length > 1) point = longest[Math.floor(longest.length / 2)];
+      }
+      if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
+
+      const isStreet = layerId === 'label-streets-anchor';
+      const isWater = layerId === 'label-water-anchor';
+      const isBoundary = layerId === 'label-boundaries-anchor';
+      const placeKind = String(properties['kind'] ?? '');
+      const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : 0;
+      candidates.push({ x: point[0], y: point[1], text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : placeKind, priority });
+    }
+
+    candidates.sort((a, b) => a.priority - b.priority);
+    const occupied: Array<[number, number, number, number]> = [];
+    const seen = new Set<string>();
+    const width = this.map.getContainer().clientWidth;
+    const height = this.map.getContainer().clientHeight;
+
+    for (const candidate of candidates) {
+      if (this.textLabels.length >= 180) break;
+      const { x, y, text, kind } = candidate;
+      if (x < 0 || y < 0 || x > width || y > height) continue;
+      const key = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const fontSize = kind === 'capital' ? 16 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : 11;
+      const labelWidth = Math.min(260, Math.max(24, text.length * fontSize * 0.56 + 8));
+      const labelHeight = fontSize + 7;
+      const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
+      if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
+      occupied.push(box);
+
+      const element = document.createElement('span');
+      element.textContent = text;
+      const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : '#393832';
+      const weight = kind === 'capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
+      const style = kind === 'water' ? 'italic' : 'normal';
+      element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
+      const marker = new Marker({ element, anchor: 'center' })
+        .setLngLat(this.map.unproject([x, y]))
+        .addTo(this.map);
+      this.textLabels.push(marker);
     }
   }
 
@@ -219,6 +311,8 @@ export class OfflineMapRenderer {
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels) marker.remove();
     this.clusterLabels.length = 0;
+    for (const marker of this.textLabels) marker.remove();
+    this.textLabels.length = 0;
     this.map.remove();
   }
 }
