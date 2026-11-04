@@ -60,6 +60,13 @@ export class ImagesComponent {
   readonly cacheStatusLoading = signal(false);
   readonly cacheRunActive = signal(false);
   readonly cacheRunProgress = signal({ completed: 0, total: 0 });
+  readonly cacheRunCurrentOperation = signal('');
+  private readonly cacheWorkerOperations = new Map<number, string>();
+  private readonly setCacheWorkerOperation = (workerId: number, operation: string | null): void => {
+    if (operation) this.cacheWorkerOperations.set(workerId, operation);
+    else this.cacheWorkerOperations.delete(workerId);
+    this.cacheRunCurrentOperation.set([...this.cacheWorkerOperations.values()].at(-1) ?? '');
+  };
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
   readonly refreshGallery = (): void => {
@@ -212,6 +219,7 @@ export class ImagesComponent {
 
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directory = pendingDirectories.shift()!;
+        this.cacheRunCurrentOperation.set(`Enumerating subfolders in ${directory}`);
         const directoriesResult = await this.fileSystem.readDirectories(directory);
         if (controller.signal.aborted) break;
         if (!directoriesResult.success) {
@@ -243,6 +251,7 @@ export class ImagesComponent {
       console.error('Failed to enumerate recursive gallery cache workload', error);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      this.cacheRunCurrentOperation.set('');
       this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
     }
@@ -262,16 +271,19 @@ export class ImagesComponent {
       if (signal?.aborted) return;
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
       let nextIndex = 0;
-      const worker = async (): Promise<void> => {
+      this.cacheRunCurrentOperation.set('Preparing cache operations...');
+      const worker = async (workerId: number): Promise<void> => {
         while (nextIndex < images.length && !signal?.aborted) {
           const index = nextIndex++;
           const image = images[index];
           try {
+            this.setCacheWorkerOperation(workerId, `Thumbnail generation for file ${image.path}`);
             const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
             if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
             await thumbnailResponse.body?.cancel();
 
             if (!signal?.aborted && statusByPath.get(image.path)?.fullSizeRequired) {
+              this.setCacheWorkerOperation(workerId, `Full-Size conversion for file ${image.path}`);
               const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
               if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
               await fullSizeResponse.body?.cancel();
@@ -279,14 +291,18 @@ export class ImagesComponent {
           } catch (error) {
             if (!signal?.aborted) console.error('Failed to cache gallery image', image.path, error);
           } finally {
+            this.setCacheWorkerOperation(workerId, null);
             this.cacheRunProgress.update(progress => ({ ...progress, completed: progress.completed + 1 }));
           }
         }
       };
-      await Promise.all([worker(), worker()]);
+      this.cacheRunCurrentOperation.set('');
+      await Promise.all([worker(0), worker(1)]);
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
     } finally {
+      this.cacheWorkerOperations.clear();
+      this.cacheRunCurrentOperation.set('');
       if (!alreadyActive) {
         if (this.cacheAbortController?.signal === signal) this.cacheAbortController = null;
         this.cacheRunActive.set(false);
