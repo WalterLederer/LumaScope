@@ -54,6 +54,9 @@
             <span>Recursive build</span>
           </label>
         </div>
+        <div class="build-cache-current-operation">
+          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
+        </div>
         <div class="build-cache-log-path">
           <span>Build log file</span>
           <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
@@ -134,6 +137,9 @@
     } @else if (clearError() !== null) {
       <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
     }
+        <div class="delete-cache-summary">
+          <textarea readonly rows="4" [value]="deleteCacheSummary()" aria-label="Delete cache operation summary"></textarea>
+        </div>
         </div>
       </section>
       </div>
