@@ -1755,9 +1755,10 @@ export class ImageView {
       .subscribe(tags => {
         this.imageTags.set(tags);
         this.imageBitDepth.set(tags === null ? null : this.getBitDepth(tags));
-        if (this.exifVisible()) {
-          this.exifState.set(tags ?? false);
-        }
+        // Keep the Image tab's File and Color sections synchronized even when
+        // the EXIF details panel was not expanded when the request completed.
+        // The Image tab can become active independently of exifVisible.
+        this.exifState.set(tags ?? false);
       });
 
     this.loupePixelSize.set(this.loupeSlider.value);
