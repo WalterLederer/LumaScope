@@ -13,6 +13,7 @@ import {
 import { TextComponent, TitleComponent } from '@light-matter/ui';
 import { CacheImageStatus, ExifTags } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
+import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
@@ -50,6 +51,7 @@ export class ImagesComponent {
   private readonly elementRef = inject(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly exif = inject(ExifService);
+  private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
   private cacheStatusRequest = 0;
   private readonly cacheStatusPathRequests = new Map<string, number>();
@@ -69,6 +71,7 @@ export class ImagesComponent {
 
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
+  readonly folderPath = input<string | null>(null);
   readonly sortBy = input<SortType>(allSortTypes[0]);
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
   readonly viewMode = input<GalleryViewMode>('thumbnails');
@@ -180,10 +183,56 @@ export class ImagesComponent {
 
   readonly cacheUpdated = output<string>();
   readonly cacheAllImages = async (): Promise<void> => {
-    const images = this.images() ?? [];
-    if (images.length === 0 || this.cacheRunActive()) return;
+    await this.runCacheForImages(this.images() ?? []);
+  };
+
+  readonly cacheAllImagesRecursive = async (): Promise<void> => {
+    if (this.cacheRunActive()) return;
+    const rootPath = this.folderPath() ?? this.images()?.[0]?.parent ?? null;
+    if (!rootPath) return;
 
     this.cacheRunActive.set(true);
+    try {
+      const allImages: FileInfo[] = [...(this.images() ?? [])];
+      const visitedDirectories = new Set<string>([rootPath]);
+      const pendingDirectories = [rootPath];
+
+      while (pendingDirectories.length > 0) {
+        const directory = pendingDirectories.shift()!;
+        const directoriesResult = await this.fileSystem.readDirectories(directory);
+        if (!directoriesResult.success) {
+          console.warn('Failed to enumerate gallery subfolders', directory, directoriesResult.errorMessage);
+          continue;
+        }
+
+        for (const child of directoriesResult.data) {
+          if (!visitedDirectories.has(child.path)) {
+            visitedDirectories.add(child.path);
+            pendingDirectories.push(child.path);
+          }
+        }
+
+        for (const child of directoriesResult.data) {
+          const imagesResult = await this.fileSystem.readImages(child.path, this.sortBy(), this.sortDirection());
+          if (imagesResult.success) allImages.push(...imagesResult.data);
+          else console.warn('Failed to read images in gallery subfolder', child.path, imagesResult.errorMessage);
+        }
+      }
+
+      const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
+      await this.runCacheForImages(uniqueImages, true);
+    } catch (error) {
+      console.error('Failed to enumerate recursive gallery cache workload', error);
+    } finally {
+      this.cacheRunActive.set(false);
+      this.cacheUpdated.emit('');
+    }
+  };
+
+  private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false): Promise<void> => {
+    if (images.length === 0 || (this.cacheRunActive() && !alreadyActive)) return;
+
+    if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
     try {
       const statuses = await this.cacheManager.getImageCacheStatuses(images.map(image => image.path));
@@ -214,7 +263,7 @@ export class ImagesComponent {
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
     } finally {
-      this.cacheRunActive.set(false);
+      if (!alreadyActive) this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
     }
   };
