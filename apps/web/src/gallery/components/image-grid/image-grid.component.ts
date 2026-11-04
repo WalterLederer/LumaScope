@@ -69,6 +69,8 @@ export class ImageGridComponent {
 
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
 
+  readonly verifyCacheFiles = input(false);
+
   private readonly document = inject(DOCUMENT);
 
   private readonly readStoredViewMode = (): GalleryViewMode => {
