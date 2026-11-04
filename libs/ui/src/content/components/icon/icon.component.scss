@@ -9,21 +9,20 @@
   width: var(--icon-size);
   height: var(--icon-size);
 
-  ::ng-deep {
-    svg {
-      display: block;
-      width: var(--icon-size);
-      height: var(--icon-size);
+  ::ng-deep svg {
+    display: block;
+    width: var(--icon-size);
+    height: var(--icon-size);
 
-      path {
-        stroke-width: var(--stroke-width);
-      }
+    path {
+      stroke-width: var(--stroke-width);
+    }
+  }
 
-      :host(:not(.multicolor)) & path {
-        fill: var(--color);
-        stroke: var(--color);
-      }
+  &:not(.multicolor) {
+    ::ng-deep svg path {
+      fill: var(--color);
+      stroke: var(--color);
     }
   }
 }
-
