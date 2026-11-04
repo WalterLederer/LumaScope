@@ -115,12 +115,12 @@
           </label>
         </div>
         <div class="build-cache-current-operation">
-          <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
-          @if (cacheCheckOutput()) {
-            <textarea readonly rows="6" [value]="cacheCheckOutput()" aria-label="Cache check output"></textarea>
-          } @else if (cacheCheckState() === 'checking') {
-            <textarea readonly rows="2" value="Checking cache files…" aria-label="Cache check output"></textarea>
-          }
+          <textarea readonly rows="6"
+                    [value]="cacheOutputMode() === 'build' ? cacheBuildCurrentOperation() : cacheCheckOutput()"
+                    [placeholder]="cacheOutputMode() === 'build'
+                      ? (cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running')
+                      : (cacheCheckState() === 'checking' ? 'Checking cache files…' : 'No cache operation running')"
+                    aria-label="Cache check and build output"></textarea>
         </div>
         <div class="build-cache-log-path">
           <span>Build log file</span>
