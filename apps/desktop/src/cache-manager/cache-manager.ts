@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation } from 'internal-api';
 import type { Exif } from '../exif/exif';
+import { lookupReverseGeocoding } from 'internal-api';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
 
 const execFileAsync = promisify(execFile);
@@ -37,6 +38,7 @@ interface PhotoRow {
   fullsize_cache_version: string | null;
   latitude: number | null;
   longitude: number | null;
+  location_name_id: number | null;
 }
 
 export class CacheManager {
@@ -307,6 +309,7 @@ export class CacheManager {
 
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
       const row = findPhoto.get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
+      if (row) await this.ensureLocationName(row);
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
       const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
@@ -485,6 +488,10 @@ export class CacheManager {
         sourceId: hasCoordinates ? gps.coordinateSourceId : null,
         id: row.id
       });
+    if (hasCoordinates) {
+      const updated = this.getPhoto(sourceName);
+      if (updated) await this.ensureLocationName(updated);
+    }
   };
 
   readonly usesSidecarStorage = (_sourceName: string): boolean => true;
@@ -549,6 +556,7 @@ export class CacheManager {
     const previousSize = previous?.file_size;
     const previousModified = previous?.modified_at;
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+    await this.ensureLocationName(row);
     const parallelPath = this.getParallelPath(sourceName);
     if (full && existsSync(parallelPath)) {
       await this.registerParallel(sourceName, sourceTag, parallelPath);
@@ -590,11 +598,46 @@ export class CacheManager {
         altitude_m = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.altitude_m END,
         gps_timestamp = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_timestamp END,
         direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
+        location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
         coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`)
       .run({ pathId: path.id, file: basename(sourceName), size, modified });
     return this.getPhoto(sourceName)!;
+  };
+
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>): Promise<void> => {
+    if (photo.location_name_id !== null || photo.latitude === null || photo.longitude === null
+      || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
+      || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return;
+
+    let locationNameId = 0;
+    try {
+      const location = await lookupReverseGeocoding(photo.latitude, photo.longitude, 'en');
+      if (location) {
+        this.db.prepare(`INSERT OR IGNORE INTO location_names
+          (latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
+          VALUES (:latitude, :longitude, :placeName, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
+          .run({
+            latitude: photo.latitude,
+            longitude: photo.longitude,
+            placeName: location.placeName,
+            countryCode: location.countryCode,
+            region: location.region,
+            locality: location.locality,
+            updatedAt: Date.now()
+          });
+        const saved = this.db.prepare(`SELECT id FROM location_names
+          WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
+          .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
+        if (saved) locationNameId = saved.id;
+      }
+    } catch {
+      // Store the sentinel ID so an unavailable lookup is not repeated on every cache check.
+    }
+
+    this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND location_name_id IS NULL')
+      .run({ locationNameId, photoId: photo.id });
   };
 
   private readonly getSidecarPath = (sourceName: string, full: boolean): string => {
