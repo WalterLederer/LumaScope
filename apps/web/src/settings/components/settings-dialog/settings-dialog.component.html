@@ -74,10 +74,12 @@
           <input type="checkbox" [checked]="deleteCacheGlobal()" (change)="deleteCacheGlobal.set($any($event.target).checked)" />
           <span>Delete cache global</span>
         </label>
-        <label class="setting-toggle">
-          <input type="checkbox" [checked]="recursiveDelete()" [disabled]="deleteCacheGlobal()" (change)="recursiveDelete.set($any($event.target).checked)" />
-          <span>Recursive delete</span>
-        </label>
+        @if (!deleteCacheGlobal()) {
+          <label class="setting-toggle">
+            <input type="checkbox" [checked]="recursiveDelete()" (change)="recursiveDelete.set($any($event.target).checked)" />
+            <span>Recursive delete</span>
+          </label>
+        }
       </div>
       <section>
         <div class="cache-details">
