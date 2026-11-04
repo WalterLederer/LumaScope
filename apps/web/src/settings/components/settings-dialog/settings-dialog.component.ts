@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { DatePipe } from '@angular/common';
 import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { ThemeService } from '../../../system/services/theme/theme.service';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 
@@ -84,6 +85,8 @@ export class SettingsPanelComponent {
   };
   /* DI */
   readonly cacheManager = inject(CacheManager);
+
+  protected readonly themeService = inject(ThemeService);
 
   private readonly processManager = inject(ProcessManager);
 
