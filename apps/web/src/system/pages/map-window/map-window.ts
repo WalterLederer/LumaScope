@@ -584,6 +584,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.currentMarkerColor.set(value); this.saveSetting('currentMarkerColor', value);
     this.currentMarkerColorMenuOpen.set(false);
     this.marker?.setIcon(this.createCurrentLocationIcon());
+    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
   };
   protected readonly changeMarkerColor = (value: string): void => {
     if (value === 'off') { this.markerColorVisible.set(false); this.saveSetting('markerColorVisible', false); }
@@ -768,7 +769,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const renderer = new OfflineMapRenderer(this.mapElement().nativeElement, [longitude, latitude], this.validZoom(this.zoomLevel()));
     this.offlineRenderer = renderer;
     await renderer.ready;
-    renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100);
+    renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    this.applyMapColor(); this.applyMapOpacity();
     renderer.map.on('zoomend', () => {
       const zoom = this.validZoom(renderer.map.getZoom()); this.zoomLevel.set(zoom); this.saveSetting('zoom', zoom);
     });
@@ -966,6 +968,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapColor();
   }
   private applyMapColor(): void {
+    const mapLibreCanvas = this.mapElement().nativeElement.querySelector<HTMLElement>('.maplibregl-canvas');
+    if (mapLibreCanvas) mapLibreCanvas.style.filter = this.filters[this.mapColor()];
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
     if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
