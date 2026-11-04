@@ -183,13 +183,11 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
-  readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[]): Promise<CacheDirectoryStats> => {
+  readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> => {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
-
     if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] };
-
     const folder = dirname(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
     const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
@@ -199,44 +197,35 @@ export class CacheManager {
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
     const thumbnailPaths: string[] = [];
     const fullSizePaths: string[] = [];
-
     await Promise.all(matching.map(async row => {
       const sourceName = join(folder, row.file_name);
+      const extension = extname(sourceName).toLowerCase();
+      const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
+        && row.thumbnail_cache_version === 'sidecar-thumbnail-v2';
+      const fullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
+        && row.fullsize_cache_version === fullSizeTag;
+      if (!verifyCacheFiles) {
+        if (thumbnailValid) thumbnailPaths.push(sourceName);
+        if (fullSizeValid) fullSizePaths.push(sourceName);
+        return;
+      }
       try {
         const sourceStats = await stat(sourceName);
         if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) return;
-      } catch {
-        return;
+      } catch { return; }
+      if (thumbnailValid) {
+        try { const info = await stat(this.getSidecarPath(sourceName, false)); if (info.isFile()) thumbnailPaths.push(sourceName); }
+        catch { /* Missing thumbnail cache file. */ }
       }
-
-      if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR && row.thumbnail_cache_version === 'sidecar-thumbnail-v2') {
-        try {
-          const thumbnailStats = await stat(this.getSidecarPath(sourceName, false));
-          if (thumbnailStats.isFile()) thumbnailPaths.push(sourceName);
-        } catch { /* Missing thumbnail cache file. */ }
-      }
-
-      const extension = extname(sourceName).toLowerCase();
-      const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
-      if (FULL_SIZE_EXTENSIONS.has(extension)
-        && row.fullsize_cache_id !== null && row.fullsize_cache_version === expectedFullSizeTag) {
+      if (fullSizeValid) {
         const fullSizePath = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL
-          ? this.getParallelPath(sourceName)
-          : this.getSidecarPath(sourceName, true);
-        try {
-          const fullSizeStats = await stat(fullSizePath);
-          if (fullSizeStats.isFile()) fullSizePaths.push(sourceName);
-        } catch { /* Missing full-size cache file. */ }
+          ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, true);
+        try { const info = await stat(fullSizePath); if (info.isFile()) fullSizePaths.push(sourceName); }
+        catch { /* Missing full-size cache file. */ }
       }
     }));
-
-    return {
-      total: sourceNames.length,
-      thumbnails: thumbnailPaths.length,
-      fullSizeConversions: fullSizePaths.length,
-      thumbnailPaths,
-      fullSizePaths
-    };
+    return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, thumbnailPaths, fullSizePaths };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
