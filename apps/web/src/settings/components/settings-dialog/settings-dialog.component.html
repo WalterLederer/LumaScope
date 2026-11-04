@@ -27,7 +27,7 @@
     <section class="build-cache-section">
       <div class="build-cache-box">
         <h3>Build cache</h3>
-        <p>Generate missing thumbnails and full-size conversions for the current folder or recursively for all subfolders.</p>
+        <p>These actions are limited to the selected folder. <strong>Cache</strong> processes files in this folder only; <strong>Cache recursive</strong> also processes all subfolders. No other registered folders are affected.</p>
         <label class="build-cache-current-folder">
           <span>Current folder</span>
           <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
@@ -60,6 +60,7 @@
   <section class="delete-cache-section">
     <div class="delete-cache-box">
       <h3>Delete cache</h3>
+      <p class="cache-warning" role="note"><strong>Global operation:</strong> Cache deletion affects all registered folders throughout the application, not just the currently selected folder. The selected cache category will be deleted everywhere it is registered.</p>
       <section>
         <div class="cache-details">
       <div class="cache-overview">
