@@ -220,6 +220,10 @@ export class ImageGridComponent {
     void this.imagesComponent()?.cacheAllImages();
   };
 
+  readonly cacheAllImagesRecursive = (): void => {
+    void this.imagesComponent()?.cacheAllImagesRecursive();
+  };
+
   readonly refreshDetailCacheStatus = (): void => {
     if (this.viewMode() === 'details') this.imagesComponent()?.refreshGallery();
     void this.refreshDirectoryCacheStats();
