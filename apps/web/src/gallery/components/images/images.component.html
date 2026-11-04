@@ -2,8 +2,8 @@
 
 @if (imageList === null || imageList.length === 0) {
   <p>No images found in this folder.</p>
-} @else if (viewMode() === 'details') {
-  <div class="detail-table">
+} @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
+  <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <div class="detail-header">
       <span></span>
       <button type="button" (click)="sortDetailsBy('name')">Name{{ sortIndicator('name') }}</button>
