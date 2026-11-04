@@ -272,6 +272,8 @@ export class ImagesComponent {
     this.cacheRunCurrentOperation.set('Preparing cache status for files...');
     const buildStartedAt = performance.now();
     let verificationSummary = '';
+    let thumbnailsGenerated = 0;
+    let fullSizeConversionsGenerated = 0;
     try {
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Cache build started: ' + new Date().toISOString());
@@ -302,7 +304,7 @@ export class ImagesComponent {
       ].filter(Boolean).join('\n');
       await this.cacheManager.appendBuildLog('Cache verification summary:\n' + verificationSummary);
       if (signal?.aborted) {
-        const summary = `Cache build cancelled during status preparation\n${verificationSummary}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+        const summary = `Cache build cancelled during status preparation\n${verificationSummary}\nGenerated: 0 thumbnails, 0 full-size conversions\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
         await this.cacheManager.appendBuildLog(summary);
         this.cacheRunCurrentOperation.set(summary);
         return;
@@ -334,6 +336,7 @@ export class ImagesComponent {
                 await appendLog(`[${index + 1}/${images.length}] THUMBNAIL: ${image.path}`);
                 const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
                 if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
+                thumbnailsGenerated++;
                 await thumbnailResponse.body?.cancel();
               }
               if (!signal?.aborted && status?.fullSizeRequired && !fullSizeValid) {
@@ -341,6 +344,7 @@ export class ImagesComponent {
                 await appendLog(`[${index + 1}/${images.length}] FULL-SIZE: ${image.path}`);
                 const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
                 if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
+                fullSizeConversionsGenerated++;
                 await fullSizeResponse.body?.cancel();
               }
             }
@@ -361,12 +365,12 @@ export class ImagesComponent {
         logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
       }
       await logWrite;
-      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary);
       this.cacheRunCurrentOperation.set(summary);
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
-      const summary = `Cache build failed\n${error instanceof Error ? error.message : String(error)}${verificationSummary ? `\n${verificationSummary}` : ''}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const summary = `Cache build failed\n${error instanceof Error ? error.message : String(error)}${verificationSummary ? `\n${verificationSummary}` : ''}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
       this.cacheRunCurrentOperation.set(summary);
     } finally {
