@@ -9,7 +9,7 @@
 
   flex: 1;
   display: grid;
-  grid-template-columns: var(--side-panel-width) 16px 1fr;
+  grid-template-columns: var(--side-panel-width) 16px minmax(0, 1fr);
   grid-template-rows: 100%;
 
   overflow: hidden;
