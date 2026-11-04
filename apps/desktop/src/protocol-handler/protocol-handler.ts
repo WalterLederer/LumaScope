@@ -3,6 +3,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import * as url from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import { Injector } from '../injector/injector';
 import type { CacheManager } from '../cache-manager/cache-manager';
 import type { ThumbManager } from '../thumb-manager/thumb-manager';
@@ -101,11 +102,15 @@ const offlineTile = (pathname: string): GlobalResponse => {
   try {
     const tile = Injector.getInstance().inject('OfflineMapManager').getTile(z, x, y);
     if (!tile) return notFound();
-    return new Response(new Uint8Array(tile), {
+
+    // MBTiles stores gzip-compressed PBF. Custom Electron protocols do not
+    // consistently apply HTTP Content-Encoding decompression in Chromium's
+    // worker fetch pipeline, so send the decompressed protobuf payload.
+    const vectorTile = gunzipSync(Buffer.from(tile));
+    return new Response(new Uint8Array(vectorTile), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.mapbox-vector-tile',
-        'Content-Encoding': 'gzip',
         'Cache-Control': 'public, max-age=86400, immutable',
         'Access-Control-Allow-Origin': '*'
       }
