@@ -25,8 +25,9 @@
 
   @if (mode() === 'cache') {
     <section class="build-cache-section">
-      <div class="build-cache-box">
-        <h3>Build cache</h3>
+      <details class="build-cache-box" open>
+        <summary>Build cache</summary>
+        <div class="cache-box-content">
         <p>These actions are limited to the selected folder. <strong>Cache</strong> processes files in this folder only; <strong>Cache recursive</strong> also processes all subfolders. No other registered folders are affected.</p>
         <label class="build-cache-current-folder">
           <span>Current folder</span>
@@ -52,14 +53,16 @@
           <span>Build log file</span>
           <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
         </div>
-      </div>
+        </div>
+      </details>
     </section>
   }
 
   @if (mode() !== 'general') {
   <section class="delete-cache-section">
-    <div class="delete-cache-box">
-      <h3>Delete cache</h3>
+    <details class="delete-cache-box" open>
+      <summary>Delete cache</summary>
+      <div class="cache-box-content">
       <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
       <div class="delete-cache-options">
         <label class="setting-toggle">
@@ -120,7 +123,8 @@
 
         </div>
       </section>
-    </div>
+      </div>
+    </details>
   </section>
   }
 
