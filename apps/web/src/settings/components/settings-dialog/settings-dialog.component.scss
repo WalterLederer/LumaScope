@@ -327,6 +327,28 @@ section {
   }
 }
 
+.build-cache-current-folder {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--dim-small);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+
+  > span {
+    color: var(--color-content-default-medium);
+    font-size: 0.8rem;
+  }
+
+  > input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
 .build-cache-section {
   margin-top: var(--dim-large);
 }
