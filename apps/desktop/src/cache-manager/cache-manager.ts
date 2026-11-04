@@ -592,7 +592,8 @@ export class CacheManager {
       });
     if (hasCoordinates) {
       const updated = this.getPhoto(sourceName);
-      if (updated) await this.ensureLocationName(updated);
+      // Resolve the location in the background so metadata and thumbnail work can continue immediately.
+      if (updated) void this.ensureLocationName(updated);
     }
   };
 
@@ -659,7 +660,7 @@ export class CacheManager {
     const previousSize = previous?.file_size;
     const previousModified = previous?.modified_at;
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
-    await this.ensureLocationName(row);
+    // Cache retrieval and thumbnail generation must never wait for network geocoding.
     const parallelPath = this.getParallelPath(sourceName);
     if (full && existsSync(parallelPath)) {
       await this.registerParallel(sourceName, sourceTag, parallelPath);
