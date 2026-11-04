@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import App from './app/app';
 import ElectronEvents from './app/events/electron.events';
@@ -6,8 +7,12 @@ import SquirrelEvents from './app/events/squirrel.events';
 import UpdateEvents from './app/events/update.events';
 
 // Keep all application settings and data in the renamed LumaScope profile directory.
+// Use Windows' roaming profile path directly instead of deriving it from the Electron app name.
 app.setName('LumaScope');
-app.setPath('userData', join(app.getPath('appData'), 'LumaScope'));
+const roamingAppData = process.env.APPDATA || app.getPath('appData');
+const lumaScopeUserData = join(roamingAppData, 'LumaScope');
+mkdirSync(lumaScopeUserData, { recursive: true });
+app.setPath('userData', lumaScopeUserData);
 
 export default class Main {
   static initialize(): boolean {
