@@ -217,7 +217,6 @@ export class OfflineMapRenderer {
       pitch: 0,
       bearing: 0,
       maxPitch: 0,
-      projection: 'mercator',
       dragRotate: false,
       touchPitch: false,
       // Disable MapLibre 6's partial overscaling strategy. Split overzoomed vector tiles
