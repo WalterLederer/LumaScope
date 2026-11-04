@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { CacheClearResult, CacheInfo, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
+import { CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
@@ -45,6 +45,14 @@ export class SettingsPanelComponent {
   /* State */
   protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
   protected readonly buildCacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
+  protected readonly cacheSummary = signal<CacheSummary>({
+    total: { entries: 0, bytes: 0 }, fullSize: { entries: 0, bytes: 0 },
+    thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
+    gps: { entries: 0, bytes: 0 }, databases: []
+  });
+  protected readonly cacheSummaryLoading = signal(false);
+  protected readonly cacheSummaryError = signal<string | null>(null);
+  private cacheSummaryRequestId = 0;
 
   private cacheInfoRequestId = 0;
   private buildCacheInfoRequestId = 0;
@@ -297,6 +305,12 @@ export class SettingsPanelComponent {
         void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
       }
     });
+    effect(() => {
+      const buildActive = this.cacheBuildActive();
+      const clearing = this.isClearing();
+      this.cacheManager.cacheRevision();
+      if (!buildActive && !clearing) void this.updateCacheSummary();
+    });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
@@ -408,6 +422,24 @@ export class SettingsPanelComponent {
       if (requestId === this.cacheInfoRequestId) {
         this.clearError.set(error instanceof Error ? error.message : String(error));
       }
+    }
+  };
+
+  private readonly updateCacheSummary = async (): Promise<void> => {
+    const requestId = ++this.cacheSummaryRequestId;
+    this.cacheSummaryLoading.set(true);
+    try {
+      const summary = await this.cacheManager.getCacheSummary();
+      if (requestId === this.cacheSummaryRequestId) {
+        this.cacheSummary.set(summary);
+        this.cacheSummaryError.set(null);
+      }
+    } catch (error) {
+      if (requestId === this.cacheSummaryRequestId) {
+        this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      if (requestId === this.cacheSummaryRequestId) this.cacheSummaryLoading.set(false);
     }
   };
 
