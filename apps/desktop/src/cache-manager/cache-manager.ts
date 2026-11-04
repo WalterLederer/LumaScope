@@ -175,14 +175,16 @@ export class CacheManager {
         const sourceStats = await stat(sourceName);
         if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) return;
 
-        if (row.thumbnail_cache_id !== null && row.thumbnail_cache_version) {
+        if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR && row.thumbnail_cache_version === 'sidecar-thumbnail-v2') {
           const thumbnailPath = this.getSidecarPath(sourceName, false);
           const thumbnailStats = await stat(thumbnailPath);
           if (thumbnailStats.isFile()) thumbnails++;
         }
 
-        if (FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase())
-          && row.fullsize_cache_id !== null && row.fullsize_cache_version) {
+        const extension = extname(sourceName).toLowerCase();
+        const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+        if (FULL_SIZE_EXTENSIONS.has(extension)
+          && row.fullsize_cache_id !== null && row.fullsize_cache_version === expectedFullSizeTag) {
           const fullSizePath = row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL
             ? this.getParallelPath(sourceName)
             : this.getSidecarPath(sourceName, true);
