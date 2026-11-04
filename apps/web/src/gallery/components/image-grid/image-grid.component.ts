@@ -118,12 +118,14 @@ export class ImageGridComponent {
   readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] });
 
   private cacheStatsRequest = 0;
+  private cachePathUpdateRevision = 0;
   private readonly thumbnailCachePaths = new Set<string>();
   private readonly fullSizeCachePaths = new Set<string>();
 
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
     const images = this.images() ?? [];
     const request = ++this.cacheStatsRequest;
+    const pathUpdateRevision = this.cachePathUpdateRevision;
     if (images.length === 0) {
       this.thumbnailCachePaths.clear();
       this.fullSizeCachePaths.clear();
@@ -133,6 +135,10 @@ export class ImageGridComponent {
     try {
       const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path));
       if (request !== this.cacheStatsRequest) return;
+      if (pathUpdateRevision !== this.cachePathUpdateRevision) {
+        void this.refreshDirectoryCacheStats();
+        return;
+      }
       this.thumbnailCachePaths.clear();
       this.fullSizeCachePaths.clear();
       stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
@@ -155,6 +161,7 @@ export class ImageGridComponent {
       return;
     }
     if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
+    this.cachePathUpdateRevision++;
     void this.cacheManager.getDirectoryCacheStats([sourceName]).then(stats => {
       if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
       stats.thumbnailPaths.includes(sourceName)
