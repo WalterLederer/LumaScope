@@ -627,6 +627,7 @@ export class ImageView {
     }
   };
   protected readonly photoLocationResolveActive = signal(false);
+  protected readonly photoLocationResolveError = signal('');
   protected readonly resolveCurrentPhotoLocation = async (): Promise<void> => {
     if (this.photoLocationResolveActive()) return;
     const coordinates = this.gpsCoordinates();
@@ -642,6 +643,7 @@ export class ImageView {
     }
 
     this.photoLocationResolveActive.set(true);
+    this.photoLocationResolveError.set('');
     this.photoDatabaseRecordStatus.set('Resolving and saving location…');
     try {
       const location = await this.cacheManager.resolvePhotoLocation(image.path, coordinates.latitude, coordinates.longitude);
@@ -650,7 +652,9 @@ export class ImageView {
         ? 'Location resolved and saved to the database.'
         : 'No location name was returned by the reverse-geocoding provider.');
     } catch (error) {
-      this.photoDatabaseRecordStatus.set(`Could not resolve photo location: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.photoLocationResolveError.set(message);
+      this.photoDatabaseRecordStatus.set('Location lookup failed.');
     } finally {
       this.photoLocationResolveActive.set(false);
     }
