@@ -82,6 +82,98 @@ export class OfflineMapRenderer {
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
   private readonly resizeObserver: ResizeObserver;
+  private dragDiagnostic: {
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    startZoom: number;
+    startCenter: [number, number];
+    startContainerRect: DOMRect;
+    startCanvasRect: DOMRect;
+    startCanvasWidth: number;
+    startCanvasHeight: number;
+  } | null = null;
+  private readonly onDiagnosticPointerDown = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    const container = this.map.getContainer();
+    const canvas = this.map.getCanvas();
+    this.dragDiagnostic = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      startZoom: this.map.getZoom(),
+      startCenter: this.map.getCenter().toArray() as [number, number],
+      startContainerRect: container.getBoundingClientRect(),
+      startCanvasRect: canvas.getBoundingClientRect(),
+      startCanvasWidth: canvas.width,
+      startCanvasHeight: canvas.height
+    };
+  };
+  private readonly onDiagnosticPointerMove = (event: PointerEvent): void => {
+    if (!this.dragDiagnostic || event.pointerId !== this.dragDiagnostic.pointerId) return;
+    this.dragDiagnostic.lastX = event.clientX;
+    this.dragDiagnostic.lastY = event.clientY;
+  };
+  private readonly onDiagnosticPointerEnd = (event: PointerEvent): void => {
+    const start = this.dragDiagnostic;
+    if (!start || event.pointerId !== start.pointerId) return;
+    this.dragDiagnostic = null;
+
+    const container = this.map.getContainer();
+    const canvas = this.map.getCanvas();
+    const containerRect = container.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const endX = event.clientX;
+    const endY = event.clientY;
+    const startZoom = start.startZoom;
+    const endZoom = this.map.getZoom();
+    const startMapPoint: [number, number] = [
+      start.startX - start.startContainerRect.left,
+      start.startY - start.startContainerRect.top
+    ];
+    const endMapPoint: [number, number] = [
+      endX - containerRect.left,
+      endY - containerRect.top
+    ];
+    const startGeo = this.map.unproject(startMapPoint);
+    const endGeo = this.map.unproject(endMapPoint);
+    const center = this.map.getCenter().toArray();
+
+    console.info('[OfflineMap][DragDiagnostic]', {
+      pointer: { start: [start.startX, start.startY], end: [endX, endY],
+        deltaCssPixels: [endX - start.startX, endY - start.startY] },
+      zoom: { start: startZoom, end: endZoom,
+        startIntegerLevel: Math.floor(startZoom), endIntegerLevel: Math.floor(endZoom),
+        sourceMaxZoom: 14 },
+      center: { start: start.startCenter, end: center },
+      mapPoint: { start: startMapPoint, end: endMapPoint },
+      geographicUnderPointer: {
+        start: [startGeo.lng, startGeo.lat],
+        end: [endGeo.lng, endGeo.lat]
+      },
+      container: {
+        startClient: [container.clientWidth, container.clientHeight],
+        startRect: [start.startContainerRect.width, start.startContainerRect.height],
+        endClient: [container.clientWidth, container.clientHeight],
+        endRect: [containerRect.width, containerRect.height],
+        cssScale: [containerRect.width / Math.max(1, container.clientWidth),
+          containerRect.height / Math.max(1, container.clientHeight)]
+      },
+      canvas: {
+        startRect: [start.startCanvasRect.width, start.startCanvasRect.height],
+        endRect: [canvasRect.width, canvasRect.height],
+        backingStore: [start.startCanvasWidth, start.startCanvasHeight, canvas.width, canvas.height],
+        backingScale: [canvas.width / Math.max(1, canvasRect.width),
+          canvas.height / Math.max(1, canvasRect.height)]
+      },
+      devicePixelRatio: window.devicePixelRatio,
+      lastObservedPointer: [start.lastX, start.lastY]
+    });
+  };
 
   constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void) {
     const options: MapOptions = {
@@ -99,6 +191,13 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    // Temporary diagnostics: compare physical pointer movement with MapLibre's
+    // container/canvas geometry and camera state for each completed drag.
+    const mapContainer = this.map.getContainer();
+    mapContainer.addEventListener('pointerdown', this.onDiagnosticPointerDown, true);
+    window.addEventListener('pointermove', this.onDiagnosticPointerMove, true);
+    window.addEventListener('pointerup', this.onDiagnosticPointerEnd, true);
+    window.addEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     // Keep the WebGL canvas synchronized with layout changes in the settings panel.
     this.resizeObserver = new ResizeObserver(() => this.map.resize());
     this.resizeObserver.observe(container);
@@ -504,6 +603,10 @@ export class OfflineMapRenderer {
   resize(): void { this.map.resize(); }
   remove(): void {
     this.resizeObserver.disconnect();
+    this.map.getContainer().removeEventListener('pointerdown', this.onDiagnosticPointerDown, true);
+    window.removeEventListener('pointermove', this.onDiagnosticPointerMove, true);
+    window.removeEventListener('pointerup', this.onDiagnosticPointerEnd, true);
+    window.removeEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
