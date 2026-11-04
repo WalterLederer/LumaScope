@@ -5,20 +5,20 @@ import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, Des
 export class CacheManager implements DesktopCacheManager {
   readonly cacheRevision = signal(0);
 
-  readonly clear = async (): Promise<CacheClearResult> => {
-    const result = await window.desktop.CacheManager.clear();
+  readonly clear = async (directory?: string, recursive = false): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clear(directory, recursive);
     this.cacheRevision.update(value => value + 1);
     return result;
   };
 
-  readonly clearFullSize = async (): Promise<CacheClearResult> => {
-    const result = await window.desktop.CacheManager.clearFullSize();
+  readonly clearFullSize = async (directory?: string, recursive = false): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clearFullSize(directory, recursive);
     this.cacheRevision.update(value => value + 1);
     return result;
   };
 
-  readonly clearThumbnails = async (): Promise<CacheClearResult> => {
-    const result = await window.desktop.CacheManager.clearThumbnails();
+  readonly clearThumbnails = async (directory?: string, recursive = false): Promise<CacheClearResult> => {
+    const result = await window.desktop.CacheManager.clearThumbnails(directory, recursive);
     this.cacheRevision.update(value => value + 1);
     return result;
   };
