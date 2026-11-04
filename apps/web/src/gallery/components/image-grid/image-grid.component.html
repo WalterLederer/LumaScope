@@ -91,9 +91,9 @@
             [disabled]="cacheRunActive()"
             (click)="cacheAllImagesRecursive()">{{ cacheRunActive() ? '…' : 'Cache recursive' }}</button>
     @if (cacheRunActive()) {
-      <small>{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
+      <small [attr.title]="cacheRunCurrentOperation()">{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
       <button type="button" class="status-action-button status-action-cancel"
-              title="Cancel the running cache operation"
+              [attr.title]="cacheRunCurrentOperation() ? cacheRunCurrentOperation() + '\nClick to cancel the running cache operation' : 'Cancel the running cache operation'"
               aria-label="Cancel cache operation"
               (click)="cancelCacheRun()">Cancel</button>
     }
