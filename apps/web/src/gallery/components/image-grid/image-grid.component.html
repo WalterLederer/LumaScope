@@ -69,16 +69,18 @@
               [thumbSize]="thumbSize()"
               [viewMode]="viewMode()"
               (hovered)="onThumbnailHovered($event)"
+              (cacheUpdated)="onCacheUpdated($event)"
               (selected)="selected.emit($event)" />
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="(images()?.length ?? 0) > 0 || hoveredFolderPath() !== null">
   <ui-text>
+    <strong>Total: {{ cacheStats().total }}</strong>,
+    Thumb: {{ cacheStats().thumbnails }},
+    Full-Size Conversion: {{ cacheStats().fullSizeConversions }}
     @if (hoveredFolderPath(); as folderPath) {
-      {{ folderPath }}
-    } @else {
-      <strong>{{ images()?.length ?? 0 }} images</strong>
-    @if (hoveredImage(); as image) {
+      · {{ folderPath }}
+    } @else if (hoveredImage(); as image) {
       @let tags = hoveredTags();
       @let bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
       ·
@@ -89,12 +91,10 @@
       @if (tags?.ImageWidth && tags?.ImageHeight) {
         · {{ formatPixelDimension(tags?.ImageWidth) }} x {{ formatPixelDimension(tags?.ImageHeight) }}
       }
-      · {{ bits ?? '—' }}-bit
       · {{ image.size | number: '1.0-0' }} bytes
       @if (image.modifiedAt !== undefined) {
         · {{ image.modifiedAt | date: 'yyyy-MM-dd HH:mm:ss' }}
       }
-    }
     }
   </ui-text>
 </ui-toolbar>
