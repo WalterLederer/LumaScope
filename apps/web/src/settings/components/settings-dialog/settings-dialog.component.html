@@ -2,52 +2,6 @@
 @let clearResult = lastClearResult();
 
 <div class="settings-panel">
-  @if (mode() === 'cache') {
-    <section class="cache-summary-section">
-      <details class="cache-summary-box">
-        <summary>Summary</summary>
-        <div class="cache-summary-content">
-          @if (cacheSummaryLoading()) {
-            <p class="cache-status" role="status">Updating cache summary…</p>
-          }
-          @if (cacheSummaryError()) {
-            <p class="cache-status error" role="alert">Could not load cache summary: {{ cacheSummaryError() }}</p>
-          }
-          <div class="cache-summary-category">
-            <span>Total cache entries</span>
-            <strong>{{ cacheSummary().total.entries }} files · {{ cacheSummary().total.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Full-size conversions</span>
-            <strong>{{ cacheSummary().fullSize.entries }} files · {{ cacheSummary().fullSize.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Thumbnail files</span>
-            <strong>{{ cacheSummary().thumbnails.entries }} files · {{ cacheSummary().thumbnails.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Sidecar cache</span>
-            <strong>{{ cacheSummary().sidecar.entries }} files · {{ cacheSummary().sidecar.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Entries with valid GPS coordinates (source files)</span>
-            <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-databases">
-            <strong>SQLite database files</strong>
-            @for (database of cacheSummary().databases; track database.path) {
-              <div class="cache-summary-database">
-                <code>{{ database.path }}</code>
-                <span>{{ database.bytes | byteSize }}</span>
-              </div>
-            } @empty {
-              <span>No SQLite database files found.</span>
-            }
-          </div>
-        </div>
-      </details>
-    </section>
-  }
 
   @if (mode() !== 'general') {
   <section class="delete-cache-section">
@@ -190,6 +144,54 @@
           <span>Build log file</span>
           <code>{{ cacheBuildLogPath() || 'Loading log path…' }}</code>
         </div>
+        </div>
+      </details>
+    </section>
+  }
+
+
+  @if (mode() === 'cache') {
+    <section class="cache-summary-section">
+      <details class="cache-summary-box">
+        <summary>Summary</summary>
+        <div class="cache-summary-content">
+          @if (cacheSummaryLoading()) {
+            <p class="cache-status" role="status">Updating cache summary…</p>
+          }
+          @if (cacheSummaryError()) {
+            <p class="cache-status error" role="alert">Could not load cache summary: {{ cacheSummaryError() }}</p>
+          }
+          <div class="cache-summary-category">
+            <span>Total cache entries</span>
+            <strong>{{ cacheSummary().total.entries }} files · {{ cacheSummary().total.bytes | byteSize }}</strong>
+          </div>
+          <div class="cache-summary-category">
+            <span>Full-size conversions</span>
+            <strong>{{ cacheSummary().fullSize.entries }} files · {{ cacheSummary().fullSize.bytes | byteSize }}</strong>
+          </div>
+          <div class="cache-summary-category">
+            <span>Thumbnail files</span>
+            <strong>{{ cacheSummary().thumbnails.entries }} files · {{ cacheSummary().thumbnails.bytes | byteSize }}</strong>
+          </div>
+          <div class="cache-summary-category">
+            <span>Sidecar cache</span>
+            <strong>{{ cacheSummary().sidecar.entries }} files · {{ cacheSummary().sidecar.bytes | byteSize }}</strong>
+          </div>
+          <div class="cache-summary-category">
+            <span>Entries with valid GPS coordinates (source files)</span>
+            <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
+          </div>
+          <div class="cache-summary-databases">
+            <strong>SQLite database files</strong>
+            @for (database of cacheSummary().databases; track database.path) {
+              <div class="cache-summary-database">
+                <code>{{ database.path }}</code>
+                <span>{{ database.bytes | byteSize }}</span>
+              </div>
+            } @empty {
+              <span>No SQLite database files found.</span>
+            }
+          </div>
         </div>
       </details>
     </section>
