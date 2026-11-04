@@ -55,39 +55,6 @@
             <span>Entries with valid GPS coordinates (source files)</span>
             <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
           </div>
-          @if (cacheCheckLog().length > 0 || cacheCheckState() === 'checking') {
-            <div class="cache-summary-check">
-              <strong>Cache check progress</strong>
-              @for (entry of cacheCheckLog(); track $index) {
-                <code>{{ entry }}</code>
-              }
-            </div>
-          }
-          @if (cacheCheckResult(); as check) {
-            <div class="cache-summary-check">
-              <strong>Cache check · {{ check.directory }}</strong>
-              <span>Scope: {{ check.recursive ? 'Current folder and all subfolders' : 'Current folder only' }}</span>
-              <span>Images checked: {{ check.images }}</span>
-              <span>Missing thumbnails: {{ check.missingThumbnails.length }}</span>
-              <span>Missing full-size conversions: {{ check.missingFullSize.length }}</span>
-              @if (check.missingThumbnails.length > 0) {
-                <strong>Missing thumbnail cache</strong>
-                @for (path of check.missingThumbnails; track path) {
-                  <code>{{ path }}</code>
-                }
-              }
-              @if (check.missingFullSize.length > 0) {
-                <strong>Missing full-size cache</strong>
-                @for (path of check.missingFullSize; track path) {
-                  <code>{{ path }}</code>
-                }
-              }
-            </div>
-          } @else if (cacheCheckState() === 'checking') {
-            <p class="cache-status" role="status">Checking cache files in the current folder…</p>
-          } @else if (cacheCheckError()) {
-            <p class="cache-status error" role="alert">Cache check failed: {{ cacheCheckError() }}</p>
-          }
           <div class="cache-summary-databases">
             <strong>SQLite database files</strong>
             @for (database of cacheSummary().databases; track database.path) {
@@ -144,6 +111,11 @@
         </div>
         <div class="build-cache-current-operation">
           <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
+          @if (cacheCheckOutput()) {
+            <textarea readonly rows="6" [value]="cacheCheckOutput()" aria-label="Cache check output"></textarea>
+          } @else if (cacheCheckState() === 'checking') {
+            <textarea readonly rows="2" value="Checking cache files…" aria-label="Cache check output"></textarea>
+          }
         </div>
         <div class="build-cache-log-path">
           <span>Build log file</span>
