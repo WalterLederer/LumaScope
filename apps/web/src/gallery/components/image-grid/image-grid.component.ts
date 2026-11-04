@@ -115,27 +115,62 @@ export class ImageGridComponent {
 
   private readonly cacheManager = inject(CacheManager);
 
-  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0 });
+  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] });
 
   private cacheStatsRequest = 0;
+  private readonly thumbnailCachePaths = new Set<string>();
+  private readonly fullSizeCachePaths = new Set<string>();
 
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
     const images = this.images() ?? [];
     const request = ++this.cacheStatsRequest;
     if (images.length === 0) {
-      this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0 });
+      this.thumbnailCachePaths.clear();
+      this.fullSizeCachePaths.clear();
+      this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] });
       return;
     }
     try {
       const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path));
-      if (request === this.cacheStatsRequest) this.cacheStats.set(stats);
+      if (request !== this.cacheStatsRequest) return;
+      this.thumbnailCachePaths.clear();
+      this.fullSizeCachePaths.clear();
+      stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
+      stats.fullSizePaths.forEach(path => this.fullSizeCachePaths.add(path));
+      this.cacheStats.set({
+        total: stats.total,
+        thumbnails: this.thumbnailCachePaths.size,
+        fullSizeConversions: this.fullSizeCachePaths.size,
+        thumbnailPaths: [],
+        fullSizePaths: []
+      });
     } catch (error) {
       console.error('Failed to refresh gallery cache statistics', error);
     }
   };
 
-  readonly onCacheUpdated = (_sourceName: string): void => {
-    void this.refreshDirectoryCacheStats();
+  readonly onCacheUpdated = (sourceName: string): void => {
+    if (!sourceName) {
+      void this.refreshDirectoryCacheStats();
+      return;
+    }
+    if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
+    void this.cacheManager.getDirectoryCacheStats([sourceName]).then(stats => {
+      if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
+      stats.thumbnailPaths.includes(sourceName)
+        ? this.thumbnailCachePaths.add(sourceName)
+        : this.thumbnailCachePaths.delete(sourceName);
+      stats.fullSizePaths.includes(sourceName)
+        ? this.fullSizeCachePaths.add(sourceName)
+        : this.fullSizeCachePaths.delete(sourceName);
+      this.cacheStats.update(current => ({
+        total: current.total,
+        thumbnails: this.thumbnailCachePaths.size,
+        fullSizeConversions: this.fullSizeCachePaths.size,
+        thumbnailPaths: [],
+        fullSizePaths: []
+      }));
+    }).catch(error => console.error('Failed to update gallery cache count', error));
   };
 
 
@@ -212,6 +247,7 @@ export class ImageGridComponent {
     effect(() => {
       this.images();
       this.selectedLocation();
+      this.cacheManager.cacheRevision();
       void this.refreshDirectoryCacheStats();
     });
 
