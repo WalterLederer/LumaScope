@@ -55,6 +55,14 @@
             <span>Entries with valid GPS coordinates (source files)</span>
             <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
           </div>
+          @if (cacheCheckLog().length > 0 || cacheCheckState() === 'checking') {
+            <div class="cache-summary-check">
+              <strong>Cache check progress</strong>
+              @for (entry of cacheCheckLog(); track $index) {
+                <code>{{ entry }}</code>
+              }
+            </div>
+          }
           @if (cacheCheckResult(); as check) {
             <div class="cache-summary-check">
               <strong>Cache check · {{ check.directory }}</strong>
