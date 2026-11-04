@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS photos (
 CREATE INDEX IF NOT EXISTS idx_photos_path_id ON photos(path_id);
 CREATE INDEX IF NOT EXISTS idx_photos_hdr ON photos(is_hdr);
 `
+  },
+  {
+    name: 'seedUnknownLocationNameV9',
+    query: `
+INSERT OR IGNORE INTO location_names
+  (id, latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
+VALUES
+  (0, 999, 999, 'Unknown', NULL, NULL, NULL, 'system', 0);
+`
   }
+
 ];
 // @formatter:on
