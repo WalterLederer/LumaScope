@@ -179,6 +179,44 @@ export class ImagesComponent {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
+  readonly cacheAllImages = async (): Promise<void> => {
+    const images = this.images() ?? [];
+    if (images.length === 0 || this.cacheRunActive()) return;
+
+    this.cacheRunActive.set(true);
+    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    try {
+      const statuses = await this.cacheManager.getImageCacheStatuses(images.map(image => image.path));
+      const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
+      let nextIndex = 0;
+      const worker = async (): Promise<void> => {
+        while (nextIndex < images.length) {
+          const index = nextIndex++;
+          const image = images[index];
+          try {
+            const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store' });
+            if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
+            await thumbnailResponse.body?.cancel();
+
+            if (statusByPath.get(image.path)?.fullSizeRequired) {
+              const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store' });
+              if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
+              await fullSizeResponse.body?.cancel();
+            }
+          } catch (error) {
+            console.error('Failed to cache gallery image', image.path, error);
+          } finally {
+            this.cacheRunProgress.update(progress => ({ ...progress, completed: progress.completed + 1 }));
+          }
+        }
+      };
+      await Promise.all([worker(), worker()]);
+    } finally {
+      this.cacheRunActive.set(false);
+      this.cacheUpdated.emit('');
+    }
+  };
+
 
   async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
     if (this.detailSortColumn() === column) {
