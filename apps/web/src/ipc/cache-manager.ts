@@ -45,8 +45,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly appendBuildLog = (line: string): Promise<void> => window.desktop.CacheManager.appendBuildLog(line);
 
-  readonly getDirectoryCacheStats = (sourceNames: string[]): Promise<CacheDirectoryStats> =>
-    window.desktop.CacheManager.getDirectoryCacheStats(sourceNames);
+  readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> =>
+    window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles);
 
   readonly getDirectoryPhotoLocations = (directory: string): Promise<PhotoLocation[]> =>
     window.desktop.CacheManager.getDirectoryPhotoLocations(directory);
