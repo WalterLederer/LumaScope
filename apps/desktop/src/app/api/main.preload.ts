@@ -56,6 +56,7 @@ const api: Desktop = {
     cancelClear: (operationId: string) => ipcRenderer.invoke('CacheManager.cancelClear', operationId),
     deleteImage: (sourceName: string) => ipcRenderer.invoke('CacheManager.deleteImage', sourceName),
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
+    getCacheSummary: () => ipcRenderer.invoke('CacheManager.getCacheSummary'),
     cacheInfo: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.cacheInfo', directory, recursive),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
     getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames, verifyCacheFiles, sourceMetadata),
