@@ -1,14 +1,22 @@
 :host {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   height: 100%;
   min-width: 0;
-  justify-content: stretch;
+  min-height: 0;
   align-items: stretch;
 }
 
 ui-side-panel {
-  flex: 1 1 auto;
+  grid-column: 1;
+  width: 100%;
   min-width: 0;
+  min-height: 0;
+}
+
+.gallery-controls-sidebar {
+  grid-column: 2;
+  min-width: 280px;
 }
 
 ui-side-panel {
