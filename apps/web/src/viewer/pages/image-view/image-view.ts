@@ -625,6 +625,36 @@ export class ImageView {
       this.photoDatabaseRecordStatus.set(`Could not load database record: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
+  protected readonly photoLocationResolveActive = signal(false);
+  protected readonly resolveCurrentPhotoLocation = async (): Promise<void> => {
+    if (this.photoLocationResolveActive()) return;
+    const coordinates = this.gpsCoordinates();
+    if (!coordinates) {
+      this.photoDatabaseRecordStatus.set('GPS coordinates are not available for this image.');
+      return;
+    }
+
+    const image = await this.selectedImage$.pipe(take(1)).toPromise();
+    if (!image) {
+      this.photoDatabaseRecordStatus.set('No image selected.');
+      return;
+    }
+
+    this.photoLocationResolveActive.set(true);
+    this.photoDatabaseRecordStatus.set('Resolving and saving location…');
+    try {
+      const location = await this.cacheManager.resolvePhotoLocation(image.path, coordinates.latitude, coordinates.longitude);
+      await this.loadPhotoDatabaseRecord();
+      this.photoDatabaseRecordStatus.set(location
+        ? 'Location resolved and saved to the database.'
+        : 'No location name was returned by the reverse-geocoding provider.');
+    } catch (error) {
+      this.photoDatabaseRecordStatus.set(`Could not resolve photo location: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this.photoLocationResolveActive.set(false);
+    }
+  };
+
   protected readonly refreshCurrentImageCache = (): void => {
     this.selectedImage$.pipe(take(1)).subscribe(image => {
       if (!image) { this.currentImageCacheStatus.set('No image selected.'); return; }
