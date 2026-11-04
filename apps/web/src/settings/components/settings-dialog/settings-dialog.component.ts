@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
+import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
@@ -32,6 +32,13 @@ export class SettingsPanelComponent {
   protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');
   protected readonly locationLookupActive = signal(false);
   protected readonly locationLookupOutput = signal('No location lookup has run yet.');
+  protected readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
+    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle'
+  });
+  protected readonly reverseGeocodingStatusError = signal<string | null>(null);
+  protected readonly reverseGeocodingCompleted = computed(() =>
+    this.reverseGeocodingStatus().resolved + this.reverseGeocodingStatus().errors
+  );
   protected readonly runCacheBuild = (): void => {
     this.cacheOutputMode.set('build');
     this.cacheCheckLog.set([]);
@@ -339,6 +346,9 @@ export class SettingsPanelComponent {
     });
     const destroyRef = inject(DestroyRef);
     destroyRef.onDestroy(removeExternalProcessListener);
+    void this.refreshReverseGeocodingStatus();
+    const reverseGeocodingTimer = setInterval(() => void this.refreshReverseGeocodingStatus(), 1000);
+    destroyRef.onDestroy(() => clearInterval(reverseGeocodingTimer));
     const removeShortcutStatusListener = window.desktop.Capture.onGlobalShortcutStatusChanged(statuses => {
       this.globalShortcutStatuses.set(statuses);
       this.globalShortcutLoading.set(false);
@@ -406,6 +416,15 @@ export class SettingsPanelComponent {
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
   }
+
+  private readonly refreshReverseGeocodingStatus = async (): Promise<void> => {
+    try {
+      this.reverseGeocodingStatus.set(await this.cacheManager.getBackgroundReverseGeocodingStatus());
+      this.reverseGeocodingStatusError.set(null);
+    } catch (error) {
+      this.reverseGeocodingStatusError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   private readonly loadGlobalShortcutStatus = async (): Promise<void> => {
     try {
