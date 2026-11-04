@@ -213,6 +213,13 @@ export class OfflineMapRenderer {
     const options: MapOptions = {
       container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
       minZoom: 0, maxZoom: 20,
+      // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
+      pitch: 0,
+      bearing: 0,
+      maxPitch: 0,
+      projection: 'mercator',
+      dragRotate: false,
+      touchPitch: false,
       // Disable MapLibre 6's partial overscaling strategy. Split overzoomed vector tiles
       // consistently above the MBTiles native maxzoom (14) to avoid unstable camera transforms.
       zoomLevelsToOverscale: 0,
