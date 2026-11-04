@@ -37,7 +37,6 @@
                      [refreshToken]="thumbnailRefreshToken()"
                      (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
                      (hovered)="hovered.emit($event)"
-                     (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }
   </div>
@@ -84,6 +83,7 @@
     @for (image of imageList; track image.path) {
       <app-thumbnail [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
+                     (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }
   </div>
