@@ -38,11 +38,12 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'pier-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'pier_polygons', paint: { 'fill-color': '#c9c4b8' } },
     { id: 'sites', type: 'fill', source: 'shortbread', 'source-layer': 'sites', minzoom: 10, paint: { 'fill-color': '#e3dfd4', 'fill-outline-color': '#c9c3b7', 'fill-opacity': 0.65 } },
     { id: 'street-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'street_polygons', minzoom: 12, paint: { 'fill-color': '#f8f5ed', 'fill-outline-color': '#e5dfd4' } },
+    { id: 'street-casing', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 7, paint: { 'line-color': '#c9c1b5', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.8, 14, 6, 18, 12], 'line-opacity': 0.9 } },
     {
       id: 'streets', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 8,
       paint: {
         'line-color': ['match', ['get', 'kind'], 'motorway', '#e58a83', 'trunk', '#edbd79', 'primary', '#edbd79', 'secondary', '#f7f4ed', 'tertiary', '#f7f4ed', '#ffffff'],
-        'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.35, 14, 2],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.5, 11, 1.4, 14, 3.2, 18, 6],
         'line-opacity': 0.95
       }
     },
@@ -53,18 +54,18 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'pier-lines', type: 'line', source: 'shortbread', 'source-layer': 'pier_lines', paint: { 'line-color': '#b9b1a2', 'line-width': 1.5 } },
     { id: 'public-transport', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 12, paint: { 'circle-radius': 2.5, 'circle-color': '#765b9a', 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.6 } },
     { id: 'buildings', type: 'fill', source: 'shortbread', 'source-layer': 'buildings', minzoom: 13, paint: { 'fill-color': '#d4c9bd', 'fill-outline-color': '#c2b6aa', 'fill-opacity': 0.85 } },
-    { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 3], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } },
+    { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 12, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.8, 18, 4], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } },
     // Nearly transparent anchor layers let the renderer obtain label geometry
     // without requesting remote MapLibre glyph PBF files.
-    { id: 'label-places-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'place_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-places-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'place_labels', minzoom: 2, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-boundaries-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'boundary_labels', minzoom: 3, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-streets-anchor', type: 'line', source: 'shortbread', 'source-layer': 'street_labels', minzoom: 11, paint: { 'line-width': 8, 'line-opacity': 0.01 } },
     { id: 'label-water-anchor', type: 'line', source: 'shortbread', 'source-layer': 'water_lines_labels', minzoom: 10, paint: { 'line-width': 6, 'line-opacity': 0.01 } },
     { id: 'label-water-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'water_polygons_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-street-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'streets_polygons_labels', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-street-points-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'street_labels_points', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
-    { id: 'label-public-transport-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 13, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
-    { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
+    { id: 'label-public-transport-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
   ]
 };
 
@@ -391,7 +392,7 @@ export class OfflineMapRenderer {
       ['background', 'background-opacity'], ['land', 'fill-opacity'], ['ocean', 'fill-opacity'],
       ['water-polygons', 'fill-opacity'], ['water-lines', 'line-opacity'], ['boundaries', 'line-opacity'],
       ['dam-polygons', 'fill-opacity'], ['pier-polygons', 'fill-opacity'], ['sites', 'fill-opacity'], ['street-polygons', 'fill-opacity'],
-      ['streets', 'line-opacity'], ['bridges', 'line-opacity'], ['ferries', 'line-opacity'], ['aerialways', 'line-opacity'],
+      ['street-casing', 'line-opacity'], ['streets', 'line-opacity'], ['bridges', 'line-opacity'], ['ferries', 'line-opacity'], ['aerialways', 'line-opacity'],
       ['dam-lines', 'line-opacity'], ['pier-lines', 'line-opacity'], ['public-transport', 'circle-opacity'],
       ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
     ] as const;
