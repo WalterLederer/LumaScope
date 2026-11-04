@@ -1134,7 +1134,10 @@ public static class LightMatterDisplayConfig {
   }
 };
 
+let cachedTopLevelWindowEnumerator: (() => CaptureSources['windows']) | null = null;
+
 const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
+  if (cachedTopLevelWindowEnumerator) return cachedTopLevelWindowEnumerator();
   const user32 = koffi.load('user32.dll');
   const kernel32 = koffi.load('kernel32.dll');
 
@@ -1166,7 +1169,8 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   const QueryFullProcessImageNameW = kernel32.func('bool __stdcall QueryFullProcessImageNameW(uintptr_t process, uint32_t flags, _Out_ char16_t *path, _Inout_ uint32_t *size)');
   const CloseHandle = kernel32.func('bool __stdcall CloseHandle(uintptr_t handle)');
 
-  const rows: NonNullable<CaptureSources['windows']> = [];
+  const runEnumeration = (): CaptureSources['windows'] => {
+    const rows: CaptureSources['windows'] = [];
   let callbackError: Error | null = null;
 
   const enumerate = (handle: number, _lParam: number): boolean => {
@@ -1247,10 +1251,14 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   if (callbackError) throw callbackError;
   if (!completed) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
 
-  return rows.sort((a, b) =>
-    a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
-    || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-  );
+    return rows.sort((a, b) =>
+      a.processName.localeCompare(b.processName, undefined, { sensitivity: 'base' })
+      || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    );
+  };
+
+  cachedTopLevelWindowEnumerator = runEnumeration;
+  return runEnumeration();
 };
 
 ipcMain.handle('Capture.listSources', async (): Promise<CaptureSources> => {
