@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { CacheClearResult, CacheInfo, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -44,6 +44,8 @@ export class SettingsPanelComponent {
 
   /* State */
   protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
+
+  private cacheInfoRequestId = 0;
 
   protected readonly isClearing = signal(false);
 
@@ -275,7 +277,12 @@ export class SettingsPanelComponent {
     destroyRef.onDestroy(removeShortcutStatusListener);
     this.loadGlobalShortcutStatus().then();
     this.loadExternalProcessCalls().then();
-    this.updateCacheInfo().then();
+    effect(() => {
+      const global = this.deleteCacheGlobal();
+      const recursive = this.recursiveDelete();
+      const directory = this.currentFolderPath().trim();
+      void this.updateCacheInfo(global ? undefined : directory || null, !global && recursive);
+    });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
@@ -355,7 +362,26 @@ export class SettingsPanelComponent {
   };
 
   /* State modifiers */
-  private readonly updateCacheInfo = async () => this.cacheInfo.set(await this.cacheManager.cacheInfo());
+  private readonly updateCacheInfo = async (directory?: string | null, recursive = false): Promise<void> => {
+    const requestId = ++this.cacheInfoRequestId;
+    if (directory === null) {
+      this.cacheInfo.set({
+        entries: 0,
+        bytes: 0,
+        fullSize: { entries: 0, bytes: 0 },
+        thumbnails: { entries: 0, bytes: 0 }
+      });
+      return;
+    }
+    try {
+      const info = await this.cacheManager.cacheInfo(directory, recursive);
+      if (requestId === this.cacheInfoRequestId) this.cacheInfo.set(info);
+    } catch (error) {
+      if (requestId === this.cacheInfoRequestId) {
+        this.clearError.set(error instanceof Error ? error.message : String(error));
+      }
+    }
+  };
 
   /* Event handlers */
   protected readonly deleteCache = () => this.clearCache(
@@ -421,7 +447,7 @@ export class SettingsPanelComponent {
         `Space freed: ${result.bytes} bytes`,
         `Duration: ${durationMs} ms`
       ].join('\n'));
-      await this.updateCacheInfo();
+      await this.updateCacheInfo(global ? undefined : directory || null, recursive);
     } catch (error) {
       const durationMs = Math.round(performance.now() - startedAt);
       const message = error instanceof Error ? error.message : String(error);
