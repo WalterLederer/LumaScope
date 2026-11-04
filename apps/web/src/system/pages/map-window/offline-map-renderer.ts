@@ -186,15 +186,11 @@ export class OfflineMapRenderer {
       if (geometry.type === 'Point' && Array.isArray(geometry.coordinates)) {
         point = geometry.coordinates as [number, number];
       } else if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-        const coordinates = geometry.coordinates as [number, number][];
-        if (coordinates.length > 1) {
-          const middle = Math.floor(coordinates.length / 2);
-          point = coordinates[middle];
-        }
+        point = this.getLineMidpoint(geometry.coordinates as [number, number][]);
       } else if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
         const lines = geometry.coordinates as [number, number][][];
-        const longest = lines.reduce((best, line) => line.length > best.length ? line : best, []);
-        if (longest.length > 1) point = longest[Math.floor(longest.length / 2)];
+        const longest = lines.reduce((best, line) => this.getProjectedLineLength(line) > this.getProjectedLineLength(best) ? line : best, []);
+        point = this.getLineMidpoint(longest);
       }
       if (!point || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) continue;
 
@@ -250,6 +246,48 @@ export class OfflineMapRenderer {
         .addTo(this.map);
       this.textLabels.push(marker);
     }
+  }
+
+
+  private getProjectedLineLength(coordinates: [number, number][]): number {
+    if (coordinates.length < 2) return 0;
+    let length = 0;
+    let previous = this.map.project(coordinates[0]);
+    for (let i = 1; i < coordinates.length; i++) {
+      const current = this.map.project(coordinates[i]);
+      length += Math.hypot(current.x - previous.x, current.y - previous.y);
+      previous = current;
+    }
+    return length;
+  }
+
+  private getLineMidpoint(coordinates: [number, number][]): [number, number] | null {
+    if (coordinates.length < 2) return coordinates[0] ?? null;
+    const projected = coordinates.map(coordinate => this.map.project(coordinate));
+    const segmentLengths: number[] = [];
+    let totalLength = 0;
+    for (let i = 1; i < projected.length; i++) {
+      const length = Math.hypot(projected[i].x - projected[i - 1].x, projected[i].y - projected[i - 1].y);
+      segmentLengths.push(length);
+      totalLength += length;
+    }
+    if (!Number.isFinite(totalLength) || totalLength <= 0) return coordinates[0];
+
+    let remaining = totalLength / 2;
+    for (let i = 0; i < segmentLengths.length; i++) {
+      const length = segmentLengths[i];
+      if (remaining <= length || i === segmentLengths.length - 1) {
+        const ratio = length > 0 ? Math.min(1, remaining / length) : 0;
+        const start = coordinates[i];
+        const end = coordinates[i + 1];
+        return [
+          start[0] + (end[0] - start[0]) * ratio,
+          start[1] + (end[1] - start[1]) * ratio
+        ];
+      }
+      remaining -= length;
+    }
+    return coordinates[coordinates.length - 1];
   }
 
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
