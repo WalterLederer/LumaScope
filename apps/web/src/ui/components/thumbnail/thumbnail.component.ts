@@ -57,6 +57,8 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly cacheStatus = input<CacheImageStatus | null>(null);
 
+  readonly locationDisplayName = input<string | null>(null);
+
   readonly gpsCoordinates = computed(() => {
     const status = this.cacheStatus();
     if (status?.latitude === null || status?.latitude === undefined || status.longitude === null || status.longitude === undefined) return '—';
