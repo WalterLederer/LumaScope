@@ -299,10 +299,10 @@ export class ImagesComponent {
           : 'Verification: disabled',
         this.verifyCacheFiles() ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
         `Verification time: ${verificationTimeMs} ms`
-      ].filter(Boolean).join('\\n');
-      await this.cacheManager.appendBuildLog('Cache verification summary:\\n' + verificationSummary);
+      ].filter(Boolean).join('\n');
+      await this.cacheManager.appendBuildLog('Cache verification summary:\n' + verificationSummary);
       if (signal?.aborted) {
-        const summary = `Cache build cancelled during status preparation\\n${verificationSummary}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+        const summary = `Cache build cancelled during status preparation\n${verificationSummary}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
         await this.cacheManager.appendBuildLog(summary);
         this.cacheRunCurrentOperation.set(summary);
         return;
@@ -361,12 +361,12 @@ export class ImagesComponent {
         logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
       }
       await logWrite;
-      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\\n${verificationSummary}\\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary);
       this.cacheRunCurrentOperation.set(summary);
     } catch (error) {
       console.error('Failed to start folder cache generation', error);
-      const summary = `Cache build failed\\n${error instanceof Error ? error.message : String(error)}${verificationSummary ? `\\n${verificationSummary}` : ''}\\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const summary = `Cache build failed\n${error instanceof Error ? error.message : String(error)}${verificationSummary ? `\n${verificationSummary}` : ''}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
       this.cacheRunCurrentOperation.set(summary);
     } finally {
