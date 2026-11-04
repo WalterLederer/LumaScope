@@ -1942,6 +1942,11 @@
 .image-controls-sidebar .image-database-record-key {
   color: var(--color-content-default);
 }
+.image-controls-sidebar .image-database-record-type {
+  color: var(--color-content-default-medium);
+  font-size: 10px;
+  font-style: italic;
+}
 .image-controls-sidebar .image-database-record-expanded {
   color: var(--color-content-accent, #2879b8);
 }
