@@ -135,6 +135,14 @@ export class ImageGridComponent {
   /* State */
   private readonly scrollBox = viewChild<ElementRef<HTMLDivElement>>('scrollBox');
 
+  private readonly imagesComponent = viewChild(ImagesComponent);
+
+  readonly refreshDetailCacheStatus = (): void => {
+    if (this.viewMode() === 'details') {
+      this.imagesComponent()?.refreshGallery();
+    }
+  };
+
   readonly onThumbnailHovered = async (image: FileInfo | null) => {
     if (image === null) {
       if (this.hoverClearTimer !== null) {
