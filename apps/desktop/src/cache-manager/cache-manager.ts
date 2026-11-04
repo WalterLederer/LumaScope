@@ -189,18 +189,34 @@ export class CacheManager {
       };
       let thumbnail = getStatus('thumbnail');
       let fullSize = fullSizeRequired ? getStatus('fullsize') : null;
+      const verification = { sourceChecked: false, thumbnailChecked: false, fullSizeChecked: false, invalidEntries: 0 };
       if (verifyCacheFiles && row && sourceMatches && (thumbnail || fullSize)) {
+        verification.sourceChecked = true;
         try {
           const sourceStats = await stat(sourceName);
           if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) {
-            thumbnail = null; fullSize = null;
+            verification.invalidEntries = Number(!!thumbnail) + Number(!!fullSize);
+            thumbnail = null;
+            fullSize = null;
           } else {
-            if (thumbnail) { try { const info = await stat(thumbnail.path); if (!info.isFile()) thumbnail = null; } catch { thumbnail = null; } }
-            if (fullSize) { try { const info = await stat(fullSize.path); if (!info.isFile()) fullSize = null; } catch { fullSize = null; } }
+            if (thumbnail) {
+              verification.thumbnailChecked = true;
+              try { const info = await stat(thumbnail.path); if (!info.isFile()) { thumbnail = null; verification.invalidEntries++; } }
+              catch { thumbnail = null; verification.invalidEntries++; }
+            }
+            if (fullSize) {
+              verification.fullSizeChecked = true;
+              try { const info = await stat(fullSize.path); if (!info.isFile()) { fullSize = null; verification.invalidEntries++; } }
+              catch { fullSize = null; verification.invalidEntries++; }
+            }
           }
-        } catch { thumbnail = null; fullSize = null; }
+        } catch {
+          verification.invalidEntries = Number(!!thumbnail) + Number(!!fullSize);
+          thumbnail = null;
+          fullSize = null;
+        }
       }
-      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null };
+      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, verification };
     }));
   };
 
