@@ -86,7 +86,11 @@ export class OfflineMapRenderer {
   constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void) {
     const options: MapOptions = {
       container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
-      minZoom: 0, maxZoom: 20, attributionControl: { compact: false },
+      minZoom: 0, maxZoom: 20,
+      // Keep all zoom levels above the MBTiles native maxzoom (14) in overscale mode.
+      // Avoid switching between overscaled and split source tiles around zoom 16–17.
+      zoomLevelsToOverscale: 20,
+      attributionControl: { compact: false },
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
