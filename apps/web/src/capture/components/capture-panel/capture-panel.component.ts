@@ -110,6 +110,7 @@ export class CapturePanelComponent {
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
   protected readonly status = signal('');
+  protected readonly sourceDiagnostics = signal('');
   protected readonly error = signal<string | null>(null);
   protected readonly lastOutputPath = signal('');
 
@@ -173,8 +174,16 @@ export class CapturePanelComponent {
       status: 'Drag to select · Esc to cancel',
       minimized: false, unavailable: false
     };
-    // Native EnumWindows order is front-to-back. Preserve it exactly in the list.
-    return [topWindow, rectangle, ...monitors, ...windows];
+    // Keep the source list alphabetic by executable, with unavailable/minimized
+    // windows grouped at the end. Top Window and Rectangle remain pinned first.
+    const sources = [...monitors, ...windows];
+    const invalidTier = (row: CaptureSourceRow): number => row.unavailable || row.minimized ? 1 : 0;
+    sources.sort((a, b) =>
+      invalidTier(a) - invalidTier(b) ||
+      a.exe.localeCompare(b.exe, undefined, { sensitivity: 'base' }) ||
+      a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    );
+    return [topWindow, rectangle, ...sources];
   };
 
 
@@ -518,17 +527,20 @@ export class CapturePanelComponent {
     const requestId = ++this.previewRequestId;
     this.previewing.set(true);
     this.error.set(null);
+    this.sourceDiagnostics.set('');
     this.status.set('Capturing source preview…');
     try {
       const preview = await this.captureService.preview(target);
       if (requestId !== this.previewRequestId) return;
       this.setPreviewFrame(preview);
       this.previewSize.set(`${preview.width} × ${preview.height}`);
+      this.sourceDiagnostics.set(preview.sourceDetails ?? '');
       this.status.set(`Capture ready · ${preview.width} × ${preview.height}`);
       if (!targetOverride) this.saveSelectedSource();
     } catch (error) {
       if (requestId !== this.previewRequestId) return;
       this.previewFrame.set(null);
+      this.sourceDiagnostics.set('');
       this.status.set('');
       const message = error instanceof Error ? error.message : String(error);
       if (target.kind === 'window' && /0x80070057|Falscher Parameter|invalid parameter/i.test(message)) {
