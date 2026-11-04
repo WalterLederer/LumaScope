@@ -333,6 +333,20 @@ section {
   p { color: var(--color-content-default-medium); font-size: 0.85rem; }
 }
 
+.build-cache-box > p {
+  line-height: 1.45;
+}
+
+.cache-warning {
+  padding: var(--dim-medium);
+  border: 1px solid var(--color-content-warn-low);
+  border-left-width: 4px;
+  border-radius: var(--border-radius-small);
+  background: var(--color-surface-warn-high);
+  color: var(--color-content-warn-highest) !important;
+  line-height: 1.45;
+}
+
 .build-cache-actions {
   display: flex;
   flex-wrap: wrap;
