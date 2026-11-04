@@ -41,6 +41,7 @@
                   [sortBy]="sorting.sortBy"
                   [sortDirection]="sorting.sortDir"
                   [thumbSize]="thumbSize"
+                  [verifyCacheFiles]="verifyCacheFiles()"
                   (sortByChanged)="onSortByChange($event)"
                   (sortDirChanged)="onSortDirChange($event)"
                   (thumbSizeChanged)="onThumbSizeChange($event)"
@@ -69,7 +70,14 @@
       <app-settings-panel mode="general" />
     }
     @if (activeGallerySidebarTab() === 'cache') {
-      <app-settings-panel mode="cache" />
+      <app-settings-panel mode="cache"
+                          [cacheBuildActive]="imageGrid()?.cacheRunActive() ?? false"
+                          [cacheBuildProgress]="imageGrid()?.cacheRunProgress() ?? { completed: 0, total: 0 }"
+                          [verifyCacheFiles]="verifyCacheFiles()"
+                          (verifyCacheFilesChange)="setVerifyCacheFiles($event)"
+                          [startCacheBuild]="startGalleryCache"
+                          [startRecursiveCacheBuild]="startRecursiveGalleryCache"
+                          [cancelCacheBuild]="cancelGalleryCache" />
     }
   </aside>
 }
