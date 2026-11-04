@@ -52,9 +52,9 @@ export interface DesktopExif {
 }
 
 export interface DesktopCacheManager {
-  readonly clear: () => Promise<CacheClearResult>;
-  readonly clearFullSize: () => Promise<CacheClearResult>;
-  readonly clearThumbnails: () => Promise<CacheClearResult>;
+  readonly clear: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>;
+  readonly clearFullSize: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>;
+  readonly clearThumbnails: (directory?: string, recursive?: boolean) => Promise<CacheClearResult>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
   readonly cacheInfo: () => Promise<CacheInfo>;
