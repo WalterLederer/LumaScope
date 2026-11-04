@@ -60,6 +60,7 @@ export interface DesktopCacheManager {
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[]) => Promise<CacheImageStatus[]>;
+  readonly getDirectoryCacheStats: (sourceNames: string[]) => Promise<CacheDirectoryStats>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
 }
 
@@ -73,6 +74,12 @@ export interface PhotoLocation {
 export interface CacheClearResult {
   entries: number;
   bytes: number;
+}
+
+export interface CacheDirectoryStats {
+  total: number;
+  thumbnails: number;
+  fullSizeConversions: number;
 }
 
 export interface CacheInfo extends CacheClearResult {
