@@ -124,7 +124,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.appendBuildLog' })
   readonly appendBuildLog = async (_event: IpcMainInvokeEvent, line: string): Promise<void> => {
-    if (typeof line !== 'string' || line.length > 16384) throw new Error('Invalid cache log entry.');
+    if (typeof line !== 'string' || line.length > 1048576) throw new Error('Invalid cache log entry.');
     await appendFile(join(this.userData, 'cache-build.log'), line.endsWith('\n') ? line : line + '\n', 'utf-8');
   };
 
