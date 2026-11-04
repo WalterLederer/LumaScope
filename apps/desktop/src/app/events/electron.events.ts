@@ -1166,7 +1166,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
   const MonitorFromRect = user32.func('uintptr_t __stdcall MonitorFromRect(const LightMatterWindowRect *rect, uint32_t flags)');
   const GetMonitorInfoW = user32.func('int32_t __stdcall GetMonitorInfoW(uintptr_t monitor, _Inout_ LightMatterMonitorInfoEx *info)');
 
-  const OpenProcess = kernel32.func('uintptr_t __stdcall OpenProcess(uint32_t access, bool inheritHandle, uint32_t processId)');
+  const OpenProcess = kernel32.func('uintptr_t __stdcall OpenProcess(uint32_t access, int32_t inheritHandle, uint32_t processId)');
   const QueryFullProcessImageNameW = kernel32.func('int32_t __stdcall QueryFullProcessImageNameW(uintptr_t process, uint32_t flags, _Out_ char16_t *path, _Inout_ uint32_t *size)');
   const CloseHandle = kernel32.func('int32_t __stdcall CloseHandle(uintptr_t handle)');
 
@@ -1198,7 +1198,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
         let executablePath: string | undefined;
         // Only inspect a process when its window is large enough to be a useful capture source.
         if (processId !== 0 && width > 100 && height > 100) {
-          const process = OpenProcess(0x1000, false, processId);
+          const process = OpenProcess(0x1000, 0, processId);
           if (process !== 0) {
             try {
               const pathBuffer = Buffer.alloc(32768 * 2);
