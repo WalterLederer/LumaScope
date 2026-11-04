@@ -7,6 +7,7 @@ export interface ReverseGeocodingResult {
 }
 
 interface NominatimReverseResponse {
+  name?: string;
   display_name?: string;
   address?: {
     country_code?: string;
@@ -56,15 +57,16 @@ export const lookupReverseGeocoding = (
     if (!response.ok) throw new Error('Reverse geocoding request failed.');
 
     const result = await response.json() as NominatimReverseResponse;
-    const placeName = result.display_name?.trim();
-    if (!placeName) return null;
+    const displayName = result.display_name?.trim();
+    if (!displayName) return null;
 
     const address = result.address ?? {};
     const locality = address.city ?? address.town ?? address.village
       ?? address.municipality ?? address.suburb ?? address.hamlet ?? address.county ?? null;
+    const placeName = result.name?.trim() || locality || displayName;
 
     return {
-      displayName: placeName,
+      displayName,
       placeName,
       countryCode: address.country_code?.toUpperCase() ?? null,
       region: address.state ?? address.region ?? address.state_district ?? null,
