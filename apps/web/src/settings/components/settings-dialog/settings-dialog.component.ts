@@ -313,6 +313,28 @@ export class SettingsPanelComponent {
       this.cacheCheckError.set(null);
       this.cacheCheckLog.set([]);
     });
+    let cacheBuildWasActive = false;
+    effect(() => {
+      const active = this.cacheBuildActive();
+      const operation = this.cacheBuildCurrentOperation();
+
+      if (active) {
+        cacheBuildWasActive = true;
+        this.cacheCheckState.set('checking');
+        return;
+      }
+
+      if (!cacheBuildWasActive) return;
+      cacheBuildWasActive = false;
+
+      if (/^Cache build completed\\b/i.test(operation)) {
+        this.cacheCheckState.set('complete');
+        this.cacheCheckError.set(null);
+      } else if (/^Cache build (?:cancelled|failed)\\b/i.test(operation)) {
+        this.cacheCheckState.set('error');
+        this.cacheCheckError.set(operation.split('\\n')[0]);
+      }
+    });
     effect(() => {
       const buildActive = this.cacheBuildActive();
       if (!buildActive) {
