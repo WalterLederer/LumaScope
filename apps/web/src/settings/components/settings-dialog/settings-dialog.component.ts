@@ -44,8 +44,10 @@ export class SettingsPanelComponent {
 
   /* State */
   protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
+  protected readonly buildCacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
 
   private cacheInfoRequestId = 0;
+  private buildCacheInfoRequestId = 0;
 
   protected readonly isClearing = signal(false);
 
@@ -283,6 +285,11 @@ export class SettingsPanelComponent {
       const directory = this.currentFolderPath().trim();
       void this.updateCacheInfo(global ? undefined : directory || null, !global && recursive);
     });
+    effect(() => {
+      const recursive = this.recursiveBuild();
+      const directory = this.currentFolderPath().trim();
+      void this.updateBuildCacheInfo(directory || null, recursive);
+    });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
     this.loadConfigPath().then();
@@ -362,6 +369,20 @@ export class SettingsPanelComponent {
   };
 
   /* State modifiers */
+  private readonly updateBuildCacheInfo = async (directory: string | null, recursive: boolean): Promise<void> => {
+    const requestId = ++this.buildCacheInfoRequestId;
+    if (directory === null) {
+      this.buildCacheInfo.set({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
+      return;
+    }
+    try {
+      const info = await this.cacheManager.cacheInfo(directory, recursive);
+      if (requestId === this.buildCacheInfoRequestId) this.buildCacheInfo.set(info);
+    } catch (error) {
+      if (requestId === this.buildCacheInfoRequestId) this.clearError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   private readonly updateCacheInfo = async (directory?: string | null, recursive = false): Promise<void> => {
     const requestId = ++this.cacheInfoRequestId;
     if (directory === null) {
@@ -448,6 +469,7 @@ export class SettingsPanelComponent {
         `Duration: ${durationMs} ms`
       ].join('\n'));
       await this.updateCacheInfo(global ? undefined : directory || null, recursive);
+      await this.updateBuildCacheInfo(this.currentFolderPath().trim() || null, this.recursiveBuild());
     } catch (error) {
       const durationMs = Math.round(performance.now() - startedAt);
       const message = error instanceof Error ? error.message : String(error);
