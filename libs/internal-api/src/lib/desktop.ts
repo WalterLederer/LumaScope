@@ -221,6 +221,22 @@ export interface CapturePreview {
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
+export interface OfflineMapStatus {
+  available: boolean;
+  filePath: string | null;
+  name: string | null;
+  format: string | null;
+  minZoom: number | null;
+  maxZoom: number | null;
+  bounds: string | null;
+  error: string | null;
+}
+
+export interface DesktopOfflineMap {
+  readonly chooseFile: () => Promise<OfflineMapStatus>;
+  readonly getStatus: () => Promise<OfflineMapStatus>;
+}
+
 export interface DesktopMapWindow {
   readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => Promise<boolean>;
   readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>;
@@ -280,6 +296,7 @@ export interface Desktop {
   readonly Loupe: DesktopLoupe;
   readonly Capture: DesktopCapture;
   readonly MapWindow: DesktopMapWindow;
+  readonly OfflineMap: DesktopOfflineMap;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
   openFolder: () => Promise<FileListing>;
@@ -337,7 +354,8 @@ export const appPaths = {
   thumbs: '/thumbs',
   raw: '/raw',
   histogram: '/histogram',
-  conversionTime: '/conversion-time'
+  conversionTime: '/conversion-time',
+  offlineTiles: '/offline-tiles'
 };
 
 export type SystemPath =
