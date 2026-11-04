@@ -62,7 +62,10 @@ export const lookupReverseGeocoding = (
     });
     try {
       const response = await fetch(url.toString(), {
-        headers: { 'Accept-Language': language || 'en' },
+        headers: {
+          'User-Agent': 'LumaScope/1.0 (+https://github.com/WalterLederer/light-matter)',
+          'Accept-Language': language || 'en'
+        },
         signal: AbortSignal.timeout(15000)
       });
       console.info('[ReverseGeocoding] Provider response', {
