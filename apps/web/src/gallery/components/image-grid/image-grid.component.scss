@@ -181,6 +181,12 @@ ui-toolbar {
     white-space: nowrap;
   }
 
+  .status-action-cancel {
+    min-width: 54px;
+    border-color: var(--color-border-danger, #c43d00);
+    color: var(--color-content-danger, #c43d00);
+  }
+
   ui-text {
     flex: 1 1 auto;
     min-width: 0;
