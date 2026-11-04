@@ -77,6 +77,7 @@ export class ImagesComponent {
   private observer: IntersectionObserver | null = null;
   private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
+  readonly locationDisplayNames = signal<Map<string, string>>(new Map());
 
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
@@ -447,6 +448,30 @@ export class ImagesComponent {
   }
 
   constructor() {
+    effect(onCleanup => {
+      const folder = this.folderPath();
+      const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
+      if (!folder || !isDetails) {
+        this.locationDisplayNames.set(new Map());
+        return;
+      }
+      let active = true;
+      const refreshLocations = async (): Promise<void> => {
+        try {
+          const rows = await this.cacheManager.getDirectoryPhotoLocations(folder);
+          if (!active || this.folderPath() !== folder) return;
+          this.locationDisplayNames.set(new Map(rows
+            .filter(row => typeof row.displayName === 'string' && row.displayName.trim().length > 0)
+            .map(row => [row.path, row.displayName!])));
+        } catch (error) {
+          console.error('Failed to read cached gallery location names', error);
+        }
+      };
+      void refreshLocations();
+      const timer = setInterval(() => void refreshLocations(), 1500);
+      onCleanup(() => { active = false; clearInterval(timer); });
+    });
+
     effect(() => {
       const images = this.images() ?? [];
       this.thumbnailRefreshToken();
