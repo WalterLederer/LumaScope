@@ -74,6 +74,20 @@
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
+  <div class="status-actions">
+    <button type="button" class="status-action-button"
+            title="Refresh thumbnails and cache status"
+            aria-label="Refresh thumbnails and cache status"
+            (click)="refreshGallery()">↻</button>
+    <button type="button" class="status-action-button"
+            title="Generate missing thumbnails and full-size conversions for this folder"
+            aria-label="Cache all images in this folder"
+            [disabled]="cacheRunActive()"
+            (click)="cacheAllImages()">{{ cacheRunActive() ? '…' : 'Cache' }}</button>
+    @if (cacheRunActive()) {
+      <small>{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
+    }
+  </div>
   <ui-text>
     <strong>Total: {{ cacheStats().total }}</strong>,
     Thumb: {{ cacheStats().thumbnails }},
