@@ -293,6 +293,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
+  private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
@@ -385,6 +386,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
         || nextLatitude! < -90 || nextLatitude! > 90 || nextLongitude! < -180 || nextLongitude! > 180) {
+        this.locationLookupVersion++;
         this.coordinatesAvailable.set(false);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('This image does not contain GPS coordinates.');
@@ -457,11 +459,22 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
+    const lookupVersion = ++this.locationLookupVersion;
+    const imagePath = this.currentImagePath;
     this.locationAddress.set('Looking up address…');
     try {
-      const result = await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en');
-      this.locationAddress.set(result?.displayName || 'No street address available for this location.');
-    } catch {
+      let displayName: string | null = null;
+      if (imagePath && this.desktop) {
+        displayName = await this.desktop.CacheManager.resolvePhotoLocation(imagePath, latitude, longitude);
+      } else {
+        const result = await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en');
+        displayName = result?.displayName ?? null;
+      }
+      if (lookupVersion !== this.locationLookupVersion) return;
+      this.locationAddress.set(displayName || 'No street address available for this location.');
+    } catch (error) {
+      if (lookupVersion !== this.locationLookupVersion) return;
+      console.error('Could not resolve and save the photo location:', error);
       this.locationAddress.set('Address lookup unavailable.');
     }
   }
