@@ -116,7 +116,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
               </div>
-              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+              <input type="range" min="1" [max]="mapSource() === 'offline' ? 18 : 20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
@@ -691,7 +691,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async scanDirectoryMarkers(): Promise<void> {
     const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, desktop = this.desktop;
-    if (!imagePath || !desktop || !this.directoryMarkerGroup) {
+    if (!imagePath || !desktop || (!this.directoryMarkerGroup && !this.offlineRenderer)) {
       this.clearDirectoryMarkers();
       this.markerStatus.set('No image folder is available.');
       return;
@@ -809,9 +809,16 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     renderer.setCurrentLocation(latitude, longitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
     this.applyMapColor(); this.applyMapOpacity();
-    renderer.map.on('zoomend', () => {
-      const zoom = this.validZoom(renderer.map.getZoom()); this.zoomLevel.set(zoom); this.saveSetting('zoom', zoom);
-    });
+    const syncOfflineZoom = (): void => {
+      const zoom = Math.round(this.validZoom(renderer.map.getZoom()));
+      if (zoom !== this.zoomLevel()) {
+        this.zoomLevel.set(zoom);
+        this.saveSetting('zoom', zoom);
+      }
+    };
+    renderer.map.on('zoom', syncOfflineZoom);
+    renderer.map.on('zoomend', syncOfflineZoom);
+    syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
     window.addEventListener('resize', this.onResize);
