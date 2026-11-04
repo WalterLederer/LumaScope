@@ -58,7 +58,7 @@ export interface DesktopCacheManager {
   readonly cancelClear: (operationId: string) => Promise<boolean>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
-  readonly cacheInfo: () => Promise<CacheInfo>;
+  readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => Promise<CacheImageStatus[]>;
   readonly getBuildLogPath: () => Promise<string>;
