@@ -113,5 +113,8 @@
   "desktopName": "org.hexmode.light_matter",
   "linux": {
     "syncDesktopName": true
+  },
+  "optionalDependencies": {
+    "@screen-capture/node-win32-x64-msvc": "^1.1.0"
   }
 }
