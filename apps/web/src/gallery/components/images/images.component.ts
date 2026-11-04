@@ -342,7 +342,7 @@ export class ImagesComponent {
   }
 
   readonly refreshCacheStatus = (sourceName: string): void => {
-    if (this.viewMode() !== 'details' || !(this.images() ?? []).some(image => image.path === sourceName)) return;
+    if ((this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') || !(this.images() ?? []).some(image => image.path === sourceName)) return;
     const request = (this.cacheStatusPathRequests.get(sourceName) ?? 0) + 1;
     this.cacheStatusPathRequests.set(sourceName, request);
     void this.cacheManager.getImageCacheStatuses([sourceName]).then(([status]) => {
@@ -363,7 +363,7 @@ export class ImagesComponent {
       const images = this.images() ?? [];
       this.thumbnailRefreshToken();
       const request = ++this.cacheStatusRequest;
-      if (this.viewMode() !== 'details' || images.length === 0) {
+      if ((this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') || images.length === 0) {
         this.cacheStatuses.set(new Map());
         this.cacheStatusLoading.set(false);
       } else {
