@@ -252,6 +252,31 @@ ON location_names (
 
 COMMIT;
 `
+  },
+  {
+    name: 'storeFullAddressAndStreetInLocationNamesV14',
+    query: `
+BEGIN IMMEDIATE;
+
+ALTER TABLE location_names ADD COLUMN display_name TEXT;
+ALTER TABLE location_names ADD COLUMN street TEXT;
+
+-- Include the full address and street in the identity key so distinct streets
+-- and addresses are not merged just because their place/locality fields match.
+DROP INDEX IF EXISTS idx_location_names_normalized_unique;
+CREATE UNIQUE INDEX idx_location_names_normalized_unique
+ON location_names (
+  lower(trim(place_name)),
+  lower(trim(COALESCE(country_code, ''))),
+  lower(trim(COALESCE(region, ''))),
+  lower(trim(COALESCE(locality, ''))),
+  lower(trim(COALESCE(street, ''))),
+  lower(trim(COALESCE(display_name, ''))),
+  lower(trim(COALESCE(provider, '')))
+);
+
+COMMIT;
+`
   }
 
 ];
