@@ -120,6 +120,10 @@
     } @else if (clearError() !== null) {
       <p class="cache-status error" role="alert">Cache clearing failed: {{ clearError() }}</p>
     }
+        <label class="delete-cache-summary">
+          <span>Delete operation summary</span>
+          <textarea readonly rows="4" [value]="deleteCacheSummary()" aria-label="Delete cache operation summary"></textarea>
+        </label>
 
         </div>
       </section>
