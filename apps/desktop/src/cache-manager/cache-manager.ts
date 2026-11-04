@@ -501,9 +501,12 @@ export class CacheManager {
         coordinate_sources.name AS coordinate_source_id_expanded,
         CASE WHEN photos.location_name_id = 0 THEN NULL ELSE photos.location_name_id END AS location_name_id,
         CASE WHEN photos.location_name_id = 0 OR location_names.id IS NULL THEN NULL ELSE
-          location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
-          COALESCE(', ' || location_names.region, '') ||
-          COALESCE(', ' || location_names.country_code, '') END AS location_name_id_expanded
+          COALESCE(location_names.display_name,
+            location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
+            COALESCE(', ' || location_names.region, '') ||
+            COALESCE(', ' || location_names.country_code, '')) END AS location_name_id_expanded,
+        location_names.display_name AS location_display_name_expanded,
+        location_names.street AS location_street_expanded
       FROM photos
       JOIN paths ON paths.id = photos.path_id
       LEFT JOIN cache_storage_types AS cache_thumb ON cache_thumb.id = photos.thumbnail_cache_id
@@ -549,14 +552,14 @@ export class CacheManager {
 
     const updated = this.getPhoto(sourceName);
     if (!updated) return null;
-    const resolvedDisplayName = await this.ensureLocationName(updated, true, true);
+    const resolvedDisplayName = await this.ensureLocationName(updated, true, true, true);
 
-    const saved = this.db.prepare(`SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
+    const saved = this.db.prepare(`SELECT location_names.display_name, location_names.place_name,
+        location_names.locality, location_names.region, location_names.country_code
       FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id`)
-      .get({ id: row.id }) as { place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
+      .get({ id: row.id }) as { display_name: string | null; place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
     if (!saved) throw new Error('The reverse-geocoding provider returned no location for these GPS coordinates.');
-    if (resolvedDisplayName) return resolvedDisplayName;
-    return [saved.place_name, saved.locality, saved.region, saved.country_code]
+    return saved.display_name || resolvedDisplayName || [saved.place_name, saved.locality, saved.region, saved.country_code]
       .filter((part, index, values): part is string => !!part && values.indexOf(part) === index)
       .join(', ');
   };
@@ -711,8 +714,8 @@ export class CacheManager {
     return this.getPhoto(sourceName)!;
   };
 
-  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false, throwOnError = false): Promise<string | null> => {
-    if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0)) || photo.latitude === null || photo.longitude === null
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false, throwOnError = false, forceRefresh = false): Promise<string | null> => {
+    if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0) && !forceRefresh) || photo.latitude === null || photo.longitude === null
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return null;
 
@@ -727,12 +730,14 @@ export class CacheManager {
         if (location) {
           displayName = location.displayName;
           this.db.prepare(`INSERT OR IGNORE INTO location_names
-            (latitude, longitude, place_name, country_code, region, locality, provider, updated_at)
-            VALUES (:latitude, :longitude, :placeName, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
+            (latitude, longitude, place_name, display_name, street, country_code, region, locality, provider, updated_at)
+            VALUES (:latitude, :longitude, :placeName, :displayName, :street, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
             .run({
               latitude: photo.latitude,
               longitude: photo.longitude,
               placeName: location.placeName,
+              displayName: location.displayName,
+              street: location.street,
               countryCode: location.countryCode,
               region: location.region,
               locality: location.locality,
@@ -740,6 +745,8 @@ export class CacheManager {
             });
           const saved = this.db.prepare(`SELECT id FROM location_names
             WHERE lower(trim(place_name)) = lower(trim(:placeName))
+              AND lower(trim(COALESCE(display_name, ''))) = lower(trim(:displayName))
+              AND lower(trim(COALESCE(street, ''))) = lower(trim(COALESCE(:street, '')))
               AND lower(trim(COALESCE(country_code, ''))) = lower(trim(COALESCE(:countryCode, '')))
               AND lower(trim(COALESCE(region, ''))) = lower(trim(COALESCE(:region, '')))
               AND lower(trim(COALESCE(locality, ''))) = lower(trim(COALESCE(:locality, '')))
@@ -748,6 +755,8 @@ export class CacheManager {
             LIMIT 1`)
             .get({
               placeName: location.placeName,
+              displayName: location.displayName,
+              street: location.street,
               countryCode: location.countryCode,
               region: location.region,
               locality: location.locality
@@ -755,7 +764,13 @@ export class CacheManager {
             ?? this.db.prepare(`SELECT id FROM location_names
               WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
               .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
-          if (saved) locationNameId = saved.id;
+          if (saved) {
+            locationNameId = saved.id;
+            this.db.prepare(`UPDATE location_names
+              SET display_name = :displayName, street = :street, updated_at = :updatedAt
+              WHERE id = :id`)
+              .run({ displayName: location.displayName, street: location.street, updatedAt: Date.now(), id: saved.id });
+          }
         }
       } catch (error) {
         console.error('[CacheManager] Reverse geocoding failed', {
@@ -767,8 +782,11 @@ export class CacheManager {
         if (throwOnError) throw error;
       }
 
-      this.db.prepare('UPDATE photos SET location_name_id = :locationNameId WHERE id = :photoId AND (location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))')
-        .run({ locationNameId, photoId: photo.id, retryUnknown: retryUnknown ? 1 : 0 });
+      this.db.prepare(`UPDATE photos SET location_name_id = :locationNameId
+        WHERE id = :photoId
+          AND (:locationNameId IS NOT NULL OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))
+          AND (:forceRefresh = 1 OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))`)
+        .run({ locationNameId, photoId: photo.id, retryUnknown: retryUnknown ? 1 : 0, forceRefresh: forceRefresh ? 1 : 0 });
       return displayName;
     })();
 
