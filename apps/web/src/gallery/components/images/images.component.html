@@ -5,20 +5,7 @@
 } @else if (viewMode() === 'details') {
   <div class="detail-table">
     <div class="detail-header">
-      <span>
-        <button type="button" class="detail-refresh-button"
-                title="Refresh thumbnails and cache status"
-                aria-label="Refresh thumbnails and cache status"
-                (click)="refreshGallery()">↻</button>
-        <button type="button" class="detail-refresh-button detail-cache-button"
-                title="Generate missing thumbnails and full-size conversions for this folder"
-                aria-label="Cache all images in this folder"
-                [disabled]="cacheRunActive()"
-                (click)="cacheAllImages()">{{ cacheRunActive() ? '…' : 'Cache' }}</button>
-        @if (cacheRunActive()) {
-          <small>{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
-        }
-      </span>
+      <span></span>
       <button type="button" (click)="sortDetailsBy('name')">Name{{ sortIndicator('name') }}</button>
       <button type="button" (click)="sortDetailsBy('date')">Date modified{{ sortIndicator('date') }}</button>
       <button type="button" (click)="sortDetailsBy('dimensions')">Dimensions{{ sortIndicator('dimensions') }}</button>
