@@ -271,6 +271,17 @@ section {
   color: var(--color-content-default-medium);
 }
 
+.cache-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--dim-large);
+
+  .cache-status {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .cache-status.error {
   color: var(--color-content-warn-high);
 }
