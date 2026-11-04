@@ -211,6 +211,8 @@ export class ImagesComponent {
         }
       };
       await Promise.all([worker(), worker()]);
+    } catch (error) {
+      console.error('Failed to start folder cache generation', error);
     } finally {
       this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
