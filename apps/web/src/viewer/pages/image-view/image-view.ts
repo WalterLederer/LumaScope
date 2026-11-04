@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog';
-import { AsyncPipe, DecimalPipe, DOCUMENT, JsonPipe } from '@angular/common';
+import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -116,7 +116,6 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
   selector: 'app-image-view',
   imports: [
     AsyncPipe,
-    JsonPipe,
     ImageRendererComponent,
     SettingsPanelComponent,
     ReactiveFormsModule,
@@ -577,7 +576,7 @@ export class ImageView {
         expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
           ? JSON.stringify(record[`${key}_expanded`])
           : null,
-        isExpandedId: expandedFields.has(key)
+        isExpandedId: expandedFields.has(key) && record[`${key}_expanded`] != null
       }));
   });
   protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
