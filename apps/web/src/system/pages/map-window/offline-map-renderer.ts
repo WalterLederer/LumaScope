@@ -49,6 +49,7 @@ export class OfflineMapRenderer {
   readonly map: MapLibreMap;
   readonly ready: Promise<void>;
   private currentMarker: Marker | null = null;
+  private readonly clusterLabels: Marker[] = [];
   private onPhotoSelected: ((path: string) => void) | null = null;
 
   constructor(container: HTMLElement, center: [number, number], zoom: number) {
@@ -93,6 +94,8 @@ export class OfflineMapRenderer {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': '#ff3b30', 'line-width': 4, 'line-opacity': 0.92 }
     });
+    this.map.on('idle', () => this.refreshClusterLabels());
+    this.map.on('moveend', () => this.refreshClusterLabels());
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -112,6 +115,24 @@ export class OfflineMapRenderer {
     this.map.on('mouseleave', 'photo-clusters', () => { this.map.getCanvas().style.cursor = ''; });
     this.map.on('mouseenter', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = 'pointer'; });
     this.map.on('mouseleave', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = ''; });
+  }
+
+  private refreshClusterLabels(): void {
+    for (const marker of this.clusterLabels) marker.remove();
+    this.clusterLabels.length = 0;
+    if (!this.map.getLayer('photo-clusters')) return;
+    const features = this.map.queryRenderedFeatures({ layers: ['photo-clusters'] });
+    for (const feature of features) {
+      if (feature.geometry.type !== 'Point') continue;
+      const count = feature.properties?.['point_count'];
+      if (typeof count !== 'number') continue;
+      const element = document.createElement('span');
+      element.textContent = String(count);
+      element.style.cssText = 'display:block;color:#fff;font:700 12px/1 Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;pointer-events:none;';
+      const marker = new Marker({ element, anchor: 'center' })
+        .setLngLat(feature.geometry.coordinates as [number, number]).addTo(this.map);
+      this.clusterLabels.push(marker);
+    }
   }
 
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
@@ -179,5 +200,10 @@ export class OfflineMapRenderer {
   }
 
   resize(): void { this.map.resize(); }
-  remove(): void { this.currentMarker?.remove(); this.map.remove(); }
+  remove(): void {
+    this.currentMarker?.remove();
+    for (const marker of this.clusterLabels) marker.remove();
+    this.clusterLabels.length = 0;
+    this.map.remove();
+  }
 }
