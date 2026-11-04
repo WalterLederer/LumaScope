@@ -69,6 +69,7 @@
               [sortDirection]="sortDirection()"
               [thumbSize]="thumbSize()"
               [viewMode]="viewMode()"
+              [verifyCacheFiles]="verifyCacheFiles()"
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
               (selected)="selected.emit($event)" />
@@ -80,23 +81,6 @@
             title="Refresh thumbnails and cache status"
             aria-label="Refresh thumbnails and cache status"
             (click)="refreshGallery()">↻</button>
-    <button type="button" class="status-action-button"
-            title="Generate missing thumbnails and full-size conversions for this folder"
-            aria-label="Cache all images in this folder"
-            [disabled]="cacheRunActive()"
-            (click)="cacheAllImages()">{{ cacheRunActive() ? '…' : 'Cache' }}</button>
-    <button type="button" class="status-action-button status-action-recursive"
-            title="Generate missing thumbnails and full-size conversions in this folder and all subfolders"
-            aria-label="Cache all images recursively"
-            [disabled]="cacheRunActive()"
-            (click)="cacheAllImagesRecursive()">{{ cacheRunActive() ? '…' : 'Cache recursive' }}</button>
-    @if (cacheRunActive()) {
-      <small [attr.title]="cacheRunCurrentOperation()">{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
-      <button type="button" class="status-action-button status-action-cancel"
-              [attr.title]="cacheRunCurrentOperation() ? cacheRunCurrentOperation() + '\nClick to cancel the running cache operation' : 'Cancel the running cache operation'"
-              aria-label="Cancel cache operation"
-              (click)="cancelCacheRun()">Cancel</button>
-    }
   </div>
   <ui-text>
     <strong>Total: {{ cacheStats().total }}</strong>,
