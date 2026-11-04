@@ -28,23 +28,28 @@
       <details class="build-cache-box" open>
         <summary>Build cache</summary>
         <div class="cache-box-content">
-        <p>These actions are limited to the selected folder. <strong>Cache</strong> processes files in this folder only; <strong>Cache recursive</strong> also processes all subfolders. No other registered folders are affected.</p>
+        <p>Build cache processes files in the selected folder. Enable <strong>Recursive build</strong> to include all subfolders. No other registered folders are affected.</p>
         <label class="build-cache-current-folder">
           <span>Current folder</span>
           <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
         </label>
         <div class="build-cache-actions">
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild()" (click)="runCacheBuild()">Cache</button>
-          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startRecursiveCacheBuild()" (click)="runRecursiveCacheBuild()">Cache recursive</button>
+          <button class="cache-button" type="button" [disabled]="cacheBuildActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
           @if (cacheBuildActive()) {
             <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
             <span class="build-cache-progress">{{ cacheBuildProgress().completed }} / {{ cacheBuildProgress().total }}</span>
           }
         </div>
-        <label class="setting-toggle build-cache-verify">
-          <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
-          <span>Verify cache files</span>
-        </label>
+        <div class="build-cache-options">
+          <label class="setting-toggle build-cache-verify">
+            <input type="checkbox" [checked]="verifyCacheFiles()" (change)="verifyCacheFilesChange.emit(($any($event.target)).checked)" />
+            <span>Verify cache files</span>
+          </label>
+          <label class="setting-toggle build-cache-recursive">
+            <input type="checkbox" [checked]="recursiveBuild()" (change)="recursiveBuild.set(($any($event.target)).checked)" />
+            <span>Recursive build</span>
+          </label>
+        </div>
         <label class="build-cache-current-operation">
           <span>Current operation</span>
           <textarea readonly rows="2" [value]="cacheBuildCurrentOperation()" [placeholder]="cacheBuildActive() ? 'Preparing cache…' : 'No cache operation running'" aria-label="Current cache build operation"></textarea>
