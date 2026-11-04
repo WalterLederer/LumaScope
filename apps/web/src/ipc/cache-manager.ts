@@ -33,7 +33,7 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 
-  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();
+  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();\n\n  readonly resolveMissingLocationNames = (directory: string, recursive = false) =>\n    window.desktop.CacheManager.resolveMissingLocationNames(directory, recursive);
 
   readonly cacheInfo = (directory?: string, recursive = false): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo(directory, recursive);
 
