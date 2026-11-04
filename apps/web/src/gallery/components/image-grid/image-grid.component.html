@@ -32,11 +32,11 @@
       </ui-action-button>
 
       <ui-action-button class="action"
-                        [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : 'Details')"
+                        [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : viewMode() === 'details-no-thumbnails' ? 'Details without thumbnails' : 'Details')"
                         [cdkMenuTriggerFor]="viewModeMenu"
                         uiStopPropagation>
         <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? '▦' : viewMode() === 'tiles' ? '▤' : '☷' }}</ui-text>
-        <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles' : 'Details' }}</ui-text>
+        <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles' : viewMode() === 'details-no-thumbnails' ? 'Details (no thumbnails)' : 'Details' }}</ui-text>
         <ui-icon icon="chevronDown" [inherit]="true" size="small" />
       </ui-action-button>
     </div>
@@ -92,6 +92,10 @@
             (click)="cacheAllImagesRecursive()">{{ cacheRunActive() ? '…' : 'Cache recursive' }}</button>
     @if (cacheRunActive()) {
       <small>{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
+      <button type="button" class="status-action-button status-action-cancel"
+              title="Cancel the running cache operation"
+              aria-label="Cancel cache operation"
+              (click)="cancelCacheRun()">Cancel</button>
     }
   </div>
   <ui-text>
@@ -135,6 +139,11 @@
       <ui-icon [icon]="viewMode() === 'details' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">☷</ui-text>
       <ui-text [inherit]="true">Details</ui-text>
+    </ui-action-button>
+    <ui-action-button cdkMenuItem (pressed)="setViewMode('details-no-thumbnails')">
+      <ui-icon [icon]="viewMode() === 'details-no-thumbnails' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
+      <ui-text [inherit]="true">☷</ui-text>
+      <ui-text [inherit]="true">Details without thumbnails</ui-text>
     </ui-action-button>
   </ui-popup-menu>
 </ng-template>
