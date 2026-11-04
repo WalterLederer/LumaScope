@@ -1193,7 +1193,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
       // to be a useful capture source. Tiny helper windows do not need an EXE lookup.
       if (processId !== 0 && width > 100 && height > 100) {
         const process = OpenProcess(0x1000, false, processId);
-        if (process !== 0 && process !== 0n) {
+        if (process !== 0) {
           try {
             const pathBuffer = Buffer.alloc(32768 * 2);
             const pathSize = [32768];
@@ -1209,7 +1209,7 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
       let monitorDeviceName: string | undefined;
       if (hasRect && width > 100 && height > 100 && !isMinimized) {
         const monitor = MonitorFromRect(rect, 2); // MONITOR_DEFAULTTONEAREST
-        if (monitor !== 0 && monitor !== 0n) {
+        if (monitor !== 0) {
           const info = {
             cbSize: koffi.sizeof(MonitorInfoEx),
             rcMonitor: { Left: 0, Top: 0, Right: 0, Bottom: 0 },
