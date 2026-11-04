@@ -51,6 +51,8 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'label-water-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'water_polygons_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-street-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'streets_polygons_labels', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-street-points-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'street_labels_points', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
+    { id: 'label-public-transport-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 13, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
   ]
 };
 
@@ -166,6 +168,8 @@ export class OfflineMapRenderer {
       'label-water-polygons-anchor',
       'label-street-polygons-anchor',
       'label-street-points-anchor',
+      'label-public-transport-anchor',
+      'label-pois-anchor',
       'label-streets-anchor'
     ];
     const features = this.map.queryRenderedFeatures({ layers });
@@ -203,12 +207,13 @@ export class OfflineMapRenderer {
       const isStreet = layerId === 'label-streets-anchor' || layerId === 'label-street-polygons-anchor' || layerId === 'label-street-points-anchor';
       const isWater = layerId === 'label-water-anchor' || layerId === 'label-water-polygons-anchor';
       const isBoundary = layerId === 'label-boundaries-anchor';
+      const isPoi = layerId === 'label-public-transport-anchor' || layerId === 'label-pois-anchor';
       const placeKind = String(properties['kind'] ?? '');
-      const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : 0;
+      const priority = isStreet ? 3 : isWater ? 2 : isBoundary ? 1 : isPoi ? 4 : 0;
       candidates.push({
         x: screenPoint.x, y: screenPoint.y,
         longitude: point[0], latitude: point[1],
-        text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : placeKind,
+        text, kind: isStreet ? 'street' : isWater ? 'water' : isBoundary ? 'boundary' : isPoi ? 'poi' : placeKind,
         priority
       });
     }
@@ -227,7 +232,7 @@ export class OfflineMapRenderer {
       if (seen.has(key)) continue;
       seen.add(key);
 
-      const fontSize = kind === 'capital' ? 16 : kind === 'state_capital' ? 15 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'village' ? 12 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : 11;
+      const fontSize = kind === 'capital' ? 16 : kind === 'state_capital' ? 15 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'village' ? 12 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : kind === 'poi' ? 9 : 11;
       const labelWidth = Math.min(260, Math.max(24, text.length * fontSize * 0.56 + 8));
       const labelHeight = fontSize + 7;
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
@@ -236,7 +241,7 @@ export class OfflineMapRenderer {
 
       const element = document.createElement('span');
       element.textContent = text;
-      const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : '#393832';
+      const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
       const weight = kind === 'capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
       element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
