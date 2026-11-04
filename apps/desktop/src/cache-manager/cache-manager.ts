@@ -528,8 +528,8 @@ export class CacheManager {
     if (!updated) return null;
     await this.ensureLocationName(updated, true);
 
-    const saved = this.db.prepare('SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
-      FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id')
+    const saved = this.db.prepare(`SELECT location_names.place_name, location_names.locality, location_names.region, location_names.country_code
+      FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id`)
       .get({ id: row.id }) as { place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
     if (!saved) return null;
     return [saved.place_name, saved.locality, saved.region, saved.country_code]
