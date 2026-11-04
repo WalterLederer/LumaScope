@@ -41,7 +41,7 @@
   padding: var(--dim-small) 0;
 }
 
-.detail-table {
+ .detail-table {
   display: grid;
   grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content);
   column-gap: 16px;
@@ -50,6 +50,10 @@
   min-width: 0;
   padding: 0 12px;
   box-sizing: border-box;
+
+  &.without-thumbnails {
+    grid-template-columns: repeat(9, max-content);
+  }
 }
 
 .detail-header {
@@ -89,6 +93,10 @@
       color: var(--color-content-primary-high);
       text-decoration: underline;
     }
+  }
+
+  .without-thumbnails & > span:first-child {
+    display: none;
   }
 }
 
