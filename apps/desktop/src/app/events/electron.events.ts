@@ -410,7 +410,7 @@ const describeTopWindow = (candidate: CaptureSources['windows'][number]): string
     `Monitor: ${candidate.monitorDeviceName ?? 'Unknown'}`,
     `Process ID: ${candidate.processId}`,
     `Status: ${candidate.isMinimized ? 'Minimized' : candidate.isTopWindowCandidate ? 'Eligible Top Window' : 'Not eligible'}`
-  ].join('\\n');
+  ].join('\n');
 };
 
 const getWindowMonitorGeometry = (handle: number): {
@@ -518,7 +518,7 @@ const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWin
       'Display mode: determined by native capture',
       `Process ID: ${process.pid}`,
       'Status: Forced application window'
-    ].join('\\n');
+    ].join('\n');
     console.info('[HDR Capture] Top Window source:', sourceDetails);
     // Capture the selected HWND directly, including when another window covers it.
     const captured = await captureHdrFrame({ kind: 'window', handle });
