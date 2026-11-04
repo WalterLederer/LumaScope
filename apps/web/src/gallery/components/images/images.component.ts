@@ -254,8 +254,6 @@ export class ImagesComponent {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       if (controller.signal.aborted && !this.cacheRunCurrentOperation().startsWith('Cache build ')) {
         this.cacheRunCurrentOperation.set('Cache build cancelled during folder enumeration.');
-      } else if (!this.cacheRunCurrentOperation() && allImages.length === 0) {
-        this.cacheRunCurrentOperation.set('No images found to cache.');
       }
       this.cacheRunActive.set(false);
       this.cacheUpdated.emit('');
@@ -263,7 +261,11 @@ export class ImagesComponent {
   };
 
   private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false, signal?: AbortSignal): Promise<void> => {
-    if (images.length === 0 || (this.cacheRunActive() && !alreadyActive)) return;
+    if (images.length === 0) {
+      this.cacheRunCurrentOperation.set('No images found to cache.');
+      return;
+    }
+    if (this.cacheRunActive() && !alreadyActive) return;
 
     if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
