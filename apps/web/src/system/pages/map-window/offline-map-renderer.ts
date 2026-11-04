@@ -69,7 +69,7 @@ export class OfflineMapRenderer {
   private onPhotoSelected: ((path: string) => void) | null = null;
   private lastMapError: string | null = null;
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, onError?: (message: string) => void) {
     const options: MapOptions = {
       container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
       minZoom: 0, maxZoom: 18, attributionControl: { compact: false },
@@ -79,7 +79,10 @@ export class OfflineMapRenderer {
     let mapErrorCount = 0;
     this.map.on('error', event => {
       this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
-      if (mapErrorCount++ < 20) console.error('[OfflineMap] MapLibre error:', event.error);
+      if (mapErrorCount++ < 50) {
+        console.error('[OfflineMap] MapLibre error:', event.error);
+        onError?.(this.lastMapError);
+      }
     });
     this.map.on('load', () => console.info('[OfflineMap] MapLibre style loaded.'));
     this.ready = new Promise((resolve, reject) => {
