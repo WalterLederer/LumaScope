@@ -1289,7 +1289,12 @@ const enumerateTopLevelWindows = (): CaptureSources['windows'] => {
     if (callbackError) throw callbackError;
     if (completed === 0) throw new Error('Windows EnumWindows failed while enumerating top-level windows.');
 
-    return rows.sort((a, b) => a.zOrder - b.zOrder);
+    // Exclude the first 30 native Z-order entries. These are commonly
+    // transient/system-owned windows (for example TextInputHost) rather than
+    // useful application capture sources. Keep the original Z-order values.
+    return rows
+      .filter(row => row.zOrder >= 30)
+      .sort((a, b) => a.zOrder - b.zOrder);
   };
 
   cachedTopLevelWindowEnumerator = runEnumeration;
