@@ -64,6 +64,7 @@
 
 <div class="wrapper" [class.details-mode]="viewMode() === 'details'" #scrollBox>
   <app-images [images]="images()"
+              [folderPath]="selectedLocation()"
               [sortBy]="sortBy()"
               [sortDirection]="sortDirection()"
               [thumbSize]="thumbSize()"
@@ -84,6 +85,11 @@
             aria-label="Cache all images in this folder"
             [disabled]="cacheRunActive()"
             (click)="cacheAllImages()">{{ cacheRunActive() ? '…' : 'Cache' }}</button>
+    <button type="button" class="status-action-button status-action-recursive"
+            title="Generate missing thumbnails and full-size conversions in this folder and all subfolders"
+            aria-label="Cache all images recursively"
+            [disabled]="cacheRunActive()"
+            (click)="cacheAllImagesRecursive()">{{ cacheRunActive() ? '…' : 'Cache recursive' }}</button>
     @if (cacheRunActive()) {
       <small>{{ cacheRunProgress().completed }}/{{ cacheRunProgress().total }}</small>
     }
