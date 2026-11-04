@@ -2,6 +2,7 @@ import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   ActionButtonComponent,
