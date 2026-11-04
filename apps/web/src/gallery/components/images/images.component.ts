@@ -235,7 +235,11 @@ export class ImagesComponent {
     if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
     try {
-      const statuses = await this.cacheManager.getImageCacheStatuses(images.map(image => image.path));
+      const statuses: CacheImageStatus[] = [];
+      const imagePaths = images.map(image => image.path);
+      for (let offset = 0; offset < imagePaths.length; offset += 10000) {
+        statuses.push(...await this.cacheManager.getImageCacheStatuses(imagePaths.slice(offset, offset + 10000)));
+      }
       const statusByPath = new Map(statuses.map(status => [status.sourceName, status]));
       let nextIndex = 0;
       const worker = async (): Promise<void> => {
