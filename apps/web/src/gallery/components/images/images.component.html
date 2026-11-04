@@ -15,12 +15,14 @@
       <button type="button" (click)="sortDetailsBy('thumb')">Thumb{{ sortIndicator('thumb') }}</button>
       <button type="button" (click)="sortDetailsBy('fullSize')">Full-Size Conversion{{ sortIndicator('fullSize') }}</button>
       <span>GPS coordinates</span>
+      <span>Location</span>
     </div>
   <div class="images details-list">
     @for (image of sortedDetailImages(); track image.path) {
       <app-thumbnail [image]="image" [viewMode]="viewMode()"
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                      [cacheStatusLoading]="cacheStatusLoading()"
+                     [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
                      [refreshToken]="thumbnailRefreshToken()"
                      (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
                      (hovered)="hovered.emit($event)"
