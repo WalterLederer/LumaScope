@@ -353,7 +353,7 @@ section {
   gap: var(--dim-small);
   min-width: 0;
   span { color: var(--color-content-default-medium); font-size: 0.8rem; }
-  input {
+  input, textarea {
     width: 100%;
     min-width: 0;
     padding: var(--dim-small) var(--dim-medium);
@@ -362,6 +362,12 @@ section {
     background: var(--color-surface-default-highest);
     color: var(--color-content-default-high);
     font: inherit;
+  }
+  textarea {
+    min-height: 3.5rem;
+    resize: vertical;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 }
 
