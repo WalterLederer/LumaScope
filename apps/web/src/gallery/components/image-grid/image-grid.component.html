@@ -107,10 +107,12 @@
     } @else if (hoveredImage(); as image) {
       @let tags = hoveredTags();
       @let bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
-      ·
-      <strong class="dynamic-range" [class.hdr]="imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') === 'HDR'">
-        {{ imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') }}
-      </strong>
+      @if (tags !== null) {
+        ·
+        <strong class="dynamic-range" [class.hdr]="imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') === 'HDR'">
+          {{ imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') }}
+        </strong>
+      }
       · {{ image.name }}
       @if (tags?.ImageWidth && tags?.ImageHeight) {
         · {{ formatPixelDimension(tags?.ImageWidth) }} x {{ formatPixelDimension(tags?.ImageHeight) }}
