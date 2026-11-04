@@ -250,6 +250,38 @@ export class CacheManager {
     return { total: candidates.length, resolved, unresolved };
   };
 
+
+  @IpcHandler({ name: 'CacheManager.getBackgroundReverseGeocodingStatus' })
+  readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
+    const totals = this.db.prepare(`SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN location_name_id IS NOT NULL AND location_name_id <> 0 THEN 1 ELSE 0 END) AS resolved,
+        SUM(CASE WHEN (location_name_id IS NULL OR location_name_id = 0) AND location_lookup_error IS NOT NULL THEN 1 ELSE 0 END) AS errors
+      FROM photos
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180`)
+      .get() as { total: number; resolved: number | null; errors: number | null };
+
+    const total = Number(totals.total ?? 0);
+    const resolved = Number(totals.resolved ?? 0);
+    const errors = Number(totals.errors ?? 0);
+    let inProgress = 0;
+    const findActivePhoto = this.db.prepare('SELECT location_name_id FROM photos WHERE id = :id');
+    for (const photoId of this.pendingLocationLookups.keys()) {
+      const active = findActivePhoto.get({ id: photoId }) as { location_name_id: number | null } | undefined;
+      if (active && (active.location_name_id === null || active.location_name_id === 0)) inProgress++;
+    }
+
+    const pending = Math.max(0, total - resolved - errors - inProgress);
+    const status = this.pendingLocationLookups.size > 0
+      ? 'running'
+      : total > 0 && pending === 0
+        ? 'completed'
+        : 'idle';
+
+    return { total, resolved, pending, inProgress, errors, status };
+  };
+
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (): Promise<CacheSummary> => {
     const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
@@ -551,7 +583,9 @@ export class CacheManager {
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
 
     if (row.latitude !== latitude || row.longitude !== longitude) {
-      this.db.prepare('UPDATE photos SET latitude = :latitude, longitude = :longitude, location_name_id = NULL WHERE id = :id')
+      this.db.prepare(`UPDATE photos SET latitude = :latitude, longitude = :longitude,
+        location_name_id = NULL, location_lookup_error = NULL, location_lookup_attempted_at = NULL
+        WHERE id = :id`)
         .run({ latitude, longitude, id: row.id });
     }
 
@@ -585,7 +619,11 @@ export class CacheManager {
     const sourceStats = await stat(sourceName);
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
     const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
-    this.db.prepare(`UPDATE photos SET is_hdr = :isHdr, latitude = :latitude, longitude = :longitude,
+    this.db.prepare(`UPDATE photos SET is_hdr = :isHdr,
+      location_name_id = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
+      location_lookup_error = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_error END,
+      location_lookup_attempted_at = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_attempted_at END,
+      latitude = :latitude, longitude = :longitude,
       altitude_m = :altitude, gps_timestamp = :gpsTimestamp, direction_deg = :direction,
       coordinate_source_id = :sourceId WHERE id = :id`)
       .run({
@@ -730,6 +768,14 @@ export class CacheManager {
     const operation = (async (): Promise<string | null> => {
       let locationNameId: number | null = null;
       let displayName: string | null = null;
+      let lookupError: string | null = null;
+      let thrownError: unknown = null;
+      const startedAt = Date.now();
+      this.db.prepare(`UPDATE photos
+        SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
+        WHERE id = :photoId`)
+        .run({ attemptedAt: startedAt, photoId: photo.id });
+
       try {
         const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
         if (location) {
@@ -775,23 +821,39 @@ export class CacheManager {
               SET display_name = :displayName, street = :street, updated_at = :updatedAt
               WHERE id = :id`)
               .run({ displayName: location.displayName, street: location.street, updatedAt: Date.now(), id: saved.id });
+          } else {
+            lookupError = 'The provider returned a location, but it could not be stored in the database.';
           }
+        } else {
+          lookupError = 'The provider returned no location result for these coordinates.';
         }
       } catch (error) {
+        lookupError = error instanceof Error ? error.message : String(error);
+        thrownError = error;
         console.error('[CacheManager] Reverse geocoding failed', {
           photoId: photo.id,
           latitude: photo.latitude,
           longitude: photo.longitude,
-          error: error instanceof Error ? error.message : String(error)
+          error: lookupError
         });
-        if (throwOnError) throw error;
       }
 
-      this.db.prepare(`UPDATE photos SET location_name_id = :locationNameId
+      this.db.prepare(`UPDATE photos SET
+          location_name_id = :locationNameId,
+          location_lookup_error = :lookupError,
+          location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId
           AND (:locationNameId IS NOT NULL OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))
           AND (:forceRefresh = 1 OR location_name_id IS NULL OR (:retryUnknown = 1 AND location_name_id = 0))`)
-        .run({ locationNameId, photoId: photo.id, retryUnknown: retryUnknown ? 1 : 0, forceRefresh: forceRefresh ? 1 : 0 });
+        .run({
+          locationNameId,
+          lookupError,
+          attemptedAt: Date.now(),
+          photoId: photo.id,
+          retryUnknown: retryUnknown ? 1 : 0,
+          forceRefresh: forceRefresh ? 1 : 0
+        });
+      if (throwOnError && thrownError) throw thrownError;
       return displayName;
     })();
 
