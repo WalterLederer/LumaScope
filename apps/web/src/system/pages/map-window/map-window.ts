@@ -565,7 +565,11 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (this.offlineRenderer) {
+      if (this.mapSource() === 'offline') {
+        // Re-evaluate the geographic coverage for every selected photo. This
+        // also handles transitions between offline maps and the online fallback.
+        void this.initialize(nextLatitude!, nextLongitude!);
+      } else if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(nextLatitude!, nextLongitude!);
         this.offlineRenderer.map.easeTo({ center: [nextLongitude!, nextLatitude!] });
       } else if (!this.map) {
