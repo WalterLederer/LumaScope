@@ -224,7 +224,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             </div>
           </details>
           <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
-            <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
+            <summary>Marker<br><span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
               <label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
               <div class="marker-appearance-settings">
