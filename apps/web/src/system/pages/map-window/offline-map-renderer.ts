@@ -81,8 +81,11 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
 };
 
 
-export function createOfflineMapStyle(styleName: OfflineMapStyle): StyleSpecification {
+export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string, minZoom = 0, maxZoom = 14, bounds?: [number, number, number, number]): StyleSpecification {
   const style = JSON.parse(JSON.stringify(AUSTRIA_SHORTBREAD_STYLE)) as StyleSpecification;
+  const source = style.sources?.['shortbread'];
+  if (source && source.type === 'vector') { source.tiles = ['atom://app/offline-tiles/{z}/{x}/{y}?map=' + encodeURIComponent(mapId)]; source.minzoom = minZoom; source.maxzoom = maxZoom; if (bounds) source.bounds = bounds; }
+  style.name = 'LumaScope ' + (styleName === 'lumascope' ? 'Shortbread' : styleName);
   const palette = styleName === 'versatiles-colorful'
     ? {
       background: '#f7f5ed', land: '#e7e3d7', forest: '#b9d7a2', grass: '#d8e8b8',
@@ -322,9 +325,9 @@ export class OfflineMapRenderer {
     });
   };
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope') {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number]) {
     const options: MapOptions = {
-      container, style: createOfflineMapStyle(styleName), center, zoom,
+      container, style: createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds),
       minZoom: 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
       pitch: 0,
