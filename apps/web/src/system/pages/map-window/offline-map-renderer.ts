@@ -1,4 +1,4 @@
-import { Map as MapLibreMap, Marker, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, Popup, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -6,6 +6,15 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).toString());
 
 const AUSTRIA_BOUNDS: [number, number, number, number] = [9.52678, 46.36979, 17.16408, 49.02403];
+
+export function buildPhotoMarkerPreviewHtml(path: string, fileName: string): string {
+  const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character] ?? character);
+  const previewUrl = 'atom://app/thumbs?image=' + encodeURIComponent(path) + '&width=180&height=120';
+  return '<div class="folder-marker-preview"><img src="' + previewUrl + '" alt="" loading="lazy"><span>'
+    + escapeHtml(fileName) + '</span></div>';
+}
 
 export interface OfflinePhotoMarker {
   path: string;
@@ -80,6 +89,7 @@ export class OfflineMapRenderer {
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
+  private photoPreviewPopup: Popup | null = null;
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
@@ -406,9 +416,15 @@ export class OfflineMapRenderer {
       this.refreshTextLabels();
       this.logVectorSourceDiagnostics();
     };
-    // Wait until the map and its visible vector tiles are settled before
-    // discovering labels. moveend/zoomend can run while tile queries are partial.
+    // Re-run after source tiles finish loading as well as after camera movement.
+    // This is important when switching online/offline: the first idle can occur
+    // before the final Shortbread label tiles are queryable, while no drag follows.
     this.map.on('idle', refreshOverlays);
+    this.map.on('moveend', refreshOverlays);
+    this.map.on('zoomend', refreshOverlays);
+    this.map.on('sourcedata', event => {
+      if (event.sourceId === 'shortbread' && event.isSourceLoaded) refreshOverlays();
+    });
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -423,7 +439,27 @@ export class OfflineMapRenderer {
     });
     this.map.on('click', 'photo-unclustered', event => {
       const path = event.features?.[0]?.properties?.['path'];
-      if (typeof path === 'string') this.onPhotoSelected?.(path);
+      if (typeof path === 'string') {
+        this.photoPreviewPopup?.remove();
+        this.photoPreviewPopup = null;
+        this.onPhotoSelected?.(path);
+      }
+    });
+    this.map.on('mouseenter', 'photo-unclustered', event => {
+      const feature = event.features?.[0];
+      const path = feature?.properties?.['path'];
+      const fileName = feature?.properties?.['fileName'];
+      if (typeof path !== 'string' || typeof fileName !== 'string' || feature?.geometry.type !== 'Point') return;
+      this.photoPreviewPopup?.remove();
+      this.photoPreviewPopup = new Popup({
+        closeButton: false, closeOnClick: false, offset: 14, className: 'folder-marker-tooltip'
+      }).setLngLat(feature.geometry.coordinates as [number, number])
+        .setHTML(buildPhotoMarkerPreviewHtml(path, fileName))
+        .addTo(this.map);
+    });
+    this.map.on('mouseleave', 'photo-unclustered', () => {
+      this.photoPreviewPopup?.remove();
+      this.photoPreviewPopup = null;
     });
     this.map.on('mouseenter', 'photo-clusters', () => { this.map.getCanvas().style.cursor = 'pointer'; });
     this.map.on('mouseleave', 'photo-clusters', () => { this.map.getCanvas().style.cursor = ''; });
@@ -564,7 +600,7 @@ export class OfflineMapRenderer {
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
 
-      const fontSize = kind === 'capital' ? 16 : kind === 'state_capital' ? 15 : kind === 'city' ? 15 : kind === 'town' ? 13 : kind === 'village' ? 12 : kind === 'street' ? 10 : kind === 'water' ? 11 : kind === 'boundary' ? 12 : kind === 'poi' ? 9 : 11;
+      const fontSize = kind === 'capital' ? 18 : kind === 'state_capital' ? 17 : kind === 'city' ? 17 : kind === 'town' ? 15 : kind === 'village' ? 14 : kind === 'street' ? 12 : kind === 'water' ? 13 : kind === 'boundary' ? 14 : kind === 'poi' ? 11 : 13;
       const labelWidth = Math.min(260, Math.max(24, text.length * fontSize * 0.56 + 8));
       const labelHeight = fontSize + 7;
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
@@ -709,6 +745,8 @@ export class OfflineMapRenderer {
       }))
     });
     this.photoOpacity = opacity;
+    this.photoPreviewPopup?.remove();
+    this.photoPreviewPopup = null;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
@@ -784,6 +822,8 @@ export class OfflineMapRenderer {
     this.map.off('dragstart', this.onDiagnosticMapDragStart);
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.map.off('render', this.updateOverlayPositions);
+    this.photoPreviewPopup?.remove();
+    this.photoPreviewPopup = null;
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
     this.currentLocation = null;
