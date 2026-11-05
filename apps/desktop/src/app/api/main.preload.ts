@@ -93,6 +93,21 @@ const api: Desktop = {
     getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus')
   },
 
+  MapOverlayWindow: {
+    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapOverlayWindow.open', latitude, longitude, bearing, imagePath),
+    close: () => ipcRenderer.invoke('MapOverlayWindow.close'),
+    isOpen: () => ipcRenderer.invoke('MapOverlayWindow.isOpen'),
+    focus: () => ipcRenderer.invoke('MapOverlayWindow.focus'),
+    setAlwaysOnTop: (enabled: boolean) => ipcRenderer.invoke('MapOverlayWindow.setAlwaysOnTop', enabled),
+    getBounds: () => ipcRenderer.invoke('MapOverlayWindow.getBounds') as Promise<{ x: number; y: number; width: number; height: number } | null>,
+    setBounds: (bounds: { x: number; y: number; width: number; height: number }) => ipcRenderer.invoke('MapOverlayWindow.setBounds', bounds),
+    onStateChanged: (callback: (open: boolean) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, open: boolean): void => callback(open);
+      ipcRenderer.on('MapOverlayWindow.stateChanged', listener);
+      return () => ipcRenderer.removeListener('MapOverlayWindow.stateChanged', listener);
+    }
+  },
+
   MapWindow: {
     open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath),
     getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>,
