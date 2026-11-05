@@ -142,6 +142,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           <details class="settings-group opacity-settings">
             <summary>View</summary>
             <div class="opacity-content">
+              @if (overlayMode) {
+                <div class="range-setting overlay-opacity-setting">
+                  <label for="overlay-opacity">Overlay Opacity</label>
+                  <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" aria-label="Overlay opacity">
+                  <span class="range-value">{{ overlayOpacity() }}%</span>
+                </div>
+              }
               <div class="zoom-control">
                 <span class="zoom-label">Zoom</span>
                 <div class="zoom-buttons">
@@ -244,7 +251,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
         </section>
       }
-      <div #map class="map" [class.map-hidden]="!coordinatesAvailable()"></div>
+      <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
       @if (!coordinatesAvailable()) {
         <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
       }
@@ -332,7 +339,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
-    .map{position:relative;z-index:auto;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent}
+    .map{position:relative;z-index:auto;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent;transition:opacity .12s ease}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
@@ -410,6 +417,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
+  protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
@@ -1067,6 +1075,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = visible ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
+  };
+  protected readonly changeOverlayOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
