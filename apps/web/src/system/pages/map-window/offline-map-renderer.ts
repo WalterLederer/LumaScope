@@ -461,7 +461,9 @@ export class OfflineMapRenderer {
       if (!marker) {
         const element = document.createElement('span');
         element.style.cssText = 'display:flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 3px;box-sizing:border-box;color:#fff;font:700 12px/22px Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;white-space:nowrap;pointer-events:none;position:relative;z-index:10000;';
-        marker = new Marker({ element, anchor: 'center' }).addTo(this.map);
+        marker = new Marker({ element, anchor: 'center' })
+          .setLngLat(feature.geometry.coordinates as [number, number])
+          .addTo(this.map);
         this.clusterLabels.set(clusterId, marker);
       }
       marker.getElement().textContent = String(count);
