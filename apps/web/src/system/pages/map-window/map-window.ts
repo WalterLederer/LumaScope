@@ -135,7 +135,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="limaps">Limaps — Regional and Planet MBTiles</option>
                   <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
                 </select>
-                <button type="button" (click)="openMbtilesDownload()" title="Open the selected MBTiles download catalogue in your default browser">Open download page…</button>
+                <button type="button" (click)="openMbtilesDownload()" title="Open the selected MBTiles download catalogue in your default browser. Download format: experimental vector tile package conforming to the Shortbread schema for use with MapLibre and other MVT-capable software.">Open download page…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
@@ -143,12 +143,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <div class="mbtiles-map-list">
                   @for (map of offlineMaps(); track map.id) {
                     <div class="mbtiles-map-entry">
-                      <span class="mbtiles-map-name" [title]="map.filePath">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
-                      <span class="mbtiles-map-details">{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
+                      <span class="mbtiles-map-name" [title]="map.name">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
+                      <span class="mbtiles-map-details"><strong>{{ map.fileName }}</strong><br>{{ map.filePath }}<br>{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
                       <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
                     </div>
                   }
                   @if (offlineMaps().length === 0) { <span class="offline-map-status">No offline maps loaded.</span> }
+                  @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
                 </div>
               </div>
             </div>
@@ -321,10 +322,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-select{width:340px;max-width:none}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
     .mbtiles-download-source{min-width:0;max-width:100%;}
-    .mbtiles-map-list{grid-column:1/-1;display:grid;gap:4px;min-width:0}
-    .mbtiles-map-entry{display:grid;grid-template-columns:minmax(100px,1fr) minmax(180px,2fr) auto;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
+    .mbtiles-map-list{grid-column:1/-1;display:grid;grid-auto-rows:auto;gap:6px;min-width:0;max-height:none;overflow:visible}
+    .mbtiles-map-entry{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,3fr) auto;align-items:start;gap:8px;padding:6px 8px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
     .mbtiles-map-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-    .mbtiles-map-details{font-size:11px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere}
+    .mbtiles-map-details{font-size:11px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere;line-height:1.45;min-width:0}
+    .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
@@ -430,6 +432,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly offlineMapImportErrors = signal<string[]>([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
   protected readonly offlineMapStatusText = computed(() => {
@@ -1100,9 +1103,10 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly chooseOfflineMap = async (): Promise<void> => {
     if (!this.desktop) return;
-    const maps = await this.desktop.OfflineMap.chooseFile();
-    this.offlineMaps.set(maps);
-    if (maps.length && this.mapSource() !== 'offline') this.changeMapSource('offline');
+    const result = await this.desktop.OfflineMap.chooseFile();
+    this.offlineMaps.set(result.maps);
+    this.offlineMapImportErrors.set(result.errors);
+    if (result.maps.length && this.mapSource() !== 'offline') this.changeMapSource('offline');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
