@@ -150,7 +150,9 @@ export class OfflineMapRenderer {
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
   private photoPreviewPopup: Popup | null = null;
+  private photoPreviewElement: HTMLDivElement | null = null;
   private activePhotoPreviewKey: string | null = null;
+  private activePhotoPreviewCoordinates: [number, number] | null = null;
   private clusterPreviewRequestId = 0;
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
@@ -520,63 +522,46 @@ export class OfflineMapRenderer {
           const path = properties?.['path'];
           const fileName = properties?.['fileName'];
           if (typeof path !== 'string' || typeof fileName !== 'string') return;
-          this.photoPreviewPopup?.remove();
-          this.photoPreviewPopup = new Popup({
-            closeButton: false, closeOnClick: false, offset: 14, className: 'folder-marker-tooltip'
-          }).setLngLat(coordinates as [number, number])
-            .setHTML(buildPhotoMarkerPreviewHtml(path, fileName))
-            .addTo(this.map);
+          this.showPhotoPreview(path, fileName, coordinates as [number, number]);
         })
         .catch(() => undefined);
     });
     this.map.on('mouseleave', 'photo-clusters', () => {
       this.clusterPreviewRequestId++;
-      this.photoPreviewPopup?.remove();
-      this.photoPreviewPopup = null;
+      this.clearPhotoPreview();
     });
     this.map.on('click', 'photo-unclustered', event => {
       const path = event.features?.[0]?.properties?.['path'];
       if (typeof path === 'string') {
-        this.photoPreviewPopup?.remove();
-        this.photoPreviewPopup = null;
-        this.activePhotoPreviewKey = null;
+        this.clearPhotoPreview();
         this.onPhotoSelected?.(path);
       }
     });
-    // Query the rendered layer on pointer movement instead of relying on
-    // delegated layer mouseenter events. This is more reliable with the
-    // additional geographic overlay used by the offline renderer.
+    // Use the geographic DOM overlay for previews. MapLibre Popup is attached
+    // to the map container and can end up underneath the custom geographic overlay.
+    // A DOM preview inside that overlay has a deterministic stacking order.
     this.map.on('mousemove', event => {
-      const feature = this.map.queryRenderedFeatures(event.point, { layers: ['photo-unclustered'] })[0];
+      const point = event.point;
+      const features = this.map.queryRenderedFeatures(
+        [[point.x - 12, point.y - 12], [point.x + 12, point.y + 12]],
+        { layers: ['photo-unclustered'] }
+      );
+      const feature = features[0];
       const path = feature?.properties?.['path'];
       const fileName = feature?.properties?.['fileName'];
       if (typeof path !== 'string' || typeof fileName !== 'string' || feature?.geometry.type !== 'Point') {
-        if (this.activePhotoPreviewKey !== null) {
-          this.photoPreviewPopup?.remove();
-          this.photoPreviewPopup = null;
-          this.activePhotoPreviewKey = null;
-        }
+        if (this.activePhotoPreviewKey !== null) this.clearPhotoPreview();
         return;
       }
-      const previewKey = path;
-      if (this.activePhotoPreviewKey === previewKey && this.photoPreviewPopup) {
-        this.photoPreviewPopup.setLngLat(event.lngLat);
-        return;
+      const coordinates = feature.geometry.coordinates as [number, number];
+      if (this.activePhotoPreviewKey !== path || !this.photoPreviewElement) {
+        this.showPhotoPreview(path, fileName, coordinates);
+      } else {
+        this.activePhotoPreviewCoordinates = coordinates;
+        this.updatePhotoPreviewPosition();
       }
-      this.photoPreviewPopup?.remove();
-      this.activePhotoPreviewKey = previewKey;
-      this.photoPreviewPopup = new Popup({
-        closeButton: false, closeOnClick: false, offset: 14, className: 'folder-marker-tooltip'
-      }).setLngLat(event.lngLat)
-        .setHTML(buildPhotoMarkerPreviewHtml(path, fileName))
-        .addTo(this.map);
-      this.photoPreviewPopup.getElement().style.zIndex = '30';
     });
-    this.map.on('mouseout', () => {
-      this.photoPreviewPopup?.remove();
-      this.photoPreviewPopup = null;
-      this.activePhotoPreviewKey = null;
-    });
+    this.map.on('mouseout', () => this.clearPhotoPreview());
     this.map.on('mouseenter', 'photo-clusters', () => { this.map.getCanvas().style.cursor = 'pointer'; });
     this.map.on('mouseleave', 'photo-clusters', () => { this.map.getCanvas().style.cursor = ''; });
     this.map.on('mouseenter', 'photo-unclustered', () => { this.map.getCanvas().style.cursor = 'pointer'; });
@@ -803,6 +788,47 @@ export class OfflineMapRenderer {
     return coordinates[coordinates.length - 1];
   }
 
+  private showPhotoPreview(path: string, fileName: string, coordinates: [number, number]): void {
+    this.clearPhotoPreview();
+    const preview = document.createElement('div');
+    preview.className = 'folder-marker-tooltip offline-photo-marker-preview';
+    preview.innerHTML = buildPhotoMarkerPreviewHtml(path, fileName);
+    preview.style.cssText = [
+      'position:absolute',
+      'z-index:10001',
+      'pointer-events:none',
+      'padding:5px 7px',
+      'background:var(--color-surface-default-high,#303238)',
+      'border:1px solid #777',
+      'border-radius:6px',
+      'color:var(--color-content-default-high,#fff)',
+      'box-shadow:0 3px 12px #0008',
+      'transform:translate(-50%,calc(-100% - 14px))',
+      'width:max-content'
+    ].join(';');
+    this.photoPreviewElement = preview;
+    this.activePhotoPreviewKey = path;
+    this.activePhotoPreviewCoordinates = coordinates;
+    this.overlayElement.appendChild(preview);
+    this.updatePhotoPreviewPosition();
+  }
+
+  private updatePhotoPreviewPosition(): void {
+    if (!this.photoPreviewElement || !this.activePhotoPreviewCoordinates) return;
+    const point = this.map.project(this.activePhotoPreviewCoordinates);
+    this.photoPreviewElement.style.left = `${point.x}px`;
+    this.photoPreviewElement.style.top = `${point.y}px`;
+  }
+
+  private clearPhotoPreview(): void {
+    this.photoPreviewElement?.remove();
+    this.photoPreviewElement = null;
+    this.activePhotoPreviewKey = null;
+    this.activePhotoPreviewCoordinates = null;
+    this.photoPreviewPopup?.remove();
+    this.photoPreviewPopup = null;
+  }
+
   private readonly updateOverlayPositions = (): void => {
     if (this.currentMarkerElement && this.currentLocation) {
       const point = this.map.project(this.currentLocation);
@@ -814,6 +840,7 @@ export class OfflineMapRenderer {
       label.element.style.left = `${point.x}px`;
       label.element.style.top = `${point.y}px`;
     }
+    this.updatePhotoPreviewPosition();
   };
 
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
