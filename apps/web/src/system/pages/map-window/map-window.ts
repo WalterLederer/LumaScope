@@ -558,6 +558,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.map?.remove();
         this.map = null;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
+        this.currentOfflineMapId = null;
+        this.activeOfflineMapId.set(null);
         this.marker = null;
         this.clearDirectoryMarkers();
         return;
@@ -877,13 +879,21 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
-    const generation = this.mapSourceGeneration;
+    let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'offline') {
       const selected = await this.desktop?.OfflineMap.selectForCoordinates(latitude, longitude) ?? null;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
+      if (this.currentLatitude !== latitude || this.currentLongitude !== longitude) {
+        if (this.currentLatitude !== null && this.currentLongitude !== null) {
+          await this.initialize(this.currentLatitude, this.currentLongitude);
+        }
+        return;
+      }
       const nextId = selected?.id ?? null;
       this.activeOfflineMapId.set(nextId);
       if (nextId !== this.currentOfflineMapId) {
+        this.mapSourceGeneration++;
+        generation = this.mapSourceGeneration;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
         this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
         this.tileLayer?.remove(); this.tileLayer = null; this.clearDirectoryMarkers();
