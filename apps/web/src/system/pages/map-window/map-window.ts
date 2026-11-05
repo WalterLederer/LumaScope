@@ -136,7 +136,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <div class="mbtiles-map-list">
                   @for (map of offlineMaps(); track map.id) {
                     <div class="mbtiles-map-entry">
-                      <span class="mbtiles-map-name" [title]="map.filePath">{{ map.name }}</span>
+                      <span class="mbtiles-map-name" [title]="map.filePath">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
                       <span class="mbtiles-map-details">{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
                       <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
                     </div>
@@ -422,6 +422,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -881,6 +882,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const selected = await this.desktop?.OfflineMap.selectForCoordinates(latitude, longitude) ?? null;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
       const nextId = selected?.id ?? null;
+      this.activeOfflineMapId.set(nextId);
       if (nextId !== this.currentOfflineMapId) {
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
         this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
