@@ -442,7 +442,9 @@ export default class App {
     if (App.isMapWindowOpen()) App.mapWindow.webContents.send('MapWindow.locationChanged', location);
     if (App.isMapOverlayWindowOpen()) {
       App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
-      return App.focusMapOverlayWindow();
+      if (App.mapOverlayWindow.isMinimized()) App.mapOverlayWindow.restore();
+      App.mapOverlayWindow.showInactive();
+      return true;
     }
     const parentBounds = App.mainWindow.getBounds();
     const width = Math.max(420, Math.min(900, parentBounds.width - 80));
@@ -461,7 +463,7 @@ export default class App {
       App.mapOverlayWindow = null;
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.webContents.send('MapOverlayWindow.stateChanged', false);
     });
-    const hash = `/map?overlay=1${hasCoordinates ? `&lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}` : ''}${imagePath ? `${hasCoordinates ? '&' : '&'}imagePath=${encodeURIComponent(imagePath)}` : ''}`;
+    const hash = `/map?overlay=1${hasCoordinates ? `&lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}` : ''}${imagePath ? `&imagePath=${encodeURIComponent(imagePath)}` : ''}`;
     if (!App.application.isPackaged) App.mapOverlayWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
     else App.mapOverlayWindow.loadURL(format({ pathname: join(__dirname, '..', rendererAppName, 'index.html'), protocol: 'file:', slashes: true, hash }));
     App.mapOverlayWindow.once('ready-to-show', () => {
