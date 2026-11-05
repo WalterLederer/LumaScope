@@ -540,6 +540,9 @@ export class OfflineMapRenderer {
     // A DOM preview inside that overlay has a deterministic stacking order.
     this.map.on('mousemove', event => {
       const point = event.point;
+      // Cluster previews are loaded asynchronously by the cluster-layer
+      // mouseenter handler. Do not clear them while the pointer remains on a cluster.
+      if (this.map.queryRenderedFeatures(point, { layers: ['photo-clusters'] }).length > 0) return;
       const features = this.map.queryRenderedFeatures(
         [[point.x - 12, point.y - 12], [point.x + 12, point.y + 12]],
         { layers: ['photo-unclustered'] }
@@ -878,6 +881,7 @@ export class OfflineMapRenderer {
     this.onPhotoSelected = onSelected;
     const source = this.map.getSource('photo-markers') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
+    this.clearPhotoPreview();
     source.setData({
       type: 'FeatureCollection',
       features: markers.map(marker => ({
