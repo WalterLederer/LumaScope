@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { OfflineMapRenderer, type OfflinePhotoMarker } from './offline-map-renderer';
+import { buildPhotoMarkerPreviewHtml } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -61,54 +62,59 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </select>
             </label>
           </div>
-          <div class="settings-group">
-            <label><strong>Map source:</strong>
-              <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                <option value="online">Online</option><option value="offline">Offline (Austria)</option>
-              </select>
-            </label>
-            <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
-            <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
-          </div>
-          <div class="settings-group map-style-settings">
-            <label><strong>Map:</strong> Style
-              <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
-                <option value="standard">Standard</option><option value="satellite">Satellite</option>
-                <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
-                <option value="humanitarian">Humanitarian (HOT)</option>
-              </select>
-            </label>
-            <label>Color
-              <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
-                <option value="original">Original</option><option value="light">Light</option>
-                <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
-                <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
-                <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
-              </select>
-            </label>
-          </div>
-          <div class="settings-group opacity-settings">
-            <strong class="settings-row-title">Opacity:</strong>
-            <label class="range-setting">Map
-              <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
-              <span class="range-value">{{ mapOpacity() }}%</span>
-            </label>
-            <span class="opacity-divider" aria-hidden="true"></span>
-            <label class="range-setting">Track
-              <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-              <span class="range-value">{{ gpxOpacity() }}%</span>
-            </label>
-            <span class="opacity-divider" aria-hidden="true"></span>
-            <label class="range-setting">Markers
-              <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
-              <span class="range-value">{{ markerOpacity() }}%</span>
-            </label>
-            <span class="opacity-divider" aria-hidden="true"></span>
-            <label class="range-setting">Location
-              <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
-              <span class="range-value">{{ locationOpacity() }}%</span>
-            </label>
-          </div>
+          <details class="settings-group map-source-settings" open>
+            <summary>Map Source</summary>
+            <div class="map-source-content">
+              <label><strong>Source:</strong>
+                <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
+                  <option value="online">Online</option><option value="offline">Offline (Austria)</option>
+                </select>
+              </label>
+              <label><strong>Style:</strong>
+                <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
+                  <option value="standard">Standard</option><option value="satellite">Satellite</option>
+                  <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
+                  <option value="humanitarian">Humanitarian (HOT)</option>
+                </select>
+              </label>
+              <label><strong>Color:</strong>
+                <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
+                  <option value="original">Original</option><option value="light">Light</option>
+                  <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
+                  <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
+                  <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
+                </select>
+              </label>
+              <div class="mbtiles-selection">
+                <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
+                <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
+                @if (offlineMapStatus()?.filePath) {
+                  <code class="mbtiles-full-path" [title]="offlineMapStatus()!.filePath!">{{ offlineMapStatus()!.filePath }}</code>
+                }
+              </div>
+            </div>
+          </details>
+          <details class="settings-group opacity-settings">
+            <summary>Opacity</summary>
+            <div class="opacity-content">
+              <label class="range-setting">Map
+                <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+                <span class="range-value">{{ mapOpacity() }}%</span>
+              </label>
+              <label class="range-setting">Track
+                <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+                <span class="range-value">{{ gpxOpacity() }}%</span>
+              </label>
+              <label class="range-setting">Markers
+                <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+                <span class="range-value">{{ markerOpacity() }}%</span>
+              </label>
+              <label class="range-setting">Location
+                <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+                <span class="range-value">{{ locationOpacity() }}%</span>
+              </label>
+            </div>
+          </details>
           <div class="settings-group zoom-settings">
             <div class="zoom-control">
               <span class="zoom-label">Zoom</span>
@@ -234,6 +240,17 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
+    .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
+    .map-source-settings>summary,.opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
+    .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
+    .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
+    .mbtiles-full-path{grid-column:1/-1;display:block;max-width:100%;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#aaa);font-size:11px}
+    .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
+    .opacity-content .range-setting{min-width:0}
+    .opacity-content .range-setting input{flex:1;width:auto;min-width:65px}
+
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
@@ -282,6 +299,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     :host ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;gap:4px;max-width:190px}
     :host ::ng-deep .folder-marker-preview img{display:block;width:180px;height:120px;object-fit:cover;border-radius:3px;background:#222}
     :host ::ng-deep .folder-marker-preview span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+    :host ::ng-deep .maplibregl-popup.folder-marker-tooltip .maplibregl-popup-content{padding:5px 7px;background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008}
+    :host ::ng-deep .maplibregl-popup.folder-marker-tooltip .maplibregl-popup-tip{border-top-color:var(--color-surface-default-high,#303238)}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
@@ -290,7 +309,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
-    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}}
+    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{grid-template-columns:minmax(0,1fr)}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -691,12 +710,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const marker = this.leaflet!.marker([item.latitude, item.longitude], {
         icon: this.createImageMarkerIcon(false)
       }).setOpacity(this.markerOpacity() / 100);
-      const previewUrl = 'atom://app/thumbs?image=' + encodeURIComponent(item.path) + '&width=180&height=120';
-      const fileName = this.escapeMarkerHtml(item.fileName);
-      marker.bindTooltip(
-        '<div class="folder-marker-preview"><img src="' + previewUrl + '" alt="" loading="lazy"><span>' + fileName + '</span></div>',
-        { direction: 'top', className: 'folder-marker-tooltip', opacity: 1 }
-      );
+      marker.bindTooltip(buildPhotoMarkerPreviewHtml(item.path, item.fileName), {
+        direction: 'top', className: 'folder-marker-tooltip', opacity: 1
+      });
       marker.on('click', () => { void this.desktop?.MapWindow.selectImage(item.path); });
       this.directoryMarkers.push(marker);
       this.directoryMarkerGroup?.addLayer(marker);
