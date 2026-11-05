@@ -150,6 +150,7 @@ export class OfflineMapRenderer {
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
   private photoPreviewPopup: Popup | null = null;
+  private clusterPreviewRequestId = 0;
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
   private vectorSourceDiagnosticLogged = false;
@@ -487,6 +488,9 @@ export class OfflineMapRenderer {
       if (event.sourceId === 'shortbread' && event.isSourceLoaded) refreshOverlays();
     });
     this.map.on('click', 'photo-clusters', event => {
+      this.clusterPreviewRequestId++;
+      this.photoPreviewPopup?.remove();
+      this.photoPreviewPopup = null;
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
       const coordinates = feature?.geometry?.type === 'Point' ? feature.geometry.coordinates : null;
@@ -497,6 +501,37 @@ export class OfflineMapRenderer {
         .getClusterExpansionZoom(clusterId)
         .then(zoom => this.map.easeTo({ center: coordinates as [number, number], zoom }))
         .catch(() => undefined);
+    });
+    this.map.on('mouseenter', 'photo-clusters', event => {
+      const feature = event.features?.[0];
+      const clusterId = feature?.properties?.['cluster_id'];
+      const coordinates = feature?.geometry?.type === 'Point' ? feature.geometry.coordinates : null;
+      if (typeof clusterId !== 'number' || !coordinates) return;
+      const source = this.map.getSource('photo-markers');
+      if (!source || !('getClusterLeaves' in source)) return;
+
+      const requestId = ++this.clusterPreviewRequestId;
+      void (source as import('maplibre-gl').GeoJSONSource)
+        .getClusterLeaves(clusterId, 1, 0)
+        .then(leaves => {
+          if (requestId !== this.clusterPreviewRequestId) return;
+          const properties = leaves[0]?.properties;
+          const path = properties?.['path'];
+          const fileName = properties?.['fileName'];
+          if (typeof path !== 'string' || typeof fileName !== 'string') return;
+          this.photoPreviewPopup?.remove();
+          this.photoPreviewPopup = new Popup({
+            closeButton: false, closeOnClick: false, offset: 14, className: 'folder-marker-tooltip'
+          }).setLngLat(coordinates as [number, number])
+            .setHTML(buildPhotoMarkerPreviewHtml(path, fileName))
+            .addTo(this.map);
+        })
+        .catch(() => undefined);
+    });
+    this.map.on('mouseleave', 'photo-clusters', () => {
+      this.clusterPreviewRequestId++;
+      this.photoPreviewPopup?.remove();
+      this.photoPreviewPopup = null;
     });
     this.map.on('click', 'photo-unclustered', event => {
       const path = event.features?.[0]?.properties?.['path'];
