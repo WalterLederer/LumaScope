@@ -251,6 +251,17 @@ export interface DesktopMapWindow {
   readonly onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }) => void) => () => void;
 }
 
+export interface DesktopMapOverlayWindow {
+  readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => Promise<boolean>;
+  readonly close: () => Promise<void>;
+  readonly isOpen: () => Promise<boolean>;
+  readonly focus: () => Promise<boolean>;
+  readonly setAlwaysOnTop: (enabled: boolean) => Promise<boolean>;
+  readonly getBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>;
+  readonly setBounds: (bounds: { x: number; y: number; width: number; height: number }) => Promise<boolean>;
+  readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
+}
+
 export interface DesktopCapturePreviewWindow {
   readonly open: () => Promise<boolean>;
   readonly close: () => Promise<void>;
@@ -297,6 +308,7 @@ export interface Desktop {
   readonly Loupe: DesktopLoupe;
   readonly Capture: DesktopCapture;
   readonly MapWindow: DesktopMapWindow;
+  readonly MapOverlayWindow: DesktopMapOverlayWindow;
   readonly OfflineMap: DesktopOfflineMap;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
