@@ -54,8 +54,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
               </div>
               <div class="location-actions">
-                <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">Copy GPS coordinates</button>
-                <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">Center</button>
+                <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
                 <label>Open location in
                   <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
                     <option value="">Select web app…</option>
