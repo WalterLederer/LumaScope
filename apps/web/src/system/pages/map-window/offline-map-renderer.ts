@@ -976,7 +976,11 @@ export class OfflineMapRenderer {
       ['dam-polygons', 'fill-opacity'], ['pier-polygons', 'fill-opacity'], ['sites', 'fill-opacity'], ['street-polygons', 'fill-opacity'],
       ['street-casing', 'line-opacity'], ['streets', 'line-opacity'], ['bridges', 'line-opacity'], ['ferries', 'line-opacity'], ['aerialways', 'line-opacity'],
       ['dam-lines', 'line-opacity'], ['pier-lines', 'line-opacity'], ['public-transport', 'circle-opacity'],
-      ['buildings', 'fill-opacity'], ['pois', 'circle-opacity']
+      ['buildings', 'fill-opacity'], ['pois', 'circle-opacity'],
+      ['omt-landcover', 'fill-opacity'], ['omt-landuse', 'fill-opacity'], ['omt-water', 'fill-opacity'],
+      ['omt-waterway', 'line-opacity'], ['omt-boundary', 'line-opacity'],
+      ['omt-transportation-casing', 'line-opacity'], ['omt-transportation', 'line-opacity'],
+      ['omt-building', 'fill-opacity'], ['omt-poi', 'circle-opacity']
     ] as const;
     for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
   }
