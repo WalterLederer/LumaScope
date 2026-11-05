@@ -50,7 +50,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <div class="location-settings-content">
               <div class="location-coordinate-display"><span>{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="address-settings">
-                <strong class="settings-row-title">Address:</strong>
+                <span class="settings-row-title">Address:</span>
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
               </div>
               <div class="location-actions">
@@ -68,7 +68,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </label>
               </div>
               <div class="marker-current-appearance-settings">
-                <strong>Location Icon:</strong>
+                <span>Location Icon:</span>
                 <label>Shape
                   <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
                     <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
@@ -95,13 +95,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           <details class="settings-group map-source-settings" open>
             <summary>Map Source</summary>
             <div class="map-source-content">
-              <label><strong>Source:</strong>
+              <label><span>Source:</span>
                 <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
                   <option value="online">Online</option><option value="offline">Offline (Austria)</option>
                 </select>
               </label>
               @if (mapSource() === 'online') {
-                <label class="online-map-style-control"><strong>Style:</strong>
+                <label class="online-map-style-control"><span>Style:</span>
                   <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                     <option value="standard">Standard</option><option value="satellite">Satellite</option>
                     <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
@@ -109,7 +109,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   </select>
                 </label>
               } @else {
-                <label><strong>Offline Style:</strong>
+                <label><span>Offline Style:</span>
                   <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
                     <option value="lumascope">LumaScope</option>
                     <option value="versatiles-colorful">VersaTiles Colorful</option>
@@ -117,7 +117,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   </select>
                 </label>
               }
-              <label><strong>Color:</strong>
+              <label><span>Color:</span>
                 <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
                   <option value="original">Original</option><option value="light">Light</option>
                   <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
@@ -147,22 +147,26 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
                 <span class="zoom-value">{{ zoomLevel() }}</span>
               </div>
-              <label class="range-setting">Map
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"> Map</label>
                 <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
                 <span class="range-value">{{ mapOpacity() }}%</span>
-              </label>
-              <label class="range-setting">Track
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"> Track</label>
                 <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
                 <span class="range-value">{{ gpxOpacity() }}%</span>
-              </label>
-              <label class="range-setting">Markers
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"> Markers</label>
                 <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
                 <span class="range-value">{{ markerOpacity() }}%</span>
-              </label>
-              <label class="range-setting">Location
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"> Location</label>
                 <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
                 <span class="range-value">{{ locationOpacity() }}%</span>
-              </label>
+              </div>
             </div>
           </details>
 
@@ -197,7 +201,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
               <div class="marker-appearance-settings">
-                <strong>Cluster Icons:</strong>
+                <span>Cluster Icons:</span>
                 <label>Shape
                   <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
                     <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
@@ -272,8 +276,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
     .mbtiles-full-path{grid-column:1/-1;display:block;max-width:100%;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
-    .opacity-content .range-setting{min-width:0}
-    .opacity-content .range-setting input{flex:1;width:auto;min-width:65px}
+    .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
+    .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
+    .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:400;min-width:76px}
+    .opacity-content .visibility-toggle input{margin:0;accent-color:#8ab4f8}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-settings .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -377,11 +383,14 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
+  protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
+  protected readonly markersVisible = signal(this.readSetting('markersVisible', 'true') === 'true');
   protected readonly locationOpacity = signal(this.readNumber('locationOpacity', 100, 0, 100));
+  protected readonly locationVisible = signal(this.readSetting('locationVisible', 'true') === 'true');
   protected readonly markerShape = signal<MarkerShape>(this.readSetting('markerShape', 'double-circle') as MarkerShape);
   protected readonly currentMarkerShape = signal<CurrentMarkerShape>(this.readSetting('currentMarkerShape', 'pin') as CurrentMarkerShape);
   protected readonly currentMarkerColor = signal(this.readSetting('currentMarkerColor', '#ff3b30'));
@@ -532,7 +541,7 @@ export class MapWindow implements OnInit, OnDestroy {
         // recreates the DOM marker if a prior style/shape update detached it.
         this.offlineRenderer.setCurrentLocation(
           latitude, longitude, this.currentMarkerColor(),
-          this.locationOpacity() / 100, this.currentMarkerShape()
+          (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
         );
         this.offlineRenderer.map.jumpTo({ center: [longitude, latitude] });
       } else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
@@ -637,14 +646,14 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
     this.currentMarkerShape.set(value); this.saveSetting('currentMarkerShape', value);
     this.marker?.setIcon(this.createCurrentLocationIcon());
-    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
   };
   protected readonly changeCurrentMarkerColor = (value: string): void => {
     if (!this.gpxColors.some(color => color.value === value)) return;
     this.currentMarkerColor.set(value); this.saveSetting('currentMarkerColor', value);
     this.currentMarkerColorMenuOpen.set(false);
     this.marker?.setIcon(this.createCurrentLocationIcon());
-    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
   };
   protected readonly changeMarkerColor = (value: string): void => {
     if (value === 'off') { this.markerColorVisible.set(false); this.saveSetting('markerColorVisible', false); }
@@ -693,7 +702,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
     this.directoryMarkers.length = 0;
-    this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, this.markerOpacity() / 100);
+    this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     this.markerCount.set(0);
   }
   private createImageMarkerIcon(selected: boolean): unknown {
@@ -735,7 +744,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (item.path.toLowerCase() === imagePath.toLowerCase()) continue;
       const marker = this.leaflet!.marker([item.latitude, item.longitude], {
         icon: this.createImageMarkerIcon(false)
-      }).setOpacity(this.markerOpacity() / 100);
+      }).setOpacity((this.markersVisible() ? this.markerOpacity() / 100 : 0));
       marker.bindTooltip(buildPhotoMarkerPreviewHtml(item.path, item.fileName), {
         direction: 'top', className: 'folder-marker-tooltip', opacity: 1
       });
@@ -776,7 +785,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer) {
         const offlineMarkers: OfflinePhotoMarker[] = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
         this.markerCount.set(offlineMarkers.length);
-        this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, this.markerOpacity() / 100);
+        this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
         this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible());
       } else this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
@@ -867,7 +876,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
-    renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), this.locationOpacity() / 100, this.currentMarkerShape());
+    renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     const syncOfflineZoom = (): void => {
@@ -893,13 +902,13 @@ export class MapWindow implements OnInit, OnDestroy {
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
-    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(this.markerOpacity() / 100));
+    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     this.map.on('zoomend', () => {
       const zoom = this.validZoom(this.map?.getZoom() ?? this.zoomLevel());
       this.zoomLevel.set(zoom);
       this.saveSetting('zoom', zoom);
     });
-    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity(this.locationOpacity() / 100);
+    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
@@ -982,6 +991,26 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!(value in this.filters)) return;
     this.mapColor.set(value as MapColor); this.saveSetting('color', value); this.applyMapColor();
   };
+  protected readonly changeMapVisibility = (visible: boolean): void => {
+    this.mapVisible.set(visible); this.saveSetting('mapVisible', visible); this.applyMapOpacity();
+  };
+  protected readonly changeTrackVisibility = (visible: boolean): void => {
+    this.gpxVisible.set(visible); this.saveSetting('gpxVisible', visible); this.applyGpxTrack();
+  };
+  protected readonly changeMarkersVisibility = (visible: boolean): void => {
+    this.markersVisible.set(visible); this.saveSetting('markersVisible', visible);
+    const opacity = visible ? (this.markersVisible() ? this.markerOpacity() / 100 : 0) : 0;
+    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(opacity));
+    for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(opacity);
+    this.directoryMarkerGroup?.refreshClusters?.();
+    this.offlineRenderer?.setPhotoOpacity(opacity);
+  };
+  protected readonly changeLocationVisibility = (visible: boolean): void => {
+    this.locationVisible.set(visible); this.saveSetting('locationVisible', visible);
+    const opacity = visible ? (this.locationVisible() ? this.locationOpacity() / 100 : 0) : 0;
+    this.marker?.setOpacity(opacity);
+    this.offlineRenderer?.setCurrentOpacity(opacity);
+  };
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
@@ -998,7 +1027,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
-    const markerOpacity = next / 100;
+    const markerOpacity = this.markersVisible() ? next / 100 : 0;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
     this.directoryMarkerGroup?.refreshClusters?.();
@@ -1008,8 +1037,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.locationOpacity.set(next); this.saveSetting('locationOpacity', next);
-    this.marker?.setOpacity(next / 100);
-    this.offlineRenderer?.setCurrentOpacity(next / 100);
+    const opacityValue = this.locationVisible() ? next / 100 : 0;
+    this.marker?.setOpacity(opacityValue);
+    this.offlineRenderer?.setCurrentOpacity(opacityValue);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
@@ -1099,9 +1129,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
   private applyMapOpacity(): void {
-    this.offlineRenderer?.setBasemapOpacity(this.mapOpacity() / 100);
+    const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
+    this.offlineRenderer?.setBasemapOpacity(opacity);
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
-    if (pane) pane.style.opacity = String(this.mapOpacity() / 100);
+    if (pane) pane.style.opacity = String(opacity);
   }
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
