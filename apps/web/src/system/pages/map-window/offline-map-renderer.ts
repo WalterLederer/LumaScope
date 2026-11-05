@@ -398,9 +398,9 @@ export class OfflineMapRenderer {
       this.refreshTextLabels();
       this.logVectorSourceDiagnostics();
     };
+    // Wait until the map and its visible vector tiles are settled before
+    // discovering labels. moveend/zoomend can run while tile queries are partial.
     this.map.on('idle', refreshOverlays);
-    this.map.on('moveend', refreshOverlays);
-    this.map.on('zoomend', refreshOverlays);
     this.map.on('click', 'photo-clusters', event => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
@@ -530,7 +530,13 @@ export class OfflineMapRenderer {
           : geometry.type === 'MultiLineString'
             ? (rawCoordinates as [number, number][][])[0]?.[0]
             : (rawCoordinates as [number, number][])[0];
-        const key = source.sourceLayer + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
+        // Vector-tile line features may be split into different fragments at
+        // tile boundaries. Prefer the stable source feature ID over fragment
+        // coordinates so the same road/river keeps one label identity.
+        const featureId = feature.id;
+        const key = featureId !== undefined
+          ? source.sourceLayer + ':id:' + String(featureId)
+          : source.sourceLayer + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
         candidates.push({ key, x: screenPoint.x, y: screenPoint.y, longitude: point[0], latitude: point[1], text, kind: placeKind, priority });
       }
     }
@@ -545,6 +551,14 @@ export class OfflineMapRenderer {
       if (visible.size >= 300) break;
       const { key, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
+      visible.add(key);
+      const existingMarker = this.textLabels.get(key);
+      if (existingMarker) {
+        // Keep the original geographic anchor. Repositioning it from a newly
+        // clipped tile fragment makes line labels drift while panning.
+        existingMarker.getElement().textContent = text;
+        continue;
+      }
       const dedupeKey = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
@@ -555,12 +569,6 @@ export class OfflineMapRenderer {
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
       if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
       occupied.push(box);
-      visible.add(key);
-      const existingMarker = this.textLabels.get(key);
-      if (existingMarker) {
-        existingMarker.setLngLat([longitude, latitude]);
-        continue;
-      }
       const element = document.createElement('span');
       element.textContent = text;
       const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
@@ -572,6 +580,12 @@ export class OfflineMapRenderer {
     }
     for (const [key, marker] of this.textLabels) {
       if (visible.has(key)) continue;
+      // A transiently incomplete tile query must not erase labels. Retain their
+      // geographic markers while they remain near the viewport; remove only
+      // after their fixed anchor has actually moved well off-screen.
+      const point = this.map.project(marker.getLngLat());
+      if (point.x >= -260 && point.y >= -60
+        && point.x <= width + 260 && point.y <= height + 60) continue;
       marker.remove();
       this.textLabels.delete(key);
     }
