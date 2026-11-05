@@ -534,7 +534,12 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
-    void this.desktop?.OfflineMap.getMaps().then(maps => this.offlineMaps.set(maps)).catch(error => console.error('Could not read offline map list:', error));
+    void this.desktop?.OfflineMap.getMaps().then(maps => {
+      this.offlineMaps.set(maps);
+      // An offline source without any compatible loaded MBTiles cannot be used.
+      // Restore the online source instead of leaving the selector on an empty map.
+      if (maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
+    }).catch(error => console.error('Could not read offline map list:', error));
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
@@ -1016,7 +1021,6 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
-    renderer.map.on('zoom', syncOfflineZoom);
     renderer.map.on('zoomend', syncOfflineZoom);
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -1082,9 +1086,11 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly changeMapSource = (value: string): void => {
     if (value !== 'online' && value !== 'offline') return;
+    // Never leave the selector on Offline when no compatible MBTiles map is loaded.
+    const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
     this.mapSourceGeneration++;
     this.mapInitialization = null;
-    this.mapSource.set(value); this.saveSetting('source', value);
+    this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
     if (this.currentLatitude !== null && this.currentLongitude !== null) {
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
@@ -1109,6 +1115,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
     if (result.maps.length && this.mapSource() !== 'offline') this.changeMapSource('offline');
+    else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
@@ -1119,6 +1126,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
     if (!this.desktop) return;
     this.offlineMaps.set(await this.desktop.OfflineMap.removeFile(id));
+    if (this.offlineMaps().length === 0 && this.mapSource() === 'offline') {
+      this.changeMapSource('online');
+      return;
+    }
     if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
