@@ -1029,7 +1029,7 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     if (opacity <= 0) {
-      for (const marker of this.clusterLabels.values()) marker.remove();
+      for (const marker of this.clusterLabels.values()) marker.element.remove();
       this.clusterLabels.clear();
     } else {
       this.refreshClusterLabels();
@@ -1066,7 +1066,7 @@ export class OfflineMapRenderer {
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
     this.currentLocation = null;
-    for (const marker of this.clusterLabels.values()) marker.remove();
+    for (const marker of this.clusterLabels.values()) marker.element.remove();
     this.clusterLabels.clear();
     for (const marker of this.textLabels.values()) marker.element.remove();
     this.textLabels.clear();
