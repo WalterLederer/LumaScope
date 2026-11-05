@@ -167,7 +167,6 @@ export class OfflineMapRenderer {
       zoom: this.map.getZoom(), pitch: this.map.getPitch(), bearing: this.map.getBearing()
     };
     this.dragEventCount++;
-    console.info('[OfflineMap][DragFrame]', sample);
     const diagnostic = this.dragDiagnostic;
     if (diagnostic && diagnostic.dragSamples.length < 300) diagnostic.dragSamples.push(sample);
   };
@@ -287,7 +286,6 @@ export class OfflineMapRenderer {
     // MapLibre emits 'drag' after its drag-pan handler has updated the camera.
     // Pair this with the window-level pointer samples to compare input and output.
     this.map.on('dragstart', this.onDiagnosticMapDragStart);
-    this.map.on('drag', this.onDiagnosticMapDrag);
     this.map.on('dragend', this.onDiagnosticMapDragEnd);
     // Log the exact layout transition when the settings panel changes the map viewport.
     // This helps distinguish stale canvas dimensions from incorrect drag coordinate mapping.
@@ -534,9 +532,10 @@ export class OfflineMapRenderer {
         // tile boundaries. Prefer the stable source feature ID over fragment
         // coordinates so the same road/river keeps one label identity.
         const featureId = feature.id;
-        const key = featureId !== undefined
-          ? source.sourceLayer + ':id:' + String(featureId)
-          : source.sourceLayer + ':' + text + ':' + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':' + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
+        const key = source.sourceLayer + ':' + text + ':'
+          + (featureId !== undefined ? 'id:' + String(featureId) + ':' : '')
+          + (firstCoordinate?.[0]?.toFixed(5) ?? point[0].toFixed(5)) + ':'
+          + (firstCoordinate?.[1]?.toFixed(5) ?? point[1].toFixed(5));
         candidates.push({ key, x: screenPoint.x, y: screenPoint.y, longitude: point[0], latitude: point[1], text, kind: placeKind, priority });
       }
     }
@@ -755,7 +754,6 @@ export class OfflineMapRenderer {
     window.removeEventListener('pointercancel', this.onDiagnosticPointerEnd, true);
     this.map.off('move', this.onDiagnosticMapMove);
     this.map.off('dragstart', this.onDiagnosticMapDragStart);
-    this.map.off('drag', this.onDiagnosticMapDrag);
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.currentMarker?.remove();
     for (const marker of this.clusterLabels.values()) marker.remove();
