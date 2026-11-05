@@ -38,7 +38,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       <header class="map-titlebar">
         <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
                 [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">{{ settingsOpen() ? 'v Settings' : '> Settings' }}</button>
-        <div class="map-title"><span class="map-title-icon">⌖</span><strong>Location</strong></div>
+        <div class="map-title"><span class="map-title-icon">⌖</span></div>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
@@ -48,7 +48,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           <details class="settings-group location-settings" open>
             <summary>Location</summary>
             <div class="location-settings-content">
-              <div class="location-coordinate-display"><strong>Location</strong><span>{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+              <div class="location-coordinate-display"><span>{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="address-settings">
                 <strong class="settings-row-title">Address:</strong>
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
@@ -101,7 +101,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </select>
               </label>
               @if (mapSource() === 'online') {
-                <label><strong>Style:</strong>
+                <label class="online-map-style-control"><strong>Style:</strong>
                   <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                     <option value="standard">Standard</option><option value="satellite">Satellite</option>
                     <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
@@ -126,7 +126,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </select>
               </label>
               <div class="mbtiles-selection">
-                <button type="button" (click)="openMbtilesDownload()">Download MBTiles…</button>
+                <button type="button" (click)="openMbtilesDownload()" title="URL: https://download.geofabrik.de/europe/austria.html&#10;DOWNLOAD .mbtile format: experimental vector tile package conforming to Shortbread schema for use with MapLibre and other MVT capable software">Download MBTiles…</button>
                 <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
                 <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
                 @if (offlineMapStatus()?.filePath) {
@@ -257,7 +257,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
-    .map-source-settings{border-right:0;padding-right:0}
+    .map-source-settings{border:0;padding:5px 0;box-shadow:none;margin:0}
     .gpx-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:150px;padding:5px 10px}
     .gpx-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .gpx-settings[open]>summary{margin-bottom:2px}
@@ -268,7 +268,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-settings>summary,.opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
-    .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
     .mbtiles-full-path{grid-column:1/-1;display:block;max-width:100%;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
@@ -276,7 +276,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .opacity-content .range-setting input{flex:1;width:auto;min-width:65px}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display strong{flex:0 0 auto}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-settings .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-settings .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
@@ -553,7 +553,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const latHemisphere = latitude < 0 ? 'S' : 'N';
     const lonHemisphere = longitude < 0 ? 'W' : 'E';
     const decimal = `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
-    return `DMS: ${dms}  |  Decimal: ${decimal}`;
+    return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
   }
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
