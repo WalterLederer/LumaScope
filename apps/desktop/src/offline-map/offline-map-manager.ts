@@ -1,16 +1,18 @@
 import { app, dialog, type IpcMainInvokeEvent } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { extname, resolve } from 'node:path';
+import { basename, dirname, extname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-export interface OfflineMapStatus { id:string; available:boolean; filePath:string; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; }
+export interface OfflineMapStatus { id:string; available:boolean; filePath:string; fileName:string; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; }
+export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
-const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,filePath:'',name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
+const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,filePath:'',fileName:'',name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
  private readonly settingsPath=resolve(app.getPath('userData'),'offline-map.json');
  private readonly opened=new Map<string,OpenOfflineMap>();
  private activeId:string|null=null;
  private tileDiagnosticsCount=0;
+ private lastDirectory=app.getPath('documents');
  constructor(){this.restoreMaps();}
  @IpcHandler({name:'OfflineMap.chooseFile'})
  readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>{
@@ -46,12 +48,13 @@ export class OfflineMapManager {
  }
  private restoreMaps():void{
   if(!existsSync(this.settingsPath))return;
-  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;filePath?:unknown};
+  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;filePath?:unknown;lastDirectory?:unknown};
+   if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
    const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
    for(const path of paths){try{this.openFile(path);}catch(error){console.warn('[OfflineMap] Could not restore MBTiles:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath)},null,2),'utf8');}
+ private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),lastDirectory:this.lastDirectory},null,2),'utf8');}
  private openFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.mbtiles')throw new Error('The selected file must have the .mbtiles extension.');
   if(!existsSync(absolutePath))throw new Error('The selected MBTiles file does not exist.');if(this.opened.has(absolutePath))return;
@@ -76,7 +79,7 @@ export class OfflineMapManager {
    const tileStatement=database.prepare('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?');
    const sample=database.prepare('SELECT tile_data FROM tiles LIMIT 1').get() as {tile_data?:Uint8Array}|undefined;
    if(!sample?.tile_data||Buffer.from(sample.tile_data).subarray(0,2).toString('hex')!=='1f8b')throw new Error('The MBTiles tiles are not gzip-compressed PBF data.');
-   const status:OfflineMapStatus={id:absolutePath,available:true,filePath:absolutePath,name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null};
+   const status:OfflineMapStatus={id:absolutePath,available:true,filePath:absolutePath,fileName:basename(absolutePath),name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null};
    this.opened.set(absolutePath,{database,tileStatement,status,bounds,area:(bounds[2]-bounds[0])*(bounds[3]-bounds[1])});if(!this.activeId)this.activeId=absolutePath;
   }catch(error){database.close();throw error;}
  }
