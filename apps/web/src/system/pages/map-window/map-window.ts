@@ -1030,8 +1030,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (generation !== this.mapSourceGeneration || (this.mapSource() !== 'online' && !allowOfflineFallback)) return;
     this.leaflet = leaflet;
     const center: [number, number] = [latitude, longitude];
-    this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
+    const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
+    this.map = map;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoom', syncZoom);
