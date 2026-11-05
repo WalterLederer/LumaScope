@@ -534,7 +534,7 @@ export class OfflineMapRenderer {
     this.map.on('moveend', refreshOverlays);
     this.map.on('zoomend', refreshOverlays);
     this.map.on('sourcedata', event => {
-      if (event.sourceId === 'shortbread' && event.isSourceLoaded) refreshOverlays();
+      if ((event.sourceId === 'shortbread' || event.sourceId === 'photo-markers') && event.isSourceLoaded) refreshOverlays();
     });
     this.map.on('click', 'photo-clusters', event => {
       this.clusterPreviewRequestId++;
