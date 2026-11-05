@@ -224,18 +224,21 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             </div>
           </details>
           <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
-            <summary>Marker<br><span class="marker-description">Show all geotagged images in this folder</span></summary>
+            <summary><span class="marker-title">Marker</span><span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
-              <label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
+              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
               <div class="marker-appearance-settings">
-                <span>Cluster Icons:</span>
-                <label>Shape
-                  <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
-                    <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
-                  </select>
-                </label>
-                <label>Color</label>
-                <div class="color-picker">
+                <div class="marker-setting-row">
+                  <span>Cluster Icons:</span>
+                  <label>Shape
+                    <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
+                      <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="marker-setting-row">
+                  <label>Color</label>
+                  <div class="color-picker">
                   <button type="button" class="color-picker-trigger" (click)="toggleMarkerColorMenu()" [attr.aria-expanded]="markerColorMenuOpen()" aria-label="Folder marker color and visibility">
                     @if (markerColorVisible()) {
                       <span class="color-swatch" [style.background]="markerColor() === 'dynamic' ? '#34c759' : markerColor()" [style.color]="selectedMarkerTextColor()">{{ markerColor() === 'dynamic' ? 'Dynamic' : markerColor() }}</span>
@@ -252,6 +255,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                       }
                     </div>
                   }
+                  </div>
                 </div>
               </div>
               @if (directoryMarkersEnabled()) {
@@ -346,10 +350,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);border-bottom:0;padding:7px 0 0;gap:8px}
-    .marker-settings summary{cursor:pointer;font-weight:700;font-size:13px;line-height:1.4;white-space:nowrap}
+    .marker-settings summary{display:flex;flex-direction:column;align-items:flex-start;gap:2px;cursor:pointer;font-weight:700;font-size:13px;line-height:1.4;white-space:normal;text-align:left}
     .location-settings>summary,.map-source-settings>summary,.opacity-settings>summary,.gpx-settings>summary{font-size:13px;font-weight:700;line-height:1.4}
-    .marker-settings summary .marker-description{margin-left:8px;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400}
-    .marker-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
+    .marker-settings summary .marker-description{display:block;margin:0;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400;text-align:left}
+    .marker-settings-content{display:flex;flex:1 1 100%;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0;text-align:left}
+    .marker-setting-row{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-width:0;text-align:left}
+    .marker-appearance-settings{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
+    .marker-progress-row,.marker-statistics,.marker-status{align-self:flex-start;text-align:left}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
     .marker-progress-row{display:flex;flex:1 1 100%;align-items:center;gap:10px;min-width:0}
     .marker-progress{flex:1 1 auto;width:auto;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
@@ -1009,7 +1016,9 @@ export class MapWindow implements OnInit, OnDestroy {
       status.id,
       status.minZoom,
       status.maxZoom,
-      status.bounds?.split(',').map(Number) as [number, number, number, number] | undefined
+      status.bounds?.split(',').map(Number) as [number, number, number, number] | undefined,
+      status.schema ?? 'shortbread',
+      status.vectorLayers ?? []
     );
     this.offlineRenderer = renderer;
     try {
