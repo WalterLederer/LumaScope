@@ -14,7 +14,7 @@ The test uses the external [PySide6-OsmAnd-SDK](https://github.com/OliverZhaohai
 - Git
 - Python 3.12 or newer
 - CMake
-- Qt 6.10.1 MinGW kit at `C:\Qt\6.10.1\mingw_64`
+- Qt 6.12.0 MinGW kit at `C:\Qt\6.12.0\mingw_64`
 - MinGW 13.1 at `C:\Qt\Tools\mingw1310_64`
 
 The SDK's helper build currently uses the Qt/MinGW toolchain. Visual Studio alone is not sufficient for this first raster-renderer test.
