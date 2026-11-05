@@ -15,13 +15,14 @@ export class OfflineMapManager {
  private lastDirectory=app.getPath('documents');
  constructor(){this.restoreMaps();}
  @IpcHandler({name:'OfflineMap.chooseFile'})
- readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>{
-  const result=await dialog.showOpenDialog({title:'Add offline MBTiles maps',properties:['openFile','multiSelections'],filters:[{name:'MBTiles database',extensions:['mbtiles']}]});
-  if(result.canceled||!result.filePaths.length)return this.getMaps();
+ readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapImportResult>=>{
+  const result=await dialog.showOpenDialog({title:'Add offline MBTiles maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'MBTiles database',extensions:['mbtiles']}]});
+  if(result.canceled||!result.filePaths.length)return {maps:this.getMaps(),errors:[]};
+  this.lastDirectory=dirname(result.filePaths[0]);
   const errors:string[]=[];
   for(const filePath of result.filePaths){try{this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
   this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some MBTiles files could not be added:',errors);
-  return this.getMaps();
+  return {maps:this.getMaps(),errors};
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status}));
