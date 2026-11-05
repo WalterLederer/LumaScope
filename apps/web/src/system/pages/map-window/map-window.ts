@@ -85,6 +85,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </select>
               </label>
               <div class="mbtiles-selection">
+                <button type="button" (click)="openMbtilesDownload()">Download MBTiles…</button>
                 <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
                 <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
                 @if (offlineMapStatus()?.filePath) {
@@ -94,8 +95,17 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             </div>
           </details>
           <details class="settings-group opacity-settings">
-            <summary>Opacity</summary>
+            <summary>View</summary>
             <div class="opacity-content">
+              <div class="zoom-control">
+                <span class="zoom-label">Zoom</span>
+                <div class="zoom-buttons">
+                  <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+                  <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+                </div>
+                <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+                <span class="zoom-value">{{ zoomLevel() }}</span>
+              </div>
               <label class="range-setting">Map
                 <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
                 <span class="range-value">{{ mapOpacity() }}%</span>
@@ -114,42 +124,34 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </label>
             </div>
           </details>
-          <div class="settings-group zoom-settings">
-            <div class="zoom-control">
-              <span class="zoom-label">Zoom</span>
-              <div class="zoom-buttons">
-                <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-                <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+
+          <details class="settings-group gpx-settings">
+            <summary>GPX track</summary>
+            <div class="gpx-settings-content">
+              <button type="button" (click)="importGpxTrack()">Import GPX…</button>
+              <div class="color-picker">
+                <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
+                  @if (gpxVisible()) {
+                    <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
+                    <span>{{ selectedGpxColorName() }}</span>
+                  } @else { <span>Off</span> }
+                  <span class="color-picker-chevron">▾</span>
+                </button>
+                @if (colorMenuOpen()) {
+                  <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
+                    <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+                    @for (color of gpxColors; track color.value) {
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
+                        <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+                      </button>
+                    }
+                  </div>
+                }
               </div>
-              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-              <span class="zoom-value">{{ zoomLevel() }}</span>
+              @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
+              @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
             </div>
-          </div>
-          <div class="settings-group gpx-settings">
-            <strong class="settings-row-title">GPX track:</strong>
-            <button type="button" (click)="importGpxTrack()">Import GPX…</button>
-            <div class="color-picker">
-              <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
-                @if (gpxVisible()) {
-                  <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
-                  <span>{{ selectedGpxColorName() }}</span>
-                } @else { <span>Off</span> }
-                <span class="color-picker-chevron">▾</span>
-              </button>
-              @if (colorMenuOpen()) {
-                <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
-                  <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
-                  @for (color of gpxColors; track color.value) {
-                    <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
-                      <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-            @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
-            @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
-          </div>
+          </details>
           <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
             <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
@@ -181,7 +183,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </div>
               </div>
               <div class="marker-current-appearance-settings">
-                <strong>Marker Icon:</strong>
+                <strong>Location Icon:</strong>
                 <label>Shape
                   <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
                     <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
@@ -203,6 +205,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   }
                 </div>
               </div>
+              <div class="address-settings">
+                <strong class="settings-row-title">Address:</strong>
+                <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
+              </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-row">
                   <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
@@ -213,10 +219,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               }
             </div>
           </details>
-          <div class="settings-group address-settings">
-            <strong class="settings-row-title">Address:</strong>
-            <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
-          </div>
+
         </section>
       }
       <div #map class="map" [class.map-hidden]="!coordinatesAvailable()"></div>
@@ -240,6 +243,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
+    .gpx-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:150px;padding:5px 10px}
+    .gpx-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .gpx-settings[open]>summary{margin-bottom:2px}
+    .gpx-settings-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+    .opacity-content .zoom-control{grid-column:1/-1;width:100%}
+    .address-settings{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px;flex:1 1 100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
+
     .map-source-settings>summary,.opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
@@ -930,6 +940,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const status = await this.desktop.OfflineMap.chooseFile(); this.offlineMapStatus.set(status);
     if (status.available) this.changeMapSource('offline');
+  };
+  protected readonly openMbtilesDownload = (): void => {
+    window.open('https://download.geofabrik.de/europe/austria.html', '_blank', 'noopener,noreferrer');
   };
   protected readonly changeMapStyle = (value: string): void => {
     if (!(value in this.styles)) return;
