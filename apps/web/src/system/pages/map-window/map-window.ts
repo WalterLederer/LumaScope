@@ -980,8 +980,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const status = await this.desktop.OfflineMap.chooseFile(); this.offlineMapStatus.set(status);
     if (status.available) this.changeMapSource('offline');
   };
-  protected readonly openMbtilesDownload = (): void => {
-    window.open('https://download.geofabrik.de/europe/austria.html', '_blank', 'noopener,noreferrer');
+  protected readonly openMbtilesDownload = async (): Promise<void> => {
+    await this.desktop?.ProcessManager.openExternal('https://download.geofabrik.de/europe/austria.html');
   };
   protected readonly changeMapStyle = (value: string): void => {
     if (!(value in this.styles)) return;
