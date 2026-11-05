@@ -105,7 +105,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </div>
               </div>
             </div>
-          </details>
+          </div>
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'map'">
@@ -136,7 +136,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </label>
               
             </div>
-          </details>
+          </div>
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
@@ -166,7 +166,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
               @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
             </div>
-          </details>
+          </div>
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
@@ -214,7 +214,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <div class="marker-status" role="status">{{ markerStatus() }}</div>
               }
             </div>
-          </details>
+          </div>
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
@@ -258,7 +258,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <span class="range-value">{{ locationOpacity() }}%</span>
               </div>
             </div>
-          </details>
+          </div>
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
