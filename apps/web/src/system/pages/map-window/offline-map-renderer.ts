@@ -148,6 +148,8 @@ export class OfflineMapRenderer {
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private photoOpacity = 1;
   private photoClustersVisible = true;
+  private photoClusterColor = 'dynamic';
+  private photoClusterShape: 'double-circle' | 'hexagon' | 'circle' | 'square' = 'double-circle';
   private onPhotoSelected: ((path: string) => void) | null = null;
   private photoPreviewElement: HTMLDivElement | null = null;
   private activePhotoPreviewKey: string | null = null;
@@ -606,13 +608,23 @@ export class OfflineMapRenderer {
       let marker = this.clusterLabels.get(clusterId);
       if (!marker) {
         const element = document.createElement('span');
-        element.style.cssText = 'display:flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 3px;box-sizing:border-box;color:#fff;font:700 12px/22px Segoe UI,Arial,sans-serif;text-shadow:0 1px 2px #000;text-align:center;white-space:nowrap;pointer-events:none;position:relative;z-index:10000;';
+        element.style.cssText = 'display:block;width:56px;height:56px;pointer-events:none;position:relative;z-index:10000;filter:drop-shadow(0 1px 3px #0009);';
         marker = new Marker({ element, anchor: 'center' })
           .setLngLat(feature.geometry.coordinates as [number, number])
           .addTo(this.map);
         this.clusterLabels.set(clusterId, marker);
       }
-      marker.getElement().textContent = String(count);
+      const fill = this.photoClusterColor === 'dynamic'
+        ? count < 10 ? '#34c759' : count < 100 ? '#ffd60a' : '#ff3b30'
+        : this.photoClusterColor;
+      const shapeMarkup = this.photoClusterShape === 'double-circle'
+        ? `<circle cx="28" cy="28" r="25" fill="${fill}" stroke="#fff" stroke-width="2.5"/><circle cx="28" cy="28" r="18" fill="none" stroke="#fff" stroke-width="1.5" opacity=".9"/>`
+        : this.photoClusterShape === 'hexagon'
+          ? `<polygon points="28,2 51,15 51,41 28,54 5,41 5,15" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`
+          : this.photoClusterShape === 'circle'
+            ? `<circle cx="28" cy="28" r="25" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`
+            : `<rect x="3" y="3" width="50" height="50" rx="3" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`;
+      marker.getElement().innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><g opacity="${this.photoOpacity}">${shapeMarkup}<text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${count < 100 ? 15 : 14}" font-weight="700" fill="#fff" stroke="#222" stroke-width=".6" paint-order="stroke" >${count}</text></g></svg>`;
       marker.setLngLat(feature.geometry.coordinates as [number, number]);
     }
     for (const [clusterId, marker] of this.clusterLabels) {
@@ -910,19 +922,21 @@ export class OfflineMapRenderer {
     for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
   }
 
-  setPhotoClusterStyle(color: string, visible: boolean): void {
+  setPhotoClusterStyle(color: string, visible: boolean, shape: 'double-circle' | 'hexagon' | 'circle' | 'square' = this.photoClusterShape): void {
     if (!this.map.getLayer('photo-clusters')) return;
-    const fill = !visible ? 'transparent' : color === 'dynamic'
-      ? ['step', ['get', 'point_count'], '#34c759', 10, '#ffd60a', 100, '#ff3b30']
-      : color;
     this.photoClustersVisible = visible;
-    this.map.setPaintProperty('photo-clusters', 'circle-color', fill as never);
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', visible ? 0.95 * this.photoOpacity : 0);
-    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', visible ? this.photoOpacity : 0);
-    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', visible ? 2 : 0);
+    this.photoClusterColor = color;
+    this.photoClusterShape = shape;
+    // Cluster artwork is rendered as SVG DOM markers so all four shapes remain
+    // crisp at every zoom level and match the online cluster icon geometry.
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     if (!visible) {
       for (const marker of this.clusterLabels.values()) marker.remove();
       this.clusterLabels.clear();
+    } else {
+      this.refreshClusterLabels();
     }
   }
 
