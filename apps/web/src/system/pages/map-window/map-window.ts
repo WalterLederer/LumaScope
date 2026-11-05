@@ -97,7 +97,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             </div>
           </details>
           <details class="settings-group map-source-settings" open>
-            <summary>Map Source</summary>
+            <summary>Map</summary>
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
@@ -175,7 +175,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           </details>
 
           <details class="settings-group gpx-settings">
-            <summary>GPX track</summary>
+            <summary>Track</summary>
             <div class="gpx-settings-content">
               <button type="button" (click)="importGpxTrack()">Import GPX…</button>
               <div class="color-picker">
