@@ -446,6 +446,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
+  private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
+    if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
+  }).catch(error => console.error('Could not restore map zoom:', error)) ?? Promise.resolve();
   protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
   protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
@@ -799,6 +802,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const zoom = this.validZoom(value);
     this.zoomLevel.set(zoom);
     this.saveSetting('zoom', zoom);
+    void this.desktop?.MapWindow.setZoom(zoom).catch(error => console.error('Could not save map zoom:', error));
   }
 
   protected readonly onMarkerSectionToggle = (event: Event): void => {
@@ -906,6 +910,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
+    await this.mapZoomRestore;
     let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'offline') {
       const selected = await this.desktop?.OfflineMap.selectForCoordinates(latitude, longitude) ?? null;
