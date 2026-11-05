@@ -1206,7 +1206,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
-    const next = this.validZoom(zoom); this.zoomLevel.set(next); this.saveSetting('zoom', next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
+    const next = this.validZoom(zoom); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel()) + direction);
