@@ -905,9 +905,12 @@ export class OfflineMapRenderer {
     this.photoOpacity = opacity;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
-    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', this.photoClustersVisible ? opacity : 0);
-    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', this.photoClustersVisible ? 2 : 0);
+    // Cluster circles are replaced by SVG DOM markers; keep the native
+    // MapLibre circles hidden when the marker opacity changes.
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
+    this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
+    this.refreshClusterLabels();
   }
 
   setBasemapOpacity(opacity: number): void {
