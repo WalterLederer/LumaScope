@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$SdkRoot = (Join-Path $env:LOCALAPPDATA 'LumaScope\OsmAnd-SDK'),
-    [string]$QtRoot = 'C:\Qt\6.10.1\mingw_64',
+    [string]$QtRoot = 'C:\Qt\6.12.0\mingw_64',
     [string]$MinGWRoot = 'C:\Qt\Tools\mingw1310_64',
     [string]$PythonExe = 'python',
     [string]$CMakeExe = 'cmake',
@@ -36,7 +36,7 @@ Assert-Path (Join-Path $QtRoot 'bin\qmake.exe')
 Assert-Path (Join-Path $MinGWRoot 'bin\g++.exe')
 Assert-Path (Join-Path $MinGWRoot 'bin\mingw32-make.exe')
 
-$pythonVersion = & $PythonExe -c 'import sys; print("%d.%d" % sys.version_info[:2])'
+$pythonVersion = & $PythonExe -c 'import sys; print(sys.version_info[0], sys.version_info[1], sep=".")'
 if ($LASTEXITCODE -ne 0) {
     throw 'Unable to query the selected Python interpreter.'
 }
