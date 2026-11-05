@@ -143,9 +143,17 @@ export class ImageView {
   private readonly desktopApi = (this.document.defaultView as unknown as { desktop?: Desktop } | null)?.desktop;
 
   protected readonly detachedMapWindowOpen = signal(false);
+  protected readonly overlayMapWindowOpen = signal(false);
 
   protected readonly openCaptureWindow = async (): Promise<void> => {
     await this.desktopApi?.CapturePreviewWindow.open();
+  };
+
+  protected readonly openOverlayWindow = async (): Promise<void> => {
+    const api = this.desktopApi?.MapOverlayWindow;
+    if (!api) return;
+    if (this.overlayMapWindowOpen()) { await api.focus(); return; }
+    this.overlayMapWindowOpen.set(true);
   };
 
   protected readonly openLocationWindow = async (): Promise<void> => {
@@ -1660,12 +1668,26 @@ export class ImageView {
       const unsubscribe = mapWindowApi.onStateChanged(open => this.detachedMapWindowOpen.set(open));
       this.destroyRef.onDestroy(unsubscribe);
     }
+    const overlayMapApi = this.desktopApi?.MapOverlayWindow;
+    if (overlayMapApi) {
+      void overlayMapApi.isOpen().then(open => this.overlayMapWindowOpen.set(open));
+      const unsubscribe = overlayMapApi.onStateChanged(open => this.overlayMapWindowOpen.set(open));
+      this.destroyRef.onDestroy(unsubscribe);
+    }
 
     effect(() => {
       const coordinates = this.gpsCoordinates();
       const imagePath = this.debugSelectedImagePath === 'unknown' || this.debugSelectedImagePath === 'none' ? null : this.debugSelectedImagePath;
       if (this.detachedMapWindowOpen()) {
         void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath);
+      }
+    });
+
+    effect(() => {
+      const coordinates = this.gpsCoordinates();
+      const imagePath = this.debugSelectedImagePath === 'unknown' || this.debugSelectedImagePath === 'none' ? null : this.debugSelectedImagePath;
+      if (this.overlayMapWindowOpen()) {
+        void this.desktopApi?.MapOverlayWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath);
       }
     });
 
