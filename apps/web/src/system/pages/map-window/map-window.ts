@@ -999,7 +999,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeMarkersVisibility = (visible: boolean): void => {
     this.markersVisible.set(visible); this.saveSetting('markersVisible', visible);
-    const opacity = visible ? (this.markersVisible() ? this.markerOpacity() / 100 : 0) : 0;
+    const opacity = visible ? this.markerOpacity() / 100 : 0;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(opacity));
     for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(opacity);
     this.directoryMarkerGroup?.refreshClusters?.();
@@ -1007,7 +1007,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeLocationVisibility = (visible: boolean): void => {
     this.locationVisible.set(visible); this.saveSetting('locationVisible', visible);
-    const opacity = visible ? (this.locationVisible() ? this.locationOpacity() / 100 : 0) : 0;
+    const opacity = visible ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
   };
