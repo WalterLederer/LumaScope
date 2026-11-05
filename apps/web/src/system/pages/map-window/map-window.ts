@@ -130,7 +130,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </select>
               </label>
               <div class="mbtiles-selection">
-                <button type="button" (click)="openMbtilesDownload()" title="URL: https://download.geofabrik.de/europe/austria.html&#10;DOWNLOAD .mbtile format: experimental vector tile package conforming to Shortbread schema for use with MapLibre and other MVT capable software">Download MBTiles…</button>
+                <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
+                  <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
+                  <option value="limaps">Limaps — Regional and Planet MBTiles</option>
+                </select>
+                <button type="button" (click)="openMbtilesDownload()" title="Open the selected MBTiles download catalogue in your default browser">Open download page…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
@@ -314,7 +318,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-select{width:340px;max-width:none}
-    .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
+    .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
+    .mbtiles-download-source{min-width:0;max-width:100%;}
     .mbtiles-map-list{grid-column:1/-1;display:grid;gap:4px;min-width:0}
     .mbtiles-map-entry{display:grid;grid-template-columns:minmax(100px,1fr) minmax(180px,2fr) auto;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
     .mbtiles-map-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
@@ -425,6 +430,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
+  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : 'geofabrik');
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -1114,8 +1120,16 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
+  protected readonly changeMbtilesDownloadSource = (value: string): void => {
+    if (value !== 'geofabrik' && value !== 'limaps') return;
+    this.mbtilesDownloadSource.set(value);
+    this.saveSetting('mbtilesDownloadSource', value);
+  };
   protected readonly openMbtilesDownload = async (): Promise<void> => {
-    await this.desktop?.ProcessManager.openExternal('https://download.geofabrik.de/europe/austria.html');
+    const url = this.mbtilesDownloadSource() === 'limaps'
+      ? 'https://www.limaps.org/tileserver.html'
+      : 'https://download.geofabrik.de/europe/austria.html';
+    await this.desktop?.ProcessManager.openExternal(url);
   };
   protected readonly changeMapStyle = (value: string): void => {
     if (!(value in this.styles)) return;
