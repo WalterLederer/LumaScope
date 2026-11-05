@@ -226,6 +226,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
           <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
             <summary>Marker <span class="marker-description">Show all geotagged images in this folder</span></summary>
             <div class="marker-settings-content">
+              <label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
               <div class="marker-appearance-settings">
                 <span>Cluster Icons:</span>
                 <label>Shape
@@ -466,7 +467,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
   protected readonly gpxError = signal('');
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
-  protected readonly directoryMarkersEnabled = signal(false);
+  protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
   protected readonly markerFilesChecked = signal(0);
   protected readonly markerFilesTotal = signal(0);
   protected readonly markerCount = signal(0);
