@@ -233,6 +233,8 @@ export interface DesktopOfflineMap {
 }
 
 export interface DesktopMapWindow {
+  readonly getZoom: () => Promise<number>;
+  readonly setZoom: (zoom: number) => Promise<void>;
   readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => Promise<boolean>;
   readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>;
   readonly close: () => Promise<void>;
