@@ -49,8 +49,18 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
-          <details class="settings-group location-settings" open>
-            <summary>Location</summary>
+<nav class="settings-tabs" role="tablist" aria-label="Location settings">
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'map'" [attr.aria-selected]="activeSettingsTab() === 'map'" (click)="selectSettingsTab('map')">Map</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
+</nav>
+<div class="settings-tab-panels">
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
+<div class="settings-tab-content location-tab">
+            
             <div class="location-settings-content">
               <div class="location-coordinate-display"><span>{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="address-settings">
@@ -96,8 +106,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </div>
             </div>
           </details>
-          <details class="settings-group map-source-settings" open>
-            <summary>Map</summary>
+
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'map'">
+<div class="settings-tab-content map-tab">
+            
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
@@ -112,14 +125,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                     <option value="humanitarian">Humanitarian (HOT)</option>
                   </select>
                 </label>
-              } @else {
-                <label><span>Offline Style:</span>
-                  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
-                    <option value="lumascope">LumaScope</option>
-                    <option value="versatiles-colorful">VersaTiles Colorful</option>
-                    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
-                  </select>
-                </label>
               }
               <label><span>Color:</span>
                 <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
@@ -129,75 +134,14 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
                 </select>
               </label>
-              <div class="mbtiles-selection">
-                <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
-                  <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
-                  <option value="limaps">Limaps — Regional and Planet MBTiles</option>
-                  <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
-                </select>
-                <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
-                <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
-                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
-                @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
-                </span>
-                <div class="mbtiles-map-list">
-                  @for (map of offlineMaps(); track map.id) {
-                    <div class="mbtiles-map-entry">
-                      <span class="mbtiles-map-name" [title]="map.name">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
-                      <span class="mbtiles-map-details"><strong>{{ map.fileName }}</strong><br>{{ map.filePath }}<br>{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
-                      <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
-                    </div>
-                  }
-                  @if (offlineMaps().length === 0) { <span class="offline-map-status">No offline maps loaded.</span> }
-                  @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
-                </div>
-              </div>
-            </div>
-          </details>
-          <details class="settings-group opacity-settings">
-            <summary>View</summary>
-            <div class="opacity-content">
-              @if (overlayMode) {
-                <div class="range-setting overlay-opacity-setting">
-                  <label for="overlay-opacity">Overlay Opacity</label>
-                  <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" aria-label="Overlay opacity">
-                  <span class="range-value">{{ overlayOpacity() }}%</span>
-                </div>
-              }
-              <div class="zoom-control">
-                <span class="zoom-label">Zoom</span>
-                <div class="zoom-buttons">
-                  <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-                  <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
-                </div>
-                <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-                <span class="zoom-value">{{ zoomLevel() }}</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"> Map</label>
-                <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
-                <span class="range-value">{{ mapOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"> Track</label>
-                <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-                <span class="range-value">{{ gpxOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"> Markers</label>
-                <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
-                <span class="range-value">{{ markerOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"> Location</label>
-                <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
-                <span class="range-value">{{ locationOpacity() }}%</span>
-              </div>
+              
             </div>
           </details>
 
-          <details class="settings-group gpx-settings">
-            <summary>Track</summary>
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
+<div class="settings-tab-content track-tab">
+            
             <div class="gpx-settings-content">
               <button type="button" (click)="importGpxTrack()">Import GPX…</button>
               <div class="color-picker">
@@ -223,8 +167,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
             </div>
           </details>
-          <details class="settings-group marker-settings" [open]="markerSectionOpen()" (toggle)="onMarkerSectionToggle($event)">
-            <summary><span class="marker-title">Marker</span><span class="marker-description">Show all geotagged images in this folder</span></summary>
+
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
+<div class="settings-tab-content marker-tab">
+            
             <div class="marker-settings-content">
               <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
               <div class="marker-appearance-settings">
@@ -269,7 +216,84 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             </div>
           </details>
 
-        </section>
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
+<div class="settings-tab-content view-tab">
+            
+            <div class="opacity-content">
+              @if (overlayMode) {
+                <div class="range-setting overlay-opacity-setting">
+                  <label for="overlay-opacity">Overlay Opacity</label>
+                  <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" aria-label="Overlay opacity">
+                  <span class="range-value">{{ overlayOpacity() }}%</span>
+                </div>
+              }
+              <div class="zoom-control">
+                <span class="zoom-label">Zoom</span>
+                <div class="zoom-buttons">
+                  <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+                  <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+                </div>
+                <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+                <span class="zoom-value">{{ zoomLevel() }}</span>
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"> Map</label>
+                <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+                <span class="range-value">{{ mapOpacity() }}%</span>
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"> Track</label>
+                <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+                <span class="range-value">{{ gpxOpacity() }}%</span>
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"> Markers</label>
+                <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+                <span class="range-value">{{ markerOpacity() }}%</span>
+              </div>
+              <div class="range-setting">
+                <label class="visibility-toggle"><input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"> Location</label>
+                <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+                <span class="range-value">{{ locationOpacity() }}%</span>
+              </div>
+            </div>
+          </details>
+
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
+<div class="mbtiles-selection"><label class="offline-style-control"><span>Offline Style:</span>
+  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+    <option value="lumascope">LumaScope</option>
+    <option value="versatiles-colorful">VersaTiles Colorful</option>
+    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+  </select>
+</label>
+                <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
+                  <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
+                  <option value="limaps">Limaps — Regional and Planet MBTiles</option>
+                  <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
+                </select>
+                <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
+                <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
+                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
+                @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
+                </span>
+                <div class="mbtiles-map-list">
+                  @for (map of offlineMaps(); track map.id) {
+                    <div class="mbtiles-map-entry">
+                      <span class="mbtiles-map-name" [title]="map.name">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
+                      <span class="mbtiles-map-details"><strong>{{ map.fileName }}</strong><br>{{ map.filePath }}<br>{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
+                      <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
+                    </div>
+                  }
+                  @if (offlineMaps().length === 0) { <span class="offline-map-status">No offline maps loaded.</span> }
+                  @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
+                </div>
+              </div>
+</div>
+</div>
+</section>
       }
       <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
       @if (!coordinatesAvailable()) {
@@ -309,7 +333,19 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:1000;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box}
+    .map-settings{position:relative;z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;max-height:48vh;overflow:auto}
+    .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
+    .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
+    .settings-tab.active{border-bottom-color:#8ab4f8;background:var(--color-surface-default-medium,#343943)}
+    .settings-tab-panels{min-width:0}
+    .settings-tab-panel[hidden]{display:none}
+    .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
+    .settings-tab-content>summary{display:none}
+    .settings-tab-content.location-tab{width:100%}
+    .settings-tab-content.map-tab{width:100%}
+    .settings-tab-content.track-tab,.settings-tab-content.marker-tab,.settings-tab-content.view-tab{width:100%}
+    .settings-tab-content.offlineMaps-tab{width:100%}
+
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
     .map-source-settings{border:0;padding:5px 0;box-shadow:none;margin:0}
@@ -325,7 +361,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-select{width:340px;max-width:none}
-    .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
+    .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
     .mbtiles-download-source{min-width:0;max-width:100%;}
     .mbtiles-map-list{grid-column:1/-1;display:grid;grid-auto-rows:auto;gap:6px;min-width:0;max-height:none;overflow:visible}
     .mbtiles-map-entry{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,3fr) auto;align-items:start;gap:8px;padding:6px 8px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
@@ -344,7 +380,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
-    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
+    .marker-appearance-settings{display:flex;align-items:flex-start;flex-direction:column;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
     .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .location-settings .marker-current-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1 1 100%;min-width:0}.location-settings .marker-current-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
@@ -432,7 +468,9 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
+  protected readonly selectSettingsTab = (tab: 'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps'): void => this.activeSettingsTab.set(tab);
   protected readonly settingsOpen = signal(false);
+  protected readonly activeSettingsTab = signal<'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps'>('location');
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
