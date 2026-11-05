@@ -72,9 +72,11 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
 export class OfflineMapRenderer {
   readonly map: MapLibreMap;
   readonly ready: Promise<void>;
-  private currentMarker: Marker | null = null;
+  private currentMarkerElement: HTMLElement | null = null;
+  private currentLocation: [number, number] | null = null;
+  private readonly overlayElement: HTMLDivElement;
   private readonly clusterLabels = new Map<number, Marker>();
-  private readonly textLabels = new Map<string, Marker>();
+  private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
@@ -275,6 +277,14 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
+    // overlay is positioned from MapLibre's current projection on every render,
+    // avoiding marker CSS transforms that can drift relative to the tile canvas.
+    this.overlayElement = document.createElement('div');
+    this.overlayElement.className = 'offline-map-geographic-overlay';
+    this.overlayElement.style.cssText = 'position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:20;';
+    this.map.getContainer().appendChild(this.overlayElement);
+    this.map.on('render', this.updateOverlayPositions);
     // Temporary diagnostics: compare physical pointer movement with MapLibre's
     // container/canvas geometry and camera state for each completed drag.
     const mapContainer = this.map.getContainer();
@@ -480,11 +490,9 @@ export class OfflineMapRenderer {
     const labelSources = [
       { layerId: 'label-places-anchor', sourceLayer: 'place_labels', kind: 'place' },
       { layerId: 'label-boundaries-anchor', sourceLayer: 'boundary_labels', kind: 'boundary' },
-      { layerId: 'label-water-anchor', sourceLayer: 'water_lines_labels', kind: 'water' },
       { layerId: 'label-water-polygons-anchor', sourceLayer: 'water_polygons_labels', kind: 'water' },
       { layerId: 'label-street-polygons-anchor', sourceLayer: 'streets_polygons_labels', kind: 'street' },
       { layerId: 'label-street-points-anchor', sourceLayer: 'street_labels_points', kind: 'street' },
-      { layerId: 'label-streets-anchor', sourceLayer: 'street_labels', kind: 'street' },
       { layerId: 'label-public-transport-anchor', sourceLayer: 'public_transport', kind: 'poi' },
       { layerId: 'label-pois-anchor', sourceLayer: 'pois', kind: 'poi' }
     ];
@@ -551,11 +559,9 @@ export class OfflineMapRenderer {
       const { key, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
       visible.add(key);
-      const existingMarker = this.textLabels.get(key);
-      if (existingMarker) {
-        // Keep the original geographic anchor. Repositioning it from a newly
-        // clipped tile fragment makes line labels drift while panning.
-        existingMarker.getElement().textContent = text;
+      const existingLabel = this.textLabels.get(key);
+      if (existingLabel) {
+        existingLabel.element.textContent = text;
         continue;
       }
       const dedupeKey = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
@@ -574,18 +580,23 @@ export class OfflineMapRenderer {
       const weight = kind === 'capital' || kind === 'state_capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
       element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
-      const marker = new Marker({ element, anchor: 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
-      this.textLabels.set(key, marker);
+      element.style.position = 'absolute';
+      element.style.left = '0';
+      element.style.top = '0';
+      element.style.transform = 'translate(-50%, -50%)';
+      const coordinates: [number, number] = [longitude, latitude];
+      this.overlayElement.appendChild(element);
+      this.textLabels.set(key, { element, coordinates });
     }
     for (const [key, marker] of this.textLabels) {
       if (visible.has(key)) continue;
       // A transiently incomplete tile query must not erase labels. Retain their
       // geographic markers while they remain near the viewport; remove only
       // after their fixed anchor has actually moved well off-screen.
-      const point = this.map.project(marker.getLngLat());
+      const point = this.map.project(marker.coordinates);
       if (point.x >= -260 && point.y >= -60
         && point.x <= width + 260 && point.y <= height + 60) continue;
-      marker.remove();
+      marker.element.remove();
       this.textLabels.delete(key);
     }
     if (!this.labelSourceDiagnosticLogged) {
@@ -638,6 +649,19 @@ export class OfflineMapRenderer {
     return coordinates[coordinates.length - 1];
   }
 
+  private readonly updateOverlayPositions = (): void => {
+    if (this.currentMarkerElement && this.currentLocation) {
+      const point = this.map.project(this.currentLocation);
+      this.currentMarkerElement.style.left = `${point.x}px`;
+      this.currentMarkerElement.style.top = `${point.y}px`;
+    }
+    for (const label of this.textLabels.values()) {
+      const point = this.map.project(label.coordinates);
+      label.element.style.left = `${point.x}px`;
+      label.element.style.top = `${point.y}px`;
+    }
+  };
+
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
     const element = document.createElement('div');
     element.className = 'offline-current-location-marker';
@@ -652,20 +676,25 @@ export class OfflineMapRenderer {
     const height = shape === 'pin' ? 44 : 36;
     element.style.cssText = `width:${width}px;height:${height}px;display:block;pointer-events:none;filter:drop-shadow(0 1px 3px #000b);opacity:${opacity};`;
     element.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}" style="display:block;overflow:visible">${shapeMarkup}</svg>`;
-    if (this.currentMarker) this.currentMarker.remove();
-    this.currentMarker = new Marker({ element, anchor: shape === 'pin' ? 'bottom' : 'center' }).setLngLat([longitude, latitude]).addTo(this.map);
-    this.currentMarker.getElement().style.zIndex = '10000';
-    this.currentMarker.getElement().style.pointerEvents = 'none';
-    this.currentMarker.getElement().style.display = 'block';
+    if (this.currentMarkerElement) this.currentMarkerElement.remove();
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.transform = shape === 'pin' ? 'translate(-50%, -100%)' : 'translate(-50%, -50%)';
+    element.style.zIndex = '10000';
+    this.currentMarkerElement = element;
+    this.currentLocation = [longitude, latitude];
+    this.overlayElement.appendChild(element);
+    this.updateOverlayPositions();
   }
 
   updateCurrentLocation(latitude: number, longitude: number): void {
-    this.currentMarker?.setLngLat([longitude, latitude]);
+    this.currentLocation = [longitude, latitude];
+    this.updateOverlayPositions();
   }
 
   setCurrentOpacity(opacity: number): void {
-    const element = this.currentMarker?.getElement();
-    if (element) element.style.opacity = String(opacity);
+    if (this.currentMarkerElement) this.currentMarkerElement.style.opacity = String(opacity);
   }
 
   setPhotoMarkers(markers: OfflinePhotoMarker[], onSelected: (path: string) => void, opacity: number): void {
@@ -755,11 +784,15 @@ export class OfflineMapRenderer {
     this.map.off('move', this.onDiagnosticMapMove);
     this.map.off('dragstart', this.onDiagnosticMapDragStart);
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
-    this.currentMarker?.remove();
+    this.map.off('render', this.updateOverlayPositions);
+    this.currentMarkerElement?.remove();
+    this.currentMarkerElement = null;
+    this.currentLocation = null;
     for (const marker of this.clusterLabels.values()) marker.remove();
     this.clusterLabels.clear();
-    for (const marker of this.textLabels.values()) marker.remove();
+    for (const marker of this.textLabels.values()) marker.element.remove();
     this.textLabels.clear();
+    this.overlayElement.remove();
     this.map.remove();
   }
 }
