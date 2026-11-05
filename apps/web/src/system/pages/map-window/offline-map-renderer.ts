@@ -150,6 +150,7 @@ export class OfflineMapRenderer {
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
   private photoPreviewPopup: Popup | null = null;
+  private activePhotoPreviewKey: string | null = null;
   private clusterPreviewRequestId = 0;
   private lastMapError: string | null = null;
   private labelSourceDiagnosticLogged = false;
@@ -538,24 +539,43 @@ export class OfflineMapRenderer {
       if (typeof path === 'string') {
         this.photoPreviewPopup?.remove();
         this.photoPreviewPopup = null;
+        this.activePhotoPreviewKey = null;
         this.onPhotoSelected?.(path);
       }
     });
-    this.map.on('mouseenter', 'photo-unclustered', event => {
-      const feature = event.features?.[0];
+    // Query the rendered layer on pointer movement instead of relying on
+    // delegated layer mouseenter events. This is more reliable with the
+    // additional geographic overlay used by the offline renderer.
+    this.map.on('mousemove', event => {
+      const feature = this.map.queryRenderedFeatures(event.point, { layers: ['photo-unclustered'] })[0];
       const path = feature?.properties?.['path'];
       const fileName = feature?.properties?.['fileName'];
-      if (typeof path !== 'string' || typeof fileName !== 'string' || feature?.geometry.type !== 'Point') return;
+      if (typeof path !== 'string' || typeof fileName !== 'string' || feature?.geometry.type !== 'Point') {
+        if (this.activePhotoPreviewKey !== null) {
+          this.photoPreviewPopup?.remove();
+          this.photoPreviewPopup = null;
+          this.activePhotoPreviewKey = null;
+        }
+        return;
+      }
+      const previewKey = path;
+      if (this.activePhotoPreviewKey === previewKey && this.photoPreviewPopup) {
+        this.photoPreviewPopup.setLngLat(event.lngLat);
+        return;
+      }
       this.photoPreviewPopup?.remove();
+      this.activePhotoPreviewKey = previewKey;
       this.photoPreviewPopup = new Popup({
         closeButton: false, closeOnClick: false, offset: 14, className: 'folder-marker-tooltip'
-      }).setLngLat(feature.geometry.coordinates as [number, number])
+      }).setLngLat(event.lngLat)
         .setHTML(buildPhotoMarkerPreviewHtml(path, fileName))
         .addTo(this.map);
+      this.photoPreviewPopup.getElement().style.zIndex = '30';
     });
-    this.map.on('mouseleave', 'photo-unclustered', () => {
+    this.map.on('mouseout', () => {
       this.photoPreviewPopup?.remove();
       this.photoPreviewPopup = null;
+      this.activePhotoPreviewKey = null;
     });
     this.map.on('mouseenter', 'photo-clusters', () => { this.map.getCanvas().style.cursor = 'pointer'; });
     this.map.on('mouseleave', 'photo-clusters', () => { this.map.getCanvas().style.cursor = ''; });
