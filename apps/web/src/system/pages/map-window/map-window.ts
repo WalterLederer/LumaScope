@@ -812,6 +812,19 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerSectionOpen.set(section.open);
     this.saveSetting('markerSectionOpen', section.open);
   };
+  protected readonly changeDirectoryMarkersEnabled = (enabled: boolean): void => {
+    this.directoryMarkersEnabled.set(enabled);
+    this.saveSetting('directoryMarkersEnabled', enabled);
+    if (enabled) {
+      void this.scanDirectoryMarkers();
+      return;
+    }
+    this.markerScanGeneration++;
+    this.clearDirectoryMarkers();
+    this.markerFilesChecked.set(0);
+    this.markerFilesTotal.set(0);
+    this.markerStatus.set('');
+  };
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
     this.directoryMarkers.length = 0;
