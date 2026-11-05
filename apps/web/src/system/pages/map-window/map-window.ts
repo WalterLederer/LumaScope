@@ -96,7 +96,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <summary>Map Source</summary>
             <div class="map-source-content">
               <label><span>Source:</span>
-                <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
+                <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
                   <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Austria Shortbread (MBTiles)</option>
                 </select>
               </label>
@@ -273,6 +273,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
+    .map-source-select{width:340px;max-width:none}
     .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
     .mbtiles-full-path{grid-column:1/-1;display:block;max-width:100%;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
