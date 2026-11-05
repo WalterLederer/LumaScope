@@ -135,7 +135,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="limaps">Limaps — Regional and Planet MBTiles</option>
                   <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
                 </select>
-                <button type="button" (click)="openMbtilesDownload()" title="Open the selected MBTiles download catalogue in your default browser. Download format: experimental vector tile package conforming to the Shortbread schema for use with MapLibre and other MVT-capable software.">Open download page…</button>
+                <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
@@ -1129,6 +1129,15 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'geofabrik' && value !== 'limaps' && value !== 'shortbread') return;
     this.mbtilesDownloadSource.set(value);
     this.saveSetting('mbtilesDownloadSource', value);
+  };
+  protected readonly mbtilesDownloadHint = (): string => {
+    const source = this.mbtilesDownloadSource();
+    const url = source === 'limaps'
+      ? 'https://www.limaps.org/tileserver.html'
+      : source === 'shortbread'
+        ? 'https://shortbread-tiles.org/download/'
+        : 'https://download.geofabrik.de/europe/austria.html';
+    return 'URL: ' + url + '\nDOWNLOAD .mbtile format: experimental vector tile package conforming to the Shortbread schema for use with MapLibre and other MVT capable software.';
   };
   protected readonly openMbtilesDownload = async (): Promise<void> => {
     const source = this.mbtilesDownloadSource();
