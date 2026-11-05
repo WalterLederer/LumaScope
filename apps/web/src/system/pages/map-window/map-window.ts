@@ -774,7 +774,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
     } else return;
     this.markerColorMenuOpen.set(false); this.directoryMarkerGroup?.refreshClusters?.();
-    this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible());
+    this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
   };
   protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
   protected readonly changeAlwaysOnTop = (enabled: boolean): void => {
@@ -811,10 +811,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!(section instanceof HTMLDetailsElement)) return;
     this.markerSectionOpen.set(section.open);
     this.saveSetting('markerSectionOpen', section.open);
-    if (section.open) {
-      this.directoryMarkersEnabled.set(true);
-      void this.scanDirectoryMarkers();
-    }
   };
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
@@ -903,7 +899,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const offlineMarkers: OfflinePhotoMarker[] = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
         this.markerCount.set(offlineMarkers.length);
         this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
-        this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible());
+        this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
       } else this.renderDirectoryMarkers(markers, imagePath);
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
