@@ -133,6 +133,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
                   <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
                   <option value="limaps">Limaps — Regional and Planet MBTiles</option>
+                  <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
                 </select>
                 <button type="button" (click)="openMbtilesDownload()" title="Open the selected MBTiles download catalogue in your default browser">Open download page…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
@@ -430,7 +431,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
-  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : 'geofabrik');
+  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -1121,14 +1122,17 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   protected readonly changeMbtilesDownloadSource = (value: string): void => {
-    if (value !== 'geofabrik' && value !== 'limaps') return;
+    if (value !== 'geofabrik' && value !== 'limaps' && value !== 'shortbread') return;
     this.mbtilesDownloadSource.set(value);
     this.saveSetting('mbtilesDownloadSource', value);
   };
   protected readonly openMbtilesDownload = async (): Promise<void> => {
-    const url = this.mbtilesDownloadSource() === 'limaps'
+    const source = this.mbtilesDownloadSource();
+    const url = source === 'limaps'
       ? 'https://www.limaps.org/tileserver.html'
-      : 'https://download.geofabrik.de/europe/austria.html';
+      : source === 'shortbread'
+        ? 'https://shortbread-tiles.org/download/'
+        : 'https://download.geofabrik.de/europe/austria.html';
     await this.desktop?.ProcessManager.openExternal(url);
   };
   protected readonly changeMapStyle = (value: string): void => {
