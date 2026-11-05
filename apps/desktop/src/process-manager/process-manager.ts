@@ -42,6 +42,13 @@ export class ProcessManager {
     await App.setDevToolsOpen(open === true);
   };
 
+  @IpcHandler({ name: 'ProcessManager.openExternal' })
+  readonly openExternal = async (_: IpcMainInvokeEvent, url: string): Promise<void> => {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') throw new Error('Only HTTPS URLs can be opened externally.');
+    await shell.openExternal(parsed.toString());
+  };
+
   @IpcHandler({ name: 'ProcessManager.openConfigFile' })
   readonly openConfigFile = async (): Promise<string> => shell.openPath(App.startupConfig.configPath());
 
