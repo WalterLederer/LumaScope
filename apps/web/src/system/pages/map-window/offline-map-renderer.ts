@@ -823,7 +823,6 @@ export class OfflineMapRenderer {
     this.photoPreviewElement = null;
     this.activePhotoPreviewKey = null;
     this.activePhotoPreviewCoordinates = null;
-    this.clearPhotoPreview();
   }
 
   private readonly updateOverlayPositions = (): void => {
@@ -963,6 +962,7 @@ export class OfflineMapRenderer {
     this.map.off('dragstart', this.onDiagnosticMapDragStart);
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.map.off('render', this.updateOverlayPositions);
+    this.clearPhotoPreview();
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
     this.currentLocation = null;
