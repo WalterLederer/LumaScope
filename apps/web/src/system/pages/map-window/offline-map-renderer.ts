@@ -105,7 +105,7 @@ export function createOfflineMapStyle(styleName: OfflineMapStyle): StyleSpecific
       };
   const setPaint = (id: string, values: Record<string, unknown>): void => {
     const layer = style.layers.find(candidate => candidate.id === id);
-    if (layer && 'paint' in layer) Object.assign(layer.paint, values);
+    if (layer && 'paint' in layer && layer.paint !== undefined) Object.assign(layer.paint, values);
   };
   const landColor = ['match', ['get', 'kind'], 'forest', palette.forest, 'grass', palette.grass,
     'meadow', palette.grass, 'orchard', palette.grass, 'vineyard', palette.grass, palette.land];
