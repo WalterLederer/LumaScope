@@ -33,6 +33,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 @Component({
   selector: 'app-map-window',
   standalone: true,
+  host: { '[class.overlay-mode]': 'overlayMode' },
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
@@ -42,6 +43,9 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
+        @if (overlayMode) {
+          <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
+        }
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
@@ -244,11 +248,31 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       @if (!coordinatesAvailable()) {
         <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
       }
+      @if (overlayMode) {
+        <div class="overlay-resize-handle resize-n" (pointerdown)="startOverlayResize($event, 'n')"></div>
+        <div class="overlay-resize-handle resize-e" (pointerdown)="startOverlayResize($event, 'e')"></div>
+        <div class="overlay-resize-handle resize-s" (pointerdown)="startOverlayResize($event, 's')"></div>
+        <div class="overlay-resize-handle resize-w" (pointerdown)="startOverlayResize($event, 'w')"></div>
+        <div class="overlay-resize-handle resize-ne" (pointerdown)="startOverlayResize($event, 'ne')"></div>
+        <div class="overlay-resize-handle resize-se" (pointerdown)="startOverlayResize($event, 'se')"></div>
+        <div class="overlay-resize-handle resize-sw" (pointerdown)="startOverlayResize($event, 'sw')"></div>
+        <div class="overlay-resize-handle resize-nw" (pointerdown)="startOverlayResize($event, 'nw')"></div>
+      }
     </main>
   `,
   styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
-    .map-window{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
+    .map-window{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
+    :host(.overlay-mode) .map-window{background:transparent;border:1px solid rgba(255,255,255,.48);border-radius:8px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.28)}
+    :host(.overlay-mode) .map-titlebar{background:rgba(32,33,36,.88);border-bottom-color:rgba(255,255,255,.22)}
+    :host(.overlay-mode) .map-settings{background:rgba(32,33,36,.96)}
+    .overlay-close-button{margin-left:auto;width:28px;height:28px;padding:0;font-size:21px;line-height:1}
+    .overlay-resize-handle{position:absolute;z-index:1300;touch-action:none;-webkit-app-region:no-drag}
+    .resize-n,.resize-s{left:10px;right:10px;height:6px;cursor:ns-resize}.resize-n{top:0}.resize-s{bottom:0}
+    .resize-e,.resize-w{top:10px;bottom:10px;width:6px;cursor:ew-resize}.resize-e{right:0}.resize-w{left:0}
+    .resize-ne,.resize-sw,.resize-nw,.resize-se{width:12px;height:12px}
+    .resize-ne{top:0;right:0;cursor:nesw-resize}.resize-sw{bottom:0;left:0;cursor:nesw-resize}
+    .resize-nw{top:0;left:0;cursor:nwse-resize}.resize-se{right:0;bottom:0;cursor:nwse-resize}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
@@ -347,6 +371,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 })
 export class MapWindow implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  protected readonly overlayMode = this.route.snapshot.queryParamMap.get('overlay') === '1';
+  private overlayResizeStart: { edge: string; pointerX: number; pointerY: number; bounds: { x: number; y: number; width: number; height: number } } | null = null;
   protected readonly themeService = inject(ThemeService);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
@@ -427,6 +453,35 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
   }
+
+  @HostListener('document:pointermove', ['$event'])
+  onOverlayResizeMove(event: PointerEvent): void {
+    const start = this.overlayResizeStart;
+    if (!this.overlayMode || !start) return;
+    const dx = event.screenX - start.pointerX, dy = event.screenY - start.pointerY;
+    let { x, y, width, height } = start.bounds;
+    if (start.edge.includes('e')) width += dx;
+    if (start.edge.includes('s')) height += dy;
+    if (start.edge.includes('w')) { x += dx; width -= dx; }
+    if (start.edge.includes('n')) { y += dy; height -= dy; }
+    if (width < 420) { if (start.edge.includes('w')) x -= 420 - width; width = 420; }
+    if (height < 320) { if (start.edge.includes('n')) y -= 320 - height; height = 320; }
+    void this.desktop?.MapOverlayWindow.setBounds({ x, y, width, height });
+  }
+
+  @HostListener('document:pointerup')
+  onOverlayResizeEnd(): void { this.overlayResizeStart = null; }
+
+  protected readonly startOverlayResize = async (event: PointerEvent, edge: string): Promise<void> => {
+    if (!this.overlayMode) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const bounds = await this.desktop?.MapOverlayWindow.getBounds();
+    if (!bounds) return;
+    this.overlayResizeStart = { edge, pointerX: event.screenX, pointerY: event.screenY, bounds };
+  };
+
+  protected readonly closeOverlayWindow = (): void => { void this.desktop?.MapOverlayWindow.close(); };
 
   @HostListener('window:keyup', ['$event'])
   onDocumentKeyup(event: KeyboardEvent): void {
@@ -675,7 +730,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyAlwaysOnTop();
   };
   private applyAlwaysOnTop(): void {
-    void this.desktop?.MapWindow.setAlwaysOnTop(this.alwaysOnTop());
+    if (this.overlayMode) void this.desktop?.MapOverlayWindow.setAlwaysOnTop(this.alwaysOnTop());
+    else void this.desktop?.MapWindow.setAlwaysOnTop(this.alwaysOnTop());
   }
 
   private readSetting(key: string, fallback: string): string {
