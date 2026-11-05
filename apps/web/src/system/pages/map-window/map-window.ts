@@ -97,7 +97,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                  <option value="online">Online</option><option value="offline">Offline (Austria)</option>
+                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Austria Shortbread (MBTiles)</option>
                 </select>
               </label>
               @if (mapSource() === 'online') {
