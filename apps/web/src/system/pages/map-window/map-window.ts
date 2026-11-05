@@ -2,8 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
-import { OfflineMapRenderer, type OfflinePhotoMarker } from './offline-map-renderer';
-import { buildPhotoMarkerPreviewHtml } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, type OfflinePhotoMarker } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
