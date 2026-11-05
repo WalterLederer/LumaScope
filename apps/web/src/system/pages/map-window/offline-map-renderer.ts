@@ -81,7 +81,52 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
 };
 
 
-export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string, minZoom = 0, maxZoom = 14, bounds?: [number, number, number, number]): StyleSpecification {
+function createOpenMapTilesStyle(styleName: OfflineMapStyle, mapId: string, minZoom: number, maxZoom: number, bounds: [number, number, number, number] | undefined, vectorLayers: string[]): StyleSpecification {
+  const available = new Set(vectorLayers);
+  const dark = styleName === 'versatiles-neutrino';
+  const colorful = styleName === 'versatiles-colorful';
+  const palette = dark
+    ? { background: '#202b36', land: '#34434a', forest: '#354f45', grass: '#40544a', water: '#29485c', road: '#aab5bd', casing: '#596773', building: '#46545d', poi: '#c39b73', boundary: '#77808d' }
+    : colorful
+      ? { background: '#f7f5ed', land: '#e7e3d7', forest: '#b9d7a2', grass: '#d8e8b8', water: '#8bc9e8', road: '#fffdf5', casing: '#a99b86', building: '#d9c9b9', poi: '#c47b45', boundary: '#9b7db0' }
+      : { background: '#f5f2ea', land: '#e6e1d5', forest: '#c8d9b8', grass: '#dce5c8', water: '#a9d5e5', road: '#f5f0e5', casing: '#b5ad9e', building: '#d9cfc4', poi: '#a36b42', boundary: '#a58aa2' };
+  const style: StyleSpecification = {
+    version: 8,
+    name: 'LumaScope OpenMapTiles',
+    sources: {
+      shortbread: {
+        type: 'vector',
+        tiles: ['atom://app/offline-tiles/{z}/{x}/{y}?map=' + encodeURIComponent(mapId)],
+        minzoom: minZoom, maxzoom: maxZoom,
+        ...(bounds ? { bounds } : {}),
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [{ id: 'background', type: 'background', paint: { 'background-color': palette.background } }]
+  };
+  const add = (layer: StyleSpecification['layers'][number]): void => { style.layers.push(layer); };
+  if (available.has('landcover')) add({ id: 'omt-landcover', type: 'fill', source: 'shortbread', 'source-layer': 'landcover', paint: { 'fill-color': ['match', ['get', 'class'], 'wood', palette.forest, 'forest', palette.forest, 'grass', palette.grass, 'scrub', palette.grass, 'wetland', palette.water, 'ice', '#e8edf0', 'sand', '#e5d5ad', palette.land], 'fill-opacity': 0.96 } });
+  if (available.has('landuse')) add({ id: 'omt-landuse', type: 'fill', source: 'shortbread', 'source-layer': 'landuse', paint: { 'fill-color': ['match', ['get', 'class'], 'park', palette.grass, 'grass', palette.grass, 'cemetery', palette.forest, 'wood', palette.forest, 'residential', palette.land, 'commercial', palette.land, 'industrial', palette.land, palette.land], 'fill-opacity': 0.65 } });
+  if (available.has('water')) add({ id: 'omt-water', type: 'fill', source: 'shortbread', 'source-layer': 'water', paint: { 'fill-color': palette.water } });
+  if (available.has('waterway')) add({ id: 'omt-waterway', type: 'line', source: 'shortbread', 'source-layer': 'waterway', paint: { 'line-color': palette.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 14, 2.2] } });
+  if (available.has('boundary')) add({ id: 'omt-boundary', type: 'line', source: 'shortbread', 'source-layer': 'boundary', paint: { 'line-color': palette.boundary, 'line-width': 1, 'line-dasharray': [2, 2] } });
+  if (available.has('transportation')) {
+    add({ id: 'omt-transportation-casing', type: 'line', source: 'shortbread', 'source-layer': 'transportation', minzoom: 5, paint: { 'line-color': palette.casing, 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 1, 10, 2.5, 14, 6, 18, 12] } });
+    add({ id: 'omt-transportation', type: 'line', source: 'shortbread', 'source-layer': 'transportation', minzoom: 5, paint: { 'line-color': ['match', ['get', 'class'], 'motorway', '#d66f67', 'trunk', '#d99b4c', 'primary', '#e1ad64', 'secondary', '#fff0c9', 'tertiary', '#fffaf0', 'minor', palette.road, 'service', palette.road, 'path', palette.casing, 'track', palette.casing, 'rail', palette.casing, palette.road], 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 10, 1.5, 14, 3.5, 18, 7] } });
+  }
+  if (available.has('building')) add({ id: 'omt-building', type: 'fill', source: 'shortbread', 'source-layer': 'building', minzoom: 12, paint: { 'fill-color': palette.building, 'fill-outline-color': palette.casing, 'fill-opacity': 0.9 } });
+  if (available.has('poi')) add({ id: 'omt-poi', type: 'circle', source: 'shortbread', 'source-layer': 'poi', minzoom: 12, paint: { 'circle-radius': 2.5, 'circle-color': palette.poi, 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.6 } });
+  if (available.has('place')) add({ id: 'omt-label-places-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'place', minzoom: 2, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } });
+  if (available.has('boundary')) add({ id: 'omt-label-boundaries-anchor', type: 'line', source: 'shortbread', 'source-layer': 'boundary', minzoom: 3, paint: { 'line-width': 5, 'line-opacity': 0.01 } });
+  if (available.has('water_name')) add({ id: 'omt-label-water-anchor', type: 'line', source: 'shortbread', 'source-layer': 'water_name', minzoom: 5, paint: { 'line-width': 5, 'line-opacity': 0.01 } });
+  if (available.has('transportation_name')) add({ id: 'omt-label-streets-anchor', type: 'line', source: 'shortbread', 'source-layer': 'transportation_name', minzoom: 11, paint: { 'line-width': 6, 'line-opacity': 0.01 } });
+  if (available.has('poi')) add({ id: 'omt-label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'poi', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } });
+  style.name = dark ? 'LumaScope OpenMapTiles Neutrino' : colorful ? 'LumaScope OpenMapTiles Colorful' : 'LumaScope OpenMapTiles';
+  return style;
+}
+
+export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string, minZoom = 0, maxZoom = 14, bounds?: [number, number, number, number], schema: 'shortbread' | 'openmaptiles' = 'shortbread', vectorLayers: string[] = []): StyleSpecification {
+  if (schema === 'openmaptiles') return createOpenMapTilesStyle(styleName, mapId, minZoom, maxZoom, bounds, vectorLayers);
   const style = JSON.parse(JSON.stringify(AUSTRIA_SHORTBREAD_STYLE)) as StyleSpecification;
   const source = style.sources?.['shortbread'];
   if (source && source.type === 'vector') { source.tiles = ['atom://app/offline-tiles/{z}/{x}/{y}?map=' + encodeURIComponent(mapId)]; source.minzoom = minZoom; source.maxzoom = maxZoom; if (bounds) source.bounds = bounds; }
@@ -330,9 +375,9 @@ export class OfflineMapRenderer {
     });
   };
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number]) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private readonly schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = []) {
     const options: MapOptions = {
-      container, style: createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds),
+      container, style: createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers),
       center, zoom,
       minZoom: 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
@@ -637,15 +682,23 @@ export class OfflineMapRenderer {
 
   private refreshTextLabels(): void {
     const visible = new Set<string>();
-    const labelSources = [
-      { layerId: 'label-places-anchor', sourceLayer: 'place_labels', kind: 'place' },
-      { layerId: 'label-boundaries-anchor', sourceLayer: 'boundary_labels', kind: 'boundary' },
-      { layerId: 'label-water-polygons-anchor', sourceLayer: 'water_polygons_labels', kind: 'water' },
-      { layerId: 'label-street-polygons-anchor', sourceLayer: 'streets_polygons_labels', kind: 'street' },
-      { layerId: 'label-street-points-anchor', sourceLayer: 'street_labels_points', kind: 'street' },
-      { layerId: 'label-public-transport-anchor', sourceLayer: 'public_transport', kind: 'poi' },
-      { layerId: 'label-pois-anchor', sourceLayer: 'pois', kind: 'poi' }
-    ];
+    const labelSources = this.schema === 'openmaptiles'
+      ? [
+        { layerId: 'omt-label-places-anchor', sourceLayer: 'place', kind: 'place' },
+        { layerId: 'omt-label-boundaries-anchor', sourceLayer: 'boundary', kind: 'boundary' },
+        { layerId: 'omt-label-water-anchor', sourceLayer: 'water_name', kind: 'water' },
+        { layerId: 'omt-label-streets-anchor', sourceLayer: 'transportation_name', kind: 'street' },
+        { layerId: 'omt-label-pois-anchor', sourceLayer: 'poi', kind: 'poi' }
+      ]
+      : [
+        { layerId: 'label-places-anchor', sourceLayer: 'place_labels', kind: 'place' },
+        { layerId: 'label-boundaries-anchor', sourceLayer: 'boundary_labels', kind: 'boundary' },
+        { layerId: 'label-water-polygons-anchor', sourceLayer: 'water_polygons_labels', kind: 'water' },
+        { layerId: 'label-street-polygons-anchor', sourceLayer: 'streets_polygons_labels', kind: 'street' },
+        { layerId: 'label-street-points-anchor', sourceLayer: 'street_labels_points', kind: 'street' },
+        { layerId: 'label-public-transport-anchor', sourceLayer: 'public_transport', kind: 'poi' },
+        { layerId: 'label-pois-anchor', sourceLayer: 'pois', kind: 'poi' }
+      ];
     const candidates: Array<{ key: string; x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
     for (const source of labelSources) {
@@ -907,7 +960,10 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     // Cluster circles are replaced by SVG DOM markers; keep the native
     // MapLibre circles hidden when the marker opacity changes.
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0);
+    // Keep a one-pixel, near-transparent hit layer so queryRenderedFeatures()
+    // can still return cluster points while the full-size SVG markers sit above it.
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0.01);
+    this.map.setPaintProperty('photo-clusters', 'circle-radius', 1.5);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     this.refreshClusterLabels();
@@ -926,13 +982,16 @@ export class OfflineMapRenderer {
   }
 
   setPhotoClusterStyle(color: string, visible: boolean, shape: 'double-circle' | 'hexagon' | 'circle' | 'square' = this.photoClusterShape): void {
-    if (!this.map.getLayer('photo-clusters')) return;
     this.photoClustersVisible = visible;
     this.photoClusterColor = color;
     this.photoClusterShape = shape;
+    if (!this.map.getLayer('photo-clusters')) return;
     // Cluster artwork is rendered as SVG DOM markers so all four shapes remain
     // crisp at every zoom level and match the online cluster icon geometry.
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0);
+    // Keep a one-pixel, near-transparent hit layer so queryRenderedFeatures()
+    // can still return cluster points while the full-size SVG markers sit above it.
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0.01);
+    this.map.setPaintProperty('photo-clusters', 'circle-radius', 1.5);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     if (!visible) {
@@ -950,7 +1009,10 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     // Cluster circles are replaced by SVG DOM markers; keep the native
     // MapLibre circles hidden when the marker opacity changes.
-    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0);
+    // Keep a one-pixel, near-transparent hit layer so queryRenderedFeatures()
+    // can still return cluster points while the full-size SVG markers sit above it.
+    this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0.01);
+    this.map.setPaintProperty('photo-clusters', 'circle-radius', 1.5);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     if (opacity <= 0) {
