@@ -1,4 +1,4 @@
-import { Map as MapLibreMap, Marker, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import { Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -189,7 +189,7 @@ export class OfflineMapRenderer {
   private currentMarkerElement: HTMLElement | null = null;
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
-  private readonly clusterLabels = new Map<number, Marker>();
+  private readonly clusterLabels = new Map<number, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private photoOpacity = 1;
   private photoClustersVisible = true;
@@ -638,27 +638,32 @@ export class OfflineMapRenderer {
   private refreshClusterLabels(): void {
     if (!this.map.getLayer('photo-clusters')) return;
     if (!this.photoClustersVisible || this.photoOpacity <= 0) {
-      for (const marker of this.clusterLabels.values()) marker.remove();
+      for (const marker of this.clusterLabels.values()) marker.element.remove();
       this.clusterLabels.clear();
       return;
     }
     const visible = new Set<number>();
+    // Keep the hit-test geometry at the real cluster radius. Its paint opacity
+    // is almost zero, while the visible artwork is drawn in our geographic
+    // overlay. A 1.5px hit circle was too small and could disappear from
+    // queryRenderedFeatures() at ordinary map scales.
     const features = this.map.queryRenderedFeatures({ layers: ['photo-clusters'] });
     for (const feature of features) {
       if (feature.geometry.type !== 'Point') continue;
       const count = feature.properties?.['point_count'];
       const clusterId = feature.properties?.['cluster_id'];
       if (typeof count !== 'number' || typeof clusterId !== 'number') continue;
+      const coordinates = feature.geometry.coordinates as [number, number];
       visible.add(clusterId);
       let marker = this.clusterLabels.get(clusterId);
       if (!marker) {
         const element = document.createElement('span');
-        element.style.cssText = 'display:block;width:56px;height:56px;pointer-events:none;position:relative;z-index:10000;filter:drop-shadow(0 1px 3px #0009);';
-        marker = new Marker({ element, anchor: 'center' })
-          .setLngLat(feature.geometry.coordinates as [number, number])
-          .addTo(this.map);
+        element.style.cssText = 'display:block;width:56px;height:56px;pointer-events:none;position:absolute;left:0;top:0;transform:translate(-50%,-50%);z-index:10000;filter:drop-shadow(0 1px 3px #0009);';
+        marker = { element, coordinates };
+        this.overlayElement.appendChild(element);
         this.clusterLabels.set(clusterId, marker);
       }
+      marker.coordinates = coordinates;
       const fill = this.photoClusterColor === 'dynamic'
         ? count < 10 ? '#34c759' : count < 100 ? '#ffd60a' : '#ff3b30'
         : this.photoClusterColor;
@@ -669,16 +674,15 @@ export class OfflineMapRenderer {
           : this.photoClusterShape === 'circle'
             ? `<circle cx="28" cy="28" r="25" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`
             : `<rect x="3" y="3" width="50" height="50" rx="3" fill="${fill}" stroke="#fff" stroke-width="2.5"/>`;
-      marker.getElement().innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><g opacity="${this.photoOpacity}">${shapeMarkup}<text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${count < 100 ? 15 : 14}" font-weight="700" fill="#fff" stroke="#222" stroke-width=".6" paint-order="stroke" >${count}</text></g></svg>`;
-      marker.setLngLat(feature.geometry.coordinates as [number, number]);
+      marker.element.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"><g opacity="${this.photoOpacity}">${shapeMarkup}<text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${count < 100 ? 15 : 14}" font-weight="700" fill="#fff" stroke="#222" stroke-width=".6" paint-order="stroke">${count}</text></g></svg>`;
     }
     for (const [clusterId, marker] of this.clusterLabels) {
       if (visible.has(clusterId)) continue;
-      marker.remove();
+      marker.element.remove();
       this.clusterLabels.delete(clusterId);
     }
+    this.updateOverlayPositions();
   }
-
 
   private refreshTextLabels(): void {
     const visible = new Set<string>();
@@ -707,7 +711,7 @@ export class OfflineMapRenderer {
       const features = this.map.queryRenderedFeatures({ layers: [source.layerId] });
       for (const feature of features) {
         const properties = feature.properties ?? {};
-        const text = String(properties['name_de'] || properties['name'] || properties['name_en'] || properties['ref'] || '').trim();
+        const text = String(properties['name:de'] || properties['name_de'] || properties['name'] || properties['name:latin'] || properties['name_int'] || properties['name:en'] || properties['name_en'] || '').trim();
         if (!text) continue;
 
         const geometry = feature.geometry as unknown as { type: string; coordinates: unknown };
@@ -904,6 +908,11 @@ export class OfflineMapRenderer {
       label.element.style.left = `${point.x}px`;
       label.element.style.top = `${point.y}px`;
     }
+    for (const marker of this.clusterLabels.values()) {
+      const point = this.map.project(marker.coordinates);
+      marker.element.style.left = `${point.x}px`;
+      marker.element.style.top = `${point.y}px`;
+    }
     this.updatePhotoPreviewPosition();
   };
 
@@ -963,7 +972,7 @@ export class OfflineMapRenderer {
     // Keep a one-pixel, near-transparent hit layer so queryRenderedFeatures()
     // can still return cluster points while the full-size SVG markers sit above it.
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', 0.01);
-    this.map.setPaintProperty('photo-clusters', 'circle-radius', 1.5);
+    this.map.setPaintProperty('photo-clusters', 'circle-radius', ['step', ['get', 'point_count'], 19, 10, 23, 100, 27]);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     this.refreshClusterLabels();
@@ -999,7 +1008,7 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     if (!visible) {
-      for (const marker of this.clusterLabels.values()) marker.remove();
+      for (const marker of this.clusterLabels.values()) marker.element.remove();
       this.clusterLabels.clear();
     } else {
       this.refreshClusterLabels();
