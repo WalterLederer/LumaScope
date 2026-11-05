@@ -90,7 +90,10 @@ const api: Desktop = {
 
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
-    getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus')
+    getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
+    removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
+    getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus'),
+    selectForCoordinates: (latitude: number, longitude: number) => ipcRenderer.invoke('OfflineMap.selectForCoordinates', latitude, longitude)
   },
 
   MapOverlayWindow: {
