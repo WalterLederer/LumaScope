@@ -67,6 +67,9 @@ export class OfflineMapManager {
    if(!Number.isInteger(minZoom)||!Number.isInteger(maxZoom)||minZoom<0||maxZoom>22||minZoom>maxZoom)throw new Error('The MBTiles zoom metadata is missing or invalid.');
    let layers:unknown;try{layers=(JSON.parse(metadata.get('json')??'{}') as {vector_layers?:unknown}).vector_layers;}catch{throw new Error('The MBTiles vector-layer metadata contains invalid JSON.');}
    if(!Array.isArray(layers)||!layers.length)throw new Error('The MBTiles file does not contain valid vector_layers metadata.');
+   const layerIds=new Set((layers as Array<{id?:unknown}>).map(layer=>typeof layer.id==='string'?layer.id:''));
+   const missingLayers=['land','streets','water_polygons'].filter(id=>!layerIds.has(id));
+   if(missingLayers.length)throw new Error('The MBTiles schema is not compatible with the Shortbread map style. Missing layers: '+missingLayers.join(', ')+'.');
    const raw=(metadata.get('bounds')??'').split(',').map(Number);
    const bounds=raw.length===4&&raw.every(Number.isFinite)&&raw[0]>=-180&&raw[2]<=180&&raw[1]>=-90&&raw[3]<=90&&raw[0]<raw[2]&&raw[1]<raw[3]?raw as [number,number,number,number]:null;
    if(!bounds)throw new Error('The MBTiles file has missing or invalid geographic bounds metadata.');
