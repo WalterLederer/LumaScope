@@ -13,6 +13,7 @@ export default class App {
   // be closed automatically when the JavaScript object is garbage collected.
   static mainWindow: Electron.BrowserWindow;
   static mapWindow: Electron.BrowserWindow | null = null;
+  static mapOverlayWindow: Electron.BrowserWindow | null = null;
   static mapWindowLocation: { latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null } = { latitude: null, longitude: null, bearing: null, imagePath: null };
   static capturePreviewWindow: Electron.BrowserWindow | null = null;
   private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -239,12 +240,13 @@ export default class App {
       App.mainWindow = null;
 
       if (App.isMapWindowOpen()) App.mapWindow.close();
+      if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.close();
       if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.close();
     });
   }
 
   private static getApplicationWindows(): Electron.BrowserWindow[] {
-    return [App.mainWindow, App.mapWindow, App.capturePreviewWindow]
+    return [App.mainWindow, App.mapWindow, App.mapOverlayWindow, App.capturePreviewWindow]
       .filter((window): window is Electron.BrowserWindow => !!window && !window.isDestroyed());
   }
 
@@ -352,9 +354,11 @@ export default class App {
       : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
 
     if (App.isMapWindowOpen()) {
-      App.mapWindow.webContents.send('MapWindow.locationChanged', hasCoordinates
+      const location = hasCoordinates
         ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null, imagePath: imagePath ?? null }
-        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null });
+        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
+      App.mapWindow.webContents.send('MapWindow.locationChanged', location);
+      if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
       App.mapWindow.showInactive();
       return true;
@@ -414,6 +418,80 @@ export default class App {
     if (App.mainWindow && !App.mainWindow.isDestroyed()) {
       App.mainWindow.webContents.send('MapWindow.stateChanged', true);
     }
+    return true;
+  }
+
+  static isMapOverlayWindowOpen(): boolean {
+    return App.mapOverlayWindow !== null && !App.mapOverlayWindow.isDestroyed();
+  }
+
+  static focusMapOverlayWindow(): boolean {
+    if (!App.isMapOverlayWindowOpen()) return false;
+    if (App.mapOverlayWindow.isMinimized()) App.mapOverlayWindow.restore();
+    App.mapOverlayWindow.show();
+    App.mapOverlayWindow.focus();
+    return true;
+  }
+
+  static openMapOverlayWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean {
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
+    if ((latitude !== null || longitude !== null) && !hasCoordinates) throw new Error('The map overlay received invalid GPS coordinates.');
+    App.mapWindowLocation = hasCoordinates
+      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null }
+      : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
+    const location = App.mapWindowLocation;
+    if (App.isMapWindowOpen()) App.mapWindow.webContents.send('MapWindow.locationChanged', location);
+    if (App.isMapOverlayWindowOpen()) {
+      App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
+      return App.focusMapOverlayWindow();
+    }
+    const parentBounds = App.mainWindow.getBounds();
+    const width = Math.max(420, Math.min(900, parentBounds.width - 80));
+    const height = Math.max(320, Math.min(640, parentBounds.height - 120));
+    App.mapOverlayWindow = new BrowserWindow({
+      x: parentBounds.x + Math.max(20, Math.round((parentBounds.width - width) / 2)),
+      y: parentBounds.y + Math.max(50, Math.round((parentBounds.height - height) / 2)),
+      width, height, minWidth: 420, minHeight: 320,
+      parent: App.mainWindow, show: false, frame: false, transparent: true,
+      backgroundColor: '#00000000', resizable: false, movable: true, hasShadow: true,
+      skipTaskbar: true, title: App.windowTitle('LOCATION OVERLAY'),
+      webPreferences: { contextIsolation: true, backgroundThrottling: false, preload: join(__dirname, 'main.preload.js') }
+    });
+    App.mapOverlayWindow.setMenu(null);
+    App.mapOverlayWindow.on('closed', () => {
+      App.mapOverlayWindow = null;
+      if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.webContents.send('MapOverlayWindow.stateChanged', false);
+    });
+    const hash = `/map?overlay=1${hasCoordinates ? `&lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}` : ''}${imagePath ? `${hasCoordinates ? '&' : '&'}imagePath=${encodeURIComponent(imagePath)}` : ''}`;
+    if (!App.application.isPackaged) App.mapOverlayWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
+    else App.mapOverlayWindow.loadURL(format({ pathname: join(__dirname, '..', rendererAppName, 'index.html'), protocol: 'file:', slashes: true, hash }));
+    App.mapOverlayWindow.once('ready-to-show', () => {
+      if (!App.isMapOverlayWindowOpen()) return;
+      if (App.startupConfig.devToolsOpen()) App.mapOverlayWindow.webContents.openDevTools();
+      App.mapOverlayWindow.show();
+    });
+    if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.webContents.send('MapOverlayWindow.stateChanged', true);
+    return true;
+  }
+
+  static closeMapOverlayWindow(): void { if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.close(); }
+
+  static setMapOverlayWindowAlwaysOnTop(enabled: boolean): boolean {
+    if (!App.isMapOverlayWindowOpen()) return false;
+    App.mapOverlayWindow.setAlwaysOnTop(!!enabled);
+    return true;
+  }
+
+  static getMapOverlayWindowBounds(): Electron.Rectangle | null {
+    return App.isMapOverlayWindowOpen() ? App.mapOverlayWindow.getBounds() : null;
+  }
+
+  static setMapOverlayWindowBounds(bounds: Electron.Rectangle): boolean {
+    if (!App.isMapOverlayWindowOpen() || !bounds || ![bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite)) return false;
+    const next = { x: Math.round(bounds.x), y: Math.round(bounds.y), width: Math.max(420, Math.round(bounds.width)), height: Math.max(320, Math.round(bounds.height)) };
+    if (next.width > 10000 || next.height > 10000) return false;
+    App.mapOverlayWindow.setBounds(next);
     return true;
   }
 
