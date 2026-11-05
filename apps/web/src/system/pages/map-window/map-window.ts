@@ -1035,7 +1035,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.map = map;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
-    map.on('zoom', syncZoom);
     map.on('zoomend', syncZoom);
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
