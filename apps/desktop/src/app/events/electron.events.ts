@@ -1630,6 +1630,16 @@ const readFolder = async (folder: string): Promise<string[]> =>
     .filter(f => supportedFileExtensions.includes(path.extname(f).toLowerCase().replace('.', '')));
 
 
+ipcMain.handle('MapOverlayWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean =>
+  App.openMapOverlayWindow(latitude, longitude, bearing, imagePath)
+);
+ipcMain.handle('MapOverlayWindow.close', (): void => App.closeMapOverlayWindow());
+ipcMain.handle('MapOverlayWindow.isOpen', (): boolean => App.isMapOverlayWindowOpen());
+ipcMain.handle('MapOverlayWindow.focus', (): boolean => App.focusMapOverlayWindow());
+ipcMain.handle('MapOverlayWindow.setAlwaysOnTop', (_event, enabled: boolean): boolean => App.setMapOverlayWindowAlwaysOnTop(enabled));
+ipcMain.handle('MapOverlayWindow.getBounds', (): Electron.Rectangle | null => App.getMapOverlayWindowBounds());
+ipcMain.handle('MapOverlayWindow.setBounds', (_event, bounds: Electron.Rectangle): boolean => App.setMapOverlayWindowBounds(bounds));
+
 ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean =>
   App.openMapWindow(latitude, longitude, bearing, imagePath)
 );
