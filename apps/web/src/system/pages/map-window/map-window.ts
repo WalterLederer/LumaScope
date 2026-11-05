@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, type OfflinePhotoMarker } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -46,21 +46,52 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
-          <div class="settings-group map-actions-settings">
-            <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">⧉</button>
-            <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">◎</button>
-            <span class="map-action-divider" aria-hidden="true">|</span>
-            <label>Open location in
-              <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
-                <option value="">Select web app…</option>
-                <option value="google-earth">Google Earth</option>
-                <option value="google-maps">Google Maps</option>
-                <option value="bing-maps">Bing Maps</option>
-                <option value="openstreetmap">OpenStreetMap</option>
-                <option value="apple-maps">Apple Maps</option>
-              </select>
-            </label>
-          </div>
+          <details class="settings-group location-settings" open>
+            <summary>Location</summary>
+            <div class="location-settings-content">
+              <div class="address-settings">
+                <strong class="settings-row-title">Address:</strong>
+                <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
+              </div>
+              <div class="location-actions">
+                <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates">Copy GPS coordinates</button>
+                <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location">Center</button>
+                <label>Open location in
+                  <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                    <option value="">Select web app…</option>
+                    <option value="google-earth">Google Earth</option>
+                    <option value="google-maps">Google Maps</option>
+                    <option value="bing-maps">Bing Maps</option>
+                    <option value="openstreetmap">OpenStreetMap</option>
+                    <option value="apple-maps">Apple Maps</option>
+                  </select>
+                </label>
+              </div>
+              <div class="marker-current-appearance-settings">
+                <strong>Location Icon:</strong>
+                <label>Shape
+                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                  </select>
+                </label>
+                <label>Color</label>
+                <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                    <span>{{ selectedCurrentMarkerColorName() }}</span>
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (currentMarkerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </details>
           <details class="settings-group map-source-settings" open>
             <summary>Map Source</summary>
             <div class="map-source-content">
@@ -69,13 +100,23 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="online">Online</option><option value="offline">Offline (Austria)</option>
                 </select>
               </label>
-              <label><strong>Style:</strong>
-                <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
-                  <option value="standard">Standard</option><option value="satellite">Satellite</option>
-                  <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
-                  <option value="humanitarian">Humanitarian (HOT)</option>
-                </select>
-              </label>
+              @if (mapSource() === 'online') {
+                <label><strong>Style:</strong>
+                  <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
+                    <option value="standard">Standard</option><option value="satellite">Satellite</option>
+                    <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
+                    <option value="humanitarian">Humanitarian (HOT)</option>
+                  </select>
+                </label>
+              } @else {
+                <label><strong>Offline Style:</strong>
+                  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+                    <option value="lumascope">LumaScope</option>
+                    <option value="versatiles-colorful">VersaTiles Colorful</option>
+                    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+                  </select>
+                </label>
+              }
               <label><strong>Color:</strong>
                 <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
                   <option value="original">Original</option><option value="light">Light</option>
@@ -182,33 +223,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   }
                 </div>
               </div>
-              <div class="marker-current-appearance-settings">
-                <strong>Location Icon:</strong>
-                <label>Shape
-                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
-                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
-                  </select>
-                </label>
-                <label>Color</label>
-                <div class="color-picker">
-                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
-                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
-                    <span>{{ selectedCurrentMarkerColorName() }}</span>
-                    <span class="color-picker-chevron">▾</span>
-                  </button>
-                  @if (currentMarkerColorMenuOpen()) {
-                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
-                      @for (color of gpxColors; track color.value) {
-                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-              <div class="address-settings">
-                <strong class="settings-row-title">Address:</strong>
-                <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
-              </div>
               @if (directoryMarkersEnabled()) {
                 <div class="marker-progress-row">
                   <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
@@ -261,12 +275,12 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .opacity-content .range-setting input{flex:1;width:auto;min-width:65px}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    .map-actions-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:6px}.map-action-divider{color:var(--color-content-default-medium,#aaa);padding:0 2px}
+    .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-settings .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
-    .marker-appearance-settings,.marker-current-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
-    .marker-appearance-settings>label,.marker-current-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .marker-appearance-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
+    .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .marker-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
@@ -276,7 +290,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
     .marker-progress-row{display:flex;flex:1 1 100%;align-items:center;gap:10px;min-width:0}
     .marker-progress{flex:1 1 auto;width:auto;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
-    .address-settings{flex:0 0 100%;width:100%;border-right:0;border-top:0;padding:7px 0 0;gap:8px}
     .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:8px}
     .gpx-filename{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
@@ -351,6 +364,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapSource = signal<'online' | 'offline'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : 'online');
+  protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
@@ -826,7 +840,8 @@ export class MapWindow implements OnInit, OnDestroy {
         if (generation !== this.mapSourceGeneration) return;
         this.offlineMapStatus.update(current => current ? { ...current, error: message } : current);
         this.locationAddress.set('Offline map rendering error: ' + message);
-      }
+      },
+      this.offlineMapStyle()
     );
     this.offlineRenderer = renderer;
     try {
@@ -935,6 +950,18 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
+  };
+  protected readonly changeOfflineMapStyle = (value: string): void => {
+    if (value !== 'lumascope' && value !== 'versatiles-colorful' && value !== 'versatiles-neutrino') return;
+    if (value === this.offlineMapStyle()) return;
+    this.offlineMapStyle.set(value);
+    this.saveSetting('offlineStyle', value);
+    if (this.mapSource() !== 'offline' || this.currentLatitude === null || this.currentLongitude === null) return;
+    this.mapSourceGeneration++;
+    this.mapInitialization = null;
+    this.offlineRenderer?.remove();
+    this.offlineRenderer = null;
+    void this.initialize(this.currentLatitude, this.currentLongitude);
   };
   protected readonly chooseOfflineMap = async (): Promise<void> => {
     if (!this.desktop) return;
