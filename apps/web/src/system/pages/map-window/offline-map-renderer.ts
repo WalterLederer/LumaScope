@@ -328,6 +328,7 @@ export class OfflineMapRenderer {
   constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number]) {
     const options: MapOptions = {
       container, style: createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds),
+      center, zoom,
       minZoom: 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
       pitch: 0,
