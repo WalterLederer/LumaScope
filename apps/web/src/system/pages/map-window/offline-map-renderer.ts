@@ -29,20 +29,20 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
   },
   layers: [
     { id: 'background', type: 'background', paint: { 'background-color': '#f5f2ea' } },
-    { id: 'land', type: 'fill', source: 'shortbread', 'source-layer': 'land', paint: { 'fill-color': '#e6e1d5' } },
+    { id: 'land', type: 'fill', source: 'shortbread', 'source-layer': 'land', paint: { 'fill-color': ['match', ['get', 'kind'], 'forest', '#c8d9b8', 'grass', '#dce5c8', 'meadow', '#e2e8c9', 'orchard', '#d5e1b8', 'vineyard', '#d9dfb1', '#e6e1d5'], 'fill-opacity': 0.95 } },
     { id: 'ocean', type: 'fill', source: 'shortbread', 'source-layer': 'ocean', paint: { 'fill-color': '#a9d5e5' } },
     { id: 'water-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'water_polygons', paint: { 'fill-color': '#a9d5e5' } },
     { id: 'water-lines', type: 'line', source: 'shortbread', 'source-layer': 'water_lines', paint: { 'line-color': '#a9d5e5', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 14, 2] } },
     { id: 'boundaries', type: 'line', source: 'shortbread', 'source-layer': 'boundaries', paint: { 'line-color': '#a58aa2', 'line-width': 1, 'line-dasharray': [2, 2] } },
     { id: 'dam-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'dam_polygons', paint: { 'fill-color': '#91bdce', 'fill-outline-color': '#6f9eaf' } },
     { id: 'pier-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'pier_polygons', paint: { 'fill-color': '#c9c4b8' } },
-    { id: 'sites', type: 'fill', source: 'shortbread', 'source-layer': 'sites', minzoom: 10, paint: { 'fill-color': '#e3dfd4', 'fill-outline-color': '#c9c3b7', 'fill-opacity': 0.65 } },
+    { id: 'sites', type: 'fill', source: 'shortbread', 'source-layer': 'sites', minzoom: 10, paint: { 'fill-color': ['match', ['get', 'kind'], 'sports_centre', '#d8e5c9', 'university', '#e6dfc8', 'college', '#e6dfc8', 'school', '#e8e1c9', 'hospital', '#f0d9d5', 'parking', '#dedbd4', 'construction', '#e9d8b9', 'danger_area', '#e8d0c8', '#e3dfd4'], 'fill-outline-color': '#c9c3b7', 'fill-opacity': 0.82 } },
     { id: 'street-polygons', type: 'fill', source: 'shortbread', 'source-layer': 'street_polygons', minzoom: 12, paint: { 'fill-color': '#f8f5ed', 'fill-outline-color': '#e5dfd4' } },
-    { id: 'street-casing', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 7, paint: { 'line-color': '#a9a294', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.9, 10, 2.4, 14, 7, 18, 13], 'line-opacity': 0.9 } },
+    { id: 'street-casing', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 5, paint: { 'line-color': '#b5ad9e', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.65, 10, 2.1, 14, 6, 18, 12], 'line-opacity': 0.9 } },
     {
-      id: 'streets', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 8,
+      id: 'streets', type: 'line', source: 'shortbread', 'source-layer': 'streets', minzoom: 5,
       paint: {
-        'line-color': ['match', ['get', 'kind'], 'motorway', '#d66f67', 'trunk', '#d99b4c', 'primary', '#e1ad64', 'secondary', '#fff9ec', 'tertiary', '#fff9ec', '#f5f0e5'],
+        'line-color': ['match', ['get', 'kind'], 'motorway', '#d66f67', 'motorway_link', '#d9897f', 'trunk', '#d99b4c', 'trunk_link', '#e1b26e', 'primary', '#e1ad64', 'primary_link', '#e9c18a', 'secondary', '#fff8e8', 'secondary_link', '#fff8e8', 'tertiary', '#fffaf0', 'residential', '#fffdf7', 'unclassified', '#fffdf7', 'living_street', '#f8f1df', 'service', '#f3eddf', 'pedestrian', '#f1e8d5', 'track', '#d5c8a9', 'path', '#c9b994', 'footway', '#c9b994', 'cycleway', '#a9c5b5', 'steps', '#c9b994', 'rail', '#8f8b85', 'railway', '#8f8b85', 'runway', '#c7c2b8', '#f5f0e5'],
         'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 10, 1.5, 14, 3.5, 18, 7],
         'line-opacity': 0.95
       }
@@ -53,7 +53,7 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'dam-lines', type: 'line', source: 'shortbread', 'source-layer': 'dam_lines', paint: { 'line-color': '#6f9eaf', 'line-width': 1.5 } },
     { id: 'pier-lines', type: 'line', source: 'shortbread', 'source-layer': 'pier_lines', paint: { 'line-color': '#b9b1a2', 'line-width': 1.5 } },
     { id: 'public-transport', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 12, paint: { 'circle-radius': 2.5, 'circle-color': '#765b9a', 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.6 } },
-    { id: 'buildings', type: 'fill', source: 'shortbread', 'source-layer': 'buildings', minzoom: 13, paint: { 'fill-color': '#d4c9bd', 'fill-outline-color': '#c2b6aa', 'fill-opacity': 0.85 } },
+    { id: 'buildings', type: 'fill', source: 'shortbread', 'source-layer': 'buildings', minzoom: 12, paint: { 'fill-color': '#d9cfc4', 'fill-outline-color': '#b9aa9b', 'fill-opacity': 0.92 } },
     { id: 'pois', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 12, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 1.8, 18, 4], 'circle-color': '#a36b42', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 0.6 } },
     // Nearly transparent anchor layers let the renderer obtain label geometry
     // without requesting remote MapLibre glyph PBF files.
@@ -63,9 +63,9 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'label-water-anchor', type: 'line', source: 'shortbread', 'source-layer': 'water_lines_labels', minzoom: 10, paint: { 'line-width': 6, 'line-opacity': 0.01 } },
     { id: 'label-water-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'water_polygons_labels', minzoom: 4, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
     { id: 'label-street-polygons-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'streets_polygons_labels', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
-    { id: 'label-street-points-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'street_labels_points', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
-    { id: 'label-public-transport-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
-    { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 12, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
+    { id: 'label-street-points-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'street_labels_points', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-public-transport-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'public_transport', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } },
+    { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
   ]
 };
 
@@ -555,15 +555,11 @@ export class OfflineMapRenderer {
     const height = this.map.getContainer().clientHeight;
 
     for (const candidate of candidates) {
-      if (visible.size >= 300) break;
+      const zoom = this.map.getZoom();
+      const maxLabels = zoom < 8 ? 18 : zoom < 10 ? 28 : zoom < 12 ? 42 : zoom < 14 ? 60 : zoom < 16 ? 90 : 130;
+      if (visible.size >= maxLabels) break;
       const { key, x, y, longitude, latitude, text, kind } = candidate;
       if (x < 0 || y < 0 || x > width || y > height) continue;
-      visible.add(key);
-      const existingLabel = this.textLabels.get(key);
-      if (existingLabel) {
-        existingLabel.element.textContent = text;
-        continue;
-      }
       const dedupeKey = `${kind}:${text}:${Math.round(x / 24)}:${Math.round(y / 24)}`;
       if (seen.has(dedupeKey)) continue;
       seen.add(dedupeKey);
@@ -574,6 +570,12 @@ export class OfflineMapRenderer {
       const box: [number, number, number, number] = [x - labelWidth / 2, y - labelHeight / 2, x + labelWidth / 2, y + labelHeight / 2];
       if (occupied.some(other => box[0] < other[2] + 4 && box[2] > other[0] - 4 && box[1] < other[3] + 3 && box[3] > other[1] - 3)) continue;
       occupied.push(box);
+      visible.add(key);
+      const existingLabel = this.textLabels.get(key);
+      if (existingLabel) {
+        existingLabel.element.textContent = text;
+        continue;
+      }
       const element = document.createElement('span');
       element.textContent = text;
       const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
@@ -590,12 +592,9 @@ export class OfflineMapRenderer {
     }
     for (const [key, marker] of this.textLabels) {
       if (visible.has(key)) continue;
-      // A transiently incomplete tile query must not erase labels. Retain their
-      // geographic markers while they remain near the viewport; remove only
-      // after their fixed anchor has actually moved well off-screen.
-      const point = this.map.project(marker.coordinates);
-      if (point.x >= -260 && point.y >= -60
-        && point.x <= width + 260 && point.y <= height + 60) continue;
+      // This refresh runs on MapLibre 'idle': visible tiles and label queries
+      // are settled. Remove labels no longer selected at the current zoom so
+      // zooming out cannot accumulate stale labels from earlier zoom levels.
       marker.element.remove();
       this.textLabels.delete(key);
     }
