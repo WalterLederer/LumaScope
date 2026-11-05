@@ -70,7 +70,7 @@ export const protocolHandler = async (request: GlobalRequest): Promise<GlobalRes
       });
       offlineProtocolRequestCount++;
     }
-    return offlineTile(parsed.pathname);
+    return offlineTile(parsed.pathname, parsed.searchParams.get('map'));
   }
 
   switch (parsed.pathname) {
@@ -91,7 +91,7 @@ export const protocolHandler = async (request: GlobalRequest): Promise<GlobalRes
   }
 };
 
-const offlineTile = (pathname: string): GlobalResponse => {
+const offlineTile = (pathname: string, mapId: string | null): GlobalResponse => {
   const match = pathname.match(/^\/offline-tiles\/(\d+)\/(\d+)\/(\d+)$/);
   if (!match) return notFound();
 
@@ -100,7 +100,7 @@ const offlineTile = (pathname: string): GlobalResponse => {
   if (![z, x, y].every(Number.isSafeInteger) || z < 0 || z > 22) return notFound();
 
   try {
-    const tile = Injector.getInstance().inject('OfflineMapManager').getTile(z, x, y);
+    const tile = Injector.getInstance().inject('OfflineMapManager').getTile(z, x, y, mapId);
     if (!tile) return notFound();
 
     // MBTiles stores gzip-compressed PBF. Custom Electron protocols do not
