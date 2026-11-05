@@ -62,8 +62,8 @@ export class OfflineMapManager {
   const database=new DatabaseSync(absolutePath,{readOnly:true});
   try{
    database.exec('PRAGMA query_only = ON;');
-   const hasMetadata=database.prepare("SELECT 1 AS found FROM sqlite_master WHERE type='table' AND name='metadata'").get();
-   const hasTiles=database.prepare("SELECT 1 AS found FROM sqlite_master WHERE type='table' AND name='tiles'").get();
+   const hasMetadata=database.prepare("SELECT 1 AS found FROM sqlite_master WHERE type IN ('table','view') AND name='metadata'").get();
+   const hasTiles=database.prepare("SELECT 1 AS found FROM sqlite_master WHERE type IN ('table','view') AND name='tiles'").get();
    if(!hasMetadata||!hasTiles)throw new Error('The SQLite file is not a valid MBTiles database (metadata or tiles table missing).');
    const rows=database.prepare('SELECT name,value FROM metadata').all() as Array<{name:string;value:string}>;const metadata=new Map(rows.map(item=>[item.name,item.value]));
    const format=metadata.get('format')?.toLowerCase()??'';if(format!=='pbf')throw new Error('Unsupported MBTiles format "'+(format||'missing')+'". Expected vector tiles (pbf).');
