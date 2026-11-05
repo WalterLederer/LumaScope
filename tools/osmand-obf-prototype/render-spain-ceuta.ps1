@@ -36,13 +36,16 @@ Assert-Path (Join-Path $QtRoot 'bin\qmake.exe')
 Assert-Path (Join-Path $MinGWRoot 'bin\g++.exe')
 Assert-Path (Join-Path $MinGWRoot 'bin\mingw32-make.exe')
 
-$pythonVersion = & $PythonExe -c 'import sys; print(sys.version_info[0], sys.version_info[1], sep=".")'
+$pythonVersion = & $PythonExe -c 'import sys; print(sys.version_info.major, sys.version_info.minor)'
 if ($LASTEXITCODE -ne 0) {
     throw 'Unable to query the selected Python interpreter.'
 }
-$versionParts = $pythonVersion.Trim().Split('.')
+$versionParts = $pythonVersion.Trim() -split '\s+'
+if ($versionParts.Count -lt 2) {
+    throw "Unable to parse Python version output: $pythonVersion"
+}
 if ([int]$versionParts[0] -lt 3 -or ([int]$versionParts[0] -eq 3 -and [int]$versionParts[1] -lt 12)) {
-    throw "Python 3.12 or newer is required. Found $pythonVersion."
+    throw "Python 3.12 or newer is required. Found $($versionParts[0]).$($versionParts[1])."
 }
 
 $cmakeCommand = Get-Command $CMakeExe
