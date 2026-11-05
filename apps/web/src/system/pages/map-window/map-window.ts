@@ -104,7 +104,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option>
                 </select>
               </label>
-              @if (mapSource() === 'online') {
+              @if (mapSource() === 'online' || !activeOfflineMapId()) {
                 <label class="online-map-style-control"><span>Style:</span>
                   <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                     <option value="standard">Standard</option><option value="satellite">Satellite</option>
@@ -132,7 +132,9 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               <div class="mbtiles-selection">
                 <button type="button" (click)="openMbtilesDownload()" title="URL: https://download.geofabrik.de/europe/austria.html&#10;DOWNLOAD .mbtile format: experimental vector tile package conforming to Shortbread schema for use with MapLibre and other MVT capable software">Download MBTiles…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
-                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates</span>
+                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
+                @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
+                </span>
                 <div class="mbtiles-map-list">
                   @for (map of offlineMaps(); track map.id) {
                     <div class="mbtiles-map-entry">
