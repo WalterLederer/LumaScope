@@ -482,8 +482,15 @@ export class MapWindow implements OnInit, OnDestroy {
     const marker = this.marker?.getLatLng();
     const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
     if (latitude !== null && longitude !== null) {
-      if (this.offlineRenderer) this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
-      else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
+      if (this.offlineRenderer) {
+        // Reassert the fixed geographic coordinate before centering. This also
+        // recreates the DOM marker if a prior style/shape update detached it.
+        this.offlineRenderer.setCurrentLocation(
+          latitude, longitude, this.currentMarkerColor(),
+          this.locationOpacity() / 100, this.currentMarkerShape()
+        );
+        this.offlineRenderer.map.jumpTo({ center: [longitude, latitude] });
+      } else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
     }
   };
   private formatCoordinateDms(value: number, latitude: boolean): string {
