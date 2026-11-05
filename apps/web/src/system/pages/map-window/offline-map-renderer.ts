@@ -7,6 +7,8 @@ setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).toString());
 
 const AUSTRIA_BOUNDS: [number, number, number, number] = [9.52678, 46.36979, 17.16408, 49.02403];
 
+export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-neutrino';
+
 export function buildPhotoMarkerPreviewHtml(path: string, fileName: string): string {
   const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -77,6 +79,61 @@ export const AUSTRIA_SHORTBREAD_STYLE: StyleSpecification = {
     { id: 'label-pois-anchor', type: 'circle', source: 'shortbread', 'source-layer': 'pois', minzoom: 14, paint: { 'circle-radius': 2, 'circle-opacity': 0.01 } }
   ]
 };
+
+
+export function createOfflineMapStyle(styleName: OfflineMapStyle): StyleSpecification {
+  const style = JSON.parse(JSON.stringify(AUSTRIA_SHORTBREAD_STYLE)) as StyleSpecification;
+  const palette = styleName === 'versatiles-colorful'
+    ? {
+      background: '#f7f5ed', land: '#e7e3d7', forest: '#b9d7a2', grass: '#d8e8b8',
+      water: '#8bc9e8', boundary: '#9b7db0', casing: '#a99b86', road: '#fffdf5',
+      motorway: '#e56f62', primary: '#f2b85b', secondary: '#fff0c9', tertiary: '#fff9e8',
+      building: '#d9c9b9', site: '#e9d9a8', poi: '#c47b45', transport: '#7758a6'
+    }
+    : styleName === 'versatiles-neutrino'
+      ? {
+        background: '#202b36', land: '#34434a', forest: '#354f45', grass: '#40544a',
+        water: '#29485c', boundary: '#77808d', casing: '#596773', road: '#aab5bd',
+        motorway: '#d18b82', primary: '#c6a77b', secondary: '#84939e', tertiary: '#647581',
+        building: '#46545d', site: '#48565c', poi: '#c39b73', transport: '#a18cbd'
+      }
+      : {
+        background: '#f5f2ea', land: '#e6e1d5', forest: '#c8d9b8', grass: '#dce5c8',
+        water: '#a9d5e5', boundary: '#a58aa2', casing: '#b5ad9e', road: '#f5f0e5',
+        motorway: '#d66f67', primary: '#e1ad64', secondary: '#fff8e8', tertiary: '#fffaf0',
+        building: '#d9cfc4', site: '#e3dfd4', poi: '#a36b42', transport: '#765b9a'
+      };
+  const setPaint = (id: string, values: Record<string, unknown>): void => {
+    const layer = style.layers.find(candidate => candidate.id === id);
+    if (layer && 'paint' in layer) Object.assign(layer.paint, values);
+  };
+  const landColor = ['match', ['get', 'kind'], 'forest', palette.forest, 'grass', palette.grass,
+    'meadow', palette.grass, 'orchard', palette.grass, 'vineyard', palette.grass, palette.land];
+  const roadColor = ['match', ['get', 'kind'],
+    'motorway', palette.motorway, 'motorway_link', palette.motorway,
+    'trunk', palette.primary, 'trunk_link', palette.primary, 'primary', palette.primary, 'primary_link', palette.primary,
+    'secondary', palette.secondary, 'secondary_link', palette.secondary,
+    'tertiary', palette.tertiary, 'residential', palette.road, 'unclassified', palette.road,
+    'living_street', palette.road, 'service', palette.road, 'pedestrian', palette.road,
+    'track', palette.casing, 'path', palette.casing, 'footway', palette.casing, 'cycleway', palette.grass,
+    'steps', palette.casing, 'rail', palette.casing, 'railway', palette.casing, palette.road];
+  setPaint('background', { 'background-color': palette.background });
+  setPaint('land', { 'fill-color': landColor });
+  setPaint('ocean', { 'fill-color': palette.water });
+  setPaint('water-polygons', { 'fill-color': palette.water });
+  setPaint('water-lines', { 'line-color': palette.water });
+  setPaint('boundaries', { 'line-color': palette.boundary });
+  setPaint('street-casing', { 'line-color': palette.casing });
+  setPaint('streets', { 'line-color': roadColor });
+  setPaint('buildings', { 'fill-color': palette.building, 'fill-outline-color': palette.casing });
+  setPaint('sites', { 'fill-color': palette.site, 'fill-outline-color': palette.casing });
+  setPaint('pois', { 'circle-color': palette.poi });
+  setPaint('public-transport', { 'circle-color': palette.transport });
+  style.name = styleName === 'lumascope' ? 'LumaScope' :
+    styleName === 'versatiles-colorful' ? 'VersaTiles Colorful (local Shortbread palette)' :
+    'VersaTiles Neutrino (local Shortbread palette)';
+  return style;
+}
 
 export class OfflineMapRenderer {
   readonly map: MapLibreMap;
@@ -265,9 +322,9 @@ export class OfflineMapRenderer {
     });
   };
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope') {
     const options: MapOptions = {
-      container, style: AUSTRIA_SHORTBREAD_STYLE, center, zoom,
+      container, style: createOfflineMapStyle(styleName), center, zoom,
       minZoom: 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
       pitch: 0,
@@ -614,10 +671,13 @@ export class OfflineMapRenderer {
       }
       const element = document.createElement('span');
       element.textContent = text;
-      const color = kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
+      const darkStyle = this.styleName === 'versatiles-neutrino';
+      const color = darkStyle ? (kind === 'water' ? '#9bcde4' : kind === 'boundary' ? '#c0a8d0' : '#f0f1f2')
+        : kind === 'street' ? '#625d55' : kind === 'water' ? '#397b9a' : kind === 'boundary' ? '#806b83' : kind === 'poi' ? '#73583d' : '#393832';
+      const halo = darkStyle ? '#202b36' : '#f1efe8';
       const weight = kind === 'capital' || kind === 'state_capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
-      element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 #f1efe8,1px -1px 0 #f1efe8,-1px 1px 0 #f1efe8,1px 1px 0 #f1efe8,0 0 3px #f1efe8;pointer-events:none;text-align:center;`;
+      element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 ${halo},1px -1px 0 ${halo},-1px 1px 0 ${halo},1px 1px 0 ${halo},0 0 3px ${halo};pointer-events:none;text-align:center;`;
       element.style.position = 'absolute';
       element.style.left = '0';
       element.style.top = '0';
