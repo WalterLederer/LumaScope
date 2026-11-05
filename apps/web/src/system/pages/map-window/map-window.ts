@@ -131,11 +131,18 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </label>
               <div class="mbtiles-selection">
                 <button type="button" (click)="openMbtilesDownload()" title="URL: https://download.geofabrik.de/europe/austria.html&#10;DOWNLOAD .mbtile format: experimental vector tile package conforming to Shortbread schema for use with MapLibre and other MVT capable software">Download MBTiles…</button>
-                <button type="button" (click)="chooseOfflineMap()">Select MBTiles…</button>
-                <span class="offline-map-status" role="status">{{ offlineMapStatusText() }}</span>
-                @if (offlineMapStatus()?.filePath) {
-                  <code class="mbtiles-full-path" [title]="offlineMapStatus()!.filePath!">{{ offlineMapStatus()!.filePath }}</code>
-                }
+                <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
+                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates</span>
+                <div class="mbtiles-map-list">
+                  @for (map of offlineMaps(); track map.id) {
+                    <div class="mbtiles-map-entry">
+                      <span class="mbtiles-map-name" [title]="map.filePath">{{ map.name }}</span>
+                      <span class="mbtiles-map-details">{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
+                      <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
+                    </div>
+                  }
+                  @if (offlineMaps().length === 0) { <span class="offline-map-status">No offline maps loaded.</span> }
+                </div>
               </div>
             </div>
           </details>
@@ -306,7 +313,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-select{width:340px;max-width:none}
     .mbtiles-selection{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}
-    .mbtiles-full-path{grid-column:1/-1;display:block;max-width:100%;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#aaa);font-size:11px}
+    .mbtiles-map-list{grid-column:1/-1;display:grid;gap:4px;min-width:0}
+    .mbtiles-map-entry{display:grid;grid-template-columns:minmax(100px,1fr) minmax(180px,2fr) auto;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
+    .mbtiles-map-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+    .mbtiles-map-details{font-size:11px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere}
+    .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
@@ -390,6 +401,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
+  private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
   private leaflet: LeafletMapApi | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
@@ -409,6 +421,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapSource = signal<'online' | 'offline'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
+  protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -508,7 +521,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
-    void this.desktop?.OfflineMap.getStatus().then(status => this.offlineMapStatus.set(status)).catch(error => console.error('Could not read offline map status:', error));
+    void this.desktop?.OfflineMap.getMaps().then(maps => this.offlineMaps.set(maps)).catch(error => console.error('Could not read offline map list:', error));
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
     this.bearing.set(Number.isFinite(initialBearing) && initialBearing >= 0 && initialBearing < 360 ? initialBearing : null);
@@ -861,11 +874,34 @@ export class MapWindow implements OnInit, OnDestroy {
   private async initialize(latitude: number, longitude: number): Promise<void> {
     const generation = this.mapSourceGeneration;
     if (this.mapSource() === 'offline') {
+      const selected = await this.desktop?.OfflineMap.selectForCoordinates(latitude, longitude) ?? null;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
+      const nextId = selected?.id ?? null;
+      if (nextId !== this.currentOfflineMapId) {
+        this.offlineRenderer?.remove(); this.offlineRenderer = null;
+        this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+        this.tileLayer?.remove(); this.tileLayer = null; this.clearDirectoryMarkers();
+        this.currentOfflineMapId = nextId;
+        this.mapInitialization = null;
+      }
+      if (!selected) {
+        this.offlineMapStatus.set(null);
+        if (this.map) {
+          this.marker?.setLatLng([latitude, longitude]);
+          this.map.setView([latitude, longitude], this.map.getZoom());
+          return;
+        }
+        const fallback = this.createMap(latitude, longitude, generation, true);
+        this.mapInitialization = fallback;
+        try { await fallback; } finally { if (this.mapInitialization === fallback) this.mapInitialization = null; }
+        return;
+      }
+      this.offlineMapStatus.set(selected);
       if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); return; }
       if (this.mapInitialization) await this.mapInitialization;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
-      if (this.offlineRenderer || this.map) return;
-      const initialization = this.createOfflineMap(latitude, longitude, generation);
+      if (this.offlineRenderer) return;
+      const initialization = this.createOfflineMap(latitude, longitude, generation, selected);
       this.mapInitialization = initialization;
       try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
       return;
@@ -899,16 +935,9 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private async createOfflineMap(latitude: number, longitude: number, generation: number): Promise<void> {
-    const status = await this.desktop?.OfflineMap.getStatus();
+  private async createOfflineMap(latitude: number, longitude: number, generation: number, status: import('internal-api').OfflineMapStatus): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
     this.offlineMapStatus.set(status ?? null);
-    if (!status?.available) {
-      this.locationAddress.set(status?.error ?? 'Select a valid Austria MBTiles file in Map settings.');
-      this.mapSource.set('online'); this.saveSetting('source', 'online');
-      await this.createMap(latitude, longitude, generation);
-      return;
-    }
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -918,7 +947,11 @@ export class MapWindow implements OnInit, OnDestroy {
         this.offlineMapStatus.update(current => current ? { ...current, error: message } : current);
         this.locationAddress.set('Offline map rendering error: ' + message);
       },
-      this.offlineMapStyle()
+      this.offlineMapStyle(),
+      status.id,
+      status.minZoom,
+      status.maxZoom,
+      status.bounds?.split(',').map(Number) as [number, number, number, number] | undefined
     );
     this.offlineRenderer = renderer;
     try {
@@ -959,10 +992,10 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
-  private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
+  private async createMap(latitude: number, longitude: number, generation: number, allowOfflineFallback = false): Promise<void> {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     const leaflet = await this.loadLeaflet();
-    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
+    if (generation !== this.mapSourceGeneration || (this.mapSource() !== 'online' && !allowOfflineFallback)) return;
     this.leaflet = leaflet;
     const center: [number, number] = [latitude, longitude];
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
@@ -1042,8 +1075,26 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly chooseOfflineMap = async (): Promise<void> => {
     if (!this.desktop) return;
-    const status = await this.desktop.OfflineMap.chooseFile(); this.offlineMapStatus.set(status);
-    if (status.available) this.changeMapSource('offline');
+    const maps = await this.desktop.OfflineMap.chooseFile();
+    this.offlineMaps.set(maps);
+    if (maps.length && this.mapSource() !== 'offline') this.changeMapSource('offline');
+    else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+      this.mapSourceGeneration++; this.mapInitialization = null;
+      this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      this.currentOfflineMapId = null;
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly removeOfflineMap = async (id: string): Promise<void> => {
+    if (!this.desktop) return;
+    this.offlineMaps.set(await this.desktop.OfflineMap.removeFile(id));
+    if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+      this.mapSourceGeneration++; this.mapInitialization = null;
+      this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.currentOfflineMapId = null;
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
   };
   protected readonly openMbtilesDownload = async (): Promise<void> => {
     await this.desktop?.ProcessManager.openExternal('https://download.geofabrik.de/europe/austria.html');
