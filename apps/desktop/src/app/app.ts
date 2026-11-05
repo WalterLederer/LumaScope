@@ -352,13 +352,11 @@ export default class App {
     App.mapWindowLocation = hasCoordinates
       ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null }
       : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
+    const location = App.mapWindowLocation;
+    if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
 
     if (App.isMapWindowOpen()) {
-      const location = hasCoordinates
-        ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing : null, imagePath: imagePath ?? null }
-        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
       App.mapWindow.webContents.send('MapWindow.locationChanged', location);
-      if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
       if (App.mapWindow.isMinimized()) App.mapWindow.restore();
       App.mapWindow.showInactive();
       return true;
