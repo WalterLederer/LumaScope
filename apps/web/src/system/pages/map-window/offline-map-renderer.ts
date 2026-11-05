@@ -1,4 +1,4 @@
-import { Map as MapLibreMap, Marker, Popup, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -149,7 +149,6 @@ export class OfflineMapRenderer {
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private onPhotoSelected: ((path: string) => void) | null = null;
-  private photoPreviewPopup: Popup | null = null;
   private photoPreviewElement: HTMLDivElement | null = null;
   private activePhotoPreviewKey: string | null = null;
   private activePhotoPreviewCoordinates: [number, number] | null = null;
@@ -492,8 +491,7 @@ export class OfflineMapRenderer {
     });
     this.map.on('click', 'photo-clusters', event => {
       this.clusterPreviewRequestId++;
-      this.photoPreviewPopup?.remove();
-      this.photoPreviewPopup = null;
+      this.clearPhotoPreview();
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.['cluster_id'];
       const coordinates = feature?.geometry?.type === 'Point' ? feature.geometry.coordinates : null;
@@ -825,8 +823,7 @@ export class OfflineMapRenderer {
     this.photoPreviewElement = null;
     this.activePhotoPreviewKey = null;
     this.activePhotoPreviewCoordinates = null;
-    this.photoPreviewPopup?.remove();
-    this.photoPreviewPopup = null;
+    this.clearPhotoPreview();
   }
 
   private readonly updateOverlayPositions = (): void => {
@@ -891,8 +888,6 @@ export class OfflineMapRenderer {
       }))
     });
     this.photoOpacity = opacity;
-    this.photoPreviewPopup?.remove();
-    this.photoPreviewPopup = null;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
     this.map.setPaintProperty('photo-clusters', 'circle-opacity', this.photoClustersVisible ? 0.95 * opacity : 0);
@@ -968,8 +963,6 @@ export class OfflineMapRenderer {
     this.map.off('dragstart', this.onDiagnosticMapDragStart);
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.map.off('render', this.updateOverlayPositions);
-    this.photoPreviewPopup?.remove();
-    this.photoPreviewPopup = null;
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
     this.currentLocation = null;
