@@ -901,7 +901,7 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       this.offlineMapStatus.set(selected);
-      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); return; }
+      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); this.offlineRenderer.map.easeTo({ center: [longitude, latitude] }); return; }
       if (this.mapInitialization) await this.mapInitialization;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
       if (this.offlineRenderer) return;
