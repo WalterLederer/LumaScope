@@ -608,6 +608,10 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Save the live camera value before destroying either map implementation.
+    // This also covers closing the separate Location window or the overlay
+    // while a zoom animation is still in progress.
+    this.persistZoom(this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel());
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.unsubscribeLocation?.();
@@ -785,6 +789,12 @@ export class MapWindow implements OnInit, OnDestroy {
     try { localStorage.setItem(this.storagePrefix + key, String(value)); } catch { /* Keep the current session setting. */ }
   }
   private validZoom(value: number): number { return Math.max(1, Math.min(20, Math.round(value))); }
+  private persistZoom(value: number): void {
+    if (!Number.isFinite(value)) return;
+    const zoom = this.validZoom(value);
+    this.zoomLevel.set(zoom);
+    this.saveSetting('zoom', zoom);
+  }
 
   protected readonly onMarkerSectionToggle = (event: Event): void => {
     const section = event.currentTarget;
@@ -1005,13 +1015,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
-    const syncOfflineZoom = (): void => {
-      const zoom = Math.round(this.validZoom(renderer.map.getZoom()));
-      if (zoom !== this.zoomLevel()) {
-        this.zoomLevel.set(zoom);
-        this.saveSetting('zoom', zoom);
-      }
-    };
+    const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('zoom', syncOfflineZoom);
     renderer.map.on('zoomend', syncOfflineZoom);
     syncOfflineZoom();
@@ -1029,11 +1033,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
-    this.map.on('zoomend', () => {
-      const zoom = this.validZoom(this.map?.getZoom() ?? this.zoomLevel());
-      this.zoomLevel.set(zoom);
-      this.saveSetting('zoom', zoom);
-    });
+    const syncZoom = (): void => this.persistZoom(map.getZoom());
+    map.on('zoom', syncZoom);
+    map.on('zoomend', syncZoom);
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
