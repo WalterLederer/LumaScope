@@ -222,12 +222,13 @@ export interface CapturePreview {
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
-export interface OfflineMapStatus { id:string; available:boolean; filePath:string; fileName:string; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
  readonly getMaps:()=>Promise<OfflineMapStatus[]>;
  readonly removeFile:(id:string)=>Promise<OfflineMapStatus[]>;
+ readonly setEnabled:(id:string,enabled:boolean)=>Promise<OfflineMapStatus[]>;
  readonly getStatus:()=>Promise<OfflineMapStatus>;
  readonly selectForCoordinates:(latitude:number,longitude:number)=>Promise<OfflineMapStatus|null>;
 }
