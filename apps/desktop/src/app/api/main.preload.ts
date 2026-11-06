@@ -70,7 +70,8 @@ const api: Desktop = {
     getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles),
     getDirectoryPhotoLocations: (directory: string) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory),
     getPhotoDatabaseRecord: (sourceName: string) => ipcRenderer.invoke('CacheManager.getPhotoDatabaseRecord', sourceName),
-    resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => ipcRenderer.invoke('CacheManager.resolvePhotoLocation', sourceName, latitude, longitude)
+    resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => ipcRenderer.invoke('CacheManager.resolvePhotoLocation', sourceName, latitude, longitude),
+    getOsmAndTileCacheSummary: () => ipcRenderer.invoke('CacheManager.getOsmAndTileCacheSummary')
   },
 
   Histogram: {
