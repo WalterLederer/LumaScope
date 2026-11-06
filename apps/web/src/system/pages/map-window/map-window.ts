@@ -280,14 +280,24 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
                 <div class="mbtiles-map-list">
-                  @for (map of offlineMaps(); track map.id) {
-                    <div class="mbtiles-map-entry">
-                      <span class="mbtiles-map-name" [title]="map.name">{{ map.name }} @if (map.id === activeOfflineMapId()) { · In use }</span>
-                      <span class="mbtiles-map-details"><strong>{{ map.fileName }}</strong><br>{{ map.filePath }}<br>{{ map.bounds }} · zoom {{ map.minZoom }}–{{ map.maxZoom }}</span>
-                      <button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button>
-                    </div>
-                  }
-                  @if (offlineMaps().length === 0) { <span class="offline-map-status">No offline maps loaded.</span> }
+                  @if (offlineMaps().length > 0) {
+                    <table class="mbtiles-map-table">
+                      <thead><tr><th class="mbtiles-enabled-column">Use</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                      <tbody>
+                        @for (map of offlineMaps(); track map.id) {
+                          <tr [class.mbtiles-map-disabled]="!map.enabled">
+                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
+                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span>{{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
+                            <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
+                            <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                            <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
+                            <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                            <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else { <span class="offline-map-status">No offline maps loaded.</span> }
                   @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
                 </div>
               </div>
@@ -363,10 +373,20 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-select{width:340px;max-width:none}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
     .mbtiles-download-source{min-width:0;max-width:100%;}
-    .mbtiles-map-list{grid-column:1/-1;display:grid;grid-auto-rows:auto;gap:6px;min-width:0;max-height:none;overflow:visible}
-    .mbtiles-map-entry{display:grid;grid-template-columns:minmax(130px,1fr) minmax(240px,3fr) auto;align-items:start;gap:8px;padding:6px 8px;border:1px solid var(--color-border-subtle,#555);border-radius:4px;min-width:0}
-    .mbtiles-map-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-    .mbtiles-map-details{font-size:11px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere;line-height:1.45;min-width:0}
+    .mbtiles-map-list{grid-column:1/-1;min-width:0;max-width:100%;overflow-x:auto}
+    .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .mbtiles-map-table th,.mbtiles-map-table td{padding:5px 8px;border-bottom:1px solid var(--color-content-default-low,#454545);text-align:left;vertical-align:middle}
+    .mbtiles-map-table th{font-weight:600;color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943)}
+    .mbtiles-map-table .mbtiles-enabled-column{width:42px;text-align:center}
+    .mbtiles-enabled-column input{margin:0;accent-color:#8ab4f8;vertical-align:middle}
+    .mbtiles-map-file{max-width:300px;overflow:hidden;text-overflow:ellipsis}
+    .mbtiles-map-file strong,.mbtiles-map-file span{display:inline-block;vertical-align:middle;margin-right:8px;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+    .mbtiles-map-file strong{font-weight:600}
+    .mbtiles-map-file span{color:var(--color-content-default-medium,#aaa)}
+    .mbtiles-map-file .mbtiles-in-use{color:#8ab4f8;font-weight:600}
+    .mbtiles-map-number{white-space:nowrap}
+    .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}
+    .mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
@@ -1181,6 +1201,29 @@ export class MapWindow implements OnInit, OnDestroy {
     else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      this.currentOfflineMapId = null;
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly formatOfflineMapSize = (bytes: number): string => {
+    if (!Number.isFinite(bytes) || bytes < 0) return '—';
+    if (bytes < 1024) return bytes + ' B';
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = bytes / 1024, unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[unit];
+  };
+  protected readonly formatOfflineMapDate = (timestamp: number): string => {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return '—';
+    return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
+  };
+  protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
+    if (!this.desktop) return;
+    this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(id, enabled));
+    if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+      this.mapSourceGeneration++; this.mapInitialization = null;
+      this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
