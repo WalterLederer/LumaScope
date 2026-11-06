@@ -59,6 +59,7 @@ const api: Desktop = {
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
     getCacheSummary: () => ipcRenderer.invoke('CacheManager.getCacheSummary'),
     resolveMissingLocationNames: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.resolveMissingLocationNames', directory, recursive),
+    cancelResolveMissingLocationNames: () => ipcRenderer.invoke('CacheManager.cancelResolveMissingLocationNames'),
     getBackgroundReverseGeocodingStatus: () => ipcRenderer.invoke('CacheManager.getBackgroundReverseGeocodingStatus'),
     cacheInfo: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.cacheInfo', directory, recursive),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
