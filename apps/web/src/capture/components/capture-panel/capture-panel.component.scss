@@ -554,6 +554,10 @@
   color: #888;
 }
 
+.capture-source-row.is-system-host:not(.is-selected) {
+  opacity: 0.72;
+}
+
 .capture-source-row.is-monitor {
   color: #4d9bcf;
   background: rgb(60 145 205 / 12%);
