@@ -67,6 +67,7 @@ export interface ResolveLocationNamesResult {
   total: number;
   resolved: number;
   unresolved: number;
+  cancelled?: boolean;
 }
 
 export interface BackgroundReverseGeocodingStatus {
@@ -76,6 +77,8 @@ export interface BackgroundReverseGeocodingStatus {
   inProgress: number;
   errors: number;
   status: 'running' | 'idle' | 'completed';
+  currentFilePath: string | null;
+  currentDisplayName: string | null;
 }
 
 export interface DesktopCacheManager {
@@ -87,6 +90,7 @@ export interface DesktopCacheManager {
   readonly cacheSize: () => Promise<number>;
   readonly getCacheSummary: () => Promise<CacheSummary>;
   readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
+  readonly cancelResolveMissingLocationNames: () => Promise<boolean>;
   readonly getBackgroundReverseGeocodingStatus: () => Promise<BackgroundReverseGeocodingStatus>;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
