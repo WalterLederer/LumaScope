@@ -385,6 +385,32 @@ export class CacheManager {
     return summary;
   };
 
+  @IpcHandler({ name: 'CacheManager.getOsmAndTileCacheSummary' })
+  readonly getOsmAndTileCacheSummary = async (): Promise<{ path: string; entries: number; bytes: number; available: boolean }> => {
+    const localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
+    const cachePath = join(localAppData, 'LumaScope', 'cache', 'maps', 'obf');
+    if (!existsSync(cachePath)) return { path: cachePath, entries: 0, bytes: 0, available: false };
+
+    let entries = 0;
+    let bytes = 0;
+    const visit = async (directory: string): Promise<void> => {
+      const children = await readdir(directory, { withFileTypes: true });
+      for (const child of children) {
+        const childPath = join(directory, child.name);
+        if (child.isDirectory()) {
+          await visit(childPath);
+        } else if (child.isFile() && extname(child.name).toLowerCase() === '.png') {
+          const info = await stat(childPath);
+          entries++;
+          bytes += info.size;
+        }
+      }
+    };
+
+    await visit(cachePath);
+    return { path: cachePath, entries, bytes, available: true };
+  };
+
   @IpcHandler({ name: 'CacheManager.cacheSize' })
   readonly cacheSize = async (): Promise<number> => (await this.cacheInfo()).bytes;
 
