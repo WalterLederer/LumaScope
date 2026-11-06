@@ -5,6 +5,7 @@ import { FileSystem } from '../file-system/file-system';
 import { Histogram } from '../histogram/histogram';
 import { ProcessManager } from '../process-manager/process-manager';
 import { OfflineMapManager } from '../offline-map/offline-map-manager';
+import { OsmAndManager } from '../osmand/osmand-manager';
 import { ThumbManager } from '../thumb-manager/thumb-manager';
 
 /**
@@ -21,7 +22,8 @@ export class Injector {
     CacheManager: new CacheManager(),
     ThumbManager: new ThumbManager(),
     Histogram: new Histogram(),
-    OfflineMapManager: new OfflineMapManager()
+    OfflineMapManager: new OfflineMapManager(),
+    OsmAndManager: new OsmAndManager()
   } as const;
 
   private constructor() {
