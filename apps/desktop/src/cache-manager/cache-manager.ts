@@ -61,6 +61,10 @@ export class CacheManager {
   private readonly db: DatabaseSync;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
   private readonly pendingLocationLookups = new Map<number, Promise<string | null>>();
+  private locationLookupCancelled = false;
+  private currentReverseGeocodingPath: string | null = null;
+  private currentReverseGeocodingDisplayName: string | null = null;
+  private currentReverseGeocodingPhotoId: number | null = null;
 
   private readonly activeClearOperations = new Set<string>();
 
@@ -236,7 +240,9 @@ export class CacheManager {
 
     let resolved = 0;
     let unresolved = 0;
+    this.locationLookupCancelled = false;
     for (const row of candidates) {
+      if (this.locationLookupCancelled) break;
       // Also refresh older location records that predate persistent full-address storage.
       await this.ensureLocationName({
         ...row,
@@ -250,9 +256,14 @@ export class CacheManager {
         && saved.location_name_id !== 0 && saved.display_name !== null) resolved++;
       else unresolved++;
     }
-    return { total: candidates.length, resolved, unresolved };
+    return { total: candidates.length, resolved, unresolved, cancelled: this.locationLookupCancelled };
   };
 
+  @IpcHandler({ name: 'CacheManager.cancelResolveMissingLocationNames' })
+  readonly cancelResolveMissingLocationNames = async (): Promise<boolean> => {
+    this.locationLookupCancelled = true;
+    return true;
+  };
 
   @IpcHandler({ name: 'CacheManager.getBackgroundReverseGeocodingStatus' })
   readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
@@ -288,7 +299,9 @@ export class CacheManager {
         ? 'completed'
         : 'idle';
 
-    return { total, resolved, pending, inProgress, errors, status };
+    return { total, resolved, pending, inProgress, errors, status,
+      currentFilePath: this.currentReverseGeocodingPath,
+      currentDisplayName: this.currentReverseGeocodingDisplayName };
   };
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
@@ -785,6 +798,11 @@ export class CacheManager {
       let lookupError: string | null = null;
       let thrownError: unknown = null;
       const startedAt = Date.now();
+      this.currentReverseGeocodingPhotoId = photo.id;
+      this.currentReverseGeocodingDisplayName = null;
+      const source = this.db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
+        .get({ photoId: photo.id }) as { folder_path: string; file_name: string } | undefined;
+      this.currentReverseGeocodingPath = source ? join(source.folder_path, source.file_name) : null;
       this.db.prepare(`UPDATE photos
         SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId`)
@@ -794,6 +812,7 @@ export class CacheManager {
         const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
         if (location) {
           displayName = location.displayName;
+          if (this.currentReverseGeocodingPhotoId === photo.id) this.currentReverseGeocodingDisplayName = location.displayName;
           this.db.prepare(`INSERT OR IGNORE INTO location_names
             (latitude, longitude, place_name, display_name, street, country_code, region, locality, provider, updated_at)
             VALUES (:latitude, :longitude, :placeName, :displayName, :street, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
@@ -867,6 +886,7 @@ export class CacheManager {
           forceRefresh: forceRefresh ? 1 : 0
         });
       if (throwOnError && thrownError) throw thrownError;
+      if (this.currentReverseGeocodingPhotoId === photo.id) this.currentReverseGeocodingDisplayName = displayName;
       return displayName;
     })();
 
