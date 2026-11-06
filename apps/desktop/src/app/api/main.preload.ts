@@ -92,6 +92,7 @@ const api: Desktop = {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
     removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
+    setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OfflineMap.setEnabled', id, enabled),
     getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus'),
     selectForCoordinates: (latitude: number, longitude: number) => ipcRenderer.invoke('OfflineMap.selectForCoordinates', latitude, longitude)
   },
