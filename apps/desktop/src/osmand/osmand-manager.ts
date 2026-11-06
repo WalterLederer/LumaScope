@@ -2,7 +2,7 @@ import { app, nativeImage, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
 const TILE_SIZE = 256;
@@ -233,8 +233,8 @@ export class OsmAndManager {
   constructor() {
     const qtRoot = process.env.IPHOTO_OSMAND_QT_ROOT || process.env.QT_ROOT || 'C:\\Qt\\6.10.1\\mingw_64';
     const mingwRoot = process.env.IPHOTO_OSMAND_MINGW_ROOT || process.env.MINGW_ROOT || 'C:\\Qt\\Tools\\mingw1310_64';
-    const runtimePath = [join(this.helperPath, '..'), join(qtRoot, 'bin'), join(mingwRoot, 'bin')];
-    const environment = { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(';') };
+    const runtimePath = [dirname(this.helperPath), join(qtRoot, 'bin'), join(mingwRoot, 'bin')];
+    const environment = { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(delimiter) };
     this.workers = Array.from({ length: HELPER_WORKER_COUNT }, () =>
       new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPath, environment)
     );
@@ -283,7 +283,7 @@ export class OsmAndManager {
   };
 
   private async renderAndCacheTile(z: number, x: number, y: number, cacheFile: string): Promise<Buffer> {
-    await mkdir(join(cacheFile, '..'), { recursive: true });
+    await mkdir(dirname(cacheFile), { recursive: true });
     const worker = this.workers[this.nextWorker++ % this.workers.length];
     const pixels = await worker.render(z, x, y);
     const bgra = Buffer.allocUnsafe(pixels.length);
