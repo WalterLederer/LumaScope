@@ -1184,7 +1184,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
-      this.validZoom(this.zoomLevel()),
+      Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
         if (generation !== this.mapSourceGeneration) return;
         this.locationAddress.set('OsmAnd rendering error: ' + message);
@@ -1431,7 +1431,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
-    const next = this.validZoom(zoom); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
+    const next = Math.max(this.mapSource() === 'osmand' ? 2 : 1, this.validZoom(zoom)); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel()) + direction);
