@@ -1,16 +1,17 @@
 import { app, dialog, type IpcMainInvokeEvent } from 'electron';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-export interface OfflineMapStatus { id:string; available:boolean; filePath:string; fileName:string; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
-const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,filePath:'',fileName:'',name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
+const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
  private readonly settingsPath=resolve(app.getPath('userData'),'offline-map.json');
  private readonly opened=new Map<string,OpenOfflineMap>();
  private activeId:string|null=null;
+ private readonly enabledByPath=new Map<string,boolean>();
  private tileDiagnosticsCount=0;
  private lastDirectory=app.getPath('documents');
  constructor(){this.restoreMaps();}
@@ -26,6 +27,17 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status}));
+ @IpcHandler({name:'OfflineMap.setEnabled'})
+ readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
+  const item=this.opened.get(id);
+  if(item&&typeof enabled==='boolean'){
+   item.status.enabled=enabled;
+   this.enabledByPath.set(id,enabled);
+   if(!enabled&&this.activeId===id)this.activeId=null;
+   this.persistMaps();
+  }
+  return this.getMaps();
+ };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
   const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;this.persistMaps();} return this.getMaps();
@@ -35,7 +47,7 @@ export class OfflineMapManager {
  @IpcHandler({name:'OfflineMap.selectForCoordinates'})
  readonly selectForCoordinates=async(_event:IpcMainInvokeEvent,latitude:number,longitude:number):Promise<OfflineMapStatus|null>=>{
   if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)return null;
-  const matches=[...this.opened.values()].filter(item=>longitude>=item.bounds[0]&&longitude<=item.bounds[2]&&latitude>=item.bounds[1]&&latitude<=item.bounds[3]).sort((a,b)=>a.area-b.area);
+  const matches=[...this.opened.values()].filter(item=>item.status.enabled&&longitude>=item.bounds[0]&&longitude<=item.bounds[2]&&latitude>=item.bounds[1]&&latitude<=item.bounds[3]).sort((a,b)=>a.area-b.area);
   const selected=matches[0]??null;this.activeId=selected?.status.id??null;return selected?{...selected.status}:null;
  };
  getTile(z:number,x:number,xyzY:number,mapId?:string|null):Uint8Array|null{
@@ -49,13 +61,14 @@ export class OfflineMapManager {
  }
  private restoreMaps():void{
   if(!existsSync(this.settingsPath))return;
-  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;filePath?:unknown;lastDirectory?:unknown};
+  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
+   if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
    const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
    for(const path of paths){try{this.openFile(path);}catch(error){console.warn('[OfflineMap] Could not restore MBTiles:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),lastDirectory:this.lastDirectory},null,2),'utf8');}
+ private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled])),lastDirectory:this.lastDirectory},null,2),'utf8');}
  private openFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.mbtiles')throw new Error('The selected file must have the .mbtiles extension.');
   if(!existsSync(absolutePath))throw new Error('The selected MBTiles file does not exist.');if(this.opened.has(absolutePath))return;
@@ -83,8 +96,9 @@ export class OfflineMapManager {
    const tileStatement=database.prepare('SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?');
    const sample=database.prepare('SELECT tile_data FROM tiles LIMIT 1').get() as {tile_data?:Uint8Array}|undefined;
    if(!sample?.tile_data||Buffer.from(sample.tile_data).subarray(0,2).toString('hex')!=='1f8b')throw new Error('The MBTiles tiles are not gzip-compressed PBF data.');
-   const status:OfflineMapStatus={id:absolutePath,available:true,filePath:absolutePath,fileName:basename(absolutePath),name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null,schema,vectorLayers};
-   this.opened.set(absolutePath,{database,tileStatement,status,bounds,area:(bounds[2]-bounds[0])*(bounds[3]-bounds[1])});if(!this.activeId)this.activeId=absolutePath;
+   const fileStats=statSync(absolutePath);
+   const status:OfflineMapStatus={id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName:basename(absolutePath),fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null,schema,vectorLayers};
+   this.opened.set(absolutePath,{database,tileStatement,status,bounds,area:(bounds[2]-bounds[0])*(bounds[3]-bounds[1])});if(!this.activeId&&status.enabled)this.activeId=absolutePath;
   }catch(error){database.close();throw error;}
  }
 }
