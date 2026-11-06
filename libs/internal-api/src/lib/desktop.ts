@@ -296,6 +296,31 @@ export interface DesktopHistogram {
   readonly calculate: (path: string) => Promise<ApiResponse<ImageHistogram>>;
 }
 
+export interface OsmAndTileResult {
+  width: number;
+  height: number;
+  stride: number;
+  pixels: Uint8Array;
+}
+
+export interface OsmAndRuntimeStatus {
+  helperPath: string;
+  helperAvailable: boolean;
+  obfPath: string;
+  obfAvailable: boolean;
+  resourcesPath: string;
+  resourcesAvailable: boolean;
+  stylePath: string;
+  styleAvailable: boolean;
+  cachePath: string;
+}
+
+export interface DesktopOsmAnd {
+  readonly getRuntimeStatus: () => Promise<OsmAndRuntimeStatus>;
+  readonly renderTile: (z: number, x: number, y: number) => Promise<OsmAndTileResult>;
+  readonly shutdown: () => Promise<void>;
+}
+
 export interface Desktop {
   readonly ProcessManager: DesktopProcessManager;
   readonly Profiling: {
@@ -312,6 +337,7 @@ export interface Desktop {
   readonly MapWindow: DesktopMapWindow;
   readonly MapOverlayWindow: DesktopMapOverlayWindow;
   readonly OfflineMap: DesktopOfflineMap;
+  readonly OsmAnd: DesktopOsmAnd;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
   openFolder: () => Promise<FileListing>;
