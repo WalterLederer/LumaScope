@@ -179,14 +179,14 @@ export class CapturePanelComponent {
       status: 'Drag to select · Esc to cancel',
       minimized: false, unavailable: false, systemHost: false
     };
-    // Keep unavailable windows last, then system Host.exe windows; both groups
-    // remain visible and selectable when the source is capturable.
+    // Keep system Host.exe windows at the very end. All rows remain visible;
+    // capturable system windows can still be selected manually.
     const sources = [...monitors, ...windows];
     const invalidTier = (row: CaptureSourceRow): number => row.unavailable || row.minimized ? 1 : 0;
     const systemHostTier = (row: CaptureSourceRow): number => row.systemHost ? 1 : 0;
     sources.sort((a, b) =>
-      invalidTier(a) - invalidTier(b) ||
       systemHostTier(a) - systemHostTier(b) ||
+      invalidTier(a) - invalidTier(b) ||
       a.exe.localeCompare(b.exe, undefined, { sensitivity: 'base' }) ||
       a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
     );
