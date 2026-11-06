@@ -52,7 +52,8 @@
   box-sizing: border-box;
 
   &.without-thumbnails {
-    grid-template-columns: repeat(10, max-content);
+    /* Keep the thumbnail slot reserved so every detail column stays aligned. */
+    grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
   }
 }
 
@@ -96,7 +97,7 @@
   }
 
   .without-thumbnails & > span:first-child {
-    display: none;
+    visibility: hidden;
   }
 }
 
@@ -142,7 +143,7 @@
   }
 
   .detail-table.without-thumbnails {
-    grid-template-columns: repeat(10, max-content);
+    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
     column-gap: 12px;
   }
 }
