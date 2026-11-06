@@ -32,6 +32,7 @@ export class SettingsPanelComponent {
   protected readonly recursiveBuild = signal(false);
   protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');
   protected readonly locationLookupActive = signal(false);
+  protected readonly locationLookupCancelRequested = signal(false);
   protected readonly locationLookupOutput = signal('No location lookup has run yet.');
   protected readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
     total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle'
@@ -60,6 +61,7 @@ export class SettingsPanelComponent {
     const recursive = this.recursiveBuild();
     this.cacheOutputMode.set('locations');
     this.locationLookupActive.set(true);
+    this.locationLookupCancelRequested.set(false);
     this.locationLookupOutput.set([
       'Reverse geocoding started',
       `Scope: ${recursive ? 'Current folder and all subfolders' : 'Current folder only'} · ${directory}`,
@@ -70,7 +72,7 @@ export class SettingsPanelComponent {
     try {
       const result = await this.cacheManager.resolveMissingLocationNames(directory, recursive);
       this.locationLookupOutput.set([
-        'Reverse geocoding completed',
+        result.cancelled ? 'Reverse geocoding cancelled' : 'Reverse geocoding completed',
         `Scope: ${recursive ? 'Current folder and all subfolders' : 'Current folder only'} · ${directory}`,
         `Photos processed: ${result.total}`,
         `Location names resolved: ${result.resolved}`,
@@ -81,7 +83,17 @@ export class SettingsPanelComponent {
       this.locationLookupOutput.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       this.locationLookupActive.set(false);
+      this.locationLookupCancelRequested.set(false);
     }
+  };
+
+  protected readonly cancelLocationLookup = (): void => {
+    if (!this.locationLookupActive() || this.locationLookupCancelRequested()) return;
+    this.locationLookupCancelRequested.set(true);
+    this.locationLookupOutput.update(output => `${output}\\nCancellation requested. The current request will finish before processing stops.`);
+    this.cacheManager.cancelResolveMissingLocationNames().catch(error => {
+      this.reverseGeocodingStatusError.set(error instanceof Error ? error.message : String(error));
+    });
   };
   /* DI */
   readonly cacheManager = inject(CacheManager);
