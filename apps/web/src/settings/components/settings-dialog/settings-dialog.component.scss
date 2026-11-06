@@ -414,6 +414,17 @@ section {
   }
 }
 
+.reverse-geocoding-current {
+  display: grid;
+  gap: var(--dim-small);
+  padding: var(--dim-small) 0 var(--dim-medium);
+  border-bottom: 1px solid var(--color-content-default-low);
+
+  > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: start; gap: var(--dim-medium); min-width: 0; }
+  span { color: var(--color-content-default-medium); font-size: 0.75rem; }
+  code { min-width: 0; color: var(--color-content-default-high); font-size: 0.78rem; overflow-wrap: anywhere; user-select: text; }
+}
+
 .reverse-geocoding-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
