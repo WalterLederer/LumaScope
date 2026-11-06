@@ -117,12 +117,16 @@ button {
   }
 
   &.view-details-no-thumbnails {
-    /* No thumbnail is rendered: row height follows visible text only. */
+    /* Keep the empty thumbnail column for alignment, but never size rows by it. */
     grid-template-columns: subgrid;
     min-height: 0;
     height: auto;
     padding-top: 5px;
     padding-bottom: 5px;
+
+    .detail-name {
+      grid-column: 2;
+    }
   }
 
   .detail-columns {
