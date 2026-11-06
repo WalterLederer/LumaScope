@@ -28,7 +28,8 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
     if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
       throw new Error('OsmAnd returned an invalid RGBA8 tile.');
     }
-    const pixels = new Uint8ClampedArray(tile.pixels.buffer, tile.pixels.byteOffset, tile.pixels.byteLength);
+    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+    pixels.set(tile.pixels);
     const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
     if (abortController.signal.aborted) {
       bitmap.close();
