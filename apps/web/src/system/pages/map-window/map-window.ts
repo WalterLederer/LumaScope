@@ -51,12 +51,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
         <section class="map-settings" aria-label="Map settings">
 <nav class="settings-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
-  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'map'" [attr.aria-selected]="activeSettingsTab() === 'map'" (click)="selectSettingsTab('map')">Map</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
-  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
-  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
+  <span class="settings-tabs-spacer" aria-hidden="true"></span>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'map'" [attr.aria-selected]="activeSettingsTab() === 'map'" (click)="selectSettingsTab('map')">Map</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -360,7 +361,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;max-height:48vh;overflow:auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
+    .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
+    .settings-tab-map-group{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 78%,#8ab4f8 22%);border-radius:4px 4px 0 0}
+    .settings-tab-map-group:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 62%,#8ab4f8 38%)}
+    .settings-tab-map-group.active{border-bottom-color:#8ab4f8;background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 58%,#8ab4f8 42%)}
     .settings-tab.active{border-bottom-color:#8ab4f8;background:var(--color-surface-default-medium,#343943)}
     .settings-tab-panels{min-width:0}
     .settings-tab-panel[hidden]{display:none}
