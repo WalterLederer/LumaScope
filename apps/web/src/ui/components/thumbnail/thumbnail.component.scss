@@ -117,8 +117,12 @@ button {
   }
 
   &.view-details-no-thumbnails {
-    grid-template-columns: repeat(10, max-content);
-    min-height: 36px;
+    /* No thumbnail is rendered: row height follows visible text only. */
+    grid-template-columns: subgrid;
+    min-height: 0;
+    height: auto;
+    padding-top: 5px;
+    padding-bottom: 5px;
   }
 
   .detail-columns {
