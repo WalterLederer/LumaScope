@@ -531,7 +531,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapSource = signal<'online' | 'offline' | 'osmand'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
-  protected readonly osmAndStyle = signal(this.readSetting('osmandStyle', 'snowmobile.render.xml'));
+  protected readonly osmAndStyle = signal(this.readSetting('osmandStyle', 'default.render.xml'));
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
