@@ -38,6 +38,7 @@ type CaptureSourceRow = {
   status: string;
   minimized: boolean;
   unavailable: boolean;
+  systemHost: boolean;
 };
 
 @Component({
@@ -129,7 +130,8 @@ export class CapturePanelComponent {
         displayMode: monitor.isHdr === undefined ? 'Unknown' : monitor.isHdr ? 'HDR' : 'SDR',
         status: `${monitor.isHdr === undefined ? 'Mode unknown' : monitor.isHdr ? 'HDR' : 'SDR'}${monitor.refreshRate ? ` · ${monitor.refreshRate} Hz` : ''}`,
         minimized: false,
-        unavailable: this.unavailableTargets().includes(value)
+        unavailable: this.unavailableTargets().includes(value),
+        systemHost: false
       };
     });
     const windows: CaptureSourceRow[] = this.windows().map(window => {
@@ -138,6 +140,8 @@ export class CapturePanelComponent {
         : this.monitors().find(monitor => this.normalizeDisplayName(monitor.deviceName) === this.normalizeDisplayName(window.monitorDeviceName))?.index ?? -1;
       const value = `window:${window.handle}`;
       const executablePath = (window.executablePath ?? window.processName ?? 'Unknown executable').trim();
+      const executableName = executablePath.split(/[\\/]/).pop() ?? executablePath;
+      const systemHost = /Host\\.exe$/i.test(executableName);
       const favoriteKey = `window:${executablePath.toLowerCase()}|${window.title.trim().toLowerCase()}`;
       return {
         value, kind: 'window', favoriteKey, favorite: favorites.has(favoriteKey),
@@ -153,9 +157,10 @@ export class CapturePanelComponent {
             || window.height < 100
             || this.unavailableTargets().includes(value)
               ? '[Not capturable]'
-              : '',
+              : systemHost ? '[System host]' : '',
         minimized: !!window.isMinimized,
-        unavailable: window.width < 100 || window.height < 100 || !!window.isMinimized || this.unavailableTargets().includes(value)
+        unavailable: window.width < 100 || window.height < 100 || !!window.isMinimized || this.unavailableTargets().includes(value),
+        systemHost
       };
     });
     const topWindow: CaptureSourceRow = {
@@ -164,7 +169,7 @@ export class CapturePanelComponent {
       title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding the application',
       size: 'Automatic', zOrder: '—', hwnd: '—', displayMode: '—',
       status: this.includeLightMatterWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
-      minimized: false, unavailable: false
+      minimized: false, unavailable: false, systemHost: false
     };
     const rectangle: CaptureSourceRow = {
       value: 'rectangle', kind: 'rectangle', favoriteKey: 'rectangle',
@@ -172,14 +177,16 @@ export class CapturePanelComponent {
       title: 'Select an area directly on the screen',
       size: 'Custom', zOrder: '—', hwnd: '—', displayMode: 'HDR',
       status: 'Drag to select · Esc to cancel',
-      minimized: false, unavailable: false
+      minimized: false, unavailable: false, systemHost: false
     };
-    // Keep the source list alphabetic by executable, with unavailable/minimized
-    // windows grouped at the end. Top Window and Rectangle remain pinned first.
+    // Keep unavailable windows last, then system Host.exe windows; both groups
+    // remain visible and selectable when the source is capturable.
     const sources = [...monitors, ...windows];
     const invalidTier = (row: CaptureSourceRow): number => row.unavailable || row.minimized ? 1 : 0;
+    const systemHostTier = (row: CaptureSourceRow): number => row.systemHost ? 1 : 0;
     sources.sort((a, b) =>
       invalidTier(a) - invalidTier(b) ||
+      systemHostTier(a) - systemHostTier(b) ||
       a.exe.localeCompare(b.exe, undefined, { sensitivity: 'base' }) ||
       a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
     );
