@@ -238,6 +238,7 @@ export class CacheManager {
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
 
+    let processed = 0;
     let resolved = 0;
     let unresolved = 0;
     this.locationLookupCancelled = false;
@@ -255,8 +256,9 @@ export class CacheManager {
       if (saved?.location_name_id !== null && saved?.location_name_id !== undefined
         && saved.location_name_id !== 0 && saved.display_name !== null) resolved++;
       else unresolved++;
+      processed++;
     }
-    return { total: candidates.length, resolved, unresolved, cancelled: this.locationLookupCancelled };
+    return { total: processed, resolved, unresolved, cancelled: this.locationLookupCancelled };
   };
 
   @IpcHandler({ name: 'CacheManager.cancelResolveMissingLocationNames' })
