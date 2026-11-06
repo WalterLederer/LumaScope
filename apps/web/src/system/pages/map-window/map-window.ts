@@ -264,7 +264,15 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
-<div class="mbtiles-selection"><label class="offline-style-control"><span>Offline Style:</span>
+<div class="mbtiles-selection">
+<label class="offline-style-control"><span>OsmAnd Render Style:</span>
+  <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
+    @for (style of osmAndStyles(); track style.fileName) {
+      <option [value]="style.fileName">{{ style.label }}</option>
+    }
+  </select>
+</label>
+<label class="offline-style-control"><span>MBTiles Style:</span>
   <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
     <option value="lumascope">LumaScope</option>
     <option value="versatiles-colorful">VersaTiles Colorful</option>
@@ -523,6 +531,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapSource = signal<'online' | 'offline' | 'osmand'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
+  protected readonly osmAndStyle = signal(this.readSetting('osmandStyle', 'snowmobile.render.xml'));
+  protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
@@ -632,6 +642,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
     void this.refreshOsmAndTileCache();
+    void this.desktop?.OsmAnd.getRenderingStyles().then(styles => this.osmAndStyles.set(styles))
+      .catch(error => console.error('Could not read OsmAnd rendering styles:', error));
     void this.desktop?.OfflineMap.getMaps().then(maps => {
       this.offlineMaps.set(maps);
       // An offline source without any compatible loaded MBTiles cannot be used.
@@ -1161,7 +1173,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
     let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
     try {
-      runtime = await this.desktop.OsmAnd.getRuntimeStatus();
+      runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
         this.locationAddress.set('Could not read OsmAnd runtime status: ' + (error instanceof Error ? error.message : String(error)));
@@ -1313,6 +1325,29 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer = null;
     void this.initialize(this.currentLatitude, this.currentLongitude);
   };
+  protected readonly changeOsmAndStyle = async (fileName: string): Promise<void> => {
+    if (!this.osmAndStyles().some(style => style.fileName === fileName) || fileName === this.osmAndStyle()) return;
+    if (!this.desktop) return;
+    try {
+      await this.desktop.OsmAnd.setRenderingStyle(fileName);
+      this.osmAndStyle.set(fileName);
+      this.saveSetting('osmandStyle', fileName);
+      this.osmAndStyles.update(styles => styles.map(style => ({ ...style, selected: style.fileName === fileName })));
+      if (this.mapSource() === 'osmand' && this.currentLatitude !== null && this.currentLongitude !== null) {
+        this.mapSourceGeneration++;
+        this.mapInitialization = null;
+        this.offlineRenderer?.remove();
+        this.offlineRenderer = null;
+        this.map?.remove(); this.map = null;
+        void this.initialize(this.currentLatitude, this.currentLongitude);
+      }
+      void this.refreshOsmAndTileCache();
+    } catch (error) {
+      console.error('Could not change OsmAnd rendering style:', error);
+      this.locationAddress.set('Could not change OsmAnd style: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   protected readonly chooseOfflineMap = async (): Promise<void> => {
     if (!this.desktop) return;
     const result = await this.desktop.OfflineMap.chooseFile();
