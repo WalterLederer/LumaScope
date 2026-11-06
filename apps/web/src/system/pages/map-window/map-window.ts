@@ -1159,16 +1159,24 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    const runtime = await this.desktop.OsmAnd.getRuntimeStatus();
+    let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
+    try {
+      runtime = await this.desktop.OsmAnd.getRuntimeStatus();
+    } catch (error) {
+      if (generation === this.mapSourceGeneration) {
+        this.locationAddress.set('Could not read OsmAnd runtime status: ' + (error instanceof Error ? error.message : String(error)));
+      }
+      return;
+    }
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
     const missing = [
-      !runtime.helperAvailable ? 'render helper' : '',
-      !runtime.obfAvailable ? 'OBF map' : '',
-      !runtime.resourcesAvailable ? 'OsmAnd resources' : '',
-      !runtime.styleAvailable ? 'rendering style' : ''
+      !runtime.helperAvailable ? 'render helper: ' + runtime.helperPath : '',
+      !runtime.obfAvailable ? 'OBF map: ' + runtime.obfPath : '',
+      !runtime.resourcesAvailable ? 'OsmAnd resources: ' + runtime.resourcesPath : '',
+      !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
     ].filter(Boolean);
     if (missing.length) {
-      this.locationAddress.set('OsmAnd is not ready: missing ' + missing.join(', ') + '.');
+      this.locationAddress.set('OsmAnd is not ready. Missing ' + missing.join('; ') + '.');
       return;
     }
 
