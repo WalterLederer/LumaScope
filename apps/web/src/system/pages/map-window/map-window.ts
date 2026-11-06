@@ -1290,6 +1290,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
+    if (nextSource !== 'offline') {
+      this.currentOfflineMapId = null;
+      this.activeOfflineMapId.set(null);
+      this.offlineMapStatus.set(null);
+    }
     if (this.currentLatitude !== null && this.currentLongitude !== null) {
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
