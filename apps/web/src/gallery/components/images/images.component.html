@@ -17,7 +17,7 @@
       <span>GPS coordinates</span>
       <span>Location</span>
     </div>
-  <div class="images details-list">
+  <div class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     @for (image of sortedDetailImages(); track image.path) {
       <app-thumbnail [image]="image" [viewMode]="viewMode()"
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
