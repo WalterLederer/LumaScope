@@ -1,7 +1,7 @@
 import { app, nativeImage, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -17,6 +17,8 @@ export interface OsmAndTileResult {
   stride: number;
   pixels: Uint8Array;
 }
+
+export interface OsmAndRenderingStyle { fileName: string; label: string; selected: boolean; }
 
 export interface OsmAndRuntimeStatus {
   helperPath: string;
@@ -220,8 +222,11 @@ export class OsmAndManager {
     || join(this.sdkRoot, 'tools', 'osmand_render_helper_native', 'dist', 'osmand_render_helper.exe');
   private readonly resourcesPath = process.env.LUMASCOPE_OSMAND_RESOURCES_PATH
     || join(this.sdkRoot, 'vendor', 'osmand', 'resources');
-  private readonly stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
-    || join(this.resourcesPath, 'rendering_styles', 'snowmobile.render.xml');
+  private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
+    ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'snowmobile.render.xml'
+    : 'snowmobile.render.xml';
+  private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
+    || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
     || process.env.IPHOTO_OSMAND_OBF_PATH
     || [
@@ -231,21 +236,69 @@ export class OsmAndManager {
     ].find(candidate => existsSync(candidate))
     || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
-  private readonly workers: OsmAndHelperWorker[];
+  private workers: OsmAndHelperWorker[];
   private nextWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<Buffer>>();
   private temporaryFileId = 0;
 
   constructor() {
+    this.workers = this.createWorkers(this.createEnvironment());
+    app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private createWorkers(environment: NodeJS.ProcessEnv): OsmAndHelperWorker[] {
+    return Array.from({ length: HELPER_WORKER_COUNT }, () =>
+      new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPath, environment)
+    );
+  }
+
+  private createEnvironment(): NodeJS.ProcessEnv {
     const qtRoot = process.env.IPHOTO_OSMAND_QT_ROOT || process.env.QT_ROOT || 'C:\\Qt\\6.10.1\\mingw_64';
     const mingwRoot = process.env.IPHOTO_OSMAND_MINGW_ROOT || process.env.MINGW_ROOT || 'C:\\Qt\\Tools\\mingw1310_64';
     const runtimePath = [dirname(this.helperPath), join(qtRoot, 'bin'), join(mingwRoot, 'bin')];
-    const environment = { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(delimiter) };
-    this.workers = Array.from({ length: HELPER_WORKER_COUNT }, () =>
-      new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPath, environment)
-    );
-    app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+    return { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(delimiter) };
   }
+
+  @IpcHandler({ name: 'OsmAnd.getRenderingStyles' })
+  readonly getRenderingStyles = async (): Promise<OsmAndRenderingStyle[]> => {
+    const styleDirectory = join(this.resourcesPath, 'rendering_styles');
+    const entries = await readdir(styleDirectory, { withFileTypes: true });
+    return entries
+      .filter(entry => entry.isFile()
+        && entry.name.endsWith('.render.xml')
+        && !entry.name.endsWith('.addon.render.xml')
+        && entry.name !== 'standalone-template.render.xml'
+        && entry.name !== 'template.addon.render.xml')
+      .map(entry => {
+        const fileName = entry.name;
+        const baseName = fileName.slice(0, -'.render.xml'.length);
+        const label = baseName
+          .replace(/[_-]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .replace(/\b\w/g, character => character.toUpperCase());
+        return { fileName, label, selected: fileName === this.styleFileName };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  @IpcHandler({ name: 'OsmAnd.setRenderingStyle' })
+  readonly setRenderingStyle = async (_event: IpcMainInvokeEvent, fileName: string): Promise<OsmAndRuntimeStatus> => {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
+      throw new Error('Invalid OsmAnd rendering style name.');
+    }
+    const styles = await this.getRenderingStyles();
+    if (!styles.some(style => style.fileName === fileName)) {
+      throw new Error('OsmAnd rendering style is not installed: ' + fileName);
+    }
+    if (fileName !== this.styleFileName) {
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.styleFileName = fileName;
+      this.stylePath = join(this.resourcesPath, 'rendering_styles', fileName);
+      this.pendingTiles.clear();
+      this.workers = this.createWorkers(this.createEnvironment());
+    }
+    return this.getRuntimeStatus();
+  };
 
   @IpcHandler({ name: 'OsmAnd.getRuntimeStatus' })
   readonly getRuntimeStatus = async (): Promise<OsmAndRuntimeStatus> => ({
@@ -268,7 +321,8 @@ export class OsmAndManager {
       throw new Error('Invalid XYZ tile coordinates.');
     }
 
-    const cacheFile = join(this.cachePath, '1_00', String(z), String(x), y + '.png');
+    const styleCacheKey = this.styleFileName.replace(/\\.render\\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const cacheFile = join(this.cachePath, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
       const key = z + '/' + x + '/' + y;
