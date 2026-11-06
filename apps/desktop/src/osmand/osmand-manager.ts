@@ -223,8 +223,8 @@ export class OsmAndManager {
   private readonly resourcesPath = process.env.LUMASCOPE_OSMAND_RESOURCES_PATH
     || join(this.sdkRoot, 'vendor', 'osmand', 'resources');
   private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
-    ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'snowmobile.render.xml'
-    : 'snowmobile.render.xml';
+    ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'default.render.xml'
+    : 'default.render.xml';
   private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
