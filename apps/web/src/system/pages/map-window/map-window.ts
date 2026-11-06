@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -116,10 +116,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option>
+                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline — OsmAnd OBF</option>
                 </select>
               </label>
-              @if (mapSource() === 'online' || !activeOfflineMapId()) {
+              @if (mapSource() === 'online') {
                 <label class="online-map-style-control"><span>Style:</span>
                   <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
                     <option value="standard">Standard</option><option value="satellite">Satellite</option>
@@ -521,7 +521,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
-  protected readonly mapSource = signal<'online' | 'offline'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : 'online');
+  protected readonly mapSource = signal<'online' | 'offline' | 'osmand'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
@@ -683,7 +683,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (this.mapSource() === 'offline') {
+      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand') {
         // Re-evaluate the geographic coverage for every selected photo. This
         // also handles transitions between offline maps and the online fallback.
         void this.initialize(nextLatitude!, nextLongitude!);
@@ -1016,6 +1016,19 @@ export class MapWindow implements OnInit, OnDestroy {
   private async initialize(latitude: number, longitude: number): Promise<void> {
     await this.mapZoomRestore;
     let generation = this.mapSourceGeneration;
+    if (this.mapSource() === 'osmand') {
+      if (this.offlineRenderer) {
+        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        return;
+      }
+      if (this.mapInitialization) await this.mapInitialization;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand' || this.offlineRenderer) return;
+      const initialization = this.createOsmAndMap(latitude, longitude, generation);
+      this.mapInitialization = initialization;
+      try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
+      return;
+    }
     if (this.mapSource() === 'offline') {
       const selected = await this.desktop?.OfflineMap.selectForCoordinates(latitude, longitude) ?? null;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
@@ -1139,6 +1152,73 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
+  private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
+    if (!this.desktop) {
+      this.locationAddress.set('OsmAnd is unavailable because the desktop API is not connected.');
+      return;
+    }
+
+    const runtime = await this.desktop.OsmAnd.getRuntimeStatus();
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
+    const missing = [
+      !runtime.helperAvailable ? 'render helper' : '',
+      !runtime.obfAvailable ? 'OBF map' : '',
+      !runtime.resourcesAvailable ? 'OsmAnd resources' : '',
+      !runtime.styleAvailable ? 'rendering style' : ''
+    ].filter(Boolean);
+    if (missing.length) {
+      this.locationAddress.set('OsmAnd is not ready: missing ' + missing.join(', ') + '.');
+      return;
+    }
+
+    registerOsmAndTileProtocol(this.desktop);
+    const renderer = new OfflineMapRenderer(
+      this.mapElement().nativeElement,
+      [longitude, latitude],
+      this.validZoom(this.zoomLevel()),
+      message => {
+        if (generation !== this.mapSourceGeneration) return;
+        this.locationAddress.set('OsmAnd rendering error: ' + message);
+        console.error('[OsmAnd] Tile rendering error:', message);
+      },
+      'lumascope', '', 2, 19, undefined, 'shortbread', [], createOsmAndMapStyle()
+    );
+    this.offlineRenderer = renderer;
+    try {
+      await renderer.ready;
+    } catch (error) {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      if (generation === this.mapSourceGeneration) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.locationAddress.set('OsmAnd map could not be initialized: ' + message);
+        console.error('[OsmAnd] Initialization failed:', error);
+      }
+      return;
+    }
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      return;
+    }
+
+    const latestLatitude = this.currentLatitude ?? latitude;
+    const latestLongitude = this.currentLongitude ?? longitude;
+    renderer.setCurrentLocation(
+      latestLatitude, latestLongitude, this.currentMarkerColor(),
+      (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
+    );
+    renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    this.applyMapColor();
+    this.applyMapOpacity();
+    renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    this.persistZoom(renderer.map.getZoom());
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+    await this.restoreGpxTrack();
+    window.addEventListener('resize', this.onResize);
+  }
+
   private async createMap(latitude: number, longitude: number, generation: number, allowOfflineFallback = false): Promise<void> {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     const leaflet = await this.loadLeaflet();
@@ -1196,8 +1276,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeMapSource = (value: string): void => {
-    if (value !== 'online' && value !== 'offline') return;
-    // Never leave the selector on Offline when no compatible MBTiles map is loaded.
+    if (value !== 'online' && value !== 'offline' && value !== 'osmand') return;
+    // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
     const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
     this.mapSourceGeneration++;
     this.mapInitialization = null;
