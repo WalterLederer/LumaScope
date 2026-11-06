@@ -141,7 +141,7 @@ export class CapturePanelComponent {
       const value = `window:${window.handle}`;
       const executablePath = (window.executablePath ?? window.processName ?? 'Unknown executable').trim();
       const executableName = executablePath.split(/[\\/]/).pop() ?? executablePath;
-      const systemHost = /Host\\.exe$/i.test(executableName);
+      const systemHost = /Host\.exe$/i.test(executableName);
       const favoriteKey = `window:${executablePath.toLowerCase()}|${window.title.trim().toLowerCase()}`;
       return {
         value, kind: 'window', favoriteKey, favorite: favorites.has(favoriteKey),
