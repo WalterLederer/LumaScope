@@ -103,6 +103,11 @@
           <button class="cache-button" type="button"
                   [disabled]="!currentFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive() || isClearing()"
                   (click)="resolveMissingLocations()">{{ locationLookupActive() ? 'Resolving locations…' : 'Resolve locations' }}</button>
+          @if (locationLookupActive()) {
+            <button class="cache-button warning" type="button"
+                    [disabled]="locationLookupCancelRequested()"
+                    (click)="cancelLocationLookup()">{{ locationLookupCancelRequested() ? 'Cancelling…' : 'Cancel' }}</button>
+          }
           @if (cacheBuildActive()) {
             <button class="cache-button warning" type="button" [disabled]="!cancelCacheBuild()" (click)="stopCacheBuild()">Cancel</button>
             <progress class="build-cache-progress-bar"
@@ -159,6 +164,10 @@
                         aria-label="Reverse geocoding progress"
                         [attr.aria-valuetext]="(reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors) + ' of ' + reverseGeocodingStatus().total + ' GPS images processed'"></progress>
               <strong>{{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors }} / {{ reverseGeocodingStatus().total }}</strong>
+            </div>
+            <div class="reverse-geocoding-current">
+              <div><span>Current image</span><code [title]="reverseGeocodingStatus().currentFilePath || ''">{{ reverseGeocodingStatus().currentFilePath || '—' }}</code></div>
+              <div><span>display_name</span><code [title]="reverseGeocodingStatus().currentDisplayName || ''">{{ reverseGeocodingStatus().currentDisplayName || '—' }}</code></div>
             </div>
             <div class="reverse-geocoding-stats">
               <div><span>GPS images in database</span><strong>{{ reverseGeocodingStatus().total }}</strong></div>
