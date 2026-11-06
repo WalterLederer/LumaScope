@@ -56,6 +56,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -302,6 +303,20 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 </div>
               </div>
 </div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
+  <div class="settings-tab-content cache-tab">
+    <div class="map-cache-section">
+      <div class="map-cache-heading">OsmAnd-Kartenkacheln</div>
+      <div class="map-cache-row"><span>Speicherort</span><code>{{ osmAndTileCache().path }}</code></div>
+      <div class="map-cache-row"><span>PNG-Kacheln</span><strong>{{ osmAndTileCache().entries.toLocaleString() }}</strong></div>
+      <div class="map-cache-row"><span>Belegter Speicher</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistenter Cache' : 'Cache wird beim ersten Rendern angelegt' }}</span>
+        <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 </section>
       }
@@ -355,6 +370,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-tab-content.map-tab{width:100%}
     .settings-tab-content.track-tab,.settings-tab-content.marker-tab,.settings-tab-content.view-tab{width:100%}
     .settings-tab-content.offlineMaps-tab{width:100%}
+     .cache-tab{width:100%}
+     .map-cache-section{display:flex;flex-direction:column;gap:7px;max-width:900px;padding:5px 0}
+     .map-cache-heading{font-weight:700;font-size:13px}
+     .map-cache-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:start;padding:4px 0;border-bottom:1px solid var(--color-content-default-low,#454545)}
+     .map-cache-row>span{color:var(--color-content-default-medium,#aaa)}
+     .map-cache-row code{font:11px/1.4 ui-monospace,monospace;overflow-wrap:anywhere;user-select:text}
+     .map-cache-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
@@ -488,9 +510,9 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps'): void => this.activeSettingsTab.set(tab);
+  protected readonly selectSettingsTab = (tab: 'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache'): void => this.activeSettingsTab.set(tab);
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache'>('location');
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
@@ -498,6 +520,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly offlineMapImportErrors = signal<string[]>([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
@@ -603,6 +626,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
+    void this.refreshOsmAndTileCache();
     void this.desktop?.OfflineMap.getMaps().then(maps => {
       this.offlineMaps.set(maps);
       // An offline source without any compatible loaded MBTiles cannot be used.
@@ -1212,6 +1236,14 @@ export class MapWindow implements OnInit, OnDestroy {
     let value = bytes / 1024, unit = 0;
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[unit];
+  };
+  protected readonly refreshOsmAndTileCache = async (): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      this.osmAndTileCache.set(await this.desktop.CacheManager.getOsmAndTileCacheSummary());
+    } catch (error) {
+      console.error('Could not read OsmAnd tile cache summary:', error);
+    }
   };
   protected readonly formatOfflineMapDate = (timestamp: number): string => {
     if (!Number.isFinite(timestamp) || timestamp <= 0) return '—';
