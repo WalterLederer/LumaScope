@@ -1,4 +1,5 @@
-import { Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import { addProtocol, Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import type { Desktop } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -8,6 +9,57 @@ setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).toString());
 const AUSTRIA_BOUNDS: [number, number, number, number] = [9.52678, 46.36979, 17.16408, 49.02403];
 
 export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-neutrino';
+
+let osmAndProtocolRegistered = false;
+
+/**
+ * MapLibre requests OsmAnd tiles as decoded images. The IPC boundary carries
+ * the native RGBA8 bytes; ImageBitmap hands those pixels to MapLibre's normal
+ * raster/WebGL upload path without encoding or decoding PNG data.
+ */
+export function registerOsmAndTileProtocol(desktop: Desktop): void {
+  if (osmAndProtocolRegistered) return;
+  addProtocol('osmand', async (request, abortController) => {
+    const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
+    const [, zoom, column, row] = match;
+    const tile = await desktop.OsmAnd.renderTile(Number(zoom), Number(column), Number(row));
+    if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
+    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+      throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+    }
+    const pixels = new Uint8ClampedArray(tile.pixels.buffer, tile.pixels.byteOffset, tile.pixels.byteLength);
+    const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
+    if (abortController.signal.aborted) {
+      bitmap.close();
+      throw new Error('OsmAnd tile request was cancelled.');
+    }
+    return { data: bitmap };
+  });
+  osmAndProtocolRegistered = true;
+}
+
+export function createOsmAndMapStyle(): StyleSpecification {
+  return {
+    version: 8,
+    name: 'LumaScope OsmAnd OBF',
+    sources: {
+      osmand: {
+        type: 'raster',
+        tiles: ['osmand://{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 2,
+        maxzoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#d9e1e5' } },
+      { id: 'osmand-raster', type: 'raster', source: 'osmand', paint: { 'raster-fade-duration': 0 } }
+    ]
+  };
+}
+
 
 export function buildPhotoMarkerPreviewHtml(path: string, fileName: string): string {
   const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, character => ({
@@ -375,9 +427,9 @@ export class OfflineMapRenderer {
     });
   };
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private readonly schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = []) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private readonly schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = [], styleOverride?: StyleSpecification) {
     const options: MapOptions = {
-      container, style: createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers),
+      container, style: styleOverride ?? createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers),
       center, zoom,
       minZoom: 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
