@@ -223,6 +223,12 @@ export class OsmAndManager {
   private readonly stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     || join(this.resourcesPath, 'rendering_styles', 'snowmobile.render.xml');
   private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+    || process.env.IPHOTO_OSMAND_OBF_PATH
+    || [
+      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+    ].find(candidate => existsSync(candidate))
     || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly workers: OsmAndHelperWorker[];
