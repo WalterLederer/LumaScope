@@ -432,7 +432,7 @@ export class OfflineMapRenderer {
     const options: MapOptions = {
       container, style: styleOverride ?? createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers),
       center, zoom,
-      minZoom: 0, maxZoom: 20,
+      minZoom: styleOverride ? 2 : 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
       pitch: 0,
       bearing: 0,
