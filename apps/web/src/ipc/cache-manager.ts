@@ -38,6 +38,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly resolveMissingLocationNames = (directory: string, recursive = false) =>
     window.desktop.CacheManager.resolveMissingLocationNames(directory, recursive);
 
+  readonly cancelResolveMissingLocationNames = () =>
+    window.desktop.CacheManager.cancelResolveMissingLocationNames();
+
   readonly getBackgroundReverseGeocodingStatus = () =>
     window.desktop.CacheManager.getBackgroundReverseGeocodingStatus();
 
