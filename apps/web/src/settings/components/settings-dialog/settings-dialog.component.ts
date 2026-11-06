@@ -35,7 +35,7 @@ export class SettingsPanelComponent {
   protected readonly locationLookupCancelRequested = signal(false);
   protected readonly locationLookupOutput = signal('No location lookup has run yet.');
   protected readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
-    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle'
+    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle', currentFilePath: null, currentDisplayName: null
   });
   protected readonly reverseGeocodingStatusError = signal<string | null>(null);
   protected readonly reverseGeocodingCompleted = computed(() =>
@@ -90,7 +90,7 @@ export class SettingsPanelComponent {
   protected readonly cancelLocationLookup = (): void => {
     if (!this.locationLookupActive() || this.locationLookupCancelRequested()) return;
     this.locationLookupCancelRequested.set(true);
-    this.locationLookupOutput.update(output => `${output}\\nCancellation requested. The current request will finish before processing stops.`);
+    this.locationLookupOutput.update(output => `${output}\nCancellation requested. The current request will finish before processing stops.`);
     this.cacheManager.cancelResolveMissingLocationNames().catch(error => {
       this.reverseGeocodingStatusError.set(error instanceof Error ? error.message : String(error));
     });
