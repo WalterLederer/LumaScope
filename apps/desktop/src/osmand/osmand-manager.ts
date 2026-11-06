@@ -35,7 +35,7 @@ type ReaderWaiter =
   | { kind: 'bytes'; length: number; resolve: (value: Buffer) => void; reject: (error: Error) => void };
 
 class ProcessOutputReader {
-  private buffer = Buffer.alloc(0);
+  private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
   private readonly waiters: ReaderWaiter[] = [];
   private failure: Error | null = null;
 
@@ -311,7 +311,7 @@ export class OsmAndManager {
       const image = nativeImage.createFromBuffer(await readFile(path));
       const size = image.getSize();
       if (size.width !== TILE_SIZE || size.height !== TILE_SIZE) throw new Error('Cached tile dimensions are invalid.');
-      const bgra = image.getBitmap();
+      const bgra = image.toBitmap();
       if (bgra.length !== TILE_BYTES) throw new Error('Cached tile pixel data is invalid.');
       const rgba = Buffer.allocUnsafe(TILE_BYTES);
       for (let i = 0; i < bgra.length; i += 4) {
