@@ -126,6 +126,11 @@
   &.details-list {
     display: contents;
 
+    &.without-thumbnails app-thumbnail {
+      /* The parent list's thumbnail-sized min-height must not affect text-only rows. */
+      min-height: 0;
+    }
+
     app-thumbnail {
       width: auto;
       height: auto;
