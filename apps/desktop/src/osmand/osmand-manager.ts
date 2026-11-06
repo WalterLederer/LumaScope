@@ -321,7 +321,7 @@ export class OsmAndManager {
       throw new Error('Invalid XYZ tile coordinates.');
     }
 
-    const styleCacheKey = this.styleFileName.replace(/\\.render\\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const styleCacheKey = this.styleFileName.replace(/\.render\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     const cacheFile = join(this.cachePath, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
