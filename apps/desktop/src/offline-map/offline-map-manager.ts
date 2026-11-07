@@ -75,7 +75,7 @@ export class OfflineMapManager {
    for(const path of obfPaths){try{this.openObfFile(path);}catch(error){console.warn('[OfflineMap] Could not restore OBF:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled])),lastDirectory:this.lastDirectory},null,2),'utf8');}
+ private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory},null,2),'utf8');}
  private openObfFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
