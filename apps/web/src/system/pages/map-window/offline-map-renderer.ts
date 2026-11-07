@@ -49,7 +49,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
 export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
   if (osmAndAtlasProtocolRegistered) return;
   addProtocol('osmand-atlas', async (request, abortController) => {
-    const match = /^osmand-atlas:\/\/(\\d+)\/(\\d+)\/(\\d+)$/.exec(request.url);
+    const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
