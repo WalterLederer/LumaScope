@@ -244,6 +244,17 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <span class="range-value">{{ overlayOpacity() }}%</span>
                 </div>
               }
+              @if (mapSource() === 'osmand-atlas') {
+                <div class="range-setting atlas-density-setting">
+                  <label for="atlas-display-density">Display density</label>
+                  <input id="atlas-display-density" type="range" min="1" max="3" step="0.1"
+                    [value]="atlasDisplayDensityFactor()"
+                    (change)="changeAtlasDisplayDensity($any($event.target).value)"
+                    aria-label="OsmAnd Atlas display density">
+                  <span class="range-value">{{ atlasDisplayDensityFactor().toFixed(1) }}×</span>
+                  <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" title="Reset to Windows display scaling">Windows</button>
+                </div>
+              }
               <div class="zoom-control">
                 <span class="zoom-label">Zoom</span>
                 <div class="zoom-buttons">
@@ -454,6 +465,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
+    .opacity-content .atlas-density-setting{grid-column:1/-1}
+    .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
     .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:400;min-width:76px}
     .opacity-content .visibility-toggle input{margin:0;accent-color:#8ab4f8}
@@ -1254,7 +1267,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    registerOsmAndAtlasTileProtocol(this.desktop);
+    registerOsmAndAtlasTileProtocol(this.desktop, () => this.atlasDisplayDensityFactor());
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -1617,6 +1630,27 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
+  };
+  protected readonly changeAtlasDisplayDensity = (value: string | number): void => {
+    const density = Number(value);
+    if (!Number.isFinite(density)) return;
+    const next = Math.round(Math.max(1, Math.min(3, density)) * 10) / 10;
+    if (Math.abs(next - this.atlasDisplayDensityFactor()) < 0.001) return;
+    this.atlasDisplayDensityFactor.set(next);
+    this.saveSetting('atlasDisplayDensityFactor', next);
+    if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      this.mapSourceGeneration++;
+      this.mapInitialization = null;
+      this.offlineRenderer?.remove();
+      this.offlineRenderer = null;
+      this.map?.remove();
+      this.map = null;
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly resetAtlasDisplayDensity = (): void => {
+    const windowsScale = Math.round(Math.max(1, Math.min(3, window.devicePixelRatio || 1)) * 10) / 10;
+    this.changeAtlasDisplayDensity(windowsScale);
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
