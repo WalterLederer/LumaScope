@@ -11,6 +11,7 @@ const AUSTRIA_BOUNDS: [number, number, number, number] = [9.52678, 46.36979, 17.
 export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-neutrino';
 
 let osmAndProtocolRegistered = false;
+let osmAndAtlasProtocolRegistered = false;
 
 /**
  * MapLibre requests OsmAnd tiles as decoded images. The IPC boundary carries
@@ -38,6 +39,67 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
     return { data: bitmap };
   });
   osmAndProtocolRegistered = true;
+}
+
+
+/**
+ * Atlas renders a viewport-sized frame rather than an XYZ tile. LumaScope
+ * requests a 256px frame centered on each XYZ tile's geographic midpoint.
+ */
+export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
+  if (osmAndAtlasProtocolRegistered) return;
+  addProtocol('osmand-atlas', async (request, abortController) => {
+    const match = /^osmand-atlas:\/\/(\\d+)\/(\\d+)\/(\\d+)$/.exec(request.url);
+    if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
+    const [, zoomText, columnText, rowText] = match;
+    const zoom = Number(zoomText);
+    const column = Number(columnText);
+    const row = Number(rowText);
+    const tileCount = 2 ** zoom;
+    if (!Number.isInteger(zoom) || zoom < 2 || zoom > 22
+      || !Number.isInteger(column) || !Number.isInteger(row)
+      || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
+      throw new Error('Invalid OsmAnd Atlas tile coordinates.');
+    }
+    const longitude = (column + 0.5) / tileCount * 360 - 180;
+    const mercatorY = Math.PI * (1 - 2 * (row + 0.5) / tileCount);
+    const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
+    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row);
+    if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
+    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+      throw new Error('OsmAnd Atlas returned an invalid RGBA8 frame.');
+    }
+    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+    pixels.set(tile.pixels);
+    const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
+    if (abortController.signal.aborted) {
+      bitmap.close();
+      throw new Error('OsmAnd Atlas tile request was cancelled.');
+    }
+    return { data: bitmap };
+  });
+  osmAndAtlasProtocolRegistered = true;
+}
+
+export function createOsmAndAtlasMapStyle(): StyleSpecification {
+  return {
+    version: 8,
+    name: 'LumaScope OsmAnd Atlas',
+    sources: {
+      'osmand-atlas': {
+        type: 'raster',
+        tiles: ['osmand-atlas://{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 2,
+        maxzoom: 22,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#d9e1e5' } },
+      { id: 'osmand-atlas-raster', type: 'raster', source: 'osmand-atlas', paint: { 'raster-fade-duration': 0 } }
+    ]
+  };
 }
 
 export function createOsmAndMapStyle(): StyleSpecification {
