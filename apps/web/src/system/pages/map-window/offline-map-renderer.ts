@@ -12,6 +12,7 @@ export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-
 
 let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
+let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
 /**
  * MapLibre requests OsmAnd tiles as decoded images. The IPC boundary carries
@@ -47,6 +48,10 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
  * requests a 256px frame centered on each XYZ tile's geographic midpoint.
  */
 export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
+  // The protocol is global, but the map window component can be recreated.
+  // Always refresh the provider before the one-time protocol registration so
+  // requests never keep reading a destroyed component's stale density value.
+  osmAndAtlasDisplayScaleProvider = getDisplayScale;
   if (osmAndAtlasProtocolRegistered) return;
   addProtocol('osmand-atlas', async (request, abortController) => {
     const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
@@ -61,7 +66,8 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
     }
-    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, getDisplayScale());
+    const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
+    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
     if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
     // Atlas returns a 512px high-resolution image for the same XYZ
     // geographic tile extent. MapLibre tileSize remains 256.
