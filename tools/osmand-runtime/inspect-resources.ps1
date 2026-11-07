@@ -24,10 +24,10 @@ function Resolve-RequiredDirectory {
     return (Resolve-Path -LiteralPath $path).Path
 }
 
-$source = (Resolve-Path -LiteralPath $ResourcesSource).Path
-if (-not (Test-Path -LiteralPath $source -PathType Container)) {
+if (-not (Test-Path -LiteralPath $ResourcesSource -PathType Container)) {
     throw "ResourcesSource is not a directory: $ResourcesSource"
 }
+$source = (Resolve-Path -LiteralPath $ResourcesSource).Path
 
 $requiredDirectories = @(
     'rendering_styles',
@@ -45,22 +45,34 @@ $resolvedDirectories = foreach ($relative in $requiredDirectories) {
     }
 }
 
-$files = [System.Collections.Generic.List[object]]::new()
+$filesByPath = @{}
 foreach ($directory in $resolvedDirectories) {
-    Get-ChildItem -LiteralPath $directory.FullPath -File -Recurse | ForEach-Object {
-        $relativePath = [IO.Path]::GetRelativePath($source, $_.FullName).Replace('\', '/')
-        $files.Add([pscustomobject]@{
-            Path = $relativePath
-            Extension = $_.Extension.ToLowerInvariant()
-            Length = $_.Length
-            Sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
-        })
+    $items = if ($directory.RelativePath -eq 'rendering_styles') {
+        Get-ChildItem -LiteralPath $directory.FullPath -File
+    } else {
+        Get-ChildItem -LiteralPath $directory.FullPath -File -Recurse
+    }
+
+    foreach ($item in $items) {
+        $relativePath = [IO.Path]::GetRelativePath($source, $item.FullName).Replace('\', '/')
+        if (-not $filesByPath.ContainsKey($relativePath)) {
+            $filesByPath[$relativePath] = [pscustomobject]@{
+                Path = $relativePath
+                Extension = $item.Extension.ToLowerInvariant()
+                Length = $item.Length
+                Sha256 = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash
+            }
+        }
     }
 }
+$files = @($filesByPath.Values | Sort-Object Path)
 
 $licenseSearchRoots = [System.Collections.Generic.List[string]]::new()
 $licenseSearchRoots.Add($source)
 if ($LicenseRoot) {
+    if (-not (Test-Path -LiteralPath $LicenseRoot -PathType Container)) {
+        throw "LicenseRoot is not a directory: $LicenseRoot"
+    }
     $licenseSearchRoots.Add((Resolve-Path -LiteralPath $LicenseRoot).Path)
 }
 
@@ -91,7 +103,7 @@ $report = [ordered]@{
     RequiredDirectories = @($resolvedDirectories | ForEach-Object { $_.RelativePath })
     RenderingStyles = $styles
     LicenseFiles = @($licenseFiles | Sort-Object Path -Unique)
-    Files = @($files | Sort-Object Path)
+    Files = $files
     FileCount = $files.Count
     TotalBytes = ($files | Measure-Object -Property Length -Sum).Sum
     Notice = 'Inventory only. No resources are copied or approved for redistribution by this script.'
