@@ -356,6 +356,7 @@ export class OsmAndManager {
     styleAvailable: existsSync(this.stylePath),
     cachePath: this.cachePath
     });
+  };
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
   readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndTileResult> => {
