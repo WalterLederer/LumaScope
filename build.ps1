@@ -72,8 +72,16 @@ function StopProcesses {
 
         Write-Host "STOP $($process.ProcessId) '$($process.Name)' $shortCommandLine$ellipsis" -ForegroundColor Yellow
 
-        # /T beendet auch die Kindprozesse
-        & taskkill.exe /PID $process.ProcessId /T /F 2>$null | Out-Null
+        # /T beendet auch die Kindprozesse. Ein Elternprozess kann einen
+        # zuvor ermittelten Kindprozess bereits beendet haben. taskkill meldet
+        # diesen erwartbaren Race-Condition-Fall über stderr/Exitcode.
+        # stderr hier in den Erfolgsstream umleiten, damit PowerShell 7 ihn
+        # bei $ErrorActionPreference = 'Stop' nicht als NativeCommandError wirft.
+        $null = & taskkill.exe /PID $process.ProcessId /T /F 2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "INFO PID $($process.ProcessId) ist bereits beendet oder nicht mehr erreichbar (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
+        }
         #Write-Host "STOPPED $($process.ProcessId) '$($process.Name)' $shortCommandLine$ellipsis" -ForegroundColor Yellow
     }
 
