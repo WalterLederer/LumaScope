@@ -383,7 +383,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:2000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;max-height:48vh;overflow:auto}
+    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;max-height:48vh;overflow:visible}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
@@ -424,7 +424,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2100}
     .map-source-picker-label{font-weight:600}
     .map-source-picker-trigger{min-width:220px;text-align:left}
-    .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2200}
+    .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483001}
     .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
     .map-source-picker-table th,.map-source-picker-table td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--color-content-default-low,#454545)}
     .map-source-picker-table th{font-weight:700;color:var(--color-content-default-medium,#aaa)}
@@ -781,6 +781,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.map?.remove();
     this.map = null;
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
+    // Native OsmAnd render helpers are persistent main-process workers. Stop them
+    // when their map window goes away so they cannot keep GPU contexts alive.
+    if (this.mapSource() === 'osmand-atlas') void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
+    if (this.mapSource() === 'osmand') void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
   }
 
   private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
