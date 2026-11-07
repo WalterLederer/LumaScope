@@ -61,9 +61,6 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
     }
-    const longitude = (column + 0.5) / tileCount * 360 - 180;
-    const mercatorY = Math.PI * (1 - 2 * (row + 0.5) / tileCount);
-    const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
     const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row);
     if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
     if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
