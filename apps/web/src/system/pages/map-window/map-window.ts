@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -116,7 +116,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline — OsmAnd OBF</option>
+                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline — OsmAnd OBF</option><option value="osmand-atlas">Offline — OsmAnd Atlas</option>
                 </select>
               </label>
               @if (mapSource() === 'online') {
@@ -529,7 +529,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
-  protected readonly mapSource = signal<'online' | 'offline' | 'osmand'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : 'online');
+  protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly osmAndStyle = signal(this.readSetting('osmandStyle', 'default.render.xml'));
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
@@ -695,7 +695,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand') {
+      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
         // Re-evaluate the geographic coverage for every selected photo. This
         // also handles transitions between offline maps and the online fallback.
         void this.initialize(nextLatitude!, nextLongitude!);
@@ -1028,6 +1028,19 @@ export class MapWindow implements OnInit, OnDestroy {
   private async initialize(latitude: number, longitude: number): Promise<void> {
     await this.mapZoomRestore;
     let generation = this.mapSourceGeneration;
+    if (this.mapSource() === 'osmand-atlas') {
+      if (this.offlineRenderer) {
+        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        return;
+      }
+      if (this.mapInitialization) await this.mapInitialization;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas' || this.offlineRenderer) return;
+      const initialization = this.createOsmAndAtlasMap(latitude, longitude, generation);
+      this.mapInitialization = initialization;
+      try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
+      return;
+    }
     if (this.mapSource() === 'osmand') {
       if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(latitude, longitude);
@@ -1164,6 +1177,76 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
+  private async createOsmAndAtlasMap(latitude: number, longitude: number, generation: number): Promise<void> {
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') return;
+    if (!this.desktop) {
+      this.locationAddress.set('OsmAnd Atlas is unavailable because the desktop API is not connected.');
+      return;
+    }
+
+    let runtime: Awaited<ReturnType<Desktop['OsmAndAtlas']['getRuntimeStatus']>>;
+    try {
+      runtime = await this.desktop.OsmAndAtlas.getRuntimeStatus();
+    } catch (error) {
+      if (generation === this.mapSourceGeneration) {
+        this.locationAddress.set('Could not read OsmAnd Atlas runtime status: ' + (error instanceof Error ? error.message : String(error)));
+      }
+      return;
+    }
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') return;
+    const missing = [
+      !runtime.helperAvailable ? 'render helper: ' + runtime.helperPath : '',
+      !runtime.obfAvailable ? 'OBF map: ' + runtime.obfPath : '',
+      !runtime.resourcesAvailable ? 'OsmAnd resources: ' + runtime.resourcesPath : '',
+      !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
+    ].filter(Boolean);
+    if (missing.length) {
+      this.locationAddress.set('OsmAnd Atlas is not ready. Missing ' + missing.join('; ') + '.');
+      return;
+    }
+
+    registerOsmAndAtlasTileProtocol(this.desktop);
+    const renderer = new OfflineMapRenderer(
+      this.mapElement().nativeElement,
+      [longitude, latitude],
+      Math.max(2, this.validZoom(this.zoomLevel())),
+      message => {
+        if (generation !== this.mapSourceGeneration) return;
+        this.locationAddress.set('OsmAnd Atlas rendering error: ' + message);
+        console.error('[OsmAnd Atlas] Tile rendering error:', message);
+      },
+      'lumascope', '', 2, 22, undefined, 'shortbread', [], createOsmAndAtlasMapStyle()
+    );
+    this.offlineRenderer = renderer;
+    try {
+      await renderer.ready;
+    } catch (error) {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      if (generation === this.mapSourceGeneration) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.locationAddress.set('OsmAnd Atlas map could not be initialized: ' + message);
+        console.error('[OsmAnd Atlas] Initialization failed:', error);
+      }
+      return;
+    }
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      return;
+    }
+
+    const latestLatitude = this.currentLatitude ?? latitude;
+    const latestLongitude = this.currentLongitude ?? longitude;
+    renderer.setCurrentLocation(
+      latestLatitude, latestLongitude, this.currentMarkerColor(),
+      (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
+    );
+    renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    this.applyOfflineRendererSettings(renderer);
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+  }
+
   private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
     if (!this.desktop) {
@@ -1296,7 +1379,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeMapSource = (value: string): void => {
-    if (value !== 'online' && value !== 'offline' && value !== 'osmand') return;
+    if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas') return;
     // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
     const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
     this.mapSourceGeneration++;
@@ -1471,7 +1554,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
-    const next = Math.max(this.mapSource() === 'osmand' ? 2 : 1, this.validZoom(zoom)); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
+    const next = Math.max(this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 2 : 1, this.validZoom(zoom)); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel()) + direction);
