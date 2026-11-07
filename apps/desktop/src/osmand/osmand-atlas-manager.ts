@@ -64,6 +64,7 @@ class OsmAndAtlasWorker {
   private reader: AtlasOutputReader | null = null;
   private nextRequestId = 1;
   private queue: Promise<void> = Promise.resolve();
+  private stderrBuffer = '';
 
   constructor(
     private readonly helperPath: string,
@@ -117,9 +118,17 @@ class OsmAndAtlasWorker {
     });
     this.child = child;
     this.reader = new AtlasOutputReader(child.stdout, child);
+    this.stderrBuffer = '';
     child.stderr.on('data', chunk => {
-      const message = String(chunk).trim();
-      if (message) console.warn('[OsmAnd Atlas helper]', message);
+      this.stderrBuffer += String(chunk);
+      const lines = this.stderrBuffer.split(/\r?\n/);
+      this.stderrBuffer = lines.pop() ?? '';
+      for (const line of lines) {
+        const message = line.trim();
+        // The native renderer emits enormous INFO-level OpenGL capability
+        // dumps on every worker start. Keep warnings/errors, suppress routine info.
+        if (message && !/^(INFO|DEBUG):/i.test(message)) console.warn('[OsmAnd Atlas helper]', message);
+      }
     });
     await new Promise<void>((resolve, reject) => {
       child.once('spawn', resolve);
