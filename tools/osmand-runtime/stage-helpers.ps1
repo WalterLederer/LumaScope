@@ -36,31 +36,29 @@ foreach ($name in $requiredFiles) {
 }
 
 $destinationPath = [IO.Path]::GetFullPath($Destination)
-if (Test-Path -LiteralPath $destinationPath) {
-    Remove-Item -LiteralPath $destinationPath -Recurse -Force
-}
 New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
 
-# Stage the shared Qt/MinGW deployment and both persistent renderers.
-# Exclude only the one-shot POC artifacts and the separately built native widget DLL.
+# Preserve the stage directory between builds. Robocopy transfers only changed
+# files and removes stale files while keeping the destination usable if a later
+# build is interrupted. Packaging is allowed only after a successful sync.
 $excludedFiles = @(
     'atlas-frame-poc-debug.png',
     'osmand_atlas_frame_poc.exe',
     'osmand_native_widget.dll'
 )
-Get-ChildItem -LiteralPath $source -Force | Where-Object {
-    $_.Name -notin $excludedFiles
-} | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination $destinationPath -Recurse -Force
+& robocopy.exe $source $destinationPath /MIR /COPY:DAT /DCOPY:DAT /R:1 /W:1 /MT:16 /XF $excludedFiles /NFL /NDL /NJH /NJS
+$robocopyExitCode = $LASTEXITCODE
+if ($robocopyExitCode -ge 8) {
+    throw "OsmAnd helper synchronization failed (robocopy exit code $robocopyExitCode)."
 }
 
 foreach ($name in $requiredFiles) {
     if (-not (Test-Path -LiteralPath (Join-Path $destinationPath $name) -PathType Leaf)) {
-        throw "Staging verification failed; file was not copied: $name"
+        throw "Staging verification failed; file is missing: $name"
     }
 }
 
-Write-Host "OsmAnd helper runtime staged:"
+Write-Host 'OsmAnd helper runtime synchronized incrementally:'
 Write-Host "  Source:      $source"
 Write-Host "  Destination: $destinationPath"
 Write-Host "  Old helper:  $((Get-Item (Join-Path $destinationPath 'osmand_render_helper.exe')).Length) bytes"
