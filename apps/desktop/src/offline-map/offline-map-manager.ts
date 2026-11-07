@@ -3,13 +3,14 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-export interface OfflineMapStatus { id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
  private readonly settingsPath=resolve(app.getPath('userData'),'offline-map.json');
  private readonly opened=new Map<string,OpenOfflineMap>();
+ private readonly obfFiles=new Map<string,OfflineMapStatus>();
  private activeId:string|null=null;
  private readonly enabledByPath=new Map<string,boolean>();
  private tileDiagnosticsCount=0;
@@ -17,11 +18,11 @@ export class OfflineMapManager {
  constructor(){this.restoreMaps();}
  @IpcHandler({name:'OfflineMap.chooseFile'})
  readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapImportResult>=>{
-  const result=await dialog.showOpenDialog({title:'Add offline MBTiles maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'MBTiles database',extensions:['mbtiles']}]});
+  const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'Offline maps',extensions:['mbtiles','obf']}]});
   if(result.canceled||!result.filePaths.length)return {maps:await this.getMaps(),errors:[]};
   this.lastDirectory=dirname(result.filePaths[0]);
   const errors:string[]=[];
-  for(const filePath of result.filePaths){try{this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
+  for(const filePath of result.filePaths){try{if(extname(filePath).toLowerCase()==='.obf')this.openObfFile(filePath);else this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
   this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some MBTiles files could not be added:',errors);
   return {maps:await this.getMaps(),errors};
  };
@@ -29,7 +30,8 @@ export class OfflineMapManager {
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status}));
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
-  const item=this.opened.get(id);
+  const item=this.opened.get(id); const obf=this.obfFiles.get(id);
+  if(obf&&typeof enabled==='boolean'){obf.enabled=enabled;this.enabledByPath.set(id,enabled);this.persistMaps();}
   if(item&&typeof enabled==='boolean'){
    item.status.enabled=enabled;
    this.enabledByPath.set(id,enabled);
@@ -40,7 +42,7 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
-  const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;this.persistMaps();} return this.getMaps();
+  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;this.persistMaps();} return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.getStatus'})
  readonly getStatus=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus>=>{const item=this.activeId?this.opened.get(this.activeId):null;return item?{...item.status}:{...EMPTY_STATUS};};
@@ -66,9 +68,18 @@ export class OfflineMapManager {
    if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
    const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
    for(const path of paths){try{this.openFile(path);}catch(error){console.warn('[OfflineMap] Could not restore MBTiles:',path,error);}}
+   const obfPaths=Array.isArray(settings.obfPaths)?settings.obfPaths.filter((v):v is string=>typeof v==='string'):[];
+   for(const path of obfPaths){try{this.openObfFile(path);}catch(error){console.warn('[OfflineMap] Could not restore OBF:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled])),lastDirectory:this.lastDirectory},null,2),'utf8');}
+ private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled])),lastDirectory:this.lastDirectory},null,2),'utf8');}
+ private openObfFile(filePath:string):void{
+  const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
+  if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
+  const fileStats=statSync(absolutePath);if(!fileStats.isFile()||fileStats.size<=0)throw new Error('The selected OBF file is empty or invalid.');
+  const fileName=basename(absolutePath);const status:OfflineMapStatus={type:'obf',id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName,fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:fileName.replace(/\\.obf$/i,''),format:'OBF',minZoom:0,maxZoom:22,bounds:null,error:null};
+  this.obfFiles.set(absolutePath,status);
+ }
  private openFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.mbtiles')throw new Error('The selected file must have the .mbtiles extension.');
   if(!existsSync(absolutePath))throw new Error('The selected MBTiles file does not exist.');if(this.opened.has(absolutePath))return;
@@ -97,7 +108,7 @@ export class OfflineMapManager {
    const sample=database.prepare('SELECT tile_data FROM tiles LIMIT 1').get() as {tile_data?:Uint8Array}|undefined;
    if(!sample?.tile_data||Buffer.from(sample.tile_data).subarray(0,2).toString('hex')!=='1f8b')throw new Error('The MBTiles tiles are not gzip-compressed PBF data.');
    const fileStats=statSync(absolutePath);
-   const status:OfflineMapStatus={id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName:basename(absolutePath),fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null,schema,vectorLayers};
+   const status:OfflineMapStatus={type:'mbtiles',id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName:basename(absolutePath),fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:metadata.get('name')??absolutePath.split(/[\\/]/).pop()??'Offline map',format,minZoom,maxZoom,bounds:bounds.join(','),error:null,schema,vectorLayers};
    this.opened.set(absolutePath,{database,tileStatement,status,bounds,area:(bounds[2]-bounds[0])*(bounds[3]-bounds[1])});if(!this.activeId&&status.enabled)this.activeId=absolutePath;
   }catch(error){database.close();throw error;}
  }
