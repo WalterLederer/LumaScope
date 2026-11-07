@@ -46,7 +46,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
  * Atlas renders a viewport-sized frame rather than an XYZ tile. LumaScope
  * requests a 256px frame centered on each XYZ tile's geographic midpoint.
  */
-export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
+export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
   if (osmAndAtlasProtocolRegistered) return;
   addProtocol('osmand-atlas', async (request, abortController) => {
     const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
@@ -61,7 +61,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
     }
-    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row);
+    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, getDisplayScale());
     if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
     // Atlas returns a 512px high-resolution image for the same XYZ
     // geographic tile extent. MapLibre tileSize remains 256.
