@@ -18,7 +18,6 @@ if (-not (Test-Path -LiteralPath $source -PathType Container)) {
 }
 
 $requiredSources = @(
-    'rendering_styles\default.render.xml',
     'rendering_styles\fonts\LICENSE.txt',
     'poi\poi_types.xml',
     'routing\routing.xml',
@@ -33,6 +32,14 @@ foreach ($relativePath in $requiredSources) {
 }
 
 $styleSource = Join-Path $source 'rendering_styles'
+$availableStyles = @(Get-ChildItem -LiteralPath $styleSource -File -Filter '*.render.xml' |
+    Where-Object {
+        $_.Name -notlike '*.addon.render.xml' -and
+        $_.Name -notin @('standalone-template.render.xml', 'template.addon.render.xml')
+    })
+if ($availableStyles.Count -eq 0) {
+    throw "No redistributable OsmAnd rendering styles were found in: $styleSource"
+}
 $fontSource = Join-Path $styleSource 'fonts'
 $destinationPath = [IO.Path]::GetFullPath($Destination)
 if (Test-Path -LiteralPath $destinationPath) {
@@ -86,7 +93,6 @@ if (-not (Test-Path -LiteralPath $noticeSource -PathType Leaf)) {
 Copy-Item -LiteralPath $noticeSource -Destination (Join-Path $destinationPath 'NOTICE.md') -Force
 
 $verification = @(
-    'rendering_styles\default.render.xml',
     'rendering_styles\fonts\05_NotoSans-Regular.ttf',
     'rendering_styles\fonts\LICENSE.txt',
     'poi\poi_types.xml',
@@ -102,6 +108,10 @@ foreach ($relativePath in $verification) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "OsmAnd resource staging verification failed: $path"
     }
+}
+$stagedStyles = @(Get-ChildItem -LiteralPath $styleDestination -File -Filter '*.render.xml')
+if ($stagedStyles.Count -eq 0) {
+    throw "OsmAnd resource staging verification found no rendering styles: $styleDestination"
 }
 
 $styleCount = (Get-ChildItem -LiteralPath $styleDestination -File -Filter '*.render.xml').Count
