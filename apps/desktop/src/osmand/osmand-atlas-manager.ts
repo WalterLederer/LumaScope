@@ -125,7 +125,12 @@ class OsmAndAtlasWorker {
         const message = line.trim();
         // The native renderer emits enormous INFO-level OpenGL capability
         // dumps on every worker start. Keep warnings/errors, suppress routine info.
-        if (message && !/^(INFO|DEBUG):/i.test(message)) console.warn('[OsmAnd Atlas helper]', message);
+        if (!message) continue;
+        if (message.startsWith('ATLAS_INIT ')) {
+          console.info('[OsmAnd Atlas helper]', message);
+        } else if (!/^(INFO|DEBUG):/i.test(message)) {
+          console.warn('[OsmAnd Atlas helper]', message);
+        }
       }
     });
     await new Promise<void>((resolve, reject) => {
