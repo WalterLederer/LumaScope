@@ -66,7 +66,7 @@ export class OfflineMapManager {
  }
  private restoreMaps():void{
   if(!existsSync(this.settingsPath))return;
-  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
+  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;obfPaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
    if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
    const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
