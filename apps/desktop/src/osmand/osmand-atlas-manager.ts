@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
@@ -73,7 +73,8 @@ class OsmAndAtlasWorker {
     private readonly obfPath: string,
     private readonly resourcesPath: string,
     private readonly stylePath: string,
-    private readonly environment: NodeJS.ProcessEnv
+    private readonly environment: NodeJS.ProcessEnv,
+    private readonly displayScale: number
   ) {}
 
   render(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
@@ -111,7 +112,7 @@ class OsmAndAtlasWorker {
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const spawnStartedAt = Date.now();
-    const child = spawn(this.helperPath, [this.obfPath, this.resourcesPath, this.stylePath], {
+    const child = spawn(this.helperPath, [this.obfPath, this.resourcesPath, this.stylePath, String(this.displayScale)], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       env: this.environment
@@ -229,6 +230,8 @@ export class OsmAndAtlasManager {
     ...process.env,
     PATH: [dirname(this.helperPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
   };
+  private displayScale = 1.0;
+  private scaleChange: Promise<void> = Promise.resolve();
   private workers = this.createWorkers();
   private nextWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<Buffer>>();
@@ -239,8 +242,24 @@ export class OsmAndAtlasManager {
 
   private createWorkers(): OsmAndAtlasWorker[] {
     return Array.from({ length: HELPER_WORKER_COUNT }, () =>
-      new OsmAndAtlasWorker(this.helperPath, this.obfPath, this.resourcesPath, this.stylePath, this.environment)
+      new OsmAndAtlasWorker(
+        this.helperPath, this.obfPath, this.resourcesPath, this.stylePath, this.environment, this.displayScale
+      )
     );
+  }
+
+  private ensureDisplayScale(displayScale: number): Promise<void> {
+    const update = this.scaleChange.then(async () => {
+      if (Math.abs(this.displayScale - displayScale) < 0.001) return;
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.displayScale = displayScale;
+      this.pendingTiles.clear();
+      this.nextWorker = 0;
+      this.workers = this.createWorkers();
+      console.info('[OsmAnd Atlas]', 'display_scale=' + displayScale);
+    });
+    this.scaleChange = update.catch(() => undefined);
+    return update;
   }
 
   @IpcHandler({ name: 'OsmAndAtlas.getRenderingStyles' })
@@ -309,14 +328,21 @@ export class OsmAndAtlasManager {
   });
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
-  readonly renderTile = async (_event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndAtlasTileResult> => {
+  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndAtlasTileResult> => {
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
       throw new Error('Invalid XYZ tile coordinates.');
     }
 
-    const key = z + '/' + x + '/' + y;
+    const ownerWindow = BrowserWindow.fromWebContents(event.sender);
+    const display = ownerWindow
+      ? screen.getDisplayMatching(ownerWindow.getBounds())
+      : screen.getPrimaryDisplay();
+    const displayScale = Math.min(4, Math.max(1, display.scaleFactor || 1));
+    await this.ensureDisplayScale(displayScale);
+
+    const key = displayScale.toFixed(3) + '/' + z + '/' + x + '/' + y;
     let pending = this.pendingTiles.get(key);
     if (!pending) {
       pending = this.renderAndCacheTile(z, x, y);
