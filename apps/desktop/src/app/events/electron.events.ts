@@ -890,7 +890,8 @@ export default class ElectronEvents {
           injector.inject('CacheManager'),
           injector.inject('Histogram'),
           injector.inject('OfflineMapManager'),
-          injector.inject('OsmAndManager')
+          injector.inject('OsmAndManager'),
+          injector.inject('OsmAndAtlasManager')
         ]
       );
 
