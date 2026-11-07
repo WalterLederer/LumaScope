@@ -246,12 +246,12 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               }
               @if (mapSource() === 'osmand-atlas') {
                 <div class="range-setting atlas-density-setting">
-                  <label for="atlas-display-density">Display density</label>
-                  <input id="atlas-display-density" type="range" min="1" max="3" step="0.1"
+                  <label for="atlas-display-density">Display density factor</label>
+                  <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
                     [value]="atlasDisplayDensityFactor()"
                     (change)="changeAtlasDisplayDensity($any($event.target).value)"
                     aria-label="OsmAnd Atlas display density">
-                  <span class="range-value">{{ atlasDisplayDensityFactor().toFixed(1) }}×</span>
+                  <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
                   <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" title="Reset to Windows display scaling">Windows</button>
                 </div>
               }
@@ -1634,7 +1634,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeAtlasDisplayDensity = (value: string | number): void => {
     const density = Number(value);
     if (!Number.isFinite(density)) return;
-    const next = Math.round(Math.max(1, Math.min(3, density)) * 10) / 10;
+    const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
     if (Math.abs(next - this.atlasDisplayDensityFactor()) < 0.001) return;
     this.atlasDisplayDensityFactor.set(next);
     this.saveSetting('atlasDisplayDensityFactor', next);
@@ -1649,7 +1649,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   protected readonly resetAtlasDisplayDensity = (): void => {
-    const windowsScale = Math.round(Math.max(1, Math.min(3, window.devicePixelRatio || 1)) * 10) / 10;
+    const windowsScale = Math.round(Math.max(1, Math.min(3, window.devicePixelRatio || 1)) * 100) / 100;
     this.changeAtlasDisplayDensity(windowsScale);
   };
   protected readonly changeZoom = (value: string | number): void => {
