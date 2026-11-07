@@ -1,3 +1,15 @@
+# PowerShell 7 wird für die OsmAnd-Stage-Skripte benötigt.
+# Bei Aufruf aus Windows PowerShell 5.1 den Build automatisch in pwsh fortsetzen.
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $pwshCommand = Get-Command "pwsh.exe" -ErrorAction SilentlyContinue
+    if (-not $pwshCommand) {
+        throw "PowerShell 7 wurde nicht gefunden. Bitte PowerShell 7 installieren und 'pwsh' verfügbar machen."
+    }
+
+    & $pwshCommand.Source -NoLogo -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath
+    exit $LASTEXITCODE
+}
+
 
 $workBranch = "main"
 $ErrorActionPreference = "Stop"
@@ -231,12 +243,6 @@ Invoke-CheckedCommand "npm" @("run", "build:all")
 
 # Native OsmAnd helpers and licensed resources are staged from the sibling SDK
 # before packaging, so the latest Atlas renderer is included in the installer.
-# Die Stage-Skripte benötigen PowerShell 7. Direkt im aktuellen Host ausführen,
-# statt powershell.exe (Windows PowerShell 5.1) zu starten.
-if ($PSVersionTable.PSVersion.Major -lt 7) {
-    throw "build.ps1 benötigt PowerShell 7 oder neuer. Bitte mit 'pwsh' starten."
-}
-
 & (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
 & (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
 
