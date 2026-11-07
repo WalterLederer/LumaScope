@@ -281,7 +281,12 @@ $packageChecks = @(
     (Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"),
     (Join-Path $packageResources "resources\rendering_styles\default.render.xml"),
     (Join-Path $packageResources "resources\rendering_styles\fonts\LICENSE.txt"),
+    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg"),
+    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg"),
+    (Join-Path $packageResources "resources\rendering_styles\stubs"),
     (Join-Path $packageResources "resources\licenses\OSMAND-RESOURCES-LICENSE.txt"),
+    (Join-Path $packageResources "resources\licenses\GPL-3.0.txt"),
+    (Join-Path $packageResources "resources\licenses\ICU-DATA-LICENSE.txt"),
     (Join-Path $packageResources "resources\NOTICE.md")
 )
 $missingPackageFiles = @($packageChecks | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
@@ -290,10 +295,13 @@ if ($missingPackageFiles.Count -gt 0) {
 }
 $packagedStyleCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles") -File -Filter "*.render.xml").Count
 $packagedFontCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\fonts") -File -Filter "*.ttf").Count
-if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0) {
-    throw "OsmAnd package verification failed: styles=$packagedStyleCount, fonts=$packagedFontCount."
+$packagedMapIconCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg") -File -Recurse).Count
+$packagedShaderCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg") -File -Recurse).Count
+$packagedStubCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\stubs") -File -Recurse).Count
+if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0 -or $packagedMapIconCount -eq 0 -or $packagedShaderCount -eq 0 -or $packagedStubCount -eq 0) {
+    throw "OsmAnd package verification failed: styles=$packagedStyleCount, fonts=$packagedFontCount, mapIcons=$packagedMapIconCount, shaders=$packagedShaderCount, stubs=$packagedStubCount."
 }
-Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount" -ForegroundColor Green
+Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount, mapIcons=$packagedMapIconCount, shaders=$packagedShaderCount, stubs=$packagedStubCount" -ForegroundColor Green
 
 # Compare every staged helper/resource file with the packaged copy. This catches
 # incomplete extraResources copies before the application is launched.
