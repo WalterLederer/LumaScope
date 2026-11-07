@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $projectDir = $PSScriptRoot
 Set-Location $projectDir
 
-Write-Host "`n=== LumaScope Build ===" -ForegroundColor Cyan
+Write-Host "`n=== LumaScope Build in $projectDir ===" -ForegroundColor Cyan
 # Write-Host "Projekt: $projectDir"
 
 #############################################################################
@@ -28,7 +28,7 @@ function Invoke-CheckedCommand {
 
 
 #############################################################################
-# Projektbezogene Prozesse und deren tempor�re Verzeichnisse bereinigen
+# Projektbezogene Prozesse und deren temporaere Verzeichnisse bereinigen
 
 
 function StopProcesses {
@@ -37,9 +37,15 @@ function StopProcesses {
     # Alle Prozesse ermitteln, deren Kommandozeile auf dieses Projekt verweist
     $nodes = Get-CimInstance Win32_Process
 
+    $excludedProcessNames = @(
+        'devenv.exe'
+        'cmd.exe'
+    )
+
     $matchingNodes = @(
         $nodes | Where-Object {
             $_.ProcessId -ne $PID -and
+            $_.Name -notin $excludedProcessNames -and
             $_.CommandLine -and
             $_.CommandLine.IndexOf(
                 $projectDir,
@@ -68,6 +74,7 @@ function StopProcesses {
 
         # /T beendet auch die Kindprozesse
         & taskkill.exe /PID $process.ProcessId /T /F 2>$null | Out-Null
+        #Write-Host "STOPPED $($process.ProcessId) '$($process.Name)' $shortCommandLine$ellipsis" -ForegroundColor Yellow
     }
 
 
@@ -76,6 +83,8 @@ function StopProcesses {
 
     $tempDir = $env:TEMP
 
+
+    #Write-Host ">Remove empty temporary folders with 20-character hexadecimal names"
 
     # Remove empty temporary folders with 20-character hexadecimal names
     Get-ChildItem -LiteralPath $env:TEMP -Directory -ErrorAction SilentlyContinue |
@@ -90,11 +99,16 @@ function StopProcesses {
         }
 
 
+    #Write-Host ">Aktuell noch existierende Prozess-IDs ermitteln"
+
     # Aktuell noch existierende Prozess-IDs ermitteln
     $activeProcessIds = @{}
     Get-CimInstance Win32_Process | ForEach-Object {
         $activeProcessIds[[int]$_.ProcessId] = $true
     }
+
+
+    #Write-Host ">Nur die Temp-Verzeichnisse dieser Prozess-IDs entfernen"
 
     # Nur die Temp-Verzeichnisse dieser Prozess-IDs entfernen
     $tempDir = $env:TEMP
@@ -109,6 +123,8 @@ function StopProcesses {
             }
     }
 
+
+    #Write-Host ">Node.js Temp-Verzeichnisse bereinigen"
 
     # Node.js Temp-Verzeichnisse bereinigen
     # Namensschema: tmp-<PID>-<random>
@@ -126,6 +142,9 @@ function StopProcesses {
         }
 
 
+
+    #Write-Host ">Verwaiste Electron-Download-Verzeichnisse entfernen"
+
     # Verwaiste Electron-Download-Verzeichnisse entfernen
     # Nur Verzeichnisse l�schen, die seit mindestens 10 Minuten unver�ndert sind.
     $electronCutoff = (Get-Date).AddMinutes(-10)
@@ -138,6 +157,8 @@ function StopProcesses {
             Write-Host "TEMP ELECTRON CLEANUP $($_.FullName)" -ForegroundColor Yellow
             Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
+
+    #Write-Host ">StopProcesses END"
 }
 
 

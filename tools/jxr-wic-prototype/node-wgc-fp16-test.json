@@ -1,0 +1,65 @@
+{
+  "package": "@screen-capture/node",
+  "target": "BenQ EX321UX (\\\\.\\DISPLAY1, 3840x2160, 144 Hz; Windows display index 1; capture monitorIndex 2)",
+  "requestedColorFormat": "rgba16F",
+  "actualColorFormat": "rgba16F",
+  "width": 3840,
+  "height": 2160,
+  "rowPitch": 30720,
+  "depthPitch": 66355200,
+  "bufferBytes": 66355200,
+  "expectedPackedRgba16fBytes": 66355200,
+  "byteLengthMatchesExpected": true,
+  "rowPitchMatchesExpected": true,
+  "firstFrameWaitMs": 37.24,
+  "timestamp": 19120802624160,
+  "sample": {
+    "x": 1920,
+    "y": 1080,
+    "r": 0.378662109375,
+    "g": 0.2166748046875,
+    "b": 0.07470703125,
+    "a": 1
+  },
+  "scan": {
+    "rgbMin": -1.0048828125,
+    "rgbMax": 46.59375,
+    "rgbMinByChannel": {
+      "r": -1.0048828125,
+      "g": -0.8544921875,
+      "b": -0.7255859375
+    },
+    "rgbMaxByChannel": {
+      "r": 44.78125,
+      "g": 33.625,
+      "b": 46.59375
+    },
+    "negativeRgbChannelValues": 475331,
+    "rgbChannelValuesAboveOne": 8361699,
+    "nonFiniteRgbChannelValues": 0,
+    "alphaMin": 1,
+    "alphaMax": 1,
+    "firstAboveOne": {
+      "x": 27,
+      "y": 8,
+      "channel": "r",
+      "value": 1.291015625
+    },
+    "firstNegative": {
+      "x": 1674,
+      "y": 84,
+      "channel": "r",
+      "value": -0.00521087646484375
+    },
+    "firstNonFinite": null,
+    "pixelsScanned": 8294400
+  },
+  "verdict": {
+    "formatReportedAsRgba16F": true,
+    "packedRgba16fBufferSize": true,
+    "hasRgbValuesAboveOne": true,
+    "hasNegativeRgbValues": true,
+    "note": "Format and buffer size establish the expected layout, not by themselves that the compositor preserved HDR values. Compare sample and extrema with the existing WGC EXR capture."
+  },
+  "rawFile": "C:\\__Daten\\Dev\\__light-matter\\source\\tools\\jxr-wic-prototype\\capture.rgba16f"
+}
