@@ -245,15 +245,15 @@ export class OsmAndAtlasManager {
     }
     return fileNames.map(fileName => {
       const baseName = fileName.slice(0, -'.render.xml'.length);
-      const label = baseName.replace(/[_-]+/g, ' ').replace(/\\s+/g, ' ')
-        .replace(/\\b\\w/g, character => character.toUpperCase());
+      const label = baseName.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+        .replace(/\b\w/g, character => character.toUpperCase());
       return { fileName, label, selected: fileName === this.styleFileName };
     }).sort((a, b) => a.label.localeCompare(b.label));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.setRenderingStyle' })
   readonly setRenderingStyle = async (_event: Electron.IpcMainInvokeEvent, fileName: string) => {
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)) {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
       throw new Error('Invalid OsmAnd rendering style name.');
     }
     const styles = await this.getRenderingStyles();
