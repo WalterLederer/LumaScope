@@ -357,6 +357,7 @@ export class OsmAndAtlasManager {
     stylePath: this.stylePath,
     styleAvailable: existsSync(this.stylePath)
     });
+  };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number): Promise<OsmAndAtlasTileResult> => {
