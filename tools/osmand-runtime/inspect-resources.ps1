@@ -35,6 +35,9 @@ $requiredDirectories = @(
     'rendering_styles/stubs',
     'rendering_styles/style-icons/map-icons-svg',
     'rendering_styles/style-icons/map-shaders-svg',
+    'poi',
+    'routing',
+    'misc',
     'misc/icu4c'
 )
 
@@ -47,7 +50,7 @@ $resolvedDirectories = foreach ($relative in $requiredDirectories) {
 
 $filesByPath = @{}
 foreach ($directory in $resolvedDirectories) {
-    $items = if ($directory.RelativePath -eq 'rendering_styles') {
+    $items = if ($directory.RelativePath -in @('rendering_styles', 'poi', 'routing')) {
         Get-ChildItem -LiteralPath $directory.FullPath -File
     } else {
         Get-ChildItem -LiteralPath $directory.FullPath -File -Recurse
