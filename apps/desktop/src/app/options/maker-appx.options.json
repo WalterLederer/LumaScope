@@ -40,6 +40,10 @@
       {
         "from": "tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe",
         "to": "jxr-wic-encoder.exe"
+      },
+      {
+        "from": "tools/osmand-runtime/stage/helpers",
+        "to": "osmand/helpers"
       }
     ]
   },
