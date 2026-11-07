@@ -1,6 +1,6 @@
 import { app, nativeImage, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -224,7 +224,7 @@ export class OsmAndManager {
     : 'default.render.xml';
   private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
-  private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+  private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
     || process.env.IPHOTO_OSMAND_OBF_PATH
     || [
       join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
@@ -241,6 +241,35 @@ export class OsmAndManager {
   constructor() {
     this.workers = this.createWorkers(this.createEnvironment());
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private readonly offlineMapSettingsPath = join(app.getPath('userData'), 'offline-map.json');
+
+  private async refreshSelectedObf(): Promise<void> {
+    let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+      || process.env.IPHOTO_OSMAND_OBF_PATH
+      || [
+        join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+        join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+        join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+      ].find(candidate => existsSync(candidate))
+      || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+    try {
+      const settings = JSON.parse(readFileSync(this.offlineMapSettingsPath, 'utf8')) as {
+        obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
+      };
+      const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
+      if (paths.length > 0) {
+        selectedPath = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path)) || '';
+      }
+    } catch { /* Keep the configured fallback OBF map. */ }
+    if (selectedPath === this.obfPath) return;
+    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    this.obfPath = selectedPath;
+    this.pendingTiles.clear();
+    this.nextWorker = 0;
+    this.workers = this.createWorkers(this.createEnvironment());
+    console.info('[OsmAnd]', 'active_obf=' + selectedPath);
   }
 
   private createWorkers(environment: NodeJS.ProcessEnv): OsmAndHelperWorker[] {
@@ -314,7 +343,9 @@ export class OsmAndManager {
   };
 
   @IpcHandler({ name: 'OsmAnd.getRuntimeStatus' })
-  readonly getRuntimeStatus = async (): Promise<OsmAndRuntimeStatus> => ({
+  readonly getRuntimeStatus = async (): Promise<OsmAndRuntimeStatus> => {
+    await this.refreshSelectedObf();
+    return ({
     helperPath: this.helperPath,
     helperAvailable: existsSync(this.helperPath),
     obfPath: this.obfPath,
@@ -324,10 +355,12 @@ export class OsmAndManager {
     stylePath: this.stylePath,
     styleAvailable: existsSync(this.stylePath),
     cachePath: this.cachePath
-  });
+    });
+  };
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
   readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndTileResult> => {
+    await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
@@ -335,10 +368,11 @@ export class OsmAndManager {
     }
 
     const styleCacheKey = this.styleFileName.replace(/\.render\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const cacheFile = join(this.cachePath, '1_00', styleCacheKey, String(z), String(x), y + '.png');
+    const mapCacheKey = this.obfPath.split(/[\\/]/).pop()?.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/\.obf$/i, '') || 'default';
+    const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
-      const key = z + '/' + x + '/' + y;
+      const key = this.obfPath + '/' + z + '/' + x + '/' + y;
       let pending = this.pendingTiles.get(key);
       if (!pending) {
         pending = this.renderAndCacheTile(z, x, y, cacheFile);
