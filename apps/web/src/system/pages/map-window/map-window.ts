@@ -644,8 +644,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
     void this.refreshOsmAndTileCache();
-    void this.desktop?.OsmAnd.getRenderingStyles().then(styles => this.osmAndStyles.set(styles))
-      .catch(error => console.error('Could not read OsmAnd rendering styles:', error));
+    void this.desktop?.OsmAnd.getRenderingStyles().then(styles => {
+      this.osmAndStyles.set(styles);
+      const selectedStyle = styles.find(style => style.selected);
+      if (selectedStyle) {
+        this.osmAndStyle.set(selectedStyle.fileName);
+        this.saveSetting('osmandStyle', selectedStyle.fileName);
+      }
+    }).catch(error => console.error('Could not read OsmAnd rendering styles:', error));
     void this.desktop?.OfflineMap.getMaps().then(maps => {
       this.offlineMaps.set(maps);
       // An offline source without any compatible loaded MBTiles cannot be used.
