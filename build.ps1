@@ -246,13 +246,19 @@ Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
 Invoke-CheckedCommand "npx" @("nx", "reset")
 Invoke-CheckedCommand "npm" @("run", "build:all")
 
-# Native OsmAnd helpers and licensed resources are staged from the sibling SDK
-# before packaging, so the latest Atlas renderer is included in the installer.
-& (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
-& (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
-
+# First stop project processes and synchronously remove the previous package.
+# Only after cleanup has fully returned, stage the OsmAnd runtime for packaging.
 StopProcesses
 RemoveExecutableDirs
+
+& (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
+if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+    throw "OsmAnd helper staging failed with exit code $LASTEXITCODE."
+}
+& (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
+if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+    throw "OsmAnd resource staging failed with exit code $LASTEXITCODE."
+}
 
 # Produktions-Build
 # Nx-Daemon f�r das Packaging deaktivieren
@@ -274,6 +280,26 @@ finally {
     }
 }
 
+
+# Verify that the packaged OsmAnd runtime is complete before launching the app.
+$packageResources = Join-Path $projectDir "dist\executables\win-unpacked\resources\osmand"
+$packageChecks = @(
+    (Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"),
+    (Join-Path $packageResources "resources\rendering_styles\default.render.xml"),
+    (Join-Path $packageResources "resources\rendering_styles\fonts\LICENSE.txt"),
+    (Join-Path $packageResources "resources\licenses\OSMAND-RESOURCES-LICENSE.txt"),
+    (Join-Path $packageResources "resources\NOTICE.md")
+)
+$missingPackageFiles = @($packageChecks | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
+if ($missingPackageFiles.Count -gt 0) {
+    throw ("OsmAnd package verification failed. Missing files: " + ($missingPackageFiles -join "; "))
+}
+$packagedStyleCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles") -File -Filter "*.render.xml").Count
+$packagedFontCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\fonts") -File -Filter "*.ttf").Count
+if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0) {
+    throw "OsmAnd package verification failed: styles=$packagedStyleCount, fonts=$packagedFontCount."
+}
+Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount" -ForegroundColor Green
 
 # Fertige Anwendung starten
 $exe = Join-Path $projectDir "dist\executables\win-unpacked\LumaScope.exe"
