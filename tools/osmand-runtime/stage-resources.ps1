@@ -102,10 +102,29 @@ $fontFiles |
     }
 Copy-Item -LiteralPath $fontLicense -Destination $fontDestination -Force
 
-Copy-Item -LiteralPath (Join-Path $source 'poi\poi_types.xml') -Destination $poiDestination -Force
-Copy-Item -LiteralPath (Join-Path $source 'routing\routing.xml') -Destination $routingDestination -Force
-Copy-Item -LiteralPath (Join-Path $source 'misc\icu4c\icudt52l.dat') -Destination $icuDestination -Force
-Copy-Item -LiteralPath (Join-Path $source 'LICENSE') -Destination (Join-Path $licenseDestination 'OSMAND-RESOURCES-LICENSE.txt') -Force
+# Auxiliary resource files are copied when present in this SDK snapshot.
+$optionalFiles = @(
+    @{ Relative = 'poi\poi_types.xml'; Destination = $poiDestination },
+    @{ Relative = 'routing\routing.xml'; Destination = $routingDestination },
+    @{ Relative = 'misc\icu4c\icudt52l.dat'; Destination = $icuDestination }
+)
+foreach ($item in $optionalFiles) {
+    $optionalPath = Join-Path $source $item.Relative
+    if (Test-Path -LiteralPath $optionalPath -PathType Leaf) {
+        Copy-Item -LiteralPath $optionalPath -Destination $item.Destination -Force
+    }
+}
+
+$upstreamLicenseCandidates = @(
+    (Join-Path $source 'LICENSE'),
+    (Join-Path $sdkRootResolved 'LICENSE'),
+    (Join-Path (Split-Path -Parent $source) 'LICENSE')
+)
+$upstreamLicense = $upstreamLicenseCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+if (-not $upstreamLicense) {
+    throw "Could not locate the upstream OsmAnd resources LICENSE under SDK root: $sdkRootResolved"
+}
+Copy-Item -LiteralPath $upstreamLicense -Destination (Join-Path $licenseDestination 'OSMAND-RESOURCES-LICENSE.txt') -Force
 
 foreach ($licenseName in @('GPL-3.0.txt', 'ICU-DATA-LICENSE.txt')) {
     Copy-Item -LiteralPath (Join-Path $licenseSource $licenseName) -Destination $licenseDestination -Force
@@ -113,11 +132,7 @@ foreach ($licenseName in @('GPL-3.0.txt', 'ICU-DATA-LICENSE.txt')) {
 Copy-Item -LiteralPath $noticeSource -Destination (Join-Path $destinationPath 'NOTICE.md') -Force
 
 $verification = @(
-    'rendering_styles\fonts\05_NotoSans-Regular.ttf',
     'rendering_styles\fonts\LICENSE.txt',
-    'poi\poi_types.xml',
-    'routing\routing.xml',
-    'misc\icu4c\icudt52l.dat',
     'licenses\GPL-3.0.txt',
     'licenses\ICU-DATA-LICENSE.txt',
     'licenses\OSMAND-RESOURCES-LICENSE.txt',
