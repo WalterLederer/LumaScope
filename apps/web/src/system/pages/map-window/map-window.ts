@@ -249,6 +249,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <label for="atlas-display-density">Display density factor</label>
                   <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
                     [value]="atlasDisplayDensityFactor()"
+                    (input)="previewAtlasDisplayDensity($any($event.target).value)"
                     (change)="changeAtlasDisplayDensity($any($event.target).value)"
                     aria-label="OsmAnd Atlas display density">
                   <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
@@ -1633,11 +1634,16 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
   };
+  protected readonly previewAtlasDisplayDensity = (value: string | number): void => {
+    const density = Number(value);
+    if (!Number.isFinite(density)) return;
+    const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
+    this.atlasDisplayDensityFactor.set(next);
+  };
   protected readonly changeAtlasDisplayDensity = (value: string | number): void => {
     const density = Number(value);
     if (!Number.isFinite(density)) return;
     const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
-    if (Math.abs(next - this.atlasDisplayDensityFactor()) < 0.001) return;
     this.atlasDisplayDensityFactor.set(next);
     this.saveSetting('atlasDisplayDensityFactor', next);
     if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
