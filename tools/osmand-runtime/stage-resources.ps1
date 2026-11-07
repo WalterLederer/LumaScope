@@ -200,7 +200,11 @@ try {
     }
 
     if (Test-Path -LiteralPath $backupPath) {
-        [IO.Directory]::Delete($backupPath, $true)
+        try {
+            [IO.Directory]::Delete($backupPath, $true)
+        } catch {
+            Write-Warning "New resource tree is active, but the previous staging backup could not be cleaned up: $backupPath. $($_.Exception.Message)"
+        }
     }
 
     $styleCount = @(Get-ChildItem -LiteralPath (Join-Path $destinationPath 'rendering_styles') -File -Filter '*.render.xml' -Recurse).Count
@@ -221,7 +225,11 @@ try {
     Write-Host '  Rendering stubs:  ' (Get-ChildItem -LiteralPath (Join-Path $destinationPath 'rendering_styles\stubs') -File -Recurse).Count
 } finally {
     if (Test-Path -LiteralPath $stagingPath) {
-        [IO.Directory]::Delete($stagingPath, $true)
+        try {
+            [IO.Directory]::Delete($stagingPath, $true)
+        } catch {
+            Write-Warning "Temporary resource staging directory could not be cleaned up: $stagingPath. $($_.Exception.Message)"
+        }
     }
     if (Test-Path -LiteralPath $backupPath) {
         # A backup remains only if an earlier swap/cleanup was interrupted.
