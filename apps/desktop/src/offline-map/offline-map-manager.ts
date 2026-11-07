@@ -27,7 +27,7 @@ export class OfflineMapManager {
   return {maps:await this.getMaps(),errors};
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
- readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status}));
+ readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})));
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   const item=this.opened.get(id); const obf=this.obfFiles.get(id);
@@ -42,7 +42,7 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
-  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;this.persistMaps();} return this.getMaps();
+  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||item)this.persistMaps(); return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.getStatus'})
  readonly getStatus=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus>=>{const item=this.activeId?this.opened.get(this.activeId):null;return item?{...item.status}:{...EMPTY_STATUS};};
