@@ -257,6 +257,7 @@ export class OsmAndManager {
   @IpcHandler({ name: 'OsmAnd.getRenderingStyles' })
   readonly getRenderingStyles = async (): Promise<OsmAndRenderingStyle[]> => {
     const styleDirectory = join(this.resourcesPath, 'rendering_styles');
+    if (!existsSync(styleDirectory)) return [];
     const entries = await readdir(styleDirectory, { withFileTypes: true });
     return entries
       .filter(entry => entry.isFile()
