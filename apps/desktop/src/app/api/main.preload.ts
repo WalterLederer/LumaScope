@@ -98,6 +98,12 @@ const api: Desktop = {
     shutdown: () => ipcRenderer.invoke('OsmAnd.shutdown')
   },
 
+  OsmAndAtlas: {
+    getRuntimeStatus: () => ipcRenderer.invoke('OsmAndAtlas.getRuntimeStatus'),
+    renderTile: (z: number, x: number, y: number) => ipcRenderer.invoke('OsmAndAtlas.renderTile', z, x, y),
+    shutdown: () => ipcRenderer.invoke('OsmAndAtlas.shutdown')
+  },
+
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
