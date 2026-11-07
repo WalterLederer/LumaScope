@@ -259,8 +259,9 @@ export class OsmAndManager {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
       };
       const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
-      const enabled = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path));
-      if (enabled) selectedPath = enabled;
+      if (paths.length > 0) {
+        selectedPath = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path)) || '';
+      }
     } catch { /* Keep the configured fallback OBF map. */ }
     if (selectedPath === this.obfPath) return;
     await Promise.all(this.workers.map(worker => worker.shutdown()));
