@@ -9,7 +9,7 @@ const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 4;
+const HELPER_WORKER_COUNT = 1;
 
 export interface OsmAndAtlasTileResult {
   width: number;
@@ -92,16 +92,13 @@ class OsmAndAtlasWorker {
   }
 
   private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        await this.ensureStarted();
-        return await this.renderOnce(longitude, latitude, zoom);
-      } catch (error) {
-        await this.shutdown();
-        if (attempt === 1) throw error;
-      }
+    try {
+      await this.ensureStarted();
+      return await this.renderOnce(longitude, latitude, zoom);
+    } catch (error) {
+      await this.shutdown();
+      throw error;
     }
-    throw new Error('OsmAnd Atlas rendering failed.');
   }
 
   private async ensureStarted(): Promise<void> {
@@ -111,6 +108,7 @@ class OsmAndAtlasWorker {
     if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
+    const spawnStartedAt = Date.now();
     const child = spawn(this.helperPath, [this.obfPath, this.resourcesPath, this.stylePath], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -134,6 +132,7 @@ class OsmAndAtlasWorker {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
+    console.info('[OsmAnd Atlas]', 'process_spawn_ms=' + (Date.now() - spawnStartedAt));
   }
 
   private async renderOnce(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
@@ -153,11 +152,13 @@ class OsmAndAtlasWorker {
       latitude,
       zoom
     };
+    const requestStartedAt = Date.now();
     await new Promise<void>((resolve, reject) => {
       child.stdin.write(JSON.stringify(command) + '\n', error => error ? reject(error) : resolve());
     });
 
     const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 35000, 'OsmAnd Atlas frame header timed out');
+    console.info('[OsmAnd Atlas]', 'frame_header_ms=' + (Date.now() - requestStartedAt) + ' request_id=' + requestId);
     if (header.toString('ascii', 0, 4) !== 'OSMA'
       || header.readUInt16LE(4) !== 1
       || header.readUInt16LE(6) !== HEADER_BYTES) {
