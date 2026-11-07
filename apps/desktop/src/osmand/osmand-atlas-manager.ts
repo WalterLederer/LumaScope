@@ -328,7 +328,7 @@ export class OsmAndAtlasManager {
   });
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
-  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndAtlasTileResult> => {
+  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number): Promise<OsmAndAtlasTileResult> => {
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
@@ -339,7 +339,10 @@ export class OsmAndAtlasManager {
     const display = ownerWindow
       ? screen.getDisplayMatching(ownerWindow.getBounds())
       : screen.getPrimaryDisplay();
-    const displayScale = Math.min(4, Math.max(1, display.scaleFactor || 1));
+    const windowsDisplayScale = Math.min(4, Math.max(1, display.scaleFactor || 1));
+    const displayScale = Number.isFinite(requestedDisplayScale)
+      ? Math.min(4, Math.max(1, requestedDisplayScale!))
+      : windowsDisplayScale;
     await this.ensureDisplayScale(displayScale);
 
     const key = displayScale.toFixed(3) + '/' + z + '/' + x + '/' + y;
