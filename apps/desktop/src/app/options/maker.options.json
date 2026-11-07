@@ -38,6 +38,10 @@
       {
         "from": "tools/osmand-runtime/stage/helpers",
         "to": "osmand/helpers"
+      },
+      {
+        "from": "tools/osmand-runtime/stage/resources",
+        "to": "osmand/resources"
       }
     ]
   },
