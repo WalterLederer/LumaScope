@@ -817,9 +817,14 @@ export class OfflineMapRenderer {
         { layerId: 'label-public-transport-anchor', sourceLayer: 'public_transport', kind: 'poi' },
         { layerId: 'label-pois-anchor', sourceLayer: 'pois', kind: 'poi' }
       ];
+    // OsmAnd OBF and Atlas styles are rendered by the native renderer and
+    // may expose no MapLibre label-anchor layers at all. Query only layers
+    // that are actually part of the active style; passing a missing layer ID
+    // to queryRenderedFeatures throws and can abort tile/overlay refreshes.
+    const activeLabelSources = labelSources.filter(source => this.map.getLayer(source.layerId));
     const candidates: Array<{ key: string; x: number; y: number; longitude: number; latitude: number; text: string; kind: string; priority: number }> = [];
 
-    for (const source of labelSources) {
+    for (const source of activeLabelSources) {
       // Rendered features expose geographic coordinates. Raw source features can
       // retain vector-tile coordinates, which must not be passed to project()/Marker.
       const features = this.map.queryRenderedFeatures({ layers: [source.layerId] });
@@ -924,7 +929,7 @@ export class OfflineMapRenderer {
     }
     if (!this.labelSourceDiagnosticLogged) {
       this.labelSourceDiagnosticLogged = true;
-      console.info('[OfflineMap] Rendered label features:', labelSources.map(source => ({
+      console.info('[OfflineMap] Rendered label features:', activeLabelSources.map(source => ({
         layer: source.sourceLayer,
         count: this.map.queryRenderedFeatures({ layers: [source.layerId] }).length
       })));
