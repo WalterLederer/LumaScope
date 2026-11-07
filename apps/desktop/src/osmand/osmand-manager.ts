@@ -297,13 +297,16 @@ export class OsmAndManager {
       throw new Error('Invalid OsmAnd rendering style name.');
     }
     const styles = await this.getRenderingStyles();
-    if (!styles.some(style => style.fileName === fileName)) {
-      throw new Error('OsmAnd rendering style is not installed: ' + fileName);
+    const resolvedFileName = styles.some(style => style.fileName === fileName)
+      ? fileName
+      : styles.find(style => style.selected)?.fileName;
+    if (!resolvedFileName) {
+      throw new Error('No OsmAnd rendering styles are installed in: ' + join(this.resourcesPath, 'rendering_styles'));
     }
-    if (fileName !== this.styleFileName) {
+    if (resolvedFileName !== this.styleFileName) {
       await Promise.all(this.workers.map(worker => worker.shutdown()));
-      this.styleFileName = fileName;
-      this.stylePath = join(this.resourcesPath, 'rendering_styles', fileName);
+      this.styleFileName = resolvedFileName;
+      this.stylePath = join(this.resourcesPath, 'rendering_styles', resolvedFileName);
       this.pendingTiles.clear();
       this.workers = this.createWorkers(this.createEnvironment());
     }
