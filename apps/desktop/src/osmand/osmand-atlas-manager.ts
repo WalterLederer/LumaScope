@@ -18,7 +18,7 @@ export interface OsmAndAtlasTileResult {
 }
 
 class AtlasOutputReader {
-  private buffer = Buffer.alloc(0);
+  private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
   private readonly waiters: Array<{ length: number; resolve: (value: Buffer) => void; reject: (error: Error) => void }> = [];
   private failure: Error | null = null;
 
