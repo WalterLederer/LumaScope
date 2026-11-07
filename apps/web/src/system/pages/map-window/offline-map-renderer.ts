@@ -26,7 +26,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
     const [, zoom, column, row] = match;
     const tile = await desktop.OsmAnd.renderTile(Number(zoom), Number(column), Number(row));
     if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
-    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+    if (tile.width !== 512 || tile.height !== 512 || tile.stride !== 2048 || tile.pixels.byteLength !== 512 * 512 * 4) {
       throw new Error('OsmAnd returned an invalid RGBA8 tile.');
     }
     const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
@@ -63,8 +63,8 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop): void {
     }
     const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row);
     if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
-    // Atlas may return a 256px baseline or a 512px high-resolution image
-    // for the exact same XYZ geographic tile extent. MapLibre tileSize remains 256.
+    // Atlas returns a 512px high-resolution image for the same XYZ
+    // geographic tile extent. MapLibre tileSize remains 256.
     if ((tile.width !== 256 && tile.width !== 512)
       || tile.height !== tile.width
       || tile.stride !== tile.width * 4
