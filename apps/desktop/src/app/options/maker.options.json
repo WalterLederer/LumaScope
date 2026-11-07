@@ -29,6 +29,7 @@
     "oneClick": false
   },
   "win": {
+    "signExecutable": false,
     "icon": "./apps/desktop/src/assets/lumascope.ico",
     "extraResources": [
       {
