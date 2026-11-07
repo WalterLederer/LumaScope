@@ -192,7 +192,7 @@ try {
     } catch {
         if (Test-Path -LiteralPath $backupPath) {
             if (Test-Path -LiteralPath $destinationPath) {
-                Remove-Item -LiteralPath $destinationPath -Recurse -Force
+                [IO.Directory]::Delete($destinationPath, $true)
             }
             Move-Item -LiteralPath $backupPath -Destination $destinationPath
         }
@@ -200,7 +200,7 @@ try {
     }
 
     if (Test-Path -LiteralPath $backupPath) {
-        Remove-Item -LiteralPath $backupPath -Recurse -Force
+        [IO.Directory]::Delete($backupPath, $true)
     }
 
     $styleCount = @(Get-ChildItem -LiteralPath (Join-Path $destinationPath 'rendering_styles') -File -Filter '*.render.xml' -Recurse).Count
@@ -221,7 +221,7 @@ try {
     Write-Host '  Rendering stubs:  ' (Get-ChildItem -LiteralPath (Join-Path $destinationPath 'rendering_styles\stubs') -File -Recurse).Count
 } finally {
     if (Test-Path -LiteralPath $stagingPath) {
-        Remove-Item -LiteralPath $stagingPath -Recurse -Force
+        [IO.Directory]::Delete($stagingPath, $true)
     }
     if (Test-Path -LiteralPath $backupPath) {
         # A backup remains only if an earlier swap/cleanup was interrupted.
