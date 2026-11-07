@@ -265,6 +265,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
+@if (mapSource() === 'osmand') {
 <label class="offline-style-control"><span>OsmAnd Render Style:</span>
   <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
     @for (style of osmAndStyles(); track style.fileName) {
@@ -272,6 +273,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     }
   </select>
 </label>
+}
 <label class="offline-style-control"><span>MBTiles Style:</span>
   <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
     <option value="lumascope">LumaScope</option>
