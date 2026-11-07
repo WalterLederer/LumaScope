@@ -217,13 +217,8 @@ class OsmAndHelperWorker {
 
 export class OsmAndManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
-  private readonly sdkRoot = join(this.localAppData, 'LumaScope', 'OsmAnd-SDK');
-  private readonly helperPath = process.env.LUMASCOPE_OSMAND_HELPER_PATH
-    || (app.isPackaged
-      ? join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe')
-      : join(this.sdkRoot, 'tools', 'osmand_render_helper_native', 'dist', 'osmand_render_helper.exe'));
-  private readonly resourcesPath = process.env.LUMASCOPE_OSMAND_RESOURCES_PATH
-    || join(this.sdkRoot, 'vendor', 'osmand', 'resources');
+  private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
+  private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
   private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'default.render.xml'
     : 'default.render.xml';
@@ -255,9 +250,7 @@ export class OsmAndManager {
   }
 
   private createEnvironment(): NodeJS.ProcessEnv {
-    const qtRoot = process.env.IPHOTO_OSMAND_QT_ROOT || process.env.QT_ROOT || 'C:\\Qt\\6.10.1\\mingw_64';
-    const mingwRoot = process.env.IPHOTO_OSMAND_MINGW_ROOT || process.env.MINGW_ROOT || 'C:\\Qt\\Tools\\mingw1310_64';
-    const runtimePath = [dirname(this.helperPath), join(qtRoot, 'bin'), join(mingwRoot, 'bin')];
+    const runtimePath = [dirname(this.helperPath)];
     return { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(delimiter) };
   }
 
