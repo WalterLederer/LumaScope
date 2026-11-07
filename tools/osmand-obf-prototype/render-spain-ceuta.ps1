@@ -9,6 +9,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+git config --global core.longpaths true
+
 $SdkRepository = 'https://github.com/OliverZhaohaibin/PySide6-OsmAnd-SDK.git'
 $SdkCommit = 'b1a9d1a365bbfbca0572f35462b58b14ba6437db'
 
@@ -27,7 +29,7 @@ function Assert-Path {
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
-$obfPath = Join-Path $repoRoot 'tools\Spain_ceuta_europe.obf'
+$obfPath = Join-Path $repoRoot 'tools\Austria_wien_europe.obf'
 Assert-Path $obfPath
 Assert-Command 'git'
 Assert-Command $PythonExe
@@ -84,6 +86,31 @@ if ($LASTEXITCODE -ne 0 -or $currentCommit -ne $SdkCommit) {
     }
 }
 
+$indexPath = (& git -C $SdkRoot rev-parse --git-path index).Trim()
+
+if (-not [IO.Path]::IsPathRooted($indexPath)) {
+    $indexPath = Join-Path $SdkRoot $indexPath
+}
+
+$checkoutIncomplete = (
+    -not (Test-Path -LiteralPath $indexPath) -or
+    -not (Test-Path -LiteralPath (Join-Path $SdkRoot 'pyproject.toml'))
+)
+
+if ($checkoutIncomplete) {
+    Write-Host 'SDK checkout incomplete. Restoring pinned revision...'
+
+    & git -C $SdkRoot reset --hard $SdkCommit
+
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to restore the SDK checkout.'
+    }
+}
+
+if (-not (Test-Path -LiteralPath (Join-Path $SdkRoot 'pyproject.toml'))) {
+    throw 'SDK checkout is still incomplete: pyproject.toml is missing.'
+}
+
 $venvPython = Join-Path $SdkRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $venvPython)) {
     Write-Host 'Creating isolated Python environment'
@@ -132,7 +159,7 @@ try {
     Write-Host "Style: $stylePath"
     Write-Host "Screenshot target: $screenshotPath"
 
-    & $venvPython -m maps.main --backend python --center -5.35 35.89 --zoom 11 --screenshot $screenshotPath --capture-delay-ms 5000
+    & $venvPython -m maps.main --backend python --center 16.3738 48.2082 --zoom 12 --screenshot $screenshotPath --capture-delay-ms 5000
     if ($LASTEXITCODE -ne 0) {
         throw "OsmAnd preview exited with code $LASTEXITCODE."
     }
