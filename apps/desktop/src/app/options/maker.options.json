@@ -30,6 +30,7 @@
   },
   "win": {
     "icon": "./apps/desktop/src/assets/lumascope.ico",
+    "signAndEditExecutable": false,
     "extraResources": [
       {
         "from": "tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe",
