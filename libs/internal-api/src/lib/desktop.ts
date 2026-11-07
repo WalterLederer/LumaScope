@@ -325,6 +325,30 @@ export interface DesktopOsmAnd {
   readonly shutdown: () => Promise<void>;
 }
 
+export interface OsmAndAtlasTileResult {
+  width: number;
+  height: number;
+  stride: number;
+  pixels: Uint8Array;
+}
+
+export interface OsmAndAtlasRuntimeStatus {
+  helperPath: string;
+  helperAvailable: boolean;
+  obfPath: string;
+  obfAvailable: boolean;
+  resourcesPath: string;
+  resourcesAvailable: boolean;
+  stylePath: string;
+  styleAvailable: boolean;
+}
+
+export interface DesktopOsmAndAtlas {
+  readonly getRuntimeStatus: () => Promise<OsmAndAtlasRuntimeStatus>;
+  readonly renderTile: (z: number, x: number, y: number) => Promise<OsmAndAtlasTileResult>;
+  readonly shutdown: () => Promise<void>;
+}
+
 export interface Desktop {
   readonly ProcessManager: DesktopProcessManager;
   readonly Profiling: {
@@ -342,6 +366,7 @@ export interface Desktop {
   readonly MapOverlayWindow: DesktopMapOverlayWindow;
   readonly OfflineMap: DesktopOfflineMap;
   readonly OsmAnd: DesktopOsmAnd;
+  readonly OsmAndAtlas: DesktopOsmAndAtlas;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
   openFolder: () => Promise<FileListing>;
