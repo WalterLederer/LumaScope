@@ -592,7 +592,9 @@ export class OfflineMapRenderer {
         const detail = this.lastMapError ? ` Last MapLibre error: ${this.lastMapError}` : ' No MapLibre error event was reported.';
         reject(new Error('MapLibre did not finish loading the offline map within 15 seconds.' + detail + ' Check whether [OfflineMap] Protocol request received appears in the application log.'));
       }, 15000);
-      this.map.once('load', () => {
+      // Do not wait for raster tiles to finish: overlays must initialize even
+      // when the native tile helper is still failing or the OBF has no coverage.
+      this.map.once('style.load', () => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timeout);
