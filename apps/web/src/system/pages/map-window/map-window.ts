@@ -1436,6 +1436,13 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas') return;
     // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
     const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
+    const previousSource = this.mapSource();
+    if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
+      void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
+    }
+    if (previousSource === 'osmand' && nextSource !== 'osmand') {
+      void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
+    }
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
