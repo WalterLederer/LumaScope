@@ -1518,7 +1518,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMapImportErrors.set(result.errors);
     if (result.maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() !== 'offline') this.changeMapSource('offline');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
-    else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+    else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.currentOfflineMapId = null;
@@ -1548,7 +1548,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
     this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(id, enabled));
-    if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
@@ -1563,7 +1563,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.changeMapSource('online');
       return;
     }
-    if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
+    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
