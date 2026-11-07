@@ -219,7 +219,9 @@ export class OsmAndManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly sdkRoot = join(this.localAppData, 'LumaScope', 'OsmAnd-SDK');
   private readonly helperPath = process.env.LUMASCOPE_OSMAND_HELPER_PATH
-    || join(this.sdkRoot, 'tools', 'osmand_render_helper_native', 'dist', 'osmand_render_helper.exe');
+    || (app.isPackaged
+      ? join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe')
+      : join(this.sdkRoot, 'tools', 'osmand_render_helper_native', 'dist', 'osmand_render_helper.exe'));
   private readonly resourcesPath = process.env.LUMASCOPE_OSMAND_RESOURCES_PATH
     || join(this.sdkRoot, 'vendor', 'osmand', 'resources');
   private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
