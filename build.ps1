@@ -10,7 +10,7 @@ Write-Host "`n=== LumaScope Build ===" -ForegroundColor Cyan
 # Write-Host "Projekt: $projectDir"
 
 #############################################################################
-# Hilfsfunktion: Native Befehle mit Fehlerprüfung ausführen
+# Hilfsfunktion: Native Befehle mit Fehlerpr�fung ausf�hren
 function Invoke-CheckedCommand {
     param(
         [string]$Command,
@@ -28,7 +28,7 @@ function Invoke-CheckedCommand {
 
 
 #############################################################################
-# Projektbezogene Prozesse und deren temporäre Verzeichnisse bereinigen
+# Projektbezogene Prozesse und deren tempor�re Verzeichnisse bereinigen
 
 
 function StopProcesses {
@@ -117,7 +117,7 @@ function StopProcesses {
             if ($_.Name -match '^tmp-(\d+)-') {
                 $tempProcessId = [int]$Matches[1]
 
-                # Nur löschen, wenn der zugehörige Prozess nicht mehr existiert
+                # Nur l�schen, wenn der zugeh�rige Prozess nicht mehr existiert
                 if (-not $activeProcessIds.ContainsKey($tempProcessId)) {
                     Write-Host "TEMP NODE CLEANUP $($_.FullName)" -ForegroundColor Yellow
                     Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
@@ -127,7 +127,7 @@ function StopProcesses {
 
 
     # Verwaiste Electron-Download-Verzeichnisse entfernen
-    # Nur Verzeichnisse löschen, die seit mindestens 10 Minuten unverändert sind.
+    # Nur Verzeichnisse l�schen, die seit mindestens 10 Minuten unver�ndert sind.
     $electronCutoff = (Get-Date).AddMinutes(-10)
 
     Get-ChildItem -LiteralPath $tempDir -Directory -Filter 'electron-download-*' -ErrorAction SilentlyContinue |
@@ -142,7 +142,7 @@ function StopProcesses {
 
 
 #############################################################################
-# Hilfsfunktion: Executable-Verzeichnisse löschen
+# Hilfsfunktion: Executable-Verzeichnisse l�schen
 function RemoveExecutableDirs {
     
     $buildDirs = @(
@@ -166,7 +166,7 @@ function RemoveExecutableDirs {
                 break
             }
             catch {
-                Write-Warning "Löschversuch $attempt fehlgeschlagen: $($_.Exception.Message)"
+                Write-Warning "L�schversuch $attempt fehlgeschlagen: $($_.Exception.Message)"
 
                 if ($attempt -lt 5) {
                     Start-Sleep -Seconds 2
@@ -175,14 +175,14 @@ function RemoveExecutableDirs {
         }
 
         if (-not $removed -and (Test-Path -LiteralPath $dir)) {
-            throw "Verzeichnis '$dir' konnte nach 5 Versuchen nicht gelöscht werden. Möglicherweise hält noch ein Prozess eine Datei geöffnet."
+            throw "Verzeichnis '$dir' konnte nach 5 Versuchen nicht gel�scht werden. M�glicherweise h�lt noch ein Prozess eine Datei ge�ffnet."
         }
     }
 }
 
 
-# Branch überprüfen
-# Write-Host "`n=== Git Branch überprüfen ===" -ForegroundColor Yellow
+# Branch �berpr�fen
+# Write-Host "`n=== Git Branch �berpr�fen ===" -ForegroundColor Yellow
 
 $currentBranch = (& git branch --show-current).Trim()
 
@@ -204,7 +204,7 @@ StopProcesses
 RemoveExecutableDirs
 
 # Produktions-Build
-# Nx-Daemon für das Packaging deaktivieren
+# Nx-Daemon f�r das Packaging deaktivieren
 $env:NX_DAEMON = "false"
 
 try {
