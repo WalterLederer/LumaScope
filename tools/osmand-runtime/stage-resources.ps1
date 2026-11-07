@@ -54,11 +54,15 @@ Get-ChildItem -LiteralPath $styleSource -File -Filter '*.render.xml' |
         $_.Name -notlike '*.addon.render.xml' -and
         $_.Name -notin @('standalone-template.render.xml', 'template.addon.render.xml')
     } |
-    Copy-Item -Destination $styleDestination -Force
+    ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $styleDestination -Force
+    }
 
 # The active fonts directory carries its own Apache-2.0 license.
 Get-ChildItem -LiteralPath $fontSource -File -Filter '*.ttf' |
-    Copy-Item -Destination $fontDestination -Force
+    ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $fontDestination -Force
+    }
 Copy-Item -LiteralPath (Join-Path $fontSource 'LICENSE.txt') -Destination $fontDestination -Force
 
 Copy-Item -LiteralPath (Join-Path $source 'poi\poi_types.xml') -Destination $poiDestination -Force
