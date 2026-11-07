@@ -312,7 +312,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
                 </select>
                 <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
-                <button type="button" (click)="chooseOfflineMap()">Add MBTiles…</button>
+                <button type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
@@ -322,9 +322,9 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                       <thead><tr><th class="mbtiles-enabled-column">Use</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                       <tbody>
                         @for (map of offlineMaps(); track map.id) {
-                          <tr [class.mbtiles-map-disabled]="!map.enabled">
+                          <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
                             <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
-                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span>{{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
+                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i> {{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                             <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
@@ -460,7 +460,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-map-file .mbtiles-in-use{color:#8ab4f8;font-weight:600}
     .mbtiles-map-number{white-space:nowrap}
     .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}
-    .mbtiles-map-disabled{opacity:.48}
+    .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
@@ -707,7 +707,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineMaps.set(maps);
       // An offline source without any compatible loaded MBTiles cannot be used.
       // Restore the online source instead of leaving the selector on an empty map.
-      if (maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
+      if (!maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') this.changeMapSource('online');
     }).catch(error => console.error('Could not read offline map list:', error));
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
@@ -1516,7 +1516,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
-    if (result.maps.length && this.mapSource() !== 'offline') this.changeMapSource('offline');
+    if (result.maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() !== 'offline') this.changeMapSource('offline');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && this.mapSource() === 'offline') {
       this.mapSourceGeneration++; this.mapInitialization = null;
@@ -1559,7 +1559,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
     if (!this.desktop) return;
     this.offlineMaps.set(await this.desktop.OfflineMap.removeFile(id));
-    if (this.offlineMaps().length === 0 && this.mapSource() === 'offline') {
+    if (!this.offlineMaps().some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') {
       this.changeMapSource('online');
       return;
     }
