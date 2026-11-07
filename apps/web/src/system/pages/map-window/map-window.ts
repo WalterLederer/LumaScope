@@ -114,11 +114,25 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 <div class="settings-tab-content map-tab">
             
             <div class="map-source-content">
-              <label><span>Source:</span>
-                <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline - OsmAnd (no labels)</option><option value="osmand-atlas">Offline — OsmAnd Atlas</option>
-                </select>
-              </label>
+              <div class="map-source-picker">
+                <span class="map-source-picker-label">Source:</span>
+                <button type="button" class="map-source-picker-trigger" [attr.aria-expanded]="mapSourceMenuOpen()" aria-haspopup="true" (click)="mapSourceMenuOpen.update(open => !open)">
+                  {{ selectedMapSourceType() }}
+                </button>
+                @if (mapSourceMenuOpen()) {
+                  <div class="map-source-picker-menu" role="dialog" aria-label="Select map source">
+                    <table class="map-source-picker-table">
+                      <thead><tr><th>Type</th><th>Suffix</th><th>Online/Offline</th></tr></thead>
+                      <tbody>
+                        <tr><td><button type="button" (click)="selectMapSource('online')">Online map</button></td><td>—</td><td>Online</td></tr>
+                        <tr><td><button type="button" (click)="selectMapSource('offline')">MBTiles</button></td><td>.mbtiles</td><td>Offline</td></tr>
+                        <tr><td><button type="button" (click)="selectMapSource('osmand')">OsmAnd (no labels)</button></td><td>.obf</td><td>Offline</td></tr>
+                        <tr><td><button type="button" (click)="selectMapSource('osmand-atlas')">OsmAnd Atlas</button></td><td>.obf</td><td>Offline</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
               @if (mapSource() === 'online') {
                 <label class="online-map-style-control"><span>Style:</span>
                   <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
@@ -407,7 +421,19 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
-    .map-source-select{width:340px;max-width:none}
+    .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:30}
+    .map-source-picker-label{font-weight:600}
+    .map-source-picker-trigger{min-width:220px;text-align:left}
+    .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:1000}
+    .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+    .map-source-picker-table th,.map-source-picker-table td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--color-content-default-low,#454545)}
+    .map-source-picker-table th{font-weight:700;color:var(--color-content-default-medium,#aaa)}
+    .map-source-picker-table tr:last-child td{border-bottom:0}
+    .map-source-picker-table td:first-child{width:52%}
+    .map-source-picker-table td:nth-child(2){width:20%;font-family:monospace}
+    .map-source-picker-table td:last-child{width:28%}
+    .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
+    .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
     .mbtiles-download-source{min-width:0;max-width:100%;}
     .mbtiles-map-list{grid-column:1/-1;min-width:0;max-width:100%;overflow-x:auto}
@@ -529,6 +555,17 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'map' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache'>('location');
   protected readonly colorMenuOpen = signal(false);
+  protected readonly mapSourceMenuOpen = signal(false);
+  protected readonly selectedMapSourceType = computed(() => ({
+    online: 'Online map',
+    offline: 'MBTiles',
+    osmand: 'OsmAnd (no labels)',
+    'osmand-atlas': 'OsmAnd Atlas'
+  })[this.mapSource()]);
+  protected readonly selectMapSource = (source: 'online' | 'offline' | 'osmand' | 'osmand-atlas'): void => {
+    this.mapSourceMenuOpen.set(false);
+    this.changeMapSource(source);
+  };
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
