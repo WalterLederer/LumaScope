@@ -50,3 +50,4 @@ Thumbs.db
 .junie/requirements
 /.vs
 /tools/Austria_wien_europe.obf
+/tools/osmand-runtime/stage/
