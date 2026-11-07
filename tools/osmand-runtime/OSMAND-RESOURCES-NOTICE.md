@@ -14,7 +14,7 @@ copy of the complete upstream resource repository.
 - `misc/icu4c/icudt52l.dat`: Unicode License 3.0 / ICU license terms. The
   corresponding license text is included in `licenses/ICU-DATA-LICENSE.txt`.
 
-The upstream resource repository's own `LICENSE` is also retained in
+The upstream resource repository's own `LICENSE` is located in the SDK resource root or its parent and retained in
 `licenses/OSMAND-RESOURCES-LICENSE.txt`. The GPLv3 license text is included
 as `licenses/GPL-3.0.txt`.
 
