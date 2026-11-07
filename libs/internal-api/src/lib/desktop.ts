@@ -227,7 +227,7 @@ export interface CapturePreview {
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
-export interface OfflineMapStatus { id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
