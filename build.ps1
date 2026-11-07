@@ -1,0 +1,237 @@
+
+$workBranch = "main"
+$ErrorActionPreference = "Stop"
+
+# Projektverzeichnis = Verzeichnis dieser PS1-Datei
+$projectDir = $PSScriptRoot
+Set-Location $projectDir
+
+Write-Host "`n=== LumaScope Build ===" -ForegroundColor Cyan
+# Write-Host "Projekt: $projectDir"
+
+#############################################################################
+# Hilfsfunktion: Native Befehle mit Fehlerprüfung ausführen
+function Invoke-CheckedCommand {
+    param(
+        [string]$Command,
+        [string[]]$Arguments
+    )
+
+    Write-Host "`n> $Command $($Arguments -join ' ')" -ForegroundColor Cyan
+
+    & $Command @Arguments
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Command wurde mit Fehlercode $LASTEXITCODE beendet."
+    }
+}
+
+
+#############################################################################
+# Projektbezogene Prozesse und deren temporäre Verzeichnisse bereinigen
+
+
+function StopProcesses {
+    Write-Host "`n=== Projektbezogene Prozesse beenden ($projectDir) ===" -ForegroundColor Yellow
+
+    # Alle Prozesse ermitteln, deren Kommandozeile auf dieses Projekt verweist
+    $nodes = Get-CimInstance Win32_Process
+
+    $matchingNodes = @(
+        $nodes | Where-Object {
+            $_.ProcessId -ne $PID -and
+            $_.CommandLine -and
+            $_.CommandLine.IndexOf(
+                $projectDir,
+                [StringComparison]::OrdinalIgnoreCase
+            ) -ge 0
+        }
+    )
+
+    $processIds = @(
+        $matchingNodes |
+            ForEach-Object { [int]$_.ProcessId } |
+            Sort-Object -Unique
+    )
+
+    # Prozesse und deren Kindprozesse beenden
+    foreach ($process in $matchingNodes) {
+        $maxLineLength = 125
+        $commandLine = $process.CommandLine
+        $shortCommandLine = $commandLine.Substring(
+            0,
+            [Math]::Min($maxLineLength, $commandLine.Length)
+        )
+        $ellipsis = if ($commandLine.Length -gt $maxLineLength) { '...' } else { '' }
+
+        Write-Host "STOP $($process.ProcessId) '$($process.Name)' $shortCommandLine$ellipsis" -ForegroundColor Yellow
+
+        # /T beendet auch die Kindprozesse
+        & taskkill.exe /PID $process.ProcessId /T /F 2>$null | Out-Null
+    }
+
+
+    # Kurz warten, damit Prozesse und Dateizugriffe beendet sind
+    Start-Sleep -Milliseconds 500
+
+    $tempDir = $env:TEMP
+
+
+    # Remove empty temporary folders with 20-character hexadecimal names
+    Get-ChildItem -LiteralPath $env:TEMP -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^[0-9a-fA-F]{20}$' } |
+        ForEach-Object {
+            $entries = @(Get-ChildItem -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue)
+
+            if ($entries.Count -eq 0) {
+                Write-Host "TEMP CLEANUP $($_.FullName)" -ForegroundColor Yellow
+                Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+
+    # Aktuell noch existierende Prozess-IDs ermitteln
+    $activeProcessIds = @{}
+    Get-CimInstance Win32_Process | ForEach-Object {
+        $activeProcessIds[[int]$_.ProcessId] = $true
+    }
+
+    # Nur die Temp-Verzeichnisse dieser Prozess-IDs entfernen
+    $tempDir = $env:TEMP
+
+    foreach ($processId in $processIds) {
+        $tempPattern = "tmp-$processId-*"
+
+        Get-ChildItem -LiteralPath $tempDir -Directory -Filter $tempPattern -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                Write-Host "TEMP CLEANUP $($_.FullName)" -ForegroundColor Yellow
+                Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+    }
+
+
+    # Node.js Temp-Verzeichnisse bereinigen
+    # Namensschema: tmp-<PID>-<random>
+    Get-ChildItem -LiteralPath $tempDir -Directory -Filter 'tmp-*' -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            if ($_.Name -match '^tmp-(\d+)-') {
+                $tempProcessId = [int]$Matches[1]
+
+                # Nur löschen, wenn der zugehörige Prozess nicht mehr existiert
+                if (-not $activeProcessIds.ContainsKey($tempProcessId)) {
+                    Write-Host "TEMP NODE CLEANUP $($_.FullName)" -ForegroundColor Yellow
+                    Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+
+
+    # Verwaiste Electron-Download-Verzeichnisse entfernen
+    # Nur Verzeichnisse löschen, die seit mindestens 10 Minuten unverändert sind.
+    $electronCutoff = (Get-Date).AddMinutes(-10)
+
+    Get-ChildItem -LiteralPath $tempDir -Directory -Filter 'electron-download-*' -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.LastWriteTime -lt $electronCutoff
+        } |
+        ForEach-Object {
+            Write-Host "TEMP ELECTRON CLEANUP $($_.FullName)" -ForegroundColor Yellow
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+}
+
+
+#############################################################################
+# Hilfsfunktion: Executable-Verzeichnisse löschen
+function RemoveExecutableDirs {
+    
+    $buildDirs = @(
+        ".\dist\executables\win-unpacked",
+        ".\dist\executables\win-unpacked.tmp"
+    )
+
+    foreach ($dir in $buildDirs) {
+        if (-not (Test-Path -LiteralPath $dir)) {
+            continue
+        }
+
+        Write-Host "RMDIR $dir" -ForegroundColor Yellow
+
+        $removed = $false
+
+        for ($attempt = 1; $attempt -le 5; $attempt++) {
+            try {
+                Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction Stop
+                $removed = $true
+                break
+            }
+            catch {
+                Write-Warning "Löschversuch $attempt fehlgeschlagen: $($_.Exception.Message)"
+
+                if ($attempt -lt 5) {
+                    Start-Sleep -Seconds 2
+                }
+            }
+        }
+
+        if (-not $removed -and (Test-Path -LiteralPath $dir)) {
+            throw "Verzeichnis '$dir' konnte nach 5 Versuchen nicht gelöscht werden. Möglicherweise hält noch ein Prozess eine Datei geöffnet."
+        }
+    }
+}
+
+
+# Branch überprüfen
+# Write-Host "`n=== Git Branch überprüfen ===" -ForegroundColor Yellow
+
+$currentBranch = (& git branch --show-current).Trim()
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Git Branch konnte nicht ermittelt werden."
+}
+
+if ($currentBranch -ne $workBranch) {
+    throw "Falscher Branch: $currentBranch. Erwartet wird $workBranch."
+}
+
+# Git aktualisieren
+Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
+
+Invoke-CheckedCommand "npx" @("nx", "reset")
+Invoke-CheckedCommand "npm" @("run", "build:all")
+
+StopProcesses
+RemoveExecutableDirs
+
+# Produktions-Build
+# Nx-Daemon für das Packaging deaktivieren
+$env:NX_DAEMON = "false"
+
+try {
+    Invoke-CheckedCommand "npx" @("nx", "run", "desktop:make")
+    if ($LASTEXITCODE -ne 0) {
+        throw "desktop:make wurde mit Fehlercode $LASTEXITCODE beendet."
+    }
+}
+finally {
+    Remove-Item Env:\NX_DAEMON -ErrorAction SilentlyContinue
+}
+
+
+# Fertige Anwendung starten
+$exe = Join-Path $projectDir "dist\executables\win-unpacked\LumaScope.exe"
+
+if (-not (Test-Path $exe)) {
+    throw "Die fertige LumaScope.exe wurde nicht gefunden: $exe"
+}
+
+Write-Host "`n=== Starte LumaScope $exe ===" -ForegroundColor Green
+Start-Process -FilePath $exe
+
+# Write-Host "`n=== Build erfolgreich abgeschlossen ===" -ForegroundColor Green
+
+# $exe = "C:\__Daten\Dev\__LumaScope\source\dist\executables\win-unpacked\LumaScope.exe"
+# $log = "$env:TEMP\LumaScope-chrome.log"
+# Remove-Item $log -Force -ErrorAction SilentlyContinue
+#
+# & $exe --enable-logging=file "--log-file=$log" --v=1
