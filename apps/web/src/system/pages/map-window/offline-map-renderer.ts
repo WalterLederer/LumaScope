@@ -731,7 +731,13 @@ export class OfflineMapRenderer {
   }
 
   private logVectorSourceDiagnostics(): void {
-    if (this.vectorSourceDiagnosticLogged) return;
+    // This diagnostic inspects Shortbread MVT features only. Atlas and the
+    // legacy OsmAnd renderer use raster sources, while OpenMapTiles uses a
+    // different vector-layer schema; neither should be reported as an empty
+    // Shortbread source.
+    if (this.vectorSourceDiagnosticLogged || this.schema !== 'shortbread') return;
+    const shortbreadSource = this.map.getStyle().sources?.['shortbread'];
+    if (!shortbreadSource || shortbreadSource.type !== 'vector') return;
     this.vectorSourceDiagnosticLogged = true;
     const sourceLayers = [
       'land', 'ocean', 'water_polygons', 'water_lines', 'boundaries',
