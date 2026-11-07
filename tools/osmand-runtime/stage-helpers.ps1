@@ -35,6 +35,16 @@ foreach ($name in $requiredFiles) {
     }
 }
 
+# The Atlas worker passes the explicit display-density argument. Reject an
+# outdated SDK binary here instead of silently packaging a helper that exits
+# with code 2 on every render request.
+$atlasHelper = Join-Path $source 'osmand_atlas_render_helper.exe'
+$atlasUsage = (& $atlasHelper 2>&1 | Out-String)
+$atlasExitCode = $LASTEXITCODE
+if ($atlasExitCode -ne 2 -or $atlasUsage -notmatch '<display-scale>') {
+    throw "The Atlas helper in '$source' is outdated. Rebuild osmand_atlas_render_helper from the current OsmAnd-SDK source; it must accept <map.obf> <resources-root> <style-file> <display-scale>."
+}
+
 $destinationPath = [IO.Path]::GetFullPath($Destination)
 New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
 
