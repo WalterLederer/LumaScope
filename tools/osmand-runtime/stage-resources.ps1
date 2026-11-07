@@ -16,10 +16,10 @@ $sdkRootResolved = (Resolve-Path -LiteralPath $SdkRoot).Path
 # SDK snapshots do not all use the same top-level layout. Prefer known locations,
 # then discover a rendering_styles directory below the supplied SDK root.
 $candidateRoots = @(
-    (Join-Path $sdkRootResolved 'vendor\\osmand\\resources'),
+    (Join-Path $sdkRootResolved 'vendor\osmand\resources'),
     (Join-Path $sdkRootResolved 'resources'),
     (Join-Path $sdkRootResolved 'OsmAnd-resources'),
-    (Join-Path $sdkRootResolved 'OsmAnd-resources\\resources')
+    (Join-Path $sdkRootResolved 'OsmAnd-resources\resources')
 )
 $styleDirectories = @()
 foreach ($candidate in $candidateRoots) {
