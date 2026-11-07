@@ -1,0 +1,266 @@
+import { app } from 'electron';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { delimiter, dirname, join } from 'node:path';
+import { IpcHandler } from '../app/decorators/ipc-handler';
+
+const TILE_SIZE = 256;
+const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
+const HEADER_BYTES = 40;
+const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
+const HELPER_WORKER_COUNT = 4;
+
+export interface OsmAndAtlasTileResult {
+  width: number;
+  height: number;
+  stride: number;
+  pixels: Uint8Array;
+}
+
+class AtlasOutputReader {
+  private buffer = Buffer.alloc(0);
+  private readonly waiters: Array<{ length: number; resolve: (value: Buffer) => void; reject: (error: Error) => void }> = [];
+  private failure: Error | null = null;
+
+  constructor(stream: NodeJS.ReadableStream, child: ChildProcessWithoutNullStreams) {
+    stream.on('data', (chunk: Buffer | string) => {
+      if (this.failure) return;
+      const data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      this.buffer = this.buffer.length ? Buffer.concat([this.buffer, data]) : data;
+      this.drain();
+    });
+    child.once('error', error => this.fail(error));
+    child.once('close', (code, signal) => this.fail(new Error(
+      'OsmAnd Atlas helper exited (code ' + String(code) + ', signal ' + String(signal) + ').'
+    )));
+  }
+
+  readBytes(length: number): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      this.waiters.push({ length, resolve, reject });
+      this.drain();
+    });
+  }
+
+  private fail(error: Error): void {
+    if (this.failure) return;
+    this.failure = error;
+    while (this.waiters.length) this.waiters.shift()!.reject(error);
+  }
+
+  private drain(): void {
+    while (!this.failure && this.waiters.length && this.buffer.length >= this.waiters[0].length) {
+      const waiter = this.waiters.shift()!;
+      const value = this.buffer.subarray(0, waiter.length);
+      this.buffer = this.buffer.subarray(waiter.length);
+      waiter.resolve(value);
+    }
+  }
+}
+
+class OsmAndAtlasWorker {
+  private child: ChildProcessWithoutNullStreams | null = null;
+  private reader: AtlasOutputReader | null = null;
+  private nextRequestId = 1;
+  private queue: Promise<void> = Promise.resolve();
+
+  constructor(
+    private readonly helperPath: string,
+    private readonly obfPath: string,
+    private readonly resourcesPath: string,
+    private readonly stylePath: string,
+    private readonly environment: NodeJS.ProcessEnv
+  ) {}
+
+  render(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+    const result = this.queue.then(() => this.renderQueued(longitude, latitude, zoom));
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  async shutdown(): Promise<void> {
+    const child = this.child;
+    this.child = null;
+    this.reader = null;
+    if (!child || child.exitCode !== null) return;
+    try {
+      if (child.stdin.writable) child.stdin.write(JSON.stringify({ type: 'quit' }) + '\n');
+    } catch { /* The process may already be closing. */ }
+    child.kill();
+  }
+
+  private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await this.ensureStarted();
+        return await this.renderOnce(longitude, latitude, zoom);
+      } catch (error) {
+        await this.shutdown();
+        if (attempt === 1) throw error;
+      }
+    }
+    throw new Error('OsmAnd Atlas rendering failed.');
+  }
+
+  private async ensureStarted(): Promise<void> {
+    if (this.child && this.child.exitCode === null && this.reader) return;
+    if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas render helper not found: ' + this.helperPath);
+    if (!existsSync(this.obfPath)) throw new Error('OsmAnd OBF map not found: ' + this.obfPath);
+    if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
+    if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
+
+    const child = spawn(this.helperPath, [this.obfPath, this.resourcesPath, this.stylePath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+      env: this.environment
+    });
+    this.child = child;
+    this.reader = new AtlasOutputReader(child.stdout, child);
+    child.stderr.on('data', chunk => {
+      const message = String(chunk).trim();
+      if (message) console.warn('[OsmAnd Atlas helper]', message);
+    });
+    await new Promise<void>((resolve, reject) => {
+      child.once('spawn', resolve);
+      child.once('error', reject);
+    });
+  }
+
+  private async renderOnce(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+    const requestId = this.nextRequestId;
+    this.nextRequestId = (this.nextRequestId + 1) >>> 0;
+    if (this.nextRequestId === 0) this.nextRequestId = 1;
+    const child = this.child;
+    const reader = this.reader;
+    if (!child || !child.stdin.writable || !reader) throw new Error('OsmAnd Atlas helper streams are unavailable.');
+
+    const command = {
+      type: 'render',
+      requestId,
+      width: TILE_SIZE,
+      height: TILE_SIZE,
+      longitude,
+      latitude,
+      zoom
+    };
+    await new Promise<void>((resolve, reject) => {
+      child.stdin.write(JSON.stringify(command) + '\n', error => error ? reject(error) : resolve());
+    });
+
+    const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 35000, 'OsmAnd Atlas frame header timed out');
+    if (header.toString('ascii', 0, 4) !== 'OSMA'
+      || header.readUInt16LE(4) !== 1
+      || header.readUInt16LE(6) !== HEADER_BYTES) {
+      throw new Error('OsmAnd Atlas helper returned an unsupported binary response header.');
+    }
+
+    const status = header.readUInt32LE(8);
+    const responseId = header.readUInt32LE(12);
+    const width = header.readUInt32LE(16);
+    const height = header.readUInt32LE(20);
+    const stride = header.readUInt32LE(24);
+    const pixelFormat = header.readUInt32LE(28);
+    const payloadSize = Number(header.readBigUInt64LE(32));
+    if (responseId !== requestId) throw new Error('OsmAnd Atlas response ID mismatch.');
+    if (!Number.isSafeInteger(payloadSize) || payloadSize > MAX_RESPONSE_BYTES) {
+      throw new Error('OsmAnd Atlas frame exceeds the safety limit.');
+    }
+
+    const payload = await this.withTimeout(reader.readBytes(payloadSize), 35000, 'OsmAnd Atlas frame payload timed out');
+    if (status !== 0) throw new Error(payload.toString('utf8') || 'OsmAnd Atlas rendering failed.');
+    if (width !== TILE_SIZE || height !== TILE_SIZE || stride !== TILE_SIZE * 4
+      || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
+      throw new Error('OsmAnd Atlas helper returned unexpected RGBA8 frame dimensions or format.');
+    }
+    return payload;
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_resolve, reject) => { timeout = setTimeout(() => reject(new Error(message)), milliseconds); })
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  }
+}
+
+export class OsmAndAtlasManager {
+  private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
+  private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
+  private readonly stylePath = join(this.resourcesPath, 'rendering_styles', 'default.render.xml');
+  private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+    || process.env.IPHOTO_OSMAND_OBF_PATH
+    || [
+      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+    ].find(candidate => existsSync(candidate))
+    || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+  private readonly environment: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: [dirname(this.helperPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
+  };
+  private workers = this.createWorkers();
+  private nextWorker = 0;
+  private readonly pendingTiles = new Map<string, Promise<Buffer>>();
+
+  constructor() {
+    app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private createWorkers(): OsmAndAtlasWorker[] {
+    return Array.from({ length: HELPER_WORKER_COUNT }, () =>
+      new OsmAndAtlasWorker(this.helperPath, this.obfPath, this.resourcesPath, this.stylePath, this.environment)
+    );
+  }
+
+  @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
+  readonly getRuntimeStatus = async () => ({
+    helperPath: this.helperPath,
+    helperAvailable: existsSync(this.helperPath),
+    obfPath: this.obfPath,
+    obfAvailable: existsSync(this.obfPath),
+    resourcesPath: this.resourcesPath,
+    resourcesAvailable: existsSync(this.resourcesPath),
+    stylePath: this.stylePath,
+    styleAvailable: existsSync(this.stylePath)
+  });
+
+  @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
+  readonly renderTile = async (_event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndAtlasTileResult> => {
+    if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
+    const tileCount = 2 ** z;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
+      throw new Error('Invalid XYZ tile coordinates.');
+    }
+
+    const key = z + '/' + x + '/' + y;
+    let pending = this.pendingTiles.get(key);
+    if (!pending) {
+      pending = this.renderAndCacheTile(z, x, y);
+      this.pendingTiles.set(key, pending);
+      void pending.finally(() => {
+        if (this.pendingTiles.get(key) === pending) this.pendingTiles.delete(key);
+      }).catch(() => undefined);
+    }
+    const pixels = await pending;
+    return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels) };
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
+  readonly shutdown = async (): Promise<void> => {
+    await Promise.all(this.workers.map(worker => worker.shutdown()));
+  };
+
+  private async renderAndCacheTile(z: number, x: number, y: number): Promise<Buffer> {
+    const longitude = (x + 0.5) / (2 ** z) * 360 - 180;
+    const mercatorY = Math.PI * (1 - 2 * (y + 0.5) / (2 ** z));
+    const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
+    const worker = this.workers[this.nextWorker++ % this.workers.length];
+    return worker.render(longitude, latitude, z);
+  }
+}
