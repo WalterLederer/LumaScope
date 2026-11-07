@@ -249,6 +249,7 @@ try {
 }
 finally {
     Remove-Item Env:\NX_DAEMON -ErrorAction SilentlyContinue
+    Remove-Item Env:\CSC_IDENTITY_AUTO_DISCOVERY -ErrorAction SilentlyContinue
 }
 
 
