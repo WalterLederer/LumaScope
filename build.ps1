@@ -252,13 +252,7 @@ StopProcesses
 RemoveExecutableDirs
 
 & (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
-if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-    throw "OsmAnd helper staging failed with exit code $LASTEXITCODE."
-}
 & (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
-if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-    throw "OsmAnd resource staging failed with exit code $LASTEXITCODE."
-}
 
 # Produktions-Build
 # Nx-Daemon f�r das Packaging deaktivieren
