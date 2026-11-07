@@ -1243,8 +1243,13 @@ export class MapWindow implements OnInit, OnDestroy {
       (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
     );
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
-    this.applyOfflineRendererSettings(renderer);
+    this.applyMapColor();
+    this.applyMapOpacity();
+    renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+    await this.restoreGpxTrack();
+    window.addEventListener('resize', this.onResize);
   }
 
   private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
