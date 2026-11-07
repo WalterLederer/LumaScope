@@ -231,8 +231,14 @@ Invoke-CheckedCommand "npm" @("run", "build:all")
 
 # Native OsmAnd helpers and licensed resources are staged from the sibling SDK
 # before packaging, so the latest Atlas renderer is included in the installer.
-Invoke-CheckedCommand "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools/osmand-runtime/stage-helpers.ps1")
-Invoke-CheckedCommand "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools/osmand-runtime/stage-resources.ps1")
+# Die Stage-Skripte benötigen PowerShell 7. Direkt im aktuellen Host ausführen,
+# statt powershell.exe (Windows PowerShell 5.1) zu starten.
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw "build.ps1 benötigt PowerShell 7 oder neuer. Bitte mit 'pwsh' starten."
+}
+
+& (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
+& (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
 
 StopProcesses
 RemoveExecutableDirs
