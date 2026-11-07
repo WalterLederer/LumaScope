@@ -295,6 +295,34 @@ if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0) {
 }
 Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount" -ForegroundColor Green
 
+# Compare every staged helper/resource file with the packaged copy. This catches
+# incomplete extraResources copies before the application is launched.
+$stagedRuntimeRoots = @(
+    @{ Name = "helpers"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\helpers"); Target = (Join-Path $packageResources "helpers") },
+    @{ Name = "resources"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\resources"); Target = (Join-Path $packageResources "resources") }
+)
+foreach ($runtimeRoot in $stagedRuntimeRoots) {
+    $sourceFiles = @(Get-ChildItem -LiteralPath $runtimeRoot.Source -File -Recurse | ForEach-Object {
+        [pscustomobject]@{
+            RelativePath = $_.FullName.Substring($runtimeRoot.Source.Length).TrimStart('\')
+            Length = $_.Length
+        }
+    } | Sort-Object RelativePath)
+    $targetFiles = @(Get-ChildItem -LiteralPath $runtimeRoot.Target -File -Recurse | ForEach-Object {
+        [pscustomobject]@{
+            RelativePath = $_.FullName.Substring($runtimeRoot.Target.Length).TrimStart('\')
+            Length = $_.Length
+        }
+    } | Sort-Object RelativePath)
+    $sourceManifest = @($sourceFiles | ForEach-Object { "$($_.RelativePath)|$($_.Length)" })
+    $targetManifest = @($targetFiles | ForEach-Object { "$($_.RelativePath)|$($_.Length)" })
+    $differences = @(Compare-Object -ReferenceObject $sourceManifest -DifferenceObject $targetManifest)
+    if ($differences.Count -gt 0) {
+        throw "OsmAnd $($runtimeRoot.Name) package is incomplete: staged=$($sourceFiles.Count), packaged=$($targetFiles.Count)."
+    }
+    Write-Host "OsmAnd $($runtimeRoot.Name) package copy verified: $($targetFiles.Count) files" -ForegroundColor Green
+}
+
 # Fertige Anwendung starten
 $exe = Join-Path $projectDir "dist\executables\win-unpacked\LumaScope.exe"
 
