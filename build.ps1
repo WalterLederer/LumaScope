@@ -44,6 +44,9 @@ function Invoke-CheckedCommand {
 
 
 function StopProcesses {
+    # Rekursive Temp-Bereinigung ohne separate, den Build-Output ueberlagernde Fortschrittsanzeige.
+    $ProgressPreference = 'SilentlyContinue'
+
     Write-Host "`n=== Projektbezogene Prozesse beenden ($projectDir) ===" -ForegroundColor Yellow
 
     # Alle Prozesse ermitteln, deren Kommandozeile auf dieses Projekt verweist
@@ -185,7 +188,9 @@ function StopProcesses {
 #############################################################################
 # Hilfsfunktion: Executable-Verzeichnisse l�schen
 function RemoveExecutableDirs {
-    
+    # Rekursives Loeschen ohne separate Fortschrittsanzeige am unteren Terminalrand.
+    $ProgressPreference = 'SilentlyContinue'
+
     $buildDirs = @(
         ".\dist\executables\win-unpacked",
         ".\dist\executables\win-unpacked.tmp"
