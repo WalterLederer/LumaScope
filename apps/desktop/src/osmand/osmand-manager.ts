@@ -259,14 +259,28 @@ export class OsmAndManager {
     const styleDirectory = join(this.resourcesPath, 'rendering_styles');
     if (!existsSync(styleDirectory)) return [];
     const entries = await readdir(styleDirectory, { withFileTypes: true });
-    return entries
+    const fileNames = entries
       .filter(entry => entry.isFile()
         && entry.name.endsWith('.render.xml')
         && !entry.name.endsWith('.addon.render.xml')
         && entry.name !== 'standalone-template.render.xml'
         && entry.name !== 'template.addon.render.xml')
-      .map(entry => {
-        const fileName = entry.name;
+      .map(entry => entry.name);
+    // Never assume that default.render.xml is shipped: OsmAnd resource bundles
+    // can expose a different set of rendering styles.
+    const selectedFileName = fileNames.includes(this.styleFileName)
+      ? this.styleFileName
+      : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
+    if (!selectedFileName) return [];
+    if (selectedFileName !== this.styleFileName) {
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.styleFileName = selectedFileName;
+      this.stylePath = join(styleDirectory, selectedFileName);
+      this.pendingTiles.clear();
+      this.workers = this.createWorkers(this.createEnvironment());
+    }
+    return fileNames
+      .map(fileName => {
         const baseName = fileName.slice(0, -'.render.xml'.length);
         const label = baseName
           .replace(/[_-]+/g, ' ')
