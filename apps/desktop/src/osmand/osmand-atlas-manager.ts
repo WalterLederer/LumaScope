@@ -5,13 +5,9 @@ import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
-// Set LUMASCOPE_OSMAND_ATLAS_TILE_SIZE=512 to run the 2x-resolution
-// comparison. The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
-const REQUESTED_TILE_SIZE = Number(process.env.LUMASCOPE_OSMAND_ATLAS_TILE_SIZE || 256);
-if (REQUESTED_TILE_SIZE !== 256 && REQUESTED_TILE_SIZE !== 512) {
-  throw new Error('LUMASCOPE_OSMAND_ATLAS_TILE_SIZE must be 256 or 512.');
-}
-const TILE_SIZE = REQUESTED_TILE_SIZE;
+// OsmAnd Atlas uses 512px source frames for 2x raster density.
+// The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
+const TILE_SIZE = 512;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
