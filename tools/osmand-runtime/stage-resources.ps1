@@ -28,14 +28,18 @@ foreach ($candidate in $candidateRoots) {
         $styleDirectories += Get-Item -LiteralPath $candidateStyles
     }
 }
-if ($styleDirectories.Count -eq 0) {
-    $styleDirectories = @(Get-ChildItem -LiteralPath $sdkRootResolved -Directory -Filter 'rendering_styles' -Recurse -ErrorAction SilentlyContinue)
-}
 $styleDirectory = $styleDirectories |
     Where-Object {
         @(Get-ChildItem -LiteralPath $_.FullName -File -Filter '*.render.xml' -ErrorAction SilentlyContinue).Count -gt 0
     } |
     Select-Object -First 1
+if (-not $styleDirectory) {
+    $styleDirectory = Get-ChildItem -LiteralPath $sdkRootResolved -Directory -Filter 'rendering_styles' -Recurse -ErrorAction SilentlyContinue |
+        Where-Object {
+            @(Get-ChildItem -LiteralPath $_.FullName -File -Filter '*.render.xml' -ErrorAction SilentlyContinue).Count -gt 0
+        } |
+        Select-Object -First 1
+}
 if (-not $styleDirectory) {
     throw "No OsmAnd rendering_styles directory with .render.xml files found below SDK root: $sdkRootResolved"
 }
