@@ -5,11 +5,17 @@ import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
-const TILE_SIZE = 256;
+// Set LUMASCOPE_OSMAND_ATLAS_TILE_SIZE=512 to run the 2x-resolution
+// comparison. The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
+const REQUESTED_TILE_SIZE = Number(process.env.LUMASCOPE_OSMAND_ATLAS_TILE_SIZE || 256);
+if (REQUESTED_TILE_SIZE !== 256 && REQUESTED_TILE_SIZE !== 512) {
+  throw new Error('LUMASCOPE_OSMAND_ATLAS_TILE_SIZE must be 256 or 512.');
+}
+const TILE_SIZE = REQUESTED_TILE_SIZE;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 1;
+const HELPER_WORKER_COUNT = 4;
 
 export interface OsmAndAtlasTileResult {
   width: number;
@@ -183,6 +189,12 @@ class OsmAndAtlasWorker {
     }
 
     const payload = await this.withTimeout(reader.readBytes(payloadSize), 35000, 'OsmAnd Atlas frame payload timed out');
+    const elapsedMs = Date.now() - requestStartedAt;
+    const megaPixels = (width * height) / 1_000_000;
+    console.info('[OsmAnd Atlas]', 'render_complete_ms=' + elapsedMs
+      + ' dimensions=' + width + 'x' + height
+      + ' ms_per_megapixel=' + (megaPixels > 0 ? (elapsedMs / megaPixels).toFixed(2) : 'n/a')
+      + ' request_id=' + requestId);
     if (status !== 0) throw new Error(payload.toString('utf8') || 'OsmAnd Atlas rendering failed.');
     if (width !== TILE_SIZE || height !== TILE_SIZE || stride !== TILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
