@@ -448,6 +448,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
     .mbtiles-download-source{min-width:0;max-width:100%;}
     .mbtiles-map-list{grid-column:1/-1;min-width:0;max-width:100%;overflow-x:auto}
+    .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .mbtiles-map-table th,.mbtiles-map-table td{padding:5px 8px;border-bottom:1px solid var(--color-content-default-low,#454545);text-align:left;vertical-align:middle}
     .mbtiles-map-table th{font-weight:600;color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943)}
