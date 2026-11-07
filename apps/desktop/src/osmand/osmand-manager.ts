@@ -366,10 +366,11 @@ export class OsmAndManager {
     }
 
     const styleCacheKey = this.styleFileName.replace(/\.render\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const cacheFile = join(this.cachePath, '1_00', styleCacheKey, String(z), String(x), y + '.png');
+    const mapCacheKey = this.obfPath.split(/[\\/]/).pop()?.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/\.obf$/i, '') || 'default';
+    const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
-      const key = z + '/' + x + '/' + y;
+      const key = this.obfPath + '/' + z + '/' + x + '/' + y;
       let pending = this.pendingTiles.get(key);
       if (!pending) {
         pending = this.renderAndCacheTile(z, x, y, cacheFile);
