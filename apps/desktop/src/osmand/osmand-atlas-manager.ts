@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -191,7 +192,8 @@ class OsmAndAtlasWorker {
 export class OsmAndAtlasManager {
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
-  private readonly stylePath = join(this.resourcesPath, 'rendering_styles', 'default.render.xml');
+  private styleFileName = 'default.render.xml';
+  private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
     || process.env.IPHOTO_OSMAND_OBF_PATH
     || [
@@ -217,6 +219,56 @@ export class OsmAndAtlasManager {
       new OsmAndAtlasWorker(this.helperPath, this.obfPath, this.resourcesPath, this.stylePath, this.environment)
     );
   }
+
+  @IpcHandler({ name: 'OsmAndAtlas.getRenderingStyles' })
+  readonly getRenderingStyles = async () => {
+    const styleDirectory = join(this.resourcesPath, 'rendering_styles');
+    if (!existsSync(styleDirectory)) return [];
+    const entries = await readdir(styleDirectory, { withFileTypes: true });
+    const fileNames = entries
+      .filter(entry => entry.isFile()
+        && entry.name.endsWith('.render.xml')
+        && !entry.name.endsWith('.addon.render.xml')
+        && entry.name !== 'standalone-template.render.xml'
+        && entry.name !== 'template.addon.render.xml')
+      .map(entry => entry.name);
+    const selectedFileName = fileNames.includes(this.styleFileName)
+      ? this.styleFileName
+      : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
+    if (!selectedFileName) return [];
+    if (selectedFileName !== this.styleFileName) {
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.styleFileName = selectedFileName;
+      this.stylePath = join(styleDirectory, selectedFileName);
+      this.pendingTiles.clear();
+      this.workers = this.createWorkers();
+    }
+    return fileNames.map(fileName => {
+      const baseName = fileName.slice(0, -'.render.xml'.length);
+      const label = baseName.replace(/[_-]+/g, ' ').replace(/\\s+/g, ' ')
+        .replace(/\\b\\w/g, character => character.toUpperCase());
+      return { fileName, label, selected: fileName === this.styleFileName };
+    }).sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.setRenderingStyle' })
+  readonly setRenderingStyle = async (_event: Electron.IpcMainInvokeEvent, fileName: string) => {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)) {
+      throw new Error('Invalid OsmAnd rendering style name.');
+    }
+    const styles = await this.getRenderingStyles();
+    if (!styles.some(style => style.fileName === fileName)) {
+      throw new Error('OsmAnd rendering style is not installed: ' + fileName);
+    }
+    if (fileName !== this.styleFileName) {
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.styleFileName = fileName;
+      this.stylePath = join(this.resourcesPath, 'rendering_styles', fileName);
+      this.pendingTiles.clear();
+      this.workers = this.createWorkers();
+    }
+    return this.getRuntimeStatus();
+  };
 
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
   readonly getRuntimeStatus = async () => ({
