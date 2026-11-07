@@ -281,9 +281,6 @@ $packageChecks = @(
     (Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"),
     (Join-Path $packageResources "resources\rendering_styles\default.render.xml"),
     (Join-Path $packageResources "resources\rendering_styles\fonts\LICENSE.txt"),
-    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg"),
-    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg"),
-    (Join-Path $packageResources "resources\rendering_styles\stubs"),
     (Join-Path $packageResources "resources\licenses\OSMAND-RESOURCES-LICENSE.txt"),
     (Join-Path $packageResources "resources\licenses\GPL-3.0.txt"),
     (Join-Path $packageResources "resources\licenses\ICU-DATA-LICENSE.txt"),
@@ -292,6 +289,15 @@ $packageChecks = @(
 $missingPackageFiles = @($packageChecks | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
 if ($missingPackageFiles.Count -gt 0) {
     throw ("OsmAnd package verification failed. Missing files: " + ($missingPackageFiles -join "; "))
+}
+$packageAssetDirectories = @(
+    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg"),
+    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg"),
+    (Join-Path $packageResources "resources\rendering_styles\stubs")
+)
+$missingPackageDirectories = @($packageAssetDirectories | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Container) })
+if ($missingPackageDirectories.Count -gt 0) {
+    throw ("OsmAnd package verification failed. Missing asset directories: " + ($missingPackageDirectories -join "; "))
 }
 $packagedStyleCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles") -File -Filter "*.render.xml").Count
 $packagedFontCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\fonts") -File -Filter "*.ttf").Count
