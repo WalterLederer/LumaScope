@@ -1,6 +1,6 @@
 import { app, BrowserWindow, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -218,7 +218,7 @@ export class OsmAndAtlasManager {
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
   private styleFileName = 'default.render.xml';
   private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
-  private readonly obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+  private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
     || process.env.IPHOTO_OSMAND_OBF_PATH
     || [
       join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
@@ -238,6 +238,34 @@ export class OsmAndAtlasManager {
 
   constructor() {
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private readonly offlineMapSettingsPath = join(app.getPath('userData'), 'offline-map.json');
+
+  private async refreshSelectedObf(): Promise<void> {
+    let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
+      || process.env.IPHOTO_OSMAND_OBF_PATH
+      || [
+        join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+        join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+        join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+      ].find(candidate => existsSync(candidate))
+      || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+    try {
+      const settings = JSON.parse(readFileSync(this.offlineMapSettingsPath, 'utf8')) as {
+        obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
+      };
+      const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
+      const enabled = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path));
+      if (enabled) selectedPath = enabled;
+    } catch { /* Keep the configured fallback OBF map. */ }
+    if (selectedPath === this.obfPath) return;
+    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    this.obfPath = selectedPath;
+    this.pendingTiles.clear();
+    this.nextWorker = 0;
+    this.workers = this.createWorkers();
+    console.info('[OsmAnd]', 'active_obf=' + selectedPath);
   }
 
   private createWorkers(): OsmAndAtlasWorker[] {
@@ -316,7 +344,9 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
-  readonly getRuntimeStatus = async () => ({
+  readonly getRuntimeStatus = async () => {
+    await this.refreshSelectedObf();
+    return ({
     helperPath: this.helperPath,
     helperAvailable: existsSync(this.helperPath),
     obfPath: this.obfPath,
@@ -325,10 +355,11 @@ export class OsmAndAtlasManager {
     resourcesAvailable: existsSync(this.resourcesPath),
     stylePath: this.stylePath,
     styleAvailable: existsSync(this.stylePath)
-  });
+    });
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number): Promise<OsmAndAtlasTileResult> => {
+    await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
@@ -345,7 +376,7 @@ export class OsmAndAtlasManager {
       : windowsDisplayScale;
     await this.ensureDisplayScale(displayScale);
 
-    const key = displayScale.toFixed(3) + '/' + z + '/' + x + '/' + y;
+    const key = this.obfPath + '/' + displayScale.toFixed(3) + '/' + z + '/' + x + '/' + y;
     let pending = this.pendingTiles.get(key);
     if (!pending) {
       pending = this.renderAndCacheTile(z, x, y);
