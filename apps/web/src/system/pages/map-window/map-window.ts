@@ -116,7 +116,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
             <div class="map-source-content">
               <label><span>Source:</span>
                 <select class="map-source-select" [value]="mapSource()" (change)="changeMapSource($any($event.target).value)">
-                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline — OsmAnd OBF</option><option value="osmand-atlas">Offline — OsmAnd Atlas</option>
+                  <option value="online">Online — {{ mapStyle() === 'standard' ? 'OpenStreetMap' : mapStyle() === 'satellite' ? 'Esri World Imagery' : mapStyle() === 'cycling' ? 'CyclOSM' : mapStyle() === 'topographic' ? 'OpenTopoMap' : 'Humanitarian OpenStreetMap Team (HOT)' }}</option><option value="offline">Offline — Automatic MBTiles</option><option value="osmand">Offline - OsmAnd (no labels)</option><option value="osmand-atlas">Offline — OsmAnd Atlas</option>
                 </select>
               </label>
               @if (mapSource() === 'online') {
@@ -265,7 +265,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
-@if (mapSource() === 'osmand') {
+@if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
 <label class="offline-style-control"><span>OsmAnd Render Style:</span>
   <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
     @for (style of osmAndStyles(); track style.fileName) {
@@ -1188,7 +1188,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
     let runtime: Awaited<ReturnType<Desktop['OsmAndAtlas']['getRuntimeStatus']>>;
     try {
-      runtime = await this.desktop.OsmAndAtlas.getRuntimeStatus();
+      runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
         this.locationAddress.set('Could not read OsmAnd Atlas runtime status: ' + (error instanceof Error ? error.message : String(error)));
@@ -1419,11 +1419,16 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.osmAndStyles().some(style => style.fileName === fileName) || fileName === this.osmAndStyle()) return;
     if (!this.desktop) return;
     try {
-      await this.desktop.OsmAnd.setRenderingStyle(fileName);
+      if (this.mapSource() === 'osmand-atlas') {
+        await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
+      } else {
+        await this.desktop.OsmAnd.setRenderingStyle(fileName);
+      }
       this.osmAndStyle.set(fileName);
       this.saveSetting('osmandStyle', fileName);
       this.osmAndStyles.update(styles => styles.map(style => ({ ...style, selected: style.fileName === fileName })));
-      if (this.mapSource() === 'osmand' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      if ((this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
+        && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.mapSourceGeneration++;
         this.mapInitialization = null;
         this.offlineRenderer?.remove();
