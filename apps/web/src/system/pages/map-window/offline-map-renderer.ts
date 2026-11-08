@@ -1199,14 +1199,14 @@ export class OfflineMapRenderer {
         spinner.style.display = 'none';
         label.style.borderColor = 'rgba(255,125,110,.8)';
         label.style.background = 'rgba(92,24,20,.94)';
-        message.textContent = 'Kachel konnte nicht berechnet werden';
-        label.title = status.error ?? 'Unbekannter Renderfehler';
+        message.textContent = 'Tile rendering failed';
+        label.title = status.error ?? 'Unknown rendering error';
       } else {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
         label.style.background = 'rgba(20,27,34,.90)';
-        message.textContent = status.protocol === 'maplibre' ? 'Kachel wird geladen …' : 'Kachel wird berechnet …';
-        label.title = status.protocol === 'maplibre' ? 'Kartenkachel wird geladen' : 'OsmAnd-Kachel wird gerendert';
+        message.textContent = status.protocol === 'maplibre' ? 'Loading tile …' : 'Rendering tile …';
+        label.title = status.protocol === 'maplibre' ? 'Loading map tile' : 'Rendering OsmAnd tile';
       }
     }
   }
