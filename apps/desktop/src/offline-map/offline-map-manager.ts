@@ -32,7 +32,7 @@ export class OfflineMapManager {
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   const item=this.opened.get(id); const obf=this.obfFiles.get(id);
   if(obf&&typeof enabled==='boolean'){
-   if(enabled)for(const [otherId,other] of this.obfFiles){if(otherId!==id){other.enabled=false;this.enabledByPath.set(otherId,false);}}
+   // OBF regions are independent and may be active together.
    obf.enabled=enabled;this.enabledByPath.set(id,enabled);this.persistMaps();
   }
   if(item&&typeof enabled==='boolean'){
