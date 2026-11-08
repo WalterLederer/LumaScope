@@ -380,11 +380,17 @@ export class OfflineMapRenderer {
     this.tileStatusElements.clear();
   };
   private readonly onMapMoveStart = (): void => {
-    // Tile errors belong to the camera position/zoom at which they occurred.
-    // Remove both the label and its translucent tile-sized background as soon
-    // as the user starts a new pan/zoom; late load events will repopulate only
-    // statuses for requests that are still active.
-    this.clearTileStatusOverlays();
+    // Errors belong to the previous camera position and should disappear as
+    // soon as the user pans or zooms. Keep loading entries: their requests may
+    // still be running, and clearing them here made the map look idle while
+    // the single Atlas worker was still rendering the visible tiles.
+    for (const [key, status] of this.tileStatuses) {
+      if (status.status !== 'error') continue;
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+    }
+    this.updateOsmAndTileStatusPositions();
   };
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
