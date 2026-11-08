@@ -97,6 +97,7 @@ const api: Desktop = {
     getRuntimeStatus: () => ipcRenderer.invoke('OsmAnd.getRuntimeStatus'),
     getRenderingStyles: () => ipcRenderer.invoke('OsmAnd.getRenderingStyles'),
     setRenderingStyle: (fileName: string) => ipcRenderer.invoke('OsmAnd.setRenderingStyle', fileName),
+    setResourcesPath: (resourcesPath: string) => ipcRenderer.invoke('OsmAnd.setResourcesPath', resourcesPath),
     renderTile: (z: number, x: number, y: number) => ipcRenderer.invoke('OsmAnd.renderTile', z, x, y),
     shutdown: () => ipcRenderer.invoke('OsmAnd.shutdown')
   },
