@@ -105,6 +105,7 @@ const api: Desktop = {
     getRuntimeStatus: () => ipcRenderer.invoke('OsmAndAtlas.getRuntimeStatus'),
     getRenderingStyles: () => ipcRenderer.invoke('OsmAndAtlas.getRenderingStyles'),
     setRenderingStyle: (fileName: string) => ipcRenderer.invoke('OsmAndAtlas.setRenderingStyle', fileName),
+    setResourcesPath: (resourcesPath: string) => ipcRenderer.invoke('OsmAndAtlas.setResourcesPath', resourcesPath),
     renderTile: (z: number, x: number, y: number, displayScale?: number) => ipcRenderer.invoke('OsmAndAtlas.renderTile', z, x, y, displayScale),
     shutdown: () => ipcRenderer.invoke('OsmAndAtlas.shutdown')
   },
