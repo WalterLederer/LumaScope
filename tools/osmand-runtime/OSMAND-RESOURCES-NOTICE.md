@@ -8,8 +8,7 @@ To use the OsmAnd renderers, download the resources separately from the upstream
 
 After extracting the repository, select its resources root folder in the LumaScope Download tab. The selected root must contain:
 
-- `map/styles/default.render.xml`
-- `rendering_styles/`
+- `rendering_styles/default.render.xml`
 
 LumaScope stores only the selected local folder path in its application settings. The resources remain external to the application installation and are not copied into the LumaScope package.
 
