@@ -321,7 +321,7 @@ interface MapErrorEntry {
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
-<div class="mbtiles-selection">
+<div class="mbtiles-selection offline-map-toolbar">
                 <label class="offline-map-preset-control">OBF preset:
                   <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
                     <option value="austria">Austria</option>
@@ -330,7 +330,7 @@ interface MapErrorEntry {
                     <option value="custom">Custom</option>
                   </select>
                 </label>
-                <button type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
+                <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
@@ -409,9 +409,9 @@ interface MapErrorEntry {
   <div class="settings-tab-content">
     <div class="mbtiles-selection mbtiles-download-controls">
       <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
-        <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
-        <option value="limaps">Limaps — Regional and Planet MBTiles</option>
-        <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
+        <option value="geofabrik">Geofabrik — Austria · https://download.geofabrik.de/europe/austria.html</option>
+        <option value="limaps">Limaps — https://www.limaps.org/tileserver.html</option>
+        <option value="shortbread">Shortbread Tiles — https://shortbread-tiles.org/download/</option>
       </select>
       <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
     </div>
@@ -548,7 +548,7 @@ interface MapErrorEntry {
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.mbtiles-download-controls .mbtiles-download-source{min-width:260px;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.mbtiles-download-controls .mbtiles-download-source{min-width:260px;}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-map-list{flex:1 1 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
