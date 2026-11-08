@@ -14,10 +14,11 @@ let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
-type OsmAndTileProtocol = 'osmand' | 'osmand-atlas';
+type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
 type OsmAndTileStatus = 'loading' | 'loaded' | 'error' | 'cancelled';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
+  sourceId?: string;
   zoom: number;
   column: number;
   row: number;
@@ -347,11 +348,42 @@ export class OfflineMapRenderer {
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
+  private readonly onMapLibreTileLoading = (event: unknown): void => {
+    const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
+    const canonical = data.coord?.canonical;
+    if (!canonical || data.sourceDataType !== 'content') return;
+    this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loading');
+  };
+  private readonly onMapLibreTileLoaded = (event: unknown): void => {
+    const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
+    const canonical = data.coord?.canonical;
+    if (!canonical || data.sourceDataType !== 'content') return;
+    this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loaded');
+  };
+  private readonly onMapLibreTileError = (event: unknown): void => {
+    const data = event as { sourceId?: string; coord?: { canonical?: { z: number; x: number; y: number } }; error?: unknown };
+    const canonical = data.coord?.canonical;
+    if (!canonical) return;
+    const message = data.error instanceof Error ? data.error.message : String(data.error ?? 'Unknown tile loading error');
+    this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'error', message);
+  };
+  private setMapLibreTileStatus(sourceId: string, zoom: number, column: number, row: number, status: OsmAndTileStatus, error?: string): void {
+    const detail: OsmAndTileStatusEventDetail = { protocol: 'maplibre', sourceId, zoom, column, row, status, ...(error ? { error } : {}) };
+    const key = `maplibre/${sourceId}/${zoom}/${column}/${row}`;
+    if (status === 'loaded' || status === 'cancelled') {
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+    } else {
+      this.tileStatuses.set(key, detail);
+    }
+    this.updateOsmAndTileStatusPositions();
+  }
   private readonly onOsmAndTileStatus = (event: Event): void => {
     if (!this.tileProtocol) return;
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
     if (!detail || detail.protocol !== this.tileProtocol) return;
-    const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
+    const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loaded' || detail.status === 'cancelled') {
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
@@ -581,6 +613,9 @@ export class OfflineMapRenderer {
     this.tileStatusLayer.appendChild(tileStatusStyle);
     this.map.getContainer().appendChild(this.tileStatusLayer);
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    this.map.on('sourcedataloading', this.onMapLibreTileLoading);
+    this.map.on('sourcedata', this.onMapLibreTileLoaded);
+    this.map.on('error', this.onMapLibreTileError);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
     // overlay is positioned from MapLibre's current projection on every render,
     // avoiding marker CSS transforms that can drift relative to the tile canvas.
@@ -1155,8 +1190,8 @@ export class OfflineMapRenderer {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
         label.style.background = 'rgba(20,27,34,.90)';
-        message.textContent = 'Kachel wird berechnet …';
-        label.title = 'OsmAnd-Kachel wird gerendert';
+        message.textContent = status.protocol === 'maplibre' ? 'Kachel wird geladen …' : 'Kachel wird berechnet …';
+        label.title = status.protocol === 'maplibre' ? 'Kartenkachel wird geladen' : 'OsmAnd-Kachel wird gerendert';
       }
     }
   }
@@ -1300,6 +1335,9 @@ export class OfflineMapRenderer {
   remove(): void {
     this.resizeObserver.disconnect();
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    this.map.off('sourcedataloading', this.onMapLibreTileLoading);
+    this.map.off('sourcedata', this.onMapLibreTileLoaded);
+    this.map.off('error', this.onMapLibreTileError);
     this.tileStatuses.clear();
     this.tileStatusElements.clear();
     this.tileStatusLayer.remove();
