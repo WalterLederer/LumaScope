@@ -362,10 +362,21 @@ export class OfflineMapRenderer {
   };
   private readonly onMapLibreTileError = (event: unknown): void => {
     const data = event as { sourceId?: string; coord?: { canonical?: { z: number; x: number; y: number } }; error?: unknown };
-    const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
+    if (data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
     const message = data.error instanceof Error ? data.error.message : String(data.error ?? 'Unknown tile loading error');
-    this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'error', message);
+    const canonical = data.coord?.canonical;
+    if (canonical) {
+      this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'error', message);
+      return;
+    }
+    // Some MapLibre source errors do not expose the failing tile coordinate.
+    // Keep the affected source's currently loading tiles visibly marked as failed.
+    for (const [key, status] of this.tileStatuses) {
+      if (status.protocol === 'maplibre' && status.sourceId === data.sourceId && status.status === 'loading') {
+        this.tileStatuses.set(key, { ...status, status: 'error', error: message });
+      }
+    }
+    this.updateOsmAndTileStatusPositions();
   };
   private setMapLibreTileStatus(sourceId: string, zoom: number, column: number, row: number, status: OsmAndTileStatus, error?: string): void {
     const detail: OsmAndTileStatusEventDetail = { protocol: 'maplibre', sourceId, zoom, column, row, status, ...(error ? { error } : {}) };
