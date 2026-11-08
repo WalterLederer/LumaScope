@@ -574,7 +574,7 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
-  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number): Promise<OsmAndAtlasTileResult> => {
+  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
     await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
@@ -609,9 +609,15 @@ export class OsmAndAtlasManager {
       String(z), String(metatileX), metatileY + '.png'
     );
 
-    let metatilePixels = await this.readCachedTile(cacheFile);
+    let metatilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
     const cacheHit = metatilePixels !== null;
-    if (!metatilePixels) {
+    if (forceRender) {
+      // Wait for an older request for this metatile before replacing its cache
+      // entry, otherwise an in-flight render could overwrite the forced result.
+      const previousRender = this.pendingTiles.get(cacheFile);
+      if (previousRender) await previousRender.catch(() => undefined);
+      metatilePixels = await this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+    } else if (!metatilePixels) {
       let pending = this.pendingTiles.get(cacheFile);
       if (!pending) {
         pending = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
@@ -626,7 +632,7 @@ export class OsmAndAtlasManager {
     // Diagnose each metatile once per application session. This deliberately
     // examines the exact RGBA bytes returned to the renderer, whether they came
     // from the native helper or from the PNG disk cache.
-    if (!this.diagnosedTiles.has(cacheFile)) {
+    if (forceRender || !this.diagnosedTiles.has(cacheFile)) {
       this.diagnosedTiles.add(cacheFile);
       console.info('[OsmAnd Atlas] metatile pixel diagnostics', {
         source: cacheHit ? 'disk-cache' : 'native-renderer',
