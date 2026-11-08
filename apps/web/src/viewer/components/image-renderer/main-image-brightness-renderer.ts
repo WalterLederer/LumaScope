@@ -71,7 +71,7 @@ export class MainImageBrightnessRenderer {
           { binding: 1, resource: { buffer: this.uniform! } }
         ]
       });
-      stage = 'Render-Pass erstellen und ausführen';
+      stage = 'Create and execute render pass';
       const encoder = device.createCommandEncoder();
       const pass = encoder.beginRenderPass({
         colorAttachments: [{
@@ -103,7 +103,7 @@ export class MainImageBrightnessRenderer {
         }
       }
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`WebGPU-Fehler bei „${stage}“: ${message}`);
+      throw new Error(`WebGPU error during “${stage}”: ${message}`);
     } finally {
       if (!scopePopped) {
         await device.popErrorScope().catch(() => null);
