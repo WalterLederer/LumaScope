@@ -595,8 +595,10 @@ interface MapErrorEntry {
     .opacity-settings[open]>summary{margin-bottom:2px}
     .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));width:100%;gap:8px 12px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
-    .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
-    .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin-right:2px;color:var(--color-content-default-medium,#aaa)}
+    .opacity-content .range-setting:has(.visibility-toggle){gap:1px}
+    .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
+    .opacity-content .visibility-toggle input[type="checkbox"]{margin:0 1px 0 2px}
+    .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin-right:1px;color:var(--color-content-default-medium,#aaa)}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
     .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
