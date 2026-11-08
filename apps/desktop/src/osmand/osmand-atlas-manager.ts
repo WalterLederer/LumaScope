@@ -308,10 +308,8 @@ export class OsmAndAtlasManager {
         const settings = (readAppSettings().offlineMaps ?? {}) as {
           obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
         };
-        const paths = Array.isArray(settings.obfPaths)
-          ? settings.obfPaths.filter((value): value is string => typeof value === 'string')
-          : [];
-        if (paths.length > 0) {
+        if (Array.isArray(settings.obfPaths)) {
+          const paths = settings.obfPaths.filter((value): value is string => typeof value === 'string');
           selectedPaths = paths.filter(path => settings.enabledByPath?.[path] !== false && existsSync(path));
         }
       } catch { /* Keep configured fallback OBF maps. */ }
