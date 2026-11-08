@@ -273,7 +273,7 @@ export class OsmAndManager {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>; obfPreset?: unknown;
       };
       if (Array.isArray(settings.obfPaths)) {
-        const preset = settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
+        const preset = settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'custom' || settings.obfPreset === 'custom-no-world-map' ? settings.obfPreset : 'austria';
         selectedPaths = settings.obfPaths
           .filter((value): value is string => typeof value === 'string')
           .filter(path => {
@@ -281,7 +281,9 @@ export class OsmAndManager {
             const name = path.split(/[\\/]/).pop() ?? path;
             const isAustria = /austria|österreich|osterreich/i.test(name);
             const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
-            return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : isEurope);
+            const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
+            if (isWorldBasemap) return preset !== 'custom-no-world-map' && existsSync(path);
+            return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
           });
       }
     } catch { /* Keep the configured fallback OBF map. */ }
