@@ -142,15 +142,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   </select>
                 </label>
               }
-              <label><span>Color:</span>
-                <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
-                  <option value="original">Original</option><option value="light">Light</option>
-                  <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
-                  <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
-                  <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
-                </select>
-              </label>
-              
+
             </div>
           </div>
 
@@ -237,34 +229,37 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 <div class="settings-tab-content view-tab">
             
             <div class="opacity-content">
-              @if (overlayMode) {
-                <div class="range-setting overlay-opacity-setting">
-                  <label for="overlay-opacity">Overlay Opacity</label>
-                  <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" aria-label="Overlay opacity">
-                  <span class="range-value">{{ overlayOpacity() }}%</span>
-                </div>
-              }
-              @if (mapSource() === 'offline') {
-                <div class="range-setting">
-                  <label for="map-label-opacity">Labels</label>
-                  <input id="map-label-opacity" type="range" min="0" max="100" step="1"
-                    [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
-                    aria-label="Map label opacity">
-                  <span class="range-value">{{ labelOpacity() }}%</span>
-                </div>
-              }
-              @if (mapSource() === 'osmand-atlas') {
-                <div class="range-setting atlas-density-setting">
-                  <label for="atlas-display-density">Display density factor</label>
-                  <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
-                    [value]="atlasDisplayDensityFactor()"
-                    (input)="previewAtlasDisplayDensity($any($event.target).value)"
-                    (change)="changeAtlasDisplayDensity($any($event.target).value)"
-                    aria-label="OsmAnd Atlas display density">
-                  <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
-                  <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" title="Reset to Windows display scaling">Windows</button>
-                </div>
-              }
+              <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
+                <label for="overlay-opacity">Window</label>
+                <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
+                <span class="range-value">{{ overlayOpacity() }}%</span>
+              </div>
+              <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
+                <label for="map-label-opacity">Labels</label>
+                <input id="map-label-opacity" type="range" min="0" max="100" step="1"
+                  [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
+                  [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
+                <span class="range-value">{{ labelOpacity() }}%</span>
+              </div>
+              <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
+                <label for="atlas-display-density">Display density factor</label>
+                <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
+                  [value]="atlasDisplayDensityFactor()"
+                  (input)="previewAtlasDisplayDensity($any($event.target).value)"
+                  (change)="changeAtlasDisplayDensity($any($event.target).value)"
+                  [disabled]="mapSource() !== 'osmand-atlas'"
+                  aria-label="OsmAnd Atlas display density">
+                <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
+                <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
+              </div>
+              <label class="view-map-color"><span>Color:</span>
+                <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
+                  <option value="original">Original</option><option value="light">Light</option>
+                  <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
+                  <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
+                  <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
+                </select>
+              </label>
               <div class="zoom-control">
                 <span class="zoom-label">Zoom</span>
                 <div class="zoom-buttons">
@@ -410,8 +405,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
     .settings-tab-map-group{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 78%,#8ab4f8 22%);border-radius:4px 4px 0 0}
     .settings-tab-map-group:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 62%,#8ab4f8 38%)}
-    .settings-tab-map-group.active{border-bottom-color:#8ab4f8;background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 58%,#8ab4f8 42%)}
-    .settings-tab.active{border-bottom-color:#8ab4f8;background:var(--color-surface-default-medium,#343943)}
+    .settings-tab-map-group.active,.settings-tab.active{background:#31577d;border:1px solid #65a9ff;border-bottom-color:#65a9ff;color:#fff;box-shadow:inset 0 -2px #65a9ff}
     .settings-tab-panels{min-width:0}
     .settings-tab-panel[hidden]{display:none}
     .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
@@ -476,6 +470,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
+    .opacity-content .range-setting.setting-unavailable{opacity:.58}
+    .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
+    .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
+    .opacity-content .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
