@@ -1,6 +1,8 @@
 import { app, IpcMainInvokeEvent, shell } from 'electron';
 import { SystemPathMapping } from 'internal-api';
 import { stat } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import App from '../app/app';
@@ -21,7 +23,22 @@ export class ProcessManager {
   @IpcHandler({ name: 'MapWindow.getZoom' })
   readonly getMapZoom = async (): Promise<number> => {
     const mapWindow = readAppSettings().mapWindow as Record<string, unknown> | undefined;
-    const zoom = mapWindow?.zoom;
+    let zoom = mapWindow?.zoom;
+    if (typeof zoom !== 'number' || !Number.isFinite(zoom)) {
+      // One-time compatibility read for installations using the former file.
+      try {
+        const legacyPath = join(app.getPath('userData'), 'map-window-settings.json');
+        if (existsSync(legacyPath)) {
+          const legacy = JSON.parse(readFileSync(legacyPath, 'utf8')) as { zoom?: unknown };
+          zoom = legacy.zoom;
+          if (typeof zoom === 'number' && Number.isFinite(zoom)) {
+            await updateAppSettingsSection('mapWindow', { zoom: Math.max(1, Math.min(20, Math.round(zoom))) });
+          }
+        }
+      } catch (error) {
+        console.warn('[MapWindow] Could not migrate legacy zoom setting:', error);
+      }
+    }
     return typeof zoom === 'number' && Number.isFinite(zoom)
       ? Math.max(1, Math.min(20, Math.round(zoom))) : 13;
   };
