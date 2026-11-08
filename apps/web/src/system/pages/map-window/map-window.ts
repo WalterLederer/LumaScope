@@ -261,25 +261,27 @@ interface MapErrorEntry {
     </select>
   </label>
   </div>
-  <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
-    <label for="atlas-display-density">Display density factor</label>
-    <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
-      [value]="atlasDisplayDensityFactor()"
-      (input)="previewAtlasDisplayDensity($any($event.target).value)"
-      (change)="changeAtlasDisplayDensity($any($event.target).value)"
-      [disabled]="mapSource() !== 'osmand-atlas'"
-      aria-label="OsmAnd Atlas display density">
-    <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
-    <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
-  </div>
-  <div class="zoom-control">
-    <span class="zoom-label">Zoom</span>
-    <div class="zoom-buttons">
-      <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-      <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+  <div class="atlas-density-zoom-row">
+    <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
+      <label for="atlas-display-density">Display density factor</label>
+      <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
+        [value]="atlasDisplayDensityFactor()"
+        (input)="previewAtlasDisplayDensity($any($event.target).value)"
+        (change)="changeAtlasDisplayDensity($any($event.target).value)"
+        [disabled]="mapSource() !== 'osmand-atlas'"
+        aria-label="OsmAnd Atlas display density">
+      <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
+      <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
     </div>
-    <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-    <span class="zoom-value">{{ zoomLevel() }}</span>
+    <div class="zoom-control">
+      <span class="zoom-label">Zoom</span>
+      <div class="zoom-buttons">
+        <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+        <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+      </div>
+      <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+      <span class="zoom-value">{{ zoomLevel() }}</span>
+    </div>
   </div>
   <details class="opacity-settings" open>
     <summary>Opacity</summary>
@@ -516,6 +518,7 @@ interface MapErrorEntry {
     .settings-tab-content>summary{display:none}
     .settings-tab-content.location-tab{width:100%}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
+    .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}.atlas-density-zoom-row>.zoom-control{display:flex;align-items:center;flex:1 1 0;min-width:220px;gap:8px}.atlas-density-zoom-row>.zoom-control input[type="range"]{flex:1;min-width:70px}
     .view-source-controls,.view-style-controls{display:contents}
     .view-primary-controls .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .view-primary-controls .offline-style-control{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
