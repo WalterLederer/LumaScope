@@ -4,6 +4,8 @@ import { Arguments } from 'yargs';
 
 @Injectable({ providedIn: 'root' })
 export class ProcessManager implements DesktopProcessManager {
+  readonly getProcessMemoryUsage = () => window.desktop.ProcessManager.getProcessMemoryUsage();
+
   readonly getAppVersion = (): Promise<string> => window.desktop.ProcessManager.getAppVersion();
 
   readonly getAppSettings = (): Promise<Record<string, unknown>> => window.desktop.ProcessManager.getAppSettings();
