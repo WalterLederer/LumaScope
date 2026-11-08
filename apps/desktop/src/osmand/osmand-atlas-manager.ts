@@ -1,7 +1,8 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, nativeImage, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -262,6 +263,8 @@ class OsmAndAtlasWorker {
 }
 
 export class OsmAndAtlasManager {
+  private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
+  private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
   private styleFileName = this.readSavedStyleFileName();
@@ -277,6 +280,7 @@ export class OsmAndAtlasManager {
   private workers = this.createWorkers();
   private nextWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<Buffer>>();
+  private temporaryFileId = 0;
 
   constructor() {
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
@@ -463,16 +467,32 @@ export class OsmAndAtlasManager {
     const metatileX = x & ~1;
     const metatileY = y & ~1;
     if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
-    const key = this.obfPaths.join('|') + '/' + displayScale.toFixed(3) + '/' + z + '/' + metatileX + '/' + metatileY;
-    let pending = this.pendingTiles.get(key);
-    if (!pending) {
-      pending = this.renderAndCacheTile(z, metatileX, metatileY);
-      this.pendingTiles.set(key, pending);
-      void pending.finally(() => {
-        if (this.pendingTiles.get(key) === pending) this.pendingTiles.delete(key);
-      }).catch(() => undefined);
+
+    const mapCacheKey = this.obfPaths.length
+      ? createHash('sha256').update(this.obfPaths.join('\\0')).digest('hex').slice(0, 20)
+      : 'default';
+    const densityCacheKey = displayScale.toFixed(3).replace('.', '_');
+    const styleCacheKey = this.styleFileName
+      .replace(/\\.render\\.xml$/i, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .toLowerCase();
+    const cacheFile = join(
+      this.cachePath, mapCacheKey, densityCacheKey, styleCacheKey,
+      String(z), String(metatileX), metatileY + '.png'
+    );
+
+    let metatilePixels = await this.readCachedTile(cacheFile);
+    if (!metatilePixels) {
+      let pending = this.pendingTiles.get(cacheFile);
+      if (!pending) {
+        pending = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+        this.pendingTiles.set(cacheFile, pending);
+        void pending.finally(() => {
+          if (this.pendingTiles.get(cacheFile) === pending) this.pendingTiles.delete(cacheFile);
+        }).catch(() => undefined);
+      }
+      metatilePixels = await pending;
     }
-    const metatilePixels = await pending;
     return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels) };
   };
 
@@ -481,7 +501,7 @@ export class OsmAndAtlasManager {
     await this.retireWorkers();
   };
 
-  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number): Promise<Buffer> {
+  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<Buffer> {
     // The 2x2 metatile centre is one XYZ tile east and south of its NW corner.
     const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
@@ -489,6 +509,53 @@ export class OsmAndAtlasManager {
     if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
     // 1024px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
-    return worker.render(longitude, latitude, z - 1);
+    const pixels = await worker.render(longitude, latitude, z - 1);
+
+    await mkdir(dirname(cacheFile), { recursive: true });
+    const bgra = Buffer.allocUnsafe(pixels.length);
+    for (let i = 0; i < pixels.length; i += 4) {
+      bgra[i] = pixels[i + 2];
+      bgra[i + 1] = pixels[i + 1];
+      bgra[i + 2] = pixels[i];
+      bgra[i + 3] = pixels[i + 3];
+    }
+    const png = nativeImage.createFromBitmap(bgra, {
+      width: METATILE_SIZE,
+      height: METATILE_SIZE,
+      scaleFactor: 1
+    }).toPNG();
+    const temporaryPath = cacheFile + '.' + process.pid + '.' + (++this.temporaryFileId) + '.tmp';
+    try {
+      await writeFile(temporaryPath, png);
+      await rename(temporaryPath, cacheFile);
+    } catch (error) {
+      await unlink(temporaryPath).catch(() => undefined);
+      throw error;
+    }
+    return pixels;
+  }
+
+  private async readCachedTile(path: string): Promise<Buffer | null> {
+    if (!existsSync(path)) return null;
+    try {
+      const image = nativeImage.createFromBuffer(await readFile(path));
+      const size = image.getSize();
+      if (size.width !== METATILE_SIZE || size.height !== METATILE_SIZE) {
+        throw new Error('Cached OsmAnd Atlas metatile dimensions are invalid.');
+      }
+      const bgra = image.toBitmap();
+      if (bgra.length !== TILE_BYTES) throw new Error('Cached OsmAnd Atlas metatile pixel data is invalid.');
+      const rgba = Buffer.allocUnsafe(TILE_BYTES);
+      for (let i = 0; i < bgra.length; i += 4) {
+        rgba[i] = bgra[i + 2];
+        rgba[i + 1] = bgra[i + 1];
+        rgba[i + 2] = bgra[i];
+        rgba[i + 3] = bgra[i + 3];
+      }
+      return rgba;
+    } catch {
+      await unlink(path).catch(() => undefined);
+      return null;
+    }
   }
 }
