@@ -381,7 +381,7 @@ interface MapErrorEntry {
       </div>
       <div class="map-cache-actions">
         <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders the current Atlas viewport without reading cached PNGs.' : 'Select OsmAnd Atlas to rerender visible tiles.') }}</span>
-        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="mapSource() !== 'osmand-atlas' || !offlineRenderer || rerenderVisibleTilesBusy()">
+        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="mapSource() !== 'osmand-atlas' || rerenderVisibleTilesBusy()">
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
         </button>
       </div>
