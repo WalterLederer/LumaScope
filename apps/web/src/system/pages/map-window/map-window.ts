@@ -222,7 +222,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 }
               </div>
             </div>
-            <div class="opacity-content">
+            <div class="view-settings-content">
               <div class="view-style-controls">
                 @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
                   <label class="offline-style-control"><span>OsmAnd Render Style:</span>
@@ -243,7 +243,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
               </div>
               <details class="opacity-settings" open>
                 <summary>Opacity</summary>
-                <div class="opacity-content">
+              <div class="opacity-content">
               <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
                 <label for="overlay-opacity">Window</label>
                 <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
@@ -267,9 +267,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
                 <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
               </div>
-                </div>
-              </details>
-              <label class="view-map-color"><span>Color:</span>
+              <details class="opacity-settings" open>
+                <summary>Opacity</summary>
+                <div class="opacity-content">
+              <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode"><span>Color:</span>
                 <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
                   <option value="original">Original</option><option value="light">Light</option>
                   <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
@@ -306,6 +307,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
                 <span class="range-value">{{ locationOpacity() }}%</span>
               </div>
+              </div>
+              </details>
             </div>
           </div>
 
@@ -470,6 +473,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
+    .view-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:min(720px,100%)}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
