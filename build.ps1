@@ -241,7 +241,8 @@ if ($currentBranch -ne $workBranch) {
 }
 
 # Git aktualisieren
-Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
+# Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
+Invoke-CheckedCommand "git" @("pull", "origin", $workBranch)
 
 Invoke-CheckedCommand "npx" @("nx", "reset")
 Invoke-CheckedCommand "npm" @("run", "build:all")
