@@ -45,6 +45,11 @@ window.desktop
         migrateOsmandStyle
           ? window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand.renderingStyle }) : Promise.resolve()
       ]);
+      // The native OsmAnd manager is created before renderer-side legacy
+      // preferences are migrated. Apply that one-time migration immediately.
+      if (migrateOsmandStyle && typeof osmand.renderingStyle === 'string') {
+        await window.desktop.OsmAnd.setRenderingStyle(osmand.renderingStyle);
+      }
       for (const [key, value] of Object.entries(mapWindow)) {
         if (value !== null && value !== undefined) localStorage.setItem(mapPrefix + key, String(value));
       }
