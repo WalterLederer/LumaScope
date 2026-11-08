@@ -416,6 +416,7 @@ interface MapErrorEntry {
       <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
     </div>
   </div>
+</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
   <div class="map-error-panel">
     <div class="map-cache-actions">
