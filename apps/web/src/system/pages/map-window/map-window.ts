@@ -328,7 +328,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                           <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
                             <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
                             <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
-                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span>{{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
+                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                             <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
