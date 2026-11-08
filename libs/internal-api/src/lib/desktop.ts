@@ -340,7 +340,7 @@ export interface DesktopOsmAnd {
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
   readonly setRenderingStyle: (fileName: string) => Promise<OsmAndRuntimeStatus>;
   readonly setResourcesPath: (resourcesPath: string) => Promise<OsmAndRuntimeStatus>;
-  readonly renderTile: (z: number, x: number, y: number) => Promise<OsmAndTileResult>;
+  readonly renderTile: (z: number, x: number, y: number, forceRender?: boolean) => Promise<OsmAndTileResult>;
   readonly shutdown: () => Promise<void>;
 }
 
