@@ -390,11 +390,18 @@ export class OfflineMapRenderer {
     // disk-cache entries are reused by the protocol.
     this.atlasZoomCheckTimer = window.setTimeout(() => {
       this.atlasZoomCheckTimer = null;
-      if (!this.map.isStyleLoaded()) return;
+      // Do not gate this on map.isStyleLoaded(): it can be false precisely
+      // while raster tiles are still pending, which is when the refresh is
+      // needed. The source object is available independently of tile completion.
       const source = this.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-      source?.setTiles?.(['osmand-atlas://{z}/{x}/{y}']);
+      if (!source?.setTiles) {
+        console.warn('[OsmAnd Atlas] Could not recheck tiles after zoom: raster source is unavailable.');
+        return;
+      }
+      source.setTiles(['osmand-atlas://{z}/{x}/{y}']);
       console.info('[OsmAnd Atlas] Rechecked visible tiles after zoom', {
-        zoom: this.map.getZoom()
+        zoom: this.map.getZoom(),
+        sourceReloadRequested: true
       });
     }, 180);
   };
