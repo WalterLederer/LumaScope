@@ -538,7 +538,10 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
   readonly shutdown = async (): Promise<void> => {
-    await this.retireWorkers();
+    // Stop the running helper processes but keep the worker objects reusable.
+    // Switching away from Atlas and back must not leave the manager with an
+    // empty worker pool; ensureStarted() will lazily restart each helper.
+    await Promise.all(this.workers.map(worker => worker.shutdown()));
   };
 
   private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<Buffer> {
