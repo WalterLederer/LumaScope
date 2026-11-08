@@ -358,7 +358,8 @@ export class OsmAndAtlasManager {
     const update = this.obfRefresh.then(async () => {
       let selectedPaths = this.getFallbackObfPaths();
       try {
-        const settings = (readAppSettings().offlineMaps ?? {}) as {
+        const appSettings = readAppSettings();
+        const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
           obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
         };
         if (Array.isArray(settings.obfPaths)) {
@@ -506,7 +507,7 @@ export class OsmAndAtlasManager {
 
     const metatileX = x & ~1;
     const metatileY = y & ~1;
-    if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
+    if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
 
     const mapCacheKey = this.obfPaths.length
       ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
