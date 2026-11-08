@@ -1602,9 +1602,6 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
-    renderer.map.on('zoomstart', () => {
-      void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop obsolete OsmAnd renders:', error));
-    });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -1969,8 +1966,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (next !== (this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel())) {
       if (this.mapSource() === 'osmand-atlas') {
         void this.desktop?.OsmAndAtlas.cancelRendering().catch(error => console.warn('Could not cancel obsolete OsmAnd Atlas renders:', error));
-      } else if (this.mapSource() === 'osmand') {
-        void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop obsolete OsmAnd renders:', error));
       }
     }
     this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
