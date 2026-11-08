@@ -379,6 +379,12 @@ interface MapErrorEntry {
         <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
         <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
       </div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders the current Atlas viewport without reading cached PNGs.' : 'Select OsmAnd Atlas to rerender visible tiles.') }}</span>
+        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="mapSource() !== 'osmand-atlas' || !offlineRenderer || rerenderVisibleTilesBusy()">
+          {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -767,6 +773,8 @@ export class MapWindow implements OnInit, OnDestroy {
       : 'austria'
   );
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
+  protected readonly rerenderVisibleTilesBusy = signal(false);
+  protected readonly rerenderVisibleTilesStatus = signal('');
   protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
   protected readonly memoryUpdatedAt = signal('');
   protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
@@ -1788,6 +1796,27 @@ export class MapWindow implements OnInit, OnDestroy {
       this.osmAndTileCache.set(await this.desktop.CacheManager.getOsmAndTileCacheSummary());
     } catch (error) {
       console.error('Could not read OsmAnd tile cache summary:', error);
+    }
+  };
+  protected readonly rerenderVisibleTiles = async (): Promise<void> => {
+    const renderer = this.offlineRenderer;
+    if (!this.desktop || !renderer || this.mapSource() !== 'osmand-atlas' || this.rerenderVisibleTilesBusy()) return;
+    this.rerenderVisibleTilesBusy.set(true);
+    this.rerenderVisibleTilesStatus.set('Rendering visible Atlas tiles without using the disk cache…');
+    try {
+      const count = await renderer.rerenderVisibleAtlasTiles(
+        (z, x, y, displayScale, forceRender) =>
+          this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender),
+        this.atlasDisplayDensityFactor()
+      );
+      this.rerenderVisibleTilesStatus.set(`Rendered ${count} visible tile(s); reloading them from the updated cache.`);
+      await this.refreshOsmAndTileCache();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.rerenderVisibleTilesStatus.set('Rerender failed: ' + message);
+      console.error('[OsmAnd Atlas] Could not rerender visible tiles:', error);
+    } finally {
+      this.rerenderVisibleTilesBusy.set(false);
     }
   };
   protected readonly formatOfflineMapDate = (timestamp: number): string => {
