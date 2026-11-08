@@ -317,6 +317,7 @@ export interface OsmAndTileResult {
   height: number;
   stride: number;
   pixels: Uint8Array;
+  cacheHit: boolean;
 }
 
 export interface OsmAndRuntimeStatus {
