@@ -666,7 +666,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom'>(
-    (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'austria') as 'austria' | 'europe' | 'all' | 'custom')
+    (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom')
       ? this.readSetting('offlineMapPreset', 'austria') as 'austria' | 'europe' | 'all' | 'custom'
       : 'austria'
   );
