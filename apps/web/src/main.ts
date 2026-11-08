@@ -14,12 +14,12 @@ window.desktop
     console.warn('[Startup] Loading application settings');
 
     return window.desktop.ProcessManager.getAppSettings().then(async settings => {
-      const mapWindow = settings.mapWindow && typeof settings.mapWindow === 'object'
-        ? { ...(settings.mapWindow as Record<string, unknown>) } : {};
-      const preferences = settings.preferences && typeof settings.preferences === 'object'
-        ? { ...(settings.preferences as Record<string, unknown>) } : {};
-      const osmand = settings.osmand && typeof settings.osmand === 'object'
-        ? { ...(settings.osmand as Record<string, unknown>) } : {};
+      const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
+        ? { ...(settings['mapWindow'] as Record<string, unknown>) } : {};
+      const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
+        ? { ...(settings['preferences'] as Record<string, unknown>) } : {};
+      const osmand = settings['osmand'] && typeof settings['osmand'] === 'object'
+        ? { ...(settings['osmand'] as Record<string, unknown>) } : {};
       const mapPrefix = 'light-matter.mapWindow.';
       const migratedMap: Record<string, unknown> = {};
       for (let index = 0; index < localStorage.length; index++) {
@@ -34,21 +34,21 @@ window.desktop
         }
       }
       Object.assign(mapWindow, migratedMap);
-      const migrateOsmandStyle = typeof osmand.renderingStyle !== 'string'
-        && typeof mapWindow.osmandStyle === 'string';
-      if (migrateOsmandStyle) osmand.renderingStyle = mapWindow.osmandStyle;
+      const migrateOsmandStyle = typeof osmand['renderingStyle'] !== 'string'
+        && typeof mapWindow['osmandStyle'] === 'string';
+      if (migrateOsmandStyle) osmand['renderingStyle'] = mapWindow['osmandStyle'];
       await Promise.all([
         Object.keys(migratedMap).length
           ? window.desktop.ProcessManager.setAppSettingsSection('mapWindow', mapWindow) : Promise.resolve(),
         Object.keys(preferences).length
           ? window.desktop.ProcessManager.setAppSettingsSection('preferences', preferences) : Promise.resolve(),
         migrateOsmandStyle
-          ? window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand.renderingStyle }) : Promise.resolve()
+          ? window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand['renderingStyle'] }) : Promise.resolve()
       ]);
       // The native OsmAnd manager is created before renderer-side legacy
       // preferences are migrated. Apply that one-time migration immediately.
-      if (migrateOsmandStyle && typeof osmand.renderingStyle === 'string') {
-        await window.desktop.OsmAnd.setRenderingStyle(osmand.renderingStyle);
+      if (migrateOsmandStyle && typeof osmand['renderingStyle'] === 'string') {
+        await window.desktop.OsmAnd.setRenderingStyle(osmand['renderingStyle']);
       }
       for (const [key, value] of Object.entries(mapWindow)) {
         if (value !== null && value !== undefined) localStorage.setItem(mapPrefix + key, String(value));
