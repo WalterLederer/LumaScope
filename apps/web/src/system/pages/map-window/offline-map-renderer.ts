@@ -417,9 +417,15 @@ export class OfflineMapRenderer {
         console.warn('[OsmAnd Atlas] Could not recheck tiles after zoom: raster source is unavailable.');
         return;
       }
-      source.setTiles(['osmand-atlas://{z}/{x}/{y}']);
+      // Use a fresh URL template after each settled zoom. Reapplying the
+      // identical template can leave MapLibre's in-memory raster tile cache
+      // attached to stale tile instances; a unique query forces a new source
+      // tile identity while the native Atlas disk cache remains reusable.
+      const refresh = Date.now();
+      source.setTiles([`osmand-atlas://{z}/{x}/{y}?refresh=${refresh}`]);
       console.info('[OsmAnd Atlas] Rechecked visible tiles after zoom', {
         zoom: this.map.getZoom(),
+        refresh,
         sourceReloadRequested: true
       });
     }, 180);
