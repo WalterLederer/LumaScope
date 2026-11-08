@@ -1189,7 +1189,7 @@ export class OfflineMapRenderer {
       element.style.top = `${topLeft.y}px`;
       element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
       element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
-      element.style.opacity = status.status === 'error' ? '1' : '0.75';
+      element.style.opacity = status.status === 'error' ? '1' : '0.2';
       const label = element.firstElementChild as HTMLDivElement;
       const spinner = label.firstElementChild as HTMLSpanElement;
       const message = label.lastElementChild as HTMLSpanElement;
