@@ -244,6 +244,15 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                   <span class="range-value">{{ overlayOpacity() }}%</span>
                 </div>
               }
+              @if (mapSource() === 'offline') {
+                <div class="range-setting">
+                  <label for="map-label-opacity">Labels</label>
+                  <input id="map-label-opacity" type="range" min="0" max="100" step="1"
+                    [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
+                    aria-label="Map label opacity">
+                  <span class="range-value">{{ labelOpacity() }}%</span>
+                </div>
+              }
               @if (mapSource() === 'osmand-atlas') {
                 <div class="range-setting atlas-density-setting">
                   <label for="atlas-display-density">Display density factor</label>
@@ -601,6 +610,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
+  protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
   protected readonly atlasDisplayDensityFactor = signal(this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
@@ -1232,6 +1242,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
     renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
+    renderer.setTextLabelOpacity(this.labelOpacity() / 100);
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
@@ -1633,6 +1644,13 @@ export class MapWindow implements OnInit, OnDestroy {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
+  };
+  protected readonly changeLabelOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.labelOpacity.set(next);
+    this.saveSetting('labelOpacity', next);
+    this.offlineRenderer?.setTextLabelOpacity(next / 100);
   };
   protected readonly previewAtlasDisplayDensity = (value: string | number): void => {
     const density = Number(value);
