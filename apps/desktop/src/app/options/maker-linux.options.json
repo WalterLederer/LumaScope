@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
-  "electronDist": "./tools/electron-dist-cache.cjs",
+  "electronDist": "./.electron-dist",
   "appId": "org.hexmode.light_matter",
   "productName": "Light Matter",
   "publish": {
@@ -9,21 +9,81 @@
     "repo": "light-matter"
   },
   "fileAssociations": [
-    { "ext": "jpg", "role": "Viewer", "mimeType": "image/jpeg" },
-    { "ext": "jpeg", "role": "Viewer", "mimeType": "image/jpeg" },
-    { "ext": "jxl", "role": "Viewer", "mimeType": "image/jxl" },
-    { "ext": "png", "role": "Viewer", "mimeType": "image/png" },
-    { "ext": "gif", "role": "Viewer", "mimeType": "image/gif" },
-    { "ext": "svg", "role": "Viewer", "mimeType": "image/svg+xml" },
-    { "ext": "webp", "role": "Viewer", "mimeType": "image/webp" },
-    { "ext": "avif", "role": "Viewer", "mimeType": "image/avif" },
-    { "ext": "heif", "role": "Viewer", "mimeType": "image/heif" },
-    { "ext": "heic", "role": "Viewer", "mimeType": "image/heic" },
-    { "ext": "exr", "role": "Viewer", "mimeType": "image/x-exr" },
-    { "ext": "hdr", "role": "Viewer", "mimeType": "image/vnd.radiance" },
-    { "ext": "tif", "role": "Viewer", "mimeType": "image/tiff" },
-    { "ext": "tiff", "role": "Viewer", "mimeType": "image/tiff" },
-    { "ext": "bmp", "role": "Viewer", "mimeType": "image/bmp" }
+    {
+      "ext": "jpg",
+      "role": "Viewer",
+      "mimeType": "image/jpeg"
+    },
+    {
+      "ext": "jpeg",
+      "role": "Viewer",
+      "mimeType": "image/jpeg"
+    },
+    {
+      "ext": "jxl",
+      "role": "Viewer",
+      "mimeType": "image/jxl"
+    },
+    {
+      "ext": "png",
+      "role": "Viewer",
+      "mimeType": "image/png"
+    },
+    {
+      "ext": "gif",
+      "role": "Viewer",
+      "mimeType": "image/gif"
+    },
+    {
+      "ext": "svg",
+      "role": "Viewer",
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "ext": "webp",
+      "role": "Viewer",
+      "mimeType": "image/webp"
+    },
+    {
+      "ext": "avif",
+      "role": "Viewer",
+      "mimeType": "image/avif"
+    },
+    {
+      "ext": "heif",
+      "role": "Viewer",
+      "mimeType": "image/heif"
+    },
+    {
+      "ext": "heic",
+      "role": "Viewer",
+      "mimeType": "image/heic"
+    },
+    {
+      "ext": "exr",
+      "role": "Viewer",
+      "mimeType": "image/x-exr"
+    },
+    {
+      "ext": "hdr",
+      "role": "Viewer",
+      "mimeType": "image/vnd.radiance"
+    },
+    {
+      "ext": "tif",
+      "role": "Viewer",
+      "mimeType": "image/tiff"
+    },
+    {
+      "ext": "tiff",
+      "role": "Viewer",
+      "mimeType": "image/tiff"
+    },
+    {
+      "ext": "bmp",
+      "role": "Viewer",
+      "mimeType": "image/bmp"
+    }
   ],
   "linux": {
     "target": "appimage",
