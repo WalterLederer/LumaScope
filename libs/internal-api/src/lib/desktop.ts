@@ -323,6 +323,7 @@ export interface OsmAndRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
   obfPath: string;
+  obfPaths: string[];
   obfAvailable: boolean;
   resourcesPath: string;
   resourcesAvailable: boolean;
