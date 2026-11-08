@@ -399,6 +399,7 @@ export class OsmAndAtlasManager {
     return ({
     helperPath: this.helperPath,
     helperAvailable: existsSync(this.helperPath),
+    obfPath: this.obfPaths.join('; '),
     obfPaths: [...this.obfPaths],
     obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
     resourcesPath: this.resourcesPath,
