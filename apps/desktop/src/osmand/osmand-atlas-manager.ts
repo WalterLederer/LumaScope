@@ -29,7 +29,11 @@ class AtlasOutputReader {
   private readonly waiters: Array<{ length: number; resolve: (value: Buffer) => void; reject: (error: Error) => void }> = [];
   private failure: Error | null = null;
 
-  constructor(stream: NodeJS.ReadableStream, child: ChildProcessWithoutNullStreams) {
+  constructor(
+    stream: NodeJS.ReadableStream,
+    child: ChildProcessWithoutNullStreams,
+    private readonly getExitDetails: () => string = () => ''
+  ) {
     stream.on('data', (chunk: Buffer | string) => {
       if (this.failure) return;
       const data = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
@@ -37,9 +41,13 @@ class AtlasOutputReader {
       this.drain();
     });
     child.once('error', error => this.fail(error));
-    child.once('close', (code, signal) => this.fail(new Error(
-      'OsmAnd Atlas helper exited (code ' + String(code) + ', signal ' + String(signal) + ').'
-    )));
+    child.once('close', (code, signal) => {
+      const details = this.getExitDetails().trim();
+      this.fail(new Error(
+        'OsmAnd Atlas helper exited (code ' + String(code) + ', signal ' + String(signal) + ').'
+        + (details ? ' ' + details : '')
+      ));
+    });
   }
 
   readBytes(length: number): Promise<Buffer> {
@@ -72,6 +80,7 @@ class OsmAndAtlasWorker {
   private nextRequestId = 1;
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
+  private stderrMessages: string[] = [];
 
   constructor(
     private readonly helperPath: string,
@@ -163,8 +172,9 @@ class OsmAndAtlasWorker {
     this.child = child;
     // Keep this process' configuration alive until Windows has fully closed it.
     child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
-    this.reader = new AtlasOutputReader(child.stdout, child);
     this.stderrBuffer = '';
+    this.stderrMessages = [];
+    this.reader = new AtlasOutputReader(child.stdout, child, () => this.stderrMessages.slice(-12).join(' | '));
     child.stderr.on('data', chunk => {
       this.stderrBuffer += String(chunk);
       const lines = this.stderrBuffer.split(/\r?\n/);
@@ -174,6 +184,8 @@ class OsmAndAtlasWorker {
         // The native renderer emits enormous INFO-level OpenGL capability
         // dumps on every worker start. Keep warnings/errors, suppress routine info.
         if (!message) continue;
+        this.stderrMessages.push(message);
+        if (this.stderrMessages.length > 12) this.stderrMessages.shift();
         if (message.startsWith('ATLAS_INIT ')) {
           console.info('[OsmAnd Atlas helper]', message);
         } else if (!/^(INFO|DEBUG):/i.test(message)) {
