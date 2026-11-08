@@ -12,7 +12,21 @@ export interface ExternalProcessCall {
   signal: string | null;
 }
 
+export interface ProcessMemoryEntry {
+  name: string;
+  pid: number;
+  kind: 'main' | 'helper';
+  workingSetBytes: number;
+  privateBytes: number | null;
+}
+
+export interface ProcessMemorySnapshot {
+  processes: ProcessMemoryEntry[];
+  error: string | null;
+}
+
 export interface DesktopProcessManager {
+  readonly getProcessMemoryUsage: () => Promise<ProcessMemorySnapshot>;
   readonly getAppVersion: () => Promise<string>;
   readonly getAppSettings: () => Promise<Record<string, unknown>>;
   readonly setAppSettingsSection: (section: string, values: Record<string, unknown>) => Promise<void>;
