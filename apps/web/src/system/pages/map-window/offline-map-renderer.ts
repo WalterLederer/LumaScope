@@ -15,7 +15,7 @@ let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
-type OsmAndTileStatus = 'loading' | 'cache-loading' | 'loaded' | 'warning' | 'error' | 'cancelled';
+type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
   sourceId?: string;
@@ -1290,7 +1290,7 @@ export class OfflineMapRenderer {
       element.style.top = `${topLeft.y}px`;
       element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
       element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
-      element.style.opacity = status.status === 'error' || status.status === 'warning' ? '1' : '0.2';
+      element.style.opacity = status.status === 'error' || status.status === 'warning' || status.status === 'rerendering' ? '1' : '0.2';
       const label = element.firstElementChild as HTMLDivElement;
       const spinner = label.firstElementChild as HTMLSpanElement;
       const message = label.lastElementChild as HTMLSpanElement;
@@ -1305,12 +1305,16 @@ export class OfflineMapRenderer {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
         label.style.background = 'rgba(20,27,34,.90)';
-        message.textContent = status.protocol === 'maplibre'
-          ? 'Loading tile …'
-          : status.status === 'cache-loading' ? 'Cache load tile …' : 'Rendering tile …';
-        label.title = status.protocol === 'maplibre'
-          ? 'Loading map tile'
-          : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Rendering OsmAnd tile';
+        message.textContent = status.status === 'rerendering'
+          ? 'Rerendering tile …'
+          : status.protocol === 'maplibre'
+            ? 'Loading tile …'
+            : status.status === 'cache-loading' ? 'Cache load tile …' : 'Rendering tile …';
+        label.title = status.status === 'rerendering'
+          ? 'Forcing a fresh native render for this visible tile'
+          : status.protocol === 'maplibre'
+            ? 'Loading map tile'
+            : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Rendering OsmAnd tile';
       }
     }
   }
@@ -1502,7 +1506,7 @@ export class OfflineMapRenderer {
       let completed = 0;
       const forcedResults = await Promise.all(visibleTiles.map(async ({ x, y }) => {
         const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column: x, row: y };
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
         try {
           const result = await renderAtlasTile(zoom + 1, x * 2, y * 2, displayScale, true);
           emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
@@ -1539,7 +1543,7 @@ export class OfflineMapRenderer {
       let completed = 0;
       await Promise.all(visibleTiles.map(async ({ x, y }) => {
         const tileCoordinates = { protocol: 'osmand' as const, zoom, column: x, row: y };
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
         try {
           const nativeX = x * 2;
           const nativeY = y * 2;
