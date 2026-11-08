@@ -443,7 +443,7 @@ export class OsmAndAtlasManager {
     const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
     const worker = this.workers[this.nextWorker++ % this.workers.length];
-    // 2048px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
+    // 1024px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
     return worker.render(longitude, latitude, z - 1);
   }
 }
