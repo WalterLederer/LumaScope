@@ -667,7 +667,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom'>(
     (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom')
-      ? this.readSetting('offlineMapPreset', 'austria') as 'austria' | 'europe' | 'all' | 'custom'
+      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom'
       : 'austria'
   );
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
