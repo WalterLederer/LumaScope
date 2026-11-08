@@ -259,7 +259,9 @@ export class OsmAndAtlasManager {
         const legacyPath = join(app.getPath('userData'), 'osmand-atlas-settings.json');
         const legacy = JSON.parse(readFileSync(legacyPath, 'utf8')) as { styleFileName?: unknown };
         fileName = legacy.styleFileName;
-        if (typeof fileName === 'string') this.persistStyleFileName(fileName);
+        if (typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
+          this.persistStyleFileName(fileName);
+        }
       } catch { /* No legacy Atlas style setting. */ }
     }
     return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)
