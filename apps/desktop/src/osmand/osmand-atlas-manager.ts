@@ -21,6 +21,7 @@ export interface OsmAndAtlasTileResult {
   height: number;
   stride: number;
   pixels: Uint8Array;
+  cacheHit: boolean;
 }
 
 class AtlasOutputReader {
@@ -552,6 +553,7 @@ export class OsmAndAtlasManager {
     );
 
     let metatilePixels = await this.readCachedTile(cacheFile);
+    const cacheHit = metatilePixels !== null;
     if (!metatilePixels) {
       let pending = this.pendingTiles.get(cacheFile);
       if (!pending) {
@@ -563,7 +565,7 @@ export class OsmAndAtlasManager {
       }
       metatilePixels = await pending;
     }
-    return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels) };
+    return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels), cacheHit };
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
