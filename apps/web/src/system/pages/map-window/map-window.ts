@@ -189,129 +189,122 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
-            
-            <div class="view-source-controls">
-              <div class="map-source-content">
-                <div class="map-source-picker">
-                  <span class="map-source-picker-label">Source:</span>
-                  <button type="button" class="map-source-picker-trigger" [attr.aria-expanded]="mapSourceMenuOpen()" aria-haspopup="true" (click)="mapSourceMenuOpen.update(open => !open)">
-                    {{ selectedMapSourceType() }}
-                  </button>
-                  @if (mapSourceMenuOpen()) {
-                    <div class="map-source-picker-menu" role="dialog" aria-label="Select map source">
-                      <table class="map-source-picker-table">
-                        <thead><tr><th>Type</th><th>Suffix</th><th>Online/Offline</th></tr></thead>
-                        <tbody>
-                          <tr><td><button type="button" (click)="selectMapSource('online')">Online map</button></td><td>—</td><td>Online</td></tr>
-                          <tr><td><button type="button" (click)="selectMapSource('offline')">MBTiles</button></td><td>.mbtiles</td><td>Offline</td></tr>
-                          <tr><td><button type="button" (click)="selectMapSource('osmand')">OsmAnd (no labels)</button></td><td>.obf</td><td>Offline</td></tr>
-                          <tr><td><button type="button" (click)="selectMapSource('osmand-atlas')">OsmAnd Atlas</button></td><td>.obf</td><td>Offline</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  }
-                </div>
-                @if (mapSource() === 'online') {
-                  <label class="online-map-style-control"><span>Style:</span>
-                    <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
-                      <option value="standard">Standard</option><option value="satellite">Satellite</option>
-                      <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
-                      <option value="humanitarian">Humanitarian (HOT)</option>
-                    </select>
-                  </label>
-                }
-              </div>
-            </div>
-            <div class="view-settings-content">
-              <div class="view-style-controls">
-                @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
-                  <label class="offline-style-control"><span>OsmAnd Render Style:</span>
-                    <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
-                      @for (style of osmAndStyles(); track style.fileName) {
-                        <option [value]="style.fileName">{{ style.label }}</option>
-                      }
-                    </select>
-                  </label>
-                }
-                <label class="offline-style-control"><span>MBTiles Style:</span>
-                  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
-                    <option value="lumascope">LumaScope</option>
-                    <option value="versatiles-colorful">VersaTiles Colorful</option>
-                    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
-                  </select>
-                </label>
-              </div>
-              <details class="opacity-settings" open>
-                <summary>Opacity</summary>
-              <div class="opacity-content">
-              <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
-                <label for="overlay-opacity">Window</label>
-                <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
-                <span class="range-value">{{ overlayOpacity() }}%</span>
-              </div>
-              <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
-                <label for="map-label-opacity">Labels</label>
-                <input id="map-label-opacity" type="range" min="0" max="100" step="1"
-                  [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
-                  [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
-                <span class="range-value">{{ labelOpacity() }}%</span>
-              </div>
-              <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
-                <label for="atlas-display-density">Display density factor</label>
-                <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
-                  [value]="atlasDisplayDensityFactor()"
-                  (input)="previewAtlasDisplayDensity($any($event.target).value)"
-                  (change)="changeAtlasDisplayDensity($any($event.target).value)"
-                  [disabled]="mapSource() !== 'osmand-atlas'"
-                  aria-label="OsmAnd Atlas display density">
-                <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
-                <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
-              </div>
-              <details class="opacity-settings" open>
-                <summary>Opacity</summary>
-                <div class="opacity-content">
-              <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode"><span>Color:</span>
-                <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
-                  <option value="original">Original</option><option value="light">Light</option>
-                  <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
-                  <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
-                  <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
-                </select>
-              </label>
-              <div class="zoom-control">
-                <span class="zoom-label">Zoom</span>
-                <div class="zoom-buttons">
-                  <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-                  <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
-                </div>
-                <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-                <span class="zoom-value">{{ zoomLevel() }}</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"> Map</label>
-                <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
-                <span class="range-value">{{ mapOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"> Track</label>
-                <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-                <span class="range-value">{{ gpxOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"> Markers</label>
-                <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
-                <span class="range-value">{{ markerOpacity() }}%</span>
-              </div>
-              <div class="range-setting">
-                <label class="visibility-toggle"><input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"> Location</label>
-                <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
-                <span class="range-value">{{ locationOpacity() }}%</span>
-              </div>
-              </div>
-              </details>
-            </div>
+  <div class="view-source-controls">
+    <div class="map-source-content">
+      <div class="map-source-picker">
+        <span class="map-source-picker-label">Source:</span>
+        <button type="button" class="map-source-picker-trigger" [attr.aria-expanded]="mapSourceMenuOpen()" aria-haspopup="true" (click)="mapSourceMenuOpen.update(open => !open)">
+          {{ selectedMapSourceType() }}
+        </button>
+        @if (mapSourceMenuOpen()) {
+          <div class="map-source-picker-menu" role="dialog" aria-label="Select map source">
+            <table class="map-source-picker-table">
+              <thead><tr><th>Type</th><th>Suffix</th><th>Online/Offline</th></tr></thead>
+              <tbody>
+                <tr><td><button type="button" (click)="selectMapSource('online')">Online map</button></td><td>—</td><td>Online</td></tr>
+                <tr><td><button type="button" (click)="selectMapSource('offline')">MBTiles</button></td><td>.mbtiles</td><td>Offline</td></tr>
+                <tr><td><button type="button" (click)="selectMapSource('osmand')">OsmAnd (no labels)</button></td><td>.obf</td><td>Offline</td></tr>
+                <tr><td><button type="button" (click)="selectMapSource('osmand-atlas')">OsmAnd Atlas</button></td><td>.obf</td><td>Offline</td></tr>
+              </tbody>
+            </table>
           </div>
-
+        }
+      </div>
+      @if (mapSource() === 'online') {
+        <label class="online-map-style-control"><span>Style:</span>
+          <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
+            <option value="standard">Standard</option><option value="satellite">Satellite</option>
+            <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
+            <option value="humanitarian">Humanitarian (HOT)</option>
+          </select>
+        </label>
+      }
+    </div>
+  </div>
+  <div class="view-style-controls">
+    @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+      <label class="offline-style-control"><span>OsmAnd Render Style:</span>
+        <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
+          @for (style of osmAndStyles(); track style.fileName) {
+            <option [value]="style.fileName">{{ style.label }}</option>
+          }
+        </select>
+      </label>
+    }
+    <label class="offline-style-control"><span>MBTiles Style:</span>
+      <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+        <option value="lumascope">LumaScope</option>
+        <option value="versatiles-colorful">VersaTiles Colorful</option>
+        <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+      </select>
+    </label>
+  </div>
+  <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
+    <label for="atlas-display-density">Display density factor</label>
+    <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
+      [value]="atlasDisplayDensityFactor()"
+      (input)="previewAtlasDisplayDensity($any($event.target).value)"
+      (change)="changeAtlasDisplayDensity($any($event.target).value)"
+      [disabled]="mapSource() !== 'osmand-atlas'"
+      aria-label="OsmAnd Atlas display density">
+    <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
+    <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
+  </div>
+  <label class="view-map-color"><span>Color:</span>
+    <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
+      <option value="original">Original</option><option value="light">Light</option>
+      <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
+      <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
+      <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
+    </select>
+  </label>
+  <div class="zoom-control">
+    <span class="zoom-label">Zoom</span>
+    <div class="zoom-buttons">
+      <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+      <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+    </div>
+    <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+    <span class="zoom-value">{{ zoomLevel() }}</span>
+  </div>
+  <details class="opacity-settings" open>
+    <summary>Opacity</summary>
+    <div class="opacity-content">
+      <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
+        <label for="overlay-opacity">Window</label>
+        <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
+        <span class="range-value">{{ overlayOpacity() }}%</span>
+      </div>
+      <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
+        <label for="map-label-opacity">Labels</label>
+        <input id="map-label-opacity" type="range" min="0" max="100" step="1"
+          [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
+          [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
+        <span class="range-value">{{ labelOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle"><input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"> Map</label>
+        <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+        <span class="range-value">{{ mapOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle"><input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"> Track</label>
+        <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+        <span class="range-value">{{ gpxOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle"><input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"> Markers</label>
+        <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+        <span class="range-value">{{ markerOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle"><input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"> Location</label>
+        <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+        <span class="range-value">{{ locationOpacity() }}%</span>
+      </div>
+    </div>
+  </details>
+</div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
