@@ -469,11 +469,11 @@ export class OsmAndAtlasManager {
     if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
 
     const mapCacheKey = this.obfPaths.length
-      ? createHash('sha256').update(this.obfPaths.join('\\0')).digest('hex').slice(0, 20)
+      ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
       : 'default';
     const densityCacheKey = displayScale.toFixed(3).replace('.', '_');
     const styleCacheKey = this.styleFileName
-      .replace(/\\.render\\.xml$/i, '')
+      .replace(/\.render\.xml$/i, '')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     const cacheFile = join(
