@@ -1959,7 +1959,15 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
-    const next = Math.max(this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 2 : 1, this.validZoom(zoom)); this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
+    const next = Math.max(this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 2 : 1, this.validZoom(zoom));
+    if (next !== (this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel())) {
+      if (this.mapSource() === 'osmand-atlas') {
+        void this.desktop?.OsmAndAtlas.cancelRendering().catch(error => console.warn('Could not cancel obsolete OsmAnd Atlas renders:', error));
+      } else if (this.mapSource() === 'osmand') {
+        void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop obsolete OsmAnd renders:', error));
+      }
+    }
+    this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
     this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel()) + direction);
