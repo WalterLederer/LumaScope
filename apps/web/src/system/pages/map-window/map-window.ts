@@ -426,7 +426,7 @@ interface MapErrorEntry {
       <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
       <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
       @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
-      <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>map/styles</code> and <code>rendering_styles</code>. Resources are not bundled with LumaScope.</p>
+      <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
     </div>
     </div>
   </div>
