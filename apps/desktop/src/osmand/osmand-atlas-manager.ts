@@ -1,8 +1,9 @@
 import { app, BrowserWindow, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
@@ -70,6 +71,7 @@ class OsmAndAtlasWorker {
   private nextRequestId = 1;
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
+  private configurationDirectory: string | null = null;
 
   constructor(
     private readonly helperPath: string,
@@ -99,11 +101,24 @@ class OsmAndAtlasWorker {
     const child = this.child;
     this.child = null;
     this.reader = null;
-    if (!child || child.exitCode !== null) return;
+    if (!child || child.exitCode !== null) {
+      this.cleanupConfigurationFile();
+      return;
+    }
     try {
       if (child.stdin.writable) child.stdin.write(JSON.stringify({ type: 'quit' }) + '\n');
     } catch { /* The process may already be closing. */ }
     child.kill();
+    this.cleanupConfigurationFile();
+  }
+
+  private cleanupConfigurationFile(): void {
+    const directory = this.configurationDirectory;
+    this.configurationDirectory = null;
+    if (directory) {
+      try { rmSync(directory, { recursive: true, force: true }); }
+      catch (error) { console.warn('[OsmAnd Atlas] Could not remove helper configuration:', error); }
+    }
   }
 
   private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
@@ -128,12 +143,29 @@ class OsmAndAtlasWorker {
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const spawnStartedAt = Date.now();
-    const child = spawn(this.helperPath, [JSON.stringify(this.obfPaths), this.resourcesPath, this.stylePath, String(this.displayScale)], {
+    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));
+    const configurationPath = join(configurationDirectory, 'obf-paths.json');
+    try {
+      writeFileSync(configurationPath, JSON.stringify(this.obfPaths), 'utf8');
+    } catch (error) {
+      rmSync(configurationDirectory, { recursive: true, force: true });
+      throw error;
+    }
+    this.configurationDirectory = configurationDirectory;
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(this.helperPath, [configurationPath, this.resourcesPath, this.stylePath, String(this.displayScale)], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       env: this.environment
-    });
+      });
+    } catch (error) {
+      this.cleanupConfigurationFile();
+      throw error;
+    }
     this.child = child;
+    child.once('close', () => this.cleanupConfigurationFile());
+    child.once('error', () => this.cleanupConfigurationFile());
     this.reader = new AtlasOutputReader(child.stdout, child);
     this.stderrBuffer = '';
     child.stderr.on('data', chunk => {
@@ -317,7 +349,7 @@ export class OsmAndAtlasManager {
         && selectedPaths.every((path, index) => path === this.obfPaths[index])) return;
       this.obfPaths = selectedPaths;
       await this.replaceWorkers();
-      console.info('[OsmAnd]', 'active_obfs=' + selectedPaths.join(';'));
+      console.info('[OsmAnd]', 'active_obf_count=' + selectedPaths.length);
     });
     this.obfRefresh = update.catch(() => undefined);
     return update;
