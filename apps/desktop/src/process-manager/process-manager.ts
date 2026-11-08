@@ -27,7 +27,8 @@ export class ProcessManager {
     }];
     try {
       if (process.platform === 'win32') {
-        const script = "$names = @('osmand_render_helper','osmand_atlas_render_helper'); " +
+        const appProcessName = app.getName().replace(/'/g, "''");
+        const script = "$names = @('" + appProcessName + "','osmand_render_helper','osmand_atlas_render_helper'); " +
           "Get-Process -Name $names -ErrorAction SilentlyContinue | " +
           "ForEach-Object { [PSCustomObject]@{ name=$_.ProcessName; pid=$_.Id; workingSetBytes=$_.WorkingSet64; privateBytes=$_.PrivateMemorySize64 } } | " +
           "ConvertTo-Json -Compress";
@@ -42,10 +43,18 @@ export class ProcessManager {
           const helpers = Array.isArray(parsed) ? parsed : [parsed];
           for (const helper of helpers) {
             if (!Number.isFinite(helper.pid) || !Number.isFinite(helper.workingSetBytes)) continue;
+            if (helper.pid === process.pid) {
+              processes[0].workingSetBytes = helper.workingSetBytes;
+              processes[0].privateBytes = Number.isFinite(helper.privateBytes) ? helper.privateBytes : null;
+              continue;
+            }
+            const isAtlasHelper = helper.name === 'osmand_atlas_render_helper';
+            const isOsmAndHelper = helper.name === 'osmand_render_helper';
             processes.push({
-              name: helper.name === 'osmand_atlas_render_helper' ? 'OsmAnd Atlas Helper' : 'OsmAnd Helper',
+              name: isAtlasHelper ? 'OsmAnd Atlas Helper'
+                : isOsmAndHelper ? 'OsmAnd Helper' : 'LumaScope Renderer / Utility',
               pid: helper.pid,
-              kind: 'helper',
+              kind: isAtlasHelper || isOsmAndHelper ? 'helper' : 'app',
               workingSetBytes: helper.workingSetBytes,
               privateBytes: Number.isFinite(helper.privateBytes) ? helper.privateBytes : null
             });
