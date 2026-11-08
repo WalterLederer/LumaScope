@@ -96,9 +96,9 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
       const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
       if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
-      // Atlas returns a 512px high-resolution image for the same XYZ
+      // Atlas returns a 1024px high-resolution image for the same XYZ
       // geographic tile extent. MapLibre tileSize remains 256.
-      if (tile.width !== 512
+      if (tile.width !== 1024
         || tile.height !== tile.width
         || tile.stride !== tile.width * 4
         || tile.pixels.byteLength !== tile.width * tile.height * 4) {
