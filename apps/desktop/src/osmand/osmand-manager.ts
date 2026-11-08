@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
+import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
@@ -221,7 +222,7 @@ export class OsmAndManager {
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
   private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'default.render.xml'
-    : 'default.render.xml';
+    : this.readSavedStyleFileName();
   private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
@@ -243,7 +244,12 @@ export class OsmAndManager {
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
   }
 
-  private readonly offlineMapSettingsPath = join(app.getPath('userData'), 'offline-map.json');
+  private readSavedStyleFileName(): string {
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    const fileName = osmand?.renderingStyle;
+    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)
+      ? fileName : 'default.render.xml';
+  }
 
   private async refreshSelectedObf(): Promise<void> {
     let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
@@ -255,7 +261,7 @@ export class OsmAndManager {
       ].find(candidate => existsSync(candidate))
       || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
     try {
-      const settings = JSON.parse(readFileSync(this.offlineMapSettingsPath, 'utf8')) as {
+      const settings = (readAppSettings().offlineMaps ?? {}) as {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
       };
       const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
@@ -305,6 +311,8 @@ export class OsmAndManager {
       await Promise.all(this.workers.map(worker => worker.shutdown()));
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
+      void updateAppSettingsSection('osmand', { renderingStyle: selectedFileName })
+        .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
       this.pendingTiles.clear();
       this.workers = this.createWorkers(this.createEnvironment());
     }
@@ -336,6 +344,8 @@ export class OsmAndManager {
       await Promise.all(this.workers.map(worker => worker.shutdown()));
       this.styleFileName = resolvedFileName;
       this.stylePath = join(this.resourcesPath, 'rendering_styles', resolvedFileName);
+      void updateAppSettingsSection('osmand', { renderingStyle: resolvedFileName })
+        .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
       this.pendingTiles.clear();
       this.workers = this.createWorkers(this.createEnvironment());
     }
