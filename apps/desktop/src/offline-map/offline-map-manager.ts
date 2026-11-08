@@ -71,7 +71,7 @@ export class OfflineMapManager {
     const legacyPath=join(app.getPath('userData'),'offline-map.json');
     if(existsSync(legacyPath)){
      settings=JSON.parse(readFileSync(legacyPath,'utf8')) as typeof settings;
-     void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>);
+     void updateAppSettingsSection('Maps',settings as Record<string,unknown>);
     }
    }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
@@ -82,7 +82,7 @@ export class OfflineMapManager {
    for(const path of obfPaths){try{this.openObfFile(path);}catch(error){console.warn('[OfflineMap] Could not restore OBF:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{void updateAppSettingsSection('offlineMaps',{filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory}).catch(error=>console.error('[OfflineMap] Could not save map settings:',error));}
+ private persistMaps():void{void updateAppSettingsSection('Maps',{filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory}).catch(error=>console.error('[OfflineMap] Could not save map settings:',error));}
  private openObfFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
