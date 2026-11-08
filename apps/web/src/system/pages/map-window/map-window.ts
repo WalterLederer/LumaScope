@@ -286,34 +286,34 @@ interface MapErrorEntry {
     <div class="opacity-content">
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
-        <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
+        <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
         <span class="range-value">{{ overlayOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
         <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() !== 'offline'" aria-label="Show labels"></label>
-        <input id="map-label-opacity" type="range" min="0" max="100" step="1"
+        <input id="map-label-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
-        <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
         <span class="range-value">{{ mapOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
-        <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
-        <input type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
-        <input type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
         <span class="range-value">{{ locationOpacity() }}%</span>
       </div>
     </div>
@@ -586,6 +586,8 @@ interface MapErrorEntry {
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
+    .opacity-content .range-setting>input.opacity-slider[type="range"]{accent-color:#c084fc}
+    .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
     .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:2px;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
     .opacity-content .visibility-toggle input{margin:0;accent-color:#8ab4f8}
 
