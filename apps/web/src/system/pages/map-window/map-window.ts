@@ -408,12 +408,23 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
   <div class="settings-tab-content">
     <div class="mbtiles-selection mbtiles-download-controls">
-      <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
-        <option value="geofabrik">Geofabrik — Austria · https://download.geofabrik.de/europe/austria.html</option>
-        <option value="limaps">Limaps — https://www.limaps.org/tileserver.html</option>
-        <option value="shortbread">Shortbread Tiles — https://shortbread-tiles.org/download/</option>
+      <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="Download source" title="Choose a download catalogue">
+        <option value="geofabrik">Geofabrik — Austria (MBTiles)</option>
+        <option value="limaps">Limaps — MBTiles</option>
+        <option value="shortbread">Shortbread Tiles — MBTiles</option>
+        <option value="osmand-obf">OsmAnd — OBF map downloads</option>
+        <option value="osmand-resources">OsmAnd — Resources (GitHub)</option>
       </select>
+      <input class="mbtiles-download-url" type="text" readonly [value]="mbtilesDownloadUrl()" aria-label="Selected download URL" title="Selected download URL">
+      <button type="button" (click)="copyMbtilesDownloadUrl()" title="Copy selected URL to clipboard">Copy URL</button>
       <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
+    </div>
+    <div class="osmand-resources-picker">
+      <strong>OsmAnd resources folder</strong>
+      <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
+      <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+      <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>map/styles</code> and <code>rendering_styles</code>. Resources are not bundled with LumaScope.</p>
+    </div>
     </div>
   </div>
 </div>
@@ -548,7 +559,7 @@ interface MapErrorEntry {
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.mbtiles-download-controls .mbtiles-download-source{min-width:260px;}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.mbtiles-download-controls .mbtiles-download-source{min-width:260px;}.mbtiles-download-url{flex:1 1 420px;min-width:260px;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-map-list{flex:1 1 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
@@ -728,7 +739,13 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapErrorSequence = 0;
   protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
-  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
+  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources'>(
+    (['geofabrik', 'limaps', 'shortbread', 'osmand-obf', 'osmand-resources'] as const)
+      .includes(this.readSetting('mbtilesDownloadSource', 'geofabrik') as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources')
+      ? this.readSetting('mbtilesDownloadSource', 'geofabrik') as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources'
+      : 'geofabrik'
+  );
+  protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -1798,27 +1815,39 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   protected readonly changeMbtilesDownloadSource = (value: string): void => {
-    if (value !== 'geofabrik' && value !== 'limaps' && value !== 'shortbread') return;
-    this.mbtilesDownloadSource.set(value);
+    if (!['geofabrik', 'limaps', 'shortbread', 'osmand-obf', 'osmand-resources'].includes(value)) return;
+    this.mbtilesDownloadSource.set(value as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources');
     this.saveSetting('mbtilesDownloadSource', value);
   };
-  protected readonly mbtilesDownloadHint = (): string => {
-    const source = this.mbtilesDownloadSource();
-    const url = source === 'limaps'
-      ? 'https://www.limaps.org/tileserver.html'
-      : source === 'shortbread'
-        ? 'https://shortbread-tiles.org/download/'
-        : 'https://download.geofabrik.de/europe/austria.html';
-    return 'URL: ' + url + '\nDOWNLOAD .mbtile format: experimental vector tile package conforming to the Shortbread schema for use with MapLibre and other MVT capable software.';
+  protected readonly mbtilesDownloadUrl = (): string => {
+    const urls = {
+      geofabrik: 'https://download.geofabrik.de/europe/austria.html',
+      limaps: 'https://www.limaps.org/tileserver.html',
+      shortbread: 'https://shortbread-tiles.org/download/',
+      'osmand-obf': 'https://download.osmand.net/list.php',
+      'osmand-resources': 'https://github.com/osmandapp/OsmAnd-resources'
+    };
+    return urls[this.mbtilesDownloadSource()];
+  };
+  protected readonly mbtilesDownloadHint = (): string => 'URL: ' + this.mbtilesDownloadUrl();
+  protected readonly copyMbtilesDownloadUrl = async (): Promise<void> => {
+    try { await navigator.clipboard.writeText(this.mbtilesDownloadUrl()); }
+    catch (error) { console.error('Could not copy download URL:', error); }
   };
   protected readonly openMbtilesDownload = async (): Promise<void> => {
-    const source = this.mbtilesDownloadSource();
-    const url = source === 'limaps'
-      ? 'https://www.limaps.org/tileserver.html'
-      : source === 'shortbread'
-        ? 'https://shortbread-tiles.org/download/'
-        : 'https://download.geofabrik.de/europe/austria.html';
-    await this.desktop?.ProcessManager.openExternal(url);
+    await this.desktop?.ProcessManager.openExternal(this.mbtilesDownloadUrl());
+  };
+  protected readonly chooseOsmAndResourcesFolder = async (): Promise<void> => {
+    if (!this.desktop) return;
+    const result = await this.desktop.Dialogs.openFolder(this.osmAndResourcesPath() || undefined);
+    if (!result.success) return;
+    await this.desktop.OsmAndAtlas.setResourcesPath(result.data);
+    this.osmAndResourcesPath.set(result.data);
+    this.saveSetting('osmandResourcesPath', result.data);
+    this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
+    if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      this.refreshOfflineMapRendering();
+    }
   };
   protected readonly changeMapStyle = (value: string): void => {
     if (!(value in this.styles)) return;
