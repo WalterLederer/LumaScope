@@ -58,6 +58,11 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
       ] as const;
       const tiles = await Promise.all(coordinates.map(([x, y]) => desktop.OsmAnd.renderTile(nativeZoom, x, y)));
       if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
+      // A displayed 512px tile is a cache hit only when all four native
+      // 256px tiles came from disk; mixed cache/render tiles remain "Rendering".
+      if (tiles.every(tile => tile.cacheHit)) {
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
+      }
       const pixels = new Uint8ClampedArray(512 * 512 * 4);
       for (let index = 0; index < tiles.length; index++) {
         const tile = tiles[index];
