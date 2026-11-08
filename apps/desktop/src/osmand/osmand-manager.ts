@@ -410,7 +410,7 @@ export class OsmAndManager {
   };
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
-  readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number): Promise<OsmAndTileResult> => {
+  readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number, forceRender = false): Promise<OsmAndTileResult> => {
     await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
     const tileCount = 2 ** z;
@@ -423,10 +423,21 @@ export class OsmAndManager {
       ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
       : 'default';
     const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
-    let pixels = await this.readCachedTile(cacheFile);
+    const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
+    let pixels = forceRender ? null : await this.readCachedTile(cacheFile);
     const cacheHit = pixels !== null;
-    if (!pixels) {
-      const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
+    if (forceRender) {
+      // Replace the cached tile only after any earlier render for this tile ends.
+      const previousRender = this.pendingTiles.get(key);
+      if (previousRender) await previousRender.catch(() => undefined);
+      const forcedRender = this.renderAndCacheTile(z, x, y, cacheFile);
+      this.pendingTiles.set(key, forcedRender);
+      try {
+        pixels = await forcedRender;
+      } finally {
+        if (this.pendingTiles.get(key) === forcedRender) this.pendingTiles.delete(key);
+      }
+    } else if (!pixels) {
       let pending = this.pendingTiles.get(key);
       if (!pending) {
         pending = this.renderAndCacheTile(z, x, y, cacheFile);
