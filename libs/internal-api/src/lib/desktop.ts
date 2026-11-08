@@ -348,6 +348,7 @@ export interface OsmAndAtlasTileResult {
   height: number;
   stride: number;
   pixels: Uint8Array;
+  cacheHit: boolean;
 }
 
 export interface OsmAndAtlasRuntimeStatus {
