@@ -429,7 +429,6 @@ interface MapErrorEntry {
     </div>
     </div>
   </div>
-</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
   <div class="map-error-panel">
     <div class="map-cache-actions">
