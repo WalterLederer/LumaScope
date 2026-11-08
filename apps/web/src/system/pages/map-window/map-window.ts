@@ -1525,7 +1525,7 @@ export class MapWindow implements OnInit, OnDestroy {
       [longitude, latitude],
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
-        if (generation !== this.mapSourceGeneration || /\\b(cancelled|canceled)\\b/i.test(message)) return;
+        if (generation !== this.mapSourceGeneration || /\b(cancelled|canceled)\b/i.test(message)) return;
         this.recordMapError('OsmAnd Atlas rendering', message);
         console.error('[OsmAnd Atlas] Tile rendering error:', message);
       },
