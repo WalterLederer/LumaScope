@@ -388,6 +388,12 @@ interface MapErrorEntry {
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
         </button>
       </div>
+      @if (rerenderVisibleTilesBusy()) {
+        <div class="map-cache-progress">
+          <progress [value]="rerenderVisibleTilesProgress().completed" [max]="Math.max(1, rerenderVisibleTilesProgress().total)"></progress>
+          <span>{{ rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles rendered</span>
+        </div>
+      }
     </div>
   </div>
 </div>
@@ -559,6 +565,9 @@ interface MapErrorEntry {
      .map-cache-row>span{color:var(--color-content-default-medium,#aaa)}
      .map-cache-row code{font:11px/1.4 ui-monospace,monospace;overflow-wrap:anywhere;user-select:text}
      .map-cache-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+     .map-cache-progress{display:flex;align-items:center;gap:10px;min-width:0}
+     .map-cache-progress progress{flex:1;min-width:120px;height:12px;accent-color:#65a9ff}
+     .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums}
 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
@@ -778,6 +787,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly rerenderVisibleTilesBusy = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
+  protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
   protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
   protected readonly memoryUpdatedAt = signal('');
   protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
@@ -1515,7 +1525,7 @@ export class MapWindow implements OnInit, OnDestroy {
       [longitude, latitude],
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
-        if (generation !== this.mapSourceGeneration) return;
+        if (generation !== this.mapSourceGeneration || /\\b(cancelled|canceled)\\b/i.test(message)) return;
         this.recordMapError('OsmAnd Atlas rendering', message);
         console.error('[OsmAnd Atlas] Tile rendering error:', message);
       },
@@ -1812,16 +1822,19 @@ export class MapWindow implements OnInit, OnDestroy {
         (z, x, y, forceRender) => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender),
         (z, x, y, displayScale, forceRender) =>
           this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender),
-        this.atlasDisplayDensityFactor()
+        this.atlasDisplayDensityFactor(),
+        (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
       );
       this.rerenderVisibleTilesStatus.set(`Rendered ${count} visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tile(s); reloading them from the updated cache.`);
       await this.refreshOsmAndTileCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.rerenderVisibleTilesStatus.set('Rerender failed: ' + message);
+      this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
       console.error('[OsmAnd Atlas] Could not rerender visible tiles:', error);
     } finally {
       this.rerenderVisibleTilesBusy.set(false);
+      this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
     }
   };
   protected readonly formatOfflineMapDate = (timestamp: number): string => {
