@@ -390,8 +390,8 @@ interface MapErrorEntry {
       </div>
       @if (rerenderVisibleTilesBusy()) {
         <div class="map-cache-progress">
-          <progress [value]="rerenderVisibleTilesProgress().completed" [max]="Math.max(1, rerenderVisibleTilesProgress().total)"></progress>
-          <span>{{ rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles rendered</span>
+          <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
+          <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
         </div>
       }
     </div>
