@@ -66,13 +66,19 @@ export class OfflineMapManager {
  }
  private restoreMaps():void{
   try{
-   let settings=(readAppSettings().offlineMaps ?? {}) as {filePaths?:unknown;obfPaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
+   const storedSettings=readAppSettings();
+   let settings=(storedSettings.offlineMaps ?? storedSettings.Maps ?? {}) as {filePaths?:unknown;obfPaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
    if(!Object.keys(settings).length){
     const legacyPath=join(app.getPath('userData'),'offline-map.json');
     if(existsSync(legacyPath)){
      settings=JSON.parse(readFileSync(legacyPath,'utf8')) as typeof settings;
-     void updateAppSettingsSection('Maps',settings as Record<string,unknown>);
+     void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>).catch(error=>console.error('[OfflineMap] Could not migrate legacy map settings:',error));
     }
+   }
+   // Migrate the section name used by older builds. Both OsmAnd renderers
+   // read the canonical lower-camel-case key.
+   if(storedSettings.offlineMaps==null&&storedSettings.Maps!=null&&Object.keys(settings).length){
+    void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>).catch(error=>console.error('[OfflineMap] Could not migrate map settings:',error));
    }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
    if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
