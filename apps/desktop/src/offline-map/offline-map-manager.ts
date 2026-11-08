@@ -43,6 +43,15 @@ export class OfflineMapManager {
   }
   return this.getMaps();
  };
+ @IpcHandler({name:'OfflineMap.setAllEnabled'})
+ readonly setAllEnabled=async(_event:IpcMainInvokeEvent,enabled:boolean):Promise<OfflineMapStatus[]>=>{
+  if(typeof enabled!=='boolean')throw new Error('The Active state must be a boolean.');
+  for(const [id,item] of this.opened){item.status.enabled=enabled;this.enabledByPath.set(id,enabled);}
+  for(const [id,item] of this.obfFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
+  if(!enabled)this.activeId=null;
+  await this.persistMaps();
+  return this.getMaps();
+ };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
   const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||item)await this.persistMaps(); return this.getMaps();
