@@ -456,6 +456,13 @@ interface MapErrorEntry {
 </div>
 </section>
       }
+      @if (mapDisplayNotice()) {
+        <div class="map-display-notice" role="alert">
+          <strong>Map cannot be displayed</strong>
+          <span>{{ mapDisplayNotice() }}</span>
+          <button type="button" (click)="openResourcesDownloadTab()">Open Download tab</button>
+        </div>
+      }
       <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
       @if (!coordinatesAvailable()) {
         <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
@@ -485,6 +492,8 @@ interface MapErrorEntry {
     .resize-ne,.resize-sw,.resize-nw,.resize-se{width:12px;height:12px}
     .resize-ne{top:0;right:0;cursor:nesw-resize}.resize-sw{bottom:0;left:0;cursor:nesw-resize}
     .resize-nw{top:0;left:0;cursor:nwse-resize}.resize-se{right:0;bottom:0;cursor:nwse-resize}
+    .map-display-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;max-width:min(520px,calc(100% - 36px));padding:18px 22px;text-align:center;background:var(--color-surface-default-high,#292a2d);border:1px solid var(--color-content-default-low,#666);border-radius:8px;box-shadow:0 5px 24px rgba(0,0,0,.35);color:var(--color-content-default-high,#eee)}
+    .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
@@ -756,6 +765,8 @@ export class MapWindow implements OnInit, OnDestroy {
   );
   protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
   protected readonly osmAndResourcesError = signal('');
+  protected readonly mapDisplayNotice = signal('');
+  protected readonly openResourcesDownloadTab = (): void => { this.settingsOpen.set(true); this.selectSettingsTab('download'); };
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -1455,6 +1466,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') return;
+    this.mapDisplayNotice.set(!runtime.resourcesAvailable ? 'The OsmAnd resources folder is missing or invalid. Select the extracted resources folder in the Download tab; it must contain rendering_styles/default.render.xml.' : '');
     const missing = [
       !runtime.helperAvailable ? 'render helper: ' + runtime.helperPath : '',
       !runtime.obfAvailable ? 'OBF map: ' + runtime.obfPath : '',
@@ -1530,6 +1542,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
+    this.mapDisplayNotice.set(!runtime.resourcesAvailable ? 'The OsmAnd resources folder is missing or invalid. Select the extracted resources folder in the Download tab; it must contain rendering_styles/default.render.xml.' : '');
     const missing = [
       !runtime.helperAvailable ? 'render helper: ' + runtime.helperPath : '',
       !runtime.obfAvailable ? 'OBF map: ' + runtime.obfPath : '',
