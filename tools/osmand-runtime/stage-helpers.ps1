@@ -56,7 +56,7 @@ $excludedFiles = @(
     'osmand_atlas_frame_poc.exe',
     'osmand_native_widget.dll'
 )
-& robocopy.exe $source $destinationPath /MIR /COPY:DAT /DCOPY:DAT /R:1 /W:1 /MT:16 /XF $excludedFiles /NFL /NDL /NJH /NJS
+& robocopy.exe $source $destinationPath /MIR /COPY:DAT /DCOPY:DAT /R:1 /W:1 /MT:16 /XF $excludedFiles /NDL /NJH /NJS
 $robocopyExitCode = $LASTEXITCODE
 if ($robocopyExitCode -ge 8) {
     throw "OsmAnd helper synchronization failed (robocopy exit code $robocopyExitCode)."
