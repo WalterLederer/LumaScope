@@ -30,6 +30,15 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
+interface MapErrorEntry {
+  id: number;
+  timestamp: string;
+  source: string;
+  message: string;
+  occurrences: number;
+  lastSeenAt: number;
+}
+
 @Component({
   selector: 'app-map-window',
   standalone: true,
@@ -59,6 +68,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -406,6 +416,28 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
     </div>
   </div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
+  <div class="map-error-panel">
+    <div class="map-cache-actions">
+      <div>
+        <div class="map-cache-heading">Map and rendering errors</div>
+        <span class="offline-map-status">{{ mapErrors().length }} error entr{{ mapErrors().length === 1 ? 'y' : 'ies' }} recorded in this session</span>
+      </div>
+      <button type="button" (click)="clearMapErrors()" [disabled]="mapErrors().length === 0">Clear</button>
+    </div>
+    @if (mapErrors().length > 0) {
+      <div class="map-error-list">
+        @for (error of mapErrors(); track error.id) {
+          <article class="map-error-entry">
+            <div class="map-error-entry-heading"><strong>{{ error.source }}</strong><time>{{ error.timestamp }}</time>@if (error.occurrences > 1) { <span>{{ error.occurrences }} occurrences</span> }</div>
+            <pre>{{ error.message }}</pre>
+          </article>
+        }
+      </div>
+    } @else {
+      <span class="offline-map-status">No errors recorded.</span>
+    }
+  </div>
 </div>
 </div>
 </section>
@@ -451,6 +483,15 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:min(260px,48vh);min-height:120px;max-height:80vh;overflow:auto;resize:vertical;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
+    .settings-tab.has-errors{color:#ff8a80}
+    .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,110,110,.18);color:#ff8a80;font-size:10px;font-weight:700}
+    .map-error-panel{display:flex;flex:1 1 auto;flex-direction:column;gap:10px;width:100%;min-width:0;min-height:0}
+    .map-error-list{display:flex;flex:1 1 auto;flex-direction:column;gap:8px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}
+    .map-error-entry{min-width:0;padding:8px 10px;border:1px solid rgba(255,120,120,.3);border-radius:5px;background:rgba(120,40,40,.10)}
+    .map-error-entry-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;color:var(--color-content-default-medium,#aaa);font-size:11px}
+    .map-error-entry-heading strong{color:#ff8a80}
+    .map-error-entry-heading time{font-variant-numeric:tabular-nums}
+    .map-error-entry pre{margin:6px 0 0;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap;font:11px/1.45 ui-monospace,Consolas,monospace;color:var(--color-content-default-high,#eee)}
     .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
     .settings-tab-map-group{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 78%,#8ab4f8 22%);border-radius:4px 4px 0 0}
     .settings-tab-map-group:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 62%,#8ab4f8 38%)}
@@ -641,12 +682,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
   protected readonly selectedMapSourceType = computed(() => ({
@@ -678,6 +719,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
   private memoryRefreshTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly offlineMapImportErrors = signal<string[]>([]);
+  protected readonly mapErrors = signal<MapErrorEntry[]>([]);
+  private mapErrorSequence = 0;
+  protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
   protected readonly offlineMapStatusText = computed(() => {
@@ -950,6 +994,18 @@ export class MapWindow implements OnInit, OnDestroy {
     const lonHemisphere = longitude < 0 ? 'W' : 'E';
     const decimal = `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
     return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
+  }
+
+  private recordMapError(source: string, message: string): void {
+    const now = Date.now();
+    const timestamp = new Date(now).toLocaleString();
+    this.mapErrors.update(errors => {
+      const latest = errors[0];
+      if (latest && latest.source === source && latest.message === message && now - latest.lastSeenAt < 5000) {
+        return [{ ...latest, timestamp, occurrences: latest.occurrences + 1, lastSeenAt: now }, ...errors.slice(1)];
+      }
+      return [{ id: ++this.mapErrorSequence, timestamp, source, message, occurrences: 1, lastSeenAt: now }, ...errors].slice(0, 100);
+    });
   }
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
@@ -1307,7 +1363,7 @@ export class MapWindow implements OnInit, OnDestroy {
       message => {
         if (generation !== this.mapSourceGeneration) return;
         this.offlineMapStatus.update(current => current ? { ...current, error: message } : current);
-        this.locationAddress.set('Offline map rendering error: ' + message);
+        this.recordMapError('Offline map rendering', message);
       },
       this.offlineMapStyle(),
       status.id,
@@ -1326,7 +1382,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (generation === this.mapSourceGeneration) {
         const message = error instanceof Error ? error.message : String(error);
         this.offlineMapStatus.set({ ...status, error: message });
-        this.locationAddress.set('Offline map could not be initialized: ' + message);
+        this.recordMapError('Offline map initialization', message);
         console.error('[OfflineMap] Initialization failed:', error);
       }
       return;
@@ -1353,7 +1409,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async createOsmAndAtlasMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') return;
     if (!this.desktop) {
-      this.locationAddress.set('OsmAnd Atlas is unavailable because the desktop API is not connected.');
+      this.recordMapError('OsmAnd Atlas', 'Desktop API is not connected.');
       return;
     }
 
@@ -1362,7 +1418,7 @@ export class MapWindow implements OnInit, OnDestroy {
       runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
-        this.locationAddress.set('Could not read OsmAnd Atlas runtime status: ' + (error instanceof Error ? error.message : String(error)));
+        this.recordMapError('OsmAnd Atlas runtime', error instanceof Error ? error.message : String(error));
       }
       return;
     }
@@ -1374,7 +1430,7 @@ export class MapWindow implements OnInit, OnDestroy {
       !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
     ].filter(Boolean);
     if (missing.length) {
-      this.locationAddress.set('OsmAnd Atlas is not ready. Missing ' + missing.join('; ') + '.');
+      this.recordMapError('OsmAnd Atlas runtime', 'Not ready. Missing ' + missing.join('; ') + '.');
       return;
     }
 
@@ -1385,7 +1441,7 @@ export class MapWindow implements OnInit, OnDestroy {
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
         if (generation !== this.mapSourceGeneration) return;
-        this.locationAddress.set('OsmAnd Atlas rendering error: ' + message);
+        this.recordMapError('OsmAnd Atlas rendering', message);
         console.error('[OsmAnd Atlas] Tile rendering error:', message);
       },
       'lumascope', '', 2, 22, undefined, 'shortbread', [], createOsmAndAtlasMapStyle()
@@ -1398,7 +1454,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       if (generation === this.mapSourceGeneration) {
         const message = error instanceof Error ? error.message : String(error);
-        this.locationAddress.set('OsmAnd Atlas map could not be initialized: ' + message);
+        this.recordMapError('OsmAnd Atlas initialization', message);
         console.error('[OsmAnd Atlas] Initialization failed:', error);
       }
       return;
@@ -1428,7 +1484,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
     if (!this.desktop) {
-      this.locationAddress.set('OsmAnd is unavailable because the desktop API is not connected.');
+      this.recordMapError('OsmAnd', 'Desktop API is not connected.');
       return;
     }
 
@@ -1437,7 +1493,7 @@ export class MapWindow implements OnInit, OnDestroy {
       runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
-        this.locationAddress.set('Could not read OsmAnd runtime status: ' + (error instanceof Error ? error.message : String(error)));
+        this.recordMapError('OsmAnd runtime', error instanceof Error ? error.message : String(error));
       }
       return;
     }
@@ -1449,7 +1505,7 @@ export class MapWindow implements OnInit, OnDestroy {
       !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
     ].filter(Boolean);
     if (missing.length) {
-      this.locationAddress.set('OsmAnd is not ready. Missing ' + missing.join('; ') + '.');
+      this.recordMapError('OsmAnd runtime', 'Not ready. Missing ' + missing.join('; ') + '.');
       return;
     }
 
@@ -1460,7 +1516,7 @@ export class MapWindow implements OnInit, OnDestroy {
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
         if (generation !== this.mapSourceGeneration) return;
-        this.locationAddress.set('OsmAnd rendering error: ' + message);
+        this.recordMapError('OsmAnd rendering', message);
         console.error('[OsmAnd] Tile rendering error:', message);
       },
       'lumascope', '', 2, 19, undefined, 'shortbread', [], createOsmAndMapStyle()
@@ -1473,7 +1529,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       if (generation === this.mapSourceGeneration) {
         const message = error instanceof Error ? error.message : String(error);
-        this.locationAddress.set('OsmAnd map could not be initialized: ' + message);
+        this.recordMapError('OsmAnd initialization', message);
         console.error('[OsmAnd] Initialization failed:', error);
       }
       return;
@@ -1617,7 +1673,7 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.refreshOsmAndTileCache();
     } catch (error) {
       console.error('Could not change OsmAnd rendering style:', error);
-      this.locationAddress.set('Could not change OsmAnd style: ' + (error instanceof Error ? error.message : String(error)));
+      this.recordMapError('OsmAnd rendering style', error instanceof Error ? error.message : String(error));
     }
   };
 
