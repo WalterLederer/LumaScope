@@ -602,12 +602,12 @@ interface MapErrorEntry {
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
-    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));width:100%;gap:8px 12px}
-    .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
-    .opacity-content .range-setting:has(.visibility-toggle){gap:1px}
+    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));width:100%;gap:6px 8px}
+    .opacity-content .range-setting{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;box-sizing:border-box}
+    .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
     .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
-    .opacity-content .visibility-toggle input[type="checkbox"]{margin:0 1px 0 2px}
-    .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin-right:1px;color:var(--color-content-default-medium,#aaa)}
+    .opacity-content .visibility-toggle input[type="checkbox"]{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
+    .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin:0;color:var(--color-content-default-medium,#aaa)}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
     .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
@@ -617,8 +617,8 @@ interface MapErrorEntry {
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
     .opacity-content .range-setting>input.opacity-slider[type="range"]{accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
-    .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
-    .opacity-content .visibility-toggle input{margin:0;accent-color:#c084fc}
+    .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
+    .opacity-content .visibility-toggle input{margin:0!important;accent-color:#c084fc}
     .opacity-content .visibility-toggle input:disabled{accent-color:#8b739d}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
