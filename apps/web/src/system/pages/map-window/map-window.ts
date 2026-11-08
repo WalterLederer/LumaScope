@@ -1538,7 +1538,10 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
-    renderer.map.on('zoomstart', () => {
+    renderer.map.on('movestart', () => {
+      // Pan and zoom both invalidate queued tiles. Let the active native frame
+      // finish, but discard obsolete queued work so the visible viewport is
+      // not held up behind tiles from the previous camera position.
       void this.desktop?.OsmAndAtlas.cancelRendering().catch(error => console.warn('Could not cancel obsolete OsmAnd Atlas renders:', error));
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
