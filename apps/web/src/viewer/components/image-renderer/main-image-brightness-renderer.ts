@@ -38,7 +38,7 @@ export class MainImageBrightnessRenderer {
     if (version !== this.version) return;
 
     const device = this.device!;
-    let stage = 'Textur erstellen';
+    let stage = 'Create texture';
     let scopePopped = false;
     device.pushErrorScope('validation');
     try {
@@ -63,7 +63,7 @@ export class MainImageBrightnessRenderer {
       stage = 'Uniform-Daten schreiben';
       device.queue.writeBuffer(this.uniform!, 0, new Float32Array([brightness, this.hdrOutputColorSpace === 'srgb-linear' ? 1 : 0, 0, 0]));
 
-      stage = 'Bind-Group erstellen';
+      stage = 'Create bind group';
       const bind = device.createBindGroup({
         layout: this.pipeline!.getBindGroupLayout(0),
         entries: [
