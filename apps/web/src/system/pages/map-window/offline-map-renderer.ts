@@ -91,7 +91,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
 
 /**
  * Atlas renders a viewport-sized frame rather than an XYZ tile. LumaScope
- * requests a 1024px frame centered on each XYZ tile's geographic midpoint.
+ * requests a 512px frame centered on each XYZ tile's geographic midpoint.
  */
 export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
   // The protocol is global, but the map window component can be recreated.
@@ -120,9 +120,9 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
       const tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
       if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
-      // Atlas returns one 1024px metatile covering four 256px Atlas tiles.
-      // MapLibre displays it as a single 512px geographic tile.
-      if (tile.width !== 1024
+      // Atlas returns one 512px frame at the same geographic extent as this
+      // MapLibre tile, avoiding the previous 2x supersampled framebuffer.
+      if (tile.width !== 512
         || tile.height !== tile.width
         || tile.stride !== tile.width * 4
         || tile.pixels.byteLength !== tile.width * tile.height * 4) {
