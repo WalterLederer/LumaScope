@@ -15,7 +15,7 @@ let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
-type OsmAndTileStatus = 'loading' | 'cache-loading' | 'loaded' | 'error' | 'cancelled';
+type OsmAndTileStatus = 'loading' | 'cache-loading' | 'loaded' | 'warning' | 'error' | 'cancelled';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
   sourceId?: string;
@@ -26,7 +26,7 @@ interface OsmAndTileStatusEventDetail {
   error?: string;
 }
 
-function isUniformBlankTile(pixels: Uint8Array): boolean {
+function isUniformBlankTile(pixels: ArrayLike<number>): boolean {
   if (pixels.length < 4 || pixels.length % 4 !== 0) return false;
   const red = pixels[0], green = pixels[1], blue = pixels[2], alpha = pixels[3];
   if (alpha !== 255) return false;
