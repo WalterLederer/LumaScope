@@ -8,10 +8,9 @@ import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
-// Render a 2x2 group of 256px Atlas XYZ tiles as one 1024px raster metatile.
-// MapLibre consumes it as one 512px tile, so its geographic extent is exactly
-// four former 256px tiles. No per-quadrant split is performed.
-const METATILE_SIZE = 1024;
+// Render one MapLibre 512px tile at native resolution. The helper derives
+// its zoom compensation from this width, preserving the same geographic extent.
+const METATILE_SIZE = 512;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
@@ -586,7 +585,7 @@ export class OsmAndAtlasManager {
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
     if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
-    // 1024px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
+    // 512px at the compensated helper zoom yields one MapLibre 512px tile extent.
     const pixels = await worker.render(longitude, latitude, z - 1);
 
     await mkdir(dirname(cacheFile), { recursive: true });
