@@ -576,6 +576,9 @@ export class OfflineMapRenderer {
     this.tileStatusLayer = document.createElement('div');
     this.tileStatusLayer.className = 'osmand-tile-status-layer';
     this.tileStatusLayer.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:15;';
+    const tileStatusStyle = document.createElement('style');
+    tileStatusStyle.textContent = '@keyframes osmand-tile-spin{to{transform:rotate(360deg)}}';
+    this.tileStatusLayer.appendChild(tileStatusStyle);
     this.map.getContainer().appendChild(this.tileStatusLayer);
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
