@@ -634,6 +634,7 @@ interface MapErrorEntry {
     .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:150px}
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
+    .opacity-settings .range-setting>input.opacity-slider + .range-value{margin-left:-4px}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
     :host ::ng-deep .leaflet-marker-pane{z-index:400!important}
     :host ::ng-deep .leaflet-tooltip-pane{z-index:1200}
