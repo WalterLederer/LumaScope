@@ -590,6 +590,7 @@ interface MapErrorEntry {
     .opacity-settings[open]>summary{margin-bottom:2px}
     .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));width:100%;gap:8px 12px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
+    .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
     .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
@@ -599,7 +600,7 @@ interface MapErrorEntry {
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
     .opacity-content .range-setting>input.opacity-slider[type="range"]{accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
-    .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:2px;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
+    .opacity-content .range-setting .visibility-toggle{display:flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
     .opacity-content .visibility-toggle input{margin:0;accent-color:#c084fc}
     .opacity-content .visibility-toggle input:disabled{accent-color:#8b739d}
 
