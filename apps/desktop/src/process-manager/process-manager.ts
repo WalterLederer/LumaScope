@@ -1,5 +1,7 @@
 import { app, IpcMainInvokeEvent, shell } from 'electron';
-import { SystemPathMapping } from 'internal-api';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { ProcessMemorySnapshot, SystemPathMapping } from 'internal-api';
 import { stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,7 +12,55 @@ import { IpcHandler } from '../app/decorators/ipc-handler';
 import { environment } from '../environments/environment';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
+const execFileAsync = promisify(execFile);
+
 export class ProcessManager {
+  @IpcHandler({ name: 'ProcessManager.getProcessMemoryUsage' })
+  readonly getProcessMemoryUsage = async (): Promise<ProcessMemorySnapshot> => {
+    const mainMemory = process.memoryUsage();
+    const processes: ProcessMemorySnapshot['processes'] = [{
+      name: 'LumaScope (Main)',
+      pid: process.pid,
+      kind: 'main',
+      workingSetBytes: mainMemory.rss,
+      privateBytes: null
+    }];
+    try {
+      if (process.platform === 'win32') {
+        const script = "$names = @('osmand_render_helper','osmand_atlas_render_helper'); " +
+          "Get-Process -Name $names -ErrorAction SilentlyContinue | " +
+          "ForEach-Object { [PSCustomObject]@{ name=$_.ProcessName; pid=$_.Id; workingSetBytes=$_.WorkingSet64; privateBytes=$_.PrivateMemorySize64 } } | " +
+          "ConvertTo-Json -Compress";
+        const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+          windowsHide: true,
+          timeout: 5000,
+          maxBuffer: 1024 * 1024
+        });
+        const output = stdout.trim();
+        if (output) {
+          const parsed = JSON.parse(output) as Array<{ name: string; pid: number; workingSetBytes: number; privateBytes: number }> | { name: string; pid: number; workingSetBytes: number; privateBytes: number };
+          const helpers = Array.isArray(parsed) ? parsed : [parsed];
+          for (const helper of helpers) {
+            if (!Number.isFinite(helper.pid) || !Number.isFinite(helper.workingSetBytes)) continue;
+            processes.push({
+              name: helper.name === 'osmand_atlas_render_helper' ? 'OsmAnd Atlas Helper' : 'OsmAnd Helper',
+              pid: helper.pid,
+              kind: 'helper',
+              workingSetBytes: helper.workingSetBytes,
+              privateBytes: Number.isFinite(helper.privateBytes) ? helper.privateBytes : null
+            });
+          }
+        }
+      }
+      return { processes, error: null };
+    } catch (error) {
+      return {
+        processes,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  };
+
   @IpcHandler({ name: 'ProcessManager.getAppSettings' })
   readonly getAppSettings = async (): Promise<Record<string, unknown>> => readAppSettings();
 
