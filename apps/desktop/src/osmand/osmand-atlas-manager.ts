@@ -262,7 +262,7 @@ export class OsmAndAtlasManager {
         if (typeof fileName === 'string') this.persistStyleFileName(fileName);
       } catch { /* No legacy Atlas style setting. */ }
     }
-    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)
+    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)
       ? fileName : 'default.render.xml';
   }
 
