@@ -57,6 +57,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -354,6 +355,37 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       </div>
     </div>
   </div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
+  <div class="settings-tab-content cache-tab">
+    <div class="map-cache-section">
+      <div class="map-cache-heading">Process memory</div>
+      <div class="map-cache-row"><span>Gesamt (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
+      <div class="map-cache-row"><span>Aktualisiert</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
+      <table class="offline-maps-table">
+        <thead><tr><th>Prozess</th><th>PID</th><th>Working Set</th><th>Privat</th></tr></thead>
+        <tbody>
+          @for (entry of processMemory().processes; track entry.pid) {
+            <tr>
+              <td>{{ entry.name }}</td>
+              <td>{{ entry.pid }}</td>
+              <td>{{ formatOfflineMapSize(entry.workingSetBytes) }}</td>
+              <td>{{ entry.privateBytes === null ? '—' : formatOfflineMapSize(entry.privateBytes) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (processMemory().processes.length === 1) {
+        <span class="offline-map-status">Derzeit sind keine OsmAnd-Helper-Prozesse gestartet.</span>
+      }
+      @if (processMemory().error) {
+        <span class="offline-map-import-error">Helper-Speicher konnte nicht vollständig gelesen werden: {{ processMemory().error }}</span>
+      }
+      <div class="map-cache-actions">
+        <span class="offline-map-status">Automatische Aktualisierung alle 2 Sekunden, solange Memory geöffnet ist</span>
+        <button type="button" (click)="refreshProcessMemory()">Refresh</button>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 </section>
@@ -578,9 +610,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache'): void => this.activeSettingsTab.set(tab);
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory'): void => {
+    this.activeSettingsTab.set(tab);
+    if (tab === 'memory') void this.refreshProcessMemory();
+  };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory'>('location');
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
   protected readonly selectedMapSourceType = computed(() => ({
@@ -602,6 +637,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
+  protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
+  protected readonly memoryUpdatedAt = signal('');
+  protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
+  private memoryRefreshTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly offlineMapImportErrors = signal<string[]>([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread'>(this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'limaps' ? 'limaps' : this.readSetting('mbtilesDownloadSource', 'geofabrik') === 'shortbread' ? 'shortbread' : 'geofabrik');
@@ -710,6 +749,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
     void this.refreshOsmAndTileCache();
+    this.memoryRefreshTimer = setInterval(() => {
+      if (this.activeSettingsTab() === 'memory') void this.refreshProcessMemory();
+    }, 2000);
     const osmandStyleApi = this.mapSource() === 'osmand-atlas'
       ? this.desktop?.OsmAndAtlas
       : this.desktop?.OsmAnd;
@@ -810,6 +852,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.memoryRefreshTimer) clearInterval(this.memoryRefreshTimer);
+    this.memoryRefreshTimer = null;
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
     // while a zoom animation is still in progress.
@@ -1561,6 +1605,18 @@ export class MapWindow implements OnInit, OnDestroy {
     let value = bytes / 1024, unit = 0;
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[unit];
+  };
+  protected readonly refreshProcessMemory = async (): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      this.processMemory.set(await this.desktop.ProcessManager.getProcessMemoryUsage());
+      this.memoryUpdatedAt.set(new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date()));
+    } catch (error) {
+      this.processMemory.update(current => ({
+        ...current,
+        error: error instanceof Error ? error.message : String(error)
+      }));
+    }
   };
   protected readonly refreshOsmAndTileCache = async (): Promise<void> => {
     if (!this.desktop) return;
