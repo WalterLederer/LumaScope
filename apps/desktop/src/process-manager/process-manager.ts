@@ -29,9 +29,10 @@ export class ProcessManager {
       if (process.platform === 'win32') {
         const appProcessName = app.getName().replace(/'/g, "''");
         const script = "$names = @('" + appProcessName + "','osmand_render_helper','osmand_atlas_render_helper'); " +
-          "Get-Process -Name $names -ErrorAction SilentlyContinue | " +
-          "ForEach-Object { [PSCustomObject]@{ name=$_.ProcessName; pid=$_.Id; workingSetBytes=$_.WorkingSet64; privateBytes=$_.PrivateMemorySize64 } } | " +
-          "ConvertTo-Json -Compress";
+          "$items = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $names -contains $_.ProcessName } | " +
+          "ForEach-Object { [PSCustomObject]@{ name=$_.ProcessName; pid=$_.Id; workingSetBytes=$_.WorkingSet64; privateBytes=$_.PrivateMemorySize64 } }); " +
+          "if ($items.Count -eq 1) { ConvertTo-Json -InputObject $items[0] -Compress } " +
+          "elseif ($items.Count -gt 1) { ConvertTo-Json -InputObject $items -Compress }";
         const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
           windowsHide: true,
           timeout: 5000,
