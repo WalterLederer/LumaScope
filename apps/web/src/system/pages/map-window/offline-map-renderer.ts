@@ -374,11 +374,6 @@ export class OfflineMapRenderer {
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
-  private readonly clearTileStatusOverlays = (): void => {
-    this.tileStatuses.clear();
-    for (const element of this.tileStatusElements.values()) element.remove();
-    this.tileStatusElements.clear();
-  };
   private readonly onMapMoveStart = (): void => {
     // Errors belong to the previous camera position and should disappear as
     // soon as the user pans or zooms. Keep loading entries: their requests may
