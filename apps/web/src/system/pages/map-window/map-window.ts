@@ -619,7 +619,7 @@ interface MapErrorEntry {
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:45px}
-    .opacity-content .range-setting>input.opacity-slider[type="range"]{accent-color:#c084fc}
+    .opacity-content .range-setting>input.opacity-slider[type="range"]{flex:0 1 50%;width:50%;max-width:50%;min-width:35px;accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
     .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
     .opacity-content .visibility-toggle input{margin:0!important;accent-color:#c084fc}
