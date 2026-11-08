@@ -6,6 +6,11 @@ import { Arguments } from 'yargs';
 export class ProcessManager implements DesktopProcessManager {
   readonly getAppVersion = (): Promise<string> => window.desktop.ProcessManager.getAppVersion();
 
+  readonly getAppSettings = (): Promise<Record<string, unknown>> => window.desktop.ProcessManager.getAppSettings();
+
+  readonly setAppSettingsSection = (section: string, values: Record<string, unknown>): Promise<void> =>
+    window.desktop.ProcessManager.setAppSettingsSection(section, values);
+
   readonly isPackaged = (): Promise<boolean> => window.desktop.ProcessManager.isPackaged();
 
   readonly getDevToolsOpen = (): Promise<boolean> => window.desktop.ProcessManager.getDevToolsOpen();
