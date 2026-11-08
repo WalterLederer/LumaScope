@@ -339,13 +339,14 @@ interface MapErrorEntry {
                 <div class="mbtiles-map-list">
                   @if (offlineMaps().length > 0) {
                     <table class="mbtiles-map-table">
-                      <thead><tr><th class="mbtiles-enabled-column">Use</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                      <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                       <tbody>
                         @for (map of offlineMaps(); track map.id) {
                           <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
-                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="map.type === 'obf' && offlineMapPreset() !== 'custom'" [class.obf-preset-locked]="map.type === 'obf' && offlineMapPreset() !== 'custom'" [title]="map.type === 'obf' && offlineMapPreset() !== 'custom' ? 'Controlled by the selected OBF preset; choose Custom to edit' : 'Use offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
+                            <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
+                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                             <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
-                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
+                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                             <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
@@ -598,6 +599,9 @@ interface MapErrorEntry {
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
+    .mbtiles-inuse-column{width:48px;text-align:center;white-space:nowrap}
+    .mbtiles-inuse-symbol{display:inline-block;min-width:14px;color:var(--color-content-default-medium,#888);font-size:13px;line-height:1}
+    .mbtiles-inuse-symbol.in-use{color:#39b86a}
     .view-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
@@ -897,6 +901,7 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       })();
     }
+    void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: this.offlineMapPreset() }).catch(error => console.error('Could not persist OBF preset:', error));
     void this.desktop?.OfflineMap.getMaps().then(maps => {
       this.offlineMaps.set(maps);
       // An offline source without any compatible loaded MBTiles cannot be used.
@@ -1727,11 +1732,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
-    const preset = this.offlineMapPreset();
-    if (preset !== 'custom') {
-      this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(result.maps, preset));
-    }
-    if (result.maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() !== 'offline') this.changeMapSource('offline');
+    if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && map.type !== 'obf')) this.changeMapSource('online');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
@@ -1776,26 +1777,28 @@ export class MapWindow implements OnInit, OnDestroy {
     if (value !== 'austria' && value !== 'europe' && value !== 'all' && value !== 'custom') return;
     this.offlineMapPreset.set(value);
     this.saveSetting('offlineMapPreset', value);
-    if (value === 'custom' || !this.desktop) return;
-    this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(this.offlineMaps(), value));
+    if (this.desktop) {
+      await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: value });
+    }
     this.refreshOfflineMapRendering();
   };
 
-  private async applyOfflineMapPresetToMaps(
-    maps: import('internal-api').OfflineMapStatus[],
-    preset: 'austria' | 'europe' | 'all'
-  ): Promise<import('internal-api').OfflineMapStatus[]> {
-    if (!this.desktop) return maps;
-    let current = maps;
-    for (const map of maps) {
-      if (map.type !== 'obf') continue;
-      const fileName = map.fileName || map.name;
-      const isAustria = /austria|österreich|osterreich/i.test(fileName);
-      const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
-      const enabled = preset === 'all' || (preset === 'austria' ? isAustria : isEurope);
-      if (map.enabled !== enabled) current = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
+  private obfMapMatchesPreset(map: import('internal-api').OfflineMapStatus): boolean {
+    if (map.type !== 'obf') return false;
+    const fileName = map.fileName || map.name;
+    const isAustria = /austria|österreich|osterreich/i.test(fileName);
+    const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
+    const preset = this.offlineMapPreset();
+    return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : isEurope);
+  }
+
+  protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
+    if (!map.enabled) return false;
+    if (map.type === 'obf') {
+      return (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
+        && this.obfMapMatchesPreset(map);
     }
-    return current;
+    return this.mapSource() === 'offline' && map.id === this.activeOfflineMapId();
   }
 
   private refreshOfflineMapRendering(): void {
@@ -1811,8 +1814,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
-    this.offlineMapPreset.set('custom');
-    this.saveSetting('offlineMapPreset', 'custom');
     this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(id, enabled));
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
