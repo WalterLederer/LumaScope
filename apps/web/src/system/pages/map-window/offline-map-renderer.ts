@@ -406,6 +406,7 @@ export class OfflineMapRenderer {
   };
   private readonly clusterLabels = new Map<number, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
+  private textLabelOpacity = 1;
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private photoClusterColor = 'dynamic';
@@ -1033,7 +1034,7 @@ export class OfflineMapRenderer {
       const halo = darkStyle ? '#202b36' : '#f1efe8';
       const weight = kind === 'capital' || kind === 'state_capital' || kind === 'city' ? 700 : kind === 'town' ? 600 : 500;
       const style = kind === 'water' ? 'italic' : 'normal';
-      element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 ${halo},1px -1px 0 ${halo},-1px 1px 0 ${halo},1px 1px 0 ${halo},0 0 3px ${halo};pointer-events:none;text-align:center;`;
+      element.style.cssText = `display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};font:${style} ${weight} ${fontSize}px/1.2 Segoe UI,Arial,sans-serif;text-shadow:-1px -1px 0 ${halo},1px -1px 0 ${halo},-1px 1px 0 ${halo},1px 1px 0 ${halo},0 0 3px ${halo};pointer-events:none;text-align:center;opacity:${this.textLabelOpacity};transition:opacity .12s ease;`;
       element.style.position = 'absolute';
       element.style.left = '0';
       element.style.top = '0';
@@ -1188,6 +1189,7 @@ export class OfflineMapRenderer {
       element.style.top = `${topLeft.y}px`;
       element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
       element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
+      element.style.opacity = status.status === 'error' ? '1' : '0.5';
       const label = element.firstElementChild as HTMLDivElement;
       const spinner = label.firstElementChild as HTMLSpanElement;
       const message = label.lastElementChild as HTMLSpanElement;
@@ -1267,6 +1269,13 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     this.refreshClusterLabels();
+  }
+
+  setTextLabelOpacity(opacity: number): void {
+    this.textLabelOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
+    for (const label of this.textLabels.values()) {
+      label.element.style.opacity = String(this.textLabelOpacity);
+    }
   }
 
   setBasemapOpacity(opacity: number): void {
