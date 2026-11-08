@@ -183,6 +183,15 @@ class OsmAndAtlasWorker {
       throw error;
     }
     this.child = child;
+    // A cancellation can kill the helper while a render command is being
+    // written. Node emits EPIPE on stdin in that race; always handle the
+    // stream error so it cannot become an uncaught main-process exception.
+    child.stdin.on('error', error => {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'EPIPE' && code !== 'ERR_STREAM_DESTROYED') {
+        console.warn('[OsmAnd Atlas] Helper stdin error:', error);
+      }
+    });
     // Keep this process' configuration alive until Windows has fully closed it.
     child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
     this.stderrBuffer = '';
@@ -219,7 +228,9 @@ class OsmAndAtlasWorker {
     if (this.nextRequestId === 0) this.nextRequestId = 1;
     const child = this.child;
     const reader = this.reader;
-    if (!child || !child.stdin.writable || !reader) throw new Error('OsmAnd Atlas helper streams are unavailable.');
+    if (!child || !child.stdin.writable || child.stdin.destroyed || child.stdin.writableEnded || !reader) {
+      throw new Error('OsmAnd Atlas helper streams are unavailable.');
+    }
 
     const command = {
       type: 'render',
