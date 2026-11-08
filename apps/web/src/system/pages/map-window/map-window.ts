@@ -606,7 +606,7 @@ interface MapErrorEntry {
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
-    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));width:100%;gap:6px 8px}
+    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));width:100%;gap:6px 8px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;box-sizing:border-box}
     .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
     .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
@@ -618,7 +618,7 @@ interface MapErrorEntry {
     .opacity-content .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
-    .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:65px}
+    .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:45px}
     .opacity-content .range-setting>input.opacity-slider[type="range"]{accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
     .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
@@ -665,8 +665,8 @@ interface MapErrorEntry {
     .map-toolbar-button{width:auto;min-width:92px;height:30px;padding:4px 12px;font-size:13px;white-space:nowrap}.location-actions>.map-toolbar-button:first-child{min-width:158px}
     .opacity-settings{order:2;width:100%;flex:0 0 100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:12px}
     .opacity-settings .settings-row-title{flex:0 0 auto}
-    .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:150px}
-    .opacity-settings .range-setting input{flex:1;width:auto;min-width:55px}
+    .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:125px}
+    .opacity-settings .range-setting input{flex:1;width:auto;min-width:45px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-settings .range-setting>input.opacity-slider + .range-value{margin-left:-4px}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
