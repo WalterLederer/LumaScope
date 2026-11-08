@@ -16,6 +16,62 @@ const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
 const HELPER_WORKER_COUNT = 1;
 
+function getAtlasPixelDiagnostics(pixels: Buffer): {
+  uniqueRgbColors: number;
+  uniqueCountCapped: boolean;
+  flatTopLeftRatio: number;
+  transparentPixels: number;
+  nonOpaquePixels: number;
+  rgbMin: [number, number, number];
+  rgbMax: [number, number, number];
+  topLeft: [number, number, number, number];
+  center: [number, number, number, number];
+} {
+  const unique = new Set<number>();
+  const topLeft: [number, number, number, number] = [pixels[0], pixels[1], pixels[2], pixels[3]];
+  const centerOffset = ((METATILE_SIZE >> 1) * METATILE_SIZE + (METATILE_SIZE >> 1)) * 4;
+  const center: [number, number, number, number] = [
+    pixels[centerOffset], pixels[centerOffset + 1], pixels[centerOffset + 2], pixels[centerOffset + 3]
+  ];
+  const rgbMin: [number, number, number] = [255, 255, 255];
+  const rgbMax: [number, number, number] = [0, 0, 0];
+  let flatTopLeftPixels = 0;
+  let transparentPixels = 0;
+  let nonOpaquePixels = 0;
+  const pixelCount = METATILE_SIZE * METATILE_SIZE;
+
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    const red = pixels[offset];
+    const green = pixels[offset + 1];
+    const blue = pixels[offset + 2];
+    const alpha = pixels[offset + 3];
+    if (red === topLeft[0] && green === topLeft[1] && blue === topLeft[2] && alpha === topLeft[3]) {
+      flatTopLeftPixels++;
+    }
+    if (alpha === 0) transparentPixels++;
+    if (alpha !== 255) nonOpaquePixels++;
+    if (red < rgbMin[0]) rgbMin[0] = red;
+    if (green < rgbMin[1]) rgbMin[1] = green;
+    if (blue < rgbMin[2]) rgbMin[2] = blue;
+    if (red > rgbMax[0]) rgbMax[0] = red;
+    if (green > rgbMax[1]) rgbMax[1] = green;
+    if (blue > rgbMax[2]) rgbMax[2] = blue;
+    if (unique.size <= 4096) unique.add((red << 16) | (green << 8) | blue);
+  }
+
+  return {
+    uniqueRgbColors: unique.size,
+    uniqueCountCapped: unique.size > 4096,
+    flatTopLeftRatio: Number((flatTopLeftPixels / pixelCount).toFixed(4)),
+    transparentPixels,
+    nonOpaquePixels,
+    rgbMin,
+    rgbMax,
+    topLeft,
+    center
+  };
+}
+
 export interface OsmAndAtlasTileResult {
   width: number;
   height: number;
@@ -314,6 +370,7 @@ export class OsmAndAtlasManager {
   private workers = this.createWorkers();
   private nextWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<Buffer>>();
+  private readonly diagnosedTiles = new Set<string>();
   private temporaryFileId = 0;
 
   constructor() {
@@ -565,6 +622,23 @@ export class OsmAndAtlasManager {
       }
       metatilePixels = await pending;
     }
+
+    // Diagnose each metatile once per application session. This deliberately
+    // examines the exact RGBA bytes returned to the renderer, whether they came
+    // from the native helper or from the PNG disk cache.
+    if (!this.diagnosedTiles.has(cacheFile)) {
+      this.diagnosedTiles.add(cacheFile);
+      console.info('[OsmAnd Atlas] metatile pixel diagnostics', {
+        source: cacheHit ? 'disk-cache' : 'native-renderer',
+        zoom: z,
+        metatileX,
+        metatileY,
+        width: METATILE_SIZE,
+        height: METATILE_SIZE,
+        ...getAtlasPixelDiagnostics(metatilePixels)
+      });
+    }
+
     return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels), cacheHit };
   };
 
