@@ -269,12 +269,19 @@ export class OsmAndManager {
     try {
       const appSettings = readAppSettings();
       const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-        obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
+        obfPaths?: unknown; enabledByPath?: Record<string, unknown>; obfPreset?: unknown;
       };
       if (Array.isArray(settings.obfPaths)) {
+        const preset = settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
         selectedPaths = settings.obfPaths
           .filter((value): value is string => typeof value === 'string')
-          .filter(path => settings.enabledByPath?.[path] !== false && existsSync(path));
+          .filter(path => {
+            if (settings.enabledByPath?.[path] === false || !existsSync(path)) return false;
+            const name = path.split(/[\\/]/).pop() ?? path;
+            const isAustria = /austria|österreich|osterreich/i.test(name);
+            const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
+            return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : isEurope);
+          });
       }
     } catch { /* Keep the configured fallback OBF map. */ }
     if (selectedPaths.length === this.obfPaths.length
