@@ -11,9 +11,54 @@ window.desktop
   .then(isPackaged => {
     console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
     setPackagedMode(isPackaged);
-    console.warn('[Startup] Starting Angular bootstrap');
+    console.warn('[Startup] Loading application settings');
 
-    return bootstrapApplication(App, appConfig)
+    return window.desktop.ProcessManager.getAppSettings().then(async settings => {
+      const mapWindow = settings.mapWindow && typeof settings.mapWindow === 'object'
+        ? { ...(settings.mapWindow as Record<string, unknown>) } : {};
+      const preferences = settings.preferences && typeof settings.preferences === 'object'
+        ? { ...(settings.preferences as Record<string, unknown>) } : {};
+      const mapPrefix = 'light-matter.mapWindow.';
+      const migratedMap: Record<string, unknown> = {};
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (!key) continue;
+        const value = localStorage.getItem(key);
+        if (key.startsWith(mapPrefix)) {
+          const settingKey = key.slice(mapPrefix.length);
+          if (!(settingKey in mapWindow)) migratedMap[settingKey] = value;
+        } else if (!(key in preferences)) {
+          preferences[key] = value;
+        }
+      }
+      Object.assign(mapWindow, migratedMap);
+      await Promise.all([
+        Object.keys(migratedMap).length
+          ? window.desktop.ProcessManager.setAppSettingsSection('mapWindow', mapWindow) : Promise.resolve(),
+        Object.keys(preferences).length
+          ? window.desktop.ProcessManager.setAppSettingsSection('preferences', preferences) : Promise.resolve()
+      ]);
+      for (const [key, value] of Object.entries(mapWindow)) {
+        if (value !== null && value !== undefined) localStorage.setItem(mapPrefix + key, String(value));
+      }
+      for (const [key, value] of Object.entries(preferences)) {
+        if (value !== null && value !== undefined) localStorage.setItem(key, String(value));
+      }
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key: string, value: string): void {
+        originalSetItem.call(this, key, value);
+        if (this !== window.localStorage) return;
+        if (key.startsWith(mapPrefix)) {
+          void window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { [key.slice(mapPrefix.length)]: value })
+            .catch(error => console.error('[Settings] Could not save map-window preference:', key, error));
+        } else {
+          void window.desktop.ProcessManager.setAppSettingsSection('preferences', { [key]: value })
+            .catch(error => console.error('[Settings] Could not save preference:', key, error));
+        }
+      };
+      console.warn('[Startup] Starting Angular bootstrap');
+      return bootstrapApplication(App, appConfig);
+    })
       .then(() => console.warn('[Startup] Angular bootstrap completed'))
       .catch(err => console.error('[Startup] Angular bootstrap failed', err));
   })
