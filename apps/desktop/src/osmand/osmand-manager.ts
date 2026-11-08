@@ -423,6 +423,7 @@ export class OsmAndManager {
       : 'default';
     const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
+    const cacheHit = pixels !== null;
     if (!pixels) {
       const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
       let pending = this.pendingTiles.get(key);
@@ -433,7 +434,7 @@ export class OsmAndManager {
       }
       pixels = await pending;
     }
-    return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels) };
+    return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels), cacheHit };
   };
 
   @IpcHandler({ name: 'OsmAnd.shutdown' })
