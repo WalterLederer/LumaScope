@@ -15,7 +15,7 @@ export interface ExternalProcessCall {
 export interface ProcessMemoryEntry {
   name: string;
   pid: number;
-  kind: 'main' | 'helper';
+  kind: 'main' | 'app' | 'helper';
   workingSetBytes: number;
   privateBytes: number | null;
 }
