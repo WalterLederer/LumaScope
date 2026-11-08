@@ -236,7 +236,7 @@ interface MapErrorEntry {
   </div>
   <div class="view-style-controls">
     @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
-      <label class="offline-style-control"><span>OsmAnd Render Style</span>
+      <label class="offline-style-control"><span>OsmAnd Style</span>
         <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
           @for (style of osmAndStyles(); track style.fileName) {
             <option [value]="style.fileName">{{ style.label }}</option>
