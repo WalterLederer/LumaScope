@@ -40,18 +40,40 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
   addProtocol('osmand', async (request, abortController) => {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
-    const [, zoom, column, row] = match;
-    const tileCoordinates = { protocol: 'osmand' as const, zoom: Number(zoom), column: Number(column), row: Number(row) };
+    const [, zoomText, columnText, rowText] = match;
+    const zoom = Number(zoomText);
+    const column = Number(columnText);
+    const row = Number(rowText);
+    const tileCoordinates = { protocol: 'osmand' as const, zoom, column, row };
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
-      const tile = await desktop.OsmAnd.renderTile(tileCoordinates.zoom, tileCoordinates.column, tileCoordinates.row);
+      // A displayed 512px MapLibre tile is assembled from four native 256px
+      // OsmAnd tiles at the next zoom level, preserving the intended detail.
+      const nativeZoom = zoom + 1;
+      const nativeColumn = column * 2;
+      const nativeRow = row * 2;
+      const coordinates = [
+        [nativeColumn, nativeRow], [nativeColumn + 1, nativeRow],
+        [nativeColumn, nativeRow + 1], [nativeColumn + 1, nativeRow + 1]
+      ] as const;
+      const tiles = await Promise.all(coordinates.map(([x, y]) => desktop.OsmAnd.renderTile(nativeZoom, x, y)));
       if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
-      if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
-        throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+      const pixels = new Uint8ClampedArray(512 * 512 * 4);
+      for (let index = 0; index < tiles.length; index++) {
+        const tile = tiles[index];
+        if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+          throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+        }
+        const source = new Uint8Array(tile.pixels);
+        const offsetX = (index % 2) * 256;
+        const offsetY = Math.floor(index / 2) * 256;
+        for (let y = 0; y < 256; y++) {
+          const sourceOffset = y * 1024;
+          const targetOffset = ((offsetY + y) * 512 + offsetX) * 4;
+          pixels.set(source.subarray(sourceOffset, sourceOffset + 1024), targetOffset);
+        }
       }
-      const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
-      pixels.set(tile.pixels);
-      const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
+      const bitmap = await createImageBitmap(new ImageData(pixels, 512, 512));
       if (abortController.signal.aborted) {
         bitmap.close();
         throw new Error('OsmAnd tile request was cancelled.');
@@ -152,7 +174,7 @@ export function createOsmAndMapStyle(): StyleSpecification {
       osmand: {
         type: 'raster',
         tiles: ['osmand://{z}/{x}/{y}'],
-        tileSize: 256,
+        tileSize: 512,
         minzoom: 2,
         maxzoom: 19,
         attribution: '© OpenStreetMap contributors'
