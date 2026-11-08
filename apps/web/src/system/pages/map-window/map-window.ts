@@ -205,7 +205,7 @@ interface MapErrorEntry {
   <div class="view-source-controls">
     <div class="map-source-content">
       <div class="map-source-picker">
-        <span class="map-source-picker-label">Source:</span>
+        <span class="map-source-picker-label">Source</span>
         <button type="button" class="map-source-picker-trigger" [attr.aria-expanded]="mapSourceMenuOpen()" aria-haspopup="true" (click)="mapSourceMenuOpen.update(open => !open)">
           {{ selectedMapSourceType() }}
         </button>
@@ -224,7 +224,7 @@ interface MapErrorEntry {
         }
       </div>
       @if (mapSource() === 'online') {
-        <label class="online-map-style-control"><span>Style:</span>
+        <label class="online-map-style-control"><span>Style</span>
           <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
             <option value="standard">Standard</option><option value="satellite">Satellite</option>
             <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
@@ -236,7 +236,7 @@ interface MapErrorEntry {
   </div>
   <div class="view-style-controls">
     @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
-      <label class="offline-style-control"><span>OsmAnd Render Style:</span>
+      <label class="offline-style-control"><span>OsmAnd Render Style</span>
         <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
           @for (style of osmAndStyles(); track style.fileName) {
             <option [value]="style.fileName">{{ style.label }}</option>
@@ -244,7 +244,7 @@ interface MapErrorEntry {
         </select>
       </label>
     }
-    <label class="offline-style-control"><span>MBTiles Style:</span>
+    <label class="offline-style-control"><span>MBTiles Style</span>
       <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
         <option value="lumascope">LumaScope</option>
         <option value="versatiles-colorful">VersaTiles Colorful</option>
@@ -252,7 +252,7 @@ interface MapErrorEntry {
       </select>
     </label>
   </div>
-  <label class="view-map-color"><span>Color:</span>
+  <label class="view-map-color"><span>Color</span>
     <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
       <option value="original">Original</option><option value="light">Light</option>
       <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
