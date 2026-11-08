@@ -1,5 +1,6 @@
 import { app, nativeImage, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
@@ -380,7 +381,9 @@ export class OsmAndManager {
     }
 
     const styleCacheKey = this.styleFileName.replace(/\.render\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const mapCacheKey = this.obfPaths.map(path => path.split(/[\\/]/).pop()).join('_')?.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/\.obf$/i, '') || 'default';
+    const mapCacheKey = this.obfPaths.length
+      ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
+      : 'default';
     const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
