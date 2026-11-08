@@ -1,14 +1,14 @@
 import { app, dialog, type IpcMainInvokeEvent } from 'electron';
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, extname, resolve } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
+import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
- private readonly settingsPath=resolve(app.getPath('userData'),'offline-map.json');
  private readonly opened=new Map<string,OpenOfflineMap>();
  private readonly obfFiles=new Map<string,OfflineMapStatus>();
  private activeId:string|null=null;
@@ -65,8 +65,15 @@ export class OfflineMapManager {
   return tile;
  }
  private restoreMaps():void{
-  if(!existsSync(this.settingsPath))return;
-  try{const settings=JSON.parse(readFileSync(this.settingsPath,'utf8')) as {filePaths?:unknown;obfPaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
+  try{
+   let settings=(readAppSettings().offlineMaps ?? {}) as {filePaths?:unknown;obfPaths?:unknown;filePath?:unknown;lastDirectory?:unknown;enabledByPath?:Record<string,unknown>};
+   if(!Object.keys(settings).length){
+    const legacyPath=join(app.getPath('userData'),'offline-map.json');
+    if(existsSync(legacyPath)){
+     settings=JSON.parse(readFileSync(legacyPath,'utf8')) as typeof settings;
+     void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>);
+    }
+   }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
    if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
    const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
@@ -75,7 +82,7 @@ export class OfflineMapManager {
    for(const path of obfPaths){try{this.openObfFile(path);}catch(error){console.warn('[OfflineMap] Could not restore OBF:',path,error);}}
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():void{writeFileSync(this.settingsPath,JSON.stringify({filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory},null,2),'utf8');}
+ private persistMaps():void{void updateAppSettingsSection('offlineMaps',{filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory}).catch(error=>console.error('[OfflineMap] Could not save map settings:',error));}
  private openObfFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
