@@ -399,9 +399,8 @@ export class OsmAndAtlasManager {
   readonly setResourcesPath = async (_event: Electron.IpcMainInvokeEvent, resourcesPath: string) => {
     if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) throw new Error('Select a valid OsmAnd resources folder.');
     const resolvedPath = resourcesPath.trim();
-    if (!existsSync(join(resolvedPath, 'map', 'styles', 'default.render.xml'))
-      || !existsSync(join(resolvedPath, 'rendering_styles'))) {
-      throw new Error('The selected folder must contain map/styles/default.render.xml and rendering_styles.');
+    if (!existsSync(join(resolvedPath, 'rendering_styles', 'default.render.xml'))) {
+      throw new Error('The selected folder must contain rendering_styles/default.render.xml.');
     }
     await this.retireWorkers();
     this.resourcesPath = resolvedPath;
