@@ -375,6 +375,13 @@ export class OfflineMapRenderer {
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
+  private readonly completedAtlasTiles = new Set<string>();
+  private readonly onMapZoomEnd = (): void => {
+    if (this.tileProtocol !== 'osmand-atlas') return;
+    // Let MapLibre finish its normal visible-tile update first. Then retry only
+    // canonical tiles for the new viewport that neither completed nor started.
+    requestAnimationFrame(() => requestAnimationFrame(() => this.refreshMissingVisibleAtlasTiles()));
+  };
   private readonly onMapMoveStart = (): void => {
     // Errors belong to the previous camera position and should disappear as
     // soon as the user pans or zooms. Keep loading entries: their requests may
@@ -435,14 +442,58 @@ export class OfflineMapRenderer {
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
     if (!detail || detail.protocol !== this.tileProtocol) return;
     const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
-    if (detail.status === 'loaded' || detail.status === 'cancelled') {
+    if (detail.status === 'loaded') {
+      if (detail.protocol === 'osmand-atlas') this.completedAtlasTiles.add(key);
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+    } else if (detail.status === 'cancelled') {
+      this.completedAtlasTiles.delete(key);
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
       this.tileStatusElements.delete(key);
     } else {
+      if (detail.protocol === 'osmand-atlas') this.completedAtlasTiles.delete(key);
       this.tileStatuses.set(key, detail);
     }
     this.updateOsmAndTileStatusPositions();
+  };
+
+  private refreshMissingVisibleAtlasTiles(): void {
+    if (this.tileProtocol !== 'osmand-atlas' || !this.map.isStyleLoaded()) return;
+
+    const zoom = Math.max(2, Math.min(21, Math.round(this.map.getZoom())));
+    const tileCount = 2 ** zoom;
+    const bounds = this.map.getBounds();
+    const clampLongitude = (longitude: number): number => Math.max(-180, Math.min(180, longitude));
+    const mercatorY = (latitude: number): number => {
+      const radians = Math.max(-85.05112878, Math.min(85.05112878, latitude)) * Math.PI / 180;
+      return (1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2 * tileCount;
+    };
+    const west = clampLongitude(bounds.getWest());
+    const east = clampLongitude(bounds.getEast());
+    const north = mercatorY(bounds.getNorth());
+    const south = mercatorY(bounds.getSouth());
+    const minX = Math.max(0, Math.floor((west + 180) / 360 * tileCount));
+    const maxX = Math.min(tileCount - 1, Math.floor((east + 180) / 360 * tileCount - 1e-10));
+    const minY = Math.max(0, Math.floor(north));
+    const maxY = Math.min(tileCount - 1, Math.floor(south - 1e-10));
+    const missing: Array<{ x: number; y: number; z: number }> = [];
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const key = `osmand-atlas//${zoom}/${x}/${y}`;
+        const status = this.tileStatuses.get(key)?.status;
+        if (this.completedAtlasTiles.has(key) || status === 'loading' || status === 'cache-loading') continue;
+        missing.push({ x, y, z: zoom });
+      }
+    }
+
+    if (!missing.length) return;
+    console.info('[OsmAnd Atlas] Retrying missing visible tiles after zoom', {
+      zoom, count: missing.length, tiles: missing
+    });
+    this.map.refreshTiles('osmand-atlas', missing);
   };
   private readonly clusterLabels = new Map<number, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
@@ -669,6 +720,7 @@ export class OfflineMapRenderer {
     this.map.on('sourcedata', this.onMapLibreTileLoaded);
     this.map.on('error', this.onMapLibreTileError);
     this.map.on('movestart', this.onMapMoveStart);
+    this.map.on('zoomend', this.onMapZoomEnd);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
     // overlay is positioned from MapLibre's current projection on every render,
     // avoiding marker CSS transforms that can drift relative to the tile canvas.
@@ -1404,7 +1456,9 @@ export class OfflineMapRenderer {
     this.map.off('sourcedata', this.onMapLibreTileLoaded);
     this.map.off('error', this.onMapLibreTileError);
     this.map.off('movestart', this.onMapMoveStart);
+    this.map.off('zoomend', this.onMapZoomEnd);
     this.tileStatuses.clear();
+    this.completedAtlasTiles.clear();
     this.tileStatusElements.clear();
     this.tileStatusLayer.remove();
     this.map.getContainer().removeEventListener('pointerdown', this.onDiagnosticPointerDown, true);
