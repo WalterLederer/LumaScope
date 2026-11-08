@@ -355,6 +355,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       </div>
     </div>
   </div>
+</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
