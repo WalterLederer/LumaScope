@@ -6,11 +6,10 @@ import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
-// Render one 2x2 XYZ metatile at 2048px, then split it into four 1024px
-// raster tiles. Each returned image still covers one XYZ tile; the native
-// renderer sees all four together so labels can cross former tile boundaries.
-const METATILE_SIZE = 2048;
-const TILE_SIZE = METATILE_SIZE / 2;
+// Render a 2x2 group of 256px Atlas XYZ tiles as one 1024px raster metatile.
+// MapLibre consumes it as one 512px tile, so its geographic extent is exactly
+// four former 256px tiles. No per-quadrant split is performed.
+const METATILE_SIZE = 1024;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
@@ -430,15 +429,7 @@ export class OsmAndAtlasManager {
       }).catch(() => undefined);
     }
     const metatilePixels = await pending;
-    const tileOffsetX = (x - metatileX) * TILE_SIZE;
-    const tileOffsetY = (y - metatileY) * TILE_SIZE;
-    const tilePixels = Buffer.allocUnsafe(TILE_SIZE * TILE_SIZE * 4);
-    const rowBytes = TILE_SIZE * 4;
-    for (let row = 0; row < TILE_SIZE; row++) {
-      const sourceStart = ((tileOffsetY + row) * METATILE_SIZE + tileOffsetX) * 4;
-      metatilePixels.copy(tilePixels, row * rowBytes, sourceStart, sourceStart + rowBytes);
-    }
-    return { width: TILE_SIZE, height: TILE_SIZE, stride: rowBytes, pixels: new Uint8Array(tilePixels) };
+    return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels) };
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
