@@ -26,6 +26,19 @@ interface OsmAndTileStatusEventDetail {
   error?: string;
 }
 
+function isUniformBlankTile(pixels: Uint8Array): boolean {
+  if (pixels.length < 4 || pixels.length % 4 !== 0) return false;
+  const red = pixels[0], green = pixels[1], blue = pixels[2], alpha = pixels[3];
+  if (alpha !== 255) return false;
+  // A truly empty OsmAnd tile is a flat opaque renderer background. Requiring
+  // every pixel to match avoids flagging ordinary low-detail coast/ocean tiles.
+  for (let offset = 4; offset < pixels.length; offset += 4) {
+    if (pixels[offset] !== red || pixels[offset + 1] !== green
+      || pixels[offset + 2] !== blue || pixels[offset + 3] !== alpha) return false;
+  }
+  return true;
+}
+
 function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
   window.dispatchEvent(new CustomEvent<OsmAndTileStatusEventDetail>('lumascope-osmand-tile-status', { detail }));
 }
@@ -83,7 +96,10 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
         bitmap.close();
         throw new Error('OsmAnd tile request was cancelled.');
       }
-      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+      emitOsmAndTileStatus({ ...tileCoordinates,
+        status: zoom < 8 && isUniformBlankTile(pixels) ? 'warning' : 'loaded',
+        ...(zoom < 8 && isUniformBlankTile(pixels) ? { error: 'World_basemap.obf needed' } : {})
+      });
       return { data: bitmap };
     } catch (error) {
       emitOsmAndTileStatus({ ...tileCoordinates, status: abortController.signal.aborted ? 'cancelled' : 'error', error: error instanceof Error ? error.message : String(error) });
@@ -141,7 +157,10 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         bitmap.close();
         throw new Error('OsmAnd Atlas tile request was cancelled.');
       }
-      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+      emitOsmAndTileStatus({ ...tileCoordinates,
+        status: zoom < 8 && isUniformBlankTile(pixels) ? 'warning' : 'loaded',
+        ...(zoom < 8 && isUniformBlankTile(pixels) ? { error: 'World_basemap.obf needed' } : {})
+      });
       return { data: bitmap };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -415,7 +434,7 @@ export class OfflineMapRenderer {
     // still be running, and clearing them here made the map look idle while
     // the single Atlas worker was still rendering the visible tiles.
     for (const [key, status] of this.tileStatuses) {
-      if (status.status !== 'error') continue;
+      if (status.status !== 'error' && status.status !== 'warning') continue;
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
       this.tileStatusElements.delete(key);
@@ -1265,16 +1284,17 @@ export class OfflineMapRenderer {
       element.style.top = `${topLeft.y}px`;
       element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
       element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
-      element.style.opacity = status.status === 'error' ? '1' : '0.2';
+      element.style.opacity = status.status === 'error' || status.status === 'warning' ? '1' : '0.2';
       const label = element.firstElementChild as HTMLDivElement;
       const spinner = label.firstElementChild as HTMLSpanElement;
       const message = label.lastElementChild as HTMLSpanElement;
-      if (status.status === 'error') {
+      if (status.status === 'error' || status.status === 'warning') {
         spinner.style.display = 'none';
-        label.style.borderColor = 'rgba(255,125,110,.8)';
-        label.style.background = 'rgba(92,24,20,.94)';
-        message.textContent = 'Tile rendering failed';
-        label.title = status.error ?? 'Unknown rendering error';
+        const warning = status.status === 'warning';
+        label.style.borderColor = warning ? 'rgba(255,205,90,.9)' : 'rgba(255,125,110,.8)';
+        label.style.background = warning ? 'rgba(92,66,18,.94)' : 'rgba(92,24,20,.94)';
+        message.textContent = warning ? 'World_basemap.obf needed' : 'Tile rendering failed';
+        label.title = status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error');
       } else {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
