@@ -191,6 +191,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
+  <div class="view-primary-controls">
   <div class="view-source-controls">
     <div class="map-source-content">
       <div class="map-source-picker">
@@ -452,7 +453,11 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
     .settings-tab-content>summary{display:none}
     .settings-tab-content.location-tab{width:100%}
-    .view-source-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
+    .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
+    .view-source-controls,.view-style-controls{display:contents}
+    .view-primary-controls .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
+    .view-primary-controls .offline-style-control{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
+    .view-primary-controls .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
     .settings-tab-content.map-tab{width:100%}
     .settings-tab-content.track-tab,.settings-tab-content.marker-tab,.settings-tab-content.view-tab{width:100%}
     .settings-tab-content.offlineMaps-tab{width:100%}
@@ -520,8 +525,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
     .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:100%}
-    .view-style-controls{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
-    .view-style-controls .offline-style-control{display:flex;align-items:center;gap:6px;min-width:0}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
