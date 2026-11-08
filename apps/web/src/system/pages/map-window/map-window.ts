@@ -331,7 +331,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                       <tbody>
                         @for (map of offlineMaps(); track map.id) {
                           <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
-                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="map.type === 'obf' && offlineMapPreset() !== 'custom'" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
+                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="map.type === 'obf' && offlineMapPreset() !== 'custom'" [class.obf-preset-locked]="map.type === 'obf' && offlineMapPreset() !== 'custom'" [title]="map.type === 'obf' && offlineMapPreset() !== 'custom' ? 'Controlled by the selected OBF preset; choose Custom to edit' : 'Use offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
                             <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
                             <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
@@ -519,6 +519,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .mbtiles-map-table th{position:sticky;top:0;z-index:1;font-weight:600;color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943)}
     .mbtiles-map-table .mbtiles-enabled-column{width:42px;text-align:center}
     .mbtiles-enabled-column input{margin:0;accent-color:#8ab4f8;vertical-align:middle}
+    .mbtiles-enabled-column input.obf-preset-locked{appearance:none;width:14px;height:14px;box-sizing:border-box;border:1px solid #777;border-radius:2px;background:#858585;opacity:.9;cursor:not-allowed}
+    .mbtiles-enabled-column input.obf-preset-locked:checked::after{content:"";display:block;width:6px;height:3px;margin:3px 0 0 3px;border:solid #f2f2f2;border-width:0 0 2px 2px;transform:rotate(-45deg)}
     .mbtiles-map-file{max-width:300px;overflow:hidden;text-overflow:ellipsis}
     .mbtiles-map-file strong,.mbtiles-map-file span{display:inline-block;vertical-align:middle;margin-right:8px;max-width:180px;overflow:hidden;text-overflow:ellipsis}
     .mbtiles-map-file strong{font-weight:600}
