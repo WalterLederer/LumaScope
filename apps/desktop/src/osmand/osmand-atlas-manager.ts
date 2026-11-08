@@ -456,7 +456,7 @@ export class OsmAndAtlasManager {
             if (!existsSync(path)) return false;
             const name = path.split(/[\\/]/).pop() ?? path;
             const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
-            if (isWorldBasemap) return preset !== 'custom-no-world-map';
+            if (isWorldBasemap) return preset !== 'custom-no-world-map' && settings.enabledByPath?.[path] !== false;
             if (settings.enabledByPath?.[path] === false) return false;
             const isAustria = /austria|österreich|osterreich/i.test(name);
             const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
