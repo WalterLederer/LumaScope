@@ -58,6 +58,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -309,12 +310,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
-                <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
-                  <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
-                  <option value="limaps">Limaps — Regional and Planet MBTiles</option>
-                  <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
-                </select>
-                <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
                 <button type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
@@ -386,6 +381,17 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
         <span class="offline-map-status">Automatische Aktualisierung alle 2 Sekunden, solange Memory geöffnet ist</span>
         <button type="button" (click)="refreshProcessMemory()">Refresh</button>
       </div>
+    </div>
+  </div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
+  <div class="settings-tab-content">
+    <div class="mbtiles-selection mbtiles-download-controls">
+      <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
+        <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
+        <option value="limaps">Limaps — Regional and Planet MBTiles</option>
+        <option value="shortbread">Shortbread Tiles — MBTiles downloads</option>
+      </select>
+      <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
     </div>
   </div>
 </div>
@@ -482,7 +488,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}.mbtiles-download-controls .mbtiles-download-source{min-width:260px;}
     .mbtiles-map-list{grid-column:1/-1;min-width:0;max-width:100%;max-height:32vh;overflow:auto;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -612,12 +618,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'light-matter.mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download'>('location');
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
   protected readonly selectedMapSourceType = computed(() => ({
