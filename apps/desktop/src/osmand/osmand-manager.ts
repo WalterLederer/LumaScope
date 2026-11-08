@@ -25,6 +25,7 @@ export interface OsmAndRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
   obfPath: string;
+  obfPaths: string[];
   obfAvailable: boolean;
   resourcesPath: string;
   resourcesAvailable: boolean;
@@ -106,7 +107,7 @@ class OsmAndHelperWorker {
     private readonly helperPath: string,
     private readonly resourcesPath: string,
     private readonly stylePath: string,
-    private readonly obfPath: string,
+    private readonly obfPaths: string[],
     private readonly environment: NodeJS.ProcessEnv
   ) {}
 
@@ -139,7 +140,8 @@ class OsmAndHelperWorker {
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd render helper not found: ' + this.helperPath);
-    if (!existsSync(this.obfPath)) throw new Error('OsmAnd OBF map not found: ' + this.obfPath);
+    if (!this.obfPaths.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
+    for (const path of this.obfPaths) { if (!existsSync(path)) throw new Error('OsmAnd OBF map not found: ' + path); }
     if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
@@ -155,7 +157,7 @@ class OsmAndHelperWorker {
       child.once('error', reject);
     });
 
-    await this.writeJson({ command: 'init', obf_path: this.obfPath, resources_root: this.resourcesPath, style_path: this.stylePath, night_mode: false });
+    await this.writeJson({ command: 'init', obf_paths: this.obfPaths, resources_root: this.resourcesPath, style_path: this.stylePath, night_mode: false });
     const response = JSON.parse(await this.withTimeout(reader.readLine(), 30000, 'OsmAnd helper initialization timed out')) as { status?: string; message?: string };
     if (response.status !== 'ok') {
       throw new Error(response.message || ('OsmAnd helper initialization failed. ' + stderr));
@@ -225,14 +227,7 @@ export class OsmAndManager {
     : this.readSavedStyleFileName();
   private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
-  private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
-    || process.env.IPHOTO_OSMAND_OBF_PATH
-    || [
-      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
-      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
-      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
-    ].find(candidate => existsSync(candidate))
-    || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+  private obfPaths = this.getFallbackObfPaths();
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
   private nextWorker = 0;
@@ -251,36 +246,42 @@ export class OsmAndManager {
       ? fileName : 'default.render.xml';
   }
 
+  private getFallbackObfPaths(): string[] {
+    const configured = process.env.LUMASCOPE_OSMAND_OBF_PATH || process.env.IPHOTO_OSMAND_OBF_PATH;
+    if (configured) return [configured];
+    const fallback = [
+      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+    ].find(candidate => existsSync(candidate));
+    return fallback ? [fallback] : [];
+  }
+
   private async refreshSelectedObf(): Promise<void> {
-    let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
-      || process.env.IPHOTO_OSMAND_OBF_PATH
-      || [
-        join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
-        join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
-        join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
-      ].find(candidate => existsSync(candidate))
-      || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+    let selectedPaths = this.getFallbackObfPaths();
     try {
       const settings = (readAppSettings().offlineMaps ?? {}) as {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
       };
-      const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
-      if (paths.length > 0) {
-        selectedPath = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path)) || '';
+      if (Array.isArray(settings.obfPaths)) {
+        selectedPaths = settings.obfPaths
+          .filter((value): value is string => typeof value === 'string')
+          .filter(path => settings.enabledByPath?.[path] !== false && existsSync(path));
       }
     } catch { /* Keep the configured fallback OBF map. */ }
-    if (selectedPath === this.obfPath) return;
+    if (selectedPaths.length === this.obfPaths.length
+      && selectedPaths.every((path, index) => path === this.obfPaths[index])) return;
     await Promise.all(this.workers.map(worker => worker.shutdown()));
-    this.obfPath = selectedPath;
+    this.obfPaths = selectedPaths;
     this.pendingTiles.clear();
     this.nextWorker = 0;
     this.workers = this.createWorkers(this.createEnvironment());
-    console.info('[OsmAnd]', 'active_obf=' + selectedPath);
+    console.info('[OsmAnd]', 'active_obf_count=' + selectedPaths.length);
   }
 
   private createWorkers(environment: NodeJS.ProcessEnv): OsmAndHelperWorker[] {
     return Array.from({ length: HELPER_WORKER_COUNT }, () =>
-      new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPath, environment)
+      new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPaths, environment)
     );
   }
 
@@ -358,8 +359,9 @@ export class OsmAndManager {
     return ({
     helperPath: this.helperPath,
     helperAvailable: existsSync(this.helperPath),
-    obfPath: this.obfPath,
-    obfAvailable: existsSync(this.obfPath),
+    obfPath: this.obfPaths[0] || '',
+    obfPaths: [...this.obfPaths],
+    obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
     resourcesPath: this.resourcesPath,
     resourcesAvailable: existsSync(this.resourcesPath),
     stylePath: this.stylePath,
@@ -378,11 +380,11 @@ export class OsmAndManager {
     }
 
     const styleCacheKey = this.styleFileName.replace(/\.render\.xml$/i, '').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const mapCacheKey = this.obfPath.split(/[\\/]/).pop()?.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/\.obf$/i, '') || 'default';
+    const mapCacheKey = this.obfPaths.map(path => path.split(/[\\/]/).pop()).join('_')?.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/\.obf$/i, '') || 'default';
     const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     let pixels = await this.readCachedTile(cacheFile);
     if (!pixels) {
-      const key = this.obfPath + '/' + z + '/' + x + '/' + y;
+      const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
       let pending = this.pendingTiles.get(key);
       if (!pending) {
         pending = this.renderAndCacheTile(z, x, y, cacheFile);
