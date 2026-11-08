@@ -380,8 +380,8 @@ interface MapErrorEntry {
         <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
       </div>
       <div class="map-cache-actions">
-        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders the current Atlas viewport without reading cached PNGs.' : 'Select OsmAnd Atlas to rerender visible tiles.') }}</span>
-        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="mapSource() !== 'osmand-atlas' || rerenderVisibleTilesBusy()">
+        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
+        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
         </button>
       </div>
@@ -1800,16 +1800,18 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly rerenderVisibleTiles = async (): Promise<void> => {
     const renderer = this.offlineRenderer;
-    if (!this.desktop || !renderer || this.mapSource() !== 'osmand-atlas' || this.rerenderVisibleTilesBusy()) return;
+    const source = this.mapSource();
+    if (!this.desktop || !renderer || (source !== 'osmand-atlas' && source !== 'osmand') || this.rerenderVisibleTilesBusy()) return;
     this.rerenderVisibleTilesBusy.set(true);
-    this.rerenderVisibleTilesStatus.set('Rendering visible Atlas tiles without using the disk cache…');
+    this.rerenderVisibleTilesStatus.set(`Rendering visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tiles without using the disk cache…`);
     try {
-      const count = await renderer.rerenderVisibleAtlasTiles(
+      const count = await renderer.rerenderVisibleTiles(
+        (z, x, y, forceRender) => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender),
         (z, x, y, displayScale, forceRender) =>
           this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender),
         this.atlasDisplayDensityFactor()
       );
-      this.rerenderVisibleTilesStatus.set(`Rendered ${count} visible tile(s); reloading them from the updated cache.`);
+      this.rerenderVisibleTilesStatus.set(`Rendered ${count} visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tile(s); reloading them from the updated cache.`);
       await this.refreshOsmAndTileCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
