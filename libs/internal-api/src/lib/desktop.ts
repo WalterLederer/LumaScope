@@ -338,6 +338,7 @@ export interface DesktopOsmAnd {
   readonly getRuntimeStatus: () => Promise<OsmAndRuntimeStatus>;
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
   readonly setRenderingStyle: (fileName: string) => Promise<OsmAndRuntimeStatus>;
+  readonly setResourcesPath: (resourcesPath: string) => Promise<OsmAndRuntimeStatus>;
   readonly renderTile: (z: number, x: number, y: number) => Promise<OsmAndTileResult>;
   readonly shutdown: () => Promise<void>;
 }
