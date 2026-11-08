@@ -372,6 +372,18 @@ export class OfflineMapRenderer {
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
+  private readonly clearTileStatusOverlays = (): void => {
+    this.tileStatuses.clear();
+    for (const element of this.tileStatusElements.values()) element.remove();
+    this.tileStatusElements.clear();
+  };
+  private readonly onMapMoveStart = (): void => {
+    // Tile errors belong to the camera position/zoom at which they occurred.
+    // Remove both the label and its translucent tile-sized background as soon
+    // as the user starts a new pan/zoom; late load events will repopulate only
+    // statuses for requests that are still active.
+    this.clearTileStatusOverlays();
+  };
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
@@ -652,6 +664,7 @@ export class OfflineMapRenderer {
     this.map.on('sourcedataloading', this.onMapLibreTileLoading);
     this.map.on('sourcedata', this.onMapLibreTileLoaded);
     this.map.on('error', this.onMapLibreTileError);
+    this.map.on('movestart', this.onMapMoveStart);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
     // overlay is positioned from MapLibre's current projection on every render,
     // avoiding marker CSS transforms that can drift relative to the tile canvas.
@@ -1382,6 +1395,7 @@ export class OfflineMapRenderer {
     this.map.off('sourcedataloading', this.onMapLibreTileLoading);
     this.map.off('sourcedata', this.onMapLibreTileLoaded);
     this.map.off('error', this.onMapLibreTileError);
+    this.map.off('movestart', this.onMapMoveStart);
     this.tileStatuses.clear();
     this.tileStatusElements.clear();
     this.tileStatusLayer.remove();
