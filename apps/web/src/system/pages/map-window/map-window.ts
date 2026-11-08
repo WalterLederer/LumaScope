@@ -229,6 +229,24 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 <div class="settings-tab-content view-tab">
             
             <div class="opacity-content">
+              <div class="view-style-controls">
+                @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+                  <label class="offline-style-control"><span>OsmAnd Render Style:</span>
+                    <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
+                      @for (style of osmAndStyles(); track style.fileName) {
+                        <option [value]="style.fileName">{{ style.label }}</option>
+                      }
+                    </select>
+                  </label>
+                }
+                <label class="offline-style-control"><span>MBTiles Style:</span>
+                  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+                    <option value="lumascope">LumaScope</option>
+                    <option value="versatiles-colorful">VersaTiles Colorful</option>
+                    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+                  </select>
+                </label>
+              </div>
               <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
                 <label for="overlay-opacity">Window</label>
                 <input id="overlay-opacity" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
@@ -295,22 +313,6 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
-@if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
-<label class="offline-style-control"><span>OsmAnd Render Style:</span>
-  <select [value]="osmAndStyle()" (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
-    @for (style of osmAndStyles(); track style.fileName) {
-      <option [value]="style.fileName">{{ style.label }}</option>
-    }
-  </select>
-</label>
-}
-<label class="offline-style-control"><span>MBTiles Style:</span>
-  <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
-    <option value="lumascope">LumaScope</option>
-    <option value="versatiles-colorful">VersaTiles Colorful</option>
-    <option value="versatiles-neutrino">VersaTiles Neutrino</option>
-  </select>
-</label>
                 <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="MBTiles download source" title="Choose an MBTiles download catalogue">
                   <option value="geofabrik">Geofabrik — Austria (Shortbread)</option>
                   <option value="limaps">Limaps — Regional and Planet MBTiles</option>
@@ -468,7 +470,9 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
-    .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(520px,100%)}
+    .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:min(720px,100%)}
+    .view-style-controls{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
+    .view-style-controls .offline-style-control{display:flex;align-items:center;gap:6px;min-width:0}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
