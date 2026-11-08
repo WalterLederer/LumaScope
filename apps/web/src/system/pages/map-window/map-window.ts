@@ -333,6 +333,13 @@ interface MapErrorEntry {
                   </select>
                 </label>
                 <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
+                <label class="offline-map-list-filter">List:
+                  <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
+                    <option value="all">All</option>
+                    <option value="inUse">InUse</option>
+                    <option value="active">Active</option>
+                  </select>
+                </label>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
@@ -341,7 +348,7 @@ interface MapErrorEntry {
                     <table class="mbtiles-map-table">
                       <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                       <tbody>
-                        @for (map of offlineMaps(); track map.id) {
+                        @for (map of filteredOfflineMaps(); track map.id) {
                           <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
                             <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
                             <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
@@ -746,6 +753,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active'>('all');
+  protected readonly filteredOfflineMaps = computed(() => {
+    const maps = this.offlineMaps();
+    const filter = this.offlineMapListFilter();
+    if (filter === 'inUse') return maps.filter(map => this.isOfflineMapInUse(map));
+    if (filter === 'active') return maps.filter(map => map.enabled);
+    return maps;
+  });
   protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom'>(
     (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom')
       ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom'
