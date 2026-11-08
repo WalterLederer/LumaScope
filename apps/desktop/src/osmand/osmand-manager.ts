@@ -277,12 +277,13 @@ export class OsmAndManager {
         selectedPaths = settings.obfPaths
           .filter((value): value is string => typeof value === 'string')
           .filter(path => {
-            if (settings.enabledByPath?.[path] === false || !existsSync(path)) return false;
+            if (!existsSync(path)) return false;
             const name = path.split(/[\\/]/).pop() ?? path;
+            const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
+            if (isWorldBasemap) return preset !== 'custom-no-world-map';
+            if (settings.enabledByPath?.[path] === false) return false;
             const isAustria = /austria|österreich|osterreich/i.test(name);
             const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
-            const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
-            if (isWorldBasemap) return preset !== 'custom-no-world-map' && existsSync(path);
             return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
           });
       }
