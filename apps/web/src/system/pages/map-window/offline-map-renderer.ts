@@ -1535,17 +1535,6 @@ export class OfflineMapRenderer {
       }));
     } else {
       // One MapLibre tile is composed from four native 256px OsmAnd tiles.
-      const nativeTiles: Array<{ x: number; y: number }> = [];
-      for (const { x, y } of visibleTiles) {
-        const nativeX = x * 2;
-        const nativeY = y * 2;
-        nativeTiles.push(
-          { x: nativeX, y: nativeY },
-          { x: nativeX + 1, y: nativeY },
-          { x: nativeX, y: nativeY + 1 },
-          { x: nativeX + 1, y: nativeY + 1 }
-        );
-      }
       onProgress?.(0, visibleTiles.length);
       let completed = 0;
       await Promise.all(visibleTiles.map(async ({ x, y }) => {
