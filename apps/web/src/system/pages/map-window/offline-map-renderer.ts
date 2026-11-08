@@ -351,7 +351,7 @@ export class OfflineMapRenderer {
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceDataType !== 'content') return;
+    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loading');
   };
   private readonly onMapLibreTileLoaded = (event: unknown): void => {
@@ -363,7 +363,7 @@ export class OfflineMapRenderer {
   private readonly onMapLibreTileError = (event: unknown): void => {
     const data = event as { sourceId?: string; coord?: { canonical?: { z: number; x: number; y: number } }; error?: unknown };
     const canonical = data.coord?.canonical;
-    if (!canonical) return;
+    if (!canonical || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
     const message = data.error instanceof Error ? data.error.message : String(data.error ?? 'Unknown tile loading error');
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'error', message);
   };
