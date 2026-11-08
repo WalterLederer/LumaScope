@@ -1,6 +1,6 @@
 import { app, BrowserWindow, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -64,6 +64,7 @@ class AtlasOutputReader {
 class OsmAndAtlasWorker {
   private child: ChildProcessWithoutNullStreams | null = null;
   private reader: AtlasOutputReader | null = null;
+  private retired = false;
   private nextRequestId = 1;
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
@@ -78,9 +79,16 @@ class OsmAndAtlasWorker {
   ) {}
 
   render(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+    if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
     const result = this.queue.then(() => this.renderQueued(longitude, latitude, zoom));
     this.queue = result.then(() => undefined, () => undefined);
     return result;
+  }
+
+  async retire(): Promise<void> {
+    this.retired = true;
+    await this.queue;
+    await this.shutdown();
   }
 
   async shutdown(): Promise<void> {
@@ -96,6 +104,7 @@ class OsmAndAtlasWorker {
 
   private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
     try {
+      if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
       await this.ensureStarted();
       return await this.renderOnce(longitude, latitude, zoom);
     } catch (error) {
@@ -216,7 +225,8 @@ class OsmAndAtlasWorker {
 export class OsmAndAtlasManager {
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
-  private styleFileName = 'default.render.xml';
+  private readonly styleSettingsPath = join(app.getPath('userData'), 'osmand-atlas-settings.json');
+  private styleFileName = this.readSavedStyleFileName();
   private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
     || process.env.IPHOTO_OSMAND_OBF_PATH
@@ -242,6 +252,30 @@ export class OsmAndAtlasManager {
 
   private readonly offlineMapSettingsPath = join(app.getPath('userData'), 'offline-map.json');
 
+  private readSavedStyleFileName(): string {
+    try {
+      const settings = JSON.parse(readFileSync(this.styleSettingsPath, 'utf8')) as { styleFileName?: unknown };
+      if (typeof settings.styleFileName === 'string'
+        && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(settings.styleFileName)) {
+        return settings.styleFileName;
+      }
+    } catch { /* Use the default style on first launch or invalid settings. */ }
+    return 'default.render.xml';
+  }
+
+  private persistStyleFileName(fileName: string): void {
+    try {
+      writeFileSync(this.styleSettingsPath, JSON.stringify({ styleFileName: fileName }, null, 2), 'utf8');
+    } catch (error) {
+      console.warn('[OsmAnd Atlas] Could not persist rendering style:', error);
+    }
+  }
+
+  private async retireWorkers(): Promise<void> {
+    const previousWorkers = this.workers;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+  }
+
   private async refreshSelectedObf(): Promise<void> {
     let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
       || process.env.IPHOTO_OSMAND_OBF_PATH
@@ -261,7 +295,7 @@ export class OsmAndAtlasManager {
       }
     } catch { /* Keep the configured fallback OBF map. */ }
     if (selectedPath === this.obfPath) return;
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    await this.retireWorkers();
     this.obfPath = selectedPath;
     this.pendingTiles.clear();
     this.nextWorker = 0;
@@ -280,7 +314,7 @@ export class OsmAndAtlasManager {
   private ensureDisplayScale(displayScale: number): Promise<void> {
     const update = this.scaleChange.then(async () => {
       if (Math.abs(this.displayScale - displayScale) < 0.001) return;
-      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      await this.retireWorkers();
       this.displayScale = displayScale;
       this.pendingTiles.clear();
       this.nextWorker = 0;
@@ -308,9 +342,10 @@ export class OsmAndAtlasManager {
       : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
     if (!selectedFileName) return [];
     if (selectedFileName !== this.styleFileName) {
-      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      await this.retireWorkers();
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
+      this.persistStyleFileName(selectedFileName);
       this.pendingTiles.clear();
       this.workers = this.createWorkers();
     }
@@ -335,9 +370,10 @@ export class OsmAndAtlasManager {
       throw new Error('No OsmAnd rendering styles are installed in: ' + join(this.resourcesPath, 'rendering_styles'));
     }
     if (resolvedFileName !== this.styleFileName) {
-      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      await this.retireWorkers();
       this.styleFileName = resolvedFileName;
       this.stylePath = join(this.resourcesPath, 'rendering_styles', resolvedFileName);
+      this.persistStyleFileName(resolvedFileName);
       this.pendingTiles.clear();
       this.workers = this.createWorkers();
     }
@@ -393,7 +429,7 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
   readonly shutdown = async (): Promise<void> => {
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    await this.retireWorkers();
   };
 
   private async renderAndCacheTile(z: number, x: number, y: number): Promise<Buffer> {
