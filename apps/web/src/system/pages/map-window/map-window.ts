@@ -522,10 +522,10 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:2px 7px;font-size:11px}
     .view-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
-    .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:min(720px,100%)}
+    .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
-    .opacity-content{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));width:100%}
+    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));width:100%;gap:8px 12px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:7px;min-width:0}
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
