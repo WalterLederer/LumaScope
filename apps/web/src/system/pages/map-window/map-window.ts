@@ -330,6 +330,7 @@ interface MapErrorEntry {
                     <option value="europe">Europe</option>
                     <option value="all">All</option>
                     <option value="custom">Custom</option>
+                    <option value="custom-no-world-map">Custom (no world map)</option>
                   </select>
                 </label>
                 <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
@@ -767,9 +768,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'active') return maps.filter(map => map.enabled);
     return maps;
   });
-  protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom'>(
-    (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom')
-      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom'
+  protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map'>(
+    (['austria', 'europe', 'all', 'custom', 'custom-no-world-map'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map')
+      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map'
       : 'austria'
   );
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
@@ -1826,11 +1827,17 @@ export class MapWindow implements OnInit, OnDestroy {
     return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
   };
   protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
-    if (value !== 'austria' && value !== 'europe' && value !== 'all' && value !== 'custom') return;
+    if (value !== 'austria' && value !== 'europe' && value !== 'all' && value !== 'custom' && value !== 'custom-no-world-map') return;
     this.offlineMapPreset.set(value);
     this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
       await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: value });
+      if (value !== 'custom-no-world-map') {
+        const worldMap = this.offlineMaps().find(map => map.type === 'obf' && /^World_basemap\.obf$/i.test(map.fileName || map.name));
+        if (worldMap && !worldMap.enabled) {
+          this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(worldMap.id, true));
+        }
+      }
     }
     this.refreshOfflineMapRendering();
   };
@@ -1841,11 +1848,14 @@ export class MapWindow implements OnInit, OnDestroy {
     const isAustria = /austria|österreich|osterreich/i.test(fileName);
     const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
     const preset = this.offlineMapPreset();
-    return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : isEurope);
+    const isWorldBasemap = /^World_basemap\.obf$/i.test(map.fileName || map.name);
+    if (isWorldBasemap) return preset !== 'custom-no-world-map';
+    return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
   }
 
   protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
-    if (!map.enabled) return false;
+    const isWorldBasemap = map.type === 'obf' && /^World_basemap\.obf$/i.test(map.fileName || map.name);
+    if (!map.enabled && !(isWorldBasemap && this.offlineMapPreset() !== 'custom-no-world-map')) return false;
     if (map.type === 'obf') {
       return (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
         && this.obfMapMatchesPreset(map);
