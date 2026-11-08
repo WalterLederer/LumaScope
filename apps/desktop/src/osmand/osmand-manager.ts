@@ -267,7 +267,8 @@ export class OsmAndManager {
   private async refreshSelectedObf(): Promise<void> {
     let selectedPaths = this.getFallbackObfPaths();
     try {
-      const settings = (readAppSettings().offlineMaps ?? {}) as {
+      const appSettings = readAppSettings();
+      const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
       };
       if (Array.isArray(settings.obfPaths)) {
