@@ -253,7 +253,7 @@ StopProcesses
 RemoveExecutableDirs
 
 & (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
-& (Join-Path $projectDir "tools/osmand-runtime/stage-resources.ps1")
+
 
 # Produktions-Build
 # Nx-Daemon f�r das Packaging deaktivieren
@@ -310,8 +310,7 @@ if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0 -or $packagedMapIconC
 }
 Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount, mapIcons=$packagedMapIconCount, shaders=$packagedShaderCount, stubs=$packagedStubCount" -ForegroundColor Green
 
-# Compare every staged helper/resource file with the packaged copy. This catches
-# incomplete extraResources copies before the application is launched.
+# Compare staged helper files with the packaged copy. OsmAnd resources are user-selected external data.
 $stagedRuntimeRoots = @(
     @{ Name = "helpers"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\helpers"); Target = (Join-Path $packageResources "helpers") },
     @{ Name = "resources"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\resources"); Target = (Join-Path $packageResources "resources") }
