@@ -276,44 +276,17 @@ finally {
 }
 
 
-# Verify that the packaged OsmAnd runtime is complete before launching the app.
+# Verify only the native helper executable. OsmAnd resources are selected
+# from an external folder by the user and are intentionally not packaged.
 $packageResources = Join-Path $projectDir "dist\executables\win-unpacked\resources\osmand"
-$packageChecks = @(
-    (Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"),
-    (Join-Path $packageResources "resources\rendering_styles\default.render.xml"),
-    (Join-Path $packageResources "resources\rendering_styles\fonts\LICENSE.txt"),
-    (Join-Path $packageResources "resources\licenses\OSMAND-RESOURCES-LICENSE.txt"),
-    (Join-Path $packageResources "resources\licenses\GPL-3.0.txt"),
-    (Join-Path $packageResources "resources\licenses\ICU-DATA-LICENSE.txt"),
-    (Join-Path $packageResources "resources\NOTICE.md")
-)
-$missingPackageFiles = @($packageChecks | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
-if ($missingPackageFiles.Count -gt 0) {
-    throw ("OsmAnd package verification failed. Missing files: " + ($missingPackageFiles -join "; "))
+$helperPackagePath = Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"
+if (-not (Test-Path -LiteralPath $helperPackagePath -PathType Leaf)) {
+    throw "OsmAnd Atlas helper is missing from the packaged application: $helperPackagePath"
 }
-$packageAssetDirectories = @(
-    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg"),
-    (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg"),
-    (Join-Path $packageResources "resources\rendering_styles\stubs")
-)
-$missingPackageDirectories = @($packageAssetDirectories | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Container) })
-if ($missingPackageDirectories.Count -gt 0) {
-    throw ("OsmAnd package verification failed. Missing asset directories: " + ($missingPackageDirectories -join "; "))
-}
-$packagedStyleCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles") -File -Filter "*.render.xml").Count
-$packagedFontCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\fonts") -File -Filter "*.ttf").Count
-$packagedMapIconCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\style-icons\map-icons-svg") -File -Recurse).Count
-$packagedShaderCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\style-icons\map-shaders-svg") -File -Recurse).Count
-$packagedStubCount = @(Get-ChildItem -LiteralPath (Join-Path $packageResources "resources\rendering_styles\stubs") -File -Recurse).Count
-if ($packagedStyleCount -eq 0 -or $packagedFontCount -eq 0 -or $packagedMapIconCount -eq 0 -or $packagedShaderCount -eq 0 -or $packagedStubCount -eq 0) {
-    throw "OsmAnd package verification failed: styles=$packagedStyleCount, fonts=$packagedFontCount, mapIcons=$packagedMapIconCount, shaders=$packagedShaderCount, stubs=$packagedStubCount."
-}
-Write-Host "OsmAnd packaged runtime verified: styles=$packagedStyleCount, fonts=$packagedFontCount, mapIcons=$packagedMapIconCount, shaders=$packagedShaderCount, stubs=$packagedStubCount" -ForegroundColor Green
 
 # Compare staged helper files with the packaged copy. OsmAnd resources are user-selected external data.
 $stagedRuntimeRoots = @(
-    @{ Name = "helpers"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\helpers"); Target = (Join-Path $packageResources "helpers") },
-    @{ Name = "resources"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\resources"); Target = (Join-Path $packageResources "resources") }
+    @{ Name = "helpers"; Source = (Join-Path $projectDir "tools\osmand-runtime\stage\helpers"); Target = (Join-Path $packageResources "helpers") }
 )
 foreach ($runtimeRoot in $stagedRuntimeRoots) {
     $sourceFiles = @(Get-ChildItem -LiteralPath $runtimeRoot.Source -File -Recurse | ForEach-Object {
