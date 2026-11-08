@@ -425,6 +425,7 @@ interface MapErrorEntry {
       <strong>OsmAnd resources folder</strong>
       <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
       <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+      @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
       <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>map/styles</code> and <code>rendering_styles</code>. Resources are not bundled with LumaScope.</p>
     </div>
     </div>
@@ -750,6 +751,7 @@ export class MapWindow implements OnInit, OnDestroy {
       : 'geofabrik'
   );
   protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
+  protected readonly osmAndResourcesError = signal('');
   protected readonly offlineMapStatusText = computed(() => {
     const status = this.offlineMapStatus();
     if (!status) return 'Checking offline map…';
@@ -1845,12 +1847,20 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const result = await this.desktop.Dialogs.openFolder(this.osmAndResourcesPath() || undefined);
     if (!result.success) return;
-    await Promise.all([this.desktop.OsmAnd.setResourcesPath(result.data), this.desktop.OsmAndAtlas.setResourcesPath(result.data)]);
-    this.osmAndResourcesPath.set(result.data);
-    this.saveSetting('osmandResourcesPath', result.data);
-    this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
-    if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
-      this.refreshOfflineMapRendering();
+    this.osmAndResourcesError.set('');
+    try {
+      await Promise.all([this.desktop.OsmAnd.setResourcesPath(result.data), this.desktop.OsmAndAtlas.setResourcesPath(result.data)]);
+      this.osmAndResourcesPath.set(result.data);
+      this.saveSetting('osmandResourcesPath', result.data);
+      this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
+      if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
+        this.refreshOfflineMapRendering();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.osmAndResourcesError.set(message);
+      this.recordMapError('OsmAnd resources folder', message);
+      console.error('[OsmAnd] Could not set resources folder:', error);
     }
   };
   protected readonly changeMapStyle = (value: string): void => {
