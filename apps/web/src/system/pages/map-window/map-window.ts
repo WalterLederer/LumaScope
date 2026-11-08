@@ -1841,7 +1841,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const result = await this.desktop.Dialogs.openFolder(this.osmAndResourcesPath() || undefined);
     if (!result.success) return;
-    await this.desktop.OsmAndAtlas.setResourcesPath(result.data);
+    await Promise.all([this.desktop.OsmAnd.setResourcesPath(result.data), this.desktop.OsmAndAtlas.setResourcesPath(result.data)]);
     this.osmAndResourcesPath.set(result.data);
     this.saveSetting('osmandResourcesPath', result.data);
     this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
