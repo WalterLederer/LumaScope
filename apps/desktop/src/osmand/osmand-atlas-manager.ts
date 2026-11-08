@@ -154,11 +154,13 @@ class OsmAndAtlasWorker {
     }
     let child: ChildProcessWithoutNullStreams;
     try {
-      const encodePathArgument = (value: string) => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+      // The native Atlas helper opens argv[1] as a JSON file. Pass real
+      // filesystem paths: utf8hex: is not decoded by the helper and makes
+      // QFile treat the encoded string as a non-existent filename.
       child = spawn(this.helperPath, [
-        encodePathArgument(configurationPath),
-        encodePathArgument(this.resourcesPath),
-        encodePathArgument(this.stylePath),
+        configurationPath,
+        this.resourcesPath,
+        this.stylePath,
         String(this.displayScale)
       ], {
       stdio: ['pipe', 'pipe', 'pipe'],
