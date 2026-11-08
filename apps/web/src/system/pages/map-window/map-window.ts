@@ -713,9 +713,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (osmandStyleApi) {
       void (async () => {
         try {
-          // Restore the saved choice in the same renderer that this window uses.
-          // OsmAnd and OsmAnd Atlas have separate main-process managers.
-          await osmandStyleApi.setRenderingStyle(this.osmAndStyle());
+          // Each main-process renderer restores its own style from the central
+          // application settings file. Do not overwrite Atlas with the regular
+          // OsmAnd selection (or vice versa) when this window starts.
           const styles = await osmandStyleApi.getRenderingStyles();
           this.osmAndStyles.set(styles);
           const selectedStyle = styles.find(style => style.selected);
