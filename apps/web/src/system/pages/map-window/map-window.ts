@@ -606,7 +606,7 @@ interface MapErrorEntry {
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
-    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));width:100%;gap:6px 8px}
+    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));width:100%;gap:3px 4px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;box-sizing:border-box}
     .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
     .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
