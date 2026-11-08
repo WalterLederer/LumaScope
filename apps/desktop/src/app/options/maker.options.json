@@ -1,5 +1,6 @@
 {
   "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
+  "electronDist": "./tools/electron-dist-cache.cjs",
   "productName": "LumaScope",
   "electronDist": "node_modules/electron/dist",
   "fileAssociations": [
