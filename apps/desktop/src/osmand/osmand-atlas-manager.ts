@@ -616,7 +616,13 @@ export class OsmAndAtlasManager {
       // entry, otherwise an in-flight render could overwrite the forced result.
       const previousRender = this.pendingTiles.get(cacheFile);
       if (previousRender) await previousRender.catch(() => undefined);
-      metatilePixels = await this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+      const forcedRender = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+      this.pendingTiles.set(cacheFile, forcedRender);
+      try {
+        metatilePixels = await forcedRender;
+      } finally {
+        if (this.pendingTiles.get(cacheFile) === forcedRender) this.pendingTiles.delete(cacheFile);
+      }
     } else if (!metatilePixels) {
       let pending = this.pendingTiles.get(cacheFile);
       if (!pending) {
