@@ -6,9 +6,9 @@ import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
-// OsmAnd Atlas uses 512px source frames for 2x raster density.
+// Benchmark 1024px source frames (4x the pixels of the previous 512px output).
 // The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
-const TILE_SIZE = 512;
+const TILE_SIZE = 1024;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
