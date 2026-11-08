@@ -1,9 +1,10 @@
 import { app, BrowserWindow, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
+import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 // OsmAnd Atlas uses 512px source frames for 2x raster density.
 // The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
@@ -225,7 +226,6 @@ class OsmAndAtlasWorker {
 export class OsmAndAtlasManager {
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
-  private readonly styleSettingsPath = join(app.getPath('userData'), 'osmand-atlas-settings.json');
   private styleFileName = this.readSavedStyleFileName();
   private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
   private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
@@ -250,25 +250,25 @@ export class OsmAndAtlasManager {
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
   }
 
-  private readonly offlineMapSettingsPath = join(app.getPath('userData'), 'offline-map.json');
-
   private readSavedStyleFileName(): string {
-    try {
-      const settings = JSON.parse(readFileSync(this.styleSettingsPath, 'utf8')) as { styleFileName?: unknown };
-      if (typeof settings.styleFileName === 'string'
-        && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(settings.styleFileName)) {
-        return settings.styleFileName;
-      }
-    } catch { /* Use the default style on first launch or invalid settings. */ }
-    return 'default.render.xml';
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
+    let fileName = atlas?.renderingStyle;
+    if (typeof fileName !== 'string') {
+      try {
+        const legacyPath = join(app.getPath('userData'), 'osmand-atlas-settings.json');
+        const legacy = JSON.parse(readFileSync(legacyPath, 'utf8')) as { styleFileName?: unknown };
+        fileName = legacy.styleFileName;
+        if (typeof fileName === 'string') this.persistStyleFileName(fileName);
+      } catch { /* No legacy Atlas style setting. */ }
+    }
+    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)
+      ? fileName : 'default.render.xml';
   }
 
   private persistStyleFileName(fileName: string): void {
-    try {
-      writeFileSync(this.styleSettingsPath, JSON.stringify({ styleFileName: fileName }, null, 2), 'utf8');
-    } catch (error) {
-      console.warn('[OsmAnd Atlas] Could not persist rendering style:', error);
-    }
+    void updateAppSettingsSection('osmand', { atlas: { renderingStyle: fileName } })
+      .catch(error => console.warn('[OsmAnd Atlas] Could not persist rendering style:', error));
   }
 
   private async retireWorkers(): Promise<void> {
@@ -286,7 +286,7 @@ export class OsmAndAtlasManager {
       ].find(candidate => existsSync(candidate))
       || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
     try {
-      const settings = JSON.parse(readFileSync(this.offlineMapSettingsPath, 'utf8')) as {
+      const settings = (readAppSettings().offlineMaps ?? {}) as {
         obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
       };
       const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
