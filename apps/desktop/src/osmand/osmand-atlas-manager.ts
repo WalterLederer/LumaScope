@@ -78,6 +78,7 @@ export interface OsmAndAtlasTileResult {
   stride: number;
   pixels: Uint8Array;
   cacheHit: boolean;
+  diagnostics?: { helperPath: string; geometryEnabled: boolean; nativeRender: boolean; forceRender: boolean; geometryMessages: string[] };
 }
 
 class AtlasOutputReader {
@@ -137,6 +138,7 @@ class OsmAndAtlasWorker {
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
   private stderrMessages: string[] = [];
+  private geometryMessages: string[] = [];
   private renderGeneration = 0;
 
   constructor(
@@ -148,7 +150,7 @@ class OsmAndAtlasWorker {
     private readonly displayScale: number
   ) {}
 
-  render(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+  render(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
     const generation = this.renderGeneration;
     const result = this.queue.then(() => {
@@ -190,7 +192,7 @@ class OsmAndAtlasWorker {
     catch (error) { console.warn('[OsmAnd Atlas] Could not remove helper configuration:', error); }
   }
 
-  private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+  private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     try {
       if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
       await this.ensureStarted();
@@ -254,6 +256,7 @@ class OsmAndAtlasWorker {
     child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
     this.stderrBuffer = '';
     this.stderrMessages = [];
+    this.geometryMessages = [];
     this.reader = new AtlasOutputReader(child.stdout, child, () => this.stderrMessages.slice(-12).join(' | '));
     child.stderr.on('data', chunk => {
       this.stderrBuffer += String(chunk);
@@ -266,6 +269,10 @@ class OsmAndAtlasWorker {
         if (!message) continue;
         this.stderrMessages.push(message);
         if (this.stderrMessages.length > 12) this.stderrMessages.shift();
+        if (message.includes('[OsmAnd Atlas][geometry]')) {
+          this.geometryMessages.push(message);
+          if (this.geometryMessages.length > 32) this.geometryMessages.shift();
+        }
         if (message.startsWith('ATLAS_INIT ')) {
           console.info('[OsmAnd Atlas helper]', message);
         } else if (!/^(INFO|DEBUG):/i.test(message)) {
@@ -280,7 +287,7 @@ class OsmAndAtlasWorker {
     console.info('[OsmAnd Atlas]', 'process_spawn_ms=' + (Date.now() - spawnStartedAt));
   }
 
-  private async renderOnce(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
+  private async renderOnce(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     const requestId = this.nextRequestId;
     this.nextRequestId = (this.nextRequestId + 1) >>> 0;
     if (this.nextRequestId === 0) this.nextRequestId = 1;
@@ -336,7 +343,7 @@ class OsmAndAtlasWorker {
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd Atlas helper returned unexpected RGBA8 frame dimensions or format.');
     }
-    return payload;
+    return { pixels: payload, geometryMessages: this.geometryMessages.splice(0) };
   }
 
   private async withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
@@ -369,7 +376,7 @@ export class OsmAndAtlasManager {
   private scaleChange: Promise<void> = Promise.resolve();
   private workers = this.createWorkers();
   private nextWorker = 0;
-  private readonly pendingTiles = new Map<string, Promise<Buffer>>();
+  private readonly pendingTiles = new Map<string, Promise<{ pixels: Buffer; geometryMessages: string[] }>>();
   private readonly diagnosedTiles = new Set<string>();
   private temporaryFileId = 0;
 
@@ -613,6 +620,7 @@ export class OsmAndAtlasManager {
     );
 
     let metatilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
+    let geometryMessages: string[] = [];
     const cacheHit = metatilePixels !== null;
     if (forceRender) {
       // Wait for an older request for this metatile before replacing its cache
@@ -622,7 +630,9 @@ export class OsmAndAtlasManager {
       const forcedRender = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
       this.pendingTiles.set(cacheFile, forcedRender);
       try {
-        metatilePixels = await forcedRender;
+        const rendered = await forcedRender;
+        metatilePixels = rendered.pixels;
+        geometryMessages = rendered.geometryMessages;
       } finally {
         if (this.pendingTiles.get(cacheFile) === forcedRender) this.pendingTiles.delete(cacheFile);
       }
@@ -635,7 +645,9 @@ export class OsmAndAtlasManager {
           if (this.pendingTiles.get(cacheFile) === pending) this.pendingTiles.delete(cacheFile);
         }).catch(() => undefined);
       }
-      metatilePixels = await pending;
+      const rendered = await pending;
+      metatilePixels = rendered.pixels;
+      geometryMessages = rendered.geometryMessages;
     }
 
     // Diagnose each metatile once per application session. This deliberately
@@ -654,7 +666,17 @@ export class OsmAndAtlasManager {
       });
     }
 
-    return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels), cacheHit };
+    return {
+      width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4,
+      pixels: new Uint8Array(metatilePixels), cacheHit,
+      diagnostics: {
+        helperPath: this.helperPath,
+        geometryEnabled: this.environment.OSMAND_ATLAS_DEBUG_GEOMETRY !== undefined,
+        nativeRender: !cacheHit,
+        forceRender,
+        geometryMessages
+      }
+    };
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
@@ -671,7 +693,7 @@ export class OsmAndAtlasManager {
     await Promise.all(this.workers.map(worker => worker.shutdown()));
   };
 
-  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<Buffer> {
+  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     // The 2x2 metatile centre is one XYZ tile east and south of its NW corner.
     const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
@@ -679,7 +701,8 @@ export class OsmAndAtlasManager {
     if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
     // 512px at the compensated helper zoom yields one MapLibre 512px tile extent.
-    const pixels = await worker.render(longitude, latitude, z - 1);
+    const rendered = await worker.render(longitude, latitude, z - 1);
+    const pixels = rendered.pixels;
 
     await mkdir(dirname(cacheFile), { recursive: true });
     const bgra = Buffer.allocUnsafe(pixels.length);
@@ -702,7 +725,7 @@ export class OsmAndAtlasManager {
       await unlink(temporaryPath).catch(() => undefined);
       throw error;
     }
-    return pixels;
+    return rendered;
   }
 
   private async readCachedTile(path: string): Promise<Buffer | null> {
