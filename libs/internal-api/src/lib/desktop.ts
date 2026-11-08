@@ -338,6 +338,7 @@ export interface OsmAndAtlasRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
   obfPath: string;
+  obfPaths: string[];
   obfAvailable: boolean;
   resourcesPath: string;
   resourcesAvailable: boolean;
