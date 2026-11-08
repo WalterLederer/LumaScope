@@ -81,6 +81,7 @@ class OsmAndAtlasWorker {
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
   private stderrMessages: string[] = [];
+  private renderGeneration = 0;
 
   constructor(
     private readonly helperPath: string,
@@ -93,7 +94,11 @@ class OsmAndAtlasWorker {
 
   render(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
     if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
-    const result = this.queue.then(() => this.renderQueued(longitude, latitude, zoom));
+    const generation = this.renderGeneration;
+    const result = this.queue.then(() => {
+      if (generation !== this.renderGeneration) throw new Error('OsmAnd Atlas tile request was cancelled.');
+      return this.renderQueued(longitude, latitude, zoom);
+    });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
   }
@@ -103,6 +108,11 @@ class OsmAndAtlasWorker {
     // renders finish before shutting down this worker.
     await this.queue;
     this.retired = true;
+    await this.shutdown();
+  }
+
+  async cancelPending(): Promise<void> {
+    this.renderGeneration++;
     await this.shutdown();
   }
 
@@ -542,6 +552,12 @@ export class OsmAndAtlasManager {
       metatilePixels = await pending;
     }
     return { width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4, pixels: new Uint8Array(metatilePixels) };
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
+  readonly cancelRendering = async (): Promise<void> => {
+    this.pendingTiles.clear();
+    await Promise.all(this.workers.map(worker => worker.cancelPending()));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
