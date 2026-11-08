@@ -85,7 +85,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
     const column = Number(columnText);
     const row = Number(rowText);
     const tileCount = 2 ** zoom;
-    if (!Number.isInteger(zoom) || zoom < 2 || zoom > 22
+    if (!Number.isInteger(zoom) || zoom < 2 || zoom > 21
       || !Number.isInteger(column) || !Number.isInteger(row)
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
@@ -94,10 +94,12 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
       const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
-      const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
+      // One MapLibre 512px tile represents a 2x2 group of 256px Atlas XYZ tiles.
+      // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
+      const tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
       if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
-      // Atlas returns a 1024px high-resolution image for the same XYZ
-      // geographic tile extent. MapLibre tileSize remains 256.
+      // Atlas returns one 1024px metatile covering four 256px Atlas tiles.
+      // MapLibre displays it as a single 512px geographic tile.
       if (tile.width !== 1024
         || tile.height !== tile.width
         || tile.stride !== tile.width * 4
@@ -129,9 +131,9 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
       'osmand-atlas': {
         type: 'raster',
         tiles: ['osmand-atlas://{z}/{x}/{y}'],
-        tileSize: 256,
+        tileSize: 512,
         minzoom: 2,
-        maxzoom: 22,
+        maxzoom: 21,
         attribution: '© OpenStreetMap contributors'
       }
     },
