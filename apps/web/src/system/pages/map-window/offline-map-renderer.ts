@@ -105,7 +105,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
   osmAndAtlasDisplayScaleProvider = getDisplayScale;
   if (osmAndAtlasProtocolRegistered) return;
   addProtocol('osmand-atlas', async (request, abortController) => {
-    const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
@@ -1429,6 +1429,63 @@ export class OfflineMapRenderer {
     });
     this.map.setPaintProperty('gpx-track-line', 'line-color', color);
     this.map.setPaintProperty('gpx-track-line', 'line-opacity', opacity);
+  }
+
+  async rerenderVisibleAtlasTiles(
+    renderTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
+    displayScale: number
+  ): Promise<number> {
+    if (this.tileProtocol !== 'osmand-atlas') {
+      throw new Error('Visible tile rerendering is only available for OsmAnd Atlas.');
+    }
+
+    // MapLibre raster sources use the integer zoom level below the current
+    // fractional camera zoom. Calculate the complete viewport coverage in XYZ.
+    const zoom = Math.max(2, Math.min(21, Math.floor(this.map.getZoom())));
+    const tileCount = 2 ** zoom;
+    const bounds = this.map.getBounds();
+    const clampLatitude = (latitude: number): number =>
+      Math.max(-85.05112878, Math.min(85.05112878, latitude));
+    const xForLongitude = (longitude: number): number =>
+      Math.max(0, Math.min(tileCount - 1, Math.floor((longitude + 180) / 360 * tileCount)));
+    const yForLatitude = (latitude: number): number => {
+      const radians = clampLatitude(latitude) * Math.PI / 180;
+      const mercator = Math.asinh(Math.tan(radians));
+      return Math.max(0, Math.min(tileCount - 1,
+        Math.floor((1 - mercator / Math.PI) / 2 * tileCount)));
+    };
+
+    const minX = xForLongitude(bounds.getWest());
+    const maxX = xForLongitude(bounds.getEast() - 1e-10);
+    const minY = yForLatitude(bounds.getNorth());
+    const maxY = yForLatitude(bounds.getSouth());
+    const visibleTiles: Array<{ x: number; y: number }> = [];
+    for (let y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
+      for (let x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
+        visibleTiles.push({ x, y });
+      }
+    }
+    if (!visibleTiles.length) return 0;
+
+    // Each 512px MapLibre tile maps to one 512px Atlas metatile at z+1,
+    // addressed by the north-west 256px XYZ coordinate of its 2x2 group.
+    await Promise.all(visibleTiles.map(({ x, y }) =>
+      renderTile(zoom + 1, x * 2, y * 2, displayScale, true)
+    ));
+
+    // Use a unique URL template so MapLibre discards its in-memory tile
+    // instances and requests the freshly written PNGs from the disk cache.
+    const source = this.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) {
+      throw new Error('The OsmAnd Atlas raster source is unavailable after rerendering.');
+    }
+    source.setTiles([`osmand-atlas://{z}/{x}/{y}?refresh=${Date.now()}`]);
+    console.info('[OsmAnd Atlas] Rerendered visible tiles', {
+      zoom,
+      count: visibleTiles.length,
+      displayScale
+    });
+    return visibleTiles.length;
   }
 
   resize(): void { this.map.resize(); }
