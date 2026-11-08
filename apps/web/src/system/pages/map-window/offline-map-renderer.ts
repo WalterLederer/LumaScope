@@ -14,6 +14,21 @@ let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
+type OsmAndTileProtocol = 'osmand' | 'osmand-atlas';
+type OsmAndTileStatus = 'loading' | 'loaded' | 'error' | 'cancelled';
+interface OsmAndTileStatusEventDetail {
+  protocol: OsmAndTileProtocol;
+  zoom: number;
+  column: number;
+  row: number;
+  status: OsmAndTileStatus;
+  error?: string;
+}
+
+function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
+  window.dispatchEvent(new CustomEvent<OsmAndTileStatusEventDetail>('lumascope-osmand-tile-status', { detail }));
+}
+
 /**
  * MapLibre requests OsmAnd tiles as decoded images. The IPC boundary carries
  * the native RGBA8 bytes; ImageBitmap hands those pixels to MapLibre's normal
@@ -25,19 +40,27 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
     const [, zoom, column, row] = match;
-    const tile = await desktop.OsmAnd.renderTile(Number(zoom), Number(column), Number(row));
-    if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
-    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
-      throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+    const tileCoordinates = { protocol: 'osmand' as const, zoom: Number(zoom), column: Number(column), row: Number(row) };
+    emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
+    try {
+      const tile = await desktop.OsmAnd.renderTile(tileCoordinates.zoom, tileCoordinates.column, tileCoordinates.row);
+      if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
+      if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+        throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+      }
+      const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+      pixels.set(tile.pixels);
+      const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
+      if (abortController.signal.aborted) {
+        bitmap.close();
+        throw new Error('OsmAnd tile request was cancelled.');
+      }
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+      return { data: bitmap };
+    } catch (error) {
+      emitOsmAndTileStatus({ ...tileCoordinates, status: abortController.signal.aborted ? 'cancelled' : 'error', error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
-    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
-    pixels.set(tile.pixels);
-    const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
-    if (abortController.signal.aborted) {
-      bitmap.close();
-      throw new Error('OsmAnd tile request was cancelled.');
-    }
-    return { data: bitmap };
   });
   osmAndProtocolRegistered = true;
 }
@@ -66,25 +89,33 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
     }
-    const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
-    const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
-    if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
-    // Atlas returns a 512px high-resolution image for the same XYZ
-    // geographic tile extent. MapLibre tileSize remains 256.
-    if (tile.width !== 512
-      || tile.height !== tile.width
-      || tile.stride !== tile.width * 4
-      || tile.pixels.byteLength !== tile.width * tile.height * 4) {
-      throw new Error('OsmAnd Atlas returned an invalid RGBA8 frame.');
+    const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column, row };
+    emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
+    try {
+      const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
+      const tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
+      if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
+      // Atlas returns a 512px high-resolution image for the same XYZ
+      // geographic tile extent. MapLibre tileSize remains 256.
+      if (tile.width !== 512
+        || tile.height !== tile.width
+        || tile.stride !== tile.width * 4
+        || tile.pixels.byteLength !== tile.width * tile.height * 4) {
+        throw new Error('OsmAnd Atlas returned an invalid RGBA8 frame.');
+      }
+      const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+      pixels.set(tile.pixels);
+      const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
+      if (abortController.signal.aborted) {
+        bitmap.close();
+        throw new Error('OsmAnd Atlas tile request was cancelled.');
+      }
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+      return { data: bitmap };
+    } catch (error) {
+      emitOsmAndTileStatus({ ...tileCoordinates, status: abortController.signal.aborted ? 'cancelled' : 'error', error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
-    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
-    pixels.set(tile.pixels);
-    const bitmap = await createImageBitmap(new ImageData(pixels, tile.width, tile.height));
-    if (abortController.signal.aborted) {
-      bitmap.close();
-      throw new Error('OsmAnd Atlas tile request was cancelled.');
-    }
-    return { data: bitmap };
   });
   osmAndAtlasProtocolRegistered = true;
 }
@@ -312,6 +343,24 @@ export class OfflineMapRenderer {
   private currentMarkerElement: HTMLElement | null = null;
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
+  private readonly tileProtocol: OsmAndTileProtocol | null;
+  private readonly tileStatusLayer: HTMLDivElement;
+  private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
+  private readonly tileStatusElements = new Map<string, HTMLDivElement>();
+  private readonly onOsmAndTileStatus = (event: Event): void => {
+    if (!this.tileProtocol) return;
+    const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
+    if (!detail || detail.protocol !== this.tileProtocol) return;
+    const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
+    if (detail.status === 'loaded' || detail.status === 'cancelled') {
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+    } else {
+      this.tileStatuses.set(key, detail);
+    }
+    this.updateOsmAndTileStatusPositions();
+  };
   private readonly clusterLabels = new Map<number, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private photoOpacity = 1;
@@ -521,6 +570,14 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
+      ? 'osmand-atlas'
+      : styleOverride?.name === 'LumaScope OsmAnd OBF' ? 'osmand' : null;
+    this.tileStatusLayer = document.createElement('div');
+    this.tileStatusLayer.className = 'osmand-tile-status-layer';
+    this.tileStatusLayer.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:15;';
+    this.map.getContainer().appendChild(this.tileStatusLayer);
+    window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
     // overlay is positioned from MapLibre's current projection on every render,
     // avoiding marker CSS transforms that can drift relative to the tile canvas.
@@ -1050,7 +1107,56 @@ export class OfflineMapRenderer {
       marker.element.style.top = `${point.y}px`;
     }
     this.updatePhotoPreviewPosition();
+    this.updateOsmAndTileStatusPositions();
   };
+
+  private updateOsmAndTileStatusPositions(): void {
+    if (!this.tileProtocol || !this.tileStatusLayer) return;
+    for (const [key, status] of this.tileStatuses) {
+      let element = this.tileStatusElements.get(key);
+      if (!element) {
+        element = document.createElement('div');
+        element.style.cssText = 'position:absolute;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid rgba(255,255,255,.78);background:rgba(12,20,28,.20);';
+        const label = document.createElement('div');
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;max-width:calc(100% - 16px);padding:7px 11px;border:1px solid rgba(255,255,255,.28);border-radius:5px;background:rgba(20,27,34,.90);color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.28);';
+        const spinner = document.createElement('span');
+        spinner.style.cssText = 'width:13px;height:13px;flex:0 0 13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:osmand-tile-spin .8s linear infinite;';
+        const message = document.createElement('span');
+        label.append(spinner, message);
+        element.appendChild(label);
+        this.tileStatusLayer.appendChild(element);
+        this.tileStatusElements.set(key, element);
+      }
+      const count = 2 ** status.zoom;
+      const west = status.column / count * 360 - 180;
+      const east = (status.column + 1) / count * 360 - 180;
+      const latitudeAt = (y: number): number => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / count))) * 180 / Math.PI;
+      const north = latitudeAt(status.row);
+      const south = latitudeAt(status.row + 1);
+      const topLeft = this.map.project([west, north]);
+      const bottomRight = this.map.project([east, south]);
+      element.style.left = `${topLeft.x}px`;
+      element.style.top = `${topLeft.y}px`;
+      element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
+      element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
+      const label = element.firstElementChild as HTMLDivElement;
+      const spinner = label.firstElementChild as HTMLSpanElement;
+      const message = label.lastElementChild as HTMLSpanElement;
+      if (status.status === 'error') {
+        spinner.style.display = 'none';
+        label.style.borderColor = 'rgba(255,125,110,.8)';
+        label.style.background = 'rgba(92,24,20,.94)';
+        message.textContent = 'Kachel konnte nicht berechnet werden';
+        label.title = status.error ?? 'Unbekannter Renderfehler';
+      } else {
+        spinner.style.display = '';
+        label.style.borderColor = 'rgba(255,255,255,.28)';
+        label.style.background = 'rgba(20,27,34,.90)';
+        message.textContent = 'Kachel wird berechnet …';
+        label.title = 'OsmAnd-Kachel wird gerendert';
+      }
+    }
+  }
 
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
     const element = document.createElement('div');
@@ -1190,6 +1296,10 @@ export class OfflineMapRenderer {
   resize(): void { this.map.resize(); }
   remove(): void {
     this.resizeObserver.disconnect();
+    window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    this.tileStatuses.clear();
+    this.tileStatusElements.clear();
+    this.tileStatusLayer.remove();
     this.map.getContainer().removeEventListener('pointerdown', this.onDiagnosticPointerDown, true);
     window.removeEventListener('pointermove', this.onDiagnosticPointerMove, true);
     window.removeEventListener('pointerup', this.onDiagnosticPointerEnd, true);
