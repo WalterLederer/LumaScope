@@ -6,10 +6,12 @@ import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
-// Benchmark 1024px source frames (4x the pixels of the previous 512px output).
-// The geographic XYZ tile extent and MapLibre tileSize stay unchanged.
-const TILE_SIZE = 1024;
-const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
+// Render one 2x2 XYZ metatile at 2048px, then split it into four 1024px
+// raster tiles. Each returned image still covers one XYZ tile; the native
+// renderer sees all four together so labels can cross former tile boundaries.
+const METATILE_SIZE = 2048;
+const TILE_SIZE = METATILE_SIZE / 2;
+const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
 const HELPER_WORKER_COUNT = 4;
@@ -164,8 +166,8 @@ class OsmAndAtlasWorker {
     const command = {
       type: 'render',
       requestId,
-      width: TILE_SIZE,
-      height: TILE_SIZE,
+      width: METATILE_SIZE,
+      height: METATILE_SIZE,
       longitude,
       latitude,
       zoom
@@ -203,7 +205,7 @@ class OsmAndAtlasWorker {
       + ' ms_per_megapixel=' + (megaPixels > 0 ? (elapsedMs / megaPixels).toFixed(2) : 'n/a')
       + ' request_id=' + requestId);
     if (status !== 0) throw new Error(payload.toString('utf8') || 'OsmAnd Atlas rendering failed.');
-    if (width !== TILE_SIZE || height !== TILE_SIZE || stride !== TILE_SIZE * 4
+    if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd Atlas helper returned unexpected RGBA8 frame dimensions or format.');
     }
@@ -416,17 +418,27 @@ export class OsmAndAtlasManager {
       : windowsDisplayScale;
     await this.ensureDisplayScale(displayScale);
 
-    const key = this.obfPath + '/' + displayScale.toFixed(3) + '/' + z + '/' + x + '/' + y;
+    const metatileX = x & ~1;
+    const metatileY = y & ~1;
+    const key = this.obfPath + '/' + displayScale.toFixed(3) + '/' + z + '/' + metatileX + '/' + metatileY;
     let pending = this.pendingTiles.get(key);
     if (!pending) {
-      pending = this.renderAndCacheTile(z, x, y);
+      pending = this.renderAndCacheTile(z, metatileX, metatileY);
       this.pendingTiles.set(key, pending);
       void pending.finally(() => {
         if (this.pendingTiles.get(key) === pending) this.pendingTiles.delete(key);
       }).catch(() => undefined);
     }
-    const pixels = await pending;
-    return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels) };
+    const metatilePixels = await pending;
+    const tileOffsetX = (x - metatileX) * TILE_SIZE;
+    const tileOffsetY = (y - metatileY) * TILE_SIZE;
+    const tilePixels = Buffer.allocUnsafe(TILE_SIZE * TILE_SIZE * 4);
+    const rowBytes = TILE_SIZE * 4;
+    for (let row = 0; row < TILE_SIZE; row++) {
+      const sourceStart = ((tileOffsetY + row) * METATILE_SIZE + tileOffsetX) * 4;
+      metatilePixels.copy(tilePixels, row * rowBytes, sourceStart, sourceStart + rowBytes);
+    }
+    return { width: TILE_SIZE, height: TILE_SIZE, stride: rowBytes, pixels: new Uint8Array(tilePixels) };
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
@@ -434,11 +446,13 @@ export class OsmAndAtlasManager {
     await this.retireWorkers();
   };
 
-  private async renderAndCacheTile(z: number, x: number, y: number): Promise<Buffer> {
-    const longitude = (x + 0.5) / (2 ** z) * 360 - 180;
-    const mercatorY = Math.PI * (1 - 2 * (y + 0.5) / (2 ** z));
+  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number): Promise<Buffer> {
+    // The 2x2 metatile centre is one XYZ tile east and south of its NW corner.
+    const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
+    const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
     const worker = this.workers[this.nextWorker++ % this.workers.length];
-    return worker.render(longitude, latitude, z);
+    // 2048px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
+    return worker.render(longitude, latitude, z - 1);
   }
 }
