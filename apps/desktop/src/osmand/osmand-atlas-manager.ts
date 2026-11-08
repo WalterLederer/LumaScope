@@ -72,7 +72,6 @@ class OsmAndAtlasWorker {
   private nextRequestId = 1;
   private queue: Promise<void> = Promise.resolve();
   private stderrBuffer = '';
-  private configurationDirectory: string | null = null;
 
   constructor(
     private readonly helperPath: string,
@@ -102,24 +101,16 @@ class OsmAndAtlasWorker {
     const child = this.child;
     this.child = null;
     this.reader = null;
-    if (!child || child.exitCode !== null) {
-      this.cleanupConfigurationFile();
-      return;
-    }
+    if (!child || child.exitCode !== null) return;
     try {
       if (child.stdin.writable) child.stdin.write(JSON.stringify({ type: 'quit' }) + '\n');
     } catch { /* The process may already be closing. */ }
     child.kill();
-    this.cleanupConfigurationFile();
   }
 
-  private cleanupConfigurationFile(): void {
-    const directory = this.configurationDirectory;
-    this.configurationDirectory = null;
-    if (directory) {
-      try { rmSync(directory, { recursive: true, force: true }); }
-      catch (error) { console.warn('[OsmAnd Atlas] Could not remove helper configuration:', error); }
-    }
+  private cleanupConfigurationDirectory(directory: string): void {
+    try { rmSync(directory, { recursive: true, force: true }); }
+    catch (error) { console.warn('[OsmAnd Atlas] Could not remove helper configuration:', error); }
   }
 
   private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<Buffer> {
@@ -149,24 +140,29 @@ class OsmAndAtlasWorker {
     try {
       writeFileSync(configurationPath, JSON.stringify(this.obfPaths), 'utf8');
     } catch (error) {
-      rmSync(configurationDirectory, { recursive: true, force: true });
+      this.cleanupConfigurationDirectory(configurationDirectory);
       throw error;
     }
-    this.configurationDirectory = configurationDirectory;
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawn(this.helperPath, [configurationPath, this.resourcesPath, this.stylePath, String(this.displayScale)], {
+      const encodePathArgument = (value: string) => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+      child = spawn(this.helperPath, [
+        encodePathArgument(configurationPath),
+        encodePathArgument(this.resourcesPath),
+        encodePathArgument(this.stylePath),
+        String(this.displayScale)
+      ], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       env: this.environment
       });
     } catch (error) {
-      this.cleanupConfigurationFile();
+      this.cleanupConfigurationDirectory(configurationDirectory);
       throw error;
     }
     this.child = child;
-    child.once('close', () => this.cleanupConfigurationFile());
-    child.once('error', () => this.cleanupConfigurationFile());
+    // Keep this process' configuration alive until Windows has fully closed it.
+    child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
     this.reader = new AtlasOutputReader(child.stdout, child);
     this.stderrBuffer = '';
     child.stderr.on('data', chunk => {
