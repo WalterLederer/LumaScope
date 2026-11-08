@@ -15,7 +15,7 @@ let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
-type OsmAndTileStatus = 'loading' | 'loaded' | 'error' | 'cancelled';
+type OsmAndTileStatus = 'loading' | 'cache-loading' | 'loaded' | 'error' | 'cancelled';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
   sourceId?: string;
@@ -120,6 +120,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
       const tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
       if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
+      if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
       // Atlas returns one 512px frame at the same geographic extent as this
       // MapLibre tile, avoiding the previous 2x supersampled framebuffer.
       if (tile.width !== 512
@@ -1243,8 +1244,12 @@ export class OfflineMapRenderer {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
         label.style.background = 'rgba(20,27,34,.90)';
-        message.textContent = status.protocol === 'maplibre' ? 'Loading tile …' : 'Rendering tile …';
-        label.title = status.protocol === 'maplibre' ? 'Loading map tile' : 'Rendering OsmAnd tile';
+        message.textContent = status.protocol === 'maplibre'
+          ? 'Loading tile …'
+          : status.status === 'cache-loading' ? 'Cache load tile …' : 'Rendering tile …';
+        label.title = status.protocol === 'maplibre'
+          ? 'Loading map tile'
+          : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Rendering OsmAnd tile';
       }
     }
   }
