@@ -363,12 +363,12 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
-      <div class="map-cache-heading">OsmAnd-Kartenkacheln</div>
-      <div class="map-cache-row"><span>Speicherort</span><code>{{ osmAndTileCache().path }}</code></div>
-      <div class="map-cache-row"><span>PNG-Kacheln</span><strong>{{ osmAndTileCache().entries.toLocaleString() }}</strong></div>
-      <div class="map-cache-row"><span>Belegter Speicher</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
+      <div class="map-cache-heading">OsmAnd map tiles</div>
+      <div class="map-cache-row"><span>Location</span><code>{{ osmAndTileCache().path }}</code></div>
+      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString() }}</strong></div>
+      <div class="map-cache-row"><span>Storage used</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
       <div class="map-cache-actions">
-        <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistenter Cache' : 'Cache wird beim ersten Rendern angelegt' }}</span>
+        <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
         <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
       </div>
     </div>
@@ -378,11 +378,11 @@ interface MapErrorEntry {
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
       <div class="map-cache-heading">Process memory</div>
-      <div class="map-cache-row"><span>Gesamt (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
-      <div class="map-cache-row"><span>Aktualisiert</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
+      <div class="map-cache-row"><span>Total (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
+      <div class="map-cache-row"><span>Last updated</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
       <table class="offline-maps-table memory-process-table">
         <colgroup><col style="width:42%"><col style="width:14%"><col style="width:24%"><col style="width:20%"></colgroup>
-        <thead><tr><th>Prozess</th><th>PID</th><th>Working Set</th><th>Privat</th></tr></thead>
+        <thead><tr><th>Process</th><th>PID</th><th>Working Set</th><th>Private</th></tr></thead>
         <tbody>
           @for (entry of processMemory().processes; track entry.pid) {
             <tr>
@@ -395,13 +395,13 @@ interface MapErrorEntry {
         </tbody>
       </table>
       @if (processMemory().processes.length === 1) {
-        <span class="offline-map-status">Derzeit sind keine OsmAnd-Helper-Prozesse gestartet.</span>
+        <span class="offline-map-status">No OsmAnd helper processes are currently running.</span>
       }
       @if (processMemory().error) {
-        <span class="offline-map-import-error">Helper-Speicher konnte nicht vollständig gelesen werden: {{ processMemory().error }}</span>
+        <span class="offline-map-import-error">Could not read complete helper memory data: {{ processMemory().error }}</span>
       }
       <div class="map-cache-actions">
-        <span class="offline-map-status">Automatische Aktualisierung alle 2 Sekunden, solange Memory geöffnet ist</span>
+        <span class="offline-map-status">Automatically refreshes every 2 seconds while the Memory tab is open</span>
         <button type="button" (click)="refreshProcessMemory()">Refresh</button>
       </div>
     </div>
