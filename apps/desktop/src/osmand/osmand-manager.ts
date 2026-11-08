@@ -247,7 +247,7 @@ export class OsmAndManager {
   private readSavedStyleFileName(): string {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
     const fileName = osmand?.renderingStyle;
-    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)
+    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)
       ? fileName : 'default.render.xml';
   }
 
