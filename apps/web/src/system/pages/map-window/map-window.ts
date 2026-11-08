@@ -280,7 +280,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
         <span class="range-value">{{ overlayOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
-        <label for="map-label-opacity">Labels</label>
+        <label class="visibility-toggle"><input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() !== 'offline'" aria-label="Show labels"> Labels</label>
         <input id="map-label-opacity" type="range" min="0" max="100" step="1"
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
@@ -687,6 +687,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
+  protected readonly labelsVisible = signal(this.readSetting('labelsVisible', 'true') === 'true');
   protected readonly atlasDisplayDensityFactor = signal(this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
@@ -1793,12 +1794,17 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
   };
+  protected readonly changeLabelsVisibility = (visible: boolean): void => {
+    this.labelsVisible.set(visible);
+    this.saveSetting('labelsVisible', visible);
+    this.offlineRenderer?.setTextLabelOpacity(visible ? this.labelOpacity() / 100 : 0);
+  };
   protected readonly changeLabelOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.labelOpacity.set(next);
     this.saveSetting('labelOpacity', next);
-    this.offlineRenderer?.setTextLabelOpacity(next / 100);
+    this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? next / 100 : 0);
   };
   protected readonly previewAtlasDisplayDensity = (value: string | number): void => {
     const density = Number(value);
