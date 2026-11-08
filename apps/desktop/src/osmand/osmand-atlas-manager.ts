@@ -15,7 +15,7 @@ const METATILE_SIZE = 1024;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 4;
+const HELPER_WORKER_COUNT = 1;
 
 export interface OsmAndAtlasTileResult {
   width: number;
@@ -140,7 +140,7 @@ class OsmAndAtlasWorker {
     for (const path of this.obfPaths) {
       if (!existsSync(path)) throw new Error('OsmAnd OBF map not found: ' + path);
     }
-    if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an external OsmAnd resources folder first.');
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const spawnStartedAt = Date.now();
@@ -154,13 +154,14 @@ class OsmAndAtlasWorker {
     }
     let child: ChildProcessWithoutNullStreams;
     try {
-      // The native Atlas helper opens argv[1] as a JSON file. Pass real
-      // filesystem paths: utf8hex: is not decoded by the helper and makes
-      // QFile treat the encoded string as a non-existent filename.
+      // atlas_render_helper.cpp decodes utf8hex: arguments explicitly. Use it
+      // for all paths so Unicode folder names survive Windows argv conversion.
+      const encodePathArgument = (value: string): string =>
+        'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
       child = spawn(this.helperPath, [
-        configurationPath,
-        this.resourcesPath,
-        this.stylePath,
+        encodePathArgument(configurationPath),
+        encodePathArgument(this.resourcesPath),
+        encodePathArgument(this.stylePath),
         String(this.displayScale)
       ], {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -276,9 +277,9 @@ export class OsmAndAtlasManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
-  private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
+  private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = this.readSavedStyleFileName();
-  private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
+  private stylePath = this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths: string[] = this.getFallbackObfPaths();
   private obfRefresh: Promise<void> = Promise.resolve();
   private readonly environment: NodeJS.ProcessEnv = {
@@ -294,6 +295,12 @@ export class OsmAndAtlasManager {
 
   constructor() {
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private readSavedResourcesPath(): string {
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
+    return typeof atlas?.resourcesPath === 'string' ? atlas.resourcesPath : '';
   }
 
   private readSavedStyleFileName(): string {
@@ -388,8 +395,32 @@ export class OsmAndAtlasManager {
     return update;
   }
 
+  @IpcHandler({ name: 'OsmAndAtlas.setResourcesPath' })
+  readonly setResourcesPath = async (_event: Electron.IpcMainInvokeEvent, resourcesPath: string) => {
+    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) throw new Error('Select a valid OsmAnd resources folder.');
+    const resolvedPath = resourcesPath.trim();
+    if (!existsSync(join(resolvedPath, 'map', 'styles', 'default.render.xml'))
+      || !existsSync(join(resolvedPath, 'rendering_styles'))) {
+      throw new Error('The selected folder must contain map/styles/default.render.xml and rendering_styles.');
+    }
+    await this.retireWorkers();
+    this.resourcesPath = resolvedPath;
+    const entries = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
+    const styles = entries.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
+      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
+      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
+    if (!styles.includes(this.styleFileName)) this.styleFileName = styles.includes('default.render.xml') ? 'default.render.xml' : (styles.sort()[0] ?? 'default.render.xml');
+    this.stylePath = join(resolvedPath, 'rendering_styles', this.styleFileName);
+    await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath, renderingStyle: this.styleFileName } });
+    this.pendingTiles.clear();
+    this.workers = this.createWorkers();
+    this.nextWorker = 0;
+    return this.getRuntimeStatus();
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.getRenderingStyles' })
   readonly getRenderingStyles = async () => {
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) return [];
     const styleDirectory = join(this.resourcesPath, 'rendering_styles');
     if (!existsSync(styleDirectory)) return [];
     const entries = await readdir(styleDirectory, { withFileTypes: true });
@@ -449,7 +480,7 @@ export class OsmAndAtlasManager {
     obfPaths: [...this.obfPaths],
     obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
     resourcesPath: this.resourcesPath,
-    resourcesAvailable: existsSync(this.resourcesPath),
+    resourcesAvailable: !!this.resourcesPath && existsSync(this.resourcesPath),
     stylePath: this.stylePath,
     styleAvailable: existsSync(this.stylePath)
     });
