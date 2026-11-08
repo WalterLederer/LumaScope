@@ -111,8 +111,10 @@ class OsmAndAtlasWorker {
   }
 
   async cancelPending(): Promise<void> {
+    // Invalidate requests that are still queued, but let the active frame finish.
+    // Killing the helper here caused SIGTERM errors on ordinary zoom changes and
+    // forced the next tile to recreate the OpenGL context.
     this.renderGeneration++;
-    await this.shutdown();
   }
 
   async shutdown(): Promise<void> {
