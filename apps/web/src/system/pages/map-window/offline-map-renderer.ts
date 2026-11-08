@@ -1491,9 +1491,24 @@ export class OfflineMapRenderer {
 
     if (this.tileProtocol === 'osmand-atlas') {
       // One MapLibre tile maps to one 512px Atlas metatile.
-      await Promise.all(visibleTiles.map(({ x, y }) =>
+      const forcedResults = await Promise.all(visibleTiles.map(({ x, y }) =>
         renderAtlasTile(zoom + 1, x * 2, y * 2, displayScale, true)
       ));
+      console.info('[osmand-atlas] Forced render diagnostics', forcedResults.map((result, index) => {
+        const tileResult = result as {
+          diagnostics?: {
+            helperPath?: string;
+            geometryEnabled?: boolean;
+            nativeRender?: boolean;
+            forceRender?: boolean;
+            geometryMessages?: string[];
+          };
+        };
+        return {
+          tile: visibleTiles[index],
+          ...(tileResult?.diagnostics ?? { diagnosticsMissing: true })
+        };
+      }));
     } else {
       // One MapLibre tile is composed from four native 256px OsmAnd tiles.
       const nativeTiles: Array<{ x: number; y: number }> = [];
