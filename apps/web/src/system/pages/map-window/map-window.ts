@@ -1856,8 +1856,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
-    const isWorldBasemap = map.type === 'obf' && /^World_basemap\.obf$/i.test(map.fileName || map.name);
-    if (!map.enabled && !(isWorldBasemap && this.offlineMapPreset() !== 'custom-no-world-map')) return false;
+    if (!map.enabled) return false;
     if (map.type === 'obf') {
       return (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
         && this.obfMapMatchesPreset(map);
