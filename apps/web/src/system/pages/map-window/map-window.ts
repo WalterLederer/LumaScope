@@ -312,6 +312,14 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection">
+                <label class="offline-map-preset-control">OBF preset:
+                  <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
+                    <option value="austria">Austria</option>
+                    <option value="europe">Europe</option>
+                    <option value="all">All</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </label>
                 <button type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
@@ -657,6 +665,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom'>(
+    (['austria', 'europe', 'all', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'austria') as 'austria' | 'europe' | 'all' | 'custom')
+      ? this.readSetting('offlineMapPreset', 'austria') as 'austria' | 'europe' | 'all' | 'custom'
+      : 'austria'
+  );
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
   protected readonly memoryUpdatedAt = signal('');
@@ -1610,6 +1623,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
+    if (this.offlineMapPreset() !== 'custom') {
+      this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(result.maps, this.offlineMapPreset()));
+    }
     if (result.maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() !== 'offline') this.changeMapSource('offline');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
@@ -1651,8 +1667,47 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(timestamp) || timestamp <= 0) return '—';
     return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
   };
+  protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
+    if (value !== 'austria' && value !== 'europe' && value !== 'all' && value !== 'custom') return;
+    this.offlineMapPreset.set(value);
+    this.saveSetting('offlineMapPreset', value);
+    if (value === 'custom' || !this.desktop) return;
+    this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(this.offlineMaps(), value));
+    this.refreshOfflineMapRendering();
+  };
+
+  private async applyOfflineMapPresetToMaps(
+    maps: import('internal-api').OfflineMapStatus[],
+    preset: 'austria' | 'europe' | 'all'
+  ): Promise<import('internal-api').OfflineMapStatus[]> {
+    if (!this.desktop) return maps;
+    let current = maps;
+    for (const map of maps) {
+      if (map.type !== 'obf') continue;
+      const fileName = map.fileName || map.name;
+      const isAustria = /austria|österreich|osterreich/i.test(fileName);
+      const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
+      const enabled = preset === 'all' || (preset === 'austria' ? isAustria : isEurope);
+      if (map.enabled !== enabled) current = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
+    }
+    return current;
+  }
+
+  private refreshOfflineMapRendering(): void {
+    if (this.currentLatitude !== null && this.currentLongitude !== null
+      && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+      this.mapSourceGeneration++; this.mapInitialization = null;
+      this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.currentOfflineMapId = null;
+      void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  }
+
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
+    this.offlineMapPreset.set('custom');
+    this.saveSetting('offlineMapPreset', 'custom');
     this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(id, enabled));
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
