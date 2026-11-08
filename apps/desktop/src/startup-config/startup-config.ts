@@ -1,7 +1,7 @@
 import { appConfigName } from 'internal-api';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { writeJsonAtomically } from '../file-system/json-file';
+import { updateAppSettingsSection } from '../settings/app-settings';
 
 export class StartupConfig {
   private _bounds: Electron.Rectangle | null = null;
@@ -25,44 +25,15 @@ export class StartupConfig {
 
   readonly saveDevToolsOpen = async (open: boolean) => {
     this._devToolsOpen = open;
-    const config = this.load();
-    if (!(config instanceof Object)) {
-      return;
-    }
-
-    if (!(config['system'] instanceof Object)) {
-      config['system'] = {};
-    }
-    config['system'].devToolsOpen = open;
-    await this.save(config);
+    await updateAppSettingsSection('system', { devToolsOpen: open });
   };
 
   readonly configPath = () => join(this.app.getPath('userData'), appConfigName);
 
   readonly saveBounds = async (bounds: Electron.Rectangle) => {
-    const config = this.load();
-
-    // That should never be the case when the app is functioning correctly.
-    // If it was closed before a config file was created,
-    // then we should not mess with it anyway.
-    if (!(config instanceof Object)) {
-      return;
-    }
-
-    const system = config['system'];
-
-    if (!(system instanceof Object)) {
-      config['system'] = {};
-    }
-
-    config['system'].bounds = {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height
-    };
-
-    await this.save(config);
+    await updateAppSettingsSection('system', {
+      bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }
+    });
   };
 
   readonly saveMapBounds = async (bounds: Electron.Rectangle) => this.saveAuxiliaryBounds('mapBounds', bounds);
@@ -70,11 +41,9 @@ export class StartupConfig {
   readonly saveCapturePreviewBounds = async (bounds: Electron.Rectangle) => this.saveAuxiliaryBounds('capturePreviewBounds', bounds);
 
   private readonly saveAuxiliaryBounds = async (key: 'mapBounds' | 'capturePreviewBounds', bounds: Electron.Rectangle) => {
-    const config = this.load();
-    if (!(config instanceof Object)) return;
-    if (!(config['system'] instanceof Object)) config['system'] = {};
-    config['system'][key] = { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
-    await this.save(config);
+    await updateAppSettingsSection('system', {
+      [key]: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height }
+    });
   };
 
   private readonly init = () => {
@@ -139,13 +108,5 @@ export class StartupConfig {
     }
   };
 
-  private readonly save = async (data: unknown) => {
-    try {
-      const configPath = this.configPath();
-      await writeJsonAtomically(configPath, data);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
+
 }
