@@ -334,6 +334,8 @@ interface MapErrorEntry {
                   </select>
                 </label>
                 <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
+                <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="offlineMaps().length === 0">Activate all</button>
+                <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="offlineMaps().length === 0">Deactivate all</button>
                 <label class="offline-map-list-filter">List:
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
@@ -1883,6 +1885,22 @@ export class MapWindow implements OnInit, OnDestroy {
       this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly setAllOfflineMapsEnabled = async (enabled: boolean): Promise<void> => {
+    if (!this.desktop || this.offlineMaps().length === 0) return;
+    try {
+      this.offlineMaps.set(await this.desktop.OfflineMap.setAllEnabled(enabled));
+      if (this.currentLatitude !== null && this.currentLongitude !== null
+        && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+        this.mapSourceGeneration++; this.mapInitialization = null;
+        this.offlineRenderer?.remove(); this.offlineRenderer = null;
+        this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+        this.currentOfflineMapId = null;
+        void this.initialize(this.currentLatitude, this.currentLongitude);
+      }
+    } catch (error) {
+      console.error('[OfflineMap] Could not update Active state for all loaded maps:', error);
     }
   };
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
