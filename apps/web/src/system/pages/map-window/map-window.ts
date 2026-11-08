@@ -383,6 +383,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
       </div>
     </div>
   </div>
+</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
   <div class="settings-tab-content">
     <div class="mbtiles-selection mbtiles-download-controls">
