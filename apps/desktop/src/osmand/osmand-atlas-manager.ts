@@ -550,7 +550,7 @@ export class OsmAndAtlasManager {
     const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
-    if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
+    if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
     // 1024px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
     const pixels = await worker.render(longitude, latitude, z - 1);
