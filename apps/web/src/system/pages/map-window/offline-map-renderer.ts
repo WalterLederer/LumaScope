@@ -38,7 +38,7 @@ function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
 export function registerOsmAndTileProtocol(desktop: Desktop): void {
   if (osmAndProtocolRegistered) return;
   addProtocol('osmand', async (request, abortController) => {
-    const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
@@ -1431,17 +1431,19 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('gpx-track-line', 'line-opacity', opacity);
   }
 
-  async rerenderVisibleAtlasTiles(
-    renderTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
+  async rerenderVisibleTiles(
+    renderOsmAndTile: (z: number, x: number, y: number, forceRender: boolean) => Promise<unknown>,
+    renderAtlasTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
     displayScale: number
   ): Promise<number> {
-    if (this.tileProtocol !== 'osmand-atlas') {
-      throw new Error('Visible tile rerendering is only available for OsmAnd Atlas.');
+    if (this.tileProtocol !== 'osmand' && this.tileProtocol !== 'osmand-atlas') {
+      throw new Error('Visible tile rerendering is only available for OsmAnd renderers.');
     }
 
     // MapLibre raster sources use the integer zoom level below the current
     // fractional camera zoom. Calculate the complete viewport coverage in XYZ.
-    const zoom = Math.max(2, Math.min(21, Math.floor(this.map.getZoom())));
+    const zoom = Math.max(2, Math.min(this.tileProtocol === 'osmand-atlas' ? 21 : 18,
+      Math.floor(this.map.getZoom())));
     const tileCount = 2 ** zoom;
     const bounds = this.map.getBounds();
     const clampLatitude = (latitude: number): number =>
@@ -1467,23 +1469,42 @@ export class OfflineMapRenderer {
     }
     if (!visibleTiles.length) return 0;
 
-    // Each 512px MapLibre tile maps to one 512px Atlas metatile at z+1,
-    // addressed by the north-west 256px XYZ coordinate of its 2x2 group.
-    await Promise.all(visibleTiles.map(({ x, y }) =>
-      renderTile(zoom + 1, x * 2, y * 2, displayScale, true)
-    ));
-
-    // Use a unique URL template so MapLibre discards its in-memory tile
-    // instances and requests the freshly written PNGs from the disk cache.
-    const source = this.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-    if (!source?.setTiles) {
-      throw new Error('The OsmAnd Atlas raster source is unavailable after rerendering.');
+    if (this.tileProtocol === 'osmand-atlas') {
+      // One MapLibre tile maps to one 512px Atlas metatile.
+      await Promise.all(visibleTiles.map(({ x, y }) =>
+        renderAtlasTile(zoom + 1, x * 2, y * 2, displayScale, true)
+      ));
+    } else {
+      // One MapLibre tile is composed from four native 256px OsmAnd tiles.
+      const nativeTiles: Array<{ x: number; y: number }> = [];
+      for (const { x, y } of visibleTiles) {
+        const nativeX = x * 2;
+        const nativeY = y * 2;
+        nativeTiles.push(
+          { x: nativeX, y: nativeY },
+          { x: nativeX + 1, y: nativeY },
+          { x: nativeX, y: nativeY + 1 },
+          { x: nativeX + 1, y: nativeY + 1 }
+        );
+      }
+      await Promise.all(nativeTiles.map(({ x, y }) =>
+        renderOsmAndTile(zoom + 1, x, y, true)
+      ));
     }
-    source.setTiles([`osmand-atlas://{z}/{x}/{y}?refresh=${Date.now()}`]);
-    console.info('[OsmAnd Atlas] Rerendered visible tiles', {
+
+    const sourceId = this.tileProtocol === 'osmand-atlas' ? 'osmand-atlas' : 'osmand';
+    const protocol = this.tileProtocol;
+    const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) {
+      throw new Error(`The ${protocol} raster source is unavailable after rerendering.`);
+    }
+    // Change the template to discard MapLibre's in-memory tile instances.
+    source.setTiles([`${protocol}://{z}/{x}/{y}?refresh=${Date.now()}`]);
+    console.info(`[${protocol}] Rerendered visible tiles`, {
       zoom,
       count: visibleTiles.length,
-      displayScale
+      nativeTileCount: this.tileProtocol === 'osmand' ? visibleTiles.length * 4 : visibleTiles.length,
+      displayScale: this.tileProtocol === 'osmand-atlas' ? displayScale : undefined
     });
     return visibleTiles.length;
   }
