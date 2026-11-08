@@ -1624,8 +1624,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
-    if (this.offlineMapPreset() !== 'custom') {
-      this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(result.maps, this.offlineMapPreset()));
+    const preset = this.offlineMapPreset();
+    if (preset !== 'custom') {
+      this.offlineMaps.set(await this.applyOfflineMapPresetToMaps(result.maps, preset));
     }
     if (result.maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() !== 'offline') this.changeMapSource('offline');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
