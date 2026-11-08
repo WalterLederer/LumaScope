@@ -1081,6 +1081,9 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private recordMapError(source: string, message: string): void {
+    // MapLibre aborts obsolete tile requests during zoom/source changes. These
+    // are expected lifecycle cancellations, not renderer failures.
+    if (/\b(cancelled|canceled)\b/i.test(message)) return;
     const now = Date.now();
     const timestamp = new Date(now).toLocaleString();
     this.mapErrors.update(errors => {
