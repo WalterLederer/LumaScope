@@ -138,7 +138,9 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
       return { data: bitmap };
     } catch (error) {
-      emitOsmAndTileStatus({ ...tileCoordinates, status: abortController.signal.aborted ? 'cancelled' : 'error', error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      const cancelled = abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message);
+      emitOsmAndTileStatus({ ...tileCoordinates, status: cancelled ? 'cancelled' : 'error', error: message });
       throw error;
     }
   });
