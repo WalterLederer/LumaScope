@@ -23,7 +23,7 @@ export class OfflineMapManager {
   this.lastDirectory=dirname(result.filePaths[0]);
   const errors:string[]=[];
   for(const filePath of result.filePaths){try{if(extname(filePath).toLowerCase()==='.obf')this.openObfFile(filePath);else this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
-  this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some MBTiles files could not be added:',errors);
+  await this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
   return {maps:await this.getMaps(),errors};
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
@@ -32,20 +32,20 @@ export class OfflineMapManager {
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   const item=this.opened.get(id); const obf=this.obfFiles.get(id);
   if(obf&&typeof enabled==='boolean'){
-   if(enabled)for(const [otherId,other] of this.obfFiles){if(otherId!==id){other.enabled=false;this.enabledByPath.set(otherId,false);}}
-   obf.enabled=enabled;this.enabledByPath.set(id,enabled);this.persistMaps();
+   // OBF regions are independent and may be active together.
+   obf.enabled=enabled;this.enabledByPath.set(id,enabled);await this.persistMaps();
   }
   if(item&&typeof enabled==='boolean'){
    item.status.enabled=enabled;
    this.enabledByPath.set(id,enabled);
    if(!enabled&&this.activeId===id)this.activeId=null;
-   this.persistMaps();
+   await this.persistMaps();
   }
   return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
-  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||item)this.persistMaps(); return this.getMaps();
+  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||item)await this.persistMaps(); return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.getStatus'})
  readonly getStatus=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus>=>{const item=this.activeId?this.opened.get(this.activeId):null;return item?{...item.status}:{...EMPTY_STATUS};};

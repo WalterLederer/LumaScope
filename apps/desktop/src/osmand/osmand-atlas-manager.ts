@@ -73,7 +73,7 @@ class OsmAndAtlasWorker {
 
   constructor(
     private readonly helperPath: string,
-    private readonly obfPath: string,
+    private readonly obfPaths: string[],
     private readonly resourcesPath: string,
     private readonly stylePath: string,
     private readonly environment: NodeJS.ProcessEnv,
@@ -88,8 +88,10 @@ class OsmAndAtlasWorker {
   }
 
   async retire(): Promise<void> {
-    this.retired = true;
+    // The manager stops assigning new work before calling retire(). Let queued
+    // renders finish before shutting down this worker.
     await this.queue;
+    this.retired = true;
     await this.shutdown();
   }
 
@@ -118,12 +120,15 @@ class OsmAndAtlasWorker {
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas render helper not found: ' + this.helperPath);
-    if (!existsSync(this.obfPath)) throw new Error('OsmAnd OBF map not found: ' + this.obfPath);
+    if (!this.obfPaths.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
+    for (const path of this.obfPaths) {
+      if (!existsSync(path)) throw new Error('OsmAnd OBF map not found: ' + path);
+    }
     if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const spawnStartedAt = Date.now();
-    const child = spawn(this.helperPath, [this.obfPath, this.resourcesPath, this.stylePath, String(this.displayScale)], {
+    const child = spawn(this.helperPath, [JSON.stringify(this.obfPaths), this.resourcesPath, this.stylePath, String(this.displayScale)], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       env: this.environment
@@ -229,14 +234,8 @@ export class OsmAndAtlasManager {
   private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
   private styleFileName = this.readSavedStyleFileName();
   private stylePath = join(this.resourcesPath, 'rendering_styles', this.styleFileName);
-  private obfPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
-    || process.env.IPHOTO_OSMAND_OBF_PATH
-    || [
-      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
-      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
-      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
-    ].find(candidate => existsSync(candidate))
-    || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
+  private obfPaths: string[] = this.getFallbackObfPaths();
+  private obfRefresh: Promise<void> = Promise.resolve();
   private readonly environment: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: [dirname(this.helperPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
@@ -274,42 +273,60 @@ export class OsmAndAtlasManager {
       .catch(error => console.warn('[OsmAnd Atlas] Could not persist rendering style:', error));
   }
 
+  private getFallbackObfPaths(): string[] {
+    const configured = process.env.LUMASCOPE_OSMAND_OBF_PATH || process.env.IPHOTO_OSMAND_OBF_PATH;
+    if (configured) return [configured];
+    const fallback = [
+      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+    ].find(candidate => existsSync(candidate));
+    return fallback ? [fallback] : [];
+  }
+
   private async retireWorkers(): Promise<void> {
     const previousWorkers = this.workers;
+    this.workers = [];
+    this.nextWorker = 0;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+  }
+
+  private async replaceWorkers(): Promise<void> {
+    const previousWorkers = this.workers;
+    // Publish the replacement first. Existing requests retain their worker
+    // references and finish before the old helper processes are stopped.
+    this.workers = this.createWorkers();
+    this.nextWorker = 0;
+    this.pendingTiles.clear();
     await Promise.all(previousWorkers.map(worker => worker.retire()));
   }
 
   private async refreshSelectedObf(): Promise<void> {
-    let selectedPath = process.env.LUMASCOPE_OSMAND_OBF_PATH
-      || process.env.IPHOTO_OSMAND_OBF_PATH
-      || [
-        join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
-        join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
-        join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
-      ].find(candidate => existsSync(candidate))
-      || join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf');
-    try {
-      const settings = (readAppSettings().offlineMaps ?? {}) as {
-        obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
-      };
-      const paths = Array.isArray(settings.obfPaths) ? settings.obfPaths.filter((value): value is string => typeof value === 'string') : [];
-      if (paths.length > 0) {
-        selectedPath = paths.find(path => settings.enabledByPath?.[path] !== false && existsSync(path)) || '';
-      }
-    } catch { /* Keep the configured fallback OBF map. */ }
-    if (selectedPath === this.obfPath) return;
-    await this.retireWorkers();
-    this.obfPath = selectedPath;
-    this.pendingTiles.clear();
-    this.nextWorker = 0;
-    this.workers = this.createWorkers();
-    console.info('[OsmAnd]', 'active_obf=' + selectedPath);
+    const update = this.obfRefresh.then(async () => {
+      let selectedPaths = this.getFallbackObfPaths();
+      try {
+        const settings = (readAppSettings().offlineMaps ?? {}) as {
+          obfPaths?: unknown; enabledByPath?: Record<string, unknown>;
+        };
+        if (Array.isArray(settings.obfPaths)) {
+          const paths = settings.obfPaths.filter((value): value is string => typeof value === 'string');
+          selectedPaths = paths.filter(path => settings.enabledByPath?.[path] !== false && existsSync(path));
+        }
+      } catch { /* Keep configured fallback OBF maps. */ }
+      if (selectedPaths.length === this.obfPaths.length
+        && selectedPaths.every((path, index) => path === this.obfPaths[index])) return;
+      this.obfPaths = selectedPaths;
+      await this.replaceWorkers();
+      console.info('[OsmAnd]', 'active_obfs=' + selectedPaths.join(';'));
+    });
+    this.obfRefresh = update.catch(() => undefined);
+    return update;
   }
 
   private createWorkers(): OsmAndAtlasWorker[] {
     return Array.from({ length: HELPER_WORKER_COUNT }, () =>
       new OsmAndAtlasWorker(
-        this.helperPath, this.obfPath, this.resourcesPath, this.stylePath, this.environment, this.displayScale
+        this.helperPath, this.obfPaths, this.resourcesPath, this.stylePath, this.environment, this.displayScale
       )
     );
   }
@@ -317,11 +334,8 @@ export class OsmAndAtlasManager {
   private ensureDisplayScale(displayScale: number): Promise<void> {
     const update = this.scaleChange.then(async () => {
       if (Math.abs(this.displayScale - displayScale) < 0.001) return;
-      await this.retireWorkers();
       this.displayScale = displayScale;
-      this.pendingTiles.clear();
-      this.nextWorker = 0;
-      this.workers = this.createWorkers();
+      await this.replaceWorkers();
       console.info('[OsmAnd Atlas]', 'display_scale=' + displayScale);
     });
     this.scaleChange = update.catch(() => undefined);
@@ -345,12 +359,10 @@ export class OsmAndAtlasManager {
       : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
     if (!selectedFileName) return [];
     if (selectedFileName !== this.styleFileName) {
-      await this.retireWorkers();
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
       this.persistStyleFileName(selectedFileName);
-      this.pendingTiles.clear();
-      this.workers = this.createWorkers();
+      await this.replaceWorkers();
     }
     return fileNames.map(fileName => {
       const baseName = fileName.slice(0, -'.render.xml'.length);
@@ -373,12 +385,10 @@ export class OsmAndAtlasManager {
       throw new Error('No OsmAnd rendering styles are installed in: ' + join(this.resourcesPath, 'rendering_styles'));
     }
     if (resolvedFileName !== this.styleFileName) {
-      await this.retireWorkers();
       this.styleFileName = resolvedFileName;
       this.stylePath = join(this.resourcesPath, 'rendering_styles', resolvedFileName);
       this.persistStyleFileName(resolvedFileName);
-      this.pendingTiles.clear();
-      this.workers = this.createWorkers();
+      await this.replaceWorkers();
     }
     return this.getRuntimeStatus();
   };
@@ -389,8 +399,9 @@ export class OsmAndAtlasManager {
     return ({
     helperPath: this.helperPath,
     helperAvailable: existsSync(this.helperPath),
-    obfPath: this.obfPath,
-    obfAvailable: existsSync(this.obfPath),
+    obfPath: this.obfPaths.join('; '),
+    obfPaths: [...this.obfPaths],
+    obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
     resourcesPath: this.resourcesPath,
     resourcesAvailable: existsSync(this.resourcesPath),
     stylePath: this.stylePath,
@@ -419,7 +430,8 @@ export class OsmAndAtlasManager {
 
     const metatileX = x & ~1;
     const metatileY = y & ~1;
-    const key = this.obfPath + '/' + displayScale.toFixed(3) + '/' + z + '/' + metatileX + '/' + metatileY;
+    if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
+    const key = this.obfPaths.join('|') + '/' + displayScale.toFixed(3) + '/' + z + '/' + metatileX + '/' + metatileY;
     let pending = this.pendingTiles.get(key);
     if (!pending) {
       pending = this.renderAndCacheTile(z, metatileX, metatileY);
@@ -442,6 +454,7 @@ export class OsmAndAtlasManager {
     const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
+    if (!this.workers.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
     // 1024px at helper zoom z-1 yields a geographic span of exactly 2x2 XYZ tiles.
     return worker.render(longitude, latitude, z - 1);
