@@ -1,45 +1,37 @@
 import { app, IpcMainInvokeEvent, shell } from 'electron';
 import { SystemPathMapping } from 'internal-api';
 import { stat } from 'node:fs/promises';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import App from '../app/app';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { environment } from '../environments/environment';
+import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 export class ProcessManager {
-  private readonly mapSettingsPath = resolve(app.getPath('userData'), 'map-window-settings.json');
+  @IpcHandler({ name: 'ProcessManager.getAppSettings' })
+  readonly getAppSettings = async (): Promise<Record<string, unknown>> => readAppSettings();
+
+  @IpcHandler({ name: 'ProcessManager.setAppSettingsSection' })
+  readonly setAppSettingsSection = async (_: IpcMainInvokeEvent, section: string, values: Record<string, unknown>): Promise<void> => {
+    if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Settings values must be an object.');
+    await updateAppSettingsSection(section, values);
+  };
 
   @IpcHandler({ name: 'MapWindow.getZoom' })
   readonly getMapZoom = async (): Promise<number> => {
-    try {
-      if (!existsSync(this.mapSettingsPath)) return 13;
-      const settings = JSON.parse(readFileSync(this.mapSettingsPath, 'utf8')) as { zoom?: unknown };
-      return typeof settings.zoom === 'number' && Number.isFinite(settings.zoom)
-        ? Math.max(1, Math.min(20, Math.round(settings.zoom))) : 13;
-    } catch (error) {
-      console.warn('[MapWindow] Could not read saved zoom:', error);
-      return 13;
-    }
+    const mapWindow = readAppSettings().mapWindow as Record<string, unknown> | undefined;
+    const zoom = mapWindow?.zoom;
+    return typeof zoom === 'number' && Number.isFinite(zoom)
+      ? Math.max(1, Math.min(20, Math.round(zoom))) : 13;
   };
 
   @IpcHandler({ name: 'MapWindow.setZoom' })
   readonly setMapZoom = async (_: IpcMainInvokeEvent, value: number): Promise<void> => {
     if (typeof value !== 'number' || !Number.isFinite(value)) return;
-    let settings: Record<string, unknown> = {};
-    try {
-      if (existsSync(this.mapSettingsPath)) {
-        const parsed = JSON.parse(readFileSync(this.mapSettingsPath, 'utf8'));
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) settings = parsed;
-      }
-    } catch (error) {
-      console.warn('[MapWindow] Could not read map settings before saving zoom:', error);
-    }
-    settings.zoom = Math.max(1, Math.min(20, Math.round(value)));
-    writeFileSync(this.mapSettingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    await updateAppSettingsSection('mapWindow', { zoom: Math.max(1, Math.min(20, Math.round(value))) });
   };
+
   @IpcHandler({ name: 'ProcessManager.getAppVersion' })
   readonly getAppVersion = async (): Promise<string> => {
     try {
