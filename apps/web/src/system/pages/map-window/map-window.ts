@@ -322,12 +322,13 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
                 <div class="mbtiles-map-list">
                   @if (offlineMaps().length > 0) {
                     <table class="mbtiles-map-table">
-                      <thead><tr><th class="mbtiles-enabled-column">Use</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                      <thead><tr><th class="mbtiles-enabled-column">Use</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                       <tbody>
                         @for (map of offlineMaps(); track map.id) {
                           <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
                             <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Use offline map ' + map.name"></td>
-                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i> {{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
+                            <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
+                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong><span>{{ map.fileName }}</span>@if (map.id === activeOfflineMapId()) { <span class="mbtiles-in-use">In use</span> }</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                             <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                             <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
