@@ -369,7 +369,7 @@ export interface DesktopOsmAndAtlas {
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
   readonly setRenderingStyle: (fileName: string) => Promise<OsmAndAtlasRuntimeStatus>;
   readonly setResourcesPath: (resourcesPath: string) => Promise<OsmAndAtlasRuntimeStatus>;
-  readonly renderTile: (z: number, x: number, y: number, displayScale?: number) => Promise<OsmAndAtlasTileResult>;
+  readonly renderTile: (z: number, x: number, y: number, displayScale?: number, forceRender?: boolean) => Promise<OsmAndAtlasTileResult>;
   readonly cancelRendering: () => Promise<void>;
   readonly shutdown: () => Promise<void>;
 }
