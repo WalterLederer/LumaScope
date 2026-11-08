@@ -143,7 +143,7 @@ class OsmAndHelperWorker {
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd render helper not found: ' + this.helperPath);
     if (!this.obfPaths.length) throw new Error('No enabled OsmAnd OBF maps are selected.');
     for (const path of this.obfPaths) { if (!existsSync(path)) throw new Error('OsmAnd OBF map not found: ' + path); }
-    if (!existsSync(this.resourcesPath)) throw new Error('OsmAnd resources not found: ' + this.resourcesPath);
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an external OsmAnd resources folder first.');
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const child = spawn(this.helperPath, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
@@ -222,12 +222,12 @@ class OsmAndHelperWorker {
 export class OsmAndManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
-  private readonly resourcesPath = join(process.resourcesPath, 'osmand', 'resources');
+  private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
     ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'default.render.xml'
     : this.readSavedStyleFileName();
   private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
-    || join(this.resourcesPath, 'rendering_styles', this.styleFileName);
+    || (this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '');
   private obfPaths = this.getFallbackObfPaths();
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
@@ -238,6 +238,12 @@ export class OsmAndManager {
   constructor() {
     this.workers = this.createWorkers(this.createEnvironment());
     app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+  }
+
+  private readSavedResourcesPath(): string {
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
+    return typeof atlas?.resourcesPath === 'string' ? atlas.resourcesPath : '';
   }
 
   private readSavedStyleFileName(): string {
@@ -291,8 +297,32 @@ export class OsmAndManager {
     return { ...process.env, PATH: [...runtimePath, process.env.PATH || ''].filter(Boolean).join(delimiter) };
   }
 
+  @IpcHandler({ name: 'OsmAnd.setResourcesPath' })
+  readonly setResourcesPath = async (_event: Electron.IpcMainInvokeEvent, resourcesPath: string): Promise<OsmAndRuntimeStatus> => {
+    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) throw new Error('Select a valid OsmAnd resources folder.');
+    const resolvedPath = resourcesPath.trim();
+    if (!existsSync(join(resolvedPath, 'map', 'styles', 'default.render.xml'))
+      || !existsSync(join(resolvedPath, 'rendering_styles'))) {
+      throw new Error('The selected folder must contain map/styles/default.render.xml and rendering_styles.');
+    }
+    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    this.resourcesPath = resolvedPath;
+    const styles = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
+    const names = styles.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
+      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
+      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
+    if (!names.includes(this.styleFileName)) this.styleFileName = names.includes('default.render.xml') ? 'default.render.xml' : (names.sort()[0] ?? 'default.render.xml');
+    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(resolvedPath, 'rendering_styles', this.styleFileName);
+    await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath } });
+    this.pendingTiles.clear();
+    this.workers = this.createWorkers(this.createEnvironment());
+    this.nextWorker = 0;
+    return this.getRuntimeStatus();
+  };
+
   @IpcHandler({ name: 'OsmAnd.getRenderingStyles' })
   readonly getRenderingStyles = async (): Promise<OsmAndRenderingStyle[]> => {
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) return [];
     const styleDirectory = join(this.resourcesPath, 'rendering_styles');
     if (!existsSync(styleDirectory)) return [];
     const entries = await readdir(styleDirectory, { withFileTypes: true });
