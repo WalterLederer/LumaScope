@@ -28,6 +28,7 @@ window.desktop
       // The JSON configuration is the only persistent settings store.
       // Seed the renderer compatibility storage from its existing sections.
       for (const [key, value] of Object.entries(mapWindow)) {
+        if (key === 'osmandStyle') continue;
         if (value !== null && value !== undefined) values.set(mapPrefix + key, String(value));
       }
       for (const [key, value] of Object.entries(preferences)) {
@@ -41,6 +42,7 @@ window.desktop
         const key = legacyStorage.key(index);
         if (!key) continue;
         const value = legacyStorage.getItem(key);
+        if (key === mapPrefix + 'osmandStyle') continue;
         if (value === null || values.has(key)) continue;
         values.set(key, value);
         if (key.startsWith(mapPrefix)) {
