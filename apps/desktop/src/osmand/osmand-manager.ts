@@ -292,6 +292,7 @@ export class OsmAndManager {
       && !name.endsWith('.addon.render.xml')
       && name !== 'standalone-template.render.xml'
       && name !== 'template.addon.render.xml'
+      && !/lumascope.*(?:inheritance|test)|(?:inheritance|test).*lumascope/i.test(name)
     );
     if (!fileNames.includes('default.render.xml')) {
       const found = discoveredFiles.length
@@ -377,7 +378,8 @@ export class OsmAndManager {
     const styles = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
     const names = styles.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
       && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
-      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
+      && entry.name !== 'template.addon.render.xml'
+      && !/lumascope.*(?:inheritance|test)|(?:inheritance|test).*lumascope/i.test(entry.name)).map(entry => entry.name);
     if (!names.includes(this.styleFileName)) this.styleFileName = names.includes('default.render.xml') ? 'default.render.xml' : (names.sort()[0] ?? 'default.render.xml');
     this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(resolvedPath, 'rendering_styles', this.styleFileName);
     await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath } });
