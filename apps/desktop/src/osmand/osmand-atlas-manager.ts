@@ -430,9 +430,8 @@ export class OsmAndAtlasManager {
       ? fileName : 'default.render.xml';
   }
 
-  private persistStyleFileName(fileName: string): void {
-    void updateAppSettingsSection('osmand', { renderingStyle: fileName })
-      .catch(error => console.warn('[OsmAnd Atlas] Could not persist rendering style:', error));
+  private persistStyleFileName(fileName: string): Promise<void> {
+    return updateAppSettingsSection('osmand', { renderingStyle: fileName });
   }
 
   private async inspectRenderingStyles(resourcesPath: string): Promise<{ styleDirectory: string; fileNames: string[] }> {
@@ -587,7 +586,7 @@ export class OsmAndAtlasManager {
     if (selectedFileName !== this.styleFileName) {
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
-      this.persistStyleFileName(selectedFileName);
+      await this.persistStyleFileName(selectedFileName);
       await this.replaceWorkers();
     }
 
@@ -618,7 +617,7 @@ export class OsmAndAtlasManager {
       if (selectedFileName !== this.styleFileName) {
         this.styleFileName = selectedFileName;
         this.stylePath = join(styleDirectory, selectedFileName);
-        this.persistStyleFileName(selectedFileName);
+        await this.persistStyleFileName(selectedFileName);
         await this.replaceWorkers();
         console.info('[OsmAnd Atlas] Rendering style applied:', selectedFileName);
       }
