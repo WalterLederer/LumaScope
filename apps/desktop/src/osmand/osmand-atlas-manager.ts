@@ -237,6 +237,11 @@ class OsmAndAtlasWorker {
     if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an external OsmAnd resources folder first.');
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
+    console.info('[OsmAnd Atlas][style-trace] helper spawn', {
+      styleFileName: this.styleFileName,
+      stylePath: this.stylePath,
+      resourcesPath: this.resourcesPath
+    });
     const spawnStartedAt = Date.now();
     const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));
     const configurationPath = join(configurationDirectory, 'obf-paths.json');
@@ -586,6 +591,12 @@ export class OsmAndAtlasManager {
     // in-memory selection before reporting it or allowing a helper to render.
     const savedFileName = this.readSavedStyleFileName();
     const selectedFileName = fileNames.includes(savedFileName) ? savedFileName : 'default.render.xml';
+    console.info('[OsmAnd Atlas][style-trace] getRenderingStyles', {
+      configStyle: savedFileName,
+      managerStyle: this.styleFileName,
+      selectedStyle: selectedFileName,
+      stylePath: join(styleDirectory, selectedFileName)
+    });
 
     if (selectedFileName !== this.styleFileName || this.stylePath !== join(styleDirectory, selectedFileName)) {
       this.styleFileName = selectedFileName;
@@ -618,6 +629,12 @@ export class OsmAndAtlasManager {
         console.warn('[OsmAnd Atlas] Requested rendering style is not installed; falling back to default.render.xml:', fileName);
       }
 
+      console.info('[OsmAnd Atlas][style-trace] setRenderingStyle', {
+        requestedStyle: fileName,
+        selectedStyle: selectedFileName,
+        managerStyleBefore: this.styleFileName,
+        configStyleBefore: this.readSavedStyleFileName()
+      });
       if (selectedFileName !== this.styleFileName) {
         this.styleFileName = selectedFileName;
         this.stylePath = join(styleDirectory, selectedFileName);
