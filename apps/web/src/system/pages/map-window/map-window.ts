@@ -1118,17 +1118,13 @@ export class MapWindow implements OnInit, OnDestroy {
             ? osmand['resourcesPath'] : '';
           this.osmAndResourcesPath.set(resourcesPath);
 
-          // Use the style path of the renderer that is actually active.
-          // The persisted config can lag behind a helper that is already
-          // rendering another style. Keep one shared UI selection and sync
-          // both renderers to the active renderer's effective style.
+          // config.json is the single source of truth for the shared style.
+          // The dropdown is initialized directly from osmand.renderingStyle;
+          // runtime status must never override the user's saved selection.
           const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
-          const activeRuntime = this.mapSource() === 'osmand'
-            ? await this.desktop!.OsmAnd.getRuntimeStatus()
-            : await this.desktop!.OsmAndAtlas.getRuntimeStatus();
-          const runtimeFileName = activeRuntime.stylePath.split(/[\\/]/).pop() ?? '';
-          const selectedStyle = styles.find(style => style.fileName === runtimeFileName)
-            ?? styles.find(style => style.selected)
+          const configuredStyle = typeof osmand?.['renderingStyle'] === 'string'
+            ? osmand['renderingStyle'] as string : 'default.render.xml';
+          const selectedStyle = styles.find(style => style.fileName === configuredStyle)
             ?? styles.find(style => style.fileName === 'default.render.xml')
             ?? styles[0];
           this.osmAndStyles.set(styles.map(style => ({
@@ -1136,8 +1132,10 @@ export class MapWindow implements OnInit, OnDestroy {
           })));
           if (selectedStyle) {
             this.osmAndStyle.set(selectedStyle.fileName);
-            await this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName);
-            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
+            await Promise.all([
+              this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName),
+              this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName)
+            ]);
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
