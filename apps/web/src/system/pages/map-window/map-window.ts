@@ -355,11 +355,12 @@ interface MapErrorEntry {
                 <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="offlineMaps().length === 0">Activate all</button>
                 <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="offlineMaps().length === 0">Deactivate all</button>
                 <button class="offline-map-add-button" type="button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMaps().length === 0 || offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
-                <label class="offline-map-list-filter">List:
+                <label class="offline-map-list-filter">Filter:
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
                     <option value="inUse">InUse</option>
                     <option value="active">Active</option>
+                    <option value="updates">Updates</option>
                   </select>
                 </label>
                 <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || (offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · automatic selection by GPS coordinates') }}
@@ -919,7 +920,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active'>('all');
+  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active' | 'updates'>('all');
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
@@ -931,6 +932,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const filter = this.offlineMapListFilter();
     if (filter === 'inUse') return maps.filter(map => this.isOfflineMapInUse(map));
     if (filter === 'active') return maps.filter(map => map.enabled);
+    if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
     return maps;
   });
   protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map'>(
