@@ -83,7 +83,7 @@ export class OfflineMapManager {
    }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
   });
   await Promise.all(tasks);
-  const normalize=(name:string):string=>name.split(/[\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'');
+  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'');
   for(const item of [...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()])){
    const key=normalize(item.fileName);
    const matches=files.filter(file=>normalize(file.fileName)===key&&file.dateMs!==null).sort((a,b)=>(b.dateMs??0)-(a.dateMs??0));
