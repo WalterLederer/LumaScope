@@ -361,6 +361,7 @@ interface MapErrorEntry {
                     <option value="inUse">InUse</option>
                     <option value="active">Active</option>
                     <option value="updates">Updates</option>
+                    <option value="current">Current (no update needed)</option>
                     <option value="noMatch">No matching download</option>
                   </select>
                 </label>
@@ -922,7 +923,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active' | 'updates' | 'noMatch'>('all');
+  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
@@ -935,6 +936,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'inUse') return maps.filter(map => this.isOfflineMapInUse(map));
     if (filter === 'active') return maps.filter(map => map.enabled);
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
+    if (filter === 'current') return maps.filter(map => map.updateChecked && map.updateAvailable === false);
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
     return maps;
   });
