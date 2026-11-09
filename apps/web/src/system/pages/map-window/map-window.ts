@@ -283,7 +283,7 @@ interface MapErrorEntry {
       <span class="zoom-value">{{ zoomLevel() }}</span>
     </div>
   </div>
-  <details class="opacity-settings" open>
+  <details class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
     <summary>Opacity</summary>
     <div class="opacity-content">
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
@@ -323,6 +323,7 @@ interface MapErrorEntry {
   <details class="view-rerender-section">
     <summary>Rerender</summary>
     <div class="map-cache-actions view-rerender-actions">
+      <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
       <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
       <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
@@ -796,10 +797,42 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly storagePrefix = 'mapWindow.';
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
+    this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
+  protected readonly renderActiveCount = signal(0);
+  protected readonly renderTotalCount = signal(0);
+  protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
+  protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
+  private readonly activeRenderTiles = new Set<string>();
+  private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
+    void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
+      .catch(error => console.warn('[Location] Could not persist window UI state:', error));
+  };
+  protected readonly toggleSettings = (): void => {
+    const open = !this.settingsOpen();
+    this.settingsOpen.set(open);
+    this.persistLocationUiState({ settingsOpen: open });
+  };
+  protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
+    this.renderVisualsEnabled.set(enabled);
+    this.saveSetting('renderVisualsEnabled', enabled);
+    window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled } }));
+    this.persistLocationUiState({ renderVisualsEnabled: enabled });
+  };
+  protected readonly onLocationDetailsToggle = (event: Event): void => {
+    const section = event.currentTarget;
+    if (!(section instanceof HTMLDetailsElement)) return;
+    const isOpacity = section.classList.contains('opacity-settings');
+    const isRender = section.classList.contains('view-rerender-section');
+    if (isOpacity) this.opacitySectionOpen.set(section.open);
+    if (isRender) this.renderSectionOpen.set(section.open);
+    if (isOpacity) this.persistLocationUiState({ opacitySectionOpen: section.open });
+    if (isRender) this.persistLocationUiState({ renderSectionOpen: section.open });
+  };
   protected readonly renderInitStatus = signal('');
   private readonly onOsmAndTileStatus = (event: Event): void => {
     const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string }>).detail;
@@ -808,9 +841,15 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
       return;
     }
-    if (!expectedProtocol || detail?.protocol !== expectedProtocol || !this.renderInitStatus()) return;
-    if (detail.status === 'loading') this.renderInitStatus.set('Rendering first tile …');
-    else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error') this.renderInitStatus.set('');
+    if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas')) return;
+    const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
+    if (detail.status === 'loading' || detail.status === 'rerendering') this.activeRenderTiles.add(key);
+    else if (detail.status === 'loaded' || detail.status === 'cache-loading' || detail.status === 'cancelled' || detail.status === 'warning' || detail.status === 'error') this.activeRenderTiles.delete(key);
+    this.renderActiveCount.set(this.activeRenderTiles.size);
+    this.renderTotalCount.set(Math.max(this.renderTotalCount(), this.activeRenderTiles.size));
+    if (!expectedProtocol || detail.protocol !== expectedProtocol || !this.renderInitStatus()) return;
+    if (detail.status === 'loading') this.renderInitStatus.set('Loading first tile …');
+    else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error' || detail.status === 'cache-loading') this.renderInitStatus.set('');
   };
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
@@ -987,6 +1026,16 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    void this.desktop?.ProcessManager.getAppSettings().then(settings => {
+      const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
+      if (!saved) return;
+      if (typeof saved.settingsOpen === 'boolean') this.settingsOpen.set(saved.settingsOpen);
+      if (typeof saved.activeSettingsTab === 'string' && ['location','track','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved.activeSettingsTab)) this.activeSettingsTab.set(saved.activeSettingsTab as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved.renderVisualsEnabled === 'boolean') this.changeRenderVisualsEnabled(saved.renderVisualsEnabled);
+      if (typeof saved.opacitySectionOpen === 'boolean') this.opacitySectionOpen.set(saved.opacitySectionOpen);
+      if (typeof saved.renderSectionOpen === 'boolean') this.renderSectionOpen.set(saved.renderSectionOpen);
+      if (typeof saved.markerSectionOpen === 'boolean') this.markerSectionOpen.set(saved.markerSectionOpen);
+    }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
@@ -1131,6 +1180,14 @@ export class MapWindow implements OnInit, OnDestroy {
     // This also covers closing the separate Location window or the overlay
     // while a zoom animation is still in progress.
     this.persistZoom(this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel());
+    this.persistLocationUiState({
+      settingsOpen: this.settingsOpen(),
+      activeSettingsTab: this.activeSettingsTab(),
+      renderVisualsEnabled: this.renderVisualsEnabled(),
+      opacitySectionOpen: this.opacitySectionOpen(),
+      renderSectionOpen: this.renderSectionOpen(),
+      markerSectionOpen: this.markerSectionOpen()
+    });
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.unsubscribeLocation?.();
