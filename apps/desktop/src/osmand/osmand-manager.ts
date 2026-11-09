@@ -375,13 +375,9 @@ export class OsmAndManager {
     }
     await Promise.all(this.workers.map(worker => worker.retire()));
     this.resourcesPath = resolvedPath;
-    const styles = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
-    const names = styles.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
-      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
-      && entry.name !== 'template.addon.render.xml'
-      && !/lumascope.*(?:inheritance|test)|(?:inheritance|test).*lumascope/i.test(entry.name)).map(entry => entry.name);
-    if (!names.includes(this.styleFileName)) this.styleFileName = names.includes('default.render.xml') ? 'default.render.xml' : (names.sort()[0] ?? 'default.render.xml');
-    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(resolvedPath, 'rendering_styles', this.styleFileName);
+    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
+    if (!fileNames.includes(this.styleFileName)) this.styleFileName = 'default.render.xml';
+    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, this.styleFileName);
     await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath } });
     this.pendingTiles.clear();
     this.workers = this.createWorkers(this.createEnvironment());
