@@ -221,7 +221,7 @@ export interface CaptureSources {
 export type CaptureTarget =
   | { kind: 'monitor'; index: number }
   | { kind: 'window'; handle: number }
-  | { kind: 'top-window'; includeLightMatterWindows?: boolean }
+  | { kind: 'top-window'; includeAppWindows?: boolean }
   | { kind: 'rectangle' };
 
 export interface CaptureResult {
