@@ -153,7 +153,6 @@ interface MapErrorEntry {
           </div>
 
 </div>
-@if (activeSettingsTab() === 'marker') {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
             
@@ -202,8 +201,6 @@ interface MapErrorEntry {
           </div>
 
 </div>
-}
-@if (activeSettingsTab() === 'view') {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
   <div class="view-primary-controls">
@@ -355,7 +352,6 @@ interface MapErrorEntry {
   </details>
 </div>
 </div>
-}
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection offline-map-toolbar">
                 <label class="offline-map-preset-control">OBF preset:
@@ -792,7 +788,10 @@ interface MapErrorEntry {
     .marker-settings summary .marker-description{display:block;margin:0;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400;text-align:left}
     .marker-settings-content{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0;text-align:left}
     .marker-setting-row{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-width:0;text-align:left}
-    .marker-appearance-settings{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
+    .marker-appearance-settings{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px 22px;width:100%;min-width:0}
+     .marker-appearance-settings>.marker-setting-row{display:flex;flex:0 0 auto;align-items:center;gap:8px;width:auto;min-width:0}
+     .marker-appearance-settings>.marker-setting-row>label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+     .marker-appearance-settings .color-picker-trigger{min-width:132px}
     .marker-progress-row,.marker-statistics,.marker-status{align-self:flex-start;text-align:left}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
     .marker-progress-row{display:flex;flex:0 0 auto;align-items:center;gap:10px;width:100%;min-width:0}
