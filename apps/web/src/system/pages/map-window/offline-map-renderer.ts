@@ -509,6 +509,10 @@ export class OfflineMapRenderer {
     }
     this.updateOsmAndTileStatusPositions();
   }
+  private readonly onTileVisualsChanged = (event: Event): void => {
+    const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+    this.tileStatusLayer.style.display = detail?.enabled === false ? 'none' : '';
+  };
   private readonly onOsmAndTileStatus = (event: Event): void => {
     if (!this.tileProtocol) return;
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
@@ -744,6 +748,7 @@ export class OfflineMapRenderer {
     this.tileStatusLayer.appendChild(tileStatusStyle);
     this.map.getContainer().appendChild(this.tileStatusLayer);
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.addEventListener('lumascope-osmand-tile-visuals', this.onTileVisualsChanged);
     this.map.on('sourcedataloading', this.onMapLibreTileLoading);
     this.map.on('sourcedata', this.onMapLibreTileLoaded);
     this.map.on('error', this.onMapLibreTileError);
@@ -1333,14 +1338,10 @@ export class OfflineMapRenderer {
         label.style.background = 'rgba(20,27,34,.90)';
         message.textContent = status.status === 'rerendering'
           ? 'Rerendering tile …'
-          : status.protocol === 'maplibre'
-            ? 'Loading tile …'
-            : status.status === 'cache-loading' ? 'Cache load tile …' : 'Rendering tile …';
+          : status.status === 'cache-loading' ? 'Loading cached tile …' : 'Loading tile …';
         label.title = status.status === 'rerendering'
           ? 'Forcing a fresh native render for this visible tile'
-          : status.protocol === 'maplibre'
-            ? 'Loading map tile'
-            : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Rendering OsmAnd tile';
+          : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Loading tile data';
       }
     }
   }
@@ -1637,6 +1638,7 @@ export class OfflineMapRenderer {
   remove(): void {
     this.resizeObserver.disconnect();
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.removeEventListener('lumascope-osmand-tile-visuals', this.onTileVisualsChanged);
     this.map.off('sourcedataloading', this.onMapLibreTileLoading);
     this.map.off('sourcedata', this.onMapLibreTileLoaded);
     this.map.off('error', this.onMapLibreTileError);
