@@ -285,7 +285,11 @@ class OsmAndAtlasWorker {
           this.geometryMessages.push(message);
           if (this.geometryMessages.length > 32) this.geometryMessages.shift();
         }
-        if (message.startsWith('ATLAS_INIT ')) {
+        if (message.startsWith('ERROR:')) {
+          this.geometryMessages.push(message);
+          if (this.geometryMessages.length > 32) this.geometryMessages.shift();
+          console.warn('[OsmAnd Atlas helper]', message);
+        } else if (message.startsWith('ATLAS_INIT ')) {
           console.info('[OsmAnd Atlas helper]', message);
         } else if (!/^(INFO|DEBUG):/i.test(message)) {
           console.warn('[OsmAnd Atlas helper]', message);
@@ -699,6 +703,10 @@ export class OsmAndAtlasManager {
       geometryMessages = rendered.geometryMessages;
     }
 
+    const tilePixelDiagnostics = getAtlasPixelDiagnostics(metatilePixels);
+    if (tilePixelDiagnostics.uniqueRgbColors === 1) {
+      geometryMessages.push('Atlas returned a uniform tile: uniqueRgbColors=1, rgb=' + tilePixelDiagnostics.rgbMin.join(','));
+    }
     // Diagnose each metatile once per application session. This deliberately
     // examines the exact RGBA bytes returned to the renderer, whether they came
     // from the native helper or from the PNG disk cache.
