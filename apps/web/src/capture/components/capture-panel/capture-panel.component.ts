@@ -77,10 +77,10 @@ export class CapturePanelComponent {
   private previewContext: { unconfigure(): void; configure(options: any): void; getCurrentTexture(): any } | null = null;
   private previewRequestId = 0;
   protected readonly selectedFormat = signal<CaptureFormat>(this.readSavedFormat());
-  protected readonly includeLightMatterWindows = signal(this.readSavedIncludeLightMatterWindows());
+  protected readonly includeAppWindows = signal(this.readSavedIncludeLightMatterWindows());
   protected readonly setIncludeLightMatterWindows = (enabled: boolean): void => {
-    this.includeLightMatterWindows.set(enabled);
-    try { localStorage.setItem('capture.includeLightMatterWindows', String(enabled)); }
+    this.includeAppWindows.set(enabled);
+    try { localStorage.setItem('capture.includeAppWindows', String(enabled)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
     this.previewFrame.set(null);
     this.previewSize.set('');
@@ -166,9 +166,9 @@ export class CapturePanelComponent {
     const topWindow: CaptureSourceRow = {
       value: 'top-window', kind: 'top-window', favoriteKey: 'top-window',
       favorite: favorites.has('top-window'), exe: 'Top Window',
-      title: this.includeLightMatterWindows() ? 'Capture the application window' : 'Foreground window after hiding the application',
+      title: this.includeAppWindows() ? 'Capture the application window' : 'Foreground window after hiding the application',
       size: 'Automatic', zOrder: '—', hwnd: '—', displayMode: '—',
-      status: this.includeLightMatterWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
+      status: this.includeAppWindows() ? 'Application windows remain visible' : 'Automatically detected when capturing',
       minimized: false, unavailable: false, systemHost: false
     };
     const rectangle: CaptureSourceRow = {
@@ -284,7 +284,7 @@ export class CapturePanelComponent {
   };
 
   private readSavedIncludeLightMatterWindows(): boolean {
-    try { return localStorage.getItem('capture.includeLightMatterWindows') === 'true'; }
+    try { return localStorage.getItem('capture.includeAppWindows') === 'true'; }
     catch { return false; }
   }
 
@@ -346,7 +346,7 @@ export class CapturePanelComponent {
   protected readonly selectedSourceLabel = (): string => {
     const target = this.selectedCaptureTarget();
     if (!target) return 'None';
-    if (target.kind === 'top-window') return this.includeLightMatterWindows()
+    if (target.kind === 'top-window') return this.includeAppWindows()
       ? 'Top Window · Application capture window'
       : 'Top Window · Foreground window after hiding the application';
     if (target.kind === 'rectangle') return 'Rectangle · Select area directly on screen';
@@ -513,7 +513,7 @@ export class CapturePanelComponent {
 
   private selectedCaptureTarget(): CaptureTarget | null {
     const value = this.selectedTarget();
-    if (value === 'top-window') return { kind: 'top-window', includeLightMatterWindows: this.includeLightMatterWindows() };
+    if (value === 'top-window') return { kind: 'top-window', includeAppWindows: this.includeAppWindows() };
     if (value === 'rectangle') return { kind: 'rectangle' };
     const separator = value.indexOf(':');
     if (separator < 0) return null;
