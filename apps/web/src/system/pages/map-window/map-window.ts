@@ -190,12 +190,17 @@ interface MapErrorEntry {
                 </div>
               </div>
               @if (directoryMarkersEnabled()) {
-                <div class="marker-progress-row">
-                  <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
-                  <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
-                </div>
-                <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
-                <div class="marker-status" role="status">{{ markerStatus() }}</div>
+                <details class="marker-summary-section">
+                  <summary>Summary</summary>
+                  <div class="marker-summary-content">
+                    <div class="marker-progress-row">
+                      <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                      <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
+                    </div>
+                    <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
+                    <div class="marker-status" role="status">{{ markerStatus() }}</div>
+                  </div>
+                </details>
               }
             </div>
           </div>
@@ -792,6 +797,10 @@ interface MapErrorEntry {
      .marker-appearance-settings>.marker-setting-row{display:flex;flex:0 0 auto;align-items:center;gap:8px;width:auto;min-width:0}
      .marker-appearance-settings>.marker-setting-row>label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
      .marker-appearance-settings .color-picker-trigger{min-width:132px}
+    .marker-summary-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}
+    .marker-summary-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .marker-summary-section[open]>summary{margin-bottom:2px}
+    .marker-summary-content{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
     .marker-progress-row,.marker-statistics,.marker-status{align-self:flex-start;text-align:left}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
     .marker-progress-row{display:flex;flex:0 0 auto;align-items:center;gap:10px;width:100%;min-width:0}
