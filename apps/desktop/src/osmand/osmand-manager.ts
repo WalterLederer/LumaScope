@@ -371,7 +371,7 @@ export class OsmAndManager {
     if (!existsSync(join(resolvedPath, 'rendering_styles', 'default.render.xml'))) {
       throw new Error('The selected folder must contain rendering_styles/default.render.xml.');
     }
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    await Promise.all(this.workers.map(worker => worker.retire()));
     this.resourcesPath = resolvedPath;
     const styles = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
     const names = styles.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
@@ -392,13 +392,12 @@ export class OsmAndManager {
     const selectedFileName = fileNames.includes(this.styleFileName) ? this.styleFileName : 'default.render.xml';
 
     if (selectedFileName !== this.styleFileName) {
-      await Promise.all(this.workers.map(worker => worker.shutdown()));
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
       void updateAppSettingsSection('osmand', { renderingStyle: selectedFileName })
         .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
       this.pendingTiles.clear();
-      this.workers = this.createWorkers(this.createEnvironment());
+      await this.replaceWorkers();
     }
 
     return fileNames.map(fileName => {
