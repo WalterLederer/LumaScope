@@ -331,7 +331,7 @@ interface MapErrorEntry {
     </div>
     @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
       <div class="map-cache-progress">
-        <progress [value]="rerenderVisibleTilesBusy() ? rerenderVisibleTilesProgress().completed : Math.max(0, renderTotalCount() - renderActiveCount())" [max]="rerenderVisibleTilesBusy() ? rerenderVisibleTilesProgress().total : Math.max(1, renderTotalCount())"></progress>
+        <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()"></progress>
         <span>{{ renderActiveCount() }} tile requests active</span>
       </div>
     }
@@ -805,6 +805,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
   protected readonly renderTotalCount = signal(0);
+  protected readonly renderProgressValue = computed(() => this.rerenderVisibleTilesBusy()
+    ? this.rerenderVisibleTilesProgress().completed
+    : Math.max(0, this.renderTotalCount() - this.renderActiveCount()));
+  protected readonly renderProgressMaximum = computed(() => this.rerenderVisibleTilesBusy()
+    ? Math.max(1, this.rerenderVisibleTilesProgress().total)
+    : Math.max(1, this.renderTotalCount()));
   protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
