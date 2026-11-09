@@ -320,8 +320,8 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
-  <details class="view-rerender-section">
-    <summary>Rerender</summary>
+  <details class="view-rerender-section" [open]="renderSectionOpen()" (toggle)="onLocationDetailsToggle($event)" [style.background]="renderActiveCount() > 0 ? 'rgba(180, 45, 45, 0.13)' : 'rgba(45, 150, 75, 0.10)'">
+    <summary>Render</summary>
     <div class="map-cache-actions view-rerender-actions">
       <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
       <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
@@ -329,10 +329,10 @@ interface MapErrorEntry {
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
       </button>
     </div>
-    @if (rerenderVisibleTilesBusy()) {
+    @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
       <div class="map-cache-progress">
-        <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
-        <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
+        <progress [value]="rerenderVisibleTilesBusy() ? rerenderVisibleTilesProgress().completed : Math.max(0, renderTotalCount() - renderActiveCount())" [max]="rerenderVisibleTilesBusy() ? rerenderVisibleTilesProgress().total : Math.max(1, renderTotalCount())"></progress>
+        <span>{{ renderActiveCount() }} tile requests active</span>
       </div>
     }
   </details>
@@ -1736,10 +1736,24 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
-    // Do not cancel the native render queue on camera movement. MapLibre
-    // aborts obsolete protocol requests itself; globally invalidating the
-    // single-worker queue also discarded still-needed visible tiles as
-    // transparent frames, which MapLibre then considered successfully loaded.
+    // Invalidate queued requests from the previous viewport during movement.
+    // Once the camera settles, give MapLibre a fresh source identity so it
+    // requests every tile for the final viewport again.
+    let viewportRefreshTimer: number | null = null;
+    renderer.map.on('movestart', () => {
+      if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
+      void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
+        console.warn('[OsmAnd Atlas] Could not cancel obsolete queued tiles:', error));
+    });
+    renderer.map.on('moveend', () => {
+      if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
+      viewportRefreshTimer = window.setTimeout(() => {
+        viewportRefreshTimer = null;
+        const source = renderer.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+        if (!source?.setTiles) return;
+        source.setTiles(['osmand-atlas://{z}/{x}/{y}?refresh=' + Date.now()]);
+      }, 180);
+    });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
