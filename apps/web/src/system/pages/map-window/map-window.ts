@@ -713,11 +713,13 @@ interface MapErrorEntry {
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .download-source-table{min-width:720px}.offline-catalogue-toolbar{margin-top:14px}
     .offline-catalogue-table-wrap{max-height:360px;overflow:auto;margin-top:6px}
-    .offline-catalogue-table{width:100%;min-width:680px;table-layout:fixed}
-    .offline-catalogue-table th:first-child,.offline-catalogue-table td:first-child{width:54%}
-    .offline-catalogue-table th:nth-child(2),.offline-catalogue-table td:nth-child(2){width:8%}
-    .offline-catalogue-table th:nth-child(3),.offline-catalogue-table td:nth-child(3){width:16%}
-    .offline-catalogue-table th:nth-child(4),.offline-catalogue-table td:nth-child(4){width:14%;white-space:nowrap}
+    .offline-catalogue-table{width:100%;min-width:820px;table-layout:fixed}
+    .offline-catalogue-table th,.offline-catalogue-table td{box-sizing:border-box;padding-left:12px;padding-right:12px}
+    .offline-catalogue-table th{white-space:nowrap}
+    .offline-catalogue-table th:first-child,.offline-catalogue-table td:first-child{width:42%}
+    .offline-catalogue-table th:nth-child(2),.offline-catalogue-table td:nth-child(2){width:9%}
+    .offline-catalogue-table th:nth-child(3),.offline-catalogue-table td:nth-child(3){width:19%}
+    .offline-catalogue-table th:nth-child(4),.offline-catalogue-table td:nth-child(4){width:22%;white-space:normal;overflow-wrap:anywhere}
     .offline-catalogue-table th:nth-child(5),.offline-catalogue-table td:nth-child(5){width:8%}
     .offline-catalogue-file-name{white-space:normal!important;overflow-wrap:anywhere;word-break:normal;line-height:1.35}
     .offline-catalogue-matched{background:rgba(46,160,67,.20)}
