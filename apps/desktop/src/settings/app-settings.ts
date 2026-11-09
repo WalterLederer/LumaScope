@@ -31,11 +31,16 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     // cannot overwrite each other's settings with stale snapshots.
     const settings = readAppSettings();
     const previous = settings[section];
-    const merged = {
+    const merged: Record<string, unknown> = {
       ...(previous && typeof previous === 'object' && !Array.isArray(previous)
         ? previous as Record<string, unknown> : {}),
       ...values
     };
+    // Undefined explicitly removes a setting instead of persisting a second,
+    // obsolete compatibility key in config.json.
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined) delete merged[key];
+    }
     // The unified offlineMaps.filePaths object replaces the former split
     // path lists and enabledByPath dictionary; do not leave stale keys behind.
     if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) {
