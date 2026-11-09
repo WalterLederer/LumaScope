@@ -455,16 +455,13 @@ export class OfflineMapRenderer {
       window.clearTimeout(this.atlasZoomCheckTimer);
       this.atlasZoomCheckTimer = null;
     }
-    // Errors belong to the previous camera position and should disappear as
-    // soon as the user pans or zooms. Keep loading entries: their requests may
-    // still be running, and clearing them here made the map look idle while
-    // the single Atlas worker was still rendering the visible tiles.
-    for (const [key, status] of this.tileStatuses) {
-      if (status.status !== 'error' && status.status !== 'warning') continue;
-      this.tileStatuses.delete(key);
-      this.tileStatusElements.get(key)?.remove();
-      this.tileStatusElements.delete(key);
-    }
+    // Status overlays belong to a specific viewport. Remove them immediately
+    // when the camera starts moving; requests from the settled viewport will
+    // publish fresh entries. Late completions for aborted requests are ignored
+    // by the protocol's cancelled status.
+    this.tileStatuses.clear();
+    for (const element of this.tileStatusElements.values()) element.remove();
+    this.tileStatusElements.clear();
     this.updateOsmAndTileStatusPositions();
   };
   private readonly onMapLibreTileLoading = (event: unknown): void => {
