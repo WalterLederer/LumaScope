@@ -615,7 +615,7 @@ interface MapErrorEntry {
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:auto;min-height:0;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
+    .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab.has-errors{color:#ff8a80}
@@ -631,9 +631,9 @@ interface MapErrorEntry {
     .settings-tab-map-group{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 78%,#8ab4f8 22%);border-radius:4px 4px 0 0}
     .settings-tab-map-group:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 62%,#8ab4f8 38%)}
     .settings-tab-map-group.active,.settings-tab.active{background:#31577d;border:1px solid #65a9ff;border-bottom-color:#65a9ff;color:#fff;box-shadow:inset 0 -2px #65a9ff}
-    .settings-tab-panels{display:flex;flex:0 0 auto;flex-direction:column;min-width:0;min-height:0;overflow:visible}
-    .settings-tab-panel{flex:0 0 auto;flex-direction:column;min-width:0;min-height:0;overflow:visible}
-    .settings-tab-panel:not([hidden]){display:flex}
+    .settings-tab-panels{display:block;width:100%;min-width:0;min-height:max-content;height:max-content;overflow:visible}
+    .settings-tab-panel{min-width:0;min-height:max-content;height:max-content;overflow:visible}
+    .settings-tab-panel:not([hidden]){display:block}
     .settings-tab-panel[hidden]{display:none}
     .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
     .settings-tab-content>summary{display:none}
