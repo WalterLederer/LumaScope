@@ -115,6 +115,7 @@ const api: Desktop = {
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
+    checkForUpdates: () => ipcRenderer.invoke('OfflineMap.checkForUpdates'),
     removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OfflineMap.setEnabled', id, enabled),
     setAllEnabled: (enabled: boolean) => ipcRenderer.invoke('OfflineMap.setAllEnabled', enabled),
