@@ -410,18 +410,26 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
   <div class="settings-tab-content">
-    <div class="mbtiles-selection mbtiles-download-controls">
-      <select class="mbtiles-download-source" [value]="mbtilesDownloadSource()" (change)="changeMbtilesDownloadSource($any($event.target).value)" aria-label="Download source" title="Choose a download catalogue">
-        <option value="geofabrik">Geofabrik — Austria (MBTiles)</option>
-        <option value="limaps">Limaps — MBTiles</option>
-        <option value="shortbread">Shortbread Tiles — MBTiles</option>
-        <option value="osmand-obf">OsmAnd — OBF map downloads</option>
-        <option value="osmand-resources">OsmAnd — Resources (GitHub)</option>
-      </select>
-      <input class="mbtiles-download-url" type="text" readonly [value]="mbtilesDownloadUrl()" aria-label="Selected download URL" title="Selected download URL">
-      <button type="button" (click)="copyMbtilesDownloadUrl()" title="Copy selected URL to clipboard">Copy URL</button>
-      <button type="button" (click)="openMbtilesDownload()" [title]="mbtilesDownloadHint()">Open download page…</button>
+    <div class="map-cache-actions">
+      <strong>Download sources</strong>
+      <button type="button" (click)="addDownloadSource()">Add URL</button>
     </div>
+    <div class="mbtiles-map-table-wrap">
+      <table class="mbtiles-map-table download-source-table">
+        <thead><tr><th>URL</th><th>Filetype</th><th>Use for updates</th><th></th></tr></thead>
+        <tbody>
+          @for (source of downloadSources(); track $index; let i = $index) {
+            <tr>
+              <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
+              <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option></select></td>
+              <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
+              <td><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the OfflineMaps update checker.</p>
     <div class="osmand-resources-picker">
       <strong>OsmAnd resources folder</strong>
       <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
@@ -615,6 +623,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .download-source-table{min-width:720px}.download-source-url{min-width:380px}.download-source-url input{width:100%;min-width:320px;box-sizing:border-box}.download-source-table select{max-width:110px}
     .mbtiles-map-table{min-width:850px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:16px;font-size:14px;font-weight:700;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#ff6b6b}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -832,12 +841,13 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapErrorSequence = 0;
   protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
-  protected readonly mbtilesDownloadSource = signal<'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources'>(
-    (['geofabrik', 'limaps', 'shortbread', 'osmand-obf', 'osmand-resources'] as const)
-      .includes(this.readSetting('mbtilesDownloadSource', 'geofabrik') as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources')
-      ? this.readSetting('mbtilesDownloadSource', 'geofabrik') as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources'
-      : 'geofabrik'
-  );
+  protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean }>>([
+    { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
+    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: true }
+  ]);
   protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
   protected readonly osmAndResourcesError = signal('');
   protected readonly mapDisplayNotice = signal('');
@@ -986,6 +996,19 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       })();
     }
+    void this.desktop?.ProcessManager.getAppSettings().then(settings => {
+      const offline = settings['offlineMaps'] as Record<string, unknown> | undefined;
+      const saved = offline?.['updateSources'];
+      if (Array.isArray(saved)) {
+        const valid = saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean } =>
+          !!entry && typeof entry === 'object'
+          && typeof (entry as { url?: unknown }).url === 'string'
+          && ((entry as { fileType?: unknown }).fileType === 'obf' || (entry as { fileType?: unknown }).fileType === 'mbtiles')
+          && typeof (entry as { useForUpdates?: unknown }).useForUpdates === 'boolean'
+        );
+        this.downloadSources.set(valid);
+      }
+    }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: this.offlineMapPreset() }).catch(error => console.error('Could not persist OBF preset:', error));
     void this.desktop?.OfflineMap.getMaps().then(maps => {
       this.offlineMaps.set(maps);
@@ -2021,28 +2044,33 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
-  protected readonly changeMbtilesDownloadSource = (value: string): void => {
-    if (!['geofabrik', 'limaps', 'shortbread', 'osmand-obf', 'osmand-resources'].includes(value)) return;
-    this.mbtilesDownloadSource.set(value as 'geofabrik' | 'limaps' | 'shortbread' | 'osmand-obf' | 'osmand-resources');
-    this.saveSetting('mbtilesDownloadSource', value);
+  private persistDownloadSources(): void {
+    const updateSources = this.downloadSources().map(source => ({ ...source }));
+    void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', {
+      obfPreset: this.offlineMapPreset(),
+      updateSources
+    }).catch(error => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.recordMapError('Download sources settings', message);
+    });
+  }
+  protected readonly isValidDownloadUrl = (value: string): boolean => {
+    try { const url = new URL(value); return url.protocol === 'https:' || url.protocol === 'http:'; } catch { return false; }
   };
-  protected readonly mbtilesDownloadUrl = (): string => {
-    const urls = {
-      geofabrik: 'https://download.geofabrik.de/europe/austria.html',
-      limaps: 'https://www.limaps.org/tileserver.html',
-      shortbread: 'https://shortbread-tiles.org/download/',
-      'osmand-obf': 'https://download.osmand.net/list.php',
-      'osmand-resources': 'https://github.com/osmandapp/OsmAnd-resources'
-    };
-    return urls[this.mbtilesDownloadSource()];
+  protected readonly updateDownloadSource = (index: number, patch: Partial<{ url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean }>): void => {
+    this.downloadSources.update(sources => sources.map((source, i) => i === index ? { ...source, ...patch } : source));
+    this.persistDownloadSources();
   };
-  protected readonly mbtilesDownloadHint = (): string => 'URL: ' + this.mbtilesDownloadUrl();
-  protected readonly copyMbtilesDownloadUrl = async (): Promise<void> => {
-    try { await navigator.clipboard.writeText(this.mbtilesDownloadUrl()); }
-    catch (error) { console.error('Could not copy download URL:', error); }
+  protected readonly addDownloadSource = (): void => {
+    this.downloadSources.update(sources => [...sources, { url: 'https://', fileType: 'mbtiles', useForUpdates: false }]);
+    this.persistDownloadSources();
   };
-  protected readonly openMbtilesDownload = async (): Promise<void> => {
-    await this.desktop?.ProcessManager.openExternal(this.mbtilesDownloadUrl());
+  protected readonly removeDownloadSource = (index: number): void => {
+    this.downloadSources.update(sources => sources.filter((_source, i) => i !== index));
+    this.persistDownloadSources();
+  };
+  protected readonly openDownloadSource = async (url: string): Promise<void> => {
+    if (this.isValidDownloadUrl(url)) await this.desktop?.ProcessManager.openExternal(url);
   };
   protected readonly chooseOsmAndResourcesFolder = async (): Promise<void> => {
     if (!this.desktop) return;
