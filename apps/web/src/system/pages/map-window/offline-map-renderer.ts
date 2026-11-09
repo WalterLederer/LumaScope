@@ -418,6 +418,7 @@ export class OfflineMapRenderer {
   private readonly tileProtocol: OsmAndTileProtocol | null;
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
+  private tileVisualsEnabled = true;
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
   private atlasZoomCheckTimer: number | null = null;
   private readonly onMapZoomEnd = (): void => {
@@ -508,7 +509,16 @@ export class OfflineMapRenderer {
   }
   private readonly onTileVisualsChanged = (event: Event): void => {
     const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
-    this.tileStatusLayer.style.display = detail?.enabled === false ? 'none' : '';
+    this.tileVisualsEnabled = detail?.enabled !== false;
+    this.tileStatusLayer.style.display = this.tileVisualsEnabled ? '' : 'none';
+    if (!this.tileVisualsEnabled) {
+      // Remove existing tile overlays as well as hiding the layer. Tab changes
+      // and subsequent status events must not make disabled visuals reappear.
+      for (const element of this.tileStatusElements.values()) element.remove();
+      this.tileStatusElements.clear();
+      return;
+    }
+    this.updateOsmAndTileStatusPositions();
   };
   private readonly onOsmAndTileStatus = (event: Event): void => {
     if (!this.tileProtocol) return;
@@ -1284,7 +1294,7 @@ export class OfflineMapRenderer {
   };
 
   private updateOsmAndTileStatusPositions(): void {
-    if (!this.tileProtocol || !this.tileStatusLayer) return;
+    if (!this.tileVisualsEnabled || !this.tileProtocol || !this.tileStatusLayer) return;
     for (const [key, status] of this.tileStatuses) {
       let element = this.tileStatusElements.get(key);
       if (!element) {
