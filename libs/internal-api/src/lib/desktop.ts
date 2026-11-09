@@ -351,6 +351,13 @@ export interface OsmAndAtlasTileResult {
   stride: number;
   pixels: Uint8Array;
   cacheHit: boolean;
+  diagnostics?: {
+    helperPath: string;
+    geometryEnabled: boolean;
+    nativeRender: boolean;
+    forceRender: boolean;
+    geometryMessages: string[];
+  };
 }
 
 export interface OsmAndAtlasRuntimeStatus {
