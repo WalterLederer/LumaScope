@@ -91,7 +91,8 @@ export class OfflineMapManager {
    }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
    const unifiedPaths:Record<string,boolean>={};
-   if(settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths)){
+   const hasUnifiedPaths=!!settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths);
+   if(hasUnifiedPaths){
     for(const [path,enabled] of Object.entries(settings.filePaths))if(typeof enabled==='boolean')unifiedPaths[path]=enabled;
    }else{
     // One-time migration from the former split arrays and enabledByPath object.
@@ -106,7 +107,7 @@ export class OfflineMapManager {
      else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);
     }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
    }
-   if(settings.filePaths!==unifiedPaths){
+   if(!hasUnifiedPaths){
     void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
