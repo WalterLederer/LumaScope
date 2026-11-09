@@ -4,7 +4,9 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
-export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
+export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; sourceErrors:string[]; }
+interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
@@ -28,6 +30,72 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})));
+ readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
+  const sources=[
+   {name:'Geofabrik',url:'https://download.geofabrik.de/europe/austria.html'},
+   {name:'Limaps',url:'https://www.limaps.org/tileserver.html'},
+   {name:'Shortbread',url:'https://shortbread-tiles.org/download/'},
+   {name:'OsmAnd OBF',url:'https://download.osmand.net/list.php'},
+   {name:'OsmAnd Resources',url:'https://github.com/osmandapp/OsmAnd-resources'}
+  ];
+  const files:RemoteMapFile[]=[];const sourceErrors:string[]=[];
+  const fetchPage=async(url:string):Promise<string>=>{
+   const response=await fetch(url,{headers:{'User-Agent':'LumaScope offline map update checker'},signal:AbortSignal.timeout(20000)});
+   if(!response.ok)throw new Error('HTTP '+response.status+' '+response.statusText);
+   return response.text();
+  };
+  const parseDate=(text:string,fileName:string):number|null=>{
+   let match=text.match(/\\b(20\\d{2})[-/](\\d{2})[-/](\\d{2})(?:[ T](\\d{2}):(\\d{2}))?/);
+   if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]),Number(match[4]??0),Number(match[5]??0));
+   match=text.match(/\\b(\\d{2})\\.(\\d{2})\\.(20\\d{2})(?:[ ,]+(\\d{2}):(\\d{2}))?/);
+   if(match)return Date.UTC(Number(match[3]),Number(match[2])-1,Number(match[1]),Number(match[4]??0),Number(match[5]??0));
+   match=text.match(/\\b(20\\d{2})/(\\d{2})\\b/);
+   if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,1);
+   match=fileName.match(/(?:^|[-_])(20\\d{2})[-_](\\d{2})[-_](\\d{2})(?:[-_.]|$)/);
+   if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]));
+   return null;
+  };
+  const parseFiles=(html:string,baseUrl:string,source:string):void=>{
+   const anchors=html.matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi);
+   for(const anchor of anchors){
+    const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim();
+    let fileName=label;
+    try{fileName=decodeURIComponent(new URL(href,baseUrl).pathname.split('/').pop()||label);}catch{}
+    if(!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(fileName)&&!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(label))continue;
+    if(!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(fileName))fileName=label;
+    const position=anchor.index??0;const rowStart=Math.max(html.lastIndexOf('<tr',position),html.lastIndexOf('<li',position));
+    let rowEnd=html.indexOf('</tr>',position);const liEnd=html.indexOf('</li>',position);
+    if(rowEnd<0||(liEnd>=0&&liEnd<rowEnd))rowEnd=liEnd;
+    const context=html.slice(rowStart>=0?rowStart:Math.max(0,position-350),rowEnd>=0?rowEnd+5:Math.min(html.length,position+500));
+    files.push({fileName,dateMs:parseDate(context,fileName),source});
+   }
+  };
+  const geofabrikUrl=sources[0].url;
+  const tasks=sources.map(async source=>{
+   try{
+    const html=await fetchPage(source.url);parseFiles(html,source.url,source.name);
+    if(source.name==='Geofabrik'){
+     const rawIndex=html.match(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>\\s*(?:raw directory index|directory index)\\s*<\\/a>/i);
+     if(rawIndex){
+      const indexUrl=new URL(rawIndex[1].replace(/&amp;/g,'&'),source.url).toString();
+      const indexHtml=await fetchPage(indexUrl);parseFiles(indexHtml,indexUrl,'Geofabrik');
+     }
+    }
+   }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
+  });
+  await Promise.all(tasks);
+  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\\.zip$/i,'');
+  for(const item of [...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()])){
+   const key=normalize(item.fileName);
+   const matches=files.filter(file=>normalize(file.fileName)===key&&file.dateMs!==null).sort((a,b)=>(b.dateMs??0)-(a.dateMs??0));
+   const latest=matches[0];
+   item.updateChecked=true;
+   item.updateAvailable=latest?latest.dateMs!>item.lastModified:null;
+   item.updateDate=latest?new Date(latest.dateMs!).toISOString():null;
+   item.updateSource=latest?.source??null;
+  }
+  return {maps:await this.getMaps(),checkedAt:new Date().toISOString(),filesFound:files.length,sourceErrors};
+ };
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   const item=this.opened.get(id); const obf=this.obfFiles.get(id);
