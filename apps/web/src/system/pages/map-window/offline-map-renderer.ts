@@ -1269,7 +1269,7 @@ export class OfflineMapRenderer {
         element = document.createElement('div');
         element.style.cssText = 'position:absolute;display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid rgba(255,255,255,.78);background:rgba(12,20,28,.20);';
         const label = document.createElement('div');
-        label.style.cssText = 'display:flex;align-items:center;gap:8px;max-width:calc(100% - 16px);padding:7px 11px;border:1px solid rgba(255,255,255,.28);border-radius:5px;background:rgba(20,27,34,.90);color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.28);';
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;max-width:calc(100% - 16px);max-height:calc(100% - 16px);padding:7px 11px;border:1px solid rgba(255,255,255,.28);border-radius:5px;background:rgba(20,27,34,.90);color:#fff;font:600 12px/1.3 system-ui,sans-serif;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.28);overflow:auto;';
         const spinner = document.createElement('span');
         spinner.style.cssText = 'width:13px;height:13px;flex:0 0 13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:osmand-tile-spin .8s linear infinite;';
         const message = document.createElement('span');
@@ -1299,7 +1299,10 @@ export class OfflineMapRenderer {
         const warning = status.status === 'warning';
         label.style.borderColor = warning ? 'rgba(255,205,90,.9)' : 'rgba(255,125,110,.8)';
         label.style.background = warning ? 'rgba(92,66,18,.94)' : 'rgba(92,24,20,.94)';
-        message.textContent = warning ? 'World_basemap.obf needed' : 'Tile rendering failed';
+        message.style.cssText = 'min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;';
+        message.textContent = warning
+          ? 'World_basemap.obf needed'
+          : 'Tile rendering failed:\n' + (status.error || 'Unknown rendering error');
         label.title = status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error');
       } else {
         spinner.style.display = '';
