@@ -38,7 +38,7 @@ export class OfflineMapManager {
    {url:'https://www.limaps.org/tileserver.html',fileType:'mbtiles' as const,useForUpdates:true},
    {url:'https://shortbread-tiles.org/download/',fileType:'mbtiles' as const,useForUpdates:true},
    {url:'https://download.osmand.net/list.php',fileType:'obf' as const,useForUpdates:true},
-   {url:'https://github.com/osmandapp/OsmAnd-resources',fileType:'obf' as const,useForUpdates:true}
+   {url:'https://github.com/osmandapp/OsmAnd-resources',fileType:'obf' as const,useForUpdates:false}
   ];
   const savedSources=Array.isArray(offlineSettings.updateSources)?offlineSettings.updateSources:defaultSources;
   const sources=savedSources.filter((entry):entry is {url:string;fileType:'obf'|'mbtiles';useForUpdates:boolean}=>{
