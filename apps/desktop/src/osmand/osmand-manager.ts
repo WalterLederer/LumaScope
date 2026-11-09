@@ -119,6 +119,16 @@ class OsmAndHelperWorker {
     return result;
   }
 
+  async retire(): Promise<void> {
+    await this.queue;
+    await this.shutdown();
+  }
+
+  async stop(): Promise<void> {
+    await this.queue;
+    await this.shutdown();
+  }
+
   async shutdown(): Promise<void> {
     const child = this.child;
     this.child = null;
@@ -330,12 +340,17 @@ export class OsmAndManager {
     } catch { /* Keep the configured fallback OBF map. */ }
     if (selectedPaths.length === this.obfPaths.length
       && selectedPaths.every((path, index) => path === this.obfPaths[index])) return;
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
     this.obfPaths = selectedPaths;
+    await this.replaceWorkers();
+    console.info('[OsmAnd]', 'active_obf_count=' + selectedPaths.length);
+  }
+
+  private async replaceWorkers(): Promise<void> {
+    const previousWorkers = this.workers;
+    this.workers = this.createWorkers(this.createEnvironment());
     this.pendingTiles.clear();
     this.nextWorker = 0;
-    this.workers = this.createWorkers(this.createEnvironment());
-    console.info('[OsmAnd]', 'active_obf_count=' + selectedPaths.length);
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
   }
 
   private createWorkers(environment: NodeJS.ProcessEnv): OsmAndHelperWorker[] {
@@ -396,27 +411,30 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.setRenderingStyle' })
   readonly setRenderingStyle = async (_event: IpcMainInvokeEvent, fileName: string): Promise<OsmAndRuntimeStatus> => {
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
-      throw new Error('[OsmAnd] invalid rendering style name: ' + String(fileName));
-    }
+    const update = this.styleChange.then(async () => {
+      if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
+        throw new Error('[OsmAnd] invalid rendering style name: ' + String(fileName));
+      }
 
-    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
-    if (!fileNames.includes(fileName)) {
-      const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
-      throw new Error('[OsmAnd] requested rendering style not found: ' + join(styleDirectory, fileName)
-        + '\nRendering styles directory: ' + styleDirectory
-        + '\nAvailable styles (' + fileNames.length + '):\n' + available);
-    }
+      const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
+      if (!fileNames.includes(fileName)) {
+        const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
+        throw new Error('[OsmAnd] requested rendering style not found: ' + join(styleDirectory, fileName)
+          + '\nRendering styles directory: ' + styleDirectory
+          + '\nAvailable styles (' + fileNames.length + '):\n' + available);
+      }
 
-    if (fileName !== this.styleFileName) {
-      await Promise.all(this.workers.map(worker => worker.shutdown()));
-      this.styleFileName = fileName;
-      this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, fileName);
-      void updateAppSettingsSection('osmand', { renderingStyle: fileName })
-        .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
-      this.pendingTiles.clear();
-      this.workers = this.createWorkers(this.createEnvironment());
-    }
+      if (fileName !== this.styleFileName) {
+        this.styleFileName = fileName;
+        this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, fileName);
+        void updateAppSettingsSection('osmand', { renderingStyle: fileName })
+          .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
+        await this.replaceWorkers();
+        console.info('[OsmAnd] Rendering style applied:', fileName);
+      }
+    });
+    this.styleChange = update.catch(() => undefined);
+    await update;
     return this.getRuntimeStatus();
   };
 
@@ -439,6 +457,7 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
   readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number, forceRender = false): Promise<OsmAndTileResult> => {
+    await this.styleChange;
     await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
     const tileCount = 2 ** z;
@@ -479,7 +498,7 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.shutdown' })
   readonly shutdown = async (): Promise<void> => {
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    await Promise.all(this.workers.map(worker => worker.stop()));
   };
 
   private async renderAndCacheTile(z: number, x: number, y: number, cacheFile: string): Promise<Buffer> {
