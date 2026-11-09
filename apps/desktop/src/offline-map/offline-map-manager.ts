@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 export interface OfflineMapStatus { type?:'mbtiles'|'obf'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
-export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; }
+export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
@@ -96,12 +96,14 @@ export class OfflineMapManager {
   const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').normalize('NFKC') .replace(/\s+/g,' ').trim();
   const maps=[...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()]);
   let matchedMaps=0;
+  const matchedCatalogueKeys=new Set<string>();
   for(const item of maps){
    const key=normalize(item.fileName);
    // A catalogue entry is a match by filename and file type. A missing date
    // must not turn an existing download into an unmatched map.
    const matches=files.filter(file=>file.fileType===(item.type??'mbtiles')&&normalize(file.fileName)===key).sort((a,b)=>(b.dateMs??0)-(a.dateMs??0));
    const latest=matches[0];
+   for(const file of matches)matchedCatalogueKeys.add(file.fileType+':'+normalize(file.fileName));
    item.updateChecked=true;
    item.updateMatched=!!latest;
    if(latest)matchedMaps++;
@@ -109,7 +111,7 @@ export class OfflineMapManager {
    item.updateDate=latest?.dateMs!==null&&latest?.dateMs!==undefined?new Date(latest.dateMs).toISOString():null;
    item.updateSource=latest?.source??null;
   }
-  return {maps:await this.getMaps(),checkedAt:new Date().toISOString(),filesFound:files.length,matchedMaps,unmatchedMaps:maps.length-matchedMaps,catalogueFiles:files.map(file=>({...file})).sort((a,b)=>a.fileName.localeCompare(b.fileName)),sourceErrors};
+  return {maps:await this.getMaps(),checkedAt:new Date().toISOString(),filesFound:files.length,matchedMaps,unmatchedMaps:maps.length-matchedMaps,catalogueFiles:files.map(file=>({...file,matched:matchedCatalogueKeys.has(file.fileType+':'+normalize(file.fileName))})).sort((a,b)=>a.fileName.localeCompare(b.fileName)),sourceErrors};
  };
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
