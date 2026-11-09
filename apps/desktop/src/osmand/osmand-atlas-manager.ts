@@ -616,19 +616,20 @@ export class OsmAndAtlasManager {
       }
 
       const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
-      if (!fileNames.includes(fileName)) {
-        const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
-        throw new Error('[OsmAnd Atlas] requested rendering style not found: ' + join(styleDirectory, fileName)
-          + '\nRendering styles directory: ' + styleDirectory
-          + '\nAvailable styles (' + fileNames.length + '):\n' + available);
+      // The UI can issue its first render request before getRenderingStyles()
+      // has restored the persisted selection. Never let a stale/removed style
+      // prevent map initialization: fall back to the installed base style.
+      const selectedFileName = fileNames.includes(fileName) ? fileName : 'default.render.xml';
+      if (selectedFileName !== fileName) {
+        console.warn('[OsmAnd Atlas] Requested rendering style is not installed; falling back to default.render.xml:', fileName);
       }
 
-      if (fileName !== this.styleFileName) {
-        this.styleFileName = fileName;
-        this.stylePath = join(styleDirectory, fileName);
-        this.persistStyleFileName(fileName);
+      if (selectedFileName !== this.styleFileName) {
+        this.styleFileName = selectedFileName;
+        this.stylePath = join(styleDirectory, selectedFileName);
+        this.persistStyleFileName(selectedFileName);
         await this.replaceWorkers();
-        console.info('[OsmAnd Atlas] Rendering style applied:', fileName);
+        console.info('[OsmAnd Atlas] Rendering style applied:', selectedFileName);
       }
     });
     this.styleChange = update.catch(() => undefined);
