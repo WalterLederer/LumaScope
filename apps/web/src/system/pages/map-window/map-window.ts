@@ -828,7 +828,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
   protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
-  protected readonly osmAndStyle = signal(this.readSetting('osmandStyle', 'default.render.xml'));
+  protected readonly osmAndStyle = signal('default.render.xml');
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
@@ -1884,7 +1884,6 @@ export class MapWindow implements OnInit, OnDestroy {
       // Only the latest selection may rebuild the map and update the UI.
       if (changeGeneration !== this.osmAndStyleChangeGeneration) return;
       this.osmAndStyle.set(fileName);
-      this.saveSetting('osmandStyle', fileName);
       this.osmAndStyles.update(styles => styles.map(style => ({ ...style, selected: style.fileName === fileName })));
       if ((this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
         && this.currentLatitude !== null && this.currentLongitude !== null) {
