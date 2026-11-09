@@ -320,6 +320,18 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
+  <div class="map-cache-actions view-rerender-actions">
+    <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
+    <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+      {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
+    </button>
+  </div>
+  @if (rerenderVisibleTilesBusy()) {
+    <div class="map-cache-progress">
+      <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
+      <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
+    </div>
+  }
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
