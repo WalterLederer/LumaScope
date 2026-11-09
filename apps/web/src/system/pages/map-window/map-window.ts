@@ -849,11 +849,6 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
   };
-  protected readonly toggleSettings = (): void => {
-    const open = !this.settingsOpen();
-    this.settingsOpen.set(open);
-    this.persistLocationUiState({ settingsOpen: open });
-  };
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
     this.saveSetting('renderVisualsEnabled', enabled);
@@ -1074,15 +1069,15 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       if (!saved) return;
-      if (typeof saved.settingsOpen === 'boolean') this.settingsOpen.set(saved.settingsOpen);
-      if (typeof saved.activeSettingsTab === 'string' && ['location','track','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved.activeSettingsTab)) this.activeSettingsTab.set(saved.activeSettingsTab as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
-      if (typeof saved.renderVisualsEnabled === 'boolean') {
-        this.renderVisualsEnabled.set(saved.renderVisualsEnabled);
-        window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved.renderVisualsEnabled } }));
+      if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['renderVisualsEnabled'] === 'boolean') {
+        this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
+        window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
       }
-      if (typeof saved.opacitySectionOpen === 'boolean') this.opacitySectionOpen.set(saved.opacitySectionOpen);
-      if (typeof saved.renderSectionOpen === 'boolean') this.renderSectionOpen.set(saved.renderSectionOpen);
-      if (typeof saved.markerSectionOpen === 'boolean') this.markerSectionOpen.set(saved.markerSectionOpen);
+      if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
+      if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
+      if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     document.documentElement.style.backgroundColor = 'transparent';
@@ -1349,7 +1344,9 @@ export class MapWindow implements OnInit, OnDestroy {
     return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(degrees / 22.5) % 16];
   }
   protected readonly toggleSettings = (): void => {
-    this.settingsOpen.update(open => !open);
+    const open = !this.settingsOpen();
+    this.settingsOpen.set(open);
+    this.persistLocationUiState({ settingsOpen: open });
 
     // Let Angular update the settings section and flex layout before Leaflet measures the map.
     requestAnimationFrame(() => {
