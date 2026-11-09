@@ -42,7 +42,7 @@ window.desktop
         const key = legacyStorage.key(index);
         if (!key) continue;
         const value = legacyStorage.getItem(key);
-        if (key === mapPrefix + 'osmandStyle') continue;
+        if (key === mapPrefix + 'osmandStyle' || key === mapPrefix + 'osmandResourcesPath') continue;
         if (value === null || values.has(key)) continue;
         values.set(key, value);
         if (key.startsWith(mapPrefix)) {
@@ -55,6 +55,7 @@ window.desktop
       // OsmAnd has one authoritative settings pair under osmand. Do not
       // import or read any renderer-local or Atlas-specific legacy values.
       delete mapWindow['osmandStyle'];
+      delete mapWindow['osmandResourcesPath'];
       delete osmand['atlas'];
 
       // Persist any one-time imports before replacing browser storage.
@@ -66,7 +67,10 @@ window.desktop
       }
       // Remove obsolete duplicate settings without importing their values.
       await window.desktop.ProcessManager.setAppSettingsSection('osmand', { atlas: undefined });
-      await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { osmandStyle: undefined });
+      await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', {
+        osmandStyle: undefined,
+        osmandResourcesPath: undefined
+      });
 
       const persistValue = (key: string, value: string | null): void => {
         if (key.startsWith(mapPrefix)) {
