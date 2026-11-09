@@ -768,8 +768,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderInitStatus = signal('');
   private readonly onOsmAndTileStatus = (event: Event): void => {
-    const detail = (event as CustomEvent<{ protocol?: string; status?: string }>).detail;
+    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : null;
+    if (detail?.status === 'diagnostic' && detail.protocol === 'osmand-atlas' && detail.error) {
+      this.recordMapError('OsmAnd Atlas helper', detail.error);
+      return;
+    }
     if (!expectedProtocol || detail?.protocol !== expectedProtocol || !this.renderInitStatus()) return;
     if (detail.status === 'loading') this.renderInitStatus.set('Rendering first tile …');
     else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error') this.renderInitStatus.set('');
