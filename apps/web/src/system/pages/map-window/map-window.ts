@@ -1118,11 +1118,17 @@ export class MapWindow implements OnInit, OnDestroy {
             ? osmand['resourcesPath'] : '';
           this.osmAndResourcesPath.set(resourcesPath);
 
-          // OsmAnd Atlas owns the one persisted style selection in config.json.
-          // Both renderers must use that same selection; never derive the UI
-          // value from whichever renderer happens to be active.
+          // Use the style path of the renderer that is actually active.
+          // The persisted config can lag behind a helper that is already
+          // rendering another style. Keep one shared UI selection and sync
+          // both renderers to the active renderer's effective style.
           const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
-          const selectedStyle = styles.find(style => style.selected)
+          const activeRuntime = this.mapSource() === 'osmand'
+            ? await this.desktop!.OsmAnd.getRuntimeStatus()
+            : await this.desktop!.OsmAndAtlas.getRuntimeStatus();
+          const runtimeFileName = activeRuntime.stylePath.split(/[\\/]/).pop() ?? '';
+          const selectedStyle = styles.find(style => style.fileName === runtimeFileName)
+            ?? styles.find(style => style.selected)
             ?? styles.find(style => style.fileName === 'default.render.xml')
             ?? styles[0];
           this.osmAndStyles.set(styles.map(style => ({
@@ -1130,10 +1136,8 @@ export class MapWindow implements OnInit, OnDestroy {
           })));
           if (selectedStyle) {
             this.osmAndStyle.set(selectedStyle.fileName);
-            await Promise.all([
-              this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName),
-              this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName)
-            ]);
+            await this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName);
+            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
