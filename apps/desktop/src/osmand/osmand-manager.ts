@@ -254,8 +254,7 @@ export class OsmAndManager {
 
   private readSavedResourcesPath(): string {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
-    return typeof atlas?.resourcesPath === 'string' ? atlas.resourcesPath : '';
+    return typeof osmand?.resourcesPath === 'string' ? osmand.resourcesPath : '';
   }
 
   private readSavedStyleFileName(): string {
@@ -377,7 +376,7 @@ export class OsmAndManager {
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
     if (!fileNames.includes(this.styleFileName)) this.styleFileName = 'default.render.xml';
     this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, this.styleFileName);
-    await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath } });
+    await updateAppSettingsSection('osmand', { resourcesPath: resolvedPath });
     this.pendingTiles.clear();
     this.workers = this.createWorkers(this.createEnvironment());
     this.nextWorker = 0;
