@@ -793,7 +793,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
-  private readonly storagePrefix = 'light-matter.mapWindow.';
+  private readonly storagePrefix = 'mapWindow.';
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'memory') void this.refreshProcessMemory();
