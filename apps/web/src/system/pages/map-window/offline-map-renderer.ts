@@ -1449,9 +1449,13 @@ export class OfflineMapRenderer {
         ...Object.keys(paint).filter(key => key.endsWith('-opacity'))
       ]);
       for (const property of properties) {
+        // MapLibre types paint-property names as keyof AllPaintProperties.
+        // The keys above are selected from the layer type and its own paint
+        // object, so this assertion bridges the dynamic iteration to that API.
+        const paintProperty = property as Parameters<MapLibreMap['getPaintProperty']>[1];
         const key = layer.id + ':' + property;
         if (!this.basemapOpacityDefaults.has(key)) {
-          this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, property));
+          this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, paintProperty));
         }
         const original = this.basemapOpacityDefaults.get(key);
         // Multiply the style's own opacity so the slider remains continuous;
@@ -1459,7 +1463,7 @@ export class OfflineMapRenderer {
         const scaled = value === 0 ? 0
           : typeof original === 'number' ? original * value
             : ['*', original ?? 1, value];
-        this.map.setPaintProperty(layer.id, property, scaled as never);
+        this.map.setPaintProperty(layer.id, paintProperty, scaled as never);
       }
     }
   }
