@@ -346,29 +346,7 @@ interface MapErrorEntry {
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
-                <div class="mbtiles-map-list">
-                  @if (offlineMaps().length > 0) {
-                    <table class="mbtiles-map-table">
-                      <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
-                      <tbody>
-                        @for (map of filteredOfflineMaps(); track map.id) {
-                          <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
-                            <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
-                            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                            <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
-                            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
-                            <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
-                            <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                            <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
-                            <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                            <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  } @else { <span class="offline-map-status">No offline maps loaded.</span> }
-                  @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
-                </div>
+           </div>
               </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
@@ -486,10 +464,43 @@ interface MapErrorEntry {
           <button type="button" (click)="openResourcesDownloadTab()">Open Download tab</button>
         </div>
       }
-      <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-      @if (!coordinatesAvailable()) {
-        <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
-      }
+      <div class="map-content">
+        @if (activeSettingsTab() === 'offlineMaps') {
+          <div class="offline-map-list-view">
+            <div class="mbtiles-map-list">
+            @if (offlineMaps().length > 0) {
+            <table class="mbtiles-map-table">
+            <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+            <tbody>
+            @for (map of filteredOfflineMaps(); track map.id) {
+            <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
+            <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
+            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+            <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
+            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+            <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
+            <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+            <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
+            <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+            <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
+            </tr>
+            }
+            </tbody>
+            </table>
+            } @else { <span class="offline-map-status">No offline maps loaded.</span> }
+            @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
+            
+          </div>
+        } @else {
+          <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+          @if (!coordinatesAvailable()) {
+            <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
+          }
+          @if (renderInitStatus()) {
+            <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
+          }
+        }
+      </div>
       @if (overlayMode) {
         <div class="overlay-resize-handle resize-n" (pointerdown)="startOverlayResize($event, 'n')"></div>
         <div class="overlay-resize-handle resize-e" (pointerdown)="startOverlayResize($event, 'e')"></div>
@@ -526,7 +537,7 @@ interface MapErrorEntry {
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:auto;min-height:260px;max-height:80vh;overflow:auto;resize:vertical;flex:0 0 auto}
+    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:auto;min-height:0;max-height:80vh;overflow:auto;resize:none;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab.has-errors{color:#ff8a80}
@@ -601,7 +612,7 @@ interface MapErrorEntry {
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-selection.offline-map-toolbar{flex-direction:row;align-items:center}
     .mbtiles-selection.mbtiles-download-controls{flex-direction:row;align-items:center;flex-wrap:nowrap}
-    .mbtiles-map-list{flex:0 1 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:min(45vh,480px);overflow:auto;overscroll-behavior:contain}
+    .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
@@ -751,6 +762,14 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly renderInitStatus = signal('');
+  private readonly onOsmAndTileStatus = (event: Event): void => {
+    const detail = (event as CustomEvent<{ protocol?: string; status?: string }>).detail;
+    const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : null;
+    if (!expectedProtocol || detail?.protocol !== expectedProtocol || !this.renderInitStatus()) return;
+    if (detail.status === 'loading') this.renderInitStatus.set('Rendering first tile …');
+    else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error') this.renderInitStatus.set('');
+  };
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
   protected readonly selectedMapSourceType = computed(() => ({
@@ -907,6 +926,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
@@ -1032,6 +1052,8 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.memoryRefreshTimer) clearInterval(this.memoryRefreshTimer);
     this.memoryRefreshTimer = null;
+    window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
     // while a zoom animation is still in progress.
@@ -1508,7 +1530,9 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async createOsmAndAtlasMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand-atlas') return;
+    this.renderInitStatus.set('Render init …');
     if (!this.desktop) {
+      this.renderInitStatus.set('');
       this.recordMapError('OsmAnd Atlas', 'Desktop API is not connected.');
       return;
     }
@@ -1518,6 +1542,7 @@ export class MapWindow implements OnInit, OnDestroy {
       runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
+        this.renderInitStatus.set('');
         this.recordMapError('OsmAnd Atlas runtime', error instanceof Error ? error.message : String(error));
       }
       return;
@@ -1531,6 +1556,7 @@ export class MapWindow implements OnInit, OnDestroy {
       !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
     ].filter(Boolean);
     if (missing.length) {
+      this.renderInitStatus.set('');
       this.recordMapError('OsmAnd Atlas runtime', 'Not ready. Missing ' + missing.join('; ') + '.');
       return;
     }
@@ -1542,6 +1568,7 @@ export class MapWindow implements OnInit, OnDestroy {
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
         if (generation !== this.mapSourceGeneration || /\b(cancelled|canceled)\b/i.test(message)) return;
+        this.renderInitStatus.set('');
         this.recordMapError('OsmAnd Atlas rendering', message);
         console.error('[OsmAnd Atlas] Tile rendering error:', message);
       },
@@ -1554,6 +1581,7 @@ export class MapWindow implements OnInit, OnDestroy {
       renderer.remove();
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       if (generation === this.mapSourceGeneration) {
+        this.renderInitStatus.set('');
         const message = error instanceof Error ? error.message : String(error);
         this.recordMapError('OsmAnd Atlas initialization', message);
         console.error('[OsmAnd Atlas] Initialization failed:', error);
@@ -1590,6 +1618,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
+    this.renderInitStatus.set('Render init …');
     if (!this.desktop) {
       this.recordMapError('OsmAnd', 'Desktop API is not connected.');
       return;
