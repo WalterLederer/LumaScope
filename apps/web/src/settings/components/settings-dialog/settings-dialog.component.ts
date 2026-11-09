@@ -232,7 +232,7 @@ export class SettingsPanelComponent {
 
   private readDebugImageSwitching(): boolean {
     try {
-      return globalThis.localStorage.getItem('light-matter.debugImageSwitching') === 'true';
+      return globalThis.localStorage.getItem('debugImageSwitching') === 'true';
     } catch {
       return false;
     }
@@ -241,7 +241,7 @@ export class SettingsPanelComponent {
   protected readonly setDebugImageSwitching = (enabled: boolean) => {
     this.debugImageSwitching.set(enabled);
     try {
-      globalThis.localStorage.setItem('light-matter.debugImageSwitching', String(enabled));
+      globalThis.localStorage.setItem('debugImageSwitching', String(enabled));
     } catch {
       // The option remains active for this dialog session if storage is unavailable.
     }
