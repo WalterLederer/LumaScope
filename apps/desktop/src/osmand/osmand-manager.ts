@@ -310,18 +310,18 @@ export class OsmAndManager {
     try {
       const appSettings = readAppSettings();
       const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-        obfPaths?: unknown; enabledByPath?: Record<string, unknown>; obfPreset?: unknown;
+        filePaths?: unknown; obfPreset?: unknown;
       };
-      if (Array.isArray(settings.obfPaths)) {
+      if (settings.filePaths && typeof settings.filePaths === 'object' && !Array.isArray(settings.filePaths)) {
         const preset = settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'custom' || settings.obfPreset === 'custom-no-world-map' ? settings.obfPreset : 'austria';
-        selectedPaths = settings.obfPaths
-          .filter((value): value is string => typeof value === 'string')
+        selectedPaths = Object.entries(settings.filePaths as Record<string, unknown>)
+          .filter(([path, enabled]) => enabled === true && /\.obf$/i.test(path))
+          .map(([path]) => path)
           .filter(path => {
             if (!existsSync(path)) return false;
             const name = path.split(/[\\/]/).pop() ?? path;
             const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
             if (isWorldBasemap) return preset !== 'custom-no-world-map';
-            if (settings.enabledByPath?.[path] === false) return false;
             const isAustria = /austria|österreich|osterreich/i.test(name);
             const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
             return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
