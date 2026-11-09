@@ -324,10 +324,10 @@ interface MapErrorEntry {
     <summary>Render</summary>
     <div class="map-cache-actions view-rerender-actions">
       <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
-      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
       <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
       </button>
+      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
     </div>
   <div class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
     <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
@@ -382,10 +382,10 @@ interface MapErrorEntry {
         <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
       </div>
       <div class="map-cache-actions">
-        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
         <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
         </button>
+        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
       </div>
       @if (rerenderVisibleTilesBusy()) {
         <div class="map-cache-progress">
