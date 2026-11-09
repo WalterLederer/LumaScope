@@ -869,7 +869,7 @@ export class MapWindow implements OnInit, OnDestroy {
     { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
     { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false }
   ]);
-  protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
+  protected readonly osmAndResourcesPath = signal('');
   protected readonly osmAndResourcesError = signal('');
   protected readonly mapDisplayNotice = signal('');
   protected readonly openResourcesDownloadTab = (): void => { this.settingsOpen.set(true); this.selectSettingsTab('download'); };
@@ -1000,14 +1000,14 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.desktop) {
       this.osmAndStyleRestore = (async () => {
         try {
-          // Both OsmAnd renderers share one resources folder and one selected
-          // rendering style. Re-apply the folder to both managers, then use
-          // Atlas as the migration source for any former Atlas-only selection.
-          const resourcesPath = this.osmAndResourcesPath().trim();
-          if (resourcesPath) {
-            await this.desktop!.OsmAndAtlas.setResourcesPath(resourcesPath);
-            await this.desktop!.OsmAnd.setResourcesPath(resourcesPath);
-          }
+          // The native managers already read the shared osmand settings.
+          // Restore only the UI display from that same config section; never
+          // let a stale mapWindow/localStorage copy overwrite the resources path.
+          const settings = await this.desktop!.ProcessManager.getAppSettings();
+          const osmand = settings['osmand'] as Record<string, unknown> | undefined;
+          const resourcesPath = typeof osmand?.['resourcesPath'] === 'string'
+            ? osmand['resourcesPath'] : '';
+          this.osmAndResourcesPath.set(resourcesPath);
 
           const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
           const selectedStyle = styles.find(style => style.selected);
@@ -2121,7 +2121,6 @@ export class MapWindow implements OnInit, OnDestroy {
       await this.desktop.OsmAndAtlas.setResourcesPath(result.data);
       await this.desktop.OsmAnd.setResourcesPath(result.data);
       this.osmAndResourcesPath.set(result.data);
-      this.saveSetting('osmandResourcesPath', result.data);
       this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
       if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.refreshOfflineMapRendering();
