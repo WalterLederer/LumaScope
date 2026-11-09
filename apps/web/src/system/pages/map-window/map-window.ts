@@ -336,6 +336,7 @@ interface MapErrorEntry {
                 <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
                 <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="offlineMaps().length === 0">Activate all</button>
                 <button class="offline-map-add-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="offlineMaps().length === 0">Deactivate all</button>
+                <button class="offline-map-add-button" type="button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMaps().length === 0 || offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
                 <label class="offline-map-list-filter">List:
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
@@ -343,7 +344,7 @@ interface MapErrorEntry {
                     <option value="active">Active</option>
                   </select>
                 </label>
-                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · {{ activeOfflineMapCount() }} map(s) active · {{ inUseOfflineMapCount() }} map(s) in use · automatic selection by GPS coordinates
+                <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || (offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · automatic selection by GPS coordinates') }}
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
               </div>
@@ -469,7 +470,7 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th class="mbtiles-updates-column">Updates</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                   <tbody>
                     @for (map of filteredOfflineMaps(); track map.id) {
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
@@ -479,6 +480,7 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null" [attr.title]="map.updateAvailable === true ? 'Update available · ' + (map.updateDate || 'newer version') + ' · ' + (map.updateSource || 'source') : map.updateAvailable === false ? 'No newer version listed · ' + (map.updateSource || 'source') : map.updateChecked ? 'No matching filename/date found in the available catalogues' : 'Not checked yet'" [attr.aria-label]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No update available' : map.updateChecked ? 'Update status unknown' : 'Not checked'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
                         <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
                         <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
@@ -613,6 +615,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.obf-map-row .mbtiles-map-file strong{color:#79b8ff}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .mbtiles-map-table{min-width:850px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:16px;font-size:14px;font-weight:700;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#ff6b6b}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
@@ -800,6 +803,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active'>('all');
+  protected readonly offlineMapUpdateCheckBusy = signal(false);
+  protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly activeOfflineMapCount = computed(() => this.offlineMaps().filter(map => map.enabled).length);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).length);
   protected readonly filteredOfflineMaps = computed(() => {
@@ -1847,6 +1852,26 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
+    }
+  };
+  protected readonly checkForOfflineMapUpdates = async (): Promise<void> => {
+    if (!this.desktop || this.offlineMapUpdateCheckBusy()) return;
+    this.offlineMapUpdateCheckBusy.set(true);
+    this.offlineMapUpdateCheckStatus.set('Downloading update catalogues…');
+    try {
+      const result = await this.desktop.OfflineMap.checkForUpdates();
+      this.offlineMaps.set(result.maps);
+      const updates = result.maps.filter(map => map.updateAvailable === true).length;
+      const unknown = result.maps.filter(map => map.updateAvailable === null).length;
+      const checkedAt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(result.checkedAt));
+      const errors = result.sourceErrors.length ? ' · Source errors: ' + result.sourceErrors.join('; ') : '';
+      this.offlineMapUpdateCheckStatus.set('Checked ' + checkedAt + ' · ' + updates + ' update(s) available · ' + unknown + ' map(s) could not be matched · ' + result.filesFound + ' catalogue file(s)' + errors);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.offlineMapUpdateCheckStatus.set('Update check failed: ' + message);
+      this.recordMapError('Offline map updates', message);
+    } finally {
+      this.offlineMapUpdateCheckBusy.set(false);
     }
   };
   protected readonly formatOfflineMapSize = (bytes: number): string => {
