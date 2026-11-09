@@ -846,7 +846,7 @@ export class MapWindow implements OnInit, OnDestroy {
     { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
     { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: true },
     { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
-    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: true }
+    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false }
   ]);
   protected readonly osmAndResourcesPath = signal(this.readSetting('osmandResourcesPath', ''));
   protected readonly osmAndResourcesError = signal('');
