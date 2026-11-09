@@ -20,7 +20,7 @@ window.desktop
         ? { ...(settings['preferences'] as Record<string, unknown>) } : {};
       const osmand = settings['osmand'] && typeof settings['osmand'] === 'object'
         ? { ...(settings['osmand'] as Record<string, unknown>) } : {};
-      const mapPrefix = 'light-matter.mapWindow.';
+      const mapPrefix = 'mapWindow.';
       const values = new Map<string, string>();
       const migratedMap: Record<string, unknown> = {};
       const migratedPreferences: Record<string, unknown> = {};
@@ -41,6 +41,8 @@ window.desktop
       for (let index = 0; index < legacyStorage.length; index++) {
         const key = legacyStorage.key(index);
         if (!key) continue;
+        // Do not resurrect preferences from the obsolete Light Matter namespace.
+        if (key.startsWith('light-matter.')) continue;
         const value = legacyStorage.getItem(key);
         if (key === mapPrefix + 'osmandStyle' || key === mapPrefix + 'osmandResourcesPath') continue;
         if (value === null || values.has(key)) continue;
