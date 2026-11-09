@@ -34,6 +34,8 @@ interface MapErrorEntry {
   id: number;
   timestamp: string;
   source: string;
+  renderer: string;
+  style: string;
   message: string;
   occurrences: number;
   lastSeenAt: number;
@@ -520,6 +522,7 @@ interface MapErrorEntry {
         @for (error of mapErrors(); track error.id) {
           <article class="map-error-entry">
             <div class="map-error-entry-heading"><strong>{{ error.source }}</strong><time>{{ error.timestamp }}</time>@if (error.occurrences > 1) { <span>{{ error.occurrences }} occurrences</span> }</div>
+            <div class="map-error-context"><span>Renderer: <strong>{{ error.renderer }}</strong></span><span>Style: <strong>{{ error.style }}</strong></span></div>
             <pre>{{ error.message }}</pre>
           </article>
         }
@@ -1354,14 +1357,29 @@ export class MapWindow implements OnInit, OnDestroy {
     // MapLibre aborts obsolete tile requests during zoom/source changes. These
     // are expected lifecycle cancellations, not renderer failures.
     if (/\b(cancelled|canceled)\b/i.test(message)) return;
+    const mapSource = this.mapSource();
+    const renderer = ({
+      online: 'Online map renderer',
+      offline: 'MBTiles renderer',
+      osmand: 'OsmAnd renderer',
+      'osmand-atlas': 'OsmAnd Atlas renderer'
+    } as const)[mapSource] ?? 'Unknown';
+    const style = mapSource === 'osmand' || mapSource === 'osmand-atlas'
+      ? this.osmAndStyle()
+      : mapSource === 'offline'
+        ? this.offlineMapStyle()
+        : mapSource === 'online'
+          ? this.mapStyle()
+          : 'Unknown';
     const now = Date.now();
     const timestamp = new Date(now).toLocaleString();
     this.mapErrors.update(errors => {
       const latest = errors[0];
-      if (latest && latest.source === source && latest.message === message && now - latest.lastSeenAt < 5000) {
+      if (latest && latest.source === source && latest.renderer === renderer
+        && latest.style === style && latest.message === message && now - latest.lastSeenAt < 5000) {
         return [{ ...latest, timestamp, occurrences: latest.occurrences + 1, lastSeenAt: now }, ...errors.slice(1)];
       }
-      return [{ id: ++this.mapErrorSequence, timestamp, source, message, occurrences: 1, lastSeenAt: now }, ...errors].slice(0, 100);
+      return [{ id: ++this.mapErrorSequence, timestamp, source, renderer, style, message, occurrences: 1, lastSeenAt: now }, ...errors].slice(0, 100);
     });
   }
 
