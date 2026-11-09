@@ -329,13 +329,15 @@ interface MapErrorEntry {
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
       </button>
     </div>
-    @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
-      <div class="map-cache-progress">
-        <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()"></progress>
-        <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
-      </div>
-    }
   </details>
+  <div class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
+    <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
+    @if (renderActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
+      <span>Rendering inactive</span>
+    } @else {
+      <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
+    }
+  </div>
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
@@ -457,8 +459,8 @@ interface MapErrorEntry {
           <thead><tr><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th><th></th></tr></thead>
           <tbody>
             @for (file of offlineMapCatalogueFiles(); track file.url) {
-              <tr>
-                <td class="mbtiles-map-file"><strong>{{ file.fileName }}</strong></td>
+              <tr [class.offline-catalogue-matched]="file.matched">
+                <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
                 <td>{{ file.fileType.toUpperCase() }}</td>
                 <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
                 <td>{{ file.source }}</td>
@@ -627,7 +629,9 @@ interface MapErrorEntry {
      .map-cache-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
      .map-cache-progress{display:flex;align-items:center;gap:10px;min-width:0}
      .map-cache-progress progress{flex:1;min-width:120px;height:12px;accent-color:#65a9ff}
-     .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums}
+     .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
+    .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
     .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
     .view-rerender-section>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .view-rerender-section[open]>summary{margin-bottom:2px}
@@ -671,9 +675,15 @@ interface MapErrorEntry {
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .download-source-table{min-width:720px}.offline-catalogue-toolbar{margin-top:14px}
     .offline-catalogue-table-wrap{max-height:360px;overflow:auto;margin-top:6px}
-    .offline-catalogue-table{min-width:680px}
-    .offline-catalogue-table th:first-child,.offline-catalogue-table td:first-child{min-width:240px}
-    .offline-catalogue-table td:nth-child(4){white-space:nowrap}
+    .offline-catalogue-table{width:100%;min-width:680px;table-layout:fixed}
+    .offline-catalogue-table th:first-child,.offline-catalogue-table td:first-child{width:54%}
+    .offline-catalogue-table th:nth-child(2),.offline-catalogue-table td:nth-child(2){width:8%}
+    .offline-catalogue-table th:nth-child(3),.offline-catalogue-table td:nth-child(3){width:16%}
+    .offline-catalogue-table th:nth-child(4),.offline-catalogue-table td:nth-child(4){width:14%;white-space:nowrap}
+    .offline-catalogue-table th:nth-child(5),.offline-catalogue-table td:nth-child(5){width:8%}
+    .offline-catalogue-file-name{white-space:normal!important;overflow-wrap:anywhere;word-break:normal;line-height:1.35}
+    .offline-catalogue-matched{background:rgba(46,160,67,.20)}
+    .offline-catalogue-matched:hover{background:rgba(46,160,67,.28)}
     .download-source-url{min-width:380px}.download-source-url input{width:100%;min-width:320px;box-sizing:border-box}.download-source-table select{max-width:110px}
     .mbtiles-map-table{min-width:850px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:16px;font-size:14px;font-weight:700;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#ff6b6b}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
