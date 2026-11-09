@@ -75,7 +75,7 @@ export class ImageGridComponent {
 
   private readonly readStoredViewMode = (): GalleryViewMode => {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.galleryViewMode');
+      const stored = this.document.defaultView?.localStorage.getItem('galleryViewMode');
       return stored === 'tiles' || stored === 'details' || stored === 'details-no-thumbnails' ? stored : 'thumbnails';
     } catch { return 'thumbnails'; }
   };
@@ -84,7 +84,7 @@ export class ImageGridComponent {
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
-    try { this.document.defaultView?.localStorage.setItem('light-matter.galleryViewMode', mode); }
+    try { this.document.defaultView?.localStorage.setItem('galleryViewMode', mode); }
     catch { /* Keep the selected view for the current session. */ }
   };
 
