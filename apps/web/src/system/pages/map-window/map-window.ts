@@ -1118,11 +1118,17 @@ export class MapWindow implements OnInit, OnDestroy {
             ? osmand['resourcesPath'] : '';
           this.osmAndResourcesPath.set(resourcesPath);
 
-          const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
-          // Use the style path reported by the Atlas runtime as the initial UI
-          // selection. The list's selected flag can be stale while the native
-          // manager and its already-created workers are being restored.
-          const runtime = await this.desktop!.OsmAndAtlas.getRuntimeStatus();
+          // The View tab uses one style selector for two different renderers.
+          // Read the selected style from the renderer that is actually active;
+          // the Atlas manager and the no-label manager can have different
+          // in-memory selections during startup.
+          const useAtlasRenderer = this.mapSource() === 'osmand-atlas';
+          const styles = useAtlasRenderer
+            ? await this.desktop!.OsmAndAtlas.getRenderingStyles()
+            : await this.desktop!.OsmAnd.getRenderingStyles();
+          const runtime = useAtlasRenderer
+            ? await this.desktop!.OsmAndAtlas.getRuntimeStatus()
+            : await this.desktop!.OsmAnd.getRuntimeStatus();
           const runtimeStyleFileName = runtime.stylePath.split(/[\\/]/).pop() ?? '';
           const selectedStyle = styles.find(style => style.fileName === runtimeStyleFileName)
             ?? styles.find(style => style.selected);
@@ -1130,10 +1136,15 @@ export class MapWindow implements OnInit, OnDestroy {
             ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
           })));
           if (selectedStyle) {
-            // Set the signal before map initialization can use it, then
-            // synchronize the no-label renderer to the same selection.
+            // Set the signal before map initialization can use it. Keep the
+            // other renderer synchronized so switching sources preserves the
+            // same style instead of reverting to its independent default.
             this.osmAndStyle.set(selectedStyle.fileName);
-            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
+            if (useAtlasRenderer) {
+              await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
+            } else {
+              await this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName);
+            }
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
