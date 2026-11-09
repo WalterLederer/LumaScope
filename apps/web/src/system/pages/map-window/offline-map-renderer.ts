@@ -13,6 +13,8 @@ export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-
 let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
+let osmAndHillshadeDatabasePathProvider: (() => string) | null = null;
+let osmAndHillshadeProtocolRegistered = false;
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
 type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
@@ -192,6 +194,33 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
   osmAndAtlasProtocolRegistered = true;
 }
 
+
+/** Hillshade is fetched as an independent PNG raster source; its alpha channel is preserved. */
+export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabasePath: () => string): void {
+  osmAndHillshadeDatabasePathProvider = getDatabasePath;
+  if (osmAndHillshadeProtocolRegistered) return;
+  addProtocol('osmand-hillshade', async (request, abortController) => {
+    const match = /^osmand-hillshade:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
+    const [, zoomText, columnText, rowText] = match;
+    const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
+    const tileCount = 2 ** zoom;
+    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 24
+      || !Number.isInteger(column) || !Number.isInteger(row)
+      || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
+      throw new Error('Invalid OsmAnd Hillshade tile coordinates.');
+    }
+    const databasePath = osmAndHillshadeDatabasePathProvider?.() ?? '';
+    if (!databasePath) throw new Error('Select a Hillshade SQLite database in map settings.');
+    const png = await desktop.OsmAndAtlas.renderHillshadeTile(zoom, column, row, 0);
+    if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
+    // MapLibre decodes the original PNG directly, including palette transparency.
+    const data = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
+    return { data };
+  });
+  osmAndHillshadeProtocolRegistered = true;
+}
+
 export function createOsmAndAtlasMapStyle(): StyleSpecification {
   return {
     version: 8,
@@ -204,11 +233,20 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
         minzoom: 2,
         maxzoom: 21,
         attribution: '© OpenStreetMap contributors'
+      },
+      'osmand-hillshade': {
+        type: 'raster',
+        tiles: ['osmand-hillshade://{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: 24,
+        attribution: '© OpenStreetMap contributors'
       }
     },
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': '#d9e1e5' } },
-      { id: 'osmand-atlas-raster', type: 'raster', source: 'osmand-atlas', paint: { 'raster-fade-duration': 0 } }
+      { id: 'osmand-atlas-raster', type: 'raster', source: 'osmand-atlas', paint: { 'raster-fade-duration': 0 } },
+      { id: 'osmand-hillshade-raster', type: 'raster', source: 'osmand-hillshade', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0, 'raster-opacity': 0.65 } }
     ]
   };
 }
