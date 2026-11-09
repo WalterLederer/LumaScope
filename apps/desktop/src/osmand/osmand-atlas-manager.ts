@@ -606,13 +606,13 @@ export class OsmAndAtlasManager {
   @IpcHandler({ name: 'OsmAndAtlas.setRenderingStyle' })
   readonly setRenderingStyle = async (_event: Electron.IpcMainInvokeEvent, fileName: string) => {
     const update = this.styleChange.then(async () => {
-      if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)) {
+      if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\\.xml$/.test(fileName)) {
         throw new Error('[OsmAnd Atlas] invalid rendering style name: ' + String(fileName));
       }
 
       const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
       if (!fileNames.includes(fileName)) {
-        const available = fileNames.map(name => join(styleDirectory, name)).join('\\n');
+        const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
         throw new Error('[OsmAnd Atlas] requested rendering style not found: ' + join(styleDirectory, fileName)
           + '\\nRendering styles directory: ' + styleDirectory
           + '\\nAvailable styles (' + fileNames.length + '):\\n' + available);
