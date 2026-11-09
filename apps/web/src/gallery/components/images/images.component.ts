@@ -89,14 +89,14 @@ export class ImagesComponent {
 
   private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
     try {
-      const stored = globalThis.localStorage.getItem('light-matter.detailSortColumn');
+      const stored = globalThis.localStorage.getItem('detailSortColumn');
       return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'thumb' || stored === 'fullSize' ? stored : stored === 'cacheStatus' || stored === 'cacheLocation' ? 'thumb' : 'date';
     } catch { return 'date'; }
   };
 
   private readonly readStoredDetailSortDirection = (): 'asc' | 'desc' => {
     try {
-      const stored = globalThis.localStorage.getItem('light-matter.detailSortDirection');
+      const stored = globalThis.localStorage.getItem('detailSortDirection');
       return stored === 'asc' || stored === 'desc' ? stored : this.sortDirection();
     } catch { return this.sortDirection(); }
   };
@@ -394,8 +394,8 @@ export class ImagesComponent {
     }
 
     try {
-      globalThis.localStorage.setItem('light-matter.detailSortColumn', this.detailSortColumn());
-      globalThis.localStorage.setItem('light-matter.detailSortDirection', this.detailSortDirection());
+      globalThis.localStorage.setItem('detailSortColumn', this.detailSortColumn());
+      globalThis.localStorage.setItem('detailSortDirection', this.detailSortDirection());
     } catch { /* Keep the selected detail sort for the current session. */ }
 
     if (column !== 'dimensions' && column !== 'hdr') return;
