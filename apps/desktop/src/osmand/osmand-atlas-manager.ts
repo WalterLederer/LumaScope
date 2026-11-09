@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, dialog, nativeImage, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -127,6 +127,92 @@ class AtlasOutputReader {
       this.buffer = this.buffer.subarray(waiter.length);
       waiter.resolve(value);
     }
+  }
+}
+
+
+class OsmAndHillshadeWorker {
+  private child: ChildProcessWithoutNullStreams | null = null;
+  private reader: AtlasOutputReader | null = null;
+  private queue: Promise<void> = Promise.resolve();
+  private nextRequestId = 1;
+  private stderr = '';
+
+  constructor(private readonly helperPath: string, private readonly environment: NodeJS.ProcessEnv) {}
+
+  readTile(databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> {
+    const result = this.queue.then(() => this.readTileQueued(databasePath, z, x, y, s));
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
+  }
+
+  async shutdown(): Promise<void> {
+    await this.queue;
+    const child = this.child;
+    this.child = null;
+    this.reader = null;
+    if (!child || child.exitCode !== null) return;
+    try {
+      if (child.stdin.writable) child.stdin.write(JSON.stringify({ type: 'quit' }) + '\n');
+    } catch { /* Process may already be closing. */ }
+    child.kill();
+  }
+
+  private async ensureStarted(): Promise<void> {
+    if (this.child && this.child.exitCode === null && this.reader) return;
+    if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
+    const child = spawn(this.helperPath, ['--hillshade-worker'], {
+      stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
+    });
+    this.child = child;
+    child.stdin.on('error', error => {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'EPIPE' && code !== 'ERR_STREAM_DESTROYED') console.warn('[OsmAnd Hillshade] Helper stdin error:', error);
+    });
+    this.stderr = '';
+    this.reader = new AtlasOutputReader(child.stdout, child, () => this.stderr.trim());
+    child.stderr.on('data', chunk => {
+      this.stderr += String(chunk);
+      if (this.stderr.length > 12000) this.stderr = this.stderr.slice(-12000);
+    });
+    await new Promise<void>((resolve, reject) => {
+      child.once('spawn', resolve);
+      child.once('error', reject);
+    });
+  }
+
+  private async readTileQueued(databasePath: string, z: number, x: number, y: number, s: number): Promise<Uint8Array> {
+    await this.ensureStarted();
+    const child = this.child;
+    const reader = this.reader;
+    if (!child || !child.stdin.writable || child.stdin.destroyed || child.stdin.writableEnded || !reader) {
+      throw new Error('OsmAnd Hillshade helper streams are unavailable.');
+    }
+    let requestId = this.nextRequestId >>> 0;
+    if (requestId === 0) requestId = 1;
+    this.nextRequestId = (requestId + 1) >>> 0;
+    if (this.nextRequestId === 0) this.nextRequestId = 1;
+    const request = { type: 'hillshade_tile', requestId, databasePath, z, x, y, s };
+    await new Promise<void>((resolve, reject) => {
+      child.stdin.write(JSON.stringify(request) + '\n', error => error ? reject(error) : resolve());
+    });
+    const header = await reader.readBytes(24);
+    if (header.toString('ascii', 0, 4) !== 'OSMH' || header.readUInt16LE(4) !== 1 || header.readUInt16LE(6) !== 24) {
+      throw new Error('OsmAnd Hillshade helper returned an unsupported OSMH response header.');
+    }
+    const status = header.readUInt32LE(8);
+    const responseId = header.readUInt32LE(12);
+    const payloadLength = Number(header.readBigUInt64LE(16));
+    if (responseId !== requestId) throw new Error('OsmAnd Hillshade response ID mismatch.');
+    if (!Number.isSafeInteger(payloadLength) || payloadLength < 0 || payloadLength > 32 * 1024 * 1024) {
+      throw new Error('OsmAnd Hillshade PNG exceeds the 32 MB safety limit.');
+    }
+    const payload = await reader.readBytes(payloadLength);
+    if (status !== 0) throw new Error('[OsmAnd Hillshade] ' + payload.toString('utf8').trim());
+    if (payload.length < 8 || payload.toString('hex', 0, 8) !== '89504e470d0a1a0a') {
+      throw new Error('OsmAnd Hillshade helper returned invalid PNG data.');
+    }
+    return new Uint8Array(payload);
   }
 }
 
@@ -397,6 +483,8 @@ class OsmAndAtlasWorker {
 }
 
 export class OsmAndAtlasManager {
+  private hillshadeDatabasePath = this.readSavedHillshadeDatabasePath();
+  private hillshadeWorker: OsmAndHillshadeWorker | null = null;
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
@@ -419,7 +507,16 @@ export class OsmAndAtlasManager {
   private temporaryFileId = 0;
 
   constructor() {
-    app.once('will-quit', () => { for (const worker of this.workers) void worker.shutdown(); });
+    this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+    app.once('will-quit', () => {
+      for (const worker of this.workers) void worker.shutdown();
+      void this.hillshadeWorker?.shutdown();
+    });
+  }
+
+  private readSavedHillshadeDatabasePath(): string {
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    return typeof osmand?.hillshadeDatabasePath === 'string' ? osmand.hillshadeDatabasePath : '';
   }
 
   private readSavedResourcesPath(): string {
@@ -665,6 +762,40 @@ export class OsmAndAtlasManager {
     });
   };
 
+
+  @IpcHandler({ name: 'OsmAndAtlas.getHillshadeDatabasePath' })
+  readonly getHillshadeDatabasePath = async (): Promise<string> => {
+    return this.hillshadeDatabasePath && existsSync(this.hillshadeDatabasePath) ? this.hillshadeDatabasePath : '';
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.chooseHillshadeDatabase' })
+  readonly chooseHillshadeDatabase = async (): Promise<string> => {
+    const result = await dialog.showOpenDialog({
+      title: 'Select OsmAnd Hillshade database',
+      defaultPath: this.hillshadeDatabasePath || undefined,
+      properties: ['openFile'],
+      filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
+    });
+    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabasePath();
+    this.hillshadeDatabasePath = result.filePaths[0];
+    await updateAppSettingsSection('osmand', { hillshadeDatabasePath: this.hillshadeDatabasePath });
+    return this.hillshadeDatabasePath;
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
+  readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
+    const databasePath = await this.getHillshadeDatabasePath();
+    if (!databasePath) throw new Error('[OsmAnd Hillshade] Select an available Hillshade SQLite database first.');
+    if (!Number.isInteger(z) || z < 0 || z > 24) throw new Error('[OsmAnd Hillshade] Zoom must be an integer between 0 and 24.');
+    const tileCount = 2 ** z;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
+      throw new Error('[OsmAnd Hillshade] Invalid XYZ tile coordinates.');
+    }
+    if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
+    if (!this.hillshadeWorker) this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+    return this.hillshadeWorker.readTile(databasePath, z, x, y, s);
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
     await this.styleChange;
@@ -777,6 +908,7 @@ export class OsmAndAtlasManager {
     // Stop helper processes only after active/queued frames have completed.
     // Worker objects remain reusable; ensureStarted() lazily restarts them.
     await Promise.all(this.workers.map(worker => worker.stop()));
+    await this.hillshadeWorker?.shutdown();
   };
 
   private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
