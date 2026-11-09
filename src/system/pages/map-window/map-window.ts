@@ -173,7 +173,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
-  private readonly storagePrefix = 'light-matter.mapWindow.';
+  private readonly storagePrefix = 'mapWindow.';
   protected readonly settingsOpen = signal(false);
   protected readonly colorMenuOpen = signal(false);
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
