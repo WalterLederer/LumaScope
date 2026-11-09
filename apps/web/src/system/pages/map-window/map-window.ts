@@ -1751,6 +1751,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Once the camera settles, give MapLibre a fresh source identity so it
     // requests every tile for the final viewport again.
     let viewportRefreshTimer: number | null = null;
+    let previousViewportZoom = renderer.map.getZoom();
     renderer.map.on('movestart', () => {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       this.activeRenderTiles.clear();
@@ -1760,6 +1761,11 @@ export class MapWindow implements OnInit, OnDestroy {
         console.warn('[OsmAnd Atlas] Could not cancel obsolete queued tiles:', error));
     });
     renderer.map.on('moveend', () => {
+      const settledZoom = renderer.map.getZoom();
+      if (Math.abs(settledZoom - previousViewportZoom) > 0.001) {
+        previousViewportZoom = settledZoom;
+        return; // The renderer's zoomend handler refreshes zoom changes.
+      }
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       viewportRefreshTimer = window.setTimeout(() => {
         viewportRefreshTimer = null;
