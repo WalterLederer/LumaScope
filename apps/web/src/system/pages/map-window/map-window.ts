@@ -789,6 +789,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapInitialization: Promise<void> | null = null;
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
+  private osmAndStyleRestore: Promise<void> = Promise.resolve();
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
@@ -997,7 +998,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.activeSettingsTab() === 'memory') void this.refreshProcessMemory();
     }, 2000);
     if (this.desktop) {
-      void (async () => {
+      this.osmAndStyleRestore = (async () => {
         try {
           // Both OsmAnd renderers share one resources folder and one selected
           // rendering style. Re-apply the folder to both managers, then use
@@ -1449,6 +1450,9 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
     await this.mapZoomRestore;
+    // Do not let the initial map request apply the stale renderer-local
+    // default before the shared persisted OsmAnd style has been restored.
+    await this.osmAndStyleRestore;
     let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'osmand-atlas') {
       if (this.offlineRenderer) {
