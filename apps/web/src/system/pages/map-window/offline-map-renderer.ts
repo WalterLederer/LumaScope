@@ -1310,7 +1310,10 @@ export class OfflineMapRenderer {
       element.style.top = `${topLeft.y}px`;
       element.style.width = `${Math.max(0, bottomRight.x - topLeft.x)}px`;
       element.style.height = `${Math.max(0, bottomRight.y - topLeft.y)}px`;
-      element.style.opacity = status.status === 'error' || status.status === 'warning' || status.status === 'rerendering' ? '1' : '0.2';
+      // Native rendering must be clearly visible while a tile is pending.
+      // Only cache hits use the subdued overlay; normal loading previously
+      // used 20% opacity and was easy to mistake for no rendering indicator.
+      element.style.opacity = status.status === 'cache-loading' ? '0.2' : '1';
       const label = element.firstElementChild as HTMLDivElement;
       const spinner = label.firstElementChild as HTMLSpanElement;
       const message = label.lastElementChild as HTMLSpanElement;
