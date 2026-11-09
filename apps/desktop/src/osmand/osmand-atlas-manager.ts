@@ -414,24 +414,13 @@ export class OsmAndAtlasManager {
   }
 
   private async inspectRenderingStyles(resourcesPath: string): Promise<{ styleDirectory: string; fileNames: string[] }> {
-    const configuredPath = resourcesPath.trim();
+    const configuredPath = typeof resourcesPath === 'string' ? resourcesPath.trim() : '';
     if (!configuredPath) {
-      throw new Error(
-        '[OsmAnd Atlas] rendering styles could not be inspected.\n'
-        + 'Reason: OsmAnd resources path is not configured.\n'
-        + 'Configured resources path: <empty>\n'
-        + 'Expected resources directory: <not configured>\n'
-        + 'Expected rendering styles directory: <not resolvable>'
-      );
+      throw new Error('[OsmAnd Atlas] resources path is empty. Expected resources directory: <not configured>.');
     }
-
     if (!existsSync(configuredPath)) {
-      throw new Error(
-        '[OsmAnd Atlas] resources directory was not found.\n'
-        + 'Configured resources path: ' + configuredPath + '\n'
-        + 'Expected rendering styles directory: ' + join(configuredPath, 'rendering_styles') + '\n'
-        + 'Reason: The configured resources directory does not exist.'
-      );
+      throw new Error('[OsmAnd Atlas] resources directory not found: ' + configuredPath
+        + '\nExpected rendering styles directory: ' + join(configuredPath, 'rendering_styles'));
     }
 
     const styleDirectory = join(configuredPath, 'rendering_styles');
@@ -441,13 +430,8 @@ export class OsmAndAtlasManager {
     } catch (error) {
       const code = (error as NodeJS.ErrnoException).code ?? 'UNKNOWN';
       const detail = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        '[OsmAnd Atlas] rendering styles directory could not be read.\n'
-        + 'Configured resources path: ' + configuredPath + '\n'
-        + 'Expected rendering styles directory: ' + styleDirectory + '\n'
-        + 'Directory status: NOT ACCESSIBLE\n'
-        + 'Filesystem error: ' + code + ' — ' + detail
-      );
+      throw new Error('[OsmAnd Atlas] rendering styles directory is missing or inaccessible: ' + styleDirectory
+        + '\nFilesystem error: ' + code + ' — ' + detail);
     }
 
     const discoveredFiles = entries.filter(entry => entry.isFile()).map(entry => entry.name);
@@ -457,25 +441,47 @@ export class OsmAndAtlasManager {
       && name !== 'standalone-template.render.xml'
       && name !== 'template.addon.render.xml'
     );
-
     if (!fileNames.includes('default.render.xml')) {
       const found = discoveredFiles.length
         ? discoveredFiles.map(name => join(styleDirectory, name)).join('\n')
         : '<no files>';
-      throw new Error(
-        '[OsmAnd Atlas] required base rendering style was not found.\n'
-        + 'Configured resources path: ' + configuredPath + '\n'
-        + 'Rendering styles directory: ' + styleDirectory + '\n'
-        + 'Required file: ' + join(styleDirectory, 'default.render.xml') + '\n'
-        + 'Discovered files (' + discoveredFiles.length + '):\n' + found + '\n'
-        + 'Reason: OsmAnd Core requires default.render.xml as its base style resource.'
-      );
+      throw new Error('[OsmAnd Atlas] required base rendering style not found: '
+        + join(styleDirectory, 'default.render.xml')
+        + '\nRendering styles directory: ' + styleDirectory
+        + '\nDiscovered files (' + discoveredFiles.length + '):\n' + found);
     }
-
     return { styleDirectory, fileNames };
   }
 
-  private getFallbackObfPaths(): string[] {  private async refreshSelectedObf(): Promise<void> {
+  private getFallbackObfPaths(): string[] {
+    const configured = process.env.LUMASCOPE_OSMAND_OBF_PATH || process.env.IPHOTO_OSMAND_OBF_PATH;
+    if (configured) return [configured];
+    const fallback = [
+      join(app.getAppPath(), 'tools', 'Austria_wien_europe.obf'),
+      join(app.getAppPath(), '..', '..', 'tools', 'Austria_wien_europe.obf'),
+      join(process.cwd(), 'tools', 'Austria_wien_europe.obf')
+    ].find(candidate => existsSync(candidate));
+    return fallback ? [fallback] : [];
+  }
+
+  private async retireWorkers(): Promise<void> {
+    const previousWorkers = this.workers;
+    this.workers = [];
+    this.nextWorker = 0;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+  }
+
+  private async replaceWorkers(): Promise<void> {
+    const previousWorkers = this.workers;
+    // Publish the replacement first. Existing requests retain their worker
+    // references and finish before the old helper processes are stopped.
+    this.workers = this.createWorkers();
+    this.nextWorker = 0;
+    this.pendingTiles.clear();
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+  }
+
+  private async refreshSelectedObf(): Promise<void> {
     const update = this.obfRefresh.then(async () => {
       let selectedPaths = this.getFallbackObfPaths();
       try {
@@ -529,18 +535,19 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.setResourcesPath' })
   readonly setResourcesPath = async (_event: Electron.IpcMainInvokeEvent, resourcesPath: string) => {
-    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) {
-      throw new Error('[OsmAnd Atlas] Select a valid OsmAnd resources folder. Received path: <empty>.');
-    }
+    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) throw new Error('Select a valid OsmAnd resources folder.');
     const resolvedPath = resourcesPath.trim();
-    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
-
+    if (!existsSync(join(resolvedPath, 'rendering_styles', 'default.render.xml'))) {
+      throw new Error('The selected folder must contain rendering_styles/default.render.xml.');
+    }
     await this.retireWorkers();
     this.resourcesPath = resolvedPath;
-    if (!fileNames.includes(this.styleFileName)) {
-      this.styleFileName = fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.slice().sort()[0];
-    }
-    this.stylePath = join(styleDirectory, this.styleFileName);
+    const entries = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
+    const styles = entries.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
+      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
+      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
+    if (!styles.includes(this.styleFileName)) this.styleFileName = styles.includes('default.render.xml') ? 'default.render.xml' : (styles.sort()[0] ?? 'default.render.xml');
+    this.stylePath = join(resolvedPath, 'rendering_styles', this.styleFileName);
     await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath, renderingStyle: this.styleFileName } });
     this.pendingTiles.clear();
     this.workers = this.createWorkers();
@@ -551,9 +558,7 @@ export class OsmAndAtlasManager {
   @IpcHandler({ name: 'OsmAndAtlas.getRenderingStyles' })
   readonly getRenderingStyles = async () => {
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
-    const selectedFileName = fileNames.includes(this.styleFileName)
-      ? this.styleFileName
-      : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.slice().sort()[0];
+    const selectedFileName = fileNames.includes(this.styleFileName) ? this.styleFileName : 'default.render.xml';
 
     if (selectedFileName !== this.styleFileName) {
       this.styleFileName = selectedFileName;
@@ -562,31 +567,26 @@ export class OsmAndAtlasManager {
       await this.replaceWorkers();
     }
 
-    return fileNames
-      .map(fileName => {
-        const baseName = fileName.slice(0, -'.render.xml'.length);
-        const label = baseName.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
-          .replace(/\b\w/g, character => character.toUpperCase());
-        return { fileName, label, selected: fileName === this.styleFileName };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
+    return fileNames.map(fileName => {
+      const baseName = fileName.slice(0, -'.render.xml'.length);
+      const label = baseName.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+        .replace(/\b\w/g, character => character.toUpperCase());
+      return { fileName, label, selected: fileName === this.styleFileName };
+    }).sort((a, b) => a.label.localeCompare(b.label));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.setRenderingStyle' })
   readonly setRenderingStyle = async (_event: Electron.IpcMainInvokeEvent, fileName: string) => {
     if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
-      throw new Error('Invalid OsmAnd rendering style name: ' + String(fileName));
+      throw new Error('[OsmAnd Atlas] invalid rendering style name: ' + String(fileName));
     }
 
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
     if (!fileNames.includes(fileName)) {
       const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
-      throw new Error(
-        '[OsmAnd Atlas] requested rendering style was not found.\n'
-        + 'Requested file: ' + join(styleDirectory, fileName) + '\n'
-        + 'Rendering styles directory: ' + styleDirectory + '\n'
-        + 'Available styles (' + fileNames.length + '):\n' + available
-      );
+      throw new Error('[OsmAnd Atlas] requested rendering style not found: ' + join(styleDirectory, fileName)
+        + '\nRendering styles directory: ' + styleDirectory
+        + '\nAvailable styles (' + fileNames.length + '):\n' + available);
     }
 
     if (fileName !== this.styleFileName) {
