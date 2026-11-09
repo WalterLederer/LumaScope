@@ -1592,13 +1592,36 @@ export class OfflineMapRenderer {
 
     const sourceId = this.tileProtocol === 'osmand-atlas' ? 'osmand-atlas' : 'osmand';
     const protocol = this.tileProtocol;
-    const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
-    if (!source?.setTiles) {
-      throw new Error(`The ${protocol} raster source is unavailable after rerendering.`);
+    const style = this.map.getStyle();
+    const sourceSpec = style.sources[sourceId];
+    const sourceLayers = style.layers.filter(layer => 'source' in layer && layer.source === sourceId);
+    if (!sourceSpec || !('tiles' in sourceSpec) || sourceLayers.length === 0) {
+      throw new Error(`The ${protocol} raster source or its style layer is unavailable after rerendering.`);
     }
-    // Change the template to discard MapLibre's in-memory tile instances.
-    source.setTiles([`${protocol}://{z}/{x}/{y}?refresh=${Date.now()}`]);
-    console.info(`[${protocol}] Rerendered visible tiles`, {
+
+    // Replacing only the URL template can leave MapLibre's existing tile
+    // objects/textures attached to the source cache. Recreate the source and
+    // its raster layer so every visible tile is requested and uploaded again.
+    const sourceLayerIds = new Set(sourceLayers.map(layer => layer.id));
+    const lastSourceLayerIndex = Math.max(...style.layers
+      .map((layer, index) => sourceLayerIds.has(layer.id) ? index : -1));
+    const beforeLayerId = style.layers.slice(lastSourceLayerIndex + 1)
+      .find(layer => !sourceLayerIds.has(layer.id))?.id;
+
+    for (const layer of [...sourceLayers].reverse()) {
+      this.map.removeLayer(layer.id);
+    }
+    this.map.removeSource(sourceId);
+    this.map.addSource(sourceId, {
+      ...sourceSpec,
+      tiles: [`${protocol}://{z}/{x}/{y}?refresh=${Date.now()}`]
+    });
+    for (const layer of sourceLayers) {
+      this.map.addLayer(layer, beforeLayerId);
+    }
+    this.map.triggerRepaint();
+
+    console.info(`[${protocol}] Rerendered visible tiles and recreated MapLibre source`, {
       zoom,
       count: visibleTiles.length,
       nativeTileCount: this.tileProtocol === 'osmand' ? visibleTiles.length * 4 : visibleTiles.length,
