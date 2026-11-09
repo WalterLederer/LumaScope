@@ -390,7 +390,7 @@ interface MapErrorEntry {
                     <option value="noMatch">No matching download</option>
                   </select>
                 </label>
-                <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · automatic selection by GPS coordinates' }}
+                <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · ' + filteredOfflineMaps().length + ' map(s) filtered' }}
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
               </div>
