@@ -1127,6 +1127,11 @@ export class MapWindow implements OnInit, OnDestroy {
           const selectedStyle = styles.find(style => style.fileName === configuredStyle)
             ?? styles.find(style => style.fileName === 'default.render.xml')
             ?? styles[0];
+          console.info('[OsmAnd Atlas][style-trace] UI restore', {
+            configStyle: configuredStyle,
+            availableStyles: styles.map(style => style.fileName),
+            selectedStyle: selectedStyle?.fileName ?? null
+          });
           this.osmAndStyles.set(styles.map(style => ({
             ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
           })));
@@ -1743,6 +1748,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
     let runtime: Awaited<ReturnType<Desktop['OsmAndAtlas']['getRuntimeStatus']>>;
     try {
+      console.info('[OsmAnd Atlas][style-trace] map initialization request', {
+        uiStyle: this.osmAndStyle(),
+        source: this.mapSource()
+      });
       runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
