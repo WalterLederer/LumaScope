@@ -1119,16 +1119,21 @@ export class MapWindow implements OnInit, OnDestroy {
           this.osmAndResourcesPath.set(resourcesPath);
 
           const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
-          const selectedStyle = styles.find(style => style.selected);
+          // Use the style path reported by the Atlas runtime as the initial UI
+          // selection. The list's selected flag can be stale while the native
+          // manager and its already-created workers are being restored.
+          const runtime = await this.desktop!.OsmAndAtlas.getRuntimeStatus();
+          const runtimeStyleFileName = runtime.stylePath.split(/[\\/]/).pop() ?? '';
+          const selectedStyle = styles.find(style => style.fileName === runtimeStyleFileName)
+            ?? styles.find(style => style.selected);
+          this.osmAndStyles.set(styles.map(style => ({
+            ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
+          })));
           if (selectedStyle) {
-            // Synchronize the no-label renderer to the same shared selection.
-            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
+            // Set the signal before map initialization can use it, then
+            // synchronize the no-label renderer to the same selection.
             this.osmAndStyle.set(selectedStyle.fileName);
-            this.osmAndStyles.set(styles.map(style => ({
-              ...style, selected: style.fileName === selectedStyle.fileName
-            })));
-          } else {
-            this.osmAndStyles.set(styles);
+            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
