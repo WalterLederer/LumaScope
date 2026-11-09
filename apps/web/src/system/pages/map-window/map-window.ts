@@ -1473,6 +1473,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeMarkerShape = (value: string): void => {
     if (value !== 'double-circle' && value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
     this.markerShape.set(value); this.saveSetting('markerShape', value); this.directoryMarkerGroup?.refreshClusters?.();
+    this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), value as MarkerShape);
   };
   protected readonly changeCurrentMarkerShape = (value: string): void => {
     if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
