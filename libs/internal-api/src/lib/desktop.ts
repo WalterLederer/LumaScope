@@ -243,11 +243,13 @@ export interface CapturePreview {
 
 export type CaptureFormat = 'exr' | 'jxr' | 'uhdr' | 'clipboard';
 
-export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; }
+export interface OfflineMapStatus { type?:'mbtiles'|'obf'; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
+export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; sourceErrors:string[]; }
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
  readonly getMaps:()=>Promise<OfflineMapStatus[]>;
+ readonly checkForUpdates:()=>Promise<OfflineMapUpdateCheckResult>;
  readonly removeFile:(id:string)=>Promise<OfflineMapStatus[]>;
  readonly setEnabled:(id:string,enabled:boolean)=>Promise<OfflineMapStatus[]>;
  readonly setAllEnabled:(enabled:boolean)=>Promise<OfflineMapStatus[]>;
