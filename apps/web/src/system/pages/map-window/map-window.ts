@@ -1118,33 +1118,22 @@ export class MapWindow implements OnInit, OnDestroy {
             ? osmand['resourcesPath'] : '';
           this.osmAndResourcesPath.set(resourcesPath);
 
-          // The View tab uses one style selector for two different renderers.
-          // Read the selected style from the renderer that is actually active;
-          // the Atlas manager and the no-label manager can have different
-          // in-memory selections during startup.
-          const useAtlasRenderer = this.mapSource() === 'osmand-atlas';
-          const styles = useAtlasRenderer
-            ? await this.desktop!.OsmAndAtlas.getRenderingStyles()
-            : await this.desktop!.OsmAnd.getRenderingStyles();
-          const runtime = useAtlasRenderer
-            ? await this.desktop!.OsmAndAtlas.getRuntimeStatus()
-            : await this.desktop!.OsmAnd.getRuntimeStatus();
-          const runtimeStyleFileName = runtime.stylePath.split(/[\\/]/).pop() ?? '';
-          const selectedStyle = styles.find(style => style.fileName === runtimeStyleFileName)
-            ?? styles.find(style => style.selected);
+          // OsmAnd Atlas owns the one persisted style selection in config.json.
+          // Both renderers must use that same selection; never derive the UI
+          // value from whichever renderer happens to be active.
+          const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
+          const selectedStyle = styles.find(style => style.selected)
+            ?? styles.find(style => style.fileName === 'default.render.xml')
+            ?? styles[0];
           this.osmAndStyles.set(styles.map(style => ({
             ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
           })));
           if (selectedStyle) {
-            // Set the signal before map initialization can use it. Keep the
-            // other renderer synchronized so switching sources preserves the
-            // same style instead of reverting to its independent default.
             this.osmAndStyle.set(selectedStyle.fileName);
-            if (useAtlasRenderer) {
-              await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
-            } else {
-              await this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName);
-            }
+            await Promise.all([
+              this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName),
+              this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName)
+            ]);
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
@@ -2034,12 +2023,12 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const changeGeneration = ++this.osmAndStyleChangeGeneration;
     try {
-      // OsmAnd Atlas is the sole owner of the persisted selection.
-      // The no-label renderer only applies the same choice in memory.
-      await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
-      if (this.mapSource() === 'osmand') {
-        await this.desktop.OsmAnd.setRenderingStyle(fileName);
-      }
+      // One shared style selection for both renderers. OsmAnd Atlas persists
+      // it in config.json; both renderers are always updated to the same file.
+      await Promise.all([
+        this.desktop.OsmAndAtlas.setRenderingStyle(fileName),
+        this.desktop.OsmAnd.setRenderingStyle(fileName)
+      ]);
       // Rapid consecutive selections are serialized by the main process.
       // Only the latest selection may rebuild the map and update the UI.
       if (changeGeneration !== this.osmAndStyleChangeGeneration) return;
