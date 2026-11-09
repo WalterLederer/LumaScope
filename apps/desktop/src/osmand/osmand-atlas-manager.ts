@@ -420,48 +420,19 @@ export class OsmAndAtlasManager {
 
   private readSavedResourcesPath(): string {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
-    return typeof atlas?.resourcesPath === 'string' ? atlas.resourcesPath : '';
+    return typeof osmand?.resourcesPath === 'string' ? osmand.resourcesPath : '';
   }
 
   private readSavedStyleFileName(): string {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
-    const valid = (value: unknown): value is string =>
-      typeof value === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(value);
-
-    // Migrate the former Atlas-only selection into the one shared OsmAnd
-    // setting. Prefer a non-default Atlas selection over an old default value
-    // left by the no-label renderer; all renderers use the shared key after
-    // this one-time migration.
-    const sharedStyle = osmand?.renderingStyle;
-    const atlasStyle = atlas?.renderingStyle;
-    let fileName = valid(atlasStyle)
-      && (!valid(sharedStyle) || (sharedStyle === 'default.render.xml' && atlasStyle !== 'default.render.xml'))
-      ? atlasStyle
-      : sharedStyle;
-
-    if (!valid(fileName)) {
-      try {
-        const legacyPath = join(app.getPath('userData'), 'osmand-atlas-settings.json');
-        const legacy = JSON.parse(readFileSync(legacyPath, 'utf8')) as { styleFileName?: unknown };
-        fileName = legacy.styleFileName;
-      } catch { /* No legacy Atlas style setting. */ }
-    }
-
-    const selected = valid(fileName) ? fileName : 'default.render.xml';
-    if (selected !== sharedStyle) this.persistStyleFileName(selected);
-    return selected;
+    const fileName = osmand?.renderingStyle;
+    return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)
+      ? fileName : 'default.render.xml';
   }
 
   private persistStyleFileName(fileName: string): void {
-    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
-    void updateAppSettingsSection('osmand', {
-      renderingStyle: fileName,
-      // Remove the old Atlas-only duplicate while preserving resourcesPath.
-      atlas: atlas ? { ...atlas, renderingStyle: undefined } : undefined
-    }).catch(error => console.warn('[OsmAnd Atlas] Could not persist shared rendering style:', error));
+    void updateAppSettingsSection('osmand', { renderingStyle: fileName })
+      .catch(error => console.warn('[OsmAnd Atlas] Could not persist rendering style:', error));
   }
 
   private async inspectRenderingStyles(resourcesPath: string): Promise<{ styleDirectory: string; fileNames: string[] }> {
@@ -597,7 +568,11 @@ export class OsmAndAtlasManager {
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
     if (!fileNames.includes(this.styleFileName)) this.styleFileName = 'default.render.xml';
     this.stylePath = join(styleDirectory, this.styleFileName);
-    await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath, renderingStyle: this.styleFileName } });
+    await updateAppSettingsSection('osmand', {
+      resourcesPath: resolvedPath,
+      renderingStyle: this.styleFileName,
+      atlas: undefined
+    });
     this.pendingTiles.clear();
     this.workers = this.createWorkers();
     this.nextWorker = 0;
