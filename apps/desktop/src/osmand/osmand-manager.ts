@@ -254,6 +254,79 @@ export class OsmAndManager {
       ? fileName : 'default.render.xml';
   }
 
+
+  private async inspectRenderingStyles(resourcesPath: string): Promise<{ styleDirectory: string; fileNames: string[] }> {
+    const configuredPath = resourcesPath.trim();
+    if (!configuredPath) {
+      throw new Error(
+        '[OsmAnd] rendering styles could not be inspected.\\n'
+        + 'Reason: OsmAnd resources path is not configured.\\n'
+        + 'Configured resources path: <empty>\\n'
+        + 'Expected resources directory: <not configured>\\n'
+        + 'Expected rendering styles directory: <not resolvable>'
+      );
+    }
+
+    if (!existsSync(configuredPath)) {
+      throw new Error(
+        '[OsmAnd] resources directory was not found.\\n'
+        + 'Configured resources path: ' + configuredPath + '\\n'
+        + 'Expected rendering styles directory: ' + join(configuredPath, 'rendering_styles') + '\\n'
+        + 'Reason: The configured resources directory does not exist.'
+      );
+    }
+
+    const styleDirectory = join(configuredPath, 'rendering_styles');
+    let entries;
+    try {
+      entries = await readdir(styleDirectory, { withFileTypes: true });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? 'UNKNOWN';
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        '[OsmAnd] rendering styles directory could not be read.\\n'
+        + 'Configured resources path: ' + configuredPath + '\\n'
+        + 'Expected rendering styles directory: ' + styleDirectory + '\\n'
+        + 'Directory status: NOT ACCESSIBLE\\n'
+        + 'Filesystem error: ' + code + ' — ' + detail
+      );
+    }
+
+    const discoveredFiles = entries.filter(entry => entry.isFile()).map(entry => entry.name);
+    const fileNames = discoveredFiles.filter(name =>
+      name.endsWith('.render.xml')
+      && !name.endsWith('.addon.render.xml')
+      && name !== 'standalone-template.render.xml'
+      && name !== 'template.addon.render.xml'
+    );
+
+    if (!fileNames.includes('default.render.xml')) {
+      const found = discoveredFiles.length
+        ? discoveredFiles.map(name => join(styleDirectory, name)).join('\\n')
+        : '<no files>';
+      throw new Error(
+        '[OsmAnd] required base rendering style was not found.\\n'
+        + 'Configured resources path: ' + configuredPath + '\\n'
+        + 'Rendering styles directory: ' + styleDirectory + '\\n'
+        + 'Required file: ' + join(styleDirectory, 'default.render.xml') + '\\n'
+        + 'Discovered files (' + discoveredFiles.length + '):\\n' + found + '\\n'
+        + 'Reason: OsmAnd Core requires default.render.xml as its base style resource.'
+      );
+    }
+
+    if (fileNames.length === 0) {
+      throw new Error(
+        '[OsmAnd] no usable rendering styles were found.\\n'
+        + 'Configured resources path: ' + configuredPath + '\\n'
+        + 'Rendering styles directory: ' + styleDirectory + '\\n'
+        + 'Discovered files: ' + discoveredFiles.length + '\\n'
+        + 'Reason: No files matching *.render.xml were found (excluding addon/template files).'
+      );
+    }
+
+    return { styleDirectory, fileNames };
+  }
+
   private getFallbackObfPaths(): string[] {
     const configured = process.env.LUMASCOPE_OSMAND_OBF_PATH || process.env.IPHOTO_OSMAND_OBF_PATH;
     if (configured) return [configured];
@@ -311,19 +384,18 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.setResourcesPath' })
   readonly setResourcesPath = async (_event: Electron.IpcMainInvokeEvent, resourcesPath: string): Promise<OsmAndRuntimeStatus> => {
-    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) throw new Error('Select a valid OsmAnd resources folder.');
-    const resolvedPath = resourcesPath.trim();
-    if (!existsSync(join(resolvedPath, 'rendering_styles', 'default.render.xml'))) {
-      throw new Error('The selected folder must contain rendering_styles/default.render.xml.');
+    if (typeof resourcesPath !== 'string' || !resourcesPath.trim()) {
+      throw new Error('[OsmAnd] Select a valid OsmAnd resources folder. Received path: <empty>.');
     }
+    const resolvedPath = resourcesPath.trim();
+    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
+
     await Promise.all(this.workers.map(worker => worker.shutdown()));
     this.resourcesPath = resolvedPath;
-    const styles = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
-    const names = styles.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
-      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
-      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
-    if (!names.includes(this.styleFileName)) this.styleFileName = names.includes('default.render.xml') ? 'default.render.xml' : (names.sort()[0] ?? 'default.render.xml');
-    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(resolvedPath, 'rendering_styles', this.styleFileName);
+    if (!fileNames.includes(this.styleFileName)) {
+      this.styleFileName = fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
+    }
+    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, this.styleFileName);
     await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath } });
     this.pendingTiles.clear();
     this.workers = this.createWorkers(this.createEnvironment());
@@ -338,18 +410,13 @@ export class OsmAndManager {
     if (!existsSync(styleDirectory)) return [];
     const entries = await readdir(styleDirectory, { withFileTypes: true });
     const fileNames = entries
-      .filter(entry => entry.isFile()
-        && entry.name.endsWith('.render.xml')
-        && !entry.name.endsWith('.addon.render.xml')
-        && entry.name !== 'standalone-template.render.xml'
-        && entry.name !== 'template.addon.render.xml')
-      .map(entry => entry.name);
-    // Never assume that default.render.xml is shipped: OsmAnd resource bundles
-    // can expose a different set of rendering styles.
+        @IpcHandler({ name: 'OsmAnd.getRenderingStyles' })
+  readonly getRenderingStyles = async (): Promise<OsmAndRenderingStyle[]> => {
+    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
     const selectedFileName = fileNames.includes(this.styleFileName)
       ? this.styleFileName
-      : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.sort()[0];
-    if (!selectedFileName) return [];
+      : fileNames.includes('default.render.xml') ? 'default.render.xml' : fileNames.slice().sort()[0];
+
     if (selectedFileName !== this.styleFileName) {
       await Promise.all(this.workers.map(worker => worker.shutdown()));
       this.styleFileName = selectedFileName;
@@ -359,25 +426,18 @@ export class OsmAndManager {
       this.pendingTiles.clear();
       this.workers = this.createWorkers(this.createEnvironment());
     }
+
     return fileNames
       .map(fileName => {
         const baseName = fileName.slice(0, -'.render.xml'.length);
-        const label = baseName
-          .replace(/[_-]+/g, ' ')
-          .replace(/\s+/g, ' ')
-          .replace(/\b\w/g, character => character.toUpperCase());
+        const label = baseName.replace(/[_-]+/g, ' ').replace(/\\s+/g, ' ')
+          .replace(/\\b\\w/g, character => character.toUpperCase());
         return { fileName, label, selected: fileName === this.styleFileName };
       })
       .sort((a, b) => a.label.localeCompare(b.label));
   };
 
-  @IpcHandler({ name: 'OsmAnd.setRenderingStyle' })
-  readonly setRenderingStyle = async (_event: IpcMainInvokeEvent, fileName: string): Promise<OsmAndRuntimeStatus> => {
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
-      throw new Error('Invalid OsmAnd rendering style name.');
-    }
-    const styles = await this.getRenderingStyles();
-    const resolvedFileName = styles.some(style => style.fileName === fileName)
+le.fileName === fileName)
       ? fileName
       : styles.find(style => style.selected)?.fileName;
     if (!resolvedFileName) {
@@ -388,6 +448,28 @@ export class OsmAndManager {
       this.styleFileName = resolvedFileName;
       this.stylePath = join(this.resourcesPath, 'rendering_styles', resolvedFileName);
       void updateAppSettingsSection('osmand', { renderingStyle: resolvedFileName })
+        .catch(error => console.warn('[OsmAnd] Could not persist rendering styl  @IpcHandler({ name: 'OsmAnd.setRenderingStyle' })
+  readonly setRenderingStyle = async (_event: IpcMainInvokeEvent, fileName: string): Promise<OsmAndRuntimeStatus> => {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)) {
+      throw new Error('Invalid OsmAnd rendering style name: ' + String(fileName));
+    }
+
+    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
+    if (!fileNames.includes(fileName)) {
+      const available = fileNames.map(name => join(styleDirectory, name)).join('\\n');
+      throw new Error(
+        '[OsmAnd] requested rendering style was not found.\\n'
+        + 'Requested file: ' + join(styleDirectory, fileName) + '\\n'
+        + 'Rendering styles directory: ' + styleDirectory + '\\n'
+        + 'Available styles (' + fileNames.length + '):\\n' + available
+      );
+    }
+
+    if (fileName !== this.styleFileName) {
+      await Promise.all(this.workers.map(worker => worker.shutdown()));
+      this.styleFileName = fileName;
+      this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, fileName);
+      void updateAppSettingsSection('osmand', { renderingStyle: fileName })
         .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
       this.pendingTiles.clear();
       this.workers = this.createWorkers(this.createEnvironment());
@@ -395,29 +477,7 @@ export class OsmAndManager {
     return this.getRuntimeStatus();
   };
 
-  @IpcHandler({ name: 'OsmAnd.getRuntimeStatus' })
-  readonly getRuntimeStatus = async (): Promise<OsmAndRuntimeStatus> => {
-    await this.refreshSelectedObf();
-    return ({
-    helperPath: this.helperPath,
-    helperAvailable: existsSync(this.helperPath),
-    obfPath: this.obfPaths[0] || '',
-    obfPaths: [...this.obfPaths],
-    obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
-    resourcesPath: this.resourcesPath,
-    resourcesAvailable: existsSync(this.resourcesPath),
-    stylePath: this.stylePath,
-    styleAvailable: existsSync(this.stylePath),
-    cachePath: this.cachePath
-    });
-  };
-
-  @IpcHandler({ name: 'OsmAnd.renderTile' })
-  readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number, forceRender = false): Promise<OsmAndTileResult> => {
-    await this.refreshSelectedObf();
-    if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
-    const tileCount = 2 ** z;
-    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
+= tileCount) {
       throw new Error('Invalid XYZ tile coordinates.');
     }
 
