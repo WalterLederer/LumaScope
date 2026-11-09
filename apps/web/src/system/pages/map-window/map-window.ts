@@ -2018,11 +2018,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const changeGeneration = ++this.osmAndStyleChangeGeneration;
     try {
-      // Persist/apply the one shared selection. The other renderer reads the
-      // same osmand.renderingStyle setting when it is next initialized.
-      if (this.mapSource() === 'osmand-atlas') {
-        await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
-      } else {
+      // OsmAnd Atlas is the sole owner of the persisted selection.
+      // The no-label renderer only applies the same choice in memory.
+      await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
+      if (this.mapSource() === 'osmand') {
         await this.desktop.OsmAnd.setRenderingStyle(fileName);
       }
       // Rapid consecutive selections are serialized by the main process.
