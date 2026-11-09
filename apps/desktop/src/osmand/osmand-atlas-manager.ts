@@ -578,12 +578,9 @@ export class OsmAndAtlasManager {
     }
     await this.retireWorkers();
     this.resourcesPath = resolvedPath;
-    const entries = await readdir(join(resolvedPath, 'rendering_styles'), { withFileTypes: true });
-    const styles = entries.filter(entry => entry.isFile() && entry.name.endsWith('.render.xml')
-      && !entry.name.endsWith('.addon.render.xml') && entry.name !== 'standalone-template.render.xml'
-      && entry.name !== 'template.addon.render.xml').map(entry => entry.name);
-    if (!styles.includes(this.styleFileName)) this.styleFileName = styles.includes('default.render.xml') ? 'default.render.xml' : (styles.sort()[0] ?? 'default.render.xml');
-    this.stylePath = join(resolvedPath, 'rendering_styles', this.styleFileName);
+    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
+    if (!fileNames.includes(this.styleFileName)) this.styleFileName = 'default.render.xml';
+    this.stylePath = join(styleDirectory, this.styleFileName);
     await updateAppSettingsSection('osmand', { atlas: { resourcesPath: resolvedPath, renderingStyle: this.styleFileName } });
     this.pendingTiles.clear();
     this.workers = this.createWorkers();
@@ -653,6 +650,8 @@ export class OsmAndAtlasManager {
     stylePath: this.stylePath,
     styleAvailable: existsSync(this.stylePath)
     });
+    console.info('[OsmAnd Atlas] runtime style=' + this.styleFileName + ' stylePath=' + this.stylePath
+      + ' obfCount=' + this.obfPaths.length + ' obfPaths=' + this.obfPaths.join('; '));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
