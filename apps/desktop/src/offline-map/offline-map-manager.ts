@@ -93,7 +93,7 @@ export class OfflineMapManager {
    const unifiedPaths:Record<string,boolean>={};
    const hasUnifiedPaths=!!settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths);
    if(hasUnifiedPaths){
-    for(const [path,enabled] of Object.entries(settings.filePaths))if(typeof enabled==='boolean')unifiedPaths[path]=enabled;
+    for(const [path,enabled] of Object.entries(settings.filePaths as Record<string,unknown>))if(typeof enabled==='boolean')unifiedPaths[path]=enabled;
    }else{
     // One-time migration from the former split arrays and enabledByPath object.
     const mbtiles=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
