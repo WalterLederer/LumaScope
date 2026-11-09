@@ -15,7 +15,7 @@ export class ThemeService {
 
   private readInitialTheme(): AppTheme {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.theme');
+      const stored = this.document.defaultView?.localStorage.getItem('theme');
       if (stored === 'light' || stored === 'dark') return stored;
     } catch { /* Fall back to the document theme when storage is unavailable. */ }
     return this.document.documentElement.dataset['theme'] === 'light' ? 'light' : 'dark';
@@ -23,7 +23,7 @@ export class ThemeService {
 
   constructor() {
     this.document.defaultView?.addEventListener('storage', event => {
-      if (event.key === 'light-matter.theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
+      if (event.key === 'theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
         this.setTheme(event.newValue);
       }
     });
@@ -42,6 +42,6 @@ export class ThemeService {
   private readonly setTheme = (theme: AppTheme) => {
     this.current.set(theme);
     this.document.documentElement.dataset['theme'] = theme;
-    try { this.document.defaultView?.localStorage.setItem('light-matter.theme', theme); } catch { /* Theme remains active for this window. */ }
+    try { this.document.defaultView?.localStorage.setItem('theme', theme); } catch { /* Theme remains active for this window. */ }
   };
 }
