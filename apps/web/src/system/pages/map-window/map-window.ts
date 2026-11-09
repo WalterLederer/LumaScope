@@ -343,7 +343,7 @@ interface MapErrorEntry {
                     <option value="active">Active</option>
                   </select>
                 </label>
-                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
+                <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · {{ activeOfflineMapCount() }} map(s) active · {{ inUseOfflineMapCount() }} map(s) in use · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
               </div>
@@ -800,6 +800,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active'>('all');
+  protected readonly activeOfflineMapCount = computed(() => this.offlineMaps().filter(map => map.enabled).length);
+  protected readonly inUseOfflineMapCount = computed(() => this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).length);
   protected readonly filteredOfflineMaps = computed(() => {
     const maps = this.offlineMaps();
     const filter = this.offlineMapListFilter();
