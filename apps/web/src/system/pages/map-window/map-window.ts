@@ -996,37 +996,36 @@ export class MapWindow implements OnInit, OnDestroy {
     this.memoryRefreshTimer = setInterval(() => {
       if (this.activeSettingsTab() === 'memory') void this.refreshProcessMemory();
     }, 2000);
-    const osmandStyleApi = this.mapSource() === 'osmand-atlas'
-      ? this.desktop?.OsmAndAtlas
-      : this.desktop?.OsmAnd;
-    if (osmandStyleApi) {
+    if (this.desktop) {
       void (async () => {
         try {
-          // The Location window keeps the selected folder in its own persisted
-          // UI settings. Re-apply it to both main-process managers before asking
-          // either manager for styles; their startup settings may be empty or
-          // older than the value shown in this window.
+          // Both OsmAnd renderers share one resources folder and one selected
+          // rendering style. Re-apply the folder to both managers, then use
+          // Atlas as the migration source for any former Atlas-only selection.
           const resourcesPath = this.osmAndResourcesPath().trim();
-          if (resourcesPath && this.desktop) {
-            await this.desktop.OsmAndAtlas.setResourcesPath(resourcesPath);
-            await this.desktop.OsmAnd.setResourcesPath(resourcesPath);
+          if (resourcesPath) {
+            await this.desktop!.OsmAndAtlas.setResourcesPath(resourcesPath);
+            await this.desktop!.OsmAnd.setResourcesPath(resourcesPath);
           }
 
-          // Each main-process renderer restores its own style selection. Do not
-          // overwrite Atlas with the regular OsmAnd selection (or vice versa).
-          const styles = await osmandStyleApi.getRenderingStyles();
-          this.osmAndStyles.set(styles);
+          const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
           const selectedStyle = styles.find(style => style.selected);
           if (selectedStyle) {
+            // Synchronize the no-label renderer to the same shared selection.
+            await this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName);
             this.osmAndStyle.set(selectedStyle.fileName);
-            this.saveSetting('osmandStyle', selectedStyle.fileName);
+            this.osmAndStyles.set(styles.map(style => ({
+              ...style, selected: style.fileName === selectedStyle.fileName
+            })));
+          } else {
+            this.osmAndStyles.set(styles);
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           this.osmAndResourcesError.set(message);
           this.recordMapError('OsmAnd resources folder', message);
-          console.error('Could not restore OsmAnd resources/style settings:', error);
+          console.error('Could not restore shared OsmAnd resources/style settings:', error);
         }
       })();
     }
@@ -1870,6 +1869,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const changeGeneration = ++this.osmAndStyleChangeGeneration;
     try {
+      // Persist/apply the one shared selection. The other renderer reads the
+      // same osmand.renderingStyle setting when it is next initialized.
       if (this.mapSource() === 'osmand-atlas') {
         await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
       } else {
