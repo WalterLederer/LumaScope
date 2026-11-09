@@ -238,7 +238,6 @@ class OsmAndAtlasWorker {
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     console.info('[OsmAnd Atlas][style-trace] helper spawn', {
-      styleFileName: this.styleFileName,
       stylePath: this.stylePath,
       resourcesPath: this.resourcesPath
     });
