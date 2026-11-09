@@ -394,6 +394,7 @@ export class OsmAndAtlasManager {
   private stylePath = this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths: string[] = this.getFallbackObfPaths();
   private obfRefresh: Promise<void> = Promise.resolve();
+  private styleChange: Promise<void> = Promise.resolve();
   private readonly environment: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: [dirname(this.helperPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
@@ -604,24 +605,29 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.setRenderingStyle' })
   readonly setRenderingStyle = async (_event: Electron.IpcMainInvokeEvent, fileName: string) => {
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)) {
-      throw new Error('[OsmAnd Atlas] invalid rendering style name: ' + String(fileName));
-    }
+    const update = this.styleChange.then(async () => {
+      if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_(). -]+\\.render\\.xml$/.test(fileName)) {
+        throw new Error('[OsmAnd Atlas] invalid rendering style name: ' + String(fileName));
+      }
 
-    const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
-    if (!fileNames.includes(fileName)) {
-      const available = fileNames.map(name => join(styleDirectory, name)).join('\n');
-      throw new Error('[OsmAnd Atlas] requested rendering style not found: ' + join(styleDirectory, fileName)
-        + '\nRendering styles directory: ' + styleDirectory
-        + '\nAvailable styles (' + fileNames.length + '):\n' + available);
-    }
+      const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
+      if (!fileNames.includes(fileName)) {
+        const available = fileNames.map(name => join(styleDirectory, name)).join('\\n');
+        throw new Error('[OsmAnd Atlas] requested rendering style not found: ' + join(styleDirectory, fileName)
+          + '\\nRendering styles directory: ' + styleDirectory
+          + '\\nAvailable styles (' + fileNames.length + '):\\n' + available);
+      }
 
-    if (fileName !== this.styleFileName) {
-      this.styleFileName = fileName;
-      this.stylePath = join(styleDirectory, fileName);
-      this.persistStyleFileName(fileName);
-      await this.replaceWorkers();
-    }
+      if (fileName !== this.styleFileName) {
+        this.styleFileName = fileName;
+        this.stylePath = join(styleDirectory, fileName);
+        this.persistStyleFileName(fileName);
+        await this.replaceWorkers();
+        console.info('[OsmAnd Atlas] Rendering style applied:', fileName);
+      }
+    });
+    this.styleChange = update.catch(() => undefined);
+    await update;
     return this.getRuntimeStatus();
   };
 
@@ -643,6 +649,7 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
+    await this.styleChange;
     await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
