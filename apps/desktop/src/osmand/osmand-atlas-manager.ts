@@ -580,13 +580,17 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.getRenderingStyles' })
   readonly getRenderingStyles = async () => {
+    await this.styleChange;
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(this.resourcesPath);
-    const selectedFileName = fileNames.includes(this.styleFileName) ? this.styleFileName : 'default.render.xml';
+    // config.json is the single persistent source of truth. Refresh the
+    // in-memory selection before reporting it or allowing a helper to render.
+    const savedFileName = this.readSavedStyleFileName();
+    const selectedFileName = fileNames.includes(savedFileName) ? savedFileName : 'default.render.xml';
 
-    if (selectedFileName !== this.styleFileName) {
+    if (selectedFileName !== this.styleFileName || this.stylePath !== join(styleDirectory, selectedFileName)) {
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
-      await this.persistStyleFileName(selectedFileName);
+      if (savedFileName !== selectedFileName) await this.persistStyleFileName(selectedFileName);
       await this.replaceWorkers();
     }
 
