@@ -1454,9 +1454,12 @@ export class OfflineMapRenderer {
           this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, property));
         }
         const original = this.basemapOpacityDefaults.get(key);
-        // Keep the exact style-defined opacity when enabled; setting the
-        // multiplier to zero hides fills, strokes, and outlines together.
-        this.map.setPaintProperty(layer.id, property, value === 0 ? 0 : original as never);
+        // Multiply the style's own opacity so the slider remains continuous;
+        // zero also removes outlines that would otherwise survive as rings.
+        const scaled = value === 0 ? 0
+          : typeof original === 'number' ? original * value
+            : ['*', original ?? 1, value];
+        this.map.setPaintProperty(layer.id, property, scaled as never);
       }
     }
   }
