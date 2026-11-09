@@ -446,6 +446,31 @@ interface MapErrorEntry {
       </table>
     </div>
     <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the OfflineMaps update checker.</p>
+    <div class="map-cache-actions offline-catalogue-toolbar">
+      <strong>Found offline maps in download catalogues</strong>
+      <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
+    </div>
+    <p class="offline-map-status" role="status">{{ offlineMapCatalogueSummary() }}</p>
+    @if (offlineMapCatalogueFiles().length > 0) {
+      <div class="mbtiles-map-table-wrap offline-catalogue-table-wrap">
+        <table class="mbtiles-map-table offline-catalogue-table">
+          <thead><tr><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th><th></th></tr></thead>
+          <tbody>
+            @for (file of offlineMapCatalogueFiles(); track file.url) {
+              <tr>
+                <td class="mbtiles-map-file"><strong>{{ file.fileName }}</strong></td>
+                <td>{{ file.fileType.toUpperCase() }}</td>
+                <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
+                <td>{{ file.source }}</td>
+                <td><button type="button" (click)="openDownloadSource(file.url)">Open</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="offline-map-status">No catalogue files listed yet. Run “Check for updates” to download and parse the configured catalogue pages.</p>
+    }
     <div class="osmand-resources-picker">
       <strong>OsmAnd resources folder</strong>
       <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
@@ -887,6 +912,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active'>('all');
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
+  protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
+  protected readonly offlineMapCatalogueSummary = signal('No catalogue has been checked yet.');
   protected readonly activeOfflineMapCount = computed(() => this.offlineMaps().filter(map => map.enabled).length);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).length);
   protected readonly filteredOfflineMaps = computed(() => {
@@ -2020,10 +2047,11 @@ export class MapWindow implements OnInit, OnDestroy {
       const result = await this.desktop.OfflineMap.checkForUpdates();
       this.offlineMaps.set(result.maps);
       const updates = result.maps.filter(map => map.updateAvailable === true).length;
-      const unknown = result.maps.filter(map => map.updateAvailable === null).length;
+      this.offlineMapCatalogueFiles.set(result.catalogueFiles);
       const checkedAt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(result.checkedAt));
       const errors = result.sourceErrors.length ? ' · Source errors: ' + result.sourceErrors.join('; ') : '';
-      this.offlineMapUpdateCheckStatus.set('Checked ' + checkedAt + ' · ' + updates + ' update(s) available · ' + unknown + ' map(s) could not be matched · ' + result.filesFound + ' catalogue file(s)' + errors);
+      this.offlineMapCatalogueSummary.set('Checked ' + checkedAt + ' · ' + result.filesFound + ' catalogue file(s) · ' + result.matchedMaps + ' local map(s) matched · ' + result.unmatchedMaps + ' unmatched · ' + updates + ' update(s) available' + errors);
+      this.offlineMapUpdateCheckStatus.set(this.offlineMapCatalogueSummary());
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.offlineMapUpdateCheckStatus.set('Update check failed: ' + message);
