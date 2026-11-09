@@ -640,19 +640,19 @@ export class OsmAndAtlasManager {
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
   readonly getRuntimeStatus = async () => {
     await this.refreshSelectedObf();
-    return ({
-    helperPath: this.helperPath,
-    helperAvailable: existsSync(this.helperPath),
-    obfPath: this.obfPaths.join('; '),
-    obfPaths: [...this.obfPaths],
-    obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
-    resourcesPath: this.resourcesPath,
-    resourcesAvailable: !!this.resourcesPath && existsSync(this.resourcesPath),
-    stylePath: this.stylePath,
-    styleAvailable: existsSync(this.stylePath)
-    });
     console.info('[OsmAnd Atlas] runtime style=' + this.styleFileName + ' stylePath=' + this.stylePath
       + ' obfCount=' + this.obfPaths.length + ' obfPaths=' + this.obfPaths.join('; '));
+    return ({
+      helperPath: this.helperPath,
+      helperAvailable: existsSync(this.helperPath),
+      obfPath: this.obfPaths.join('; '),
+      obfPaths: [...this.obfPaths],
+      obfAvailable: this.obfPaths.length > 0 && this.obfPaths.every(path => existsSync(path)),
+      resourcesPath: this.resourcesPath,
+      resourcesAvailable: !!this.resourcesPath && existsSync(this.resourcesPath),
+      stylePath: this.stylePath,
+      styleAvailable: existsSync(this.stylePath)
+    });
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
