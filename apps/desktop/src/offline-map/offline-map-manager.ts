@@ -5,7 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 export interface OfflineMapStatus { type?:'mbtiles'|'obf'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
-export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; }\nexport interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
+export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; }
+export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
@@ -92,7 +93,7 @@ export class OfflineMapManager {
    }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
   });
   await Promise.all(tasks);
-  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').normalize('NFKC').replace(/\\s+/g,' ').trim();
+  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').normalize('NFKC') .replace(/\s+/g,' ').trim();
   const maps=[...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()]);
   let matchedMaps=0;
   for(const item of maps){
