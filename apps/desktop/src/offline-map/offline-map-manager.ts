@@ -32,13 +32,13 @@ export class OfflineMapManager {
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})));
  @IpcHandler({name:'OfflineMap.checkForUpdates'})
  readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
-  const sources=[
-   {name:'Geofabrik',url:'https://download.geofabrik.de/europe/austria.html'},
-   {name:'Limaps',url:'https://www.limaps.org/tileserver.html'},
-   {name:'Shortbread',url:'https://shortbread-tiles.org/download/'},
-   {name:'OsmAnd OBF',url:'https://download.osmand.net/list.php'},
-   {name:'OsmAnd Resources',url:'https://github.com/osmandapp/OsmAnd-resources'}
-  ];
+  const offlineSettings=(readAppSettings().offlineMaps??{}) as Record<string,unknown>;
+  const savedSources=Array.isArray(offlineSettings.updateSources)?offlineSettings.updateSources:[];
+  const sources=savedSources.filter((entry):entry is {url:string;fileType:'obf'|'mbtiles';useForUpdates:boolean}=>{
+   if(!entry||typeof entry!=='object')return false;
+   const source=entry as Record<string,unknown>;
+   return typeof source.url==='string'&&(source.fileType==='obf'||source.fileType==='mbtiles')&&source.useForUpdates===true;
+  }).map(source=>({name:(()=>{try{return new URL(source.url).hostname;}catch{return source.url;}})(),url:source.url,fileType:source.fileType}));
   const files:RemoteMapFile[]=[];const sourceErrors:string[]=[];
   const fetchPage=async(url:string):Promise<string>=>{
    const response=await fetch(url,{headers:{'User-Agent':'LumaScope offline map update checker'},signal:AbortSignal.timeout(20000)});
@@ -56,7 +56,7 @@ export class OfflineMapManager {
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]));
    return null;
   };
-  const parseFiles=(html:string,baseUrl:string,source:string):void=>{
+  const parseFiles=(html:string,baseUrl:string,source:string,fileType:'obf'|'mbtiles'):void=>{
    const anchors=html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi);
    for(const anchor of anchors){
     const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
@@ -73,12 +73,12 @@ export class OfflineMapManager {
   };
   const tasks=sources.map(async source=>{
    try{
-    const html=await fetchPage(source.url);parseFiles(html,source.url,source.name);
-    if(source.name==='Geofabrik'){
+    const html=await fetchPage(source.url);parseFiles(html,source.url,source.name,source.fileType);
+    if(source.url.includes('geofabrik.de')){
      const rawIndex=html.match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>\s*(?:raw directory index|directory index)\s*<\/a>/i);
      if(rawIndex){
       const indexUrl=new URL(rawIndex[1].replace(/&amp;/g,'&'),source.url).toString();
-      const indexHtml=await fetchPage(indexUrl);parseFiles(indexHtml,indexUrl,'Geofabrik');
+      const indexHtml=await fetchPage(indexUrl);parseFiles(indexHtml,indexUrl,source.name,source.fileType);
      }
     }
    }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
