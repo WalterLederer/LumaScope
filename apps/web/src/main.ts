@@ -53,6 +53,10 @@ window.desktop
       const migrateOsmandStyle = typeof osmand['renderingStyle'] !== 'string'
         && typeof mapWindow['osmandStyle'] === 'string';
       if (migrateOsmandStyle) osmand['renderingStyle'] = mapWindow['osmandStyle'];
+      // mapWindow.osmandStyle was a duplicate renderer-local setting. Import
+      // it once if needed, then remove it from the central JSON config.
+      const removeLegacyMapStyle = Object.prototype.hasOwnProperty.call(mapWindow, 'osmandStyle');
+      if (removeLegacyMapStyle) delete mapWindow['osmandStyle'];
 
       // Persist any one-time imports before replacing browser storage.
       if (Object.keys(migratedMap).length) {
@@ -66,6 +70,9 @@ window.desktop
         // The native OsmAnd manager is created before renderer-side settings
         // are loaded. Apply its migrated style immediately.
         await window.desktop.OsmAnd.setRenderingStyle(osmand['renderingStyle']);
+      }
+      if (removeLegacyMapStyle) {
+        await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { osmandStyle: undefined });
       }
 
       const persistValue = (key: string, value: string | null): void => {
