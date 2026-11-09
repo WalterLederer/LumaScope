@@ -346,7 +346,6 @@ interface MapErrorEntry {
                 <span class="offline-map-status" role="status">{{ offlineMaps().length }} map(s) loaded · automatic selection by GPS coordinates
                 @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
                 </span>
-           </div>
               </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
@@ -489,7 +488,7 @@ interface MapErrorEntry {
             </table>
             } @else { <span class="offline-map-status">No offline maps loaded.</span> }
             @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
-            
+            </div>
           </div>
         } @else {
           <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
@@ -690,7 +689,13 @@ interface MapErrorEntry {
     .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
+    .map-content{position:relative;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
+    .offline-map-list-view{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;background:var(--color-surface-default-low,#202124)}
+    .offline-map-list-view .mbtiles-map-list{flex:1 1 auto;max-height:none;overflow:auto}
     .map{position:relative;z-index:0;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent;transition:opacity .12s ease}
+    .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
+    .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
+    @keyframes render-init-spin{to{transform:rotate(360deg)}}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
