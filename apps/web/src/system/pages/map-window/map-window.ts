@@ -922,9 +922,18 @@ export class MapWindow implements OnInit, OnDestroy {
     if (osmandStyleApi) {
       void (async () => {
         try {
-          // Each main-process renderer restores its own style from the central
-          // application settings file. Do not overwrite Atlas with the regular
-          // OsmAnd selection (or vice versa) when this window starts.
+          // The Location window keeps the selected folder in its own persisted
+          // UI settings. Re-apply it to both main-process managers before asking
+          // either manager for styles; their startup settings may be empty or
+          // older than the value shown in this window.
+          const resourcesPath = this.osmAndResourcesPath().trim();
+          if (resourcesPath && this.desktop) {
+            await this.desktop.OsmAndAtlas.setResourcesPath(resourcesPath);
+            await this.desktop.OsmAnd.setResourcesPath(resourcesPath);
+          }
+
+          // Each main-process renderer restores its own style selection. Do not
+          // overwrite Atlas with the regular OsmAnd selection (or vice versa).
           const styles = await osmandStyleApi.getRenderingStyles();
           this.osmAndStyles.set(styles);
           const selectedStyle = styles.find(style => style.selected);
@@ -932,8 +941,12 @@ export class MapWindow implements OnInit, OnDestroy {
             this.osmAndStyle.set(selectedStyle.fileName);
             this.saveSetting('osmandStyle', selectedStyle.fileName);
           }
+          this.osmAndResourcesError.set('');
         } catch (error) {
-          console.error('Could not restore OsmAnd rendering style:', error);
+          const message = error instanceof Error ? error.message : String(error);
+          this.osmAndResourcesError.set(message);
+          this.recordMapError('OsmAnd resources folder', message);
+          console.error('Could not restore OsmAnd resources/style settings:', error);
         }
       })();
     }
@@ -1962,7 +1975,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!result.success) return;
     this.osmAndResourcesError.set('');
     try {
-      await Promise.all([this.desktop.OsmAnd.setResourcesPath(result.data), this.desktop.OsmAndAtlas.setResourcesPath(result.data)]);
+      // Apply sequentially because both managers persist into the same
+      // application settings section; parallel writes could race each other.
+      await this.desktop.OsmAndAtlas.setResourcesPath(result.data);
+      await this.desktop.OsmAnd.setResourcesPath(result.data);
       this.osmAndResourcesPath.set(result.data);
       this.saveSetting('osmandResourcesPath', result.data);
       this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
