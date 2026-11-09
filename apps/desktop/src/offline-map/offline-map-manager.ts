@@ -90,14 +90,28 @@ export class OfflineMapManager {
     void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>).catch(error=>console.error('[OfflineMap] Could not migrate map settings:',error));
    }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
-   if(settings.enabledByPath&&typeof settings.enabledByPath==='object')for(const [path,enabled] of Object.entries(settings.enabledByPath))if(typeof enabled==='boolean')this.enabledByPath.set(path,enabled);
-   const paths=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
-   for(const path of paths){try{this.openFile(path);}catch(error){console.warn('[OfflineMap] Could not restore MBTiles:',path,error);}}
-   const obfPaths=Array.isArray(settings.obfPaths)?settings.obfPaths.filter((v):v is string=>typeof v==='string'):[];
-   for(const path of obfPaths){try{this.openObfFile(path);}catch(error){console.warn('[OfflineMap] Could not restore OBF:',path,error);}}
+   const unifiedPaths:Record<string,boolean>={};
+   if(settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths)){
+    for(const [path,enabled] of Object.entries(settings.filePaths))if(typeof enabled==='boolean')unifiedPaths[path]=enabled;
+   }else{
+    // One-time migration from the former split arrays and enabledByPath object.
+    const mbtiles=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
+    const obf=Array.isArray(settings.obfPaths)?settings.obfPaths.filter((v):v is string=>typeof v==='string'):[];
+    for(const path of [...mbtiles,...obf])unifiedPaths[path]=settings.enabledByPath?.[path]!==false;
+   }
+   for(const [path,enabled] of Object.entries(unifiedPaths)){
+    this.enabledByPath.set(path,enabled);
+    try{
+     if(extname(path).toLowerCase()==='.obf')this.openObfFile(path);
+     else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);
+    }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
+   }
+   if(settings.filePaths!==unifiedPaths){
+    void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
+   }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():Promise<void>{return updateAppSettingsSection('offlineMaps',{filePaths:[...this.opened.values()].map(item=>item.status.filePath),obfPaths:[...this.obfFiles.values()].map(item=>item.filePath),enabledByPath:Object.fromEntries([...this.opened].map(([path,item])=>[path,item.status.enabled]).concat([...this.obfFiles].map(([path,item])=>[path,item.enabled]))),lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps():Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openObfFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
