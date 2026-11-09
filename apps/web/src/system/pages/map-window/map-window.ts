@@ -329,7 +329,6 @@ interface MapErrorEntry {
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
       </button>
     </div>
-  </details>
   <div class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
     <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
     @if (renderActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
@@ -338,6 +337,7 @@ interface MapErrorEntry {
       <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
     }
   </div>
+  </details>
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
