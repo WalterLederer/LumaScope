@@ -455,8 +455,13 @@ export class OsmAndAtlasManager {
   }
 
   private persistStyleFileName(fileName: string): void {
-    void updateAppSettingsSection('osmand', { renderingStyle: fileName })
-      .catch(error => console.warn('[OsmAnd Atlas] Could not persist shared rendering style:', error));
+    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
+    const atlas = osmand?.atlas as Record<string, unknown> | undefined;
+    void updateAppSettingsSection('osmand', {
+      renderingStyle: fileName,
+      // Remove the old Atlas-only duplicate while preserving resourcesPath.
+      atlas: atlas ? { ...atlas, renderingStyle: undefined } : undefined
+    }).catch(error => console.warn('[OsmAnd Atlas] Could not persist shared rendering style:', error));
   }
 
   private async inspectRenderingStyles(resourcesPath: string): Promise<{ styleDirectory: string; fileNames: string[] }> {
