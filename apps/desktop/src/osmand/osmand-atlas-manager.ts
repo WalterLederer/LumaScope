@@ -193,13 +193,25 @@ class OsmAndAtlasWorker {
   }
 
   private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
-    try {
-      if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
-      await this.ensureStarted();
-      return await this.renderOnce(longitude, latitude, zoom);
-    } catch (error) {
-      await this.shutdown();
-      throw error;
+    if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
+    const maxRetries = 2;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await this.ensureStarted();
+        return await this.renderOnce(longitude, latitude, zoom);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const isTimeout = /timed?\s*out|timeout|did not settle/i.test(message);
+        if (!isTimeout || attempt >= maxRetries || this.retired) {
+          await this.shutdown();
+          throw error;
+        }
+        console.warn('[OsmAnd Atlas] Initial render timeout; restarting helper and retrying',
+          { attempt: attempt + 1, maxRetries, message });
+        await this.shutdown();
+        // Give Windows/OpenGL a short moment to release the old helper context.
+        await new Promise<void>(resolve => setTimeout(resolve, 750));
+      }
     }
   }
 
@@ -338,7 +350,12 @@ class OsmAndAtlasWorker {
       + ' dimensions=' + width + 'x' + height
       + ' ms_per_megapixel=' + (megaPixels > 0 ? (elapsedMs / megaPixels).toFixed(2) : 'n/a')
       + ' request_id=' + requestId);
-    if (status !== 0) throw new Error(payload.toString('utf8') || 'OsmAnd Atlas rendering failed.');
+    if (status !== 0) {
+      const responseMessage = payload.toString('utf8').trim();
+      const timeoutMessages = this.stderrMessages.filter(message => /did not settle|timed?\s*out|timeout/i.test(message)).slice(-3);
+      const details = [responseMessage, ...timeoutMessages].filter(Boolean).join(' | ');
+      throw new Error(details || 'OsmAnd Atlas rendering failed.');
+    }
     if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd Atlas helper returned unexpected RGBA8 frame dimensions or format.');
@@ -735,6 +752,14 @@ export class OsmAndAtlasManager {
     // 512px at the compensated helper zoom yields one MapLibre 512px tile extent.
     const rendered = await worker.render(longitude, latitude, z - 1);
     const pixels = rendered.pixels;
+    const pixelDiagnostics = getAtlasPixelDiagnostics(pixels);
+    if (pixelDiagnostics.uniqueRgbColors === 1) {
+      console.info('[OsmAnd Atlas] Uniform metatile not cached', {
+        zoom: z, metatileX, metatileY, uniqueRgbColors: pixelDiagnostics.uniqueRgbColors,
+        rgbMin: pixelDiagnostics.rgbMin, rgbMax: pixelDiagnostics.rgbMax
+      });
+      return rendered;
+    }
 
     await mkdir(dirname(cacheFile), { recursive: true });
     const bgra = Buffer.allocUnsafe(pixels.length);
@@ -776,6 +801,11 @@ export class OsmAndAtlasManager {
         rgba[i + 1] = bgra[i + 1];
         rgba[i + 2] = bgra[i];
         rgba[i + 3] = bgra[i + 3];
+      }
+      if (getAtlasPixelDiagnostics(rgba).uniqueRgbColors === 1) {
+        await unlink(path).catch(() => undefined);
+        console.info('[OsmAnd Atlas] Removed uniform metatile from disk cache:', path);
+        return null;
       }
       return rgba;
     } catch {
