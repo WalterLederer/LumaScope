@@ -242,6 +242,7 @@ export class OsmAndManager {
   private obfPaths = this.getFallbackObfPaths();
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
+  private styleChange: Promise<void> = Promise.resolve();
   private nextWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<Buffer>>();
   private temporaryFileId = 0;
