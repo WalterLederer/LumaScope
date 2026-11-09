@@ -116,7 +116,7 @@ const captureTargetKey = (target: CaptureTarget, ownerWindow?: Electron.BrowserW
       ? `window:${target.handle}`
       : target.kind === 'rectangle'
         ? 'rectangle'
-        : target.includeLightMatterWindows ? `top-window:include-light-matter:${ownerWindow?.id ?? 'default'}` : 'top-window';
+        : target.includeAppWindows ? `top-window:include-app:${ownerWindow?.id ?? 'default'}` : 'top-window';
 
 interface Win32Rect {
   Left: number;
@@ -498,8 +498,8 @@ const cropWindowFromMonitorFrame = async (handle: number, targetKey: string): Pr
   return frame;
 };
 
-const captureTopWindowFrame = async (includeLightMatterWindows = false, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
-  if (includeLightMatterWindows) {
+const captureTopWindowFrame = async (includeAppWindows = false, ownerWindow?: Electron.BrowserWindow | null): Promise<CapturedHdrFrame> => {
+  if (includeAppWindows) {
     const captureWindow = ownerWindow && !ownerWindow.isDestroyed() ? ownerWindow : App.capturePreviewWindow;
     if (!captureWindow || captureWindow.isDestroyed() || !captureWindow.isVisible() || captureWindow.isMinimized()) {
       throw new Error('The LumaScope Capture window must be visible and restored to capture it as the Top Window.');
@@ -698,7 +698,7 @@ const captureTargetFrame = async (target: CaptureTarget, ownerWindow?: Electron.
       }
     }
   }
-  if (target.kind === 'top-window') return captureTopWindowFrame(target.includeLightMatterWindows === true, ownerWindow);
+  if (target.kind === 'top-window') return captureTopWindowFrame(target.includeAppWindows === true, ownerWindow);
   if (target.kind === 'rectangle') return captureRectangleFrame(ownerWindow);
   return captureHdrFrame(target);
 };
