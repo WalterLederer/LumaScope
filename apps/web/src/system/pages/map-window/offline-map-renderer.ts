@@ -1432,16 +1432,30 @@ export class OfflineMapRenderer {
     // MBTiles style layer, and outline/stroke opacity that otherwise leaves
     // white rings visible after the map itself has been hidden.
     for (const layer of this.map.getStyle().layers) {
-      if (!('source' in layer) || layer.source === 'photo-markers' || layer.source === 'gpx-track') continue;
+      if (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track')) continue;
       const paint = 'paint' in layer && layer.paint ? layer.paint as Record<string, unknown> : {};
-      for (const property of Object.keys(paint).filter(key => key.endsWith('-opacity'))) {
+      const typeDefaults: Record<string, string[]> = {
+        background: ['background-opacity'],
+        fill: ['fill-opacity'],
+        line: ['line-opacity'],
+        circle: ['circle-opacity', 'circle-stroke-opacity'],
+        raster: ['raster-opacity'],
+        symbol: ['icon-opacity', 'text-opacity'],
+        'fill-extrusion': ['fill-extrusion-opacity'],
+        heatmap: ['heatmap-opacity']
+      };
+      const properties = new Set([
+        ...(typeDefaults[layer.type] ?? []),
+        ...Object.keys(paint).filter(key => key.endsWith('-opacity'))
+      ]);
+      for (const property of properties) {
         const key = layer.id + ':' + property;
         if (!this.basemapOpacityDefaults.has(key)) {
           this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, property));
         }
         const original = this.basemapOpacityDefaults.get(key);
         // Keep the exact style-defined opacity when enabled; setting the
-        // multiplier to zero hides strokes and fills together.
+        // multiplier to zero hides fills, strokes, and outlines together.
         this.map.setPaintProperty(layer.id, property, value === 0 ? 0 : original as never);
       }
     }
