@@ -841,7 +841,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly renderInitStatus = signal('');
   private readonly onOsmAndTileStatus = (event: Event): void => {
-    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string }>).detail;
+    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : null;
     if (detail?.status === 'diagnostic' && detail.protocol === 'osmand-atlas' && detail.error) {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
