@@ -1037,7 +1037,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!saved) return;
       if (typeof saved.settingsOpen === 'boolean') this.settingsOpen.set(saved.settingsOpen);
       if (typeof saved.activeSettingsTab === 'string' && ['location','track','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved.activeSettingsTab)) this.activeSettingsTab.set(saved.activeSettingsTab as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
-      if (typeof saved.renderVisualsEnabled === 'boolean') this.changeRenderVisualsEnabled(saved.renderVisualsEnabled);
+      if (typeof saved.renderVisualsEnabled === 'boolean') {
+        this.renderVisualsEnabled.set(saved.renderVisualsEnabled);
+        window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved.renderVisualsEnabled } }));
+      }
       if (typeof saved.opacitySectionOpen === 'boolean') this.opacitySectionOpen.set(saved.opacitySectionOpen);
       if (typeof saved.renderSectionOpen === 'boolean') this.renderSectionOpen.set(saved.renderSectionOpen);
       if (typeof saved.markerSectionOpen === 'boolean') this.markerSectionOpen.set(saved.markerSectionOpen);
@@ -1750,6 +1753,9 @@ export class MapWindow implements OnInit, OnDestroy {
     let viewportRefreshTimer: number | null = null;
     renderer.map.on('movestart', () => {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
+      this.activeRenderTiles.clear();
+      this.renderActiveCount.set(0);
+      this.renderTotalCount.set(0);
       void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
         console.warn('[OsmAnd Atlas] Could not cancel obsolete queued tiles:', error));
     });
