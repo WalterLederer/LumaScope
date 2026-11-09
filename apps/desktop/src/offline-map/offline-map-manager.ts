@@ -93,7 +93,7 @@ export class OfflineMapManager {
    }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
   });
   await Promise.all(tasks);
-  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').normalize('NFKC') .replace(/\s+/g,' ').trim();
+  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').replace(/_2(?=\.obf$)/i,'').normalize('NFKC').replace(/\s+/g,' ').trim();
   const maps=[...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()]);
   let matchedMaps=0;
   const matchedCatalogueKeys=new Set<string>();
