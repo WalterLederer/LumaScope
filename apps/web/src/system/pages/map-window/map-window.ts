@@ -430,61 +430,72 @@ interface MapErrorEntry {
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
-  <div class="settings-tab-content">
-    <div class="map-cache-actions">
-      <strong>Download sources</strong>
-      <button type="button" (click)="addDownloadSource()">Add URL</button>
-    </div>
-    <div class="mbtiles-map-table-wrap">
-      <table class="mbtiles-map-table download-source-table">
-        <thead><tr><th>URL</th><th>Filetype</th><th>Use for updates</th><th></th></tr></thead>
-        <tbody>
-          @for (source of downloadSources(); track $index; let i = $index) {
-            <tr>
-              <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
-              <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option></select></td>
-              <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-              <td><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the OfflineMaps update checker.</p>
-    <div class="map-cache-actions offline-catalogue-toolbar">
-      <strong>Found offline maps in download catalogues</strong>
-      <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
-    </div>
-    <p class="offline-map-status" role="status">{{ offlineMapCatalogueSummary() }}</p>
-    @if (offlineMapCatalogueFiles().length > 0) {
-      <div class="mbtiles-map-table-wrap offline-catalogue-table-wrap">
-        <table class="mbtiles-map-table offline-catalogue-table">
-          <thead><tr><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th><th></th></tr></thead>
+  <div class="settings-tab-content download-tab">
+    <details class="map-cache-section download-section">
+      <summary class="map-cache-heading">Download sources</summary>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">Configure the catalogue URLs used to discover offline maps.</span>
+        <button type="button" (click)="addDownloadSource()">Add URL</button>
+      </div>
+      <div class="mbtiles-map-table-wrap">
+        <table class="mbtiles-map-table download-source-table">
+          <thead><tr><th>URL</th><th>Filetype</th><th>Use for updates</th><th></th></tr></thead>
           <tbody>
-            @for (file of offlineMapCatalogueFiles(); track file.url) {
-              <tr [class.offline-catalogue-matched]="file.matched">
-                <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
-                <td>{{ file.fileType.toUpperCase() }}</td>
-                <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
-                <td>{{ file.source }}</td>
-                <td><button type="button" (click)="openDownloadSource(file.url)">Open</button></td>
+            @for (source of downloadSources(); track $index; let i = $index) {
+              <tr>
+                <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
+                <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option></select></td>
+                <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
+                <td><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-    } @else {
-      <p class="offline-map-status">No catalogue files listed yet. Run “Check for updates” to download and parse the configured catalogue pages.</p>
-    }
-    <div class="osmand-resources-picker">
-      <strong>OsmAnd resources folder</strong>
-      <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
-      <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
-      @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
-      <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
-    </div>
-    </div>
+      <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the OfflineMaps update checker.</p>
+    </details>
+
+    <details class="map-cache-section download-section">
+      <summary class="map-cache-heading">Updates</summary>
+      <div class="map-cache-actions offline-catalogue-toolbar">
+        <span class="offline-map-status">Check configured catalogues for available offline-map updates.</span>
+        <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
+      </div>
+      <p class="offline-map-status" role="status">{{ offlineMapCatalogueSummary() }}</p>
+      @if (offlineMapCatalogueFiles().length > 0) {
+        <div class="mbtiles-map-table-wrap offline-catalogue-table-wrap">
+          <table class="mbtiles-map-table offline-catalogue-table">
+            <thead><tr><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th><th></th></tr></thead>
+            <tbody>
+              @for (file of offlineMapCatalogueFiles(); track file.url) {
+                <tr [class.offline-catalogue-matched]="file.matched">
+                  <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
+                  <td>{{ file.fileType.toUpperCase() }}</td>
+                  <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
+                  <td>{{ file.source }}</td>
+                  <td><button type="button" (click)="openDownloadSource(file.url)">Open</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="offline-map-status">No catalogue files listed yet. Run “Check for updates” to download and parse the configured catalogue pages.</p>
+      }
+    </details>
+
+    <details class="map-cache-section download-section">
+      <summary class="map-cache-heading">Local sources</summary>
+      <div class="osmand-resources-picker">
+        <strong>OsmAnd resources folder</strong>
+        <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
+        <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+        @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
+        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
+      </div>
+    </details>
   </div>
+</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
   <div class="map-error-panel">
     <div class="map-cache-actions">
