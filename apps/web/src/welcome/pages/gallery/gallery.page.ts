@@ -79,13 +79,13 @@ export class GalleryPage {
 
   protected readonly imageGrid = viewChild(ImageGridComponent);
   private readonly readVerifyCacheFiles = (): boolean => {
-    try { return this.document.defaultView?.localStorage.getItem('light-matter.verifyCacheFiles') === 'true'; }
+    try { return this.document.defaultView?.localStorage.getItem('verifyCacheFiles') === 'true'; }
     catch { return false; }
   };
   protected readonly verifyCacheFiles = signal(this.readVerifyCacheFiles());
   protected readonly setVerifyCacheFiles = (enabled: boolean): void => {
     this.verifyCacheFiles.set(enabled);
-    try { this.document.defaultView?.localStorage.setItem('light-matter.verifyCacheFiles', String(enabled)); } catch { /* Keep the session setting. */ }
+    try { this.document.defaultView?.localStorage.setItem('verifyCacheFiles', String(enabled)); } catch { /* Keep the session setting. */ }
   };
   protected readonly startGalleryCache = (): void => this.imageGrid()?.cacheAllImages();
   protected readonly startRecursiveGalleryCache = (): void => this.imageGrid()?.cacheAllImagesRecursive();
@@ -96,14 +96,14 @@ export class GalleryPage {
   protected readonly defaultThumbnailSize = defaultThumbnailSize;
 
   private readonly readControlsSidebarVisible = (): boolean => {
-    try { return globalThis.localStorage.getItem('light-matter.gallerySidebarVisible') === 'true'; }
+    try { return globalThis.localStorage.getItem('gallerySidebarVisible') === 'true'; }
     catch { return false; }
   };
   protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
   protected readonly gallerySidebarTabs = [{ id: 'general', label: 'General' }, { id: 'capture', label: 'Capture' }, { id: 'cache', label: 'Cache' }];
   private readonly readActiveGallerySidebarTab = (): string => {
     try {
-      const saved = globalThis.localStorage.getItem('light-matter.activeGallerySidebarTab');
+      const saved = globalThis.localStorage.getItem('activeGallerySidebarTab');
       return this.gallerySidebarTabs.some(tab => tab.id === saved) ? saved! : 'general';
     } catch { return 'general'; }
   };
@@ -112,14 +112,14 @@ export class GalleryPage {
     if (!this.gallerySidebarTabs.some(item => item.id === tab)) return;
     this.activeGallerySidebarTab.set(tab);
     if (tab === 'cache') this.expandGalleryCache();
-    try { globalThis.localStorage.setItem('light-matter.activeGallerySidebarTab', tab); } catch { /* Keep the session selection. */ }
+    try { globalThis.localStorage.setItem('activeGallerySidebarTab', tab); } catch { /* Keep the session selection. */ }
   };
   private readonly expandGalleryCache = (): void => {
     // The cache panel's summary is opened by its mode input; changing tabs recreates the panel.
   };
   private readonly readStoredControlsSidebarWidth = (): number => {
     try {
-      const stored = Number(globalThis.localStorage.getItem('light-matter.gallerySidebarWidth'));
+      const stored = Number(globalThis.localStorage.getItem('gallerySidebarWidth'));
       return Number.isFinite(stored) && stored >= 280 ? stored : 320;
     } catch { return 320; }
   };
@@ -134,7 +134,7 @@ export class GalleryPage {
     const end = () => {
       view.removeEventListener('pointermove', move);
       view.removeEventListener('pointerup', end);
-      try { view.localStorage.setItem('light-matter.gallerySidebarWidth', String(Math.round(this.controlsSidebarWidth()))); } catch { /* Keep session width. */ }
+      try { view.localStorage.setItem('gallerySidebarWidth', String(Math.round(this.controlsSidebarWidth()))); } catch { /* Keep session width. */ }
     };
     view.addEventListener('pointermove', move);
     view.addEventListener('pointerup', end, { once: true });
@@ -142,7 +142,7 @@ export class GalleryPage {
   protected readonly toggleControlsSidebar = (): void => {
     const next = !this.controlsSidebarVisible();
     this.controlsSidebarVisible.set(next);
-    try { globalThis.localStorage.setItem('light-matter.gallerySidebarVisible', String(next)); } catch { /* Keep session state. */ }
+    try { globalThis.localStorage.setItem('gallerySidebarVisible', String(next)); } catch { /* Keep session state. */ }
   };
 
   protected readonly openCaptureWindow = async (): Promise<void> => {
