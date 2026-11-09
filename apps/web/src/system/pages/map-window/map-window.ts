@@ -332,7 +332,7 @@ interface MapErrorEntry {
     @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
       <div class="map-cache-progress">
         <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()"></progress>
-        <span>{{ renderActiveCount() }} tile requests active</span>
+        <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
       </div>
     }
   </details>
@@ -814,6 +814,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
+  private readonly seenRenderTiles = new Set<string>();
   private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
@@ -849,10 +850,16 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas')) return;
     const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
-    if (detail.status === 'loading' || detail.status === 'rerendering') this.activeRenderTiles.add(key);
-    else if (detail.status === 'loaded' || detail.status === 'cache-loading' || detail.status === 'cancelled' || detail.status === 'warning' || detail.status === 'error') this.activeRenderTiles.delete(key);
+    if (detail.status === 'loading' || detail.status === 'rerendering') {
+      this.activeRenderTiles.add(key);
+      if (!this.seenRenderTiles.has(key)) {
+        this.seenRenderTiles.add(key);
+        this.renderTotalCount.update(total => total + 1);
+      }
+    } else if (detail.status === 'loaded' || detail.status === 'cache-loading' || detail.status === 'cancelled' || detail.status === 'warning' || detail.status === 'error') {
+      this.activeRenderTiles.delete(key);
+    }
     this.renderActiveCount.set(this.activeRenderTiles.size);
-    this.renderTotalCount.set(Math.max(this.renderTotalCount(), this.activeRenderTiles.size));
     if (!expectedProtocol || detail.protocol !== expectedProtocol || !this.renderInitStatus()) return;
     if (detail.status === 'loading') this.renderInitStatus.set('Loading first tile …');
     else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error' || detail.status === 'cache-loading') this.renderInitStatus.set('');
@@ -1755,6 +1762,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.on('movestart', () => {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       this.activeRenderTiles.clear();
+      this.seenRenderTiles.clear();
       this.renderActiveCount.set(0);
       this.renderTotalCount.set(0);
       void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
