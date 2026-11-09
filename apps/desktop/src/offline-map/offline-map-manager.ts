@@ -69,8 +69,9 @@ export class OfflineMapManager {
     const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
     let fileName=label;
     try{fileName=decodeURIComponent(new URL(href,baseUrl).pathname.split('/').pop()||label);}catch{}
-    if(!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(fileName)&&!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(label))continue;
-    if(!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(fileName))fileName=label;
+    const extensionPattern=fileType==='obf'?/\.obf(?:\.zip)?$/i:/\.mbtiles$/i;
+    if(!extensionPattern.test(fileName)&&!extensionPattern.test(label))continue;
+    if(!extensionPattern.test(fileName))fileName=label;
     const position=anchor.index??0;const rowStart=Math.max(html.lastIndexOf('<tr',position),html.lastIndexOf('<li',position));
     let rowEnd=html.indexOf('</tr>',position);const liEnd=html.indexOf('</li>',position);
     if(rowEnd<0||(liEnd>=0&&liEnd<rowEnd))rowEnd=liEnd;
