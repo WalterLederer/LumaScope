@@ -45,24 +45,24 @@ export class OfflineMapManager {
    return response.text();
   };
   const parseDate=(text:string,fileName:string):number|null=>{
-   let match=text.match(/\\b(20\\d{2})[-/](\\d{2})[-/](\\d{2})(?:[ T](\\d{2}):(\\d{2}))?/);
+   let match=text.match(/\b(20\d{2})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}):(\d{2}))?/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]),Number(match[4]??0),Number(match[5]??0));
-   match=text.match(/\\b(\\d{2})\\.(\\d{2})\\.(20\\d{2})(?:[ ,]+(\\d{2}):(\\d{2}))?/);
+   match=text.match(/\b(\d{2})\.(\d{2})\.(20\d{2})(?:[ ,]+(\d{2}):(\d{2}))?/);
    if(match)return Date.UTC(Number(match[3]),Number(match[2])-1,Number(match[1]),Number(match[4]??0),Number(match[5]??0));
-   match=text.match(/\\b(20\\d{2})/(\\d{2})\\b/);
+   match=text.match(/\b(20\d{2})/(\d{2})\b/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,1);
-   match=fileName.match(/(?:^|[-_])(20\\d{2})[-_](\\d{2})[-_](\\d{2})(?:[-_.]|$)/);
+   match=fileName.match(/(?:^|[-_])(20\d{2})[-_](\d{2})[-_](\d{2})(?:[-_.]|$)/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]));
    return null;
   };
   const parseFiles=(html:string,baseUrl:string,source:string):void=>{
-   const anchors=html.matchAll(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi);
+   const anchors=html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi);
    for(const anchor of anchors){
-    const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim();
+    const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
     let fileName=label;
     try{fileName=decodeURIComponent(new URL(href,baseUrl).pathname.split('/').pop()||label);}catch{}
-    if(!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(fileName)&&!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(label))continue;
-    if(!/\\.(?:mbtiles|obf(?:\\.zip)?)$/i.test(fileName))fileName=label;
+    if(!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(fileName)&&!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(label))continue;
+    if(!/\.(?:mbtiles|obf(?:\.zip)?)$/i.test(fileName))fileName=label;
     const position=anchor.index??0;const rowStart=Math.max(html.lastIndexOf('<tr',position),html.lastIndexOf('<li',position));
     let rowEnd=html.indexOf('</tr>',position);const liEnd=html.indexOf('</li>',position);
     if(rowEnd<0||(liEnd>=0&&liEnd<rowEnd))rowEnd=liEnd;
@@ -70,12 +70,11 @@ export class OfflineMapManager {
     files.push({fileName,dateMs:parseDate(context,fileName),source});
    }
   };
-  const geofabrikUrl=sources[0].url;
   const tasks=sources.map(async source=>{
    try{
     const html=await fetchPage(source.url);parseFiles(html,source.url,source.name);
     if(source.name==='Geofabrik'){
-     const rawIndex=html.match(/<a\\b[^>]*href=["']([^"']+)["'][^>]*>\\s*(?:raw directory index|directory index)\\s*<\\/a>/i);
+     const rawIndex=html.match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>\s*(?:raw directory index|directory index)\s*<\/a>/i);
      if(rawIndex){
       const indexUrl=new URL(rawIndex[1].replace(/&amp;/g,'&'),source.url).toString();
       const indexHtml=await fetchPage(indexUrl);parseFiles(indexHtml,indexUrl,'Geofabrik');
@@ -84,7 +83,7 @@ export class OfflineMapManager {
    }catch(error){sourceErrors.push(source.name+': '+(error instanceof Error?error.message:String(error)));}
   });
   await Promise.all(tasks);
-  const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\\.zip$/i,'');
+  const normalize=(name:string):string=>name.split(/[\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'');
   for(const item of [...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()])){
    const key=normalize(item.fileName);
    const matches=files.filter(file=>normalize(file.fileName)===key&&file.dateMs!==null).sort((a,b)=>(b.dateMs??0)-(a.dateMs??0));
