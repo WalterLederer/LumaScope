@@ -45,11 +45,11 @@ export class OfflineMapManager {
    return response.text();
   };
   const parseDate=(text:string,fileName:string):number|null=>{
-   let match=text.match(/\b(20\d{2})[-/](\d{2})[-/](\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+   let match=text.match(/\b(20\d{2})[-\\/](\d{2})[-/](\d{2})(?:[ T](\d{2}):(\d{2}))?/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]),Number(match[4]??0),Number(match[5]??0));
    match=text.match(/\b(\d{2})\.(\d{2})\.(20\d{2})(?:[ ,]+(\d{2}):(\d{2}))?/);
    if(match)return Date.UTC(Number(match[3]),Number(match[2])-1,Number(match[1]),Number(match[4]??0),Number(match[5]??0));
-   match=text.match(/\b(20\d{2})/(\d{2})\b/);
+   match=text.match(/\b(20\d{2})\/(\d{2})\b/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,1);
    match=fileName.match(/(?:^|[-_])(20\d{2})[-_](\d{2})[-_](\d{2})(?:[-_.]|$)/);
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]));
