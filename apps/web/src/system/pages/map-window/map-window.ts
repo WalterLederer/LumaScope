@@ -321,7 +321,17 @@ interface MapErrorEntry {
     </div>
   </details>
   <details class="view-rerender-section" [open]="renderSectionOpen()" (toggle)="onLocationDetailsToggle($event)" [style.background]="renderActiveCount() > 0 ? 'rgba(180, 45, 45, 0.13)' : 'rgba(45, 150, 75, 0.10)'">
-    <summary>Render</summary>
+    <summary>
+      <span>Render</span>
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
+        <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
+        @if (renderActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
+          <span>Rendering inactive</span>
+        } @else {
+          <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
+        }
+      </span>
+    </summary>
     <div class="map-cache-actions view-rerender-actions">
       <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
       <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
@@ -329,14 +339,6 @@ interface MapErrorEntry {
       </button>
       <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
     </div>
-  <div class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
-    <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
-    @if (renderActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
-      <span>Rendering inactive</span>
-    } @else {
-      <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
-    }
-  </div>
   </details>
 </div>
 </div>
@@ -647,7 +649,8 @@ interface MapErrorEntry {
     .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
     .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
     .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
-    .view-rerender-section>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .view-rerender-section .map-cache-actions{min-width:0}
     .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
