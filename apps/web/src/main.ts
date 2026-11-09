@@ -21,53 +21,102 @@ window.desktop
       const osmand = settings['osmand'] && typeof settings['osmand'] === 'object'
         ? { ...(settings['osmand'] as Record<string, unknown>) } : {};
       const mapPrefix = 'light-matter.mapWindow.';
+      const values = new Map<string, string>();
       const migratedMap: Record<string, unknown> = {};
-      for (let index = 0; index < localStorage.length; index++) {
-        const key = localStorage.key(index);
+      const migratedPreferences: Record<string, unknown> = {};
+
+      // The JSON configuration is the only persistent settings store.
+      // Seed the renderer compatibility storage from its existing sections.
+      for (const [key, value] of Object.entries(mapWindow)) {
+        if (value !== null && value !== undefined) values.set(mapPrefix + key, String(value));
+      }
+      for (const [key, value] of Object.entries(preferences)) {
+        if (value !== null && value !== undefined) values.set(key, String(value));
+      }
+
+      // Import values from the former Chromium localStorage once, but only
+      // when the central JSON file does not already contain that setting.
+      const legacyStorage = window.localStorage;
+      for (let index = 0; index < legacyStorage.length; index++) {
+        const key = legacyStorage.key(index);
         if (!key) continue;
-        const value = localStorage.getItem(key);
+        const value = legacyStorage.getItem(key);
+        if (value === null || values.has(key)) continue;
+        values.set(key, value);
         if (key.startsWith(mapPrefix)) {
-          const settingKey = key.slice(mapPrefix.length);
-          if (!(settingKey in mapWindow)) migratedMap[settingKey] = value;
-        } else if (!(key in preferences)) {
-          preferences[key] = value;
+          migratedMap[key.slice(mapPrefix.length)] = value;
+        } else {
+          migratedPreferences[key] = value;
         }
       }
-      Object.assign(mapWindow, migratedMap);
+
       const migrateOsmandStyle = typeof osmand['renderingStyle'] !== 'string'
         && typeof mapWindow['osmandStyle'] === 'string';
       if (migrateOsmandStyle) osmand['renderingStyle'] = mapWindow['osmandStyle'];
-      await Promise.all([
-        Object.keys(migratedMap).length
-          ? window.desktop.ProcessManager.setAppSettingsSection('mapWindow', mapWindow) : Promise.resolve(),
-        Object.keys(preferences).length
-          ? window.desktop.ProcessManager.setAppSettingsSection('preferences', preferences) : Promise.resolve(),
-        migrateOsmandStyle
-          ? window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand['renderingStyle'] }) : Promise.resolve()
-      ]);
-      // The native OsmAnd manager is created before renderer-side legacy
-      // preferences are migrated. Apply that one-time migration immediately.
+
+      // Persist any one-time imports before replacing browser storage.
+      if (Object.keys(migratedMap).length) {
+        await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', migratedMap);
+      }
+      if (Object.keys(migratedPreferences).length) {
+        await window.desktop.ProcessManager.setAppSettingsSection('preferences', migratedPreferences);
+      }
       if (migrateOsmandStyle && typeof osmand['renderingStyle'] === 'string') {
+        await window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand['renderingStyle'] });
+        // The native OsmAnd manager is created before renderer-side settings
+        // are loaded. Apply its migrated style immediately.
         await window.desktop.OsmAnd.setRenderingStyle(osmand['renderingStyle']);
       }
-      for (const [key, value] of Object.entries(mapWindow)) {
-        if (value !== null && value !== undefined) localStorage.setItem(mapPrefix + key, String(value));
-      }
-      for (const [key, value] of Object.entries(preferences)) {
-        if (value !== null && value !== undefined) localStorage.setItem(key, String(value));
-      }
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = function(key: string, value: string): void {
-        originalSetItem.call(this, key, value);
-        if (this !== window.localStorage) return;
+
+      const persistValue = (key: string, value: string | null): void => {
         if (key.startsWith(mapPrefix)) {
-          void window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { [key.slice(mapPrefix.length)]: value })
-            .catch(error => console.error('[Settings] Could not save map-window preference:', key, error));
+          void window.desktop.ProcessManager.setAppSettingsSection('mapWindow', {
+            [key.slice(mapPrefix.length)]: value
+          }).catch(error => console.error('[Settings] Could not save map-window preference:', key, error));
         } else {
-          void window.desktop.ProcessManager.setAppSettingsSection('preferences', { [key]: value })
-            .catch(error => console.error('[Settings] Could not save preference:', key, error));
+          void window.desktop.ProcessManager.setAppSettingsSection('preferences', {
+            [key]: value
+          }).catch(error => console.error('[Settings] Could not save preference:', key, error));
         }
       };
+
+      // Keep the existing Storage API for current UI components, but back it
+      // only with memory and the central JSON settings file. The native
+      // Chromium localStorage is cleared and is never used again.
+      const memoryStorage: Storage = {
+        get length(): number { return values.size; },
+        clear(): void {
+          const keys = [...values.keys()];
+          values.clear();
+          for (const key of keys) persistValue(key, null);
+        },
+        getItem(key: string): string | null {
+          return values.get(String(key)) ?? null;
+        },
+        key(index: number): string | null {
+          return [...values.keys()][index] ?? null;
+        },
+        removeItem(key: string): void {
+          const normalizedKey = String(key);
+          values.delete(normalizedKey);
+          persistValue(normalizedKey, null);
+        },
+        setItem(key: string, value: string): void {
+          const normalizedKey = String(key);
+          const normalizedValue = String(value);
+          values.set(normalizedKey, normalizedValue);
+          persistValue(normalizedKey, normalizedValue);
+        }
+      };
+
+      // Remove the old duplicate store after importing its values.
+      legacyStorage.clear();
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        enumerable: true,
+        value: memoryStorage
+      });
+
       console.warn('[Startup] Starting Angular bootstrap');
       return bootstrapApplication(App, appConfig);
     })
