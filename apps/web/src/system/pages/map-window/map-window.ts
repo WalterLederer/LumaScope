@@ -756,6 +756,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
   private mapSourceGeneration = 0;
+  private osmAndStyleChangeGeneration = 0;
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
@@ -1803,12 +1804,16 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeOsmAndStyle = async (fileName: string): Promise<void> => {
     if (!this.osmAndStyles().some(style => style.fileName === fileName) || fileName === this.osmAndStyle()) return;
     if (!this.desktop) return;
+    const changeGeneration = ++this.osmAndStyleChangeGeneration;
     try {
       if (this.mapSource() === 'osmand-atlas') {
         await this.desktop.OsmAndAtlas.setRenderingStyle(fileName);
       } else {
         await this.desktop.OsmAnd.setRenderingStyle(fileName);
       }
+      // Rapid consecutive selections are serialized by the main process.
+      // Only the latest selection may rebuild the map and update the UI.
+      if (changeGeneration !== this.osmAndStyleChangeGeneration) return;
       this.osmAndStyle.set(fileName);
       this.saveSetting('osmandStyle', fileName);
       this.osmAndStyles.update(styles => styles.map(style => ({ ...style, selected: style.fileName === fileName })));
