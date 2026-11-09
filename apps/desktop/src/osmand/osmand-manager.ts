@@ -373,7 +373,7 @@ export class OsmAndManager {
     this.resourcesPath = resolvedPath;
     const { styleDirectory, fileNames } = await this.inspectRenderingStyles(resolvedPath);
     if (!fileNames.includes(this.styleFileName)) this.styleFileName = 'default.render.xml';
-    this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, this.styleFileName);
+    this.stylePath = join(styleDirectory, this.styleFileName);
     await updateAppSettingsSection('osmand', { resourcesPath: resolvedPath });
     this.pendingTiles.clear();
     this.workers = this.createWorkers(this.createEnvironment());
