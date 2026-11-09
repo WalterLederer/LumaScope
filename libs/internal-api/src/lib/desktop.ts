@@ -444,7 +444,7 @@ export interface ImageHistogram {
 
 export const appProtocol = 'atom';
 
-export const appConfigName = 'light-matter.config.json';
+export const appConfigName = 'LumaScope.config.json';
 
 export const appPaths = {
   thumbs: '/thumbs',
