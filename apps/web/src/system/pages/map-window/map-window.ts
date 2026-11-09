@@ -1403,6 +1403,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!(section instanceof HTMLDetailsElement)) return;
     this.markerSectionOpen.set(section.open);
     this.saveSetting('markerSectionOpen', section.open);
+    this.persistLocationUiState({ markerSectionOpen: section.open });
   };
   protected readonly changeDirectoryMarkersEnabled = (enabled: boolean): void => {
     this.directoryMarkersEnabled.set(enabled);
@@ -1635,6 +1636,7 @@ export class MapWindow implements OnInit, OnDestroy {
       status.vectorLayers ?? []
     );
     this.offlineRenderer = renderer;
+    window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
     try {
       await renderer.ready;
     } catch (error) {
