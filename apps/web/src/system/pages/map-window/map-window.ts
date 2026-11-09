@@ -1679,12 +1679,10 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
-    renderer.map.on('movestart', () => {
-      // Pan and zoom both invalidate queued tiles. Let the active native frame
-      // finish, but discard obsolete queued work so the visible viewport is
-      // not held up behind tiles from the previous camera position.
-      void this.desktop?.OsmAndAtlas.cancelRendering().catch(error => console.warn('Could not cancel obsolete OsmAnd Atlas renders:', error));
-    });
+    // Do not cancel the native render queue on camera movement. MapLibre
+    // aborts obsolete protocol requests itself; globally invalidating the
+    // single-worker queue also discarded still-needed visible tiles as
+    // transparent frames, which MapLibre then considered successfully loaded.
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -2211,11 +2209,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
     const next = Math.max(this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 2 : 1, this.validZoom(zoom));
-    if (next !== (this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel())) {
-      if (this.mapSource() === 'osmand-atlas') {
-        void this.desktop?.OsmAndAtlas.cancelRendering().catch(error => console.warn('Could not cancel obsolete OsmAnd Atlas renders:', error));
-      }
-    }
+    // Keep queued Atlas work intact during zoom changes for the same reason
+    // as panning: the worker queue is shared by all visible tile requests.
     this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
