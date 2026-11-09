@@ -50,13 +50,10 @@ window.desktop
         }
       }
 
-      const migrateOsmandStyle = typeof osmand['renderingStyle'] !== 'string'
-        && typeof mapWindow['osmandStyle'] === 'string';
-      if (migrateOsmandStyle) osmand['renderingStyle'] = mapWindow['osmandStyle'];
-      // mapWindow.osmandStyle was a duplicate renderer-local setting. Import
-      // it once if needed, then remove it from the central JSON config.
-      const removeLegacyMapStyle = Object.prototype.hasOwnProperty.call(mapWindow, 'osmandStyle');
-      if (removeLegacyMapStyle) delete mapWindow['osmandStyle'];
+      // OsmAnd has one authoritative settings pair under osmand. Do not
+      // import or read any renderer-local or Atlas-specific legacy values.
+      delete mapWindow['osmandStyle'];
+      delete osmand['atlas'];
 
       // Persist any one-time imports before replacing browser storage.
       if (Object.keys(migratedMap).length) {
@@ -65,15 +62,9 @@ window.desktop
       if (Object.keys(migratedPreferences).length) {
         await window.desktop.ProcessManager.setAppSettingsSection('preferences', migratedPreferences);
       }
-      if (migrateOsmandStyle && typeof osmand['renderingStyle'] === 'string') {
-        await window.desktop.ProcessManager.setAppSettingsSection('osmand', { renderingStyle: osmand['renderingStyle'] });
-        // The native OsmAnd manager is created before renderer-side settings
-        // are loaded. Apply its migrated style immediately.
-        await window.desktop.OsmAnd.setRenderingStyle(osmand['renderingStyle']);
-      }
-      if (removeLegacyMapStyle) {
-        await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { osmandStyle: undefined });
-      }
+      // Remove obsolete duplicate settings without importing their values.
+      await window.desktop.ProcessManager.setAppSettingsSection('osmand', { atlas: undefined });
+      await window.desktop.ProcessManager.setAppSettingsSection('mapWindow', { osmandStyle: undefined });
 
       const persistValue = (key: string, value: string | null): void => {
         if (key.startsWith(mapPrefix)) {
