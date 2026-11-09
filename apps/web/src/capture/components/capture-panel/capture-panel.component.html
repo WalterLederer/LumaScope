@@ -153,7 +153,7 @@
             <span>
               <input
                 type="checkbox"
-                [checked]="includeLightMatterWindows()"
+                [checked]="includeAppWindows()"
                 (change)="setIncludeLightMatterWindows($any($event.target).checked)"
                 [disabled]="capturing() || previewing()"/>
               Include the capture window (keep application windows visible)
