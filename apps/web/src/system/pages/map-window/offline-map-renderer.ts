@@ -15,7 +15,7 @@ let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
-type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled';
+type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
   sourceId?: string;
@@ -139,8 +139,24 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
       // One MapLibre 512px tile represents a 2x2 group of 256px Atlas XYZ tiles.
       // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
-      const tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
-      if (abortController.signal.aborted) throw new Error('OsmAnd Atlas tile request was cancelled.');
+      let tile: Awaited<ReturnType<Desktop['OsmAndAtlas']['renderTile']>>;
+      try {
+        tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (abortController.signal.aborted || /\\b(cancelled|canceled)\\b/i.test(message)) {
+          emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: message });
+          return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
+        }
+        throw error;
+      }
+      if (abortController.signal.aborted) {
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: 'Atlas tile request aborted after rendering.' });
+        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
+      }
+      for (const diagnostic of tile.diagnostics?.geometryMessages ?? []) {
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'diagnostic', error: diagnostic });
+      }
       if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
       // Atlas returns one 512px frame at the same geographic extent as this
       // MapLibre tile, avoiding the previous 2x supersampled framebuffer.
