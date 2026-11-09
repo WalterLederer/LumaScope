@@ -154,7 +154,11 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: 'Atlas tile request aborted after rendering.' });
         return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
       }
+      // Only explicit helper warnings/errors belong in the Error tab.
+      // Geometry traces and ordinary helper lifecycle messages are diagnostics,
+      // not application errors; keep them in the console only.
       for (const diagnostic of tile.diagnostics?.geometryMessages ?? []) {
+        if (!/^(ERROR|WARNING):/i.test(diagnostic.trim())) continue;
         emitOsmAndTileStatus({ ...tileCoordinates, status: 'diagnostic', error: diagnostic });
       }
       if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
