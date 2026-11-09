@@ -154,7 +154,12 @@ class OsmAndAtlasWorker {
     if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
     const generation = this.renderGeneration;
     const result = this.queue.then(() => {
-      if (generation !== this.renderGeneration) throw new Error('OsmAnd Atlas tile request was cancelled.');
+      if (generation !== this.renderGeneration) {
+        // MapLibre routinely aborts obsolete tile requests during camera moves.
+        // Resolve those queued requests with a transparent frame instead of
+        // rejecting the IPC call (Electron logs rejected handlers as errors).
+        return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
+      }
       return this.renderQueued(longitude, latitude, zoom);
     });
     this.queue = result.then(() => undefined, () => undefined);
