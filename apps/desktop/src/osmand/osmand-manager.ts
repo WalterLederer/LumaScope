@@ -234,11 +234,9 @@ export class OsmAndManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
   private resourcesPath = this.readSavedResourcesPath();
-  private styleFileName = process.env.LUMASCOPE_OSMAND_STYLE_PATH
-    ? process.env.LUMASCOPE_OSMAND_STYLE_PATH.split(/[\\/]/).pop() || 'default.render.xml'
-    : this.readSavedStyleFileName();
-  private stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH
-    || (this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '');
+  private styleFileName = this.readSavedStyleFileName();
+  private stylePath = this.resourcesPath
+    ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths = this.getFallbackObfPaths();
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
@@ -391,8 +389,6 @@ export class OsmAndManager {
     if (selectedFileName !== this.styleFileName) {
       this.styleFileName = selectedFileName;
       this.stylePath = join(styleDirectory, selectedFileName);
-      void updateAppSettingsSection('osmand', { renderingStyle: selectedFileName })
-        .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
       this.pendingTiles.clear();
       await this.replaceWorkers();
     }
@@ -422,9 +418,7 @@ export class OsmAndManager {
 
       if (fileName !== this.styleFileName) {
         this.styleFileName = fileName;
-        this.stylePath = process.env.LUMASCOPE_OSMAND_STYLE_PATH || join(styleDirectory, fileName);
-        void updateAppSettingsSection('osmand', { renderingStyle: fileName })
-          .catch(error => console.warn('[OsmAnd] Could not persist rendering style:', error));
+        this.stylePath = join(styleDirectory, fileName);
         await this.replaceWorkers();
         console.info('[OsmAnd] Rendering style applied:', fileName);
       }
