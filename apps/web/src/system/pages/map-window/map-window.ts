@@ -261,28 +261,32 @@ interface MapErrorEntry {
     </select>
   </label>
   </div>
-  <div class="atlas-density-zoom-row">
-    <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
-      <label for="atlas-display-density">Display density factor</label>
-      <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
-        [value]="atlasDisplayDensityFactor()"
-        (input)="previewAtlasDisplayDensity($any($event.target).value)"
-        (change)="changeAtlasDisplayDensity($any($event.target).value)"
-        [disabled]="mapSource() !== 'osmand-atlas'"
-        aria-label="OsmAnd Atlas display density">
-      <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
-      <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
-    </div>
-    <div class="zoom-control">
-      <span class="zoom-label">Zoom</span>
-      <div class="zoom-buttons">
-        <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
-        <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+  <details class="zoom-settings-section">
+    <summary>
+      <span>Zoom</span>
+      <span class="zoom-summary-control">
+        <span class="zoom-buttons">
+          <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+          <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+        </span>
+        <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+        <span class="zoom-value">{{ zoomLevel() }}</span>
+      </span>
+    </summary>
+    <div class="atlas-density-zoom-row">
+      <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
+        <label for="atlas-display-density">Display density factor</label>
+        <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
+          [value]="atlasDisplayDensityFactor()"
+          (input)="previewAtlasDisplayDensity($any($event.target).value)"
+          (change)="changeAtlasDisplayDensity($any($event.target).value)"
+          [disabled]="mapSource() !== 'osmand-atlas'"
+          aria-label="OsmAnd Atlas display density">
+        <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
+        <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
       </div>
-      <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
-      <span class="zoom-value">{{ zoomLevel() }}</span>
     </div>
-  </div>
+  </details>
   <details class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
     <summary>
       <span>Opacity</span>
@@ -632,7 +636,12 @@ interface MapErrorEntry {
     .settings-tab-content>summary{display:none}
     .settings-tab-content.location-tab{width:100%}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
-    .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}.atlas-density-zoom-row>.zoom-control{display:flex;align-items:center;flex:1 1 0;min-width:220px;gap:8px}.atlas-density-zoom-row>.zoom-control input[type="range"]{flex:1;min-width:70px}
+    .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
+    .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}
+    .zoom-settings-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;margin-left:auto}
+    .zoom-summary-control input[type="range"]{flex:1 1 auto;min-width:70px;accent-color:#8ab4f8}
+    .zoom-settings-section[open]>summary{margin-bottom:2px}
     .view-source-controls,.view-style-controls{display:contents}
     .view-primary-controls .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .view-primary-controls .offline-style-control{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
