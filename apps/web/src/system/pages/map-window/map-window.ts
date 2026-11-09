@@ -320,18 +320,21 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
-  <div class="map-cache-actions view-rerender-actions">
-    <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
-    <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-      {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
-    </button>
-  </div>
-  @if (rerenderVisibleTilesBusy()) {
-    <div class="map-cache-progress">
-      <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
-      <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
+  <details class="view-rerender-section">
+    <summary>Rerender</summary>
+    <div class="map-cache-actions view-rerender-actions">
+      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
+      <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+        {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
+      </button>
     </div>
-  }
+    @if (rerenderVisibleTilesBusy()) {
+      <div class="map-cache-progress">
+        <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
+        <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
+      </div>
+    }
+  </details>
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
@@ -557,7 +560,7 @@ interface MapErrorEntry {
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
-    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:auto;min-height:0;max-height:80vh;overflow:auto;resize:none;flex:0 0 auto}
+    .map-settings{position:relative;z-index:2147483000;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:auto;min-height:0;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab.has-errors{color:#ff8a80}
@@ -599,6 +602,11 @@ interface MapErrorEntry {
      .map-cache-progress{display:flex;align-items:center;gap:10px;min-width:0}
      .map-cache-progress progress{flex:1;min-width:120px;height:12px;accent-color:#65a9ff}
      .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums}
+    .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
+    .view-rerender-section>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .view-rerender-section[open]>summary{margin-bottom:2px}
+    .view-rerender-section .map-cache-actions{min-width:0}
+    .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
@@ -614,10 +622,10 @@ interface MapErrorEntry {
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{margin-bottom:2px}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
-    .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2100}
+    .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2147483002}
     .map-source-picker-label{font-weight:600}
     .map-source-picker-trigger{min-width:220px;text-align:left}
-    .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483001}
+    .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483003}
     .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
     .map-source-picker-table th,.map-source-picker-table td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--color-content-default-low,#454545)}
     .map-source-picker-table th{font-weight:700;color:var(--color-content-default-medium,#aaa)}
@@ -918,6 +926,20 @@ export class MapWindow implements OnInit, OnDestroy {
   onDocumentClick(event: MouseEvent): void {
     const target = event.target;
     if (target instanceof Element && target.closest('.color-picker')) return;
+    if (target instanceof Element && target.closest('.map-source-picker')) return;
+    this.colorMenuOpen.set(false);
+    this.markerColorMenuOpen.set(false);
+    this.currentMarkerColorMenuOpen.set(false);
+    this.mapSourceMenuOpen.set(false);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Escape') return;
+    if (this.mapSourceMenuOpen()) {
+      event.preventDefault();
+      this.mapSourceMenuOpen.set(false);
+    }
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
