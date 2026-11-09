@@ -153,6 +153,7 @@ interface MapErrorEntry {
           </div>
 
 </div>
+@if (activeSettingsTab() === 'marker') {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
             
@@ -201,6 +202,8 @@ interface MapErrorEntry {
           </div>
 
 </div>
+}
+@if (activeSettingsTab() === 'view') {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
   <div class="view-primary-controls">
@@ -352,6 +355,7 @@ interface MapErrorEntry {
   </details>
 </div>
 </div>
+}
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="mbtiles-selection offline-map-toolbar">
                 <label class="offline-map-preset-control">OBF preset:
