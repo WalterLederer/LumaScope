@@ -786,12 +786,12 @@ interface MapErrorEntry {
     .marker-settings summary{display:flex;flex-direction:column;align-items:flex-start;gap:2px;cursor:pointer;font-weight:700;font-size:13px;line-height:1.4;white-space:normal;text-align:left}
     .location-settings>summary,.map-source-settings>summary,.opacity-settings>summary,.gpx-settings>summary{font-size:13px;font-weight:700;line-height:1.4}
     .marker-settings summary .marker-description{display:block;margin:0;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400;text-align:left}
-    .marker-settings-content{display:flex;flex:1 1 100%;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0;text-align:left}
+    .marker-settings-content{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0;text-align:left}
     .marker-setting-row{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-width:0;text-align:left}
     .marker-appearance-settings{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .marker-progress-row,.marker-statistics,.marker-status{align-self:flex-start;text-align:left}
     .marker-progress-text,.marker-statistics,.marker-status{color:var(--color-content-default-medium,#aaa);font-size:12px;font-variant-numeric:tabular-nums}
-    .marker-progress-row{display:flex;flex:1 1 100%;align-items:center;gap:10px;min-width:0}
+    .marker-progress-row{display:flex;flex:0 0 auto;align-items:center;gap:10px;width:100%;min-width:0}
     .marker-progress{flex:1 1 auto;width:auto;height:6px;accent-color:#8ab4f8}.marker-statistics{display:flex;flex-wrap:wrap;gap:14px}
     .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);border-bottom:0;padding:7px 0 0;gap:8px}
@@ -801,7 +801,7 @@ interface MapErrorEntry {
     .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
-    .map-content{position:relative;z-index:0;isolation:isolate;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
+    .map-content{position:relative;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
     .offline-map-list-view{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;background:var(--color-surface-default-low,#202124)}
     .offline-map-list-view .mbtiles-map-list{flex:1 1 auto;max-height:none;overflow:auto}
     .map{position:relative;z-index:0;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent;transition:opacity .12s ease}
