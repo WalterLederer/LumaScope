@@ -1422,20 +1422,29 @@ export class OfflineMapRenderer {
     }
   }
 
+  private readonly basemapOpacityDefaults = new Map<string, unknown>();
+
   setBasemapOpacity(opacity: number): void {
-    const layers = [
-      ['background', 'background-opacity'], ['land', 'fill-opacity'], ['ocean', 'fill-opacity'],
-      ['water-polygons', 'fill-opacity'], ['water-lines', 'line-opacity'], ['boundaries', 'line-opacity'],
-      ['dam-polygons', 'fill-opacity'], ['pier-polygons', 'fill-opacity'], ['sites', 'fill-opacity'], ['street-polygons', 'fill-opacity'],
-      ['street-casing', 'line-opacity'], ['streets', 'line-opacity'], ['bridges', 'line-opacity'], ['ferries', 'line-opacity'], ['aerialways', 'line-opacity'],
-      ['dam-lines', 'line-opacity'], ['pier-lines', 'line-opacity'], ['public-transport', 'circle-opacity'],
-      ['buildings', 'fill-opacity'], ['pois', 'circle-opacity'], ['osmand-raster', 'raster-opacity'],
-      ['omt-landcover', 'fill-opacity'], ['omt-landuse', 'fill-opacity'], ['omt-water', 'fill-opacity'],
-      ['omt-waterway', 'line-opacity'], ['omt-boundary', 'line-opacity'],
-      ['omt-transportation-casing', 'line-opacity'], ['omt-transportation', 'line-opacity'],
-      ['omt-building', 'fill-opacity'], ['omt-poi', 'circle-opacity']
-    ] as const;
-    for (const [id, property] of layers) if (this.map.getLayer(id)) this.map.setPaintProperty(id, property, opacity);
+    const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
+    // Apply opacity to every paint opacity property belonging to the map
+    // source, rather than maintaining a brittle list of style-specific layer
+    // IDs. This covers both OsmAnd raster layers (including Atlas), every
+    // MBTiles style layer, and outline/stroke opacity that otherwise leaves
+    // white rings visible after the map itself has been hidden.
+    for (const layer of this.map.getStyle().layers) {
+      if (!('source' in layer) || layer.source === 'photo-markers' || layer.source === 'gpx-track') continue;
+      const paint = 'paint' in layer && layer.paint ? layer.paint as Record<string, unknown> : {};
+      for (const property of Object.keys(paint).filter(key => key.endsWith('-opacity'))) {
+        const key = layer.id + ':' + property;
+        if (!this.basemapOpacityDefaults.has(key)) {
+          this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, property));
+        }
+        const original = this.basemapOpacityDefaults.get(key);
+        // Keep the exact style-defined opacity when enabled; setting the
+        // multiplier to zero hides strokes and fills together.
+        this.map.setPaintProperty(layer.id, property, value === 0 ? 0 : original as never);
+      }
+    }
   }
 
   setPhotoClusterStyle(color: string, visible: boolean, shape: 'double-circle' | 'hexagon' | 'circle' | 'square' = this.photoClusterShape): void {
