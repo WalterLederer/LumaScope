@@ -30,6 +30,7 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})));
+ @IpcHandler({name:'OfflineMap.checkForUpdates'})
  readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
   const sources=[
    {name:'Geofabrik',url:'https://download.geofabrik.de/europe/austria.html'},
