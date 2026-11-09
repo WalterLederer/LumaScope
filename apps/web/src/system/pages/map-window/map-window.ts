@@ -284,7 +284,31 @@ interface MapErrorEntry {
     </div>
   </div>
   <details class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
-    <summary>Opacity</summary>
+    <summary>
+      <span>Opacity</span>
+      <span class="opacity-summary-controls">
+        <span class="range-setting">
+          <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
+          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+          <span class="range-value">{{ mapOpacity() }}%</span>
+        </span>
+        <span class="range-setting">
+          <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
+          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+          <span class="range-value">{{ gpxOpacity() }}%</span>
+        </span>
+        <span class="range-setting">
+          <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
+          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+          <span class="range-value">{{ markerOpacity() }}%</span>
+        </span>
+        <span class="range-setting">
+          <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
+          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+          <span class="range-value">{{ locationOpacity() }}%</span>
+        </span>
+      </span>
+    </summary>
     <div class="opacity-content">
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
@@ -297,26 +321,6 @@ interface MapErrorEntry {
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
         <span class="range-value">{{ labelOpacity() }}%</span>
-      </div>
-      <div class="range-setting">
-        <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
-        <span class="range-value">{{ mapOpacity() }}%</span>
-      </div>
-      <div class="range-setting">
-        <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-        <span class="range-value">{{ gpxOpacity() }}%</span>
-      </div>
-      <div class="range-setting">
-        <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
-        <span class="range-value">{{ markerOpacity() }}%</span>
-      </div>
-      <div class="range-setting">
-        <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
-        <span class="range-value">{{ locationOpacity() }}%</span>
       </div>
     </div>
   </details>
@@ -729,8 +733,14 @@ interface MapErrorEntry {
     .mbtiles-inuse-symbol.in-use{color:#39b86a}
     .view-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
-    .opacity-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .opacity-settings>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
+    .opacity-summary-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:1 1 auto;min-width:0}
+    .opacity-summary-controls>.range-setting{display:flex;align-items:center;gap:3px;flex:0 1 190px;min-width:135px;max-width:210px;box-sizing:border-box}
+    .opacity-summary-controls .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
+    .opacity-summary-controls .visibility-toggle input{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
+    .opacity-summary-controls>.range-setting>input.opacity-slider[type="range"]{flex:1 1 auto;width:auto;max-width:none;min-width:30px}
+    .opacity-summary-controls .range-value{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
     .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));width:100%;gap:3px 4px}
     .opacity-content .range-setting{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;box-sizing:border-box}
     .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
