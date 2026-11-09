@@ -456,7 +456,7 @@ interface MapErrorEntry {
 </div>
 </section>
       }
-      @if (mapDisplayNotice()) {
+      @if (mapDisplayNotice() && activeSettingsTab() !== 'offlineMaps') {
         <div class="map-display-notice" role="alert">
           <strong>Map cannot be displayed</strong>
           <span>{{ mapDisplayNotice() }}</span>
@@ -467,37 +467,36 @@ interface MapErrorEntry {
         @if (activeSettingsTab() === 'offlineMaps') {
           <div class="offline-map-list-view">
             <div class="mbtiles-map-list">
-            @if (offlineMaps().length > 0) {
-            <table class="mbtiles-map-table">
-            <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
-            <tbody>
-            @for (map of filteredOfflineMaps(); track map.id) {
-            <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
-            <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
-            <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-            <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
-            <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
-            <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
-            <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-            <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
-            <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-            <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
-            </tr>
-            }
-            </tbody>
-            </table>
-            } @else { <span class="offline-map-status">No offline maps loaded.</span> }
-            @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
+              @if (offlineMaps().length > 0) {
+                <table class="mbtiles-map-table">
+                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                  <tbody>
+                    @for (map of filteredOfflineMaps(); track map.id) {
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
+                        <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else { <span class="offline-map-status">No offline maps loaded.</span> }
+              @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
             </div>
           </div>
-        } @else {
-          <div #map class="map" [class.map-hidden]="!coordinatesAvailable()" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-          @if (!coordinatesAvailable()) {
-            <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
-          }
-          @if (renderInitStatus()) {
-            <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
-          }
+        }
+        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || activeSettingsTab() === 'offlineMaps'" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+        @if (!coordinatesAvailable() && activeSettingsTab() !== 'offlineMaps') {
+          <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
+        }
+        @if (renderInitStatus() && activeSettingsTab() !== 'offlineMaps') {
+          <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
       </div>
       @if (overlayMode) {
@@ -1625,6 +1624,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
     this.renderInitStatus.set('Render init …');
     if (!this.desktop) {
+      this.renderInitStatus.set('');
       this.recordMapError('OsmAnd', 'Desktop API is not connected.');
       return;
     }
@@ -1634,6 +1634,7 @@ export class MapWindow implements OnInit, OnDestroy {
       runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
+        this.renderInitStatus.set('');
         this.recordMapError('OsmAnd runtime', error instanceof Error ? error.message : String(error));
       }
       return;
@@ -1647,6 +1648,7 @@ export class MapWindow implements OnInit, OnDestroy {
       !runtime.styleAvailable ? 'rendering style: ' + runtime.stylePath : ''
     ].filter(Boolean);
     if (missing.length) {
+      this.renderInitStatus.set('');
       this.recordMapError('OsmAnd runtime', 'Not ready. Missing ' + missing.join('; ') + '.');
       return;
     }
@@ -1658,6 +1660,7 @@ export class MapWindow implements OnInit, OnDestroy {
       Math.max(2, this.validZoom(this.zoomLevel())),
       message => {
         if (generation !== this.mapSourceGeneration) return;
+        this.renderInitStatus.set('');
         this.recordMapError('OsmAnd rendering', message);
         console.error('[OsmAnd] Tile rendering error:', message);
       },
@@ -1670,6 +1673,7 @@ export class MapWindow implements OnInit, OnDestroy {
       renderer.remove();
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       if (generation === this.mapSourceGeneration) {
+        this.renderInitStatus.set('');
         const message = error instanceof Error ? error.message : String(error);
         this.recordMapError('OsmAnd initialization', message);
         console.error('[OsmAnd] Initialization failed:', error);
@@ -1759,6 +1763,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
     const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
     const previousSource = this.mapSource();
+    this.renderInitStatus.set('');
     if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
       void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
     }
