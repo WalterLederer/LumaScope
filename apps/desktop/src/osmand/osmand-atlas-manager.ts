@@ -474,7 +474,6 @@ export class OsmAndAtlasManager {
       && !name.endsWith('.addon.render.xml')
       && name !== 'standalone-template.render.xml'
       && name !== 'template.addon.render.xml'
-      && !/lumascope.*(?:inheritance|test)|(?:inheritance|test).*lumascope/i.test(name)
     );
     if (!fileNames.includes('default.render.xml')) {
       const found = discoveredFiles.length
