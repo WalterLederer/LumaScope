@@ -174,6 +174,13 @@ class OsmAndAtlasWorker {
     await this.shutdown();
   }
 
+  async stop(): Promise<void> {
+    // A source switch may stop the native process, but must not kill a frame
+    // that is still being read by an active IPC request.
+    await this.queue;
+    await this.shutdown();
+  }
+
   async cancelPending(): Promise<void> {
     // Invalidate requests that are still queued, but let the active frame finish.
     // Killing the helper here caused SIGTERM errors on ordinary zoom changes and
@@ -756,10 +763,9 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
   readonly shutdown = async (): Promise<void> => {
-    // Stop the running helper processes but keep the worker objects reusable.
-    // Switching away from Atlas and back must not leave the manager with an
-    // empty worker pool; ensureStarted() will lazily restart each helper.
-    await Promise.all(this.workers.map(worker => worker.shutdown()));
+    // Stop helper processes only after active/queued frames have completed.
+    // Worker objects remain reusable; ensureStarted() lazily restarts them.
+    await Promise.all(this.workers.map(worker => worker.stop()));
   };
 
   private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
