@@ -31,11 +31,19 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     // cannot overwrite each other's settings with stale snapshots.
     const settings = readAppSettings();
     const previous = settings[section];
-    settings[section] = {
+    const merged = {
       ...(previous && typeof previous === 'object' && !Array.isArray(previous)
         ? previous as Record<string, unknown> : {}),
       ...values
     };
+    // The unified offlineMaps.filePaths object replaces the former split
+    // path lists and enabledByPath dictionary; do not leave stale keys behind.
+    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) {
+      delete merged.obfPaths;
+      delete merged.enabledByPath;
+      delete merged.filePath;
+    }
+    settings[section] = merged;
     await writeJsonAtomically(settingsPath(), settings);
   });
   writeQueue = operation.catch(() => undefined);
