@@ -1767,6 +1767,7 @@ export class MapWindow implements OnInit, OnDestroy {
       'lumascope', '', 2, 22, undefined, 'shortbread', [], createOsmAndAtlasMapStyle()
     );
     this.offlineRenderer = renderer;
+    window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
     try {
       await renderer.ready;
     } catch (error) {
@@ -1877,6 +1878,7 @@ export class MapWindow implements OnInit, OnDestroy {
       'lumascope', '', 2, 19, undefined, 'shortbread', [], createOsmAndMapStyle()
     );
     this.offlineRenderer = renderer;
+    window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
     try {
       await renderer.ready;
     } catch (error) {
