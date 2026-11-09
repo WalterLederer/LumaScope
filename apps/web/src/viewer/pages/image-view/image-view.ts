@@ -233,7 +233,7 @@ export class ImageView {
 
   private readonly readStoredBoolean = (key: string, fallback: boolean): boolean => {
     try {
-      const value = this.document.defaultView?.localStorage.getItem(`light-matter.${key}`);
+      const value = this.document.defaultView?.localStorage.getItem(`${key}`);
       return value === null || value === undefined ? fallback : value === 'true';
     } catch {
       return fallback;
@@ -242,7 +242,7 @@ export class ImageView {
 
   private readonly storeBoolean = (key: string, value: boolean): void => {
     try {
-      this.document.defaultView?.localStorage.setItem(`light-matter.${key}`, String(value));
+      this.document.defaultView?.localStorage.setItem(`${key}`, String(value));
     } catch {
       // Preferences remain usable for the current session if storage is unavailable.
     }
@@ -286,7 +286,7 @@ export class ImageView {
   };
 
   private readDebugImageSwitching(): boolean {
-    try { return this.document.defaultView?.localStorage.getItem('light-matter.debugImageSwitching') === 'true'; }
+    try { return this.document.defaultView?.localStorage.getItem('debugImageSwitching') === 'true'; }
     catch { return false; }
   }
 
@@ -349,7 +349,7 @@ export class ImageView {
 
   private readonly readStoredLoupeShape = (): 'circular' | 'rectangular' | 'ruler' | 'vertical-ruler' => {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.loupeShape');
+      const stored = this.document.defaultView?.localStorage.getItem('loupeShape');
       // Removed legacy small-circle and double-circle modes; normalize saved settings.
       if (stored === 'circular' || stored === 'rectangular' || stored === 'ruler' || stored === 'vertical-ruler') return stored;
       return this.readStoredBoolean('loupeCircular', false) ? 'circular' : 'rectangular';
@@ -522,12 +522,12 @@ export class ImageView {
   protected readonly whitePoint = signal(1);
   protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
   private readControlsSidebarVisible(): boolean {
-    try { return this.document.defaultView?.localStorage.getItem('light-matter.imageSidebarVisible') !== 'false'; }
+    try { return this.document.defaultView?.localStorage.getItem('imageSidebarVisible') !== 'false'; }
     catch { return true; }
   }
   private readonly readStoredSidebarWidth = (): number => {
     try {
-      const stored = Number(this.document.defaultView?.localStorage.getItem('light-matter.imageSidebarWidth'));
+      const stored = Number(this.document.defaultView?.localStorage.getItem('imageSidebarWidth'));
       return Number.isFinite(stored) && stored >= 280 ? Math.min(900, stored) : 340;
     } catch {
       return 340;
@@ -550,7 +550,7 @@ export class ImageView {
       view.removeEventListener('pointermove', onMove);
       view.removeEventListener('pointerup', onUp);
       view.removeEventListener('pointercancel', onUp);
-      try { view.localStorage.setItem('light-matter.imageSidebarWidth', String(Math.round(this.sidebarWidth()))); } catch { /* Keep the current width for this session. */ }
+      try { view.localStorage.setItem('imageSidebarWidth', String(Math.round(this.sidebarWidth()))); } catch { /* Keep the current width for this session. */ }
       this.sidebarResizeCleanup = null;
     };
     view.addEventListener('pointermove', onMove);
@@ -560,7 +560,7 @@ export class ImageView {
   };
   protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"cache","label":"Cache"},{"id":"view","label":"View"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"histogram","label":"Histogram"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"}];
   private readActiveImageSidebarTab(): string {
-    try { const saved = this.document.defaultView?.localStorage.getItem('light-matter.activeImageSidebarTab'); return this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
+    try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
     catch { return 'general'; }
   }
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
@@ -693,7 +693,7 @@ export class ImageView {
       this.exifState.set(this.imageTags() ?? false);
     }
     if (tab === 'histogram' && !this.histogramVisible()) this.toggleHistogram();
-    try { this.document.defaultView?.localStorage.setItem('light-matter.activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
+    try { this.document.defaultView?.localStorage.setItem('activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
   };
 
   protected readonly sidebarSections = signal<Record<string, boolean>>({ zoom: true, brightness: true, basic: true, rgb: true, rgbLevels: false, inverse: false, loupe: true, loupeRenderer: false, highlight: true, toneCurve: false, mode: true, histogram: false, info: true, database: false, general: true, actions: false, copy: false });
@@ -747,9 +747,9 @@ export class ImageView {
   protected readonly toggleControlsSidebar = (): void => {
     const next = !this.controlsSidebarVisible();
     this.controlsSidebarVisible.set(next);
-    try { this.document.defaultView?.localStorage.setItem('light-matter.imageSidebarVisible', String(next)); } catch { /* Keep session state. */ }
+    try { this.document.defaultView?.localStorage.setItem('imageSidebarVisible', String(next)); } catch { /* Keep session state. */ }
   };
-  protected readonly setDebugImageSwitching = (enabled: boolean): void => { try { this.document.defaultView?.localStorage.setItem('light-matter.debugImageSwitching', String(enabled)); } catch { /* storage may be unavailable */ } this.debugImageSwitching.set(enabled); };
+  protected readonly setDebugImageSwitching = (enabled: boolean): void => { try { this.document.defaultView?.localStorage.setItem('debugImageSwitching', String(enabled)); } catch { /* storage may be unavailable */ } this.debugImageSwitching.set(enabled); };
   protected readonly hdrImageAdjustmentActive = computed(() =>
     this.mainImageBrightness() !== 1 || this.imageContrast() !== 1 || this.imageGamma() !== 1 ||
     this.redChannelLevel() !== 1 || this.greenChannelLevel() !== 1 || this.blueChannelLevel() !== 1 ||
@@ -966,7 +966,7 @@ export class ImageView {
 
   private readStoredGpxTrackOpacity(): number {
     try {
-      const storedValue = this.document.defaultView?.localStorage.getItem('light-matter.gpxTrackOpacity');
+      const storedValue = this.document.defaultView?.localStorage.getItem('gpxTrackOpacity');
       if (storedValue === null || storedValue === undefined) return 100;
       const stored = Number(storedValue);
       return Number.isFinite(stored) && stored >= 0 && stored <= 100 ? stored : 100;
@@ -980,7 +980,7 @@ export class ImageView {
     if (!Number.isFinite(opacity)) return;
     this.gpxTrackOpacity.set(opacity);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.gpxTrackOpacity', String(opacity));
+      this.document.defaultView?.localStorage.setItem('gpxTrackOpacity', String(opacity));
     } catch {
       // The selected GPX track opacity remains active for this session.
     }
@@ -989,7 +989,7 @@ export class ImageView {
 
   private readStoredLocationMapOpacity(): number {
     try {
-      const storedValue = this.document.defaultView?.localStorage.getItem('light-matter.locationMapOpacity');
+      const storedValue = this.document.defaultView?.localStorage.getItem('locationMapOpacity');
       if (storedValue === null || storedValue === undefined) return 100;
       const stored = Number(storedValue);
       return Number.isFinite(stored) && stored >= 0 && stored <= 100 ? stored : 100;
@@ -1003,7 +1003,7 @@ export class ImageView {
     if (!Number.isFinite(opacity)) return;
     this.locationMapOpacity.set(opacity);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.locationMapOpacity', String(opacity));
+      this.document.defaultView?.localStorage.setItem('locationMapOpacity', String(opacity));
     } catch {
       // The selected map opacity remains active for this session.
     }
@@ -1012,7 +1012,7 @@ export class ImageView {
 
   private readStoredLocationMapColor(): typeof this.locationMapColors[number] {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.locationMapColor');
+      const stored = this.document.defaultView?.localStorage.getItem('locationMapColor');
       if (this.locationMapColors.includes(stored as typeof this.locationMapColors[number])) return stored as typeof this.locationMapColors[number];
     } catch {
       // Use original tile colors when browser storage is unavailable.
@@ -1024,7 +1024,7 @@ export class ImageView {
     if (!this.locationMapColors.includes(color as typeof this.locationMapColors[number])) return;
     this.locationMapColor.set(color as typeof this.locationMapColors[number]);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.locationMapColor', color);
+      this.document.defaultView?.localStorage.setItem('locationMapColor', color);
     } catch {
       // The selected color preset remains active for the current session.
     }
@@ -1052,7 +1052,7 @@ export class ImageView {
   private readonly gpxTrackRestore = this.restoreStoredGpxTrack();
   private readonly readStoredLocationMapZoom = (): number => {
     try {
-      const stored = Number(this.document.defaultView?.localStorage.getItem('light-matter.locationMapZoom'));
+      const stored = Number(this.document.defaultView?.localStorage.getItem('locationMapZoom'));
       return Number.isFinite(stored) && stored >= 1 && stored <= 20 ? stored : 13;
     } catch {
       return 13;
@@ -1066,7 +1066,7 @@ export class ImageView {
     this.locationMapZoom = Math.max(1, Math.min(20, zoom));
     this.locationMapZoomLevel.set(this.locationMapZoom);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.locationMapZoom', String(this.locationMapZoom));
+      this.document.defaultView?.localStorage.setItem('locationMapZoom', String(this.locationMapZoom));
     } catch {
       // The current map zoom remains active for this session.
     }
@@ -1096,8 +1096,8 @@ export class ImageView {
         const path = this.desktop?.getPathForFile(file);
         if (path) {
           try {
-            this.document.defaultView?.localStorage.setItem('light-matter.gpxTrackPath', path);
-            this.document.defaultView?.localStorage.setItem('light-matter.gpxTrackFileName', file.name);
+            this.document.defaultView?.localStorage.setItem('gpxTrackPath', path);
+            this.document.defaultView?.localStorage.setItem('gpxTrackFileName', file.name);
           } catch {
             // The imported track remains available for the current session.
           }
@@ -1113,8 +1113,8 @@ export class ImageView {
     let path: string | null = null;
     let fileName: string | null = null;
     try {
-      path = this.document.defaultView?.localStorage.getItem('light-matter.gpxTrackPath') ?? null;
-      fileName = this.document.defaultView?.localStorage.getItem('light-matter.gpxTrackFileName') ?? null;
+      path = this.document.defaultView?.localStorage.getItem('gpxTrackPath') ?? null;
+      fileName = this.document.defaultView?.localStorage.getItem('gpxTrackFileName') ?? null;
     } catch {
       return;
     }
@@ -1135,8 +1135,8 @@ export class ImageView {
 
   private clearStoredGpxTrack(): void {
     try {
-      this.document.defaultView?.localStorage.removeItem('light-matter.gpxTrackPath');
-      this.document.defaultView?.localStorage.removeItem('light-matter.gpxTrackFileName');
+      this.document.defaultView?.localStorage.removeItem('gpxTrackPath');
+      this.document.defaultView?.localStorage.removeItem('gpxTrackFileName');
     } catch {
       // A missing stored GPX path is ignored when browser storage is unavailable.
     }
@@ -1192,7 +1192,7 @@ export class ImageView {
 
   private readStoredGpxTrackColor(): string {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.gpxTrackColor');
+      const stored = this.document.defaultView?.localStorage.getItem('gpxTrackColor');
       if (this.gpxTrackColors.some(color => color.value === stored)) return stored as string;
     } catch {
       // Use the default GPX track color when browser storage is unavailable.
@@ -1208,7 +1208,7 @@ export class ImageView {
     if (!this.gpxTrackColors.some(option => option.value === selection)) return;
     this.gpxTrackColor.set(selection);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.gpxTrackColor', selection);
+      this.document.defaultView?.localStorage.setItem('gpxTrackColor', selection);
     } catch {
       // The selected GPX track color remains active for the current session.
     }
@@ -1218,7 +1218,7 @@ export class ImageView {
   protected readonly setGpxTrackVisible = (visible: boolean): void => {
     this.gpxTrackVisible.set(visible);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.gpxTrackVisible', String(visible));
+      this.document.defaultView?.localStorage.setItem('gpxTrackVisible', String(visible));
     } catch {
       // The selected overlay state remains active for the current session.
     }
@@ -1328,7 +1328,7 @@ export class ImageView {
 
   private readStoredLocationMapStyle(): 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian' {
     try {
-      const stored = this.document.defaultView?.localStorage.getItem('light-matter.locationMapStyle');
+      const stored = this.document.defaultView?.localStorage.getItem('locationMapStyle');
       if (stored === 'standard' || stored === 'satellite' || stored === 'cycling' || stored === 'topographic' || stored === 'humanitarian') return stored;
     } catch {
       // Use the standard map when browser storage is unavailable.
@@ -1340,7 +1340,7 @@ export class ImageView {
     if (style !== 'standard' && style !== 'satellite' && style !== 'cycling' && style !== 'topographic' && style !== 'humanitarian') return;
     this.locationMapStyle.set(style);
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.locationMapStyle', style);
+      this.document.defaultView?.localStorage.setItem('locationMapStyle', style);
     } catch {
       // The selected style remains active for the current session.
     }
@@ -1634,7 +1634,7 @@ export class ImageView {
 
   private readonly readStoredLoupeZoom = (): number => {
     try {
-      const stored = Number(this.document.defaultView?.localStorage.getItem('light-matter.loupeZoom'));
+      const stored = Number(this.document.defaultView?.localStorage.getItem('loupeZoom'));
       return Number.isFinite(stored) && stored >= 0.1 && stored <= 64 ? stored : 16;
     } catch {
       return 16;
@@ -1896,7 +1896,7 @@ export class ImageView {
       .subscribe(value => {
         this.loupePixelSize.set(value);
         try {
-          this.document.defaultView?.localStorage.setItem('light-matter.loupeZoom', String(value));
+          this.document.defaultView?.localStorage.setItem('loupeZoom', String(value));
         } catch {
           // The zoom remains usable for the current session if storage is unavailable.
         }
@@ -2302,7 +2302,7 @@ export class ImageView {
   protected readonly toggleSidebarVisibility = (): void => {
     const visible = !this.controlsSidebarVisible();
     this.controlsSidebarVisible.set(visible);
-    try { this.document.defaultView?.localStorage.setItem('light-matter.imageSidebarVisible', String(visible)); } catch { /* Keep the current session state. */ }
+    try { this.document.defaultView?.localStorage.setItem('imageSidebarVisible', String(visible)); } catch { /* Keep the current session state. */ }
   };
 
   protected readonly changeImagePosition = (value: number): void => {
@@ -2400,7 +2400,7 @@ export class ImageView {
 
   private readonly storeLoupeShape = (value: 'circular' | 'rectangular' | 'ruler' | 'vertical-ruler') => {
     try {
-      this.document.defaultView?.localStorage.setItem('light-matter.loupeShape', value);
+      this.document.defaultView?.localStorage.setItem('loupeShape', value);
       this.storeBoolean('loupeCircular', value === 'circular');
     } catch {
       // The shape remains usable for the current session if storage is unavailable.
