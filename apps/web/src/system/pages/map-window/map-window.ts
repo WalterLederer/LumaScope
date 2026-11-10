@@ -3205,8 +3205,8 @@ ${points}
     }
     const parts = [
       'GPS ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6),
-      nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Höhe ' + nearest.elevation.toFixed(1) + ' m' : 'Höhe –',
-      nearest?.timestamp ? 'GPX ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX-Zeit –'
+      nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
+      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX time –'
     ];
     this.gpxHoverInfo.set(parts.join(' · '));
   }
