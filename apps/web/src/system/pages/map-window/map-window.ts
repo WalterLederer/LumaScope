@@ -3109,7 +3109,7 @@ ${points}
           for (const arrow of this.gpxDirectionArrows(segment)) {
             const icon = this.leaflet.divIcon({
               className: 'gpx-direction-arrow-icon',
-              html: '<span class="gpx-direction-arrow" style="color:' + (track.color || this.gpxColor()) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">➤</span>',
+              html: '<span class="gpx-direction-arrow" style="color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">➤</span>',
               iconSize: [16, 16], iconAnchor: [8, 8]
             });
             this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
