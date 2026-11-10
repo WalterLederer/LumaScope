@@ -2081,6 +2081,18 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
+    // Atlas tiles are rendered asynchronously through the native tile protocol.
+    // Reapply the persisted opacity values once the first complete viewport is
+    // idle as well as immediately after track restoration below. This avoids
+    // the startup-only case where the controls hold the saved values but the
+    // first fully rendered Atlas viewport still uses the style defaults.
+    renderer.map.once('idle', () => {
+      if (generation !== this.mapSourceGeneration
+        || this.mapSource() !== 'osmand-atlas'
+        || this.offlineRenderer !== renderer) return;
+      this.applyOpacitySettings();
+    });
+
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
     renderer.setCurrentLocation(
