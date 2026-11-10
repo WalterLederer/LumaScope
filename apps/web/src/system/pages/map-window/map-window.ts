@@ -711,12 +711,12 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
                 <table class="mbtiles-map-table hillshade-map-table">
-                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>File name</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade file</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
                   <tbody>
                     @for (database of hillshadeDatabases(); track database.id) {
                       <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td class="hillshade-file-name" [title]="database.path">{{ hillshadeDatabaseFileName(database.path) }}</td>
+                        <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
                         <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
                         <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                         <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
