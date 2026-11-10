@@ -400,7 +400,6 @@ interface MapErrorEntry {
         }
       </div>
       <div class="render-tile-statistics-box">
-      <div class="render-tile-statistics-title">Render Counter</div>
       <table class="render-tile-statistics" aria-live="polite">
         <colgroup>
           <col class="render-stat-label-column">
@@ -409,7 +408,7 @@ interface MapErrorEntry {
         </colgroup>
         <thead>
           <tr>
-            <th></th>
+            <th scope="col" class="render-counter-heading">Render Counter</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
