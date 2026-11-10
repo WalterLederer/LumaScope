@@ -47,7 +47,8 @@ const api: Desktop = {
   },
 
   Dialogs: {
-    openFolder: (initialPath?: string) => ipcRenderer.invoke('Dialogs.openFolder', initialPath)
+    openFolder: (initialPath?: string) => ipcRenderer.invoke('Dialogs.openFolder', initialPath),
+    saveFile: (defaultPath?: string) => ipcRenderer.invoke('Dialogs.saveFile', defaultPath)
   },
 
   Exif: {
