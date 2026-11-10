@@ -1040,21 +1040,25 @@ export class OfflineMapRenderer {
       paint: { 'circle-radius': 6, 'circle-color': '#2688e8', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2, 'circle-opacity': 1 }
     });
     this.map.addSource('gpx-track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-    this.map.addLayer({
-      id: 'gpx-track-line', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'solid'],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92 }
-    });
-    this.map.addLayer({
-      id: 'gpx-track-line-dashed', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'dashed'],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92, 'line-dasharray': [3, 2] }
-    });
-    this.map.addLayer({
-      id: 'gpx-track-line-dotted', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'dotted'],
-      layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92, 'line-dasharray': [1, 2] }
-    });
+    const gpxLineStyles: Array<{ id: string; style: string; dash?: number[] }> = [
+      { id: 'gpx-track-line', style: 'solid' },
+      { id: 'gpx-track-line-dashed', style: 'dashed', dash: [3, 2] },
+      { id: 'gpx-track-line-dotted', style: 'dotted', dash: [1, 2] },
+      { id: 'gpx-track-line-long-dashed', style: 'long-dashed', dash: [6, 2] },
+      { id: 'gpx-track-line-short-dashed', style: 'short-dashed', dash: [2, 2] },
+      { id: 'gpx-track-line-dash-dot', style: 'dash-dot', dash: [4, 2, 1, 2] },
+      { id: 'gpx-track-line-dash-dot-dot', style: 'dash-dot-dot', dash: [4, 2, 1, 2, 1, 2] }
+    ];
+    for (const line of gpxLineStyles) {
+      this.map.addLayer({
+        id: line.id, type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['get', 'color'], 'line-width': ['get', 'width'], 'line-opacity': 0.92,
+          ...(line.dash ? { 'line-dasharray': line.dash } : {})
+        }
+      });
+    }
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
       this.refreshClusterLabels();
@@ -1750,7 +1754,7 @@ export class OfflineMapRenderer {
     }
   }
 
-  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' }>, opacity: number): void {
+  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -1758,10 +1762,10 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.filter(segment => segment.length >= 2).map(segment => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { color: track.color, lineStyle: track.lineStyle }
+        properties: { color: track.color, lineStyle: track.lineStyle, width: track.lineWidth }
       })))
     });
-    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted']) {
+    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
   }
