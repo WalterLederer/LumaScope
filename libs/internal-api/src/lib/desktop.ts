@@ -37,6 +37,7 @@ export interface DesktopProcessManager {
   readonly argv: () => Promise<Arguments>;
   readonly getSystemPaths: () => Promise<SystemPathMapping>;
   readonly openConfigFile: () => Promise<string>;
+  readonly openPath: (filePath: string) => Promise<string>;
   readonly openExternal: (url: string) => Promise<void>;
   readonly quit: (code: number) => Promise<void>;
   readonly setWindowTitle: (title: string) => Promise<void>;
