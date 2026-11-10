@@ -1592,10 +1592,25 @@ export class OfflineMapRenderer {
         const original = this.basemapOpacityDefaults.get(key);
         // Multiply the style's own opacity so the slider remains continuous;
         // zero also removes outlines that would otherwise survive as rings.
+        // Use a numeric value for unset/default properties. Wrapping a
+        // default in a multiplication expression is not accepted by every
+        // MapLibre paint property (notably background opacity), and one
+        // rejected property must not prevent the raster basemap from updating.
         const scaled = value === 0 ? 0
           : typeof original === 'number' ? original * value
-            : ['*', original ?? 1, value];
-        this.map.setPaintProperty(layer.id, paintProperty, scaled as never);
+            : Array.isArray(original) ? ['*', original, value]
+              : value;
+        try {
+          this.map.setPaintProperty(layer.id, paintProperty, scaled as never);
+        } catch (error) {
+          // Some paint properties do not support expression values. Fall back
+          // to the requested opacity so later map layers are still processed.
+          try {
+            this.map.setPaintProperty(layer.id, paintProperty, value);
+          } catch (fallbackError) {
+            console.warn('[Map opacity] Could not update paint property:', layer.id, property, fallbackError ?? error);
+          }
+        }
       }
     }
   }
