@@ -762,7 +762,7 @@ interface MapErrorEntry {
     .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}
     :host ::ng-deep .maplibregl-ctrl-bottom-left{z-index:40!important;pointer-events:none}:host ::ng-deep .leaflet-bottom.leaflet-left{z-index:1000!important;pointer-events:none}
     :host ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl,:host ::ng-deep .leaflet-bottom.leaflet-left .leaflet-control{pointer-events:auto}
-    :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.32;transition:opacity .15s ease;background:rgba(255,255,255,.78);color:#111;border-color:rgba(0,0,0,.72);box-shadow:0 1px 3px rgba(0,0,0,.28);font-size:10px;font-weight:600;text-shadow:none}
+    :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.85;transition:opacity .15s ease;background:rgba(255,255,255,.94);color:#111;border:1px solid rgba(0,0,0,.88);box-shadow:0 1px 3px rgba(0,0,0,.45);font-size:10px;font-weight:700;text-shadow:none;padding:2px 5px}
     :host ::ng-deep .maplibregl-ctrl-scale:hover,:host ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
     .scale-visibility-toggle{flex-basis:100%;margin-left:0}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
