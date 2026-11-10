@@ -222,8 +222,8 @@ interface MapErrorEntry {
       <label class="time-slider-activate"><input type="checkbox" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"> Activate Time Slider</label>
       @if (timeSliderHasData()) {
         <div class="time-slider-readouts">
-          <span><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
-          <span><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
+          <span class="time-slider-min"><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
+          <span class="time-slider-max"><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
         </div>
         <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
           <div class="time-slider-range-track"></div>
