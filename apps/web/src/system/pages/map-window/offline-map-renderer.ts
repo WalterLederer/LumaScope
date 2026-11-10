@@ -15,6 +15,7 @@ let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 let osmAndHillshadeDatabasesProvider: (() => OsmAndHillshadeDatabase[]) | null = null;
 let osmAndHillshadeProtocolRegistered = false;
+let osmAndHillshadeDiagnosticCount = 0;
 
 const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
 const EMPTY_HILLSHADE_PNG = Uint8Array.from(atob(EMPTY_HILLSHADE_PNG_BASE64), character => character.charCodeAt(0));
@@ -304,7 +305,17 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
 
     const databases = (osmAndHillshadeDatabasesProvider?.() ?? [])
       .filter(database => database.enabled && database.available);
+    const diagnosticId = ++osmAndHillshadeDiagnosticCount;
+    const traceTile = diagnosticId <= 24;
+    if (traceTile) {
+      console.info('[Hillshade][tile-request]', {
+        request: diagnosticId, tile, enabledDatabases: databases.map(database => ({
+          id: database.id, name: database.path.split(/[\\\\/]/).pop()
+        }))
+      });
+    }
     if (!databases.length) {
+      if (traceTile) console.info('[Hillshade][tile-result]', { request: diagnosticId, tile, result: 'no-enabled-databases' });
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
 
@@ -322,10 +333,24 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
         png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (/Hillshade tile not found/i.test(message)) continue;
+        if (/Hillshade tile not found/i.test(message)) {
+          if (traceTile) console.info('[Hillshade][database-miss]', {
+            request: diagnosticId, tile, databaseId: database.id,
+            database: database.path.split(/[\\\\/]/).pop(), reason: message
+          });
+          continue;
+        }
+        console.error('[Hillshade][database-error]', {
+          request: diagnosticId, tile, databaseId: database.id, database: database.path, error: message
+        });
         throw error;
       }
 
+      if (traceTile) console.info('[Hillshade][database-hit]', {
+        request: diagnosticId, tile, databaseId: database.id,
+        database: database.path.split(/[\\\\/]/).pop(),
+        pngBytes: png.byteLength, png: inspectHillshadePng(png)
+      });
       await validateHillshadePngForBrowser(png, tile + '; database=' + database.id);
       const pngBuffer = new ArrayBuffer(png.byteLength);
       new Uint8Array(pngBuffer).set(png);
@@ -354,9 +379,15 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
 
     if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
     if (!hasPixels) {
+      if (traceTile) console.info('[Hillshade][tile-result]', {
+        request: diagnosticId, tile, result: 'no-pixels-from-any-database'
+      });
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
 
+    if (traceTile) console.info('[Hillshade][tile-result]', {
+      request: diagnosticId, tile, result: 'composited', databasesQueried: databases.length
+    });
     context.putImageData(new ImageData(merged, 256, 256), 0, 0);
     const blob = await canvas.convertToBlob({ type: 'image/png' });
     return { data: await blob.arrayBuffer() };
