@@ -506,6 +506,7 @@ export class OsmAndAtlasManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
+  private readonly hillshadeHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
   private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = this.readSavedStyleFileName();
   private stylePath = this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
@@ -525,7 +526,7 @@ export class OsmAndAtlasManager {
   private temporaryFileId = 0;
 
   constructor() {
-    this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+    this.hillshadeWorker = new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment);
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
       void this.hillshadeWorker?.shutdown();
@@ -861,7 +862,7 @@ export class OsmAndAtlasManager {
     }
     if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
     if (!this.hillshadeWorker) {
-      this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+      this.hillshadeWorker = new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment);
     }
     try {
       return await this.hillshadeWorker.readTile(databasePath, z, x, y, s);
