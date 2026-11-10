@@ -606,12 +606,14 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade database</th><th>Status</th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade database</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
                   <tbody>
                     @for (database of hillshadeDatabases(); track database.id) {
                       <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
                         <td class="mbtiles-map-file"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong><span>{{ database.path }}</span></td>
+                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
+                        <td>{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                         <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
                         <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
                       </tr>
@@ -2503,6 +2505,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
+  protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
+    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString();
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
