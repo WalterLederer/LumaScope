@@ -69,6 +69,7 @@ interface MapErrorEntry {
 <nav class="settings-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
@@ -213,6 +214,32 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
   </div>
 </div>
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
+  <div class="settings-tab-content time-slider-tab">
+    <div class="time-slider-settings">
+      <label class="time-slider-activate"><input type="checkbox" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"> Activate Time Slider</label>
+      @if (timeSliderHasData()) {
+        <div class="time-slider-readouts">
+          <span><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
+          <span><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
+        </div>
+        <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
+          <div class="time-slider-range-track"></div>
+          <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
+          <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
+        </div>
+        <div class="time-slider-boundaries"><span>{{ formatTimeSliderDate(timeSliderMinimum()) }}</span><span>{{ formatTimeSliderDate(timeSliderMaximum()) }}</span></div>
+        <span class="time-slider-help">Only GPX track points and photos within this time range are shown.</span>
+      } @else {
+        <span class="time-slider-help">Load GPX files or enable photo markers with timestamps to define the time range.</span>
+      }
+    </div>
+  </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
@@ -832,6 +859,19 @@ interface MapErrorEntry {
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
+    .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px}
+    .time-slider-activate{display:flex;align-items:center;gap:8px;font-weight:600}
+    .time-slider-readouts,.time-slider-boundaries{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
+    .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
+    .time-slider-range-track{position:absolute;left:0;right:0;height:5px;border-radius:5px;background:var(--color-content-default-low,#555)}
+    .time-slider-range-input{position:absolute;inset:0;width:100%;height:30px;margin:0;background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none}
+    .time-slider-range-input::-webkit-slider-runnable-track{height:5px;background:transparent}
+    .time-slider-range-input::-moz-range-track{height:5px;background:transparent}
+    .time-slider-range-input::-webkit-slider-thumb{width:17px;height:17px;border:2px solid #fff;border-radius:50%;background:var(--color-accent,#2688e8);box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input::-moz-range-thumb{width:13px;height:13px;border:2px solid #fff;border-radius:50%;background:var(--color-accent,#2688e8);box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input:disabled::-webkit-slider-thumb,.time-slider-range-input:disabled::-moz-range-thumb{opacity:.45;cursor:default}
+    .time-slider-range.disabled{opacity:.55}
+    .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
     .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
@@ -1086,16 +1126,17 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
   private readonly gpxPointDataByTrack = new Map<string, GpxTrackPoint[][]>();
-  private directoryPhotoMarkers: OfflinePhotoMarker[] = [];
-  private directoryPhotoTimestampMarkers: OfflinePhotoMarker[] = [];
+  private directoryPhotoMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
+  private directoryPhotoTimestampMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
+  private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
@@ -1306,6 +1347,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
+  protected readonly timeSliderActive = signal(this.readSetting('timeSliderActive', 'false') === 'true');
+  protected readonly timeSliderMinimum = signal(0);
+  protected readonly timeSliderMaximum = signal(0);
+  protected readonly timeSliderStart = signal(0);
+  protected readonly timeSliderEnd = signal(0);
+  protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
   protected readonly markerFilesChecked = signal(0);
@@ -1421,7 +1468,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       if (!saved) return;
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -1926,7 +1973,9 @@ export class MapWindow implements OnInit, OnDestroy {
     markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>,
     imagePath: string
   ): void {
-    this.clearDirectoryMarkers();
+    this.directoryMarkerGroup?.clearLayers();
+    this.directoryMarkers.length = 0;
+    this.markerCount.set(0);
     for (const item of markers) {
       if (item.path.toLowerCase() === imagePath.toLowerCase()) continue;
       const marker = this.leaflet!.marker([item.latitude, item.longitude], {
@@ -1981,12 +2030,9 @@ export class MapWindow implements OnInit, OnDestroy {
       // Keep the current image as a timestamp anchor even though its marker is not displayed.
       this.directoryPhotoTimestampMarkers = markers.map(item => ({ ...item }));
       this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
-      if (this.offlineRenderer) {
-        const offlineMarkers = this.directoryPhotoMarkers;
-        this.markerCount.set(offlineMarkers.length);
-        this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
-        this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
-      } else this.renderDirectoryMarkers(markers, imagePath);
+      this.updateTimeSliderBounds();
+      this.applyDirectoryPhotoMarkers();
+      if (this.offlineRenderer) this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
       if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Location database query failed.');
@@ -3196,7 +3242,102 @@ export class MapWindow implements OnInit, OnDestroy {
   private rebuildGpxSegments(): void {
     this.gpxSegments = this.gpxTracks()
       .filter(track => track.active !== false)
-      .flatMap(track => this.gpxSegmentsByTrack.get(track.path) ?? []);
+      .flatMap(track => this.visibleGpxSegments(track));
+    this.updateTimeSliderBounds();
+  }
+
+  private visibleGpxSegments(track: GpxTrackFile): [number, number][][] {
+    const source = this.gpxSegmentsByTrack.get(track.path) ?? [];
+    if (!this.timeSliderActive()) return source;
+    const pointSegments = this.gpxPointDataByTrack.get(track.path) ?? [];
+    const visible: [number, number][][] = [];
+    for (const segment of pointSegments) {
+      let run: [number, number][] = [];
+      const flush = (): void => { if (run.length >= 2) visible.push(run); run = []; };
+      for (const point of segment) {
+        const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
+        if (Number.isFinite(timestamp) && timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd()) {
+          run.push([point.latitude, point.longitude]);
+        } else flush();
+      }
+      flush();
+    }
+    return visible;
+  }
+
+  private isTimeSliderTimestampVisible(timestamp: number | null | undefined): boolean {
+    if (!this.timeSliderActive()) return true;
+    return timestamp != null && Number.isFinite(timestamp)
+      && timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd();
+  }
+
+  private updateTimeSliderBounds(): void {
+    const timestamps = [
+      ...Array.from(this.gpxPointDataByTrack.values()).flat(2)
+        .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
+      ...this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
+    ].filter(value => Number.isFinite(value));
+    if (!timestamps.length) {
+      this.timeSliderMinimum.set(0);
+      this.timeSliderMaximum.set(0);
+      this.timeSliderStart.set(0);
+      this.timeSliderEnd.set(0);
+      this.timeSliderRangeInitialized = false;
+      return;
+    }
+    const minimum = Math.min(...timestamps);
+    const maximum = Math.max(...timestamps);
+    this.timeSliderMinimum.set(minimum);
+    this.timeSliderMaximum.set(maximum > minimum ? maximum : minimum + 1);
+    if (!this.timeSliderRangeInitialized) {
+      this.timeSliderStart.set(minimum);
+      this.timeSliderEnd.set(maximum > minimum ? maximum : minimum + 1);
+      this.timeSliderRangeInitialized = true;
+    } else {
+      this.timeSliderStart.set(Math.max(minimum, Math.min(this.timeSliderStart(), maximum)));
+      this.timeSliderEnd.set(Math.max(this.timeSliderStart(), Math.min(this.timeSliderEnd(), maximum > minimum ? maximum : minimum + 1)));
+    }
+  }
+
+  protected readonly formatTimeSliderDate = (timestamp: number): string =>
+    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString(this.locale) : '–';
+
+  protected readonly changeTimeSliderActive = (active: boolean): void => {
+    this.timeSliderActive.set(active);
+    this.saveSetting('timeSliderActive', active);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+  };
+
+  protected readonly changeTimeSliderStart = (value: string): void => {
+    const timestamp = Number(value);
+    if (!Number.isFinite(timestamp)) return;
+    this.timeSliderStart.set(Math.min(timestamp, this.timeSliderEnd()));
+    this.saveSetting('timeSliderStart', this.timeSliderStart());
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+  };
+
+  protected readonly changeTimeSliderEnd = (value: string): void => {
+    const timestamp = Number(value);
+    if (!Number.isFinite(timestamp)) return;
+    this.timeSliderEnd.set(Math.max(timestamp, this.timeSliderStart()));
+    this.saveSetting('timeSliderEnd', this.timeSliderEnd());
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+  };
+
+  private applyDirectoryPhotoMarkers(): void {
+    const visibleMarkers = this.directoryPhotoMarkers.filter(marker => this.isTimeSliderTimestampVisible(marker.gpsTimestamp));
+    if (this.offlineRenderer) {
+      this.markerCount.set(visibleMarkers.length);
+      this.offlineRenderer.setPhotoMarkers(visibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
+    } else if (this.leaflet && this.directoryMarkerGroup) {
+      this.renderDirectoryMarkers(visibleMarkers, this.currentImagePath ?? '');
+    }
   }
 
   private parseMarkerFileNameTimestamp(fileName: string): number | null {
@@ -3390,6 +3531,7 @@ ${points}
     this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
     this.applyHillshadeSettingsIfReady();
     this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
     this.applyScaleVisibility();
   }
 
@@ -3439,7 +3581,7 @@ ${points}
 
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.visibleGpxSegments(track), color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
       return;
     }
@@ -3447,7 +3589,7 @@ ${points}
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
     for (const track of this.gpxTracks().filter(item => item.active !== false)) {
-      for (const segment of this.gpxSegmentsByTrack.get(track.path) ?? []) {
+      for (const segment of this.visibleGpxSegments(track)) {
         if (segment.length < 2) continue;
         const lineStyle = track.lineStyle || 'solid';
         const trackLine = this.leaflet.polyline(segment, {
