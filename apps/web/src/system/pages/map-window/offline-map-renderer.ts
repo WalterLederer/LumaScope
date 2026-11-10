@@ -128,7 +128,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
   addProtocol('osmand-atlas', async (request, abortController) => {
     const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
-    const [, zoomText, columnText, rowText] = match;
+    const [, databaseId, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
     const column = Number(columnText);
     const row = Number(rowText);
@@ -199,8 +199,8 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
 
 
 /** Hillshade is fetched as an independent PNG raster source; its alpha channel is preserved. */
-export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabasePath: () => string): void {
-  osmAndHillshadeDatabasePathProvider = getDatabasePath;
+export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabases: () => OsmAndHillshadeDatabase[]): void {
+  osmAndHillshadeDatabasesProvider = getDatabases;
   if (osmAndHillshadeProtocolRegistered) return;
   addProtocol('osmand-hillshade', async (request, abortController) => {
     const match = /^osmand-hillshade:\/\/([a-f0-9]{16})\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
@@ -213,8 +213,9 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
       throw new Error('Invalid OsmAnd Hillshade tile coordinates.');
     }
-    const databasePath = osmAndHillshadeDatabasePathProvider?.() ?? '';
-    if (!databasePath) throw new Error('Select a Hillshade SQLite database in map settings.');
+    const database = osmAndHillshadeDatabasesProvider?.().find(item => item.id === databaseId && item.enabled && item.available);
+    const databasePath = database?.path ?? '';
+    if (!databasePath) throw new Error('Hillshade database is inactive or unavailable: ' + databaseId);
     let png: Uint8Array;
     try {
       png = await desktop.OsmAndAtlas.renderHillshadeTile(databasePath, zoom, column, row, 0);
@@ -1556,8 +1557,8 @@ export class OfflineMapRenderer {
     // MBTiles style layer, and outline/stroke opacity that otherwise leaves
     // white rings visible after the map itself has been hidden.
     for (const layer of this.map.getStyle().layers) {
-      if (layer.id === 'osmand-hillshade-raster'
-        || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track' || layer.source === 'osmand-hillshade'))) continue;
+      if (layer.id === 'osmand-hillshade-raster' || layer.id.startsWith('osmand-hillshade-raster-')
+        || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track' || layer.source === 'osmand-hillshade' || String(layer.source).startsWith('osmand-hillshade-')))) continue;
       const paint = 'paint' in layer && layer.paint ? layer.paint as Record<string, unknown> : {};
       const typeDefaults: Record<string, string[]> = {
         background: ['background-opacity'],
