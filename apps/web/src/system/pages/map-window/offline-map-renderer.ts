@@ -1516,6 +1516,12 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('osmand-hillshade-raster', 'raster-opacity', value);
   }
 
+  refreshHillshadeTiles(): void {
+    const source = this.map.getSource('osmand-hillshade') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) return;
+    source.setTiles(['osmand-hillshade://{z}/{x}/{y}?refresh=' + Date.now()]);
+  }
+
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
 
   setBasemapOpacity(opacity: number): void {
