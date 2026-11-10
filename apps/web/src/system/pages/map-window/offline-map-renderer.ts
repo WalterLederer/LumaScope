@@ -889,6 +889,13 @@ export class OfflineMapRenderer {
     };
     this.map = new MapLibreMap(options);
     this.map.addControl(new ScaleControl({ maxWidth: 140, unit: 'metric' }), 'bottom-left');
+    const scaleContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-left');
+    if (scaleContainer) {
+      scaleContainer.style.zIndex = '40';
+      scaleContainer.style.pointerEvents = 'none';
+      const scaleControl = scaleContainer.querySelector<HTMLElement>('.maplibregl-ctrl');
+      if (scaleControl) scaleControl.style.pointerEvents = 'auto';
+    }
     this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
       ? 'osmand-atlas'
       : styleOverride?.name === 'LumaScope OsmAnd OBF' ? 'osmand' : null;
@@ -1616,6 +1623,11 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-opacity', 0);
     this.map.setPaintProperty('photo-clusters', 'circle-stroke-width', 0);
     this.refreshClusterLabels();
+  }
+
+  setScaleVisible(visible: boolean): void {
+    const scale = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-scale');
+    if (scale) scale.style.display = visible ? '' : 'none';
   }
 
   setTextLabelOpacity(opacity: number): void {
