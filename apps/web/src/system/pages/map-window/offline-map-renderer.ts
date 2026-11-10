@@ -305,6 +305,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
 
     const databases = (osmAndHillshadeDatabasesProvider?.() ?? [])
       .filter(database => database.enabled && database.available);
+    const tile = 'z' + zoom + '/x' + column + '/y' + row;
     const diagnosticId = ++osmAndHillshadeDiagnosticCount;
     const traceTile = diagnosticId <= 24;
     if (traceTile) {
@@ -323,7 +324,6 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     const context = canvas.getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('Unable to create the Hillshade tile composition canvas.');
     const merged = new Uint8ClampedArray(256 * 256 * 4);
-    const tile = 'z' + zoom + '/x' + column + '/y' + row;
     let hasPixels = false;
 
     for (const database of databases) {
