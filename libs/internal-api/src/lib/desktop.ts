@@ -128,6 +128,7 @@ export interface PhotoLocation {
   fileName: string;
   latitude: number | null;
   longitude: number | null;
+  gpsTimestamp: number | null;
   displayName: string | null;
 }
 
