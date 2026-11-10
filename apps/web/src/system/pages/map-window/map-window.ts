@@ -3499,7 +3499,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.timeSliderAnimating.set(true);
     const span = this.timeSliderMaximum() - this.timeSliderMinimum();
     // At 1×, traverse the full time range in about 60 seconds.
-    const increment = Math.max(1, span / 1200);
+    const increment = span / 1200;
     this.timeSliderAnimationTimer = setInterval(() => {
       const next = Math.min(this.timeSliderMaximum(), this.timeSliderEnd() + increment * this.timeSliderAnimationSpeed());
       this.setTimeSliderEnd(next);
