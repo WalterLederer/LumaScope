@@ -248,21 +248,11 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
         minzoom: 2,
         maxzoom: 21,
         attribution: '© OpenStreetMap contributors'
-      },
-      'osmand-hillshade': {
-        type: 'raster',
-        tiles: ['osmand-hillshade://{z}/{x}/{y}'],
-        tileSize: 256,
-        minzoom: 4,
-        maxzoom: 12,
-        bounds: AUSTRIA_BOUNDS,
-        attribution: '© OpenStreetMap contributors'
       }
     },
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': '#d9e1e5' } },
-      { id: 'osmand-atlas-raster', type: 'raster', source: 'osmand-atlas', paint: { 'raster-fade-duration': 0 } },
-      { id: 'osmand-hillshade-raster', type: 'raster', source: 'osmand-hillshade', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0, 'raster-opacity': 0.65 } }
+      { id: 'osmand-atlas-raster', type: 'raster', source: 'osmand-atlas', paint: { 'raster-fade-duration': 0 } }
     ]
   };
 }
@@ -527,7 +517,7 @@ export class OfflineMapRenderer {
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || data.sourceId === 'osmand-hillshade') return;
+    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loading');
   };
   private readonly onMapLibreTileLoaded = (event: unknown): void => {
