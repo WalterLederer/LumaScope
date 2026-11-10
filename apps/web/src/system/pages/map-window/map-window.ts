@@ -796,7 +796,7 @@ interface MapErrorEntry {
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
-    .render-tile-statistics-box{width:max-content;max-width:100%;margin-left:auto;align-self:flex-end;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
+    .render-tile-statistics-box{width:max-content;max-width:100%;margin-left:auto;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
     .render-tile-statistics .render-stat-label-column{width:130px}
@@ -2798,7 +2798,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async addGpxFiles(files: File[]): Promise<void> {
     const added: GpxTrackFile[] = [];
-    const segments: [number, number][][] = [];
     const current = this.gpxTracks();
     for (const file of files) {
       const path = this.desktop?.getPathForFile(file) ?? '';
@@ -2806,7 +2805,6 @@ export class MapWindow implements OnInit, OnDestroy {
       try {
         const content = await file.text();
         const parsed = this.parseGpxTrackData(content);
-        segments.push(...parsed);
         const trackPath = path || `memory:${file.name}:${file.lastModified}`;
         added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true });
         this.gpxSegmentsByTrack.set(trackPath, parsed);
