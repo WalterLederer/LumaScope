@@ -462,7 +462,8 @@ export class OfflineMapRenderer {
   readonly map: MapLibreMap;
   readonly ready: Promise<void>;
   private currentMarkerElement: HTMLElement | null = null;
-  private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];\n  private hillshadeOpacity = 0.65;\n  private hillshadeVisible = false;
+  private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
+  private hillshadeOpacity = 0.65;\n  private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
   private readonly tileProtocol: OsmAndTileProtocol | null;
