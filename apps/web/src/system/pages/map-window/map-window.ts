@@ -760,7 +760,7 @@ interface MapErrorEntry {
     .resize-nw{top:0;left:0;cursor:nwse-resize}.resize-se{right:0;bottom:0;cursor:nwse-resize}
     .map-display-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;max-width:min(520px,calc(100% - 36px));padding:18px 22px;text-align:center;background:var(--color-surface-default-high,#292a2d);border:1px solid var(--color-content-default-low,#666);border-radius:8px;box-shadow:0 5px 24px rgba(0,0,0,.35);color:var(--color-content-default-high,#eee)}
     .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}
-    :host ::ng-deep .maplibregl-ctrl-bottom-left,:host ::ng-deep .leaflet-bottom.leaflet-left{z-index:40!important;pointer-events:none}
+    :host ::ng-deep .maplibregl-ctrl-bottom-left{z-index:40!important;pointer-events:none}:host ::ng-deep .leaflet-bottom.leaflet-left{z-index:1000!important;pointer-events:none}
     :host ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl,:host ::ng-deep .leaflet-bottom.leaflet-left .leaflet-control{pointer-events:auto}
     :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.32;transition:opacity .15s ease;background:rgba(255,255,255,.78);color:#111;border-color:rgba(0,0,0,.72);box-shadow:0 1px 3px rgba(0,0,0,.28);font-size:10px;font-weight:600;text-shadow:none}
     :host ::ng-deep .maplibregl-ctrl-scale:hover,:host ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
@@ -1124,7 +1124,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (leafletScale) leafletScale.style.display = visible ? '' : 'none';
     const leafletControls = mapElement.querySelector<HTMLElement>('.leaflet-bottom.leaflet-left');
     if (leafletControls) {
-      leafletControls.style.zIndex = '40';
+      leafletControls.style.zIndex = '1000';
       leafletControls.style.pointerEvents = 'none';
       const control = leafletControls.querySelector<HTMLElement>('.leaflet-control');
       if (control) control.style.pointerEvents = 'auto';
