@@ -2995,7 +2995,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!fileName) return null;
       const entries = await this.desktop.FileSystem.readDir(directory);
       const file = entries.find(entry => !entry.isDirectory && entry.name.toLowerCase() === fileName);
-      return file ? { size: file.size, modifiedAt: file.modifiedAt } : null;
+      return file ? { size: file.size, modifiedAt: file.modifiedAt ?? file.createdAt } : null;
     } catch {
       return null;
     }
