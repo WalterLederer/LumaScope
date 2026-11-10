@@ -230,10 +230,10 @@ interface MapErrorEntry {
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
-            [min]="timeSliderMinimum()" [max]="timeSliderStartMaximum()" step="1" [value]="timeSliderStart()"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
           <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
-            [min]="timeSliderEndMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
           </div>
         </div>
@@ -3428,17 +3428,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyCurrentPhotoVisibility();
   };
 
-  protected readonly timeSliderStartMaximum = (): number =>
-    Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - this.timeSliderHandleGap());
-
-  protected readonly timeSliderEndMinimum = (): number =>
-    Math.min(this.timeSliderMaximum(), this.timeSliderStart() + this.timeSliderHandleGap());
-
   private timeSliderHandleGap(): number {
     const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
     // Keep the two 13 px half-circle thumbs from visually crossing; at the
     // closest position their straight edges meet instead of overlapping.
-    return Math.min(span, Math.max(1, Math.ceil(span * 0.015)));
+    return Math.min(span, Math.max(1, Math.ceil(span * 0.025)));
   }
 
   protected readonly changeTimeSliderStart = (value: string): void => {
