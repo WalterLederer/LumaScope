@@ -32,7 +32,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface MapErrorEntry {
   id: number;
@@ -140,7 +140,7 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Direction</span><span></span>
+          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path">
@@ -173,8 +173,8 @@ interface MapErrorEntry {
               <option value="4">4 px</option><option value="5">5 px</option><option value="6">6 px</option>
               <option value="8">8 px</option><option value="10">10 px</option>
             </select>
-            <select class="gpx-track-direction" role="cell" [value]="track.showDirection ? 'arrows' : 'off'" (change)="changeGpxTrackDirection(track.path, $any($event.target).value)" [attr.aria-label]="'Direction arrows for ' + track.name">
-              <option value="off">Off</option><option value="arrows">Arrows</option>
+            <select class="gpx-track-direction" role="cell" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxTrackDirection(track.path, $any($event.target).value)" [attr.aria-label]="'Direction arrows for ' + track.name">
+              <option value="off">Off</option><option value="classic">Classic · 16 px</option><option value="chevron">Chevron · 16 px</option><option value="triangle">Triangle · 16 px</option><option value="thin">Slim · 16 px</option><option value="large-classic">Classic · 24 px</option><option value="large-chevron">Chevron · 24 px</option><option value="large-triangle">Triangle · 24 px</option>
             </select>
             <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
           </div>
@@ -794,14 +794,14 @@ interface MapErrorEntry {
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
-    .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:42px minmax(150px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px 86px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(1180px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
+    .gpx-file-row{display:grid;grid-template-columns:42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:var(--color-content-default-low,#343434);outline:1px solid var(--color-content-default-medium,#777);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
-    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:830px;grid-template-columns:30px minmax(110px,1fr) 90px 65px 120px 105px 62px 72px 24px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
+    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1040px;grid-template-columns:30px minmax(140px,1fr) 90px 65px 120px 105px 62px 150px 32px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -2931,12 +2931,13 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateGpxTrack(path, { lineWidth });
   };
   protected readonly changeGpxTrackDirection = (path: string, value: string): void => {
-    if (value !== 'off' && value !== 'arrows') return;
-    this.updateGpxTrack(path, { showDirection: value === 'arrows' });
+    const styles = ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'];
+    if (value !== 'off' && !styles.includes(value)) return;
+    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });
   };
   private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
-    const intervalMeters = 1200;
+    const intervalMeters = 500;
     let distanceSinceArrow = 0;
     for (let i = 1; i < segment.length; i++) {
       const [lat1, lon1] = segment[i - 1];
@@ -3153,7 +3154,7 @@ ${points}
 
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
       return;
     }
@@ -3172,11 +3173,16 @@ ${points}
         trackLine.on('mouseout', () => this.clearGpxHover(track.path));
         this.trackLayers.push(trackLine);
         if (track.showDirection) {
+          const arrowStyles: Record<NonNullable<GpxTrackFile['directionStyle']>, { glyph: string; size: number }> = {
+            classic: { glyph: '➤', size: 16 }, chevron: { glyph: '❯', size: 16 }, triangle: { glyph: '▶', size: 16 }, thin: { glyph: '➜', size: 16 },
+            'large-classic': { glyph: '➤', size: 24 }, 'large-chevron': { glyph: '❯', size: 24 }, 'large-triangle': { glyph: '▶', size: 24 }
+          };
+          const arrowStyle = arrowStyles[track.directionStyle || 'classic'];
           for (const arrow of this.gpxDirectionArrows(segment)) {
             const icon = this.leaflet.divIcon({
               className: 'gpx-direction-arrow-icon',
-              html: '<span class="gpx-direction-arrow" style="color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">➤</span>',
-              iconSize: [16, 16], iconAnchor: [8, 8]
+              html: '<span class="gpx-direction-arrow" style="font-size:' + arrowStyle.size + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + arrowStyle.glyph + '</span>',
+              iconSize: [arrowStyle.size + 4, arrowStyle.size + 4], iconAnchor: [(arrowStyle.size + 4) / 2, (arrowStyle.size + 4) / 2]
             });
             this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
           }
