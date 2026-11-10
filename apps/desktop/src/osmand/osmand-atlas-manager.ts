@@ -769,23 +769,19 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.chooseHillshadeDatabase' })
-  readonly chooseHillshadeDatabase = async (): Promise<string> => {
+  readonly chooseHillshadeDatabase = async (): Promise<string[]> => {
     const result = await dialog.showOpenDialog({
-      title: 'Select OsmAnd Hillshade database',
-      defaultPath: this.hillshadeDatabasePath || undefined,
-      properties: ['openFile'],
+      title: 'Add OsmAnd Hillshade databases',
+      properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
     });
-    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabasePath();
-    this.hillshadeDatabasePath = result.filePaths[0];
-    await updateAppSettingsSection('osmand', { hillshadeDatabasePath: this.hillshadeDatabasePath });
-    return this.hillshadeDatabasePath;
+    return result.canceled ? [] : result.filePaths;
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
-  readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
-    const databasePath = await this.getHillshadeDatabasePath();
-    if (!databasePath) throw new Error('[OsmAnd Hillshade] Select an available Hillshade SQLite database first.');
+  readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
+    if (!databasePath || !existsSync(databasePath)) throw new Error('[OsmAnd Hillshade] Hillshade database is unavailable: ' + databasePath);
+    if (!/\\.(?:sqlitedb|sqlite|db)$/i.test(databasePath)) throw new Error('[OsmAnd Hillshade] Unsupported database file.');
     if (!Number.isInteger(z) || z < 0 || z > 24) throw new Error('[OsmAnd Hillshade] Zoom must be an integer between 0 and 24.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
