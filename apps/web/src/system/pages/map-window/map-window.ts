@@ -711,12 +711,11 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
                 <table class="mbtiles-map-table hillshade-map-table">
-                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Display name</th><th>File name</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>File name</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
                   <tbody>
                     @for (database of hillshadeDatabases(); track database.id) {
                       <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td class="hillshade-display-name">{{ hillshadeDatabaseDisplayName(database.path) }}</td>
                         <td class="hillshade-file-name" [title]="database.path">{{ hillshadeDatabaseFileName(database.path) }}</td>
                         <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
                         <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
@@ -906,7 +905,7 @@ interface MapErrorEntry {
     .offline-catalogue-matched{background:rgba(46,160,67,.20)}
     .offline-catalogue-matched:hover{background:rgba(46,160,67,.28)}
     .download-source-url{min-width:380px}.download-source-url input{width:100%;min-width:320px;box-sizing:border-box}.download-source-table select{max-width:110px}
-    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:150px}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:220px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:145px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:85px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:90px}.hillshade-map-table th:nth-child(7),.hillshade-map-table td:nth-child(7){width:65px}.hillshade-display-name,.hillshade-file-name{overflow:hidden;text-overflow:ellipsis}.hillshade-file-name{cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:220px}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:145px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:85px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:90px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:65px}.hillshade-file-name{overflow:hidden;text-overflow:ellipsis;cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
@@ -2831,7 +2830,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
-  protected readonly hillshadeDatabaseDisplayName = (path: string): string => this.hillshadeDatabaseFileName(path).replace(/\\.[^.]+$/, '');
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
     timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
