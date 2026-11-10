@@ -424,6 +424,7 @@ interface MapErrorEntry {
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
         </button>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
+        <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
@@ -763,6 +764,7 @@ interface MapErrorEntry {
     :host ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl,:host ::ng-deep .leaflet-bottom.leaflet-left .leaflet-control{pointer-events:auto}
     :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.32;transition:opacity .15s ease;background:rgba(255,255,255,.78);color:#111;border-color:rgba(0,0,0,.72);box-shadow:0 1px 3px rgba(0,0,0,.28);font-size:10px;font-weight:600;text-shadow:none}
     :host ::ng-deep .maplibregl-ctrl-scale:hover,:host ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
+    .scale-visibility-toggle{flex-basis:100%;margin-left:0}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
@@ -1088,6 +1090,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
+  protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
   protected readonly renderTotalCount = signal(0);
   protected readonly renderProgressValue = computed(() => this.rerenderVisibleTilesBusy()
@@ -1107,6 +1110,26 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
   };
+  protected readonly changeScaleVisible = (visible: boolean): void => {
+    this.scaleVisible.set(visible);
+    this.saveSetting('scaleVisible', visible);
+    this.persistLocationUiState({ scaleVisible: visible });
+    this.applyScaleVisibility();
+  };
+  private applyScaleVisibility(): void {
+    const visible = this.scaleVisible();
+    this.offlineRenderer?.setScaleVisible(visible);
+    const mapElement = this.mapElement().nativeElement;
+    const leafletScale = mapElement.querySelector<HTMLElement>('.leaflet-control-scale');
+    if (leafletScale) leafletScale.style.display = visible ? '' : 'none';
+    const leafletControls = mapElement.querySelector<HTMLElement>('.leaflet-bottom.leaflet-left');
+    if (leafletControls) {
+      leafletControls.style.zIndex = '40';
+      leafletControls.style.pointerEvents = 'none';
+      const control = leafletControls.querySelector<HTMLElement>('.leaflet-control');
+      if (control) control.style.pointerEvents = 'auto';
+    }
+  }
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
     this.saveSetting('renderVisualsEnabled', enabled);
@@ -1395,6 +1418,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
+      }
+      if (typeof saved['scaleVisible'] === 'boolean') {
+        this.scaleVisible.set(saved['scaleVisible']);
+        this.applyScaleVisibility();
       }
       if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
       if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
@@ -2343,6 +2370,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
     this.leaflet.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 140 }).addTo(map);
+    this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
@@ -3326,6 +3354,7 @@ ${points}
     this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
     this.applyHillshadeSettingsIfReady();
     this.applyGpxTrack();
+    this.applyScaleVisibility();
   }
 
   private applyHillshadeSettingsIfReady(): void {
