@@ -226,6 +226,7 @@ interface MapErrorEntry {
         </div>
         <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
           <div class="time-slider-range-track"></div>
+          <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
@@ -864,6 +865,7 @@ interface MapErrorEntry {
     .time-slider-readouts,.time-slider-boundaries{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
     .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
     .time-slider-range-track{position:absolute;left:0;right:0;height:5px;border-radius:5px;background:var(--color-content-default-low,#555)}
+    .time-slider-range-selection{position:absolute;height:5px;border-radius:5px;background:var(--color-accent,#2688e8);pointer-events:none}
     .time-slider-range-input{position:absolute;inset:0;width:100%;height:30px;margin:0;background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none}
     .time-slider-range-input::-webkit-slider-runnable-track{height:5px;background:transparent}
     .time-slider-range-input::-moz-range-track{height:5px;background:transparent}
@@ -3287,17 +3289,39 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     const minimum = Math.min(...timestamps);
     const maximum = Math.max(...timestamps);
+    const effectiveMaximum = maximum > minimum ? maximum : minimum + 1;
+    const previousMinimum = this.timeSliderMinimum();
+    const previousMaximum = this.timeSliderMaximum();
+    const firstInitialization = !this.timeSliderRangeInitialized;
+    const previouslyFullRange = firstInitialization
+      || (this.timeSliderStart() <= previousMinimum && this.timeSliderEnd() >= previousMaximum);
     this.timeSliderMinimum.set(minimum);
-    this.timeSliderMaximum.set(maximum > minimum ? maximum : minimum + 1);
-    if (!this.timeSliderRangeInitialized) {
-      this.timeSliderStart.set(minimum);
-      this.timeSliderEnd.set(maximum > minimum ? maximum : minimum + 1);
+    this.timeSliderMaximum.set(effectiveMaximum);
+    if (firstInitialization) {
+      const storedStart = Number(this.readSetting('timeSliderStart', 'NaN'));
+      const storedEnd = Number(this.readSetting('timeSliderEnd', 'NaN'));
+      const hasStoredRange = Number.isFinite(storedStart) && Number.isFinite(storedEnd) && storedStart <= storedEnd;
+      this.timeSliderStart.set(hasStoredRange ? Math.max(minimum, Math.min(storedStart, effectiveMaximum)) : minimum);
+      this.timeSliderEnd.set(hasStoredRange ? Math.max(this.timeSliderStart(), Math.min(storedEnd, effectiveMaximum)) : effectiveMaximum);
       this.timeSliderRangeInitialized = true;
+    } else if (previouslyFullRange) {
+      this.timeSliderStart.set(minimum);
+      this.timeSliderEnd.set(effectiveMaximum);
     } else {
-      this.timeSliderStart.set(Math.max(minimum, Math.min(this.timeSliderStart(), maximum)));
-      this.timeSliderEnd.set(Math.max(this.timeSliderStart(), Math.min(this.timeSliderEnd(), maximum > minimum ? maximum : minimum + 1)));
+      this.timeSliderStart.set(Math.max(minimum, Math.min(this.timeSliderStart(), effectiveMaximum)));
+      this.timeSliderEnd.set(Math.max(this.timeSliderStart(), Math.min(this.timeSliderEnd(), effectiveMaximum)));
     }
   }
+
+  protected readonly timeSliderStartPercent = (): number => {
+    const span = this.timeSliderMaximum() - this.timeSliderMinimum();
+    return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderStart() - this.timeSliderMinimum()) / span * 100)) : 0;
+  };
+
+  protected readonly timeSliderWidthPercent = (): number => {
+    const span = this.timeSliderMaximum() - this.timeSliderMinimum();
+    return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderEnd() - this.timeSliderStart()) / span * 100)) : 100;
+  };
 
   protected readonly formatTimeSliderDate = (timestamp: number): string =>
     Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString(this.locale) : '–';
@@ -3596,9 +3620,13 @@ ${points}
           color: track.color || this.gpxColor(), weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
           lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle)
         }).addTo(this.map);
-        trackLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
-        trackLine.on('mouseout', () => this.clearGpxHover(track.path));
-        this.trackLayers.push(trackLine);
+        const hoverLine = this.leaflet.polyline(segment, {
+          color: track.color || this.gpxColor(), weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
+          lineCap: 'round', lineJoin: 'round'
+        }).addTo(this.map);
+        hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
+        hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
+        this.trackLayers.push(trackLine, hoverLine);
         if (track.showDirection) {
           const arrowStyles: Record<NonNullable<GpxTrackFile['directionStyle']>, { glyph: string; size: number }> = {
             classic: { glyph: '➤', size: 16 }, chevron: { glyph: '❯', size: 16 }, triangle: { glyph: '▶', size: 16 }, thin: { glyph: '➜', size: 16 },
