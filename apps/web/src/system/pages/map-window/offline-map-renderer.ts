@@ -16,6 +16,9 @@ let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
 let osmAndHillshadeDatabasePathProvider: (() => string) | null = null;
 let osmAndHillshadeProtocolRegistered = false;
 
+const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
+const EMPTY_HILLSHADE_PNG = Uint8Array.from(atob(EMPTY_HILLSHADE_PNG_BASE64), character => character.charCodeAt(0));
+
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
 type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
@@ -212,9 +215,20 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     }
     const databasePath = osmAndHillshadeDatabasePathProvider?.() ?? '';
     if (!databasePath) throw new Error('Select a Hillshade SQLite database in map settings.');
-    const png = await desktop.OsmAndAtlas.renderHillshadeTile(zoom, column, row, 0);
+    let png: Uint8Array;
+    try {
+      png = await desktop.OsmAndAtlas.renderHillshadeTile(zoom, column, row, 0);
+    } catch (error) {
+      // The Austria database follows the country's outline, not its rectangular
+      // bounds. Missing edge tiles are normal and must be transparent, not errors.
+      const message = error instanceof Error ? error.message : String(error);
+      if (/Hillshade tile not found/i.test(message)) {
+        return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
+      }
+      throw error;
+    }
     if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
-    // MapLibre decodes the original PNG directly, including palette transparency.
+    // MapLibre decodes the original PNG directly, including grayscale alpha.
     const data = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
     return { data };
   });
@@ -238,8 +252,9 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
         type: 'raster',
         tiles: ['osmand-hillshade://{z}/{x}/{y}'],
         tileSize: 256,
-        minzoom: 0,
-        maxzoom: 24,
+        minzoom: 4,
+        maxzoom: 12,
+        bounds: AUSTRIA_BOUNDS,
         attribution: '© OpenStreetMap contributors'
       }
     },
@@ -249,6 +264,36 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
       { id: 'osmand-hillshade-raster', type: 'raster', source: 'osmand-hillshade', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0, 'raster-opacity': 0.65 } }
     ]
   };
+}
+
+function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecification {
+  const result = JSON.parse(JSON.stringify(style)) as StyleSpecification;
+  result.sources['osmand-hillshade'] = {
+    type: 'raster',
+    tiles: ['osmand-hillshade://{z}/{x}/{y}'],
+    tileSize: 256,
+    minzoom: 4,
+    maxzoom: 12,
+    bounds: AUSTRIA_BOUNDS,
+    attribution: '© OpenStreetMap contributors'
+  };
+  const hillshadeLayer = {
+    id: 'osmand-hillshade-raster',
+    type: 'raster' as const,
+    source: 'osmand-hillshade',
+    layout: { visibility: 'none' as const },
+    paint: { 'raster-fade-duration': 0, 'raster-opacity': 0.65 }
+  };
+  const existingIndex = result.layers.findIndex(layer => layer.id === hillshadeLayer.id);
+  if (existingIndex >= 0) {
+    result.layers[existingIndex] = hillshadeLayer;
+  } else {
+    const baseRasterIndex = result.layers.findIndex(layer => layer.id === 'osmand-atlas-raster' || layer.id === 'osmand-raster');
+    const detailLayerIndex = result.layers.findIndex(layer => /road|street|building|poi|label|symbol|boundary|rail|bridge|transport/i.test(layer.id));
+    const insertAt = baseRasterIndex >= 0 ? baseRasterIndex + 1 : detailLayerIndex >= 0 ? detailLayerIndex : result.layers.length;
+    result.layers.splice(insertAt, 0, hillshadeLayer);
+  }
+  return result;
 }
 
 export function createOsmAndMapStyle(): StyleSpecification {
@@ -506,7 +551,7 @@ export class OfflineMapRenderer {
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
+    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || data.sourceId === 'osmand-hillshade') return;
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loading');
   };
   private readonly onMapLibreTileLoaded = (event: unknown): void => {
@@ -761,7 +806,7 @@ export class OfflineMapRenderer {
 
   constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private readonly schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = [], styleOverride?: StyleSpecification) {
     const options: MapOptions = {
-      container, style: styleOverride ?? createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers),
+      container, style: withOsmAndHillshadeOverlay(styleOverride ?? createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers)),
       center, zoom,
       minZoom: styleOverride ? 2 : 0, maxZoom: 20,
       // Lock the offline map to a flat 2D Mercator view for drag diagnostics.
@@ -1460,6 +1505,17 @@ export class OfflineMapRenderer {
     }
   }
 
+  setHillshadeVisibility(visible: boolean): void {
+    if (!this.map.getLayer('osmand-hillshade-raster')) return;
+    this.map.setLayoutProperty('osmand-hillshade-raster', 'visibility', visible ? 'visible' : 'none');
+  }
+
+  setHillshadeOpacity(opacity: number): void {
+    if (!this.map.getLayer('osmand-hillshade-raster')) return;
+    const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
+    this.map.setPaintProperty('osmand-hillshade-raster', 'raster-opacity', value);
+  }
+
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
 
   setBasemapOpacity(opacity: number): void {
@@ -1470,7 +1526,8 @@ export class OfflineMapRenderer {
     // MBTiles style layer, and outline/stroke opacity that otherwise leaves
     // white rings visible after the map itself has been hidden.
     for (const layer of this.map.getStyle().layers) {
-      if (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track')) continue;
+      if (layer.id === 'osmand-hillshade-raster'
+        || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track' || layer.source === 'osmand-hillshade'))) continue;
       const paint = 'paint' in layer && layer.paint ? layer.paint as Record<string, unknown> : {};
       const typeDefaults: Record<string, string[]> = {
         background: ['background-opacity'],
