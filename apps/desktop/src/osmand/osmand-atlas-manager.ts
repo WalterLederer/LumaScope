@@ -769,13 +769,13 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.chooseHillshadeDatabase' })
-  readonly chooseHillshadeDatabase = async (): Promise<string[]> => {
+  readonly chooseHillshadeDatabase = async (): Promise<string> => {
     const result = await dialog.showOpenDialog({
       title: 'Add OsmAnd Hillshade databases',
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
     });
-    return result.canceled ? [] : result.filePaths;
+    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabasePath();\n    this.hillshadeDatabasePath = result.filePaths[0];\n    await updateAppSettingsSection('osmand', { hillshadeDatabasePath: this.hillshadeDatabasePath });\n    return this.hillshadeDatabasePath;
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
