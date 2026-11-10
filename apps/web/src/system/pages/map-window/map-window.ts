@@ -245,7 +245,7 @@ interface MapErrorEntry {
           <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</span>
           <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</span>
         </div>
-        <span class="time-slider-help">Only GPX track points and photos within this time range are shown.</span>
+        <span class="time-slider-help">{{ timeSliderHelpText() }}</span>
       } @else {
         <span class="time-slider-help">Load GPX files or enable photo markers with timestamps to define the time range.</span>
       }
@@ -3182,7 +3182,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.gpxTracks.set(valid);
     this.saveSetting('gpxTracks', JSON.stringify(valid));
-    this.gpxSegments = segments;
+    this.rebuildGpxSegments();
     this.applyGpxTrack();
   }
 
@@ -3218,8 +3218,8 @@ export class MapWindow implements OnInit, OnDestroy {
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
-    this.gpxSegments = segments;
     this.saveSetting('gpxTracks', JSON.stringify(available));
+    this.rebuildGpxSegments();
     this.applyGpxTrack();
   }
 
@@ -3287,10 +3287,12 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private rebuildGpxSegments(): void {
+    // Update the time range before filtering points; otherwise the initial
+    // persisted slider range (0..0) hides every timestamped point.
+    this.updateTimeSliderBounds();
     this.gpxSegments = this.gpxTracks()
       .filter(track => track.active !== false)
       .flatMap(track => this.visibleGpxSegments(track));
-    this.updateTimeSliderBounds();
   }
 
   private visibleGpxSegments(track: GpxTrackFile): [number, number][][] {
@@ -3397,6 +3399,15 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderWidthPercent = (): number => {
     const span = this.timeSliderMaximum() - this.timeSliderMinimum();
     return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderEnd() - this.timeSliderStart()) / span * 100)) : 100;
+  };
+
+  protected readonly timeSliderHelpText = (): string => {
+    const hasActiveTracks = this.gpxTracks().some(track => track.active !== false);
+    const hasPhotoMarkers = this.directoryMarkersEnabled();
+    if (hasActiveTracks && hasPhotoMarkers) return 'Only GPX track points and photos within this time range are shown.';
+    if (hasActiveTracks) return 'Only GPX tracks within this time range are shown.';
+    if (hasPhotoMarkers) return 'Only photos within this time range are shown.';
+    return 'No active GPX tracks or photo markers.';
   };
 
   protected readonly formatTimeSliderDate = (timestamp: number): string =>
