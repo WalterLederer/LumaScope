@@ -237,7 +237,14 @@ interface MapErrorEntry {
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
         </div>
-        <div class="time-slider-boundaries"><span>{{ formatTimeSliderDate(timeSliderMinimum()) }}</span><span>{{ formatTimeSliderDate(timeSliderMaximum()) }}</span></div>
+        <div class="time-slider-boundaries">
+          <span><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</span>
+          <span><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</span>
+        </div>
+        <div class="time-slider-boundary-sources">
+          <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</span>
+          <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</span>
+        </div>
         <span class="time-slider-help">Only GPX track points and photos within this time range are shown.</span>
       } @else {
         <span class="time-slider-help">Load GPX files or enable photo markers with timestamps to define the time range.</span>
@@ -870,6 +877,8 @@ interface MapErrorEntry {
     .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px}
     .time-slider-activate{display:flex;align-items:center;gap:8px;font-weight:600}
     .time-slider-readouts,.time-slider-boundaries{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
+    .time-slider-boundary-sources{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--color-content-default-medium,#888);font-size:11px;overflow-wrap:anywhere}
+    .time-slider-boundary-sources>span{flex:1 1 45%;min-width:0}
     .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
     .time-slider-range-track{position:absolute;left:0;right:0;height:5px;border-radius:5px;background:var(--color-content-default-low,#555)}
     .time-slider-range-selection{position:absolute;height:5px;border-radius:5px;background:var(--color-accent,#2688e8);pointer-events:none}
@@ -3308,6 +3317,26 @@ export class MapWindow implements OnInit, OnDestroy {
     return timestamp != null && Number.isFinite(timestamp)
       && timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd();
   }
+
+  protected readonly timeSliderBoundarySource = (timestamp: number): string => {
+    const sources: string[] = [];
+    for (const track of this.gpxTracks()) {
+      const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
+      if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
+        && Math.floor(Date.parse(point.timestamp) / 1000) === timestamp)) {
+        sources.push('GPX: ' + track.name);
+      }
+    }
+    if (this.directoryMarkersEnabled()) {
+      for (const marker of this.directoryPhotoTimestampMarkers) {
+        if (marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp)
+          && marker.gpsTimestamp === timestamp) {
+          sources.push('Photo: ' + marker.fileName);
+        }
+      }
+    }
+    return sources.length ? [...new Set(sources)].join(' · ') : 'Unknown';
+  };
 
   private updateTimeSliderBounds(): void {
     const timestamps = [
