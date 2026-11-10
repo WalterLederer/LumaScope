@@ -1743,7 +1743,27 @@ export class OfflineMapRenderer {
   }
 
   rerenderHillshadeTiles(): void {
-    if (!this.map.isStyleLoaded()) return;
+    const styleLoaded = this.map.isStyleLoaded();
+    console.info('[Hillshade][rerender-enter]', {
+      styleLoaded,
+      zoom: this.map.getZoom(),
+      visible: this.hillshadeVisible,
+      opacity: this.hillshadeOpacity,
+      databases: this.hillshadeDatabases.map(database => ({
+        name: database.path.split(/[\\/]/).pop(),
+        enabled: database.enabled,
+        available: database.available
+      })),
+      existingSources: Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-source-')),
+      existingLayers: this.map.getStyle().layers.filter(layer => layer.id.startsWith('osmand-hillshade-raster-')).map(layer => ({
+        id: layer.id,
+        visibility: layer.layout?.visibility
+      }))
+    });
+    if (!styleLoaded) {
+      console.warn('[Hillshade][rerender-skipped]', 'MapLibre style is not loaded; Hillshade source was not recreated.');
+      return;
+    }
     // Recreate the Hillshade source/layer so MapLibre discards its raster tile
     // cache and requests every visible tile again from the combined DB protocol.
     // This re-runs the per-database lookup and pixel compositing path.
@@ -1766,8 +1786,18 @@ export class OfflineMapRenderer {
   }
 
   private syncHillshadeLayers(): void {
-    if (!this.map.isStyleLoaded()) return;
+    if (!this.map.isStyleLoaded()) {
+      console.warn('[Hillshade][sync-skipped]', 'MapLibre style is not loaded; cannot synchronize Hillshade layers.');
+      return;
+    }
     const style = this.map.getStyle();
+    console.info('[Hillshade][sync-start]', {
+      zoom: this.map.getZoom(),
+      visible: this.hillshadeVisible,
+      enabledDatabases: this.hillshadeDatabases.filter(database => database.enabled && database.available).map(database => database.path.split(/[\\/]/).pop()),
+      existingHillshadeSources: Object.keys(style.sources).filter(id => id.startsWith('osmand-hillshade-source-')),
+      existingHillshadeLayers: style.layers.filter(layer => layer.id.startsWith('osmand-hillshade-raster-')).map(layer => layer.id)
+    });
     for (const layer of style.layers.filter(item => item.id.startsWith('osmand-hillshade-raster-'))) {
       this.map.removeLayer(layer.id);
     }
@@ -1799,6 +1829,15 @@ export class OfflineMapRenderer {
         layout: { visibility: this.hillshadeVisible ? 'visible' : 'none' },
         paint: { 'raster-fade-duration': 0, 'raster-opacity': this.hillshadeOpacity }
       }, beforeLayer);
+      console.info('[Hillshade][source-created]', {
+        sourceId,
+        layerId,
+        tileTemplate: 'osmand-hillshade://combined/{z}/{x}/{y}',
+        visibility: this.hillshadeVisible ? 'visible' : 'none',
+        zoom: this.map.getZoom()
+      });
+    } else {
+      console.warn('[Hillshade][source-not-created]', 'No enabled and available Hillshade database.');
     }
     this.map.triggerRepaint();
   }
