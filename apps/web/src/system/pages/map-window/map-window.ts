@@ -235,13 +235,15 @@ interface MapErrorEntry {
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
         </div>
-        <div class="time-slider-boundaries">
-          <span><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</span>
-          <span><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</span>
-        </div>
-        <div class="time-slider-boundary-sources">
-          <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</span>
-          <span><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</span>
+        <div class="time-slider-boundary-box">
+          <div class="time-slider-boundary-column">
+            <div class="time-slider-boundary-value"><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</div>
+            <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</div>
+          </div>
+          <div class="time-slider-boundary-column">
+            <div class="time-slider-boundary-value"><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</div>
+            <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</div>
+          </div>
         </div>
         <span class="time-slider-help">{{ timeSliderHelpText() }}</span>
       } @else {
@@ -874,9 +876,11 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px}
     .time-slider-activate{display:flex;align-items:center;gap:8px;font-weight:600}
-    .time-slider-readouts,.time-slider-boundaries{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
-    .time-slider-boundary-sources{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--color-content-default-medium,#888);font-size:11px;overflow-wrap:anywhere}
-    .time-slider-boundary-sources>span{flex:1 1 45%;min-width:0}
+    .time-slider-readouts{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
+    .time-slider-boundary-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
+    .time-slider-boundary-column{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .time-slider-boundary-value{font-size:12px;overflow-wrap:anywhere}
+    .time-slider-boundary-source{font-size:11px;color:var(--color-content-default-medium,#888);overflow-wrap:anywhere}
     .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
     .time-slider-range-track{position:absolute;left:0;right:0;height:5px;border-radius:5px;background:var(--color-content-default-low,#555)}
     .time-slider-range-selection{position:absolute;height:5px;border-radius:5px;background:var(--color-accent,#2688e8);pointer-events:none}
