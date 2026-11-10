@@ -163,19 +163,44 @@ interface MapErrorEntry {
                 </div>
               }
             </div>
-            <select class="gpx-track-line-style" role="cell" [value]="track.lineStyle || 'solid'" (change)="changeGpxTrackLineStyle(track.path, $any($event.target).value)" [attr.aria-label]="'Line style for ' + track.name">
-              <option value="solid">Solid  ━━━━━━━━━</option><option value="dashed">Dashed  ━ ━ ━ ━</option><option value="dotted">Dotted  · · · · ·</option>
-              <option value="long-dashed">Long dash  ━━  ━━  ━━</option><option value="short-dashed">Short dash  ━ ━ ━ ━</option>
-              <option value="dash-dot">Dash-dot  ━ · ━ · ━</option><option value="dash-dot-dot">Dash-dot-dot  ━ · · ━ · ·</option>
-            </select>
+            <div class="color-picker gpx-track-choice-picker" role="cell">
+              <button type="button" class="color-picker-trigger gpx-track-choice-trigger" (click)="toggleGpxTrackLineStyleMenu(track.path)" [attr.aria-expanded]="gpxTrackLineStyleMenuOpen() === track.path" [attr.aria-label]="'Line style for ' + track.name">
+                <span class="gpx-track-choice-sample">{{ gpxLineStyleSample(track.lineStyle || 'solid') }}</span><span>{{ gpxLineStyleName(track.lineStyle || 'solid') }}</span><span class="color-picker-chevron">▾</span>
+              </button>
+              @if (gpxTrackLineStyleMenuOpen() === track.path) {
+                <div class="color-picker-menu gpx-track-choice-menu gpx-line-style-menu" role="listbox" [attr.aria-label]="'Line styles for ' + track.name">
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="(track.lineStyle || 'solid') === 'solid'" (click)="changeGpxTrackLineStyle(track.path, 'solid')"><span class="gpx-track-choice-sample">━━━━━━━━━</span><span>Solid</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dashed'" (click)="changeGpxTrackLineStyle(track.path, 'dashed')"><span class="gpx-track-choice-sample">━ ━ ━ ━</span><span>Dashed</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dotted'" (click)="changeGpxTrackLineStyle(track.path, 'dotted')"><span class="gpx-track-choice-sample">· · · · ·</span><span>Dotted</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'long-dashed'" (click)="changeGpxTrackLineStyle(track.path, 'long-dashed')"><span class="gpx-track-choice-sample">━━  ━━  ━━</span><span>Long dash</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'short-dashed'" (click)="changeGpxTrackLineStyle(track.path, 'short-dashed')"><span class="gpx-track-choice-sample">━ ━ ━ ━</span><span>Short dash</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dash-dot'" (click)="changeGpxTrackLineStyle(track.path, 'dash-dot')"><span class="gpx-track-choice-sample">━ · ━ · ━</span><span>Dash-dot</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dash-dot-dot'" (click)="changeGpxTrackLineStyle(track.path, 'dash-dot-dot')"><span class="gpx-track-choice-sample">━ · · ━ · ·</span><span>Dash-dot-dot</span></button>
+                </div>
+              }
+            </div>
             <select class="gpx-track-line-width" role="cell" [value]="track.lineWidth || 4" (change)="changeGpxTrackLineWidth(track.path, $any($event.target).value)" [attr.aria-label]="'Line width for ' + track.name">
               <option value="1">1 px</option><option value="2">2 px</option><option value="3">3 px</option>
               <option value="4">4 px</option><option value="5">5 px</option><option value="6">6 px</option>
               <option value="8">8 px</option><option value="10">10 px</option>
             </select>
-            <select class="gpx-track-direction" role="cell" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxTrackDirection(track.path, $any($event.target).value)" [attr.aria-label]="'Direction arrows for ' + track.name">
-              <option value="off">Off</option><option value="classic">➤ Classic · 16 px</option><option value="chevron">❯ Chevron · 16 px</option><option value="triangle">▶ Triangle · 16 px</option><option value="thin">➜ Slim · 16 px</option><option value="large-classic">➤ Classic · 24 px</option><option value="large-chevron">❯ Chevron · 24 px</option><option value="large-triangle">▶ Triangle · 24 px</option>
-            </select>
+            <div class="color-picker gpx-track-choice-picker" role="cell">
+              <button type="button" class="color-picker-trigger gpx-track-choice-trigger" (click)="toggleGpxTrackDirectionMenu(track.path)" [attr.aria-expanded]="gpxTrackDirectionMenuOpen() === track.path" [attr.aria-label]="'Direction arrows for ' + track.name">
+                <span class="gpx-track-arrow-sample">{{ gpxDirectionSample(track.showDirection ? (track.directionStyle || 'classic') : 'off') }}</span><span>{{ gpxDirectionName(track.showDirection ? (track.directionStyle || 'classic') : 'off') }}</span><span class="color-picker-chevron">▾</span>
+              </button>
+              @if (gpxTrackDirectionMenuOpen() === track.path) {
+                <div class="color-picker-menu gpx-track-choice-menu gpx-direction-menu" role="listbox" [attr.aria-label]="'Direction arrow styles for ' + track.name">
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="!track.showDirection" (click)="changeGpxTrackDirection(track.path, 'off')"><span class="gpx-track-arrow-sample">—</span><span>Off</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.showDirection && (track.directionStyle || 'classic') === 'classic'" (click)="changeGpxTrackDirection(track.path, 'classic')"><span class="gpx-track-arrow-sample">➤</span><span>Classic · 16 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'chevron' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'chevron')"><span class="gpx-track-arrow-sample">❯</span><span>Chevron · 16 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'triangle' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'triangle')"><span class="gpx-track-arrow-sample">▶</span><span>Triangle · 16 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'thin' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'thin')"><span class="gpx-track-arrow-sample">➜</span><span>Slim · 16 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-classic' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-classic')"><span class="gpx-track-arrow-sample large">➤</span><span>Classic · 24 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-chevron' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-chevron')"><span class="gpx-track-arrow-sample large">❯</span><span>Chevron · 24 px</span></button>
+                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-triangle' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-triangle')"><span class="gpx-track-arrow-sample large">▶</span><span>Triangle · 24 px</span></button>
+                </div>
+              }
+            </div>
             <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
           </div>
         }
@@ -959,7 +984,7 @@ interface MapErrorEntry {
     .gpx-filename{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
     .color-picker{position:relative}.color-picker-trigger{display:flex;align-items:center;gap:7px;min-width:132px}.color-picker-chevron{margin-left:auto}
     .color-picker-menu{position:absolute;z-index:1000;top:calc(100% + 4px);left:0;min-width:185px;padding:4px;background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:5px;box-shadow:0 5px 18px #0005}
-    .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}
+    .color-option{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent}.color-option[aria-selected=true]{outline:1px solid #8ab4f8}\n    .gpx-track-choice-picker{min-width:0;width:100%}.gpx-track-choice-trigger{display:grid!important;grid-template-columns:92px minmax(0,1fr) 12px;align-items:center;gap:5px;width:100%;min-width:0;max-width:none;padding:3px 5px}.gpx-track-choice-trigger>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}.gpx-track-choice-menu{width:230px;min-width:230px}.gpx-track-choice-option{display:grid;grid-template-columns:105px minmax(0,1fr);align-items:center;gap:8px;padding:4px 6px;min-height:27px}.gpx-track-choice-option>span:last-child{white-space:nowrap}.gpx-track-choice-sample{display:block;width:105px;overflow:hidden;white-space:nowrap;font:12px/1.2 ui-monospace,monospace;letter-spacing:-.5px;text-align:left}.gpx-track-arrow-sample{display:flex;align-items:center;justify-content:center;width:105px;font:700 17px/1 Arial,sans-serif}.gpx-track-arrow-sample.large{font-size:24px}.gpx-direction-menu{width:220px;min-width:220px}
     .color-swatch{display:inline-flex;align-items:center;justify-content:center;min-width:78px;padding:3px 6px;border-radius:3px;font:11px/1.3 ui-monospace,monospace;font-weight:600}
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map-content{position:relative;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
@@ -1234,7 +1259,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
-  protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
+  protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);\n  protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);\n  protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxError = signal('');
@@ -1657,6 +1682,33 @@ export class MapWindow implements OnInit, OnDestroy {
     this.colorMenuOpen.set(false); this.markerColorMenuOpen.set(false); this.currentMarkerColorMenuOpen.set(false);
     this.gpxTrackColorMenuOpen.set(open);
   };
+  protected readonly toggleGpxTrackLineStyleMenu = (path: string): void => {
+    const open = this.gpxTrackLineStyleMenuOpen() === path ? null : path;
+    this.gpxTrackColorMenuOpen.set(null); this.gpxTrackDirectionMenuOpen.set(null);
+    this.gpxTrackLineStyleMenuOpen.set(open);
+  };
+  protected readonly toggleGpxTrackDirectionMenu = (path: string): void => {
+    const open = this.gpxTrackDirectionMenuOpen() === path ? null : path;
+    this.gpxTrackColorMenuOpen.set(null); this.gpxTrackLineStyleMenuOpen.set(null);
+    this.gpxTrackDirectionMenuOpen.set(open);
+  };
+  protected readonly gpxLineStyleName = (style: string): string => ({
+    solid: 'Solid', dashed: 'Dashed', dotted: 'Dotted', 'long-dashed': 'Long dash',
+    'short-dashed': 'Short dash', 'dash-dot': 'Dash-dot', 'dash-dot-dot': 'Dash-dot-dot'
+  } as Record<string, string>)[style] ?? 'Solid';
+  protected readonly gpxLineStyleSample = (style: string): string => ({
+    solid: '━━━━━━━━━', dashed: '━ ━ ━ ━', dotted: '· · · · ·', 'long-dashed': '━━  ━━  ━━',
+    'short-dashed': '━ ━ ━ ━', 'dash-dot': '━ · ━ · ━', 'dash-dot-dot': '━ · · ━ · ·'
+  } as Record<string, string>)[style] ?? '━━━━━━━━━';
+  protected readonly gpxDirectionName = (style: string): string => ({
+    off: 'Off', classic: 'Classic · 16 px', chevron: 'Chevron · 16 px', triangle: 'Triangle · 16 px',
+    thin: 'Slim · 16 px', 'large-classic': 'Classic · 24 px', 'large-chevron': 'Chevron · 24 px',
+    'large-triangle': 'Triangle · 24 px'
+  } as Record<string, string>)[style] ?? 'Classic · 16 px';
+  protected readonly gpxDirectionSample = (style: string): string => ({
+    off: '—', classic: '➤', chevron: '❯', triangle: '▶', thin: '➜',
+    'large-classic': '➤', 'large-chevron': '❯', 'large-triangle': '▶'
+  } as Record<string, string>)[style] ?? '➤';
   protected readonly selectedGpxTrackColorName = (track: GpxTrackFile): string => this.gpxColors.find(color => color.value === (track.color || this.gpxColor()))?.name ?? 'Red';
   protected readonly selectedGpxTrackTextColor = (track: GpxTrackFile): string => this.gpxColors.find(color => color.value === (track.color || this.gpxColor()))?.textColor ?? '#ffffff';
   protected readonly toggleMarkerColorMenu = (): void => {
@@ -2940,7 +2992,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeGpxTrackLineStyle = (path: string, lineStyle: string): void => {
     if (!['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(lineStyle)) return;
-    this.updateGpxTrack(path, { lineStyle: lineStyle as GpxTrackFile['lineStyle'] });
+    this.updateGpxTrack(path, { lineStyle: lineStyle as GpxTrackFile['lineStyle'] });\n    this.gpxTrackLineStyleMenuOpen.set(null);
   };
   protected readonly changeGpxTrackLineWidth = (path: string, value: string): void => {
     const lineWidth = Number(value);
@@ -2950,7 +3002,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeGpxTrackDirection = (path: string, value: string): void => {
     const styles = ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'];
     if (value !== 'off' && !styles.includes(value)) return;
-    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });
+    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });\n    this.gpxTrackDirectionMenuOpen.set(null);
   };
   private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
