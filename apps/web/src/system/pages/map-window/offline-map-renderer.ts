@@ -1,4 +1,4 @@
-import { addProtocol, Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
+import { addProtocol, Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -551,6 +551,7 @@ export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string,
 
 export class OfflineMapRenderer {
   readonly map: MapLibreMap;
+  private trackHoverHandler: ((path: string, latitude: number, longitude: number) => void) | null = null;
   readonly ready: Promise<void>;
   private currentMarkerElement: HTMLElement | null = null;
   private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
@@ -1058,6 +1059,14 @@ export class OfflineMapRenderer {
           ...(line.dash ? { 'line-dasharray': line.dash } : {})
         }
       });
+    }
+    for (const layerId of gpxLineStyles.map(line => line.id)) {
+      this.map.on('mousemove', layerId, (event: MapLayerMouseEvent) => {
+        const feature = event.features?.[0];
+        const path = feature?.properties?.['path'];
+        if (typeof path === 'string') this.trackHoverHandler?.(path, event.lngLat.lat, event.lngLat.lng);
+      });
+      this.map.on('mouseleave', layerId, () => this.trackHoverHandler?.('', Number.NaN, Number.NaN));
     }
     this.map.addLayer({
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
@@ -1765,7 +1774,9 @@ export class OfflineMapRenderer {
     }
   }
 
-  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean }>, opacity: number): void {
+  setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number) => void) | null): void { this.trackHoverHandler = handler; }
+
+  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -1773,7 +1784,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.filter(segment => segment.length >= 2).map(segment => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true }
+        properties: { path: track.path, color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
