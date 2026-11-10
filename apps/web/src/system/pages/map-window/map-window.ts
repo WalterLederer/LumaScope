@@ -133,7 +133,6 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
       <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
-      <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
     </div>
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
