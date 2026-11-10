@@ -1557,14 +1557,17 @@ export class OfflineMapRenderer {
 
   setBasemapOpacity(opacity: number): void {
     const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
-    // Apply opacity to every paint opacity property belonging to the map
-    // source, rather than maintaining a brittle list of style-specific layer
-    // IDs. This covers both OsmAnd raster layers (including Atlas), every
-    // MBTiles style layer, and outline/stroke opacity that otherwise leaves
-    // white rings visible after the map itself has been hidden.
+    if (!this.map.isStyleLoaded()) return;
+
+    // Apply concrete numeric paint values. MapLibre raster-opacity is not
+    // expression-capable, so expressions such as ['*', 1, value] can make
+    // the basemap layer fail to render. Preserve numeric style defaults and
+    // use the requested value for properties whose default is implicit.
     for (const layer of this.map.getStyle().layers) {
       if (layer.id === 'osmand-hillshade-raster' || layer.id.startsWith('osmand-hillshade-raster-')
-        || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track' || layer.source === 'osmand-hillshade' || String(layer.source).startsWith('osmand-hillshade-')))) continue;
+        || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track'
+          || layer.source === 'osmand-hillshade' || String(layer.source).startsWith('osmand-hillshade-')))) continue;
+
       const paint = 'paint' in layer && layer.paint ? layer.paint as Record<string, unknown> : {};
       const typeDefaults: Record<string, string[]> = {
         background: ['background-opacity'],
@@ -1580,36 +1583,19 @@ export class OfflineMapRenderer {
         ...(typeDefaults[layer.type] ?? []),
         ...Object.keys(paint).filter(key => key.endsWith('-opacity'))
       ]);
+
       for (const property of properties) {
-        // MapLibre types paint-property names as keyof AllPaintProperties.
-        // The keys above are selected from the layer type and its own paint
-        // object, so this assertion bridges the dynamic iteration to that API.
         const paintProperty = property as Parameters<MapLibreMap['getPaintProperty']>[1];
         const key = layer.id + ':' + property;
         if (!this.basemapOpacityDefaults.has(key)) {
           this.basemapOpacityDefaults.set(key, this.map.getPaintProperty(layer.id, paintProperty));
         }
         const original = this.basemapOpacityDefaults.get(key);
-        // Multiply the style's own opacity so the slider remains continuous;
-        // zero also removes outlines that would otherwise survive as rings.
-        // Use a numeric value for unset/default properties. Wrapping a
-        // default in a multiplication expression is not accepted by every
-        // MapLibre paint property (notably background opacity), and one
-        // rejected property must not prevent the raster basemap from updating.
-        const scaled = value === 0 ? 0
-          : typeof original === 'number' ? original * value
-            : Array.isArray(original) ? ['*', original, value]
-              : value;
+        const scaled = typeof original === 'number' ? original * value : value;
         try {
-          this.map.setPaintProperty(layer.id, paintProperty, scaled as never);
+          this.map.setPaintProperty(layer.id, paintProperty, scaled);
         } catch (error) {
-          // Some paint properties do not support expression values. Fall back
-          // to the requested opacity so later map layers are still processed.
-          try {
-            this.map.setPaintProperty(layer.id, paintProperty, value);
-          } catch (fallbackError) {
-            console.warn('[Map opacity] Could not update paint property:', layer.id, property, fallbackError ?? error);
-          }
+          console.warn('[Map opacity] Could not update paint property:', layer.id, property, error);
         }
       }
     }
