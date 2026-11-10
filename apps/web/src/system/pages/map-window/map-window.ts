@@ -1681,7 +1681,7 @@ export class MapWindow implements OnInit, OnDestroy {
           ? this.mapStyle()
           : 'Unknown';
     const now = Date.now();
-    const timestamp = new Date(now).toLocaleString(locale);
+    const timestamp = new Date(now).toLocaleString(this.locale);
     this.mapErrors.update(errors => {
       const latest = errors[0];
       if (latest && latest.source === source && latest.renderer === renderer
@@ -2825,7 +2825,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
-    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(locale);
+    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
@@ -2967,7 +2967,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyGpxTrack();
   };
   protected readonly formatGpxDate = (timestamp: number): string =>
-    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(locale) : '—';
+    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(this.locale) : '—';
   protected readonly formatGpxFileSize = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes < 0) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -3405,7 +3405,7 @@ ${points}
     const parts = [
       nearest ? 'GPS ' + nearest.latitude.toFixed(6) + ', ' + nearest.longitude.toFixed(6) : 'GPS –',
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
-      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(locale)) : 'GPX time –'
+      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(this.locale)) : 'GPX time –'
     ];
     this.gpxHoverInfo.set(parts.join(' · '));
   }
