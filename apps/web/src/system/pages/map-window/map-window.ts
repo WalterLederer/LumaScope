@@ -34,7 +34,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface MapErrorEntry {
   id: number;
@@ -146,12 +146,12 @@ interface MapErrorEntry {
           <span role="columnheader">Fit</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
-          <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path">
-            <button type="button" class="gpx-fit-button" role="cell" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to entire track">↗</button>
+          <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing">
+            <div class="gpx-row-actions" role="cell"><button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to entire track">↗</button><button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name + ' in default editor'" title="Open in default GPX editor">↗</button></div>
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
-            <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
-            <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
+            <span role="cell">{{ track.missing ? 'Missing' : formatGpxDate(track.lastModified) }}</span>
+            <span role="cell">{{ track.missing ? 'Missing' : formatGpxFileSize(track.sizeBytes) }}</span>
             <div class="color-picker gpx-track-color-picker" role="cell">
               <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
                 <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span>
@@ -826,13 +826,13 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:30px 42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
-    .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-missing{color:#ff5b5b;background:color-mix(in srgb,#e53935 9%,transparent)}.gpx-file-row.gpx-missing .gpx-file-name{color:#ff5b5b}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
-    .gpx-fit-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gpx-row-actions{display:flex;align-items:center;justify-content:center;gap:3px}.gpx-fit-button,.gpx-open-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover,.gpx-open-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-open-button{width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-open-button:disabled{opacity:.35;cursor:default}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
-    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1070px;grid-template-columns:26px 30px minmax(140px,1fr) 90px 65px 120px 105px 62px 150px 32px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
+    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1098px;grid-template-columns:54px 30px minmax(140px,1fr) 90px 65px 120px 105px 62px 150px 32px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -2970,6 +2970,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.fitGpxTrack();
   }
 
+  protected readonly openGpxTrack = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop || track.missing || track.path.startsWith('memory:')) return;
+    const error = await this.desktop.ProcessManager.openPath(track.path);
+    if (error) this.gpxError.set(error);
+  };
+
   protected readonly removeGpxTrack = async (path: string): Promise<void> => {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
@@ -2988,13 +2994,13 @@ export class MapWindow implements OnInit, OnDestroy {
     for (const track of this.gpxTracks()) {
       if (track.path.startsWith('memory:')) continue;
       const result = await this.desktop.FileSystem.readText(track.path);
-      if (!result.success) continue;
+      if (!result.success) { valid.push({ ...track, missing: true }); continue; }
       try {
         const parsed = this.parseGpxTrackData(result.data);
         this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (track.active !== false) segments.push(...parsed);
-        valid.push({ ...track, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
+        valid.push({ ...track, missing: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
       }
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
@@ -3022,14 +3028,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxPointDataByTrack.clear();
     for (const track of tracks) {
       const result = await this.desktop.FileSystem.readText(track.path);
-      if (!result.success) continue;
+      if (!result.success) { available.push({ ...track, missing: true }); continue; }
       try {
         const parsed = this.parseGpxTrackData(result.data);
         this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
         const active = track.active !== false;
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (active) segments.push(...parsed);
-        available.push({ ...track, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
+        available.push({ ...track, missing: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
