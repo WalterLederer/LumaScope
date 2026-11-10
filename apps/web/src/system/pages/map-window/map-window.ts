@@ -3194,7 +3194,6 @@ ${points}
   private updateGpxHover(path: string, latitude: number, longitude: number): void {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { this.clearGpxHover(); return; }
     this.gpxHoveredTrackPath.set(path);
-    const track = this.gpxTracks().find(item => item.path === path);
     const points = (this.gpxPointDataByTrack.get(path) ?? []).flat();
     let nearest: GpxTrackPoint | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
