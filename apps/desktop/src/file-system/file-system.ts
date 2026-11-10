@@ -32,7 +32,7 @@ export class FileSystem {
   @IpcHandler({ name: 'FileSystem.writeText' })
   readonly writeText = async (_: IpcMainInvokeEvent, path: string, content: string): Promise<ApiResponse<undefined>> => {
     try {
-      await writeFile(path, content, { encoding: 'utf-8', flag: 'wx' });
+      await writeFile(path, content, { encoding: 'utf-8', flag: 'w' });
       return { success: true, data: undefined };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
