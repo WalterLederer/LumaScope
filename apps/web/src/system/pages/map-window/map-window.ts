@@ -385,6 +385,7 @@ interface MapErrorEntry {
       }
     </div>
     <div class="render-tile-statistics-box">
+      <div class="render-tile-statistics-title">Render Counter</div>
       <table class="render-tile-statistics" aria-live="polite">
         <colgroup>
           <col class="render-stat-label-column">
@@ -394,8 +395,8 @@ interface MapErrorEntry {
         <thead>
           <tr>
             <th></th>
-            <th scope="col">Total render</th>
-            <th scope="col">Last render</th>
+            <th scope="col">Total</th>
+            <th scope="col">Last</th>
           </tr>
         </thead>
         <tbody>
@@ -789,7 +790,8 @@ interface MapErrorEntry {
     .view-rerender-section .map-cache-actions{min-width:0}
     .view-rerender-section .view-rerender-actions{justify-content:flex-start;align-items:center}
     .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
-    .render-tile-statistics-box{width:max-content;max-width:100%;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;background:var(--color-surface-default-low,#202124)}
+    .render-tile-statistics-box{width:max-content;max-width:100%;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
+    .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
     .render-tile-statistics .render-stat-label-column{width:130px}
     .render-tile-statistics .render-stat-value-column{width:150px}
