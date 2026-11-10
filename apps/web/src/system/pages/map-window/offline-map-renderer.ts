@@ -889,6 +889,11 @@ export class OfflineMapRenderer {
     };
     this.map = new MapLibreMap(options);
     this.map.addControl(new ScaleControl({ maxWidth: 140, unit: 'metric' }), 'bottom-left');
+    // MapLibre puts all controls in a low-z-index stacking context (2).
+    // Raise that parent above our geographic marker overlay (z-index 20),
+    // otherwise the scale control remains hidden regardless of its own z-index.
+    const controlContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-control-container');
+    if (controlContainer) controlContainer.style.zIndex = '30';
     const scaleContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-left');
     if (scaleContainer) {
       scaleContainer.style.zIndex = '40';
