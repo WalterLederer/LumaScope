@@ -377,8 +377,8 @@ export interface OsmAndAtlasRuntimeStatus {
 
 export interface DesktopOsmAndAtlas {
   readonly getHillshadeDatabasePath: () => Promise<string>;
-  readonly chooseHillshadeDatabase: () => Promise<string>;
-  readonly renderHillshadeTile: (z: number, x: number, y: number, scale?: number) => Promise<Uint8Array>;
+  readonly chooseHillshadeDatabase: () => Promise<string[]>;
+  readonly renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale?: number) => Promise<Uint8Array>;
   readonly getRuntimeStatus: () => Promise<OsmAndAtlasRuntimeStatus>;
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
   readonly setRenderingStyle: (fileName: string) => Promise<OsmAndAtlasRuntimeStatus>;
