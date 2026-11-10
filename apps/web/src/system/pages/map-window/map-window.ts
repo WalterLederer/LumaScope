@@ -360,12 +360,18 @@ interface MapErrorEntry {
       <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
       </button>
-      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
-      <div class="map-cache-row render-tile-statistics" aria-live="polite">
-        <span>Last render</span>
-        <strong>Rendered: {{ lastRenderTileCounts().rendered.toLocaleString() }}</strong>
-        <strong>From cache: {{ lastRenderTileCounts().cached.toLocaleString() }}</strong>
-        <strong>Errors: {{ lastRenderTileCounts().failed.toLocaleString() }}</strong>
+      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd Atlas tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
+      <div class="map-cache-section render-tile-statistics" aria-live="polite">
+        <div class="map-cache-heading">Total render</div>
+        <div class="map-cache-row"><span>Rendered</span><strong>{{ totalRenderTileCounts().rendered.toLocaleString() }}</strong></div>
+        <div class="map-cache-row"><span>From cache</span><strong>{{ totalRenderTileCounts().cached.toLocaleString() }}</strong></div>
+        <div class="map-cache-row"><span>Errors</span><strong>{{ totalRenderTileCounts().failed.toLocaleString() }}</strong></div>
+      </div>
+      <div class="map-cache-section render-tile-statistics" aria-live="polite">
+        <div class="map-cache-heading">Last render</div>
+        <div class="map-cache-row"><span>Rendered</span><strong>{{ lastRenderTileCounts().rendered.toLocaleString() }}</strong></div>
+        <div class="map-cache-row"><span>From cache</span><strong>{{ lastRenderTileCounts().cached.toLocaleString() }}</strong></div>
+        <div class="map-cache-row"><span>Errors</span><strong>{{ lastRenderTileCounts().failed.toLocaleString() }}</strong></div>
       </div>
     </div>
   </details>
@@ -975,16 +981,23 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
   private readonly seenRenderTiles = new Set<string>();
-  private readonly renderTileResults = new Map<string, 'rendered' | 'cached' | 'failed'>();
+  private readonly totalRenderTileResults = new Map<string, 'rendered' | 'cached' | 'failed'>();
+  private readonly lastRenderTileResults = new Map<string, 'rendered' | 'cached' | 'failed'>();
+  private readonly forcedRenderTiles = new Set<string>();
+  protected readonly totalRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
-  private readonly updateLastRenderTileCounts = (): void => {
-    let rendered = 0, cached = 0, failed = 0;
-    for (const result of this.renderTileResults.values()) {
-      if (result === 'rendered') rendered++;
-      else if (result === 'cached') cached++;
-      else if (result === 'failed') failed++;
-    }
-    this.lastRenderTileCounts.set({ rendered, cached, failed });
+  private readonly updateRenderTileCounts = (): void => {
+    const count = (results: Map<string, 'rendered' | 'cached' | 'failed'>) => {
+      let rendered = 0, cached = 0, failed = 0;
+      for (const result of results.values()) {
+        if (result === 'rendered') rendered++;
+        else if (result === 'cached') cached++;
+        else if (result === 'failed') failed++;
+      }
+      return { rendered, cached, failed };
+    };
+    this.totalRenderTileCounts.set(count(this.totalRenderTileResults));
+    this.lastRenderTileCounts.set(count(this.lastRenderTileResults));
   };
   private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
@@ -1022,18 +1035,27 @@ export class MapWindow implements OnInit, OnDestroy {
         this.seenRenderTiles.add(key);
         this.renderTotalCount.update(total => total + 1);
       }
+      if (detail.status === 'rerendering') this.forcedRenderTiles.add(key);
     } else if (detail.status === 'cache-loading') {
-      this.renderTileResults.set(key, 'cached');
+      if (!this.forcedRenderTiles.has(key)) {
+        this.totalRenderTileResults.set(key, 'cached');
+        this.updateRenderTileCounts();
+      }
       this.activeRenderTiles.delete(key);
-      this.updateLastRenderTileCounts();
     } else if (detail.status === 'loaded') {
-      if (this.renderTileResults.get(key) !== 'cached') this.renderTileResults.set(key, 'rendered');
+      if (this.forcedRenderTiles.has(key)) {
+        this.lastRenderTileResults.set(key, 'rendered');
+        this.totalRenderTileResults.set(key, 'rendered');
+      } else if (this.totalRenderTileResults.get(key) !== 'cached') {
+        this.totalRenderTileResults.set(key, 'rendered');
+      }
       this.activeRenderTiles.delete(key);
-      this.updateLastRenderTileCounts();
+      this.updateRenderTileCounts();
     } else if (detail.status === 'error') {
-      this.renderTileResults.set(key, 'failed');
+      this.totalRenderTileResults.set(key, 'failed');
+      if (this.forcedRenderTiles.has(key)) this.lastRenderTileResults.set(key, 'failed');
       this.activeRenderTiles.delete(key);
-      this.updateLastRenderTileCounts();
+      this.updateRenderTileCounts();
     } else if (detail.status === 'cancelled' || detail.status === 'warning') {
       this.activeRenderTiles.delete(key);
     }
@@ -2303,7 +2325,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const renderer = this.offlineRenderer;
     const source = this.mapSource();
     if (!this.desktop || !renderer || (source !== 'osmand-atlas' && source !== 'osmand') || this.rerenderVisibleTilesBusy()) return;
-    this.renderTileResults.clear();
+    this.lastRenderTileResults.clear();
+    this.forcedRenderTiles.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
     this.rerenderVisibleTilesBusy.set(true);
     this.rerenderVisibleTilesStatus.set(`Rendering visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tiles without using the disk cache…`);
@@ -2315,7 +2338,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.atlasDisplayDensityFactor(),
         (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
       );
-      this.rerenderVisibleTilesStatus.set(`Rendered ${count} visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tile(s); reloading them from the updated cache.`);
+      this.rerenderVisibleTilesStatus.set('');
       await this.refreshOsmAndTileCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
