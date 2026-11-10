@@ -888,6 +888,12 @@ interface MapErrorEntry {
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:45px}
     .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .opacity-settings .range-setting>input.opacity-slider + .range-value{margin-left:-4px}
+    /* Override the generic flex layout above: each opacity card has a header row and a full-width slider row. */
+    .opacity-settings .opacity-content>.range-setting{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:5px;row-gap:4px;gap:4px}
+    .opacity-settings .opacity-content>.range-setting>label,
+    .opacity-settings .opacity-content>.range-setting>.visibility-toggle{grid-column:1;grid-row:1;min-width:0}
+    .opacity-settings .opacity-content>.range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;margin:0;min-width:0}
+    .opacity-settings .opacity-content>.range-setting>input.opacity-slider[type=range]{grid-column:1/-1;grid-row:2;align-self:center;width:100%;max-width:none;min-width:0;margin:0}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
     :host ::ng-deep .leaflet-marker-pane{z-index:400!important}
     :host ::ng-deep .leaflet-tooltip-pane{z-index:1200}
