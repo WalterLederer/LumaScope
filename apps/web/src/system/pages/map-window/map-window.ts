@@ -164,9 +164,9 @@ interface MapErrorEntry {
               }
             </div>
             <select class="gpx-track-line-style" role="cell" [value]="track.lineStyle || 'solid'" (change)="changeGpxTrackLineStyle(track.path, $any($event.target).value)" [attr.aria-label]="'Line style for ' + track.name">
-              <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
-              <option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option>
-              <option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
+              <option value="solid">Solid  ━━━━━━━━━</option><option value="dashed">Dashed  ━ ━ ━ ━</option><option value="dotted">Dotted  · · · · ·</option>
+              <option value="long-dashed">Long dash  ━━  ━━  ━━</option><option value="short-dashed">Short dash  ━ ━ ━ ━</option>
+              <option value="dash-dot">Dash-dot  ━ · ━ · ━</option><option value="dash-dot-dot">Dash-dot-dot  ━ · · ━ · ·</option>
             </select>
             <select class="gpx-track-line-width" role="cell" [value]="track.lineWidth || 4" (change)="changeGpxTrackLineWidth(track.path, $any($event.target).value)" [attr.aria-label]="'Line width for ' + track.name">
               <option value="1">1 px</option><option value="2">2 px</option><option value="3">3 px</option>
@@ -174,7 +174,7 @@ interface MapErrorEntry {
               <option value="8">8 px</option><option value="10">10 px</option>
             </select>
             <select class="gpx-track-direction" role="cell" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxTrackDirection(track.path, $any($event.target).value)" [attr.aria-label]="'Direction arrows for ' + track.name">
-              <option value="off">Off</option><option value="classic">Classic · 16 px</option><option value="chevron">Chevron · 16 px</option><option value="triangle">Triangle · 16 px</option><option value="thin">Slim · 16 px</option><option value="large-classic">Classic · 24 px</option><option value="large-chevron">Chevron · 24 px</option><option value="large-triangle">Triangle · 24 px</option>
+              <option value="off">Off</option><option value="classic">➤ Classic · 16 px</option><option value="chevron">❯ Chevron · 16 px</option><option value="triangle">▶ Triangle · 16 px</option><option value="thin">➜ Slim · 16 px</option><option value="large-classic">➤ Classic · 24 px</option><option value="large-chevron">❯ Chevron · 24 px</option><option value="large-triangle">▶ Triangle · 24 px</option>
             </select>
             <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
           </div>
@@ -3000,7 +3000,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .flatMap(track => this.gpxSegmentsByTrack.get(track.path) ?? []);
   }
 
-  private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; gpsTimestamp: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
+  private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; gpsTimestamp?: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
     const result = markers.map(marker => ({ ...marker, timestamp: Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp! > 0 ? marker.gpsTimestamp : null }));
     const distance = (a: T, b: T): number => {
       const radians = Math.PI / 180;
