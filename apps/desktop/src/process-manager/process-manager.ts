@@ -150,6 +150,9 @@ export class ProcessManager {
     await shell.openExternal(parsed.toString());
   };
 
+  @IpcHandler({ name: 'ProcessManager.openPath' })
+  readonly openPath = async (_: IpcMainInvokeEvent, filePath: string): Promise<string> => shell.openPath(filePath);
+
   @IpcHandler({ name: 'ProcessManager.openConfigFile' })
   readonly openConfigFile = async (): Promise<string> => shell.openPath(App.startupConfig.configPath());
 
