@@ -375,7 +375,7 @@ export interface OsmAndAtlasRuntimeStatus {
   styleAvailable: boolean;
 }
 
-export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: boolean; available: boolean; }
+export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
 export interface DesktopOsmAndAtlas {
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
