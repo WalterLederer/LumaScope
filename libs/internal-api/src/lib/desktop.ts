@@ -375,9 +375,13 @@ export interface OsmAndAtlasRuntimeStatus {
   styleAvailable: boolean;
 }
 
+export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: boolean; available: boolean; }
+
 export interface DesktopOsmAndAtlas {
-  readonly getHillshadeDatabasePath: () => Promise<string>;
-  readonly chooseHillshadeDatabase: () => Promise<string>;
+  readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
+  readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
+  readonly setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => Promise<OsmAndHillshadeDatabase[]>;
+  readonly removeHillshadeDatabase: (id: string) => Promise<OsmAndHillshadeDatabase[]>;
   readonly renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale?: number) => Promise<Uint8Array>;
   readonly getRuntimeStatus: () => Promise<OsmAndAtlasRuntimeStatus>;
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
