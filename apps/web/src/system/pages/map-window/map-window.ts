@@ -1070,6 +1070,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
   private readonly gpxPointDataByTrack = new Map<string, GpxTrackPoint[][]>();
   private directoryPhotoMarkers: OfflinePhotoMarker[] = [];
+  private directoryPhotoTimestampMarkers: OfflinePhotoMarker[] = [];
   private readonly storagePrefix = 'mapWindow.';
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
@@ -1813,6 +1814,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.directoryMarkerGroup?.clearLayers();
     this.directoryMarkers.length = 0;
     this.directoryPhotoMarkers = [];
+    this.directoryPhotoTimestampMarkers = [];
     this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     this.markerCount.set(0);
   }
@@ -1894,6 +1896,8 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
+      // Keep the current image as a timestamp anchor even though its marker is not displayed.
+      this.directoryPhotoTimestampMarkers = markers.map(item => ({ ...item }));
       this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
       if (this.offlineRenderer) {
         const offlineMarkers = this.directoryPhotoMarkers;
@@ -3084,7 +3088,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly generateGpxFromMarkers = async (): Promise<void> => {
     const desktop = this.desktop;
-    const markers = this.directoryPhotoMarkers;
+    const markers = this.directoryPhotoTimestampMarkers.length ? this.directoryPhotoTimestampMarkers : this.directoryPhotoMarkers;
     if (!desktop || !markers.length) {
       this.gpxError.set('No displayed photo markers with GPS coordinates are available.');
       return;
@@ -3102,7 +3106,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!save.success) return;
       const destination = save.data;
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
-      const timedMarkers = this.interpolateMarkerTimestamps(markers);
+      const timedMarkers = this.interpolateMarkerTimestamps(markers)
+        .filter(marker => marker.path.toLowerCase() !== this.currentImagePath?.toLowerCase());
       const points = timedMarkers.map(marker =>
         `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}">${marker.timestamp !== null ? `<time>${new Date(marker.timestamp * 1000).toISOString()}</time>` : ''}<name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
       ).join('\n');
