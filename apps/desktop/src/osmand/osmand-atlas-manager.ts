@@ -144,11 +144,7 @@ class OsmAndHillshadeWorker {
 
   constructor(
     private readonly helperPath: string,
-    private readonly environment: NodeJS.ProcessEnv,
-    private readonly obfPaths: string[],
-    private readonly resourcesPath: string,
-    private readonly stylePath: string,
-    private readonly displayScale: number
+    private readonly environment: NodeJS.ProcessEnv
   ) {}
 
   readTile(databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> {
@@ -169,52 +165,27 @@ class OsmAndHillshadeWorker {
     child.kill();
   }
 
-  private cleanupConfigurationDirectory(directory: string): void {
-    try { rmSync(directory, { recursive: true, force: true }); }
-    catch (error) { console.warn('[OsmAnd Hillshade] Could not remove helper configuration:', error); }
-  }
-
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
-    if (!this.resourcesPath || !existsSync(this.resourcesPath)) {
-      throw new Error('Select an external OsmAnd resources folder before reading Hillshade tiles.');
-    }
-    if (!this.stylePath || !existsSync(this.stylePath)) {
-      throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
-    }
 
-    // The packaged native helper requires the same four startup arguments as
-    // the Atlas renderer, even when it is only used for SQLite Hillshade reads.
-    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-hillshade-'));
-    const configurationPath = join(configurationDirectory, 'obf-paths.json');
-    try {
-      writeFileSync(configurationPath, JSON.stringify(this.obfPaths), 'utf8');
-    } catch (error) {
-      this.cleanupConfigurationDirectory(configurationDirectory);
-      throw error;
-    }
-    const encodePathArgument = (value: string): string =>
-      'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+    // The native helper's stdin/stdout worker protocol starts only when no
+    // command-line arguments are supplied. Hillshade requests access SQLite
+    // directly and do not require Atlas OBF/resources/style initialization.
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawn(this.helperPath, [
-        encodePathArgument(configurationPath),
-        encodePathArgument(this.resourcesPath),
-        encodePathArgument(this.stylePath),
-        String(this.displayScale)
-      ], {
+      child = spawn(this.helperPath, [], {
         stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
       });
     } catch (error) {
-      this.cleanupConfigurationDirectory(configurationDirectory);
       throw error;
     }
-    child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
     this.child = child;
     child.stdin.on('error', error => {
       const code = (error as NodeJS.ErrnoException).code;
-      if (code !== 'EPIPE' && code !== 'ERR_STREAM_DESTROYED') console.warn('[OsmAnd Hillshade] Helper stdin error:', error);
+      if (code !== 'EPIPE' && code !== 'ERR_STREAM_DESTROYED') {
+        console.warn('[OsmAnd Hillshade] Helper stdin error:', error);
+      }
     });
     this.stderr = '';
     this.reader = new AtlasOutputReader(child.stdout, child, () => this.stderr.trim());
@@ -554,9 +525,7 @@ export class OsmAndAtlasManager {
   private temporaryFileId = 0;
 
   constructor() {
-    this.hillshadeWorker = new OsmAndHillshadeWorker(
-      this.helperPath, this.environment, this.obfPaths, this.resourcesPath, this.stylePath, this.displayScale
-    );
+    this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
       void this.hillshadeWorker?.shutdown();
@@ -892,9 +861,7 @@ export class OsmAndAtlasManager {
     }
     if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
     if (!this.hillshadeWorker) {
-      this.hillshadeWorker = new OsmAndHillshadeWorker(
-        this.helperPath, this.environment, this.obfPaths, this.resourcesPath, this.stylePath, this.displayScale
-      );
+      this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
     }
     try {
       return await this.hillshadeWorker.readTile(databasePath, z, x, y, s);
