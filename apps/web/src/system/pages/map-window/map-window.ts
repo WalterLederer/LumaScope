@@ -2911,14 +2911,11 @@ export class MapWindow implements OnInit, OnDestroy {
       const folder = await desktop.Dialogs.openFolder();
       if (!folder.success) return;
       const defaultName = 'Photo-Markers-' + new Date().toISOString().slice(0, 10) + '.gpx';
-      const enteredName = window.prompt('GPX file name:', defaultName);
-      if (enteredName === null) return;
-      let fileName = enteredName.trim().replace(/[<>:"\/\\|?*\x00-\x1f]/g, '_');
-      if (!fileName) {
-        this.gpxError.set('Please enter a valid GPX file name.');
-        return;
-      }
-      if (!fileName.toLowerCase().endsWith('.gpx')) fileName += '.gpx';
+      const suggestedPath = await desktop.FileSystem.join(folder.data, defaultName);
+      const save = await desktop.Dialogs.saveFile(suggestedPath);
+      if (!save.success) return;
+      const destination = save.data;
+      const fileName = destination.split(/[\\/]/).pop() || defaultName;
       const points = markers.map(marker =>
         `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}"><name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
       ).join('\n');
@@ -2932,7 +2929,6 @@ ${points}
   </trk>
 </gpx>
 `;
-      const destination = await desktop.FileSystem.join(folder.data, fileName);
       const result = await desktop.FileSystem.writeText(destination, content);
       if (!result.success) throw new Error(result.errorMessage);
       const parsed = this.parseGpxTrackData(content);
