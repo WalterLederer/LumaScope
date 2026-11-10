@@ -417,12 +417,14 @@ interface MapErrorEntry {
     </summary>
     <div class="view-rerender-layout">
       <div class="map-cache-actions view-rerender-actions">
-        <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-          Refresh
-        </button>
-        <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-          {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
-        </button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+            Refresh
+          </button>
+          <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+            {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
+          </button>
+        </div>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
         @if (rerenderVisibleTilesStatus()) {
@@ -446,18 +448,18 @@ interface MapErrorEntry {
         <tbody>
           <tr>
             <th scope="row">Rendered</th>
-            <td>{{ totalRenderTileCounts().rendered.toLocaleString() }}</td>
-            <td>{{ lastRenderTileCounts().rendered.toLocaleString() }}</td>
+            <td>{{ totalRenderTileCounts().rendered.toLocaleString(navigator.language) }}</td>
+            <td>{{ lastRenderTileCounts().rendered.toLocaleString(navigator.language) }}</td>
           </tr>
           <tr>
             <th scope="row">From cache</th>
-            <td>{{ totalRenderTileCounts().cached.toLocaleString() }}</td>
-            <td>{{ lastRenderTileCounts().cached.toLocaleString() }}</td>
+            <td>{{ totalRenderTileCounts().cached.toLocaleString(navigator.language) }}</td>
+            <td>{{ lastRenderTileCounts().cached.toLocaleString(navigator.language) }}</td>
           </tr>
           <tr>
             <th scope="row">Errors</th>
-            <td>{{ totalRenderTileCounts().failed.toLocaleString() }}</td>
-            <td>{{ lastRenderTileCounts().failed.toLocaleString() }}</td>
+            <td>{{ totalRenderTileCounts().failed.toLocaleString(navigator.language) }}</td>
+            <td>{{ lastRenderTileCounts().failed.toLocaleString(navigator.language) }}</td>
           </tr>
         </tbody>
       </table>
@@ -518,7 +520,7 @@ interface MapErrorEntry {
     <div class="map-cache-section">
       <div class="map-cache-heading">OsmAnd map tiles</div>
       <div class="map-cache-row"><span>Location</span><code>{{ osmAndTileCache().path }}</code></div>
-      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString() }}</strong></div>
+      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString(navigator.language) }}</strong></div>
       <div class="map-cache-row"><span>Storage used</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
       <div class="map-cache-actions">
         <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
@@ -1677,7 +1679,7 @@ export class MapWindow implements OnInit, OnDestroy {
           ? this.mapStyle()
           : 'Unknown';
     const now = Date.now();
-    const timestamp = new Date(now).toLocaleString();
+    const timestamp = new Date(now).toLocaleString(navigator.language);
     this.mapErrors.update(errors => {
       const latest = errors[0];
       if (latest && latest.source === source && latest.renderer === renderer
@@ -2821,7 +2823,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
-    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString();
+    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(navigator.language);
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
@@ -2963,7 +2965,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyGpxTrack();
   };
   protected readonly formatGpxDate = (timestamp: number): string =>
-    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString() : '—';
+    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(navigator.language) : '—';
   protected readonly formatGpxFileSize = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes < 0) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -3401,7 +3403,7 @@ ${points}
     const parts = [
       nearest ? 'GPS ' + nearest.latitude.toFixed(6) + ', ' + nearest.longitude.toFixed(6) : 'GPS –',
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
-      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX time –'
+      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(navigator.language)) : 'GPX time –'
     ];
     this.gpxHoverInfo.set(parts.join(' · '));
   }
