@@ -3001,7 +3001,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; gpsTimestamp?: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
-    const result = markers.map(marker => ({ ...marker, timestamp: Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp! > 0 ? marker.gpsTimestamp : null }));
+    const result = markers.map(marker => ({ ...marker, timestamp: marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp > 0 ? marker.gpsTimestamp : null }));
     const distance = (a: T, b: T): number => {
       const radians = Math.PI / 180;
       const meanLatitude = (a.latitude + b.latitude) * 0.5 * radians;
