@@ -1587,6 +1587,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const previousImagePath = this.currentImagePath;
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
+      this.applyCurrentPhotoVisibility();
       if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
       const nextLongitude = location.longitude;
@@ -2035,6 +2036,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
       this.updateTimeSliderBounds();
       this.applyDirectoryPhotoMarkers();
+      this.applyCurrentPhotoVisibility();
       if (this.offlineRenderer) this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
       this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
@@ -3333,6 +3335,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
   };
 
   protected readonly changeTimeSliderStart = (value: string): void => {
@@ -3343,6 +3346,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
   };
 
   protected readonly changeTimeSliderEnd = (value: string): void => {
@@ -3353,7 +3357,19 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
   };
+
+  private applyCurrentPhotoVisibility(): void {
+    const currentPhoto = this.timeSliderActive()
+      ? this.directoryPhotoTimestampMarkers.find(marker => marker.path.toLowerCase() === this.currentImagePath?.toLowerCase())
+      : null;
+    const withinTimeRange = !this.timeSliderActive()
+      || (currentPhoto !== undefined && this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp));
+    const opacity = this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
+    this.marker?.setOpacity(opacity);
+    this.offlineRenderer?.setCurrentOpacity(opacity);
+  }
 
   private applyDirectoryPhotoMarkers(): void {
     const visibleMarkers = this.directoryPhotoMarkers.filter(marker => this.isTimeSliderTimestampVisible(marker.gpsTimestamp));
@@ -3550,9 +3566,7 @@ ${points}
     this.directoryMarkerGroup?.refreshClusters?.();
     this.offlineRenderer?.setPhotoOpacity(markerOpacity);
 
-    const locationOpacity = this.locationVisible() ? this.locationOpacity() / 100 : 0;
-    this.marker?.setOpacity(locationOpacity);
-    this.offlineRenderer?.setCurrentOpacity(locationOpacity);
+    this.applyCurrentPhotoVisibility();
     this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
     this.applyHillshadeSettingsIfReady();
     this.applyGpxTrack();
