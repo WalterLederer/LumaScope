@@ -13,7 +13,7 @@ export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-
 let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
-let osmAndHillshadeDatabasePathProvider: (() => string) | null = null;
+export interface HillshadeDatabaseEntry { id: string; path: string; enabled: boolean; }\nlet osmAndHillshadeDatabasePathProvider: (() => HillshadeDatabaseEntry[]) | null = null;
 let osmAndHillshadeProtocolRegistered = false;
 
 const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
@@ -58,7 +58,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
   addProtocol('osmand', async (request, abortController) => {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
-    const [, zoomText, columnText, rowText] = match;
+    const [, databaseId, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
     const column = Number(columnText);
     const row = Number(rowText);
@@ -199,11 +199,11 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
 
 
 /** Hillshade is fetched as an independent PNG raster source; its alpha channel is preserved. */
-export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabasePath: () => string): void {
-  osmAndHillshadeDatabasePathProvider = getDatabasePath;
+export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabases: () => HillshadeDatabaseEntry[]): void {
+  osmAndHillshadeDatabasePathProvider = getDatabases;
   if (osmAndHillshadeProtocolRegistered) return;
   addProtocol('osmand-hillshade', async (request, abortController) => {
-    const match = /^osmand-hillshade:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
+    const match = /^osmand-hillshade:\/\/([a-zA-Z0-9_-]+)\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
@@ -217,7 +217,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     if (!databasePath) throw new Error('Select a Hillshade SQLite database in map settings.');
     let png: Uint8Array;
     try {
-      png = await desktop.OsmAndAtlas.renderHillshadeTile(zoom, column, row, 0);
+      png = await desktop.OsmAndAtlas.renderHillshadeTile(databasePath, zoom, column, row, 0);
     } catch (error) {
       // The Austria database follows the country's outline, not its rectangular
       // bounds. Missing edge tiles are normal and must be transparent, not errors.
@@ -1506,20 +1506,31 @@ export class OfflineMapRenderer {
   }
 
   setHillshadeVisibility(visible: boolean): void {
-    if (!this.map.getLayer('osmand-hillshade-raster')) return;
-    this.map.setLayoutProperty('osmand-hillshade-raster', 'visibility', visible ? 'visible' : 'none');
+    for (const layer of this.map.getStyle().layers) if (layer.id.startsWith('osmand-hillshade-raster-')) this.map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
   }
 
   setHillshadeOpacity(opacity: number): void {
-    if (!this.map.getLayer('osmand-hillshade-raster')) return;
     const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
-    this.map.setPaintProperty('osmand-hillshade-raster', 'raster-opacity', value);
+    for (const layer of this.map.getStyle().layers) if (layer.id.startsWith('osmand-hillshade-raster-')) this.map.setPaintProperty(layer.id, 'raster-opacity', value);
+  }
+
+  setHillshadeDatabases(entries: HillshadeDatabaseEntry[], opacity: number): void {
+    for (const layer of this.map.getStyle().layers.filter(item => item.id.startsWith('osmand-hillshade-raster-'))) this.map.removeLayer(layer.id);
+    for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) this.map.removeSource(sourceId);
+    const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
+    for (const entry of entries) {
+      const sourceId = 'osmand-hillshade-' + entry.id;
+      this.map.addSource(sourceId, { type: 'raster', tiles: ['osmand-hillshade://' + entry.id + '/{z}/{x}/{y}'], tileSize: 256, minzoom: 4, maxzoom: 12, bounds: AUSTRIA_BOUNDS, attribution: '© OpenStreetMap contributors' });
+      this.map.addLayer({ id: 'osmand-hillshade-raster-' + entry.id, type: 'raster', source: sourceId, layout: { visibility: entry.enabled ? 'visible' : 'none' }, paint: { 'raster-fade-duration': 0, 'raster-opacity': value } });
+    }
   }
 
   refreshHillshadeTiles(): void {
-    const source = this.map.getSource('osmand-hillshade') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-    if (!source?.setTiles) return;
-    source.setTiles(['osmand-hillshade://{z}/{x}/{y}?refresh=' + Date.now()]);
+    for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) {
+      const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
+      const entryId = sourceId.slice('osmand-hillshade-'.length);
+      if (source?.setTiles) source.setTiles(['osmand-hillshade://' + entryId + '/{z}/{x}/{y}?refresh=' + Date.now()]);
+    }
   }
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
