@@ -231,10 +231,10 @@ interface MapErrorEntry {
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
-            [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target))">
           <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
-            [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
         </div>
         <div class="time-slider-boundary-box">
@@ -3428,31 +3428,37 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyCurrentPhotoVisibility();
   };
 
-  private timeSliderHandleGap(): number {
+  private timeSliderHandleGap(trackWidth: number): number {
     const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
-    // Keep the two 13 px half-circle thumbs from visually crossing; at the
-    // closest position their straight edges meet instead of overlapping.
-    return Math.min(span, Math.max(1, Math.ceil(span * 0.025)));
+    // Convert the 18 px minimum visual separation into timestamp units.
+    // Native range thumbs travel on the track's inner width (track width minus thumb width).
+    const thumbSeparation = 18;
+    const usableWidth = Math.max(1, trackWidth - thumbSeparation);
+    return Math.min(span, Math.max(1, Math.ceil(span * thumbSeparation / usableWidth)));
   }
 
-  protected readonly changeTimeSliderStart = (value: string): void => {
-    const timestamp = Number(value);
+  protected readonly changeTimeSliderStart = (input: HTMLInputElement): void => {
+    const timestamp = Number(input.value);
     if (!Number.isFinite(timestamp)) return;
-    const gap = this.timeSliderHandleGap();
-    this.timeSliderStart.set(Math.min(timestamp, Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - gap)));
-    this.saveSetting('timeSliderStart', this.timeSliderStart());
+    const gap = this.timeSliderHandleGap(input.parentElement?.getBoundingClientRect().width ?? 0);
+    const next = Math.min(timestamp, Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - gap));
+    input.value = String(next);
+    this.timeSliderStart.set(next);
+    this.saveSetting('timeSliderStart', next);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.applyDirectoryPhotoMarkers();
     this.applyCurrentPhotoVisibility();
   };
 
-  protected readonly changeTimeSliderEnd = (value: string): void => {
-    const timestamp = Number(value);
+  protected readonly changeTimeSliderEnd = (input: HTMLInputElement): void => {
+    const timestamp = Number(input.value);
     if (!Number.isFinite(timestamp)) return;
-    const gap = this.timeSliderHandleGap();
-    this.timeSliderEnd.set(Math.max(timestamp, Math.min(this.timeSliderMaximum(), this.timeSliderStart() + gap)));
-    this.saveSetting('timeSliderEnd', this.timeSliderEnd());
+    const gap = this.timeSliderHandleGap(input.parentElement?.getBoundingClientRect().width ?? 0);
+    const next = Math.max(timestamp, Math.min(this.timeSliderMaximum(), this.timeSliderStart() + gap));
+    input.value = String(next);
+    this.timeSliderEnd.set(next);
+    this.saveSetting('timeSliderEnd', next);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.applyDirectoryPhotoMarkers();
