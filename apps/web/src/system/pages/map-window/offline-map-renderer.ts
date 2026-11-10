@@ -994,6 +994,13 @@ export class OfflineMapRenderer {
         onError?.(this.lastMapError);
       }
     });
+    this.map.on('style.load', () => {
+      // Style reloads recreate paint properties. Reapply the current user values
+      // after every load, not only when the opacity controls are interacted with.
+      this.setBasemapOpacity(this.basemapOpacity);
+      this.setHillshadeOpacity(this.hillshadeOpacity);
+      this.setTextLabelOpacity(this.textLabelOpacity);
+    });
     this.map.on('load', () => { console.info('[OfflineMap] MapLibre style loaded.'); this.syncHillshadeLayers(); });
     this.ready = new Promise((resolve, reject) => {
       let settled = false;
@@ -1685,9 +1692,11 @@ export class OfflineMapRenderer {
   }
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
+  private basemapOpacity = 1;
 
   setBasemapOpacity(opacity: number): void {
     const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
+    this.basemapOpacity = value;
     if (!this.map.isStyleLoaded()) return;
 
     // Apply concrete numeric paint values. MapLibre raster-opacity is not
