@@ -611,7 +611,7 @@ interface MapErrorEntry {
                     @for (database of hillshadeDatabases(); track database.id) {
                       <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td class="mbtiles-map-file"><strong>{{ database.path.split(/[\\/]/).pop() }}</strong><span>{{ database.path }}</span></td>
+                        <td class="mbtiles-map-file"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong><span>{{ database.path }}</span></td>
                         <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
                         <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
                       </tr>
@@ -2489,6 +2489,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
+  protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
@@ -2527,7 +2528,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
       this.hillshadeDatabases.set(databases);
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
-      if (databases.length === 0) this.hillshadeVisible.set(false);
+      if (databases.length === 0) { this.hillshadeVisible.set(false); this.saveSetting('hillshadeVisible', false); }
     } catch (error) {
       this.recordMapError('Remove Hillshade database', error instanceof Error ? error.message : String(error));
     }
