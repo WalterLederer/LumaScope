@@ -3428,10 +3428,18 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyCurrentPhotoVisibility();
   };
 
+  private timeSliderHandleGap(): number {
+    const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
+    // Keep the two 13 px half-circle thumbs from visually crossing; at the
+    // closest position their straight edges meet instead of overlapping.
+    return Math.min(span, Math.max(1, Math.ceil(span * 0.015)));
+  }
+
   protected readonly changeTimeSliderStart = (value: string): void => {
     const timestamp = Number(value);
     if (!Number.isFinite(timestamp)) return;
-    this.timeSliderStart.set(Math.min(timestamp, this.timeSliderEnd()));
+    const gap = this.timeSliderHandleGap();
+    this.timeSliderStart.set(Math.min(timestamp, Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - gap)));
     this.saveSetting('timeSliderStart', this.timeSliderStart());
     this.rebuildGpxSegments();
     this.applyGpxTrack();
@@ -3442,7 +3450,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeTimeSliderEnd = (value: string): void => {
     const timestamp = Number(value);
     if (!Number.isFinite(timestamp)) return;
-    this.timeSliderEnd.set(Math.max(timestamp, this.timeSliderStart()));
+    const gap = this.timeSliderHandleGap();
+    this.timeSliderEnd.set(Math.max(timestamp, Math.min(this.timeSliderMaximum(), this.timeSliderStart() + gap)));
     this.saveSetting('timeSliderEnd', this.timeSliderEnd());
     this.rebuildGpxSegments();
     this.applyGpxTrack();
