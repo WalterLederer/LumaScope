@@ -30,7 +30,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; }
 
 interface MapErrorEntry {
   id: number;
@@ -131,6 +131,7 @@ interface MapErrorEntry {
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
       <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
+      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="directoryPhotoMarkers.length === 0">Generate GPX from Markers</button>
       <div class="color-picker">
         <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
           @if (gpxVisible()) {
@@ -155,10 +156,11 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span></span>
+          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row">
+            <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
             <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
@@ -782,19 +784,19 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,190px) minmax(90px,120px) 28px;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:42px minmax(180px,1fr) minmax(150px,190px) minmax(90px,120px) 28px;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
-    .gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}
-    @media(max-width:620px){.gpx-file-row{grid-template-columns:minmax(130px,1fr) minmax(100px,130px) 80px 26px;gap:6px}}
+    @media(max-width:620px){.gpx-file-row{grid-template-columns:34px minmax(130px,1fr) minmax(100px,130px) 80px 26px;gap:6px}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
-    .render-tile-statistics-box{width:max-content;max-width:100%;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
+    .render-tile-statistics-box{width:max-content;max-width:100%;margin-left:auto;align-self:flex-end;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
     .render-tile-statistics .render-stat-label-column{width:130px}
@@ -1028,6 +1030,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
+  private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
+  private directoryPhotoMarkers: OfflinePhotoMarker[] = [];
   private readonly storagePrefix = 'mapWindow.';
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
@@ -1730,6 +1734,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
     this.directoryMarkers.length = 0;
+    this.directoryPhotoMarkers = [];
     this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     this.markerCount.set(0);
   }
@@ -1810,8 +1815,9 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
+      this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
       if (this.offlineRenderer) {
-        const offlineMarkers: OfflinePhotoMarker[] = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
+        const offlineMarkers = this.directoryPhotoMarkers;
         this.markerCount.set(offlineMarkers.length);
         this.offlineRenderer.setPhotoMarkers(offlineMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
         this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
@@ -2801,7 +2807,9 @@ export class MapWindow implements OnInit, OnDestroy {
         const content = await file.text();
         const parsed = this.parseGpxTrackData(content);
         segments.push(...parsed);
-        added.push({ path: path || `memory:${file.name}:${file.lastModified}`, name: file.name, sizeBytes: file.size, lastModified: file.lastModified });
+        const trackPath = path || `memory:${file.name}:${file.lastModified}`;
+        added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true });
+        this.gpxSegmentsByTrack.set(trackPath, parsed);
       } catch (error) {
         this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -2811,13 +2819,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxTracks.set(next);
     this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
     this.gpxError.set('');
-    this.gpxSegments.push(...segments);
+    this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.fitGpxTrack();
   }
 
   protected readonly removeGpxTrack = async (path: string): Promise<void> => {
     const next = this.gpxTracks().filter(track => track.path !== path);
+    this.gpxSegmentsByTrack.delete(path);
     this.gpxTracks.set(next);
     this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
     await this.reloadGpxTracks();
@@ -2827,11 +2836,17 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const segments: [number, number][][] = [];
     const valid: GpxTrackFile[] = [];
+    this.gpxSegmentsByTrack.clear();
     for (const track of this.gpxTracks()) {
       if (track.path.startsWith('memory:')) continue;
       const result = await this.desktop.FileSystem.readText(track.path);
       if (!result.success) continue;
-      try { segments.push(...this.parseGpxTrackData(result.data)); valid.push(track); }
+      try {
+        const parsed = this.parseGpxTrackData(result.data);
+        this.gpxSegmentsByTrack.set(track.path, parsed);
+        if (track.active !== false) segments.push(...parsed);
+        valid.push({ ...track, active: track.active !== false });
+      }
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
     this.gpxTracks.set(valid);
@@ -2854,17 +2869,89 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     const segments: [number, number][][] = [];
     const available: GpxTrackFile[] = [];
+    this.gpxSegmentsByTrack.clear();
     for (const track of tracks) {
       const result = await this.desktop.FileSystem.readText(track.path);
       if (!result.success) continue;
-      try { segments.push(...this.parseGpxTrackData(result.data)); available.push(track); }
-      catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
+      try {
+        const parsed = this.parseGpxTrackData(result.data);
+        const active = track.active !== false;
+        this.gpxSegmentsByTrack.set(track.path, parsed);
+        if (active) segments.push(...parsed);
+        available.push({ ...track, active });
+      } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
     this.gpxSegments = segments;
     this.saveSetting('gpxTracks', JSON.stringify(available));
     this.applyGpxTrack();
   }
+
+  protected readonly changeGpxTrackActive = (path: string, active: boolean): void => {
+    const next = this.gpxTracks().map(track => track.path === path ? { ...track, active } : track);
+    this.gpxTracks.set(next);
+    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+  };
+
+  private rebuildGpxSegments(): void {
+    this.gpxSegments = this.gpxTracks()
+      .filter(track => track.active !== false)
+      .flatMap(track => this.gpxSegmentsByTrack.get(track.path) ?? []);
+  }
+
+  protected readonly generateGpxFromMarkers = async (): Promise<void> => {
+    const desktop = this.desktop;
+    const markers = this.directoryPhotoMarkers;
+    if (!desktop || !markers.length) {
+      this.gpxError.set('No displayed photo markers with GPS coordinates are available.');
+      return;
+    }
+    try {
+      const folder = await desktop.Dialogs.openFolder();
+      if (!folder.success) return;
+      const defaultName = 'Photo-Markers-' + new Date().toISOString().slice(0, 10) + '.gpx';
+      const enteredName = window.prompt('GPX file name:', defaultName);
+      if (enteredName === null) return;
+      let fileName = enteredName.trim().replace(/[<>:"/\\|?*\\x00-\\x1f]/g, '_');
+      if (!fileName) {
+        this.gpxError.set('Please enter a valid GPX file name.');
+        return;
+      }
+      if (!fileName.toLowerCase().endsWith('.gpx')) fileName += '.gpx';
+      const points = markers.map(marker =>
+        `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}"><name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
+      ).join('\\n');
+      const content = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, ''))}</name>
+    <trkseg>
+${points}
+    </trkseg>
+  </trk>
+</gpx>
+`;
+      const destination = await desktop.FileSystem.join(folder.data, fileName);
+      const result = await desktop.FileSystem.writeText(destination, content);
+      if (!result.success) throw new Error(result.errorMessage);
+      const parsed = this.parseGpxTrackData(content);
+      const track: GpxTrackFile = {
+        path: destination, name: fileName, sizeBytes: new Blob([content]).size,
+        lastModified: Date.now(), active: true
+      };
+      this.gpxTracks.set([...this.gpxTracks(), track]);
+      this.gpxSegmentsByTrack.set(destination, parsed);
+      this.saveSetting('gpxTracks', JSON.stringify(this.gpxTracks().filter(item => !item.path.startsWith('memory:'))));
+      this.rebuildGpxSegments();
+      this.gpxError.set('');
+      this.applyGpxTrack();
+      this.fitGpxTrack();
+    } catch (error) {
+      this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   private parseGpxTrackData(content: string): [number, number][][] {
     const xml = new DOMParser().parseFromString(content, 'application/xml');
