@@ -241,7 +241,7 @@ interface MapErrorEntry {
           <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
             (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
         </div>
-        <details class="time-slider-animate-section">
+        <details class="time-slider-animate-section marker-summary-section">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show walking figure</span></label>
@@ -919,12 +919,12 @@ interface MapErrorEntry {
     .time-slider-range.disabled{opacity:.55}
     .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
     .time-slider-animate-button:disabled{opacity:.45;cursor:default}
-    .time-slider-animate-section{margin-top:7px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;padding:5px 8px}
-    .time-slider-animate-section summary{font-size:12px;font-weight:600;color:var(--color-content-default,#fff);cursor:pointer;user-select:none}
-    .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 2px 3px;flex-wrap:wrap}
-    .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default,#fff);cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
+    .time-slider-animate-section{margin-top:7px}
+    .time-slider-animate-section>summary{color:#000}
+    .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
+    .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:30px;height:38px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 1px 2px #000b)}.lumascope-walker svg{width:30px;height:38px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:16px;height:22px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 1px 1px #000b)}.lumascope-walker svg{display:block;width:16px;height:22px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -3540,51 +3540,73 @@ export class MapWindow implements OnInit, OnDestroy {
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
       return;
     }
-    const track = this.firstActiveGpxTrack();
-    const points = track ? (this.gpxPointDataByTrack.get(track.path) ?? []).flat() : [];
-    if (!points.length) {
-      this.walkingMarker?.remove(); this.walkingMarker = null;
-      this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      return;
-    }
-    const timed = points.map(point => ({ point, time: point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN }))
-      .filter(item => Number.isFinite(item.time)).sort((a, b) => a.time - b.time);
-    let latitude = points[0].latitude, longitude = points[0].longitude, bearing = 0;
+
+    // Keep each GPX segment separate: joining separate segments or tracks can
+    // put the animated figure on a straight line that is not part of the GPX.
+    const activeTracks = this.gpxTracks().filter(track => track.active !== false && !track.missing);
+    const timedSegments = activeTracks.flatMap(track =>
+      (this.gpxPointDataByTrack.get(track.path) ?? []).map(segment =>
+        segment.map(point => ({ point, time: point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN }))
+          .filter(item => Number.isFinite(item.time))
+          .sort((a, b) => a.time - b.time)
+      ).filter(segment => segment.length > 0)
+    );
     const currentTime = this.timeSliderEnd();
-    if (timed.length) {
-      if (currentTime <= timed[0].time) {
-        latitude = timed[0].point.latitude; longitude = timed[0].point.longitude;
-      } else if (currentTime >= timed[timed.length - 1].time) {
-        latitude = timed[timed.length - 1].point.latitude; longitude = timed[timed.length - 1].point.longitude;
+    let latitude: number, longitude: number, bearing = 0;
+    let selectedSegment = timedSegments.find(segment =>
+      currentTime >= segment[0].time && currentTime <= segment[segment.length - 1].time
+    );
+
+    if (selectedSegment) {
+      const nextIndex = selectedSegment.findIndex(item => item.time >= currentTime);
+      if (nextIndex <= 0) {
+        latitude = selectedSegment[0].point.latitude;
+        longitude = selectedSegment[0].point.longitude;
       } else {
-        const nextIndex = timed.findIndex(item => item.time >= currentTime);
-        if (nextIndex > 0) {
-          const a = timed[nextIndex - 1], b = timed[nextIndex];
-          const fraction = Math.max(0, Math.min(1, (currentTime - a.time) / Math.max(0.001, b.time - a.time)));
-          latitude = a.point.latitude + (b.point.latitude - a.point.latitude) * fraction;
-          longitude = a.point.longitude + (b.point.longitude - a.point.longitude) * fraction;
-          const dLon = (b.point.longitude - a.point.longitude) * Math.PI / 180;
-          const y = Math.sin(dLon) * Math.cos(b.point.latitude * Math.PI / 180);
-          const x = Math.cos(a.point.latitude * Math.PI / 180) * Math.sin(b.point.latitude * Math.PI / 180)
-            - Math.sin(a.point.latitude * Math.PI / 180) * Math.cos(b.point.latitude * Math.PI / 180) * Math.cos(dLon);
-          bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-        }
+        const a = selectedSegment[nextIndex - 1], b = selectedSegment[nextIndex];
+        const fraction = Math.max(0, Math.min(1, (currentTime - a.time) / Math.max(0.001, b.time - a.time)));
+        latitude = a.point.latitude + (b.point.latitude - a.point.latitude) * fraction;
+        longitude = a.point.longitude + (b.point.longitude - a.point.longitude) * fraction;
+        const dLon = (b.point.longitude - a.point.longitude) * Math.PI / 180;
+        const y = Math.sin(dLon) * Math.cos(b.point.latitude * Math.PI / 180);
+        const x = Math.cos(a.point.latitude * Math.PI / 180) * Math.sin(b.point.latitude * Math.PI / 180)
+          - Math.sin(a.point.latitude * Math.PI / 180) * Math.cos(b.point.latitude * Math.PI / 180) * Math.cos(dLon);
+        bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
       }
+    } else if (timedSegments.length) {
+      // Outside a recorded segment, stay on the nearest actual GPX point.
+      const nearest = timedSegments.flat().reduce((best, item) =>
+        Math.abs(item.time - currentTime) < Math.abs(best.time - currentTime) ? item : best
+      );
+      latitude = nearest.point.latitude;
+      longitude = nearest.point.longitude;
     } else {
+      const track = activeTracks.find(item => (this.gpxPointDataByTrack.get(item.path)?.some(segment => segment.length > 0) ?? false));
+      const points = track ? (this.gpxPointDataByTrack.get(track.path) ?? []).flat() : [];
+      if (!points.length) {
+        this.walkingMarker?.remove(); this.walkingMarker = null;
+        this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
+        return;
+      }
       const fraction = Math.max(0, Math.min(1, (currentTime - this.timeSliderMinimum()) / Math.max(1, this.timeSliderMaximum() - this.timeSliderMinimum())));
       const index = Math.min(points.length - 1, Math.floor(fraction * (points.length - 1)));
-      latitude = points[index].latitude; longitude = points[index].longitude;
+      latitude = points[index].latitude;
+      longitude = points[index].longitude;
       const next = points[Math.min(points.length - 1, index + 1)];
       bearing = (Math.atan2(next.longitude - longitude, next.latitude - latitude) * 180 / Math.PI + 360) % 360;
     }
+
     const html = `<div class="lumascope-walker" style="transform:rotate(${bearing}deg)"><svg viewBox="0 0 30 38" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       if (!this.walkingMapLibreMarker) {
         const element = document.createElement('div');
         element.className = 'lumascope-walker-icon';
+        element.style.width = '18px';
+        element.style.height = '24px';
+        element.style.pointerEvents = 'none';
         element.innerHTML = html;
-        this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center' })
+        this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center', pitchAlignment: 'map', rotationAlignment: 'map' })
           .setLngLat([longitude, latitude]).addTo(this.offlineRenderer.map);
       } else {
         this.walkingMapLibreMarker.setLngLat([longitude, latitude]);
@@ -3594,7 +3616,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     if (!this.leaflet || !this.map) return;
-    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [36, 42], iconAnchor: [18, 21] });
+    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [20, 26], iconAnchor: [10, 13] });
     if (!this.walkingMarker) this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
     else this.walkingMarker.setLatLng([latitude, longitude]).setIcon(icon);
   }
