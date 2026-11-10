@@ -15,6 +15,8 @@ const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
 const HELPER_WORKER_COUNT = 1;
+// Valid transparent PNG returned for XYZ cells outside a regional hillshade database.
+const EMPTY_HILLSHADE_TILE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=', 'base64');
 
 function getAtlasPixelDiagnostics(pixels: Buffer): {
   uniqueRgbColors: number;
@@ -836,7 +838,18 @@ export class OsmAndAtlasManager {
     }
     if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
     if (!this.hillshadeWorker) this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
-    return this.hillshadeWorker.readTile(databasePath, z, x, y, s);
+    try {
+      return await this.hillshadeWorker.readTile(databasePath, z, x, y, s);
+    } catch (error) {
+      // Regional hillshade databases naturally omit cells outside their coverage.
+      // Resolve these at the IPC boundary so Electron does not log an expected
+      // "tile not found" rejection for every empty cell requested by MapLibre.
+      const message = error instanceof Error ? error.message : String(error);
+      if (/Hillshade tile not found/i.test(message)) {
+        return new Uint8Array(EMPTY_HILLSHADE_TILE_PNG);
+      }
+      throw error;
+    }
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
