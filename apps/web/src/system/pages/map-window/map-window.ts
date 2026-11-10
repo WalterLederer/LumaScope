@@ -3089,8 +3089,27 @@ export class MapWindow implements OnInit, OnDestroy {
       .flatMap(track => this.gpxSegmentsByTrack.get(track.path) ?? []);
   }
 
-  private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; gpsTimestamp?: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
-    const result = markers.map(marker => ({ ...marker, timestamp: marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp > 0 ? marker.gpsTimestamp : null }));
+  private parseMarkerFileNameTimestamp(fileName: string): number | null {
+    const separated = fileName.match(/(?:^|[^0-9])(\\d{4})[_-](\\d{2})[_-](\\d{2})[ T_-](\\d{2})[_:-](\\d{2})[_:-](\\d{2})(?:[^0-9]|$)/);
+    const compact = separated ? null : fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_ T-](\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/);
+    const match = separated ?? compact;
+    if (!match) return null;
+    const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
+    const year = Number(yearText), month = Number(monthText), day = Number(dayText);
+    const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day
+      || date.getHours() !== hour || date.getMinutes() !== minute || date.getSeconds() !== second) return null;
+    return Math.floor(date.getTime() / 1000);
+  }
+
+  private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; fileName: string; gpsTimestamp?: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
+    const result = markers.map(marker => ({
+      ...marker,
+      timestamp: marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp > 0
+        ? marker.gpsTimestamp
+        : this.parseMarkerFileNameTimestamp(marker.fileName)
+    }));
     const distance = (a: T, b: T): number => {
       const radians = Math.PI / 180;
       const meanLatitude = (a.latitude + b.latitude) * 0.5 * radians;
