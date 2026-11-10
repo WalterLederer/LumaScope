@@ -1059,6 +1059,17 @@ export class OfflineMapRenderer {
         }
       });
     }
+    this.map.addLayer({
+      id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
+      filter: ['==', ['get', 'showDirection'], true],
+      layout: {
+        'symbol-placement': 'line', 'symbol-spacing': 120,
+        'text-field': '➤', 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+        'text-size': 14, 'text-rotation-alignment': 'map', 'text-keep-upright': false,
+        'text-allow-overlap': true, 'text-ignore-placement': true
+      },
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.2, 'text-opacity': 0.92 }
+    });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
       this.refreshClusterLabels();
@@ -1754,7 +1765,7 @@ export class OfflineMapRenderer {
     }
   }
 
-  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number }>, opacity: number): void {
+  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -1762,10 +1773,10 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.filter(segment => segment.length >= 2).map(segment => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { color: track.color, lineStyle: track.lineStyle, width: track.lineWidth }
+        properties: { color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true }
       })))
     });
-    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
+    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot', 'gpx-track-direction-arrows']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
   }
