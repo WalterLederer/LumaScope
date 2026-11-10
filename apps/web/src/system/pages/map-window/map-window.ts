@@ -222,11 +222,12 @@ interface MapErrorEntry {
       @if (timeSliderHasData()) {
         <div class="time-slider-readouts">
           <span class="time-slider-min"><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
+          <span class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderStart(), timeSliderEnd()) }}</span>
           <span class="time-slider-max"><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
         </div>
         <div class="time-slider-control-row">
           <label class="time-slider-activate" title="Activate or deactivate time filtering"><input type="checkbox" aria-label="Activate Time Slider" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"></label>
-          <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
+          <div class="time-slider-range" [class.disabled]="!timeSliderActive()" (pointerdown)="clearTimeSliderTextSelection()">
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
@@ -241,6 +242,9 @@ interface MapErrorEntry {
           <div class="time-slider-boundary-column time-slider-min">
             <div class="time-slider-boundary-value"><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</div>
             <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</div>
+          </div>
+          <div class="time-slider-boundary-column time-slider-duration-column">
+            <div class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderMinimum(), timeSliderMaximum()) }}</div>
           </div>
           <div class="time-slider-boundary-column time-slider-max">
             <div class="time-slider-boundary-value"><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</div>
@@ -876,12 +880,16 @@ interface MapErrorEntry {
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
-    .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px}
+    .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px;user-select:none;-webkit-user-select:none}
     .time-slider-control-row{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:10px}
     .time-slider-activate{display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer}
     .time-slider-activate input{margin:0}
-    .time-slider-readouts{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
-    .time-slider-boundary-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
+    .time-slider-readouts{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;font-size:12px;font-variant-numeric:tabular-nums}
+    .time-slider-readouts .time-slider-min{text-align:left}
+    .time-slider-readouts .time-slider-max{text-align:right}
+    .time-slider-duration{text-align:center;white-space:nowrap;font-size:12px;font-weight:600;color:var(--color-content-default,#ddd);font-variant-numeric:tabular-nums}
+    .time-slider-boundary-box{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
+    .time-slider-duration-column{align-items:center;justify-content:center;white-space:nowrap}
     .time-slider-boundary-column{display:flex;flex-direction:column;gap:4px;min-width:0}
     .time-slider-min{--time-slider-boundary-color:#1d78b8;color:var(--time-slider-boundary-color)}
     .time-slider-max{--time-slider-boundary-color:#c87525;color:var(--time-slider-boundary-color)}
@@ -3418,6 +3426,20 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly formatTimeSliderDate = (timestamp: number): string =>
     Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString(this.locale) : '–';
+
+  protected readonly formatTimeSliderDuration = (start: number, end: number): string => {
+    const totalMinutes = Math.max(0, Math.floor((end - start) / 60));
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    return days + (days === 1 ? ' day, ' : ' days, ')
+      + hours + (hours === 1 ? ' hour, ' : ' hours, ')
+      + minutes + (minutes === 1 ? ' minute' : ' minutes');
+  };
+
+  protected readonly clearTimeSliderTextSelection = (): void => {
+    window.getSelection()?.removeAllRanges();
+  };
 
   protected readonly changeTimeSliderActive = (active: boolean): void => {
     this.timeSliderActive.set(active);
