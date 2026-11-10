@@ -3454,11 +3454,11 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private timeSliderHandleGap(trackWidth: number): number {
     const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
-    // Convert the 18 px minimum visual separation into timestamp units.
-    // Native range thumbs travel on the track's inner width (track width minus thumb width).
-    const thumbSeparation = 18;
-    const usableWidth = Math.max(1, trackWidth - thumbSeparation);
-    return Math.min(span, Math.max(1, Math.ceil(span * thumbSeparation / usableWidth)));
+    // Allow the two thumb centers to meet so the selected duration can reach zero.
+    // The native thumbs may overlap when both handles represent the same timestamp.
+    const thumbSeparation = 0;
+    const usableWidth = Math.max(1, trackWidth - 18);
+    return Math.min(span, Math.max(0, Math.ceil(span * thumbSeparation / usableWidth)));
   }
 
   protected readonly changeTimeSliderStart = (input: HTMLInputElement): void => {
