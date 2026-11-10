@@ -647,18 +647,18 @@ export class OfflineMapRenderer {
   private readonly onMapLibreTileLoading = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
+    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || data.sourceId === 'osmand-hillshade' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loading');
   };
   private readonly onMapLibreTileLoaded = (event: unknown): void => {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
-    if (!canonical || data.sourceDataType !== 'content') return;
+    if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand-hillshade' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
     this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loaded');
   };
   private readonly onMapLibreTileError = (event: unknown): void => {
     const data = event as { sourceId?: string; coord?: { canonical?: { z: number; x: number; y: number } }; error?: unknown };
-    if (data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas') return;
+    if (data.sourceId === 'osmand' || data.sourceId === 'osmand-atlas' || data.sourceId === 'osmand-hillshade' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
     const message = data.error instanceof Error ? data.error.message : String(data.error ?? 'Unknown tile loading error');
     const canonical = data.coord?.canonical;
     if (canonical) {
