@@ -228,6 +228,8 @@ interface MapErrorEntry {
         <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
+          <span class="time-slider-thumb-icon time-slider-thumb-start-icon" [style.left.%]="timeSliderStartPercent()" aria-hidden="true">⚑</span>
+          <span class="time-slider-thumb-icon time-slider-thumb-end-icon" [style.left.%]="timeSliderEndPercent()" aria-hidden="true">🏁</span>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
@@ -871,7 +873,10 @@ interface MapErrorEntry {
     .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
     .time-slider-range-track{position:absolute;left:0;right:0;height:5px;border-radius:5px;background:var(--color-content-default-low,#555)}
     .time-slider-range-selection{position:absolute;height:5px;border-radius:5px;background:var(--color-accent,#2688e8);pointer-events:none}
-    .time-slider-range-input{position:absolute;inset:0;width:100%;height:30px;margin:0;background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none}
+    .time-slider-thumb-icon{position:absolute;top:50%;z-index:3;display:flex;align-items:center;justify-content:center;width:23px;height:23px;transform:translate(-50%,-50%);font-size:17px;line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px #000b)}
+    .time-slider-thumb-start-icon{font-size:18px;color:#fff}
+    .time-slider-thumb-end-icon{font-size:17px}
+    .time-slider-range-input{position:absolute;inset:0;width:100%;height:30px;margin:0;background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none;z-index:2}
     .time-slider-range-input::-webkit-slider-runnable-track{height:5px;background:transparent}
     .time-slider-range-input::-moz-range-track{height:5px;background:transparent}
     .time-slider-range-input::-webkit-slider-thumb{width:17px;height:17px;border:2px solid #fff;border-radius:50%;background:var(--color-accent,#2688e8);box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
@@ -3306,7 +3311,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const timestamps = [
       ...Array.from(this.gpxPointDataByTrack.values()).flat(2)
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
-      ...this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
+      ...(this.directoryMarkersEnabled()
+        ? this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
+        : [])
     ].filter(value => Number.isFinite(value));
     if (!timestamps.length) {
       this.timeSliderMinimum.set(0);
@@ -3345,6 +3352,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderStartPercent = (): number => {
     const span = this.timeSliderMaximum() - this.timeSliderMinimum();
     return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderStart() - this.timeSliderMinimum()) / span * 100)) : 0;
+  };
+
+  protected readonly timeSliderEndPercent = (): number => {
+    const span = this.timeSliderMaximum() - this.timeSliderMinimum();
+    return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderEnd() - this.timeSliderMinimum()) / span * 100)) : 100;
   };
 
   protected readonly timeSliderWidthPercent = (): number => {
