@@ -895,11 +895,17 @@ export class OfflineMapRenderer {
     const controlContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-control-container');
     if (controlContainer) controlContainer.style.zIndex = '30';
     const scaleContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-left');
-    if (scaleContainer) {
-      scaleContainer.style.zIndex = '40';
-      scaleContainer.style.pointerEvents = 'none';
-      const scaleControl = scaleContainer.querySelector<HTMLElement>('.maplibregl-ctrl');
-      if (scaleControl) scaleControl.style.pointerEvents = 'auto';
+    const scaleControl = scaleContainer?.querySelector<HTMLElement>('.maplibregl-ctrl-scale');
+    if (scaleControl) {
+      // Detach the scale from MapLibre's control stacking context. The map's
+      // geographic marker overlay can otherwise cover it even with raised z-indexes.
+      scaleControl.style.position = 'absolute';
+      scaleControl.style.left = '10px';
+      scaleControl.style.bottom = '10px';
+      scaleControl.style.margin = '0';
+      scaleControl.style.zIndex = '10000';
+      scaleControl.style.pointerEvents = 'auto';
+      this.map.getContainer().appendChild(scaleControl);
     }
     this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
       ? 'osmand-atlas'
