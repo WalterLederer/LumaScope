@@ -879,8 +879,8 @@ interface MapErrorEntry {
     .time-slider-readouts{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
     .time-slider-boundary-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
     .time-slider-boundary-column{display:flex;flex-direction:column;gap:4px;min-width:0}
-    .time-slider-min{--time-slider-boundary-color:#2998e8;color:var(--time-slider-boundary-color)}
-    .time-slider-max{--time-slider-boundary-color:#e58a35;color:var(--time-slider-boundary-color)}
+    .time-slider-min{--time-slider-boundary-color:#1d78b8;color:var(--time-slider-boundary-color)}
+    .time-slider-max{--time-slider-boundary-color:#c87525;color:var(--time-slider-boundary-color)}
     .time-slider-boundary-value{font-size:12px;overflow-wrap:anywhere}
     .time-slider-boundary-source{font-size:11px;color:inherit;opacity:.82;overflow-wrap:anywhere}
     .time-slider-range{position:relative;height:30px;display:grid;align-items:center;margin:0 10px}
@@ -889,10 +889,10 @@ interface MapErrorEntry {
     .time-slider-range-input{position:absolute;top:50%;left:0;right:0;width:100%;height:5px;margin:0;transform:translateY(-50%);background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none;z-index:2}
     .time-slider-range-input::-webkit-slider-runnable-track{height:5px;background:transparent}
     .time-slider-range-input::-moz-range-track{height:5px;background:transparent}
-    .time-slider-range-input.time-slider-range-start::-webkit-slider-thumb{width:13px;height:22px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#2998e8;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-end::-webkit-slider-thumb{width:13px;height:22px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#e58a35;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-start::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#2998e8;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-end::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#e58a35;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-start::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-end::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-start::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-end::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
     .time-slider-range-input:disabled::-webkit-slider-thumb,.time-slider-range-input:disabled::-moz-range-thumb{opacity:.45;cursor:default}
     .time-slider-range.disabled{opacity:.55}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
