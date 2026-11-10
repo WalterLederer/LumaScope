@@ -3596,7 +3596,9 @@ export class MapWindow implements OnInit, OnDestroy {
       bearing = (Math.atan2(next.longitude - longitude, next.latitude - latitude) * 180 / Math.PI + 360) % 360;
     }
 
-    const html = `<div class="lumascope-walker" style="transform:rotate(${bearing}deg)"><svg viewBox="0 0 30 38" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
+    // MapLibre markers live outside Angular component styling; give the SVG
+    // explicit inline dimensions so its visibility does not depend on scoped CSS.
+    const html = `<div class="lumascope-walker" style="display:block;width:12px;height:15px;position:relative;transform:rotate(${bearing}deg);transform-origin:50% 50%;filter:drop-shadow(0 1px 1px #000b)"><svg width="12" height="15" viewBox="0 0 30 38" style="display:block;width:12px;height:15px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       if (!this.walkingMapLibreMarker) {
@@ -3608,6 +3610,9 @@ export class MapWindow implements OnInit, OnDestroy {
         element.style.maxHeight = '17px';
         element.style.overflow = 'visible';
         element.style.pointerEvents = 'none';
+        element.style.display = 'block';
+        element.style.background = 'transparent';
+        element.style.border = '0';
         element.innerHTML = html;
         this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center', pitchAlignment: 'map', rotationAlignment: 'map' })
           .setLngLat([longitude, latitude]).addTo(this.offlineRenderer.map);
