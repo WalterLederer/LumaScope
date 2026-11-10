@@ -472,6 +472,8 @@ interface MapErrorEntry {
   <div class="settings-tab-content offline-maps-tab-content">
     <div class="mbtiles-selection offline-map-toolbar">
       <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
+      <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true)" [disabled]="hillshadeDatabaseCount() === 0">Activate all</button>
+      <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false)" [disabled]="hillshadeDatabaseCount() === 0">Deactivate all</button>
       <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active</span>
     </div>
   </div>
@@ -680,21 +682,18 @@ interface MapErrorEntry {
           <div class="offline-map-list-view">
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
-                <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th class="mbtiles-updates-column">Updates</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                <table class="mbtiles-map-table hillshade-map-table">
+                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Display name</th><th>File name</th><th>Last modified</th><th>File size</th><th>Status</th><th></th></tr></thead>
                   <tbody>
-                    @for (map of filteredOfflineMaps(); track map.id) {
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type !== 'obf'">{{ map.type === 'obf' ? 'OBF' : 'MBTiles' }}</i></td>
-                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available · ' + (map.updateDate || 'newer version') + ' · ' + (map.updateSource || 'source') : map.updateAvailable === false ? 'No newer version listed · ' + (map.updateSource || 'source') : map.updateMatched === true ? (map.updateDate ? 'Matched catalogue file · ' + map.updateDate + ' · ' + (map.updateSource || 'source') : 'Matched catalogue file · no catalogue date available · ' + (map.updateSource || 'source')) : map.updateChecked ? 'No matching filename found in the available catalogues' : 'Not checked yet'" [attr.aria-label]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No update available' : map.updateMatched === true ? 'Catalogue file matched' : map.updateChecked ? 'No catalogue match' : 'Not checked'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : map.updateChecked && map.updateMatched === true && map.updateAvailable === null ? '✓' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
-                        <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                        <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
+                    @for (database of hillshadeDatabases(); track database.id) {
+                      <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                        <td class="hillshade-display-name">{{ hillshadeDatabaseDisplayName(database.path) }}</td>
+                        <td class="hillshade-file-name" [title]="database.path">{{ hillshadeDatabaseFileName(database.path) }}</td>
+                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
+                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
+                        <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
+                        <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
                       </tr>
                     }
                   </tbody>
@@ -903,7 +902,7 @@ interface MapErrorEntry {
     .offline-catalogue-matched{background:rgba(46,160,67,.20)}
     .offline-catalogue-matched:hover{background:rgba(46,160,67,.28)}
     .download-source-url{min-width:380px}.download-source-url input{width:100%;min-width:320px;box-sizing:border-box}.download-source-table select{max-width:110px}
-    .mbtiles-map-table{min-width:850px;table-layout:fixed}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:150px}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:220px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:145px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:85px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:90px}.hillshade-map-table th:nth-child(7),.hillshade-map-table td:nth-child(7){width:65px}.hillshade-display-name,.hillshade-file-name{overflow:hidden;text-overflow:ellipsis}.hillshade-file-name{cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
@@ -2828,6 +2827,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
+  protected readonly hillshadeDatabaseDisplayName = (path: string): string => this.hillshadeDatabaseFileName(path).replace(/\\.[^.]+$/, '');
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
     timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
@@ -2860,6 +2860,20 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
     } catch (error) {
       this.recordMapError('Update Hillshade database', error instanceof Error ? error.message : String(error));
+    }
+  };
+  protected readonly setAllHillshadeDatabasesEnabled = async (enabled: boolean): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      let databases = this.hillshadeDatabases();
+      for (const database of databases) {
+        if (!database.available || database.enabled === enabled) continue;
+        databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(database.id, enabled);
+        this.hillshadeDatabases.set(databases);
+      }
+      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+    } catch (error) {
+      this.recordMapError('Update Hillshade databases', error instanceof Error ? error.message : String(error));
     }
   };
   protected readonly removeHillshadeDatabase = async (id: string): Promise<void> => {
