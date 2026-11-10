@@ -826,7 +826,7 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
   readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
-    if (!databasePath || !existsSync(databasePath)) throw new Error('[OsmAnd Hillshade] Hillshade database is unavailable: ' + databasePath);
+    if (!this.hillshadeDatabases.some(item => item.path === databasePath && item.enabled)) throw new Error('[OsmAnd Hillshade] Database is not in the active Hillshade list: ' + databasePath);\n    if (!databasePath || !existsSync(databasePath)) throw new Error('[OsmAnd Hillshade] Hillshade database is unavailable: ' + databasePath);
     if (!/\.(?:sqlitedb|sqlite|db)$/i.test(databasePath)) throw new Error('[OsmAnd Hillshade] Unsupported database file.');
     if (!Number.isInteger(z) || z < 0 || z > 24) throw new Error('[OsmAnd Hillshade] Zoom must be an integer between 0 and 24.');
     const tileCount = 2 ** z;
