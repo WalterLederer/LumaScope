@@ -891,7 +891,11 @@ export class OsmAndAtlasManager {
       throw new Error('[OsmAnd Hillshade] Invalid XYZ tile coordinates.');
     }
     if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
-    if (!this.hillshadeWorker) this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+    if (!this.hillshadeWorker) {
+      this.hillshadeWorker = new OsmAndHillshadeWorker(
+        this.helperPath, this.environment, this.obfPaths, this.resourcesPath, this.stylePath, this.displayScale
+      );
+    }
     try {
       return await this.hillshadeWorker.readTile(databasePath, z, x, y, s);
     } catch (error) {
