@@ -3265,7 +3265,7 @@ ${points}
       if (distance < nearestDistance) { nearestDistance = distance; nearest = point; }
     }
     const parts = [
-      'GPS ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6),
+      nearest ? 'GPS ' + nearest.latitude.toFixed(6) + ', ' + nearest.longitude.toFixed(6) : 'GPS –',
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
       nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX time –'
     ];
