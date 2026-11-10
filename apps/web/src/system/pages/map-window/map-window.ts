@@ -238,12 +238,12 @@ interface MapErrorEntry {
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
-          <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
-            (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
         </div>
         <details class="time-slider-animate-section marker-summary-section">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
+            <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
+              (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show walking figure</span></label>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="1" max="10" step="1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
           </div>
@@ -924,7 +924,7 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:4px;height:6px;max-width:4px;max-height:6px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 0.4px 0.4px #000b)}.lumascope-walker svg{display:block;width:4px!important;height:6px!important;max-width:4px;max-height:6px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:12px;height:15px;max-width:12px;max-height:15px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 1px 1px #000b)}.lumascope-walker svg{display:block;width:12px!important;height:15px!important;max-width:12px;max-height:15px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -3602,10 +3602,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!this.walkingMapLibreMarker) {
         const element = document.createElement('div');
         element.className = 'lumascope-walker-icon';
-        element.style.width = '6px';
-        element.style.height = '8px';
-        element.style.maxWidth = '6px';
-        element.style.maxHeight = '8px';
+        element.style.width = '14px';
+        element.style.height = '17px';
+        element.style.maxWidth = '14px';
+        element.style.maxHeight = '17px';
         element.style.overflow = 'visible';
         element.style.pointerEvents = 'none';
         element.innerHTML = html;
@@ -3619,7 +3619,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     if (!this.leaflet || !this.map) return;
-    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [6, 8], iconAnchor: [3, 4] });
+    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [14, 17], iconAnchor: [7, 8] });
     if (!this.walkingMarker) this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
     else this.walkingMarker.setLatLng([latitude, longitude]).setIcon(icon);
   }
