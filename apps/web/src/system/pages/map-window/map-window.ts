@@ -238,7 +238,8 @@ interface MapErrorEntry {
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
           <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
-            (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Animate' }}</button>
+            (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
+          <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Animate</span></label>
         </div>
         <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="1" max="10" step="1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
         <div class="time-slider-boundary-box">
@@ -912,6 +913,7 @@ interface MapErrorEntry {
     .time-slider-range.disabled{opacity:.55}
     .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
     .time-slider-animate-button:disabled{opacity:.45;cursor:default}
+    .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default,#fff);cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa)}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:30px;height:38px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 1px 2px #000b)}.lumascope-walker svg{width:30px;height:38px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
@@ -1399,6 +1401,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderStart = signal(0);
   protected readonly timeSliderEnd = signal(0);
   protected readonly timeSliderAnimating = signal(false);
+  protected readonly timeSliderWalkerVisible = signal(this.readSetting('timeSliderWalkerVisible', 'false') === 'true');
   protected readonly timeSliderAnimationSpeed = signal(Math.max(1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
@@ -3513,8 +3516,14 @@ export class MapWindow implements OnInit, OnDestroy {
     return this.gpxTracks().find(track => track.active !== false && !track.missing && (this.gpxPointDataByTrack.get(track.path)?.some(segment => segment.length > 0) ?? false));
   }
 
+  protected readonly changeTimeSliderWalkerVisibility = (visible: boolean): void => {
+    this.timeSliderWalkerVisible.set(visible);
+    this.saveSetting('timeSliderWalkerVisible', visible);
+    this.updateWalkingMarker();
+  };
+
   private updateWalkingMarker(): void {
-    if (!this.leaflet || !this.map || !this.timeSliderActive()) {
+    if (!this.timeSliderWalkerVisible() || !this.leaflet || !this.map || !this.timeSliderActive()) {
       this.walkingMarker?.remove(); this.walkingMarker = null; return;
     }
     const track = this.firstActiveGpxTrack();
