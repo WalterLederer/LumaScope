@@ -356,29 +356,43 @@ interface MapErrorEntry {
       </span>
     </summary>
     <div class="map-cache-actions view-rerender-actions">
-      <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
-    </div>
-    <div class="map-cache-actions view-rerender-actions">
-      <button type="button" (click)="refreshVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+      <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
         Refresh
       </button>
-      <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+      <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
         {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
       </button>
-      <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Refresh reloads cached tiles; rerender forces a fresh native render.' : mapSource() === 'osmand' ? 'Refresh reloads cached tiles; rerender forces a fresh native render.' : 'Select an OsmAnd renderer to refresh or rerender visible tiles.') }}</span>
+      <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
+      @if (rerenderVisibleTilesStatus()) {
+        <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
+      }
     </div>
-      <div class="map-cache-section render-tile-statistics" aria-live="polite">
-        <div class="map-cache-heading">Total render</div>
-        <div class="map-cache-row"><span>Rendered</span><strong>{{ totalRenderTileCounts().rendered.toLocaleString() }}</strong></div>
-        <div class="map-cache-row"><span>From cache</span><strong>{{ totalRenderTileCounts().cached.toLocaleString() }}</strong></div>
-        <div class="map-cache-row"><span>Errors</span><strong>{{ totalRenderTileCounts().failed.toLocaleString() }}</strong></div>
-      </div>
-      <div class="map-cache-section render-tile-statistics" aria-live="polite">
-        <div class="map-cache-heading">Last render</div>
-        <div class="map-cache-row"><span>Rendered</span><strong>{{ lastRenderTileCounts().rendered.toLocaleString() }}</strong></div>
-        <div class="map-cache-row"><span>From cache</span><strong>{{ lastRenderTileCounts().cached.toLocaleString() }}</strong></div>
-        <div class="map-cache-row"><span>Errors</span><strong>{{ lastRenderTileCounts().failed.toLocaleString() }}</strong></div>
-      </div>
+    <table class="map-cache-section render-tile-statistics" aria-live="polite" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th></th>
+          <th scope="col">Total render</th>
+          <th scope="col">Last render</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Rendered</th>
+          <td>{{ totalRenderTileCounts().rendered.toLocaleString() }}</td>
+          <td>{{ lastRenderTileCounts().rendered.toLocaleString() }}</td>
+        </tr>
+        <tr>
+          <th scope="row">From cache</th>
+          <td>{{ totalRenderTileCounts().cached.toLocaleString() }}</td>
+          <td>{{ lastRenderTileCounts().cached.toLocaleString() }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Errors</th>
+          <td>{{ totalRenderTileCounts().failed.toLocaleString() }}</td>
+          <td>{{ lastRenderTileCounts().failed.toLocaleString() }}</td>
+        </tr>
+      </tbody>
+    </table>
   </details>
 </div>
 </div>
