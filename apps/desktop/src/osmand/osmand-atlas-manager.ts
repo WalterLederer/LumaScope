@@ -142,7 +142,14 @@ class OsmAndHillshadeWorker {
   private nextRequestId = 1;
   private stderr = '';
 
-  constructor(private readonly helperPath: string, private readonly environment: NodeJS.ProcessEnv) {}
+  constructor(
+    private readonly helperPath: string,
+    private readonly environment: NodeJS.ProcessEnv,
+    private readonly obfPaths: string[],
+    private readonly resourcesPath: string,
+    private readonly stylePath: string,
+    private readonly displayScale: number
+  ) {}
 
   readTile(databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> {
     const result = this.queue.then(() => this.readTileQueued(databasePath, z, x, y, s));
@@ -165,9 +172,40 @@ class OsmAndHillshadeWorker {
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
-    const child = spawn(this.helperPath, [], {
-      stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
-    });
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) {
+      throw new Error('Select an external OsmAnd resources folder before reading Hillshade tiles.');
+    }
+    if (!this.stylePath || !existsSync(this.stylePath)) {
+      throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
+    }
+
+    // The packaged native helper requires the same four startup arguments as
+    // the Atlas renderer, even when it is only used for SQLite Hillshade reads.
+    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-hillshade-'));
+    const configurationPath = join(configurationDirectory, 'obf-paths.json');
+    try {
+      writeFileSync(configurationPath, JSON.stringify(this.obfPaths), 'utf8');
+    } catch (error) {
+      this.cleanupConfigurationDirectory(configurationDirectory);
+      throw error;
+    }
+    const encodePathArgument = (value: string): string =>
+      'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+    let child: ChildProcessWithoutNullStreams;
+    try {
+      child = spawn(this.helperPath, [
+        encodePathArgument(configurationPath),
+        encodePathArgument(this.resourcesPath),
+        encodePathArgument(this.stylePath),
+        String(this.displayScale)
+      ], {
+        stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
+      });
+    } catch (error) {
+      this.cleanupConfigurationDirectory(configurationDirectory);
+      throw error;
+    }
+    child.once('close', () => this.cleanupConfigurationDirectory(configurationDirectory));
     this.child = child;
     child.stdin.on('error', error => {
       const code = (error as NodeJS.ErrnoException).code;
@@ -511,7 +549,9 @@ export class OsmAndAtlasManager {
   private temporaryFileId = 0;
 
   constructor() {
-    this.hillshadeWorker = new OsmAndHillshadeWorker(this.helperPath, this.environment);
+    this.hillshadeWorker = new OsmAndHillshadeWorker(
+      this.helperPath, this.environment, this.obfPaths, this.resourcesPath, this.stylePath, this.displayScale
+    );
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
       void this.hillshadeWorker?.shutdown();
