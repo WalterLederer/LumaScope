@@ -144,7 +144,7 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
+          <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">Track time (min – max)</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing">
@@ -152,6 +152,7 @@ interface MapErrorEntry {
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
             <span role="cell">{{ track.missing ? 'Missing' : formatGpxDate(track.lastModified) }}</span>
+            <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing ? 'Missing' : gpxTrackTimeRange(track.path) }}</span>
             <span role="cell">{{ track.missing ? 'Missing' : formatGpxFileSize(track.sizeBytes) }}</span>
             <div class="color-picker gpx-track-color-picker" role="cell">
               <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
@@ -287,6 +288,10 @@ interface MapErrorEntry {
                       <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                     </div>
                     <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
+                    <div class="marker-time-range">
+                      <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
+                      <span>Maximum timestamp: <strong>{{ markerTimestampRange().maximum }}</strong></span>
+                    </div>
                     <div class="marker-status" role="status">{{ markerStatus() }}</div>
                   </div>
                 </details>
@@ -876,9 +881,11 @@ interface MapErrorEntry {
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) minmax(135px,175px) minmax(245px,290px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-missing{color:#ff5b5b;background:color-mix(in srgb,#e53935 9%,transparent)}.gpx-file-row.gpx-missing .gpx-file-name{color:#ff5b5b}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
+    .gpx-time-range{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .marker-time-range{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;font-variant-numeric:tabular-nums}
     .gpx-row-actions{display:flex;align-items:center;justify-content:center;gap:3px}.gpx-fit-button,.gpx-open-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover,.gpx-open-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-open-button{width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-open-button:disabled{opacity:.35;cursor:default}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
@@ -3041,6 +3048,24 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly formatGpxDate = (timestamp: number): string =>
     Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(this.locale) : '—';
+  protected readonly gpxTrackTimeRange = (path: string): string => {
+    const timestamps = (this.gpxPointDataByTrack.get(path) ?? []).flat()
+      .map(point => point.timestamp ? Date.parse(point.timestamp) : Number.NaN)
+      .filter(value => Number.isFinite(value))
+      .sort((a, b) => a - b);
+    return timestamps.length
+      ? `${this.formatGpxDate(timestamps[0])} – ${this.formatGpxDate(timestamps[timestamps.length - 1])}`
+      : '—';
+  };
+  protected readonly markerTimestampRange = (): { minimum: string; maximum: string } => {
+    const timestamps = this.directoryPhotoTimestampMarkers
+      .map(marker => marker.gpsTimestamp ?? Number.NaN)
+      .filter(value => Number.isFinite(value))
+      .sort((a, b) => a - b);
+    return timestamps.length
+      ? { minimum: this.formatGpxDate(timestamps[0] * 1000), maximum: this.formatGpxDate(timestamps[timestamps.length - 1] * 1000) }
+      : { minimum: '—', maximum: '—' };
+  };
   protected readonly formatGpxFileSize = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes < 0) return '—';
     if (bytes < 1024) return `${bytes} B`;
