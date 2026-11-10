@@ -379,7 +379,6 @@ interface MapErrorEntry {
         <div class="map-cache-row"><span>From cache</span><strong>{{ lastRenderTileCounts().cached.toLocaleString() }}</strong></div>
         <div class="map-cache-row"><span>Errors</span><strong>{{ lastRenderTileCounts().failed.toLocaleString() }}</strong></div>
       </div>
-    </div>
   </details>
 </div>
 </div>
