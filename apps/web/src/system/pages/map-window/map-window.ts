@@ -1997,7 +1997,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
     renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
-    renderer.setTextLabelOpacity(this.labelOpacity() / 100);
+    renderer.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
@@ -2006,6 +2006,7 @@ export class MapWindow implements OnInit, OnDestroy {
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
+    this.applyOpacitySettings();
     window.addEventListener('resize', this.onResize);
   }
 
@@ -2124,6 +2125,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
+    this.applyOpacitySettings();
     window.addEventListener('resize', this.onResize);
   }
 
@@ -3111,6 +3113,28 @@ ${points}
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
     if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
+  private applyOpacitySettings(): void {
+    // Reapply persisted values only after all map layers and restored tracks exist.
+    // This keeps startup behavior identical to changing the controls manually.
+    this.applyMapOpacity();
+    const markerOpacity = this.markersVisible() ? this.markerOpacity() / 100 : 0;
+    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
+    for (const marker of this.directoryMarkers) marker.setOpacity(markerOpacity);
+    this.directoryMarkerGroup?.refreshClusters?.();
+    this.offlineRenderer?.setPhotoOpacity(markerOpacity);
+
+    const locationOpacity = this.locationVisible() ? this.locationOpacity() / 100 : 0;
+    this.marker?.setOpacity(locationOpacity);
+    this.offlineRenderer?.setCurrentOpacity(locationOpacity);
+    this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
+    this.applyHillshadeSettingsIfReady();
+    this.applyGpxTrack();
+  }
+
+  private applyHillshadeSettingsIfReady(): void {
+    if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+  }
+
   private applyMapOpacity(): void {
     const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
     this.offlineRenderer?.setBasemapOpacity(opacity);
