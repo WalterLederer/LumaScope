@@ -204,6 +204,82 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
 }
 
 
+interface HillshadePngDiagnostics {
+  byteLength: number;
+  width: number | null;
+  height: number | null;
+  bitDepth: number | null;
+  colorType: number | null;
+  compression: number | null;
+  filter: number | null;
+  interlace: number | null;
+  idatBytes: number;
+  hasIend: boolean;
+}
+
+function inspectHillshadePng(png: Uint8Array): HillshadePngDiagnostics {
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  const signatureValid = png.byteLength >= 8
+    && png[0] === 0x89 && png[1] === 0x50 && png[2] === 0x4e && png[3] === 0x47
+    && png[4] === 0x0d && png[5] === 0x0a && png[6] === 0x1a && png[7] === 0x0a;
+  const result: HillshadePngDiagnostics = {
+    byteLength: png.byteLength, width: null, height: null, bitDepth: null,
+    colorType: null, compression: null, filter: null, interlace: null,
+    idatBytes: 0, hasIend: false
+  };
+  if (!signatureValid) return result;
+
+  let offset = 8;
+  while (offset + 12 <= png.byteLength) {
+    const length = view.getUint32(offset, false);
+    const typeOffset = offset + 4;
+    const dataOffset = offset + 8;
+    const chunkEnd = dataOffset + length + 4;
+    if (chunkEnd > png.byteLength) break;
+    const type = String.fromCharCode(png[typeOffset], png[typeOffset + 1], png[typeOffset + 2], png[typeOffset + 3]);
+    if (type === 'IHDR' && length === 13) {
+      result.width = view.getUint32(dataOffset, false);
+      result.height = view.getUint32(dataOffset + 4, false);
+      result.bitDepth = png[dataOffset + 8];
+      result.colorType = png[dataOffset + 9];
+      result.compression = png[dataOffset + 10];
+      result.filter = png[dataOffset + 11];
+      result.interlace = png[dataOffset + 12];
+    } else if (type === 'IDAT') {
+      result.idatBytes += length;
+    } else if (type === 'IEND') {
+      result.hasIend = length === 0;
+      break;
+    }
+    offset = chunkEnd;
+  }
+  return result;
+}
+
+async function validateHillshadePngForBrowser(png: Uint8Array, tile: string): Promise<void> {
+  const diagnostics = inspectHillshadePng(png);
+  const details = JSON.stringify(diagnostics);
+  if (diagnostics.width === null || diagnostics.height === null || !diagnostics.hasIend
+    || diagnostics.idatBytes === 0 || diagnostics.width <= 0 || diagnostics.height <= 0) {
+    throw new Error('Hillshade helper returned an incomplete or invalid PNG (' + tile + '; ' + details + ').');
+  }
+  try {
+    // Decode with Chromium before handing the original encoded bytes to MapLibre.
+    // This isolates malformed PNG payloads from MapLibre source/tile handling.
+    const bitmap = await createImageBitmap(new Blob([png], { type: 'image/png' }));
+    try {
+      if (bitmap.width !== diagnostics.width || bitmap.height !== diagnostics.height) {
+        throw new Error('Decoded dimensions do not match the PNG IHDR.');
+      }
+    } finally {
+      bitmap.close();
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error('Hillshade PNG could not be decoded by Chromium (' + tile + '; ' + details + '; decode=' + message + ').');
+  }
+}
+
 /** Hillshade is fetched as an independent PNG raster source; its alpha channel is preserved. */
 export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabases: () => OsmAndHillshadeDatabase[]): void {
   osmAndHillshadeDatabasesProvider = getDatabases;
@@ -239,7 +315,10 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       throw error;
     }
     if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
-    // MapLibre decodes the original PNG directly, including grayscale alpha.
+    const tile = 'z' + zoom + '/x' + column + '/y' + row;
+    await validateHillshadePngForBrowser(png, tile);
+    // Keep the original encoded PNG unchanged for MapLibre. The preflight decode
+    // above is diagnostic only and confirms Chromium can decode the helper output.
     const data = png.buffer.slice(png.byteOffset, png.byteOffset + png.byteLength) as ArrayBuffer;
     return { data };
   });
