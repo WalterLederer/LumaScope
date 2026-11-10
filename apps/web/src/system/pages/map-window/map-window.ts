@@ -371,22 +371,6 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
       <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active</span>
     </div>
-    <table class="offline-maps-table">
-      <thead><tr><th>Active</th><th>Hillshade database</th><th>Status</th><th></th></tr></thead>
-      <tbody>
-        @for (database of hillshadeDatabases(); track database.id) {
-          <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
-            <td><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" aria-label="Activate Hillshade database"></td>
-            <td>{{ database.path.split(/[\\/]/).pop() }}</td>
-            <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
-            <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
-          </tr>
-        } @empty {
-          <tr><td colspan="4">No Hillshade databases added.</td></tr>
-        }
-      </tbody>
-    </table>
-    <div class="offline-map-status">Enabled databases are rendered as separate transparent raster layers. The Hillshade opacity slider in View applies to all active databases.</div>
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
@@ -581,7 +565,7 @@ interface MapErrorEntry {
 </div>
 </section>
       }
-      @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+      @if (mapDisplayNotice() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
         <div class="map-display-notice" role="alert">
           <strong>Map cannot be displayed</strong>
           <span>{{ mapDisplayNotice() }}</span>
@@ -617,7 +601,28 @@ interface MapErrorEntry {
             </div>
           </div>
         }
-        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+        @if (settingsOpen() && activeSettingsTab() === 'hillshade') {
+          <div class="offline-map-list-view">
+            <div class="mbtiles-map-list">
+              @if (hillshadeDatabases().length > 0) {
+                <table class="mbtiles-map-table">
+                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade database</th><th>Status</th><th></th></tr></thead>
+                  <tbody>
+                    @for (database of hillshadeDatabases(); track database.id) {
+                      <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                        <td class="mbtiles-map-file"><strong>{{ database.path.split(/[\\/]/).pop() }}</strong><span>{{ database.path }}</span></td>
+                        <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
+                        <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else { <span class="offline-map-status">No Hillshade databases loaded. Use “Add Hillshade files...” above.</span> }
+            </div>
+          </div>
+        }
+        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && (activeSettingsTab() === 'offlineMaps' || activeSettingsTab() === 'hillshade'))" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
         @if (!coordinatesAvailable() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
         }
