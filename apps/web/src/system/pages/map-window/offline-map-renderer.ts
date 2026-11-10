@@ -205,7 +205,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
   addProtocol('osmand-hillshade', async (request, abortController) => {
     const match = /^osmand-hillshade:\/\/([a-f0-9]{16})\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
-    const [, zoomText, columnText, rowText] = match;
+    const [, databaseId, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
     const tileCount = 2 ** zoom;
     if (!Number.isInteger(zoom) || zoom < 0 || zoom > 24
