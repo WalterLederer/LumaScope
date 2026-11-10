@@ -30,7 +30,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted'; }
 
 interface MapErrorEntry {
   id: number;
@@ -132,31 +132,13 @@ interface MapErrorEntry {
     <div class="gpx-toolbar">
       <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
-      <div class="color-picker">
-        <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
-          @if (gpxVisible()) {
-            <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
-            <span>{{ selectedGpxColorName() }}</span>
-          } @else { <span>Off</span> }
-          <span class="color-picker-chevron">▾</span>
-        </button>
-        @if (colorMenuOpen()) {
-          <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
-            <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
-            @for (color of gpxColors; track color.value) {
-              <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
-                <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-              </button>
-            }
-          </div>
-        }
-      </div>
+      <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
     </div>
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span></span>
+          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row">
@@ -164,6 +146,12 @@ interface MapErrorEntry {
             <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
             <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
+            <select class="gpx-track-color" role="cell" [value]="track.color || gpxColor()" (change)="changeGpxTrackColor(track.path, $any($event.target).value)" [attr.aria-label]="'Color for ' + track.name">
+              @for (color of gpxColors; track color.value) { <option [value]="color.value">{{ color.name }}</option> }
+            </select>
+            <select class="gpx-track-line-style" role="cell" [value]="track.lineStyle || 'solid'" (change)="changeGpxTrackLineStyle(track.path, $any($event.target).value)" [attr.aria-label]="'Line style for ' + track.name">
+              <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
+            </select>
             <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
           </div>
         }
@@ -784,13 +772,13 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:42px minmax(180px,1fr) minmax(150px,190px) minmax(90px,120px) 28px;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:42px minmax(150px,1fr) minmax(135px,175px) minmax(75px,95px) 105px 95px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}
-    @media(max-width:620px){.gpx-file-row{grid-template-columns:34px minmax(130px,1fr) minmax(100px,130px) 80px 26px;gap:6px}}
+    @media(max-width:760px){.gpx-file-row{grid-template-columns:30px minmax(110px,1fr) 90px 65px 90px 82px 24px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -2807,7 +2795,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const content = await file.text();
         const parsed = this.parseGpxTrackData(content);
         const trackPath = path || `memory:${file.name}:${file.lastModified}`;
-        added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true });
+        added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true, color: this.gpxColors[(current.length + added.length) % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid' });
         this.gpxSegmentsByTrack.set(trackPath, parsed);
       } catch (error) {
         this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
@@ -2844,7 +2832,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const parsed = this.parseGpxTrackData(result.data);
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (track.active !== false) segments.push(...parsed);
-        valid.push({ ...track, active: track.active !== false });
+        valid.push({ ...track, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: track.lineStyle === 'dashed' || track.lineStyle === 'dotted' ? track.lineStyle : 'solid' });
       }
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
@@ -2877,12 +2865,27 @@ export class MapWindow implements OnInit, OnDestroy {
         const active = track.active !== false;
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (active) segments.push(...parsed);
-        available.push({ ...track, active });
+        available.push({ ...track, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: track.lineStyle === 'dashed' || track.lineStyle === 'dotted' ? track.lineStyle : 'solid' });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
     this.gpxSegments = segments;
     this.saveSetting('gpxTracks', JSON.stringify(available));
+    this.applyGpxTrack();
+  }
+
+  protected readonly changeGpxTrackColor = (path: string, color: string): void => {
+    if (!this.gpxColors.some(item => item.value === color)) return;
+    this.updateGpxTrack(path, { color });
+  };
+  protected readonly changeGpxTrackLineStyle = (path: string, lineStyle: string): void => {
+    if (lineStyle !== 'solid' && lineStyle !== 'dashed' && lineStyle !== 'dotted') return;
+    this.updateGpxTrack(path, { lineStyle });
+  };
+  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'active'>>): void {
+    const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
+    this.gpxTracks.set(next);
+    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
     this.applyGpxTrack();
   }
 
@@ -2938,7 +2941,8 @@ ${points}
       const parsed = this.parseGpxTrackData(content);
       const track: GpxTrackFile = {
         path: destination, name: fileName, sizeBytes: new Blob([content]).size,
-        lastModified: Date.now(), active: true
+        lastModified: Date.now(), active: true,
+        color: this.gpxColors[this.gpxTracks().length % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid'
       };
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.gpxSegmentsByTrack.set(destination, parsed);
@@ -3012,17 +3016,21 @@ ${points}
   }
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxSegments : [], this.gpxColor(), .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid' })) : [], .92 * this.gpxOpacity() / 100);
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
-    for (const segment of this.gpxSegments) {
-      if (segment.length < 2) continue;
-      this.trackLayers.push(this.leaflet.polyline(segment, {
-        color: this.gpxColor(), weight: 4, opacity: .92 * this.gpxOpacity() / 100, lineCap: 'round', lineJoin: 'round'
-      }).addTo(this.map));
+    for (const track of this.gpxTracks().filter(item => item.active !== false)) {
+      for (const segment of this.gpxSegmentsByTrack.get(track.path) ?? []) {
+        if (segment.length < 2) continue;
+        const lineStyle = track.lineStyle || 'solid';
+        this.trackLayers.push(this.leaflet.polyline(segment, {
+          color: track.color || this.gpxColor(), weight: 4, opacity: .92 * this.gpxOpacity() / 100,
+          lineCap: 'round', lineJoin: 'round', dashArray: lineStyle === 'dashed' ? '10 7' : lineStyle === 'dotted' ? '2 7' : undefined
+        }).addTo(this.map));
+      }
     }
   }
 
