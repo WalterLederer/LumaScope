@@ -299,30 +299,28 @@ interface MapErrorEntry {
   <details class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
     <summary>
       <span>Opacity</span>
-      <span class="opacity-summary-controls">
-        <span class="range-setting">
-          <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
-          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
-          <span class="range-value">{{ mapOpacity() }}%</span>
-        </span>
-        <span class="range-setting">
-          <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
-          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
-          <span class="range-value">{{ gpxOpacity() }}%</span>
-        </span>
-        <span class="range-setting">
-          <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
-          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
-          <span class="range-value">{{ markerOpacity() }}%</span>
-        </span>
-        <span class="range-setting">
-          <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
-          <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
-          <span class="range-value">{{ locationOpacity() }}%</span>
-        </span>
-      </span>
     </summary>
     <div class="opacity-content">
+      <div class="range-setting">
+        <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+        <span class="range-value">{{ mapOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+        <span class="range-value">{{ gpxOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+        <span class="range-value">{{ markerOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
+        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+        <span class="range-value">{{ locationOpacity() }}%</span>
+      </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
         <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
