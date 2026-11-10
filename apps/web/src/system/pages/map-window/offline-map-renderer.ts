@@ -266,7 +266,9 @@ async function validateHillshadePngForBrowser(png: Uint8Array, tile: string): Pr
   try {
     // Decode with Chromium before handing the original encoded bytes to MapLibre.
     // This isolates malformed PNG payloads from MapLibre source/tile handling.
-    const bitmap = await createImageBitmap(new Blob([png], { type: 'image/png' }));
+    const pngBuffer = new ArrayBuffer(png.byteLength);
+    new Uint8Array(pngBuffer).set(png);
+    const bitmap = await createImageBitmap(new Blob([pngBuffer], { type: 'image/png' }));
     try {
       if (bitmap.width !== diagnostics.width || bitmap.height !== diagnostics.height) {
         throw new Error('Decoded dimensions do not match the PNG IHDR.');
