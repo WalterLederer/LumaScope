@@ -58,7 +58,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
   addProtocol('osmand', async (request, abortController) => {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
-    const [, databaseId, zoomText, columnText, rowText] = match;
+    const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
     const column = Number(columnText);
     const row = Number(rowText);
@@ -128,7 +128,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
   addProtocol('osmand-atlas', async (request, abortController) => {
     const match = /^osmand-atlas:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
-    const [, databaseId, zoomText, columnText, rowText] = match;
+    const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
     const requestedColumn = Number(columnText);
     const row = Number(rowText);
