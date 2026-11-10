@@ -237,6 +237,8 @@ interface MapErrorEntry {
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
+          <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
+            (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Animate' }}</button>
         </div>
         <div class="time-slider-boundary-box">
           <div class="time-slider-boundary-column time-slider-min">
@@ -901,12 +903,14 @@ interface MapErrorEntry {
     .time-slider-range-input{position:absolute;top:50%;left:0;right:0;width:100%;height:5px;margin:0;transform:translateY(-50%);background:transparent;appearance:none;-webkit-appearance:none;pointer-events:none;z-index:2}
     .time-slider-range-input::-webkit-slider-runnable-track{height:5px;background:transparent}
     .time-slider-range-input::-moz-range-track{height:5px;background:transparent}
-    .time-slider-range-input.time-slider-range-start::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-end::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-start::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
-    .time-slider-range-input.time-slider-range-end::-moz-range-thumb{width:9px;height:18px;border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-start::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;transform:translateX(-6.5px);border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-end::-webkit-slider-thumb{width:13px;height:22px;margin-top:-8.5px;transform:translateX(6.5px);border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;appearance:none;-webkit-appearance:none;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-start::-moz-range-thumb{width:9px;height:18px;transform:translateX(-6.5px);border:2px solid #fff;border-radius:12px 0 0 12px;background:#1d78b8;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
+    .time-slider-range-input.time-slider-range-end::-moz-range-thumb{width:9px;height:18px;transform:translateX(6.5px);border:2px solid #fff;border-radius:0 12px 12px 0;background:#c87525;box-shadow:0 1px 4px #0008;pointer-events:auto;cursor:ew-resize}
     .time-slider-range-input:disabled::-webkit-slider-thumb,.time-slider-range-input:disabled::-moz-range-thumb{opacity:.45;cursor:default}
     .time-slider-range.disabled{opacity:.55}
+    .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
+    .time-slider-animate-button:disabled{opacity:.45;cursor:default}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -1390,6 +1394,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderMaximum = signal(0);
   protected readonly timeSliderStart = signal(0);
   protected readonly timeSliderEnd = signal(0);
+  protected readonly timeSliderAnimating = signal(false);
+  private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
@@ -1680,6 +1686,7 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.memoryRefreshTimer) clearInterval(this.memoryRefreshTimer);
     this.memoryRefreshTimer = null;
+    this.stopTimeSliderAnimation();
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
@@ -3452,12 +3459,41 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyCurrentPhotoVisibility();
   };
 
-  private timeSliderHandleGap(trackWidth: number): number {
-    const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
-    // Keep the 13 px thumbs edge-to-edge: their flat inner sides touch at the minimum range.
-    const thumbSeparation = 13;
-    const usableWidth = Math.max(1, trackWidth - thumbSeparation);
-    return Math.min(span, Math.max(0, Math.ceil(span * thumbSeparation / usableWidth)));
+  private timeSliderHandleGap(_trackWidth: number): number {
+    // The handles are visually offset by half their width in CSS, so equal timestamps
+    // still render edge-to-edge without introducing an artificial time gap.
+    return 0;
+  }
+
+  protected readonly toggleTimeSliderAnimation = (): void => {
+    if (this.timeSliderAnimating()) {
+      this.stopTimeSliderAnimation();
+      return;
+    }
+    if (!this.timeSliderActive() || !this.timeSliderHasData() || this.timeSliderEnd() >= this.timeSliderMaximum()) return;
+    this.timeSliderAnimating.set(true);
+    const span = this.timeSliderMaximum() - this.timeSliderMinimum();
+    const increment = Math.max(1, Math.ceil(span / 240));
+    this.timeSliderAnimationTimer = setInterval(() => {
+      const next = Math.min(this.timeSliderMaximum(), this.timeSliderEnd() + increment);
+      this.setTimeSliderEnd(next);
+      if (next >= this.timeSliderMaximum()) this.stopTimeSliderAnimation();
+    }, 30);
+  };
+
+  private stopTimeSliderAnimation(): void {
+    if (this.timeSliderAnimationTimer !== null) clearInterval(this.timeSliderAnimationTimer);
+    this.timeSliderAnimationTimer = null;
+    this.timeSliderAnimating.set(false);
+  }
+
+  private setTimeSliderEnd(next: number): void {
+    this.timeSliderEnd.set(next);
+    this.saveSetting('timeSliderEnd', next);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
   }
 
   protected readonly changeTimeSliderStart = (input: HTMLInputElement): void => {
@@ -3475,17 +3511,13 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeTimeSliderEnd = (input: HTMLInputElement): void => {
+    this.stopTimeSliderAnimation();
     const timestamp = Number(input.value);
     if (!Number.isFinite(timestamp)) return;
     const gap = this.timeSliderHandleGap(input.parentElement?.getBoundingClientRect().width ?? 0);
     const next = Math.max(timestamp, Math.min(this.timeSliderMaximum(), this.timeSliderStart() + gap));
     input.value = String(next);
-    this.timeSliderEnd.set(next);
-    this.saveSetting('timeSliderEnd', next);
-    this.rebuildGpxSegments();
-    this.applyGpxTrack();
-    this.applyDirectoryPhotoMarkers();
-    this.applyCurrentPhotoVisibility();
+    this.setTimeSliderEnd(next);
   };
 
   private applyCurrentPhotoVisibility(): void {
