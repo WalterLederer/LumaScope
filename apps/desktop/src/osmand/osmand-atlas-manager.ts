@@ -1,12 +1,14 @@
 import { app, BrowserWindow, dialog, nativeImage, screen } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
+
+interface HillshadeDatabaseInfo { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
 // Render one MapLibre 512px tile at native resolution. The helper derives
 // its zoom compensation from this width, preserving the same geographic extent.
@@ -789,12 +791,19 @@ export class OsmAndAtlasManager {
 
 
   @IpcHandler({ name: 'OsmAndAtlas.getHillshadeDatabases' })
-  readonly getHillshadeDatabases = async (): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
-    return this.hillshadeDatabases.map(item => ({ ...item, available: existsSync(item.path) }));
+  readonly getHillshadeDatabases = async (): Promise<HillshadeDatabaseInfo[]> => {
+    return this.hillshadeDatabases.map(item => {
+      try {
+        const stats = statSync(item.path);
+        return { ...item, available: stats.isFile(), lastModified: stats.mtimeMs, sizeBytes: stats.size };
+      } catch {
+        return { ...item, available: false, lastModified: null, sizeBytes: null };
+      }
+    });
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.addHillshadeDatabases' })
-  readonly addHillshadeDatabases = async (): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+  readonly addHillshadeDatabases = async (): Promise<HillshadeDatabaseInfo[]> => {
     const result = await dialog.showOpenDialog({
       title: 'Add OsmAnd Hillshade databases',
       properties: ['openFile', 'multiSelections'],
@@ -813,14 +822,14 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.setHillshadeDatabaseEnabled' })
-  readonly setHillshadeDatabaseEnabled = async (_event: Electron.IpcMainInvokeEvent, id: string, enabled: boolean): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+  readonly setHillshadeDatabaseEnabled = async (_event: Electron.IpcMainInvokeEvent, id: string, enabled: boolean): Promise<HillshadeDatabaseInfo[]> => {
     this.hillshadeDatabases = this.hillshadeDatabases.map(item => item.id === id ? { ...item, enabled: !!enabled } : item);
     await this.persistHillshadeDatabases();
     return this.getHillshadeDatabases();
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.removeHillshadeDatabase' })
-  readonly removeHillshadeDatabase = async (_event: Electron.IpcMainInvokeEvent, id: string): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+  readonly removeHillshadeDatabase = async (_event: Electron.IpcMainInvokeEvent, id: string): Promise<HillshadeDatabaseInfo[]> => {
     this.hillshadeDatabases = this.hillshadeDatabases.filter(item => item.id !== id);
     await this.persistHillshadeDatabases();
     return this.getHillshadeDatabases();
