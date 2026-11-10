@@ -759,6 +759,8 @@ interface MapErrorEntry {
     .resize-nw{top:0;left:0;cursor:nwse-resize}.resize-se{right:0;bottom:0;cursor:nwse-resize}
     .map-display-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;max-width:min(520px,calc(100% - 36px));padding:18px 22px;text-align:center;background:var(--color-surface-default-high,#292a2d);border:1px solid var(--color-content-default-low,#666);border-radius:8px;box-shadow:0 5px 24px rgba(0,0,0,.35);color:var(--color-content-default-high,#eee)}
     .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}
+    :host ::ng-deep .maplibregl-ctrl-bottom-left,:host ::ng-deep .leaflet-bottom.leaflet-left{z-index:40!important;pointer-events:none}
+    :host ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl,:host ::ng-deep .leaflet-bottom.leaflet-left .leaflet-control{pointer-events:auto}
     :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.32;transition:opacity .15s ease;background:rgba(255,255,255,.78);color:#111;border-color:rgba(0,0,0,.72);box-shadow:0 1px 3px rgba(0,0,0,.28);font-size:10px;font-weight:600;text-shadow:none}
     :host ::ng-deep .maplibregl-ctrl-scale:hover,:host ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
@@ -2985,6 +2987,20 @@ export class MapWindow implements OnInit, OnDestroy {
     await this.reloadGpxTracks();
   };
 
+  private async readGpxFileMetadata(path: string): Promise<{ size: number; modifiedAt: number } | null> {
+    if (!this.desktop) return null;
+    try {
+      const directory = await this.desktop.FileSystem.dirname(path);
+      const fileName = path.split(/[\\/]/).pop()?.toLowerCase();
+      if (!fileName) return null;
+      const entries = await this.desktop.FileSystem.readDir(directory);
+      const file = entries.find(entry => !entry.isDirectory && entry.name.toLowerCase() === fileName);
+      return file ? { size: file.size, modifiedAt: file.modifiedAt } : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async reloadGpxTracks(): Promise<void> {
     if (!this.desktop) return;
     const segments: [number, number][][] = [];
@@ -2993,14 +3009,17 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxPointDataByTrack.clear();
     for (const track of this.gpxTracks()) {
       if (track.path.startsWith('memory:')) continue;
-      const result = await this.desktop.FileSystem.readText(track.path);
+      const [result, metadata] = await Promise.all([
+        this.desktop.FileSystem.readText(track.path),
+        this.readGpxFileMetadata(track.path)
+      ]);
       if (!result.success) { valid.push({ ...track, missing: true }); continue; }
       try {
         const parsed = this.parseGpxTrackData(result.data);
         this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (track.active !== false) segments.push(...parsed);
-        valid.push({ ...track, missing: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
+        valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
       }
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
@@ -3027,7 +3046,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
     for (const track of tracks) {
-      const result = await this.desktop.FileSystem.readText(track.path);
+      const [result, metadata] = await Promise.all([
+        this.desktop.FileSystem.readText(track.path),
+        this.readGpxFileMetadata(track.path)
+      ]);
       if (!result.success) { available.push({ ...track, missing: true }); continue; }
       try {
         const parsed = this.parseGpxTrackData(result.data);
@@ -3035,7 +3057,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const active = track.active !== false;
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (active) segments.push(...parsed);
-        available.push({ ...track, missing: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
+        available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
