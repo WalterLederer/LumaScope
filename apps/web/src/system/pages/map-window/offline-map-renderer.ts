@@ -1755,6 +1755,26 @@ export class OfflineMapRenderer {
     this.map.setPaintProperty('gpx-track-line', 'line-opacity', opacity);
   }
 
+  refreshVisibleTiles(): void {
+    if (this.tileProtocol !== 'osmand' && this.tileProtocol !== 'osmand-atlas') {
+      throw new Error('Visible tile refresh is only available for OsmAnd renderers.');
+    }
+    const sourceId = this.tileProtocol;
+    const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) {
+      throw new Error(`The ${sourceId} raster source is unavailable for refresh.`);
+    }
+    // A unique URL identity makes MapLibre request the viewport again while
+    // the native OsmAnd protocol continues to serve tiles from its disk cache.
+    const refresh = Date.now();
+    source.setTiles([`${sourceId}://{z}/{x}/{y}?refresh=${refresh}`]);
+    this.map.triggerRepaint();
+    console.info(`[${sourceId}] Refreshed visible tiles from the existing disk cache`, {
+      zoom: this.map.getZoom(),
+      refresh
+    });
+  }
+
   async rerenderVisibleTiles(
     renderOsmAndTile: (z: number, x: number, y: number, forceRender: boolean) => Promise<unknown>,
     renderAtlasTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
