@@ -448,18 +448,18 @@ interface MapErrorEntry {
         <tbody>
           <tr>
             <th scope="row">Rendered</th>
-            <td>{{ totalRenderTileCounts().rendered.toLocaleString(navigator.language) }}</td>
-            <td>{{ lastRenderTileCounts().rendered.toLocaleString(navigator.language) }}</td>
+            <td>{{ totalRenderTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().rendered.toLocaleString(locale) }}</td>
           </tr>
           <tr>
             <th scope="row">From cache</th>
-            <td>{{ totalRenderTileCounts().cached.toLocaleString(navigator.language) }}</td>
-            <td>{{ lastRenderTileCounts().cached.toLocaleString(navigator.language) }}</td>
+            <td>{{ totalRenderTileCounts().cached.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().cached.toLocaleString(locale) }}</td>
           </tr>
           <tr>
             <th scope="row">Errors</th>
-            <td>{{ totalRenderTileCounts().failed.toLocaleString(navigator.language) }}</td>
-            <td>{{ lastRenderTileCounts().failed.toLocaleString(navigator.language) }}</td>
+            <td>{{ totalRenderTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
           </tr>
         </tbody>
       </table>
@@ -520,7 +520,7 @@ interface MapErrorEntry {
     <div class="map-cache-section">
       <div class="map-cache-heading">OsmAnd map tiles</div>
       <div class="map-cache-row"><span>Location</span><code>{{ osmAndTileCache().path }}</code></div>
-      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString(navigator.language) }}</strong></div>
+      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString(locale) }}</strong></div>
       <div class="map-cache-row"><span>Storage used</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
       <div class="map-cache-actions">
         <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
@@ -1051,6 +1051,8 @@ interface MapErrorEntry {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapWindow implements OnInit, OnDestroy {
+  readonly locale = navigator.language;
+
   private readonly route = inject(ActivatedRoute);
   protected readonly overlayMode = this.route.snapshot.queryParamMap.get('overlay') === '1';
   private overlayResizeStart: { edge: string; pointerX: number; pointerY: number; bounds: { x: number; y: number; width: number; height: number } } | null = null;
@@ -1679,7 +1681,7 @@ export class MapWindow implements OnInit, OnDestroy {
           ? this.mapStyle()
           : 'Unknown';
     const now = Date.now();
-    const timestamp = new Date(now).toLocaleString(navigator.language);
+    const timestamp = new Date(now).toLocaleString(locale);
     this.mapErrors.update(errors => {
       const latest = errors[0];
       if (latest && latest.source === source && latest.renderer === renderer
@@ -2823,7 +2825,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
-    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(navigator.language);
+    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(locale);
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
@@ -2965,7 +2967,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyGpxTrack();
   };
   protected readonly formatGpxDate = (timestamp: number): string =>
-    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(navigator.language) : '—';
+    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(locale) : '—';
   protected readonly formatGpxFileSize = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes < 0) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -3403,7 +3405,7 @@ ${points}
     const parts = [
       nearest ? 'GPS ' + nearest.latitude.toFixed(6) + ', ' + nearest.longitude.toFixed(6) : 'GPS –',
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
-      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(navigator.language)) : 'GPX time –'
+      nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(locale)) : 'GPX time –'
     ];
     this.gpxHoverInfo.set(parts.join(' · '));
   }
