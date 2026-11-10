@@ -83,7 +83,8 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              <div class="location-coordinate-display"><span>{{ mouseCoordinateLabel() || coordinateLabel() }} @if (!mouseCoordinateLabel() && bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+              <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+              @if (mouseCoordinateLabel()) { <div class="location-coordinate-display"><span>{{ mouseCoordinateLabel() }}</span></div> }
               <div class="address-settings">
                 <span class="settings-row-title">Address:</span>
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
@@ -1276,6 +1277,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerCount = signal(0);
   protected readonly markerStatus = signal('');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
+  protected readonly photoCoordinateLabel = signal('Photo: GPS coordinates unavailable');
   protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
   protected readonly locationAddress = signal('');
@@ -1486,6 +1488,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinatesAvailable.set(true);
       this.currentLatitude = latitude; this.currentLongitude = longitude;
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
+      this.photoCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, 'Photo: '));
       void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
     } else {
@@ -1505,6 +1508,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapInitialization = null;
         this.coordinatesAvailable.set(false);
         this.coordinateLabel.set('GPS coordinates unavailable');
+        this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
         this.locationAddress.set('This image does not contain GPS coordinates.');
         this.map?.remove();
         this.map = null;
@@ -1517,6 +1521,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       this.coordinatesAvailable.set(true);
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
+      this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
