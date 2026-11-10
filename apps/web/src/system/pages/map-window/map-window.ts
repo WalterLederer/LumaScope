@@ -13,6 +13,7 @@ interface MapInstance {
   invalidateSize(): MapInstance;
   getZoom(): number;
   setZoom(zoom: number): MapInstance;
+  containerPointToLatLng(point: [number, number]): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
   fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
   remove(): void;
@@ -82,7 +83,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              <div class="location-coordinate-display"><span>{{ coordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+              <div class="location-coordinate-display"><span>{{ mouseCoordinateLabel() || coordinateLabel() }} @if (!mouseCoordinateLabel() && bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="address-settings">
                 <span class="settings-row-title">Address:</span>
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
@@ -1275,6 +1276,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerCount = signal(0);
   protected readonly markerStatus = signal('');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
+  protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
   protected readonly locationAddress = signal('');
   protected readonly bearing = signal<number | null>(null);
@@ -1284,6 +1286,33 @@ export class MapWindow implements OnInit, OnDestroy {
     { name: 'Yellow', value: '#ffd60a', textColor: '#171717' }, { name: 'Green', value: '#34c759', textColor: '#102014' },
     { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
   ] as const;
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent): void {
+    const mapElement = this.mapElement().nativeElement;
+    if (mapElement.classList.contains('map-hidden') || !mapElement.contains(event.target as Node)) {
+      this.mouseCoordinateLabel.set('');
+      return;
+    }
+    const rect = mapElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    let latitude: number;
+    let longitude: number;
+    if (this.offlineRenderer) {
+      const coordinate = this.offlineRenderer.map.unproject([x, y]);
+      latitude = coordinate.lat;
+      longitude = coordinate.lng;
+    } else if (this.map) {
+      const coordinate = this.map.containerPointToLatLng([x, y]);
+      latitude = coordinate.lat;
+      longitude = coordinate.lng;
+    } else {
+      this.mouseCoordinateLabel.set('');
+      return;
+    }
+    this.mouseCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, 'Mouse: '));
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
