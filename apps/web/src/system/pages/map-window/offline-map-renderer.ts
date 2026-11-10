@@ -624,6 +624,7 @@ export class OfflineMapRenderer {
   private currentMarkerElement: HTMLElement | null = null;
   private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
   private hillshadeSourceRevision = 0;
+  private hillshadeRerenderPending = false;
   private hillshadeOpacity = 0.65;
   private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
@@ -1761,7 +1762,24 @@ export class OfflineMapRenderer {
       }))
     });
     if (!styleLoaded) {
-      console.warn('[Hillshade][rerender-skipped]', 'MapLibre style is not loaded; Hillshade source was not recreated.');
+      // The base-map rerender can temporarily leave MapLibre's style busy
+      // while its source/layer is being recreated. Defer the Hillshade rebuild
+      // until the map reaches idle instead of dropping the user's rerender.
+      // Keep only one pending callback; it reads the latest DB selection.
+      if (!this.hillshadeRerenderPending) {
+        this.hillshadeRerenderPending = true;
+        console.info('[Hillshade][rerender-deferred]', 'Waiting for MapLibre idle before recreating the Hillshade source.');
+        this.map.once('idle', () => {
+          this.hillshadeRerenderPending = false;
+          console.info('[Hillshade][rerender-resume]', {
+            styleLoaded: this.map.isStyleLoaded(),
+            zoom: this.map.getZoom()
+          });
+          this.rerenderHillshadeTiles();
+        });
+      } else {
+        console.info('[Hillshade][rerender-already-pending]', 'A deferred Hillshade rebuild is already waiting for MapLibre idle.');
+      }
       return;
     }
     // Recreate the Hillshade source/layer so MapLibre discards its raster tile
