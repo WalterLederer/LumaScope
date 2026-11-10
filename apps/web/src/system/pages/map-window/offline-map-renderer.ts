@@ -1488,6 +1488,7 @@ export class OfflineMapRenderer {
 
   setHillshadeVisibility(visible: boolean): void {
     this.hillshadeVisible = visible;
+    if (!this.map.isStyleLoaded()) return;
     for (const layer of this.map.getStyle().layers) {
       if (layer.id.startsWith('osmand-hillshade-raster-')) {
         this.map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
@@ -1497,6 +1498,7 @@ export class OfflineMapRenderer {
 
   setHillshadeOpacity(opacity: number): void {
     this.hillshadeOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
+    if (!this.map.isStyleLoaded()) return;
     for (const layer of this.map.getStyle().layers) {
       if (layer.id.startsWith('osmand-hillshade-raster-')) {
         this.map.setPaintProperty(layer.id, 'raster-opacity', this.hillshadeOpacity);
@@ -1505,6 +1507,7 @@ export class OfflineMapRenderer {
   }
 
   refreshHillshadeTiles(): void {
+    if (!this.map.isStyleLoaded()) return;
     const refresh = Date.now();
     for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) {
       const databaseId = sourceId.slice('osmand-hillshade-'.length);
