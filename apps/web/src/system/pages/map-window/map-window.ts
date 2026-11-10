@@ -333,8 +333,8 @@ interface MapErrorEntry {
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
-      <div class="range-setting" [class.setting-unavailable]="!hillshadeDatabasePath()">
-        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="!hillshadeDatabasePath() || mapSource() === 'online'" aria-label="Show Hillshade"></label>
+      <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
+        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0 || mapSource() === 'online'" aria-label="Show Hillshade"></label>
         <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
           [disabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
@@ -1078,11 +1078,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
   protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
-  protected readonly hillshadeDatabasePath = signal('');
-  protected readonly hillshadeDatabaseFileName = computed(() => {
-    const path = this.hillshadeDatabasePath();
-    return path ? path.split(/[\\/]/).pop() ?? path : 'Not selected';
-  });
+  protected readonly hillshadeDatabases = signal<OsmAndHillshadeDatabase[]>([]);
+  protected readonly hillshadeDatabaseCount = computed(() => this.hillshadeDatabases().length);
+  protected readonly activeHillshadeDatabaseCount = computed(() => this.hillshadeDatabases().filter(item => item.enabled && item.available).length);
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
     if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
@@ -1199,11 +1197,11 @@ export class MapWindow implements OnInit, OnDestroy {
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     if (this.desktop) {
-      registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabasePath());
-      void this.desktop.OsmAndAtlas.getHillshadeDatabasePath().then(path => {
-        this.hillshadeDatabasePath.set(path);
+      registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
+      void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
+        this.hillshadeDatabases.set(databases);
         if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
-      }).catch(error => this.recordMapError('Hillshade database', error instanceof Error ? error.message : String(error)));
+      }).catch(error => this.recordMapError('Hillshade databases', error instanceof Error ? error.message : String(error)));
     }
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
