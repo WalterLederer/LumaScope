@@ -251,13 +251,15 @@ interface MapErrorEntry {
         </select>
       </label>
     }
-    <label class="offline-style-control"><span>MBTiles Style</span>
-      <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
-        <option value="lumascope">LumaScope</option>
-        <option value="versatiles-colorful">VersaTiles Colorful</option>
-        <option value="versatiles-neutrino">VersaTiles Neutrino</option>
-      </select>
-    </label>
+    @if (mapSource() === 'offline') {
+      <label class="offline-style-control"><span>MBTiles Style</span>
+        <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+          <option value="lumascope">LumaScope</option>
+          <option value="versatiles-colorful">VersaTiles Colorful</option>
+          <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+        </select>
+      </label>
+    }
   </div>
   <label class="view-map-color"><span>Color</span>
     <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
@@ -339,11 +341,6 @@ interface MapErrorEntry {
           [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
           [disabled]="!hillshadeDatabasePath() || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
-      </div>
-      <div class="range-setting hillshade-database-setting">
-        <label>Hillshade DB</label>
-        <span class="offline-map-status" [title]="hillshadeDatabasePath()">{{ hillshadeDatabaseFileName() }}</span>
-        <button type="button" class="map-toolbar-button" (click)="chooseHillshadeDatabase()">Select…</button>
       </div>
     </div>
   </details>
@@ -781,9 +778,9 @@ interface MapErrorEntry {
     .opacity-summary-controls .visibility-toggle input{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
     .opacity-summary-controls>.range-setting>input.opacity-slider[type="range"]{flex:1 1 auto;width:auto;max-width:none;min-width:30px}
     .opacity-summary-controls .range-value{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
-    .opacity-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));width:100%;gap:3px 4px}
-    .opacity-content .range-setting{display:flex;align-items:center;gap:4px;min-width:0;max-width:100%;box-sizing:border-box}
-    .opacity-content .range-setting:has(.visibility-toggle){gap:2px}
+    .opacity-content{display:flex;align-items:center;flex-wrap:nowrap;width:100%;gap:5px;min-width:0;overflow-x:auto}
+    .opacity-content .range-setting{display:flex;align-items:center;gap:2px;flex:1 1 0;min-width:0;max-width:none;box-sizing:border-box}
+    .opacity-content .range-setting:has(.visibility-toggle){gap:1px}
     .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
     .opacity-content .visibility-toggle input[type="checkbox"]{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
     .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin:0;color:var(--color-content-default-medium,#aaa)}
@@ -794,9 +791,12 @@ interface MapErrorEntry {
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting input[type="range"]{flex:1;min-width:100px}
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:45px}
-    .opacity-content .range-setting>input.opacity-slider[type="range"]{flex:0 1 25%;width:25%;max-width:25%;min-width:35px;accent-color:#c084fc}
+    .opacity-content .range-setting>input.opacity-slider[type="range"]{flex:1 1 24px;width:24px;max-width:none;min-width:24px;margin:0 1px;accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
     .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
+    .opacity-content .range-setting .visibility-toggle input{margin-left:1px!important}
+    .opacity-content .overlay-opacity-setting{order:90;flex:0 1 125px}
+    .opacity-content .range-setting:has(#map-label-opacity){order:80}
     .opacity-content .visibility-toggle input{margin:0!important;accent-color:#c084fc}
     .opacity-content .visibility-toggle input:disabled{accent-color:#8b739d}
 
@@ -877,7 +877,7 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .settings-tabs .settings-tab.active{background:#31577d;border-color:#65a9ff;color:#fff}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
-    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
