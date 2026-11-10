@@ -63,6 +63,7 @@ export interface DesktopFileSystem {
 
 export interface DesktopDialogs {
   readonly openFolder: (initialPath?: string) => Promise<ApiResponse<string>>;
+  readonly saveFile: (defaultPath?: string) => Promise<ApiResponse<string>>;
 }
 
 export interface DesktopExif {
