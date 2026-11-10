@@ -20,7 +20,7 @@ interface MapInstance {
 interface LeafletMapApi {
   map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number }): MapInstance;
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): { addTo(map: MapInstance): { remove(): void } };
-  polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string }): { addTo(map: MapInstance): { remove(): void } };
+  polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
   markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean; iconCreateFunction?: (cluster: MapMarkerCluster) => unknown }): MapMarkerGroup;
@@ -29,6 +29,8 @@ type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanita
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
+
+interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; }
 
@@ -133,6 +135,7 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
       <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+      @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
@@ -140,7 +143,7 @@ interface MapErrorEntry {
           <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Direction</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
-          <div class="gpx-file-row" role="row">
+          <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path">
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
@@ -794,7 +797,7 @@ interface MapErrorEntry {
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
     .gpx-file-row{display:grid;grid-template-columns:42px minmax(150px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px 86px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
-    .gpx-file-row:last-child{border-bottom:0}
+    .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:var(--color-content-default-low,#343434);outline:1px solid var(--color-content-default-medium,#777);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -1041,6 +1044,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private gpxSegments: [number, number][][] = [];
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
+  private readonly gpxPointDataByTrack = new Map<string, GpxTrackPoint[][]>();
   private directoryPhotoMarkers: OfflinePhotoMarker[] = [];
   private readonly storagePrefix = 'mapWindow.';
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
@@ -1235,6 +1239,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxError = signal('');
+  protected readonly gpxHoveredTrackPath = signal<string | null>(null);
+  protected readonly gpxHoverInfo = signal('');
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
   protected readonly markerFilesChecked = signal(0);
@@ -2824,9 +2830,11 @@ export class MapWindow implements OnInit, OnDestroy {
       try {
         const content = await file.text();
         const parsed = this.parseGpxTrackData(content);
+        const pointData = this.parseGpxTrackPointData(content);
         const trackPath = path || `memory:${file.name}:${file.lastModified}`;
         added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true, color: this.gpxColors[(current.length + added.length) % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid' });
         this.gpxSegmentsByTrack.set(trackPath, parsed);
+        this.gpxPointDataByTrack.set(trackPath, pointData);
       } catch (error) {
         this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -2844,6 +2852,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeGpxTrack = async (path: string): Promise<void> => {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
+    this.gpxPointDataByTrack.delete(path);
     this.gpxTracks.set(next);
     this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
     await this.reloadGpxTracks();
@@ -2854,12 +2863,14 @@ export class MapWindow implements OnInit, OnDestroy {
     const segments: [number, number][][] = [];
     const valid: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
+    this.gpxPointDataByTrack.clear();
     for (const track of this.gpxTracks()) {
       if (track.path.startsWith('memory:')) continue;
       const result = await this.desktop.FileSystem.readText(track.path);
       if (!result.success) continue;
       try {
         const parsed = this.parseGpxTrackData(result.data);
+        this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (track.active !== false) segments.push(...parsed);
         valid.push({ ...track, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth : 4 });
@@ -2887,11 +2898,13 @@ export class MapWindow implements OnInit, OnDestroy {
     const segments: [number, number][][] = [];
     const available: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
+    this.gpxPointDataByTrack.clear();
     for (const track of tracks) {
       const result = await this.desktop.FileSystem.readText(track.path);
       if (!result.success) continue;
       try {
         const parsed = this.parseGpxTrackData(result.data);
+        this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
         const active = track.active !== false;
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (active) segments.push(...parsed);
@@ -3013,6 +3026,7 @@ ${points}
       };
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.gpxSegmentsByTrack.set(destination, parsed);
+      this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
       this.saveSetting('gpxTracks', JSON.stringify(this.gpxTracks().filter(item => !item.path.startsWith('memory:'))));
       this.rebuildGpxSegments();
       this.gpxError.set('');
@@ -3057,6 +3071,28 @@ ${points}
     }
   }
 
+  private parseGpxTrackPointData(content: string): GpxTrackPoint[][] {
+    const xml = new DOMParser().parseFromString(content, 'application/xml');
+    const segments = Array.from(xml.getElementsByTagName('*')).filter(element => element.localName === 'trkseg')
+      .map(segment => Array.from(segment.getElementsByTagName('*')).filter(point => point.localName === 'trkpt')
+        .map(point => this.parseGpxTrackPoint(point)).filter((point): point is GpxTrackPoint => point !== null))
+      .filter(segment => segment.length > 0);
+    if (segments.length) return segments;
+    const points = Array.from(xml.getElementsByTagName('*'))
+      .filter(point => point.localName === 'trkpt' || point.localName === 'rtept')
+      .map(point => this.parseGpxTrackPoint(point)).filter((point): point is GpxTrackPoint => point !== null);
+    return points.length ? [points] : [];
+  }
+
+  private parseGpxTrackPoint(point: Element): GpxTrackPoint | null {
+    const coordinates = this.parseGpxPoint(point);
+    if (!coordinates) return null;
+    const elevationText = Array.from(point.children).find(child => child.localName === 'ele')?.textContent?.trim();
+    const timestamp = Array.from(point.children).find(child => child.localName === 'time')?.textContent?.trim() || null;
+    const elevation = elevationText ? Number(elevationText) : null;
+    return { latitude: coordinates[0], longitude: coordinates[1], elevation: elevationText && Number.isFinite(elevation) ? elevation : null, timestamp };
+  }
+
   private parseGpxPoint(point: Element): [number, number] | null {
     const latitude = Number(point.getAttribute('lat')), longitude = Number(point.getAttribute('lon'));
     return Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
@@ -3089,9 +3125,37 @@ ${points}
     return patterns[style];
   }
 
+  private updateGpxHover(path: string, latitude: number, longitude: number): void {
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { this.clearGpxHover(); return; }
+    this.gpxHoveredTrackPath.set(path);
+    const track = this.gpxTracks().find(item => item.path === path);
+    const points = (this.gpxPointDataByTrack.get(path) ?? []).flat();
+    let nearest: GpxTrackPoint | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const point of points) {
+      const dy = point.latitude - latitude;
+      const dx = (point.longitude - longitude) * Math.cos(latitude * Math.PI / 180);
+      const distance = dx * dx + dy * dy;
+      if (distance < nearestDistance) { nearestDistance = distance; nearest = point; }
+    }
+    const parts = [
+      'GPS ' + latitude.toFixed(6) + ', ' + longitude.toFixed(6),
+      nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Höhe ' + nearest.elevation.toFixed(1) + ' m' : 'Höhe –',
+      nearest?.timestamp ? 'GPX ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX-Zeit –'
+    ];
+    this.gpxHoverInfo.set((track ? track.name + ' · ' : '') + parts.join(' · '));
+  }
+
+  private clearGpxHover(path?: string): void {
+    if (path && this.gpxHoveredTrackPath() !== path) return;
+    this.gpxHoveredTrackPath.set(null);
+    this.gpxHoverInfo.set('');
+  }
+
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
@@ -3101,10 +3165,13 @@ ${points}
       for (const segment of this.gpxSegmentsByTrack.get(track.path) ?? []) {
         if (segment.length < 2) continue;
         const lineStyle = track.lineStyle || 'solid';
-        this.trackLayers.push(this.leaflet.polyline(segment, {
+        const trackLine = this.leaflet.polyline(segment, {
           color: track.color || this.gpxColor(), weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
           lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle)
-        }).addTo(this.map));
+        }).addTo(this.map);
+        trackLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
+        trackLine.on('mouseout', () => this.clearGpxHover(track.path));
+        this.trackLayers.push(trackLine);
         if (track.showDirection) {
           for (const arrow of this.gpxDirectionArrows(segment)) {
             const icon = this.leaflet.divIcon({
