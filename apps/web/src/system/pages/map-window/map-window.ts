@@ -776,12 +776,13 @@ interface MapErrorEntry {
     .opacity-summary-controls .visibility-toggle input{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
     .opacity-summary-controls>.range-setting>input.opacity-slider[type="range"]{flex:1 1 auto;width:auto;max-width:none;min-width:30px}
     .opacity-summary-controls .range-value{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
-    .opacity-content{display:flex;align-items:center;flex-wrap:nowrap;width:100%;gap:5px;min-width:0;overflow-x:auto}
-    .opacity-content .range-setting{display:flex;align-items:center;gap:2px;flex:1 1 0;min-width:0;max-width:none;box-sizing:border-box}
-    .opacity-content .range-setting:has(.visibility-toggle){gap:1px}
+    .opacity-content{display:flex;align-items:stretch;flex-wrap:nowrap;width:100%;gap:6px;min-width:0;overflow-x:auto;padding:3px 1px 5px;box-sizing:border-box}
+    .opacity-content .range-setting{display:flex;align-items:center;gap:5px;flex:1 1 0;min-width:0;max-width:none;box-sizing:border-box;padding:6px 8px;border:1px solid var(--color-border-subtle,rgba(128,128,128,.22));border-radius:8px;background:var(--color-surface-secondary,rgba(128,128,128,.085));box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+    .opacity-content .range-setting:has(.visibility-toggle){gap:4px}
+    .opacity-content .range-setting:has(.visibility-toggle)::before{content:none}
     .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
     .opacity-content .visibility-toggle input[type="checkbox"]{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
-    .opacity-content .range-setting:has(.visibility-toggle)::before{content:"|";flex:0 0 auto;margin:0;color:var(--color-content-default-medium,#aaa)}
+    
     .opacity-content .range-setting.setting-unavailable{opacity:.58}
     .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
     .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
@@ -791,7 +792,7 @@ interface MapErrorEntry {
     .opacity-content .range-setting>input[type="range"]{flex:1;width:auto;min-width:45px}
     .opacity-content .range-setting>input.opacity-slider[type="range"]{flex:1 1 24px;width:24px;max-width:none;min-width:24px;margin:0 1px;accent-color:#c084fc}
     .opacity-content .range-setting>input.opacity-slider[type="range"]:disabled{accent-color:#8b739d}
-    .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
+    .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;white-space:nowrap;font-weight:500;min-width:0}
     .opacity-content .range-setting .visibility-toggle input{margin-left:1px!important}
     .opacity-content .overlay-opacity-setting{order:90;flex:0 1 125px}
     .opacity-content .range-setting:has(#map-label-opacity){order:80}
