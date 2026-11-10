@@ -3365,8 +3365,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const currentPhoto = this.timeSliderActive()
       ? this.directoryPhotoTimestampMarkers.find(marker => marker.path.toLowerCase() === this.currentImagePath?.toLowerCase())
       : null;
-    const withinTimeRange = !this.timeSliderActive()
-      || (currentPhoto != null && this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp));
+    const withinTimeRange = !this.timeSliderActive() || currentPhoto == null
+      || this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp);
     const opacity = this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
