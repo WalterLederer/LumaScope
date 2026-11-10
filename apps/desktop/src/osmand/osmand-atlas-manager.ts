@@ -483,7 +483,7 @@ class OsmAndAtlasWorker {
 }
 
 export class OsmAndAtlasManager {
-  private hillshadeDatabasePath = this.readSavedHillshadeDatabasePath();
+  private hillshadeDatabases = this.readSavedHillshadeDatabases();
   private hillshadeWorker: OsmAndHillshadeWorker | null = null;
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
@@ -514,9 +514,32 @@ export class OsmAndAtlasManager {
     });
   }
 
-  private readSavedHillshadeDatabasePath(): string {
+  private readSavedHillshadeDatabases(): Array<{ id: string; path: string; enabled: boolean }> {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    return typeof osmand?.hillshadeDatabasePath === 'string' ? osmand.hillshadeDatabasePath : '';
+    const saved = Array.isArray(osmand?.hillshadeDatabases)
+      ? osmand.hillshadeDatabases as Array<{ path?: unknown; enabled?: unknown }>
+      : typeof osmand?.hillshadeDatabasePath === 'string' && osmand.hillshadeDatabasePath
+        ? [{ path: osmand.hillshadeDatabasePath, enabled: true }]
+        : [];
+    const seen = new Set<string>();
+    return saved.filter(item => typeof item.path === 'string' && item.path.length > 0)
+      .map(item => {
+        const path = item.path as string;
+        const id = createHash('sha1').update(path.toLowerCase()).digest('hex').slice(0, 16);
+        return { id, path, enabled: item.enabled !== false };
+      })
+      .filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+  }
+
+  private async persistHillshadeDatabases(): Promise<void> {
+    await updateAppSettingsSection('osmand', {
+      hillshadeDatabases: this.hillshadeDatabases.map(({ path, enabled }) => ({ path, enabled })),
+      hillshadeDatabasePath: this.hillshadeDatabases[0]?.path ?? ''
+    });
   }
 
   private readSavedResourcesPath(): string {
@@ -763,25 +786,48 @@ export class OsmAndAtlasManager {
   };
 
 
-  @IpcHandler({ name: 'OsmAndAtlas.getHillshadeDatabasePath' })
-  readonly getHillshadeDatabasePath = async (): Promise<string> => {
-    return this.hillshadeDatabasePath && existsSync(this.hillshadeDatabasePath) ? this.hillshadeDatabasePath : '';
+  @IpcHandler({ name: 'OsmAndAtlas.getHillshadeDatabases' })
+  readonly getHillshadeDatabases = async (): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+    return this.hillshadeDatabases.map(item => ({ ...item, available: existsSync(item.path) }));
   };
 
-  @IpcHandler({ name: 'OsmAndAtlas.chooseHillshadeDatabase' })
-  readonly chooseHillshadeDatabase = async (): Promise<string> => {
+  @IpcHandler({ name: 'OsmAndAtlas.addHillshadeDatabases' })
+  readonly addHillshadeDatabases = async (): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
     const result = await dialog.showOpenDialog({
       title: 'Add OsmAnd Hillshade databases',
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
     });
-    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabasePath();\n    this.hillshadeDatabasePath = result.filePaths[0];\n    await updateAppSettingsSection('osmand', { hillshadeDatabasePath: this.hillshadeDatabasePath });\n    return this.hillshadeDatabasePath;
+    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabases();
+    const byId = new Map(this.hillshadeDatabases.map(item => [item.id, item]));
+    for (const selectedPath of result.filePaths) {
+      if (!existsSync(selectedPath) || !/\.(?:sqlitedb|sqlite|db)$/i.test(selectedPath)) continue;
+      const id = createHash('sha1').update(selectedPath.toLowerCase()).digest('hex').slice(0, 16);
+      if (!byId.has(id)) byId.set(id, { id, path: selectedPath, enabled: true });
+    }
+    this.hillshadeDatabases = [...byId.values()];
+    await this.persistHillshadeDatabases();
+    return this.getHillshadeDatabases();
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.setHillshadeDatabaseEnabled' })
+  readonly setHillshadeDatabaseEnabled = async (_event: Electron.IpcMainInvokeEvent, id: string, enabled: boolean): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+    this.hillshadeDatabases = this.hillshadeDatabases.map(item => item.id === id ? { ...item, enabled: !!enabled } : item);
+    await this.persistHillshadeDatabases();
+    return this.getHillshadeDatabases();
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.removeHillshadeDatabase' })
+  readonly removeHillshadeDatabase = async (_event: Electron.IpcMainInvokeEvent, id: string): Promise<Array<{ id: string; path: string; enabled: boolean; available: boolean }>> => {
+    this.hillshadeDatabases = this.hillshadeDatabases.filter(item => item.id !== id);
+    await this.persistHillshadeDatabases();
+    return this.getHillshadeDatabases();
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
   readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
     if (!databasePath || !existsSync(databasePath)) throw new Error('[OsmAnd Hillshade] Hillshade database is unavailable: ' + databasePath);
-    if (!/\\.(?:sqlitedb|sqlite|db)$/i.test(databasePath)) throw new Error('[OsmAnd Hillshade] Unsupported database file.');
+    if (!/\.(?:sqlitedb|sqlite|db)$/i.test(databasePath)) throw new Error('[OsmAnd Hillshade] Unsupported database file.');
     if (!Number.isInteger(z) || z < 0 || z > 24) throw new Error('[OsmAnd Hillshade] Zoom must be an integer between 0 and 24.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
