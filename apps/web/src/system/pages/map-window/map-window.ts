@@ -1940,6 +1940,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.directoryPhotoTimestampMarkers = [];
     this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     this.markerCount.set(0);
+    this.updateTimeSliderBounds();
   }
   private createImageMarkerIcon(selected: boolean): unknown {
     if (selected) return this.createCurrentLocationIcon();
