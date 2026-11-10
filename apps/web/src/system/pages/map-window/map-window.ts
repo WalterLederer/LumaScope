@@ -2964,7 +2964,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return arrows;
   }
-  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'active'>>): void {
+  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
     this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
