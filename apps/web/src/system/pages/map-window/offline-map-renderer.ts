@@ -1720,7 +1720,10 @@ export class OfflineMapRenderer {
 
   setHillshadeDatabases(databases: OsmAndHillshadeDatabase[]): void {
     this.hillshadeDatabases = databases.slice();
-    this.syncHillshadeLayers();
+    // A database selection change must invalidate MapLibre's raster SourceCache
+    // just like the explicit Rerender command. Rebuilding the source directly
+    // can leave previously decoded tiles visible after switching databases.
+    this.rerenderHillshadeTiles();
   }
 
   setHillshadeVisibility(visible: boolean): void {
