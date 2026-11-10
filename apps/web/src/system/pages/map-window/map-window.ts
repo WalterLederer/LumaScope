@@ -4,7 +4,7 @@ import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'i
 import { ThemeService } from '../../services/theme/theme.service';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
@@ -30,7 +30,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; }
 
 interface MapErrorEntry {
   id: number;
@@ -137,7 +137,7 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span></span>
+          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Direction</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row">
@@ -169,6 +169,9 @@ interface MapErrorEntry {
               <option value="1">1 px</option><option value="2">2 px</option><option value="3">3 px</option>
               <option value="4">4 px</option><option value="5">5 px</option><option value="6">6 px</option>
               <option value="8">8 px</option><option value="10">10 px</option>
+            </select>
+            <select class="gpx-track-direction" role="cell" [value]="track.showDirection ? 'arrows' : 'off'" (change)="changeGpxTrackDirection(track.path, $any($event.target).value)" [attr.aria-label]="'Direction arrows for ' + track.name">
+              <option value="off">Off</option><option value="arrows">Arrows</option>
             </select>
             <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
           </div>
@@ -790,13 +793,13 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:42px minmax(150px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:42px minmax(150px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px 86px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
-    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:760px;grid-template-columns:30px minmax(110px,1fr) 90px 65px 120px 105px 62px 24px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}}
+    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:830px;grid-template-columns:30px minmax(110px,1fr) 90px 65px 120px 105px 62px 72px 24px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -2915,7 +2918,38 @@ export class MapWindow implements OnInit, OnDestroy {
     if (![1, 2, 3, 4, 5, 6, 8, 10].includes(lineWidth)) return;
     this.updateGpxTrack(path, { lineWidth });
   };
-  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'active'>>): void {
+  protected readonly changeGpxTrackDirection = (path: string, value: string): void => {
+    if (value !== 'off' && value !== 'arrows') return;
+    this.updateGpxTrack(path, { showDirection: value === 'arrows' });
+  };
+  private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
+    const arrows: Array<{ position: [number, number]; bearing: number }> = [];
+    const intervalMeters = 1200;
+    let distanceSinceArrow = 0;
+    for (let i = 1; i < segment.length; i++) {
+      const [lat1, lon1] = segment[i - 1];
+      const [lat2, lon2] = segment[i];
+      const radians = Math.PI / 180;
+      const dLat = (lat2 - lat1) * radians;
+      const dLon = (lon2 - lon1) * radians;
+      const meanLat = ((lat1 + lat2) / 2) * radians;
+      const length = 6371000 * Math.hypot(dLat, dLon * Math.cos(meanLat));
+      if (!Number.isFinite(length) || length <= 0) continue;
+      const y = Math.sin(dLon) * Math.cos(lat2 * radians);
+      const x = Math.cos(lat1 * radians) * Math.sin(lat2 * radians) -
+        Math.sin(lat1 * radians) * Math.cos(lat2 * radians) * Math.cos(dLon);
+      const bearing = (Math.atan2(y, x) / radians + 360) % 360;
+      let remaining = intervalMeters - distanceSinceArrow;
+      while (remaining <= length) {
+        const fraction = remaining / length;
+        arrows.push({ position: [lat1 + (lat2 - lat1) * fraction, lon1 + (lon2 - lon1) * fraction], bearing });
+        remaining += intervalMeters;
+      }
+      distanceSinceArrow = (distanceSinceArrow + length) % intervalMeters;
+    }
+    return arrows;
+  }
+  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
     this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
@@ -3057,7 +3091,7 @@ ${points}
 
   private applyGpxTrack(): void {
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4 })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ segments: this.gpxSegmentsByTrack.get(track.path) ?? [], color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true })) : [], .92 * this.gpxOpacity() / 100);
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
@@ -3071,6 +3105,16 @@ ${points}
           color: track.color || this.gpxColor(), weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
           lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle)
         }).addTo(this.map));
+        if (track.showDirection) {
+          for (const arrow of this.gpxDirectionArrows(segment)) {
+            const icon = this.leaflet.divIcon({
+              className: 'gpx-direction-arrow-icon',
+              html: '<span class="gpx-direction-arrow" style="color:' + (track.color || this.gpxColor()) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">➤</span>',
+              iconSize: [16, 16], iconAnchor: [8, 8]
+            });
+            this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
+          }
+        }
       }
     }
   }
