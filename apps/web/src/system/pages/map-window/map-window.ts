@@ -85,7 +85,7 @@ interface MapErrorEntry {
             
             <div class="location-settings-content">
               <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
-              @if (mouseCoordinateLabel()) { <div class="location-coordinate-display"><span>{{ mouseCoordinateLabel() }}</span></div> }
+              <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
               <div class="address-settings">
                 <span class="settings-row-title">Address:</span>
                 <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
@@ -1342,7 +1342,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.mouseCoordinateLabel.set('');
       return;
     }
-    this.mouseCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, 'Mouse: '));
+    this.mouseCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, ''));
   }
 
   @HostListener('document:click', ['$event'])
