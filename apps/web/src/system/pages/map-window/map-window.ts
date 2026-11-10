@@ -623,10 +623,10 @@ interface MapErrorEntry {
           </div>
         }
         <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && (activeSettingsTab() === 'offlineMaps' || activeSettingsTab() === 'hillshade'))" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-        @if (!coordinatesAvailable() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+        @if (!coordinatesAvailable() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
           <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
         }
-        @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+        @if (renderInitStatus() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
       </div>
