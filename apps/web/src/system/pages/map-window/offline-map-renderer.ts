@@ -1079,12 +1079,14 @@ export class OfflineMapRenderer {
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
       layout: {
-        'symbol-placement': 'line', 'symbol-spacing': 120,
-        'text-field': '➤', 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
-        'text-size': 14, 'text-rotation-alignment': 'map', 'text-keep-upright': false,
+        'symbol-placement': 'line', 'symbol-spacing': 70,
+        'text-field': ['match', ['get', 'directionStyle'], 'chevron', '❯', 'triangle', '▶', 'thin', '➜', 'large-classic', '➤', 'large-chevron', '❯', 'large-triangle', '▶', '➤'],
+        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+        'text-size': ['match', ['get', 'directionStyle'], 'large-classic', 24, 'large-chevron', 24, 'large-triangle', 24, 18],
+        'text-rotation-alignment': 'map', 'text-keep-upright': false,
         'text-allow-overlap': true, 'text-ignore-placement': true
       },
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.2, 'text-opacity': 0.92 }
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
@@ -1785,7 +1787,7 @@ export class OfflineMapRenderer {
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number) => void) | null): void { this.trackHoverHandler = handler; }
 
-  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean }>, opacity: number): void {
+  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean; directionStyle?: string }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -1793,7 +1795,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.filter(segment => segment.length >= 2).map(segment => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true }
+        properties: { path: track.path, color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
