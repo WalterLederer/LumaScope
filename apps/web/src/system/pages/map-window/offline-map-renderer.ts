@@ -890,9 +890,25 @@ export class OfflineMapRenderer {
     this.map.scrollZoom.setWheelZoomRate(1 / 1200);
     let mapErrorCount = 0;
     this.map.on('error', event => {
-      this.lastMapError = event.error instanceof Error ? event.error.message : String(event.error);
+      const diagnostic = event as typeof event & {
+        sourceId?: string;
+        coord?: { canonical?: { z: number; x: number; y: number } };
+        tile?: { tileID?: { canonical?: { z: number; x: number; y: number } } };
+      };
+      const message = event.error instanceof Error ? event.error.message : String(event.error);
+      const canonical = diagnostic.coord?.canonical ?? diagnostic.tile?.tileID?.canonical;
+      const context = [
+        diagnostic.sourceId ? `source=${diagnostic.sourceId}` : '',
+        canonical ? `tile=z${canonical.z}/x${canonical.x}/y${canonical.y}` : ''
+      ].filter(Boolean);
+      this.lastMapError = context.length ? `${message} (${context.join(', ')})` : message;
       if (mapErrorCount++ < 50) {
-        console.error('[OfflineMap] MapLibre error:', event.error);
+        console.error('[OfflineMap] MapLibre error details:', {
+          message,
+          sourceId: diagnostic.sourceId ?? null,
+          tile: canonical ?? null,
+          error: event.error
+        });
         onError?.(this.lastMapError);
       }
     });
