@@ -372,19 +372,20 @@ interface MapErrorEntry {
         }
       </span>
     </summary>
-    <div class="map-cache-actions view-rerender-actions">
-      <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-        Refresh
-      </button>
-      <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-        {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
-      </button>
-      <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
-      @if (rerenderVisibleTilesStatus()) {
-        <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
-      }
-    </div>
-    <div class="render-tile-statistics-box">
+    <div class="view-rerender-layout">
+      <div class="map-cache-actions view-rerender-actions">
+        <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+          Refresh
+        </button>
+        <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+          {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
+        </button>
+        <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
+        @if (rerenderVisibleTilesStatus()) {
+          <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
+        }
+      </div>
+      <div class="render-tile-statistics-box">
       <div class="render-tile-statistics-title">Render Counter</div>
       <table class="render-tile-statistics" aria-live="polite">
         <colgroup>
@@ -417,6 +418,7 @@ interface MapErrorEntry {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </details>
 </div>
@@ -787,9 +789,11 @@ interface MapErrorEntry {
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}
     @media(max-width:620px){.gpx-file-row{grid-template-columns:minmax(130px,1fr) minmax(100px,130px) 80px 26px;gap:6px}}
-    .view-rerender-section .map-cache-actions{min-width:0}
-    .view-rerender-section .view-rerender-actions{justify-content:flex-start;align-items:center}
-    .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
+    .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
+    .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
+    .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
+    .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
+    @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
     .render-tile-statistics-box{width:max-content;max-width:100%;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
