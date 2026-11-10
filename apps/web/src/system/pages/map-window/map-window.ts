@@ -1259,7 +1259,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorVisible = signal(this.readSetting('markerColorVisible', 'true') === 'true');
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
-  protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);\n  protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);\n  protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
+  protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
+  protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
+  protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxError = signal('');
@@ -2992,7 +2994,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeGpxTrackLineStyle = (path: string, lineStyle: string): void => {
     if (!['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(lineStyle)) return;
-    this.updateGpxTrack(path, { lineStyle: lineStyle as GpxTrackFile['lineStyle'] });\n    this.gpxTrackLineStyleMenuOpen.set(null);
+    this.updateGpxTrack(path, { lineStyle: lineStyle as GpxTrackFile['lineStyle'] });
+    this.gpxTrackLineStyleMenuOpen.set(null);
   };
   protected readonly changeGpxTrackLineWidth = (path: string, value: string): void => {
     const lineWidth = Number(value);
@@ -3002,7 +3005,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeGpxTrackDirection = (path: string, value: string): void => {
     const styles = ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'];
     if (value !== 'off' && !styles.includes(value)) return;
-    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });\n    this.gpxTrackDirectionMenuOpen.set(null);
+    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });
+    this.gpxTrackDirectionMenuOpen.set(null);
   };
   private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
