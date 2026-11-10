@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -332,6 +332,18 @@ interface MapErrorEntry {
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
         <span class="range-value">{{ labelOpacity() }}%</span>
+      </div>
+      <div class="range-setting" [class.setting-unavailable]="!hillshadeDatabasePath()">
+        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="!hillshadeDatabasePath()" aria-label="Show Hillshade"></label>
+        <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
+          [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
+          [disabled]="!hillshadeDatabasePath() || !hillshadeVisible()" aria-label="Hillshade opacity">
+        <span class="range-value">{{ hillshadeOpacity() }}%</span>
+      </div>
+      <div class="range-setting hillshade-database-setting">
+        <label>Hillshade DB</label>
+        <span class="offline-map-status" [title]="hillshadeDatabasePath()">{{ hillshadeDatabasePath() ? hillshadeDatabasePath().split(/[\\\\/]/).pop() : 'Not selected' }}</span>
+        <button type="button" class="map-toolbar-button" (click)="chooseHillshadeDatabase()">Select…</button>
       </div>
     </div>
   </details>
@@ -1041,6 +1053,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly atlasDisplayDensityFactor = signal(this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
+  protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
+  protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
+  protected readonly hillshadeDatabasePath = signal('');
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
     if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
@@ -1156,6 +1171,13 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    if (this.desktop) {
+      registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabasePath());
+      void this.desktop.OsmAndAtlas.getHillshadeDatabasePath().then(path => {
+        this.hillshadeDatabasePath.set(path);
+        if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      }).catch(error => this.recordMapError('Hillshade database', error instanceof Error ? error.message : String(error)));
+    }
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
     document.documentElement.style.colorScheme = this.themeService.current();
@@ -1804,6 +1826,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.setTextLabelOpacity(this.labelOpacity() / 100);
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
+    this.applyHillshadeSettings(renderer);
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('zoomend', syncOfflineZoom);
     syncOfflineZoom();
@@ -1892,6 +1915,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
+    this.applyHillshadeSettings(renderer);
     // Invalidate queued requests from the previous viewport during movement.
     // Once the camera settles, give MapLibre a fresh source identity so it
     // requests every tile for the final viewport again.
@@ -2003,6 +2027,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor();
     this.applyMapOpacity();
+    this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -2433,6 +2458,37 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.overlayOpacity.set(next); this.saveSetting('overlayOpacity', next);
   };
+  protected readonly changeHillshadeVisibility = (visible: boolean): void => {
+    this.hillshadeVisible.set(visible);
+    this.saveSetting('hillshadeVisible', visible);
+    this.offlineRenderer?.setHillshadeVisibility(visible && !!this.hillshadeDatabasePath());
+  };
+  protected readonly changeHillshadeOpacity = (value: string | number): void => {
+    const opacity = Number(value); if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.hillshadeOpacity.set(next);
+    this.saveSetting('hillshadeOpacity', next);
+    this.offlineRenderer?.setHillshadeOpacity(next / 100);
+  };
+  protected readonly chooseHillshadeDatabase = async (): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      const path = await this.desktop.OsmAndAtlas.chooseHillshadeDatabase();
+      this.hillshadeDatabasePath.set(path);
+      if (this.offlineRenderer) {
+        this.offlineRenderer.refreshHillshadeTiles();
+        this.applyHillshadeSettings(this.offlineRenderer);
+      }
+      if (!path) this.hillshadeVisible.set(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.recordMapError('Hillshade database selection', message);
+    }
+  };
+  private applyHillshadeSettings(renderer: OfflineMapRenderer): void {
+    renderer.setHillshadeOpacity(this.hillshadeOpacity() / 100);
+    renderer.setHillshadeVisibility(this.hillshadeVisible() && !!this.hillshadeDatabasePath());
+  }
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
