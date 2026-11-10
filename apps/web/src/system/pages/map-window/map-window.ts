@@ -131,7 +131,7 @@ interface MapErrorEntry {
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
       <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
-      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="directoryPhotoMarkers.length === 0">Generate GPX from Markers</button>
+      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
       <div class="color-picker">
         <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
           @if (gpxVisible()) {
@@ -1030,6 +1030,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private tileLayer: { remove(): void } | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
+  protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
   private directoryPhotoMarkers: OfflinePhotoMarker[] = [];
   private readonly storagePrefix = 'mapWindow.';
