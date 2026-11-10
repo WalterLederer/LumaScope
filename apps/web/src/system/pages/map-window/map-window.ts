@@ -145,7 +145,7 @@ interface MapErrorEntry {
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path">
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
-            <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
+            <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
             <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
             <div class="color-picker gpx-track-color-picker" role="cell">
@@ -796,7 +796,7 @@ interface MapErrorEntry {
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(1180px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
     .gpx-file-row{display:grid;grid-template-columns:42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 112px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
-    .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:var(--color-content-default-low,#343434);outline:1px solid var(--color-content-default-medium,#777);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -1834,7 +1834,8 @@ export class MapWindow implements OnInit, OnDestroy {
           path: record.path,
           fileName: record.fileName,
           latitude: record.latitude!,
-          longitude: record.longitude!
+          longitude: record.longitude!,
+          gpsTimestamp: record.gpsTimestamp
         }));
 
       this.markerFilesTotal.set(records.length);
@@ -2953,7 +2954,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
-    const intervalMeters = 500;
+    const intervalMeters = 160;
     let distanceSinceArrow = 0;
     for (let i = 1; i < segment.length; i++) {
       const [lat1, lon1] = segment[i - 1];
@@ -2999,6 +3000,32 @@ export class MapWindow implements OnInit, OnDestroy {
       .flatMap(track => this.gpxSegmentsByTrack.get(track.path) ?? []);
   }
 
+  private interpolateMarkerTimestamps<T extends { latitude: number; longitude: number; gpsTimestamp: number | null }>(markers: T[]): Array<T & { timestamp: number | null }> {
+    const result = markers.map(marker => ({ ...marker, timestamp: Number.isFinite(marker.gpsTimestamp) && marker.gpsTimestamp! > 0 ? marker.gpsTimestamp : null }));
+    const distance = (a: T, b: T): number => {
+      const radians = Math.PI / 180;
+      const meanLatitude = (a.latitude + b.latitude) * 0.5 * radians;
+      return 6371000 * Math.hypot((b.latitude - a.latitude) * radians, (b.longitude - a.longitude) * radians * Math.cos(meanLatitude));
+    };
+    const known = result.map((marker, index) => marker.timestamp !== null ? index : -1).filter(index => index >= 0);
+    for (let pair = 1; pair < known.length; pair++) {
+      const start = known[pair - 1], end = known[pair];
+      if (end - start < 2) continue;
+      let totalDistance = 0;
+      const distances = [0];
+      for (let i = start + 1; i <= end; i++) {
+        totalDistance += distance(result[i - 1], result[i]);
+        distances.push(totalDistance);
+      }
+      const startTime = result[start].timestamp!, endTime = result[end].timestamp!;
+      for (let i = start + 1; i < end; i++) {
+        const fraction = totalDistance > 0 ? distances[i - start] / totalDistance : (i - start) / (end - start);
+        result[i].timestamp = Math.round(startTime + (endTime - startTime) * fraction);
+      }
+    }
+    return result;
+  }
+
   protected readonly generateGpxFromMarkers = async (): Promise<void> => {
     const desktop = this.desktop;
     const markers = this.directoryPhotoMarkers;
@@ -3019,8 +3046,9 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!save.success) return;
       const destination = save.data;
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
-      const points = markers.map(marker =>
-        `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}"><name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
+      const timedMarkers = this.interpolateMarkerTimestamps(markers);
+      const points = timedMarkers.map(marker =>
+        `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}">${marker.timestamp !== null ? `<time>${new Date(marker.timestamp * 1000).toISOString()}</time>` : ''}<name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
       ).join('\n');
       const content = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">
@@ -3181,7 +3209,7 @@ ${points}
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Höhe ' + nearest.elevation.toFixed(1) + ' m' : 'Höhe –',
       nearest?.timestamp ? 'GPX ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString()) : 'GPX-Zeit –'
     ];
-    this.gpxHoverInfo.set((track ? track.name + ' · ' : '') + parts.join(' · '));
+    this.gpxHoverInfo.set(parts.join(' · '));
   }
 
   private clearGpxHover(path?: string): void {
