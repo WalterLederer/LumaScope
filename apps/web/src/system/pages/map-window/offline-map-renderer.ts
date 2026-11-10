@@ -592,6 +592,7 @@ export class OfflineMapRenderer {
   readonly ready: Promise<void>;
   private currentMarkerElement: HTMLElement | null = null;
   private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
+  private hillshadeSourceRevision = 0;
   private hillshadeOpacity = 0.65;
   private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
@@ -1713,28 +1714,34 @@ export class OfflineMapRenderer {
   refreshHillshadeTiles(): void {
     if (!this.map.isStyleLoaded()) return;
     const refresh = Date.now();
-    const source = this.map.getSource('osmand-hillshade') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    const sourceId = Object.keys(this.map.getStyle().sources).find(id => id.startsWith('osmand-hillshade-source-'));
+    const source = sourceId
+      ? this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined
+      : undefined;
     source?.setTiles?.(['osmand-hillshade://combined/{z}/{x}/{y}?refresh=' + refresh]);
   }
 
   private syncHillshadeLayers(): void {
     if (!this.map.isStyleLoaded()) return;
     const style = this.map.getStyle();
-    for (const layer of style.layers.filter(item => item.id.startsWith('osmand-hillshade-raster'))) {
+    for (const layer of style.layers.filter(item => item.id.startsWith('osmand-hillshade-raster-'))) {
       this.map.removeLayer(layer.id);
     }
-    for (const sourceId of Object.keys(style.sources).filter(id => id.startsWith('osmand-hillshade'))) {
+    for (const sourceId of Object.keys(style.sources).filter(id => id.startsWith('osmand-hillshade-source-'))) {
       this.map.removeSource(sourceId);
     }
     const beforeLayer = this.map.getStyle().layers.find(layer =>
       /road|street|building|poi|label|symbol|boundary|rail|bridge|transport/i.test(layer.id)
     )?.id;
     if (this.hillshadeDatabases.some(database => database.enabled && database.available)) {
-      this.map.addSource('osmand-hillshade', {
+      // Use a new MapLibre source identity for every database selection change.
+      // A new URL alone is insufficient if MapLibre keeps the old SourceCache
+      // when a source is removed and re-added under the same ID.
+      const revision = ++this.hillshadeSourceRevision;
+      const sourceId = 'osmand-hillshade-source-' + revision;
+      const layerId = 'osmand-hillshade-raster-' + revision;
+      this.map.addSource(sourceId, {
         type: 'raster',
-        // A fresh URL is essential here: MapLibre may retain raster tiles by URL
-        // even after a source with the same ID is removed and recreated. Database
-        // selection changes must never reuse a previously composed tile.
         tiles: ['osmand-hillshade://combined/{z}/{x}/{y}?refresh=' + Date.now()],
         tileSize: 256,
         minzoom: 1,
@@ -1742,13 +1749,14 @@ export class OfflineMapRenderer {
         attribution: '© OpenStreetMap contributors'
       });
       this.map.addLayer({
-        id: 'osmand-hillshade-raster',
+        id: layerId,
         type: 'raster',
-        source: 'osmand-hillshade',
+        source: sourceId,
         layout: { visibility: this.hillshadeVisible ? 'visible' : 'none' },
         paint: { 'raster-fade-duration': 0, 'raster-opacity': this.hillshadeOpacity }
       }, beforeLayer);
     }
+    this.map.triggerRepaint();
   }
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
