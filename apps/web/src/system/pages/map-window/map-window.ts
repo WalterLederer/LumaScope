@@ -683,7 +683,7 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th>Type</th><th>Map / file</th><th>File size</th><th>Last modified</th><th class="mbtiles-updates-column">Updates</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th class="mbtiles-type-column">Type</th><th>Map file</th><th>File size</th><th>Last modified</th><th class="mbtiles-updates-column">Updates</th><th>Bounds</th><th>Zoom</th><th></th></tr></thead>
                   <tbody>
                     @for (map of filteredOfflineMaps(); track map.id) {
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
@@ -913,6 +913,7 @@ interface MapErrorEntry {
     .mbtiles-map-table th,.mbtiles-map-table td{padding:5px 8px;border-bottom:1px solid var(--color-content-default-low,#454545);text-align:left;vertical-align:middle}
     .mbtiles-map-table th{position:sticky;top:0;z-index:1;font-weight:600;color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943)}
     .mbtiles-map-table .mbtiles-enabled-column{width:42px;text-align:center}
+    .mbtiles-map-table .mbtiles-type-column{width:90px;min-width:90px;box-sizing:border-box}
     .mbtiles-enabled-column input{margin:0;accent-color:#8ab4f8;vertical-align:middle}
     .mbtiles-enabled-column input.obf-preset-locked{appearance:none;width:14px;height:14px;box-sizing:border-box;border:1px solid #777;border-radius:2px;background:#858585;opacity:.9;cursor:not-allowed}
     .mbtiles-enabled-column input.obf-preset-locked:checked::after{content:"";display:block;width:6px;height:3px;margin:3px 0 0 3px;border:solid #f2f2f2;border-width:0 0 2px 2px;transform:rotate(-45deg)}
