@@ -2908,10 +2908,14 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     try {
-      const folder = await desktop.Dialogs.openFolder();
-      if (!folder.success) return;
       const defaultName = 'Photo-Markers-' + new Date().toISOString().slice(0, 10) + '.gpx';
-      const suggestedPath = await desktop.FileSystem.join(folder.data, defaultName);
+      const lastAddedTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
+      const initialFolder = lastAddedTrack
+        ? await desktop.FileSystem.dirname(lastAddedTrack.path)
+        : '';
+      const suggestedPath = initialFolder
+        ? await desktop.FileSystem.join(initialFolder, defaultName)
+        : defaultName;
       const save = await desktop.Dialogs.saveFile(suggestedPath);
       if (!save.success) return;
       const destination = save.data;
