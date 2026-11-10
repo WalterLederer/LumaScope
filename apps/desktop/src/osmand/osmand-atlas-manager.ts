@@ -157,7 +157,7 @@ class OsmAndHillshadeWorker {
     this.reader = null;
     if (!child || child.exitCode !== null) return;
     try {
-      if (child.stdin.writable) child.stdin.write(JSON.stringify({ type: 'quit' }) + '\n');
+      if (child.stdin.writable) child.stdin.write(JSON.stringify({ command: 'shutdown' }) + '\n');
     } catch { /* Process may already be closing. */ }
     child.kill();
   }
@@ -165,7 +165,7 @@ class OsmAndHillshadeWorker {
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
-    const child = spawn(this.helperPath, ['--hillshade-worker'], {
+    const child = spawn(this.helperPath, [], {
       stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
     });
     this.child = child;
@@ -196,7 +196,7 @@ class OsmAndHillshadeWorker {
     if (requestId === 0) requestId = 1;
     this.nextRequestId = (requestId + 1) >>> 0;
     if (this.nextRequestId === 0) this.nextRequestId = 1;
-    const request = { type: 'hillshade_tile', requestId, databasePath, z, x, y, s };
+    const request = { command: 'hillshade_tile', request_id: requestId, database_path: databasePath, z, x, y, s };
     await new Promise<void>((resolve, reject) => {
       child.stdin.write(JSON.stringify(request) + '\n', error => error ? reject(error) : resolve());
     });
