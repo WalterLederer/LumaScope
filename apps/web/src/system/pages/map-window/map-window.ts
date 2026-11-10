@@ -2370,6 +2370,17 @@ export class MapWindow implements OnInit, OnDestroy {
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
     this.leaflet.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 140 }).addTo(map);
+    const leafletScale = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-control-scale');
+    if (leafletScale) {
+      // Place the scale directly on the map surface, outside Leaflet's control pane.
+      leafletScale.style.position = 'absolute';
+      leafletScale.style.left = '10px';
+      leafletScale.style.bottom = '10px';
+      leafletScale.style.margin = '0';
+      leafletScale.style.zIndex = '10000';
+      leafletScale.style.pointerEvents = 'auto';
+      this.mapElement().nativeElement.appendChild(leafletScale);
+    }
     this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
