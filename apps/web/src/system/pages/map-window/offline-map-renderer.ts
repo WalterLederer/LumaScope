@@ -1041,9 +1041,19 @@ export class OfflineMapRenderer {
     });
     this.map.addSource('gpx-track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     this.map.addLayer({
-      id: 'gpx-track-line', type: 'line', source: 'gpx-track',
+      id: 'gpx-track-line', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'solid'],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#ff3b30', 'line-width': 4, 'line-opacity': 0.92 }
+      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92 }
+    });
+    this.map.addLayer({
+      id: 'gpx-track-line-dashed', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'dashed'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92, 'line-dasharray': [3, 2] }
+    });
+    this.map.addLayer({
+      id: 'gpx-track-line-dotted', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], 'dotted'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': ['get', 'color'], 'line-width': 4, 'line-opacity': 0.92, 'line-dasharray': [1, 2] }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
@@ -1740,19 +1750,20 @@ export class OfflineMapRenderer {
     }
   }
 
-  setTrack(segments: [number, number][][], color: string, opacity: number): void {
+  setTrack(tracks: Array<{ segments: [number, number][][]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
       type: 'FeatureCollection',
-      features: segments.filter(segment => segment.length >= 2).map(segment => ({
+      features: tracks.flatMap(track => track.segments.filter(segment => segment.length >= 2).map(segment => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: {}
-      }))
+        properties: { color: track.color, lineStyle: track.lineStyle }
+      })))
     });
-    this.map.setPaintProperty('gpx-track-line', 'line-color', color);
-    this.map.setPaintProperty('gpx-track-line', 'line-opacity', opacity);
+    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted']) {
+      this.map.setPaintProperty(layerId, 'line-opacity', opacity);
+    }
   }
 
   refreshVisibleTiles(): void {
