@@ -143,10 +143,11 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
+          <span role="columnheader">Fit</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path">
+            <button type="button" class="gpx-fit-button" role="cell" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to entire track">↗</button>
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
@@ -825,13 +826,13 @@ interface MapErrorEntry {
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:30px 42px minmax(180px,1fr) minmax(135px,175px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
-    .gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gpx-fit-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
-    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1040px;grid-template-columns:30px minmax(140px,1fr) 90px 65px 120px 105px 62px 150px 32px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
+    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1070px;grid-template-columns:26px 30px minmax(140px,1fr) 90px 65px 120px 105px 62px 150px 32px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -3224,8 +3225,8 @@ ${points}
     return segments;
   }
 
-  private fitGpxTrack(): void {
-    const points = this.gpxSegments.flat();
+  protected readonly fitGpxTrack = (path?: string): void => {
+    const points = (path ? this.gpxSegmentsByTrack.get(path) ?? [] : this.gpxSegments).flat();
     if (!points.length) return;
     if (this.offlineRenderer) {
       const longitudes = points.map(point => point[1]), latitudes = points.map(point => point[0]);
@@ -3239,7 +3240,7 @@ ${points}
       this.map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16, animate: false });
       this.zoomLevel.set(this.map.getZoom()); this.saveSetting('zoom', this.map.getZoom());
     }
-  }
+  };
 
   private parseGpxTrackPointData(content: string): GpxTrackPoint[][] {
     const xml = new DOMParser().parseFromString(content, 'application/xml');
