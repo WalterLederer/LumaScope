@@ -3319,18 +3319,22 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly timeSliderBoundarySource = (timestamp: number): string => {
+    // A single available timestamp gets a +1 second slider span; its source is still the original timestamp.
+    const sourceTimestamp = timestamp === this.timeSliderMaximum()
+      && this.timeSliderMaximum() === this.timeSliderMinimum() + 1
+      ? this.timeSliderMinimum() : timestamp;
     const sources: string[] = [];
     for (const track of this.gpxTracks()) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
       if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
-        && Math.floor(Date.parse(point.timestamp) / 1000) === timestamp)) {
+        && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
         sources.push('GPX: ' + track.name);
       }
     }
     if (this.directoryMarkersEnabled()) {
       for (const marker of this.directoryPhotoTimestampMarkers) {
         if (marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp)
-          && marker.gpsTimestamp === timestamp) {
+          && marker.gpsTimestamp === sourceTimestamp) {
           sources.push('Photo: ' + marker.fileName);
         }
       }
