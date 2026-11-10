@@ -367,32 +367,39 @@ interface MapErrorEntry {
         <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
       }
     </div>
-    <table class="map-cache-section render-tile-statistics" aria-live="polite" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr>
-          <th></th>
-          <th scope="col">Total render</th>
-          <th scope="col">Last render</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th scope="row">Rendered</th>
-          <td>{{ totalRenderTileCounts().rendered.toLocaleString() }}</td>
-          <td>{{ lastRenderTileCounts().rendered.toLocaleString() }}</td>
-        </tr>
-        <tr>
-          <th scope="row">From cache</th>
-          <td>{{ totalRenderTileCounts().cached.toLocaleString() }}</td>
-          <td>{{ lastRenderTileCounts().cached.toLocaleString() }}</td>
-        </tr>
-        <tr>
-          <th scope="row">Errors</th>
-          <td>{{ totalRenderTileCounts().failed.toLocaleString() }}</td>
-          <td>{{ lastRenderTileCounts().failed.toLocaleString() }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="render-tile-statistics-box">
+      <table class="render-tile-statistics" aria-live="polite">
+        <colgroup>
+          <col class="render-stat-label-column">
+          <col class="render-stat-value-column">
+          <col class="render-stat-value-column">
+        </colgroup>
+        <thead>
+          <tr>
+            <th></th>
+            <th scope="col">Total render</th>
+            <th scope="col">Last render</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Rendered</th>
+            <td>{{ totalRenderTileCounts().rendered.toLocaleString() }}</td>
+            <td>{{ lastRenderTileCounts().rendered.toLocaleString() }}</td>
+          </tr>
+          <tr>
+            <th scope="row">From cache</th>
+            <td>{{ totalRenderTileCounts().cached.toLocaleString() }}</td>
+            <td>{{ lastRenderTileCounts().cached.toLocaleString() }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Errors</th>
+            <td>{{ totalRenderTileCounts().failed.toLocaleString() }}</td>
+            <td>{{ lastRenderTileCounts().failed.toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </details>
 </div>
 </div>
@@ -753,7 +760,16 @@ interface MapErrorEntry {
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .view-rerender-section .map-cache-actions{min-width:0}
+    .view-rerender-section .view-rerender-actions{justify-content:flex-start;align-items:center}
     .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
+    .render-tile-statistics-box{width:max-content;max-width:100%;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;background:var(--color-surface-default-low,#202124)}
+    .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
+    .render-tile-statistics .render-stat-label-column{width:130px}
+    .render-tile-statistics .render-stat-value-column{width:150px}
+    .render-tile-statistics th,.render-tile-statistics td{padding:5px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545)}
+    .render-tile-statistics thead th{font-weight:700}
+    .render-tile-statistics tbody tr:last-child th,.render-tile-statistics tbody tr:last-child td{border-bottom:0}
+    .render-tile-statistics tbody th{font-weight:400;color:var(--color-content-default-medium,#aaa)}
 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
