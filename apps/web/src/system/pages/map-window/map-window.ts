@@ -2604,6 +2604,10 @@ export class MapWindow implements OnInit, OnDestroy {
         (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
       );
       this.rerenderVisibleTilesStatus.set('');
+      // The Hillshade overlay has its own MapLibre raster source and is not
+      // part of the base-map native rerender above. Recreate it as well so
+      // visible shade tiles are fetched and composited again from all enabled DBs.
+      renderer.rerenderHillshadeTiles();
       await this.refreshOsmAndTileCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
