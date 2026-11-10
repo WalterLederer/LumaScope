@@ -2002,6 +2002,9 @@ export class OfflineMapRenderer {
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
+    for (const line of ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot']) {
+      this.map.setPaintProperty('gpx-track-hit-' + line, 'line-opacity', opacity > 0 ? 0.01 : 0);
+    }
     this.map.setPaintProperty('gpx-track-direction-arrows', 'text-opacity', opacity);
   }
 
