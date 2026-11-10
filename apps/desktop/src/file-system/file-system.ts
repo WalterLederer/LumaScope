@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
-import { copyFile, mkdir, open, readdir, readFile, stat, unlink } from 'node:fs/promises';
+import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { writeJsonAtomically } from './json-file';
@@ -26,6 +26,17 @@ export class FileSystem {
       return { success: true, data: await readFile(path, 'utf-8') };
     } catch (_) {
       return { success: false, errorMessage: `Failed to read file ${path}.` };
+    }
+  };
+
+  @IpcHandler({ name: 'FileSystem.writeText' })
+  readonly writeText = async (_: IpcMainInvokeEvent, path: string, content: string): Promise<ApiResponse<undefined>> => {
+    try {
+      await writeFile(path, content, { encoding: 'utf-8', flag: 'wx' });
+      return { success: true, data: undefined };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, errorMessage: `Failed to write file ${path}: ${message}` };
     }
   };
 
