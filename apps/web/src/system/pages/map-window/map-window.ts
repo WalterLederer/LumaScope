@@ -3326,7 +3326,7 @@ export class MapWindow implements OnInit, OnDestroy {
       && this.timeSliderMaximum() === this.timeSliderMinimum() + 1
       ? this.timeSliderMinimum() : timestamp;
     const sources: string[] = [];
-    for (const track of this.gpxTracks()) {
+    for (const track of this.gpxTracks().filter(item => item.active !== false)) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
       if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
         && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
@@ -3346,7 +3346,8 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private updateTimeSliderBounds(): void {
     const timestamps = [
-      ...Array.from(this.gpxPointDataByTrack.values()).flat(2)
+      ...this.gpxTracks().filter(track => track.active !== false)
+        .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
       ...(this.directoryMarkersEnabled()
         ? this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
