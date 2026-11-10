@@ -2210,6 +2210,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
+    this.applyOpacitySettings();
     window.addEventListener('resize', this.onResize);
   }
 
@@ -2252,6 +2253,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapColor();
     this.applyMapOpacity();
     await this.restoreGpxTrack();
+    this.applyOpacitySettings();
     window.addEventListener('resize', this.onResize);
   }
 
