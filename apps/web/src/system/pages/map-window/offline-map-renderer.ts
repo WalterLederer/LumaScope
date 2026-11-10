@@ -1157,7 +1157,17 @@ export class OfflineMapRenderer {
         }
       });
     }
-    for (const layerId of gpxLineStyles.map(line => line.id)) {
+    // Separate transparent hit layers make thin/dashed tracks easy to hover
+    // without changing their visible stroke width or dash pattern.
+    for (const line of gpxLineStyles) {
+      this.map.addLayer({
+        id: 'gpx-track-hit-' + line.style, type: 'line', source: 'gpx-track',
+        filter: ['==', ['get', 'lineStyle'], line.style],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#ffffff', 'line-width': ['max', 14, ['+', ['get', 'width'], 10]], 'line-opacity': 0.01 }
+      });
+    }
+    for (const layerId of gpxLineStyles.map(line => 'gpx-track-hit-' + line.style)) {
       this.map.on('mousemove', layerId, (event: MapLayerMouseEvent) => {
         const feature = event.features?.[0];
         const path = feature?.properties?.['path'];
