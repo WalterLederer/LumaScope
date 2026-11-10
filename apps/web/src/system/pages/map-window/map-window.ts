@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Desktop, lookupReverseGeocoding } from 'internal-api';
+import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
@@ -67,7 +67,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" (click)="selectSettingsTab('hillshade')">Hillshade</button>\n  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
@@ -337,7 +337,7 @@ interface MapErrorEntry {
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="!hillshadeDatabasePath() || mapSource() === 'online'" aria-label="Show Hillshade"></label>
         <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
-          [disabled]="!hillshadeDatabasePath() || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
+          [disabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
       </div>
     </div>
@@ -363,6 +363,30 @@ interface MapErrorEntry {
     </div>
   </details>
 </div>
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'hillshade'">
+  <div class="settings-tab-content offline-maps-tab-content">
+    <div class="mbtiles-selection offline-map-toolbar">
+      <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
+      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active</span>
+    </div>
+    <table class="offline-maps-table">
+      <thead><tr><th>Active</th><th>Hillshade database</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        @for (database of hillshadeDatabases(); track database.id) {
+          <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
+            <td><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" aria-label="Activate Hillshade database"></td>
+            <td>{{ database.path.split(/[\\/]/).pop() }}</td>
+            <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
+            <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4">No Hillshade databases added.</td></tr>
+        }
+      </tbody>
+    </table>
+    <div class="offline-map-status">Enabled databases are rendered as separate transparent raster layers. The Hillshade opacity slider in View applies to all active databases.</div>
+  </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content">
@@ -909,13 +933,13 @@ export class MapWindow implements OnInit, OnDestroy {
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   private readonly storagePrefix = 'mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
   protected readonly renderTotalCount = signal(0);
@@ -1164,7 +1188,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       if (!saved) return;
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -2464,7 +2488,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
-    this.offlineRenderer?.setHillshadeVisibility(visible && !!this.hillshadeDatabasePath());
+    this.offlineRenderer?.setHillshadeVisibility(visible && this.activeHillshadeDatabaseCount() > 0);
   };
   protected readonly changeHillshadeOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
@@ -2473,24 +2497,41 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('hillshadeOpacity', next);
     this.offlineRenderer?.setHillshadeOpacity(next / 100);
   };
-  protected readonly chooseHillshadeDatabase = async (): Promise<void> => {
+  protected readonly addHillshadeDatabases = async (): Promise<void> => {
     if (!this.desktop) return;
     try {
-      const path = await this.desktop.OsmAndAtlas.chooseHillshadeDatabase();
-      this.hillshadeDatabasePath.set(path);
-      if (this.offlineRenderer) {
-        this.offlineRenderer.refreshHillshadeTiles();
-        this.applyHillshadeSettings(this.offlineRenderer);
-      }
-      if (!path) this.hillshadeVisible.set(false);
+      const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabases();
+      this.hillshadeDatabases.set(databases);
+      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.recordMapError('Hillshade database selection', message);
+      this.recordMapError('Add Hillshade databases', error instanceof Error ? error.message : String(error));
+    }
+  };
+  protected readonly setHillshadeDatabaseEnabled = async (id: string, enabled: boolean): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      const databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(id, enabled);
+      this.hillshadeDatabases.set(databases);
+      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+    } catch (error) {
+      this.recordMapError('Update Hillshade database', error instanceof Error ? error.message : String(error));
+    }
+  };
+  protected readonly removeHillshadeDatabase = async (id: string): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
+      this.hillshadeDatabases.set(databases);
+      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      if (databases.length === 0) this.hillshadeVisible.set(false);
+    } catch (error) {
+      this.recordMapError('Remove Hillshade database', error instanceof Error ? error.message : String(error));
     }
   };
   private applyHillshadeSettings(renderer: OfflineMapRenderer): void {
+    renderer.setHillshadeDatabases(this.hillshadeDatabases());
     renderer.setHillshadeOpacity(this.hillshadeOpacity() / 100);
-    renderer.setHillshadeVisibility(this.hillshadeVisible() && !!this.hillshadeDatabasePath());
+    renderer.setHillshadeVisibility(this.hillshadeVisible() && this.activeHillshadeDatabaseCount() > 0);
   }
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
