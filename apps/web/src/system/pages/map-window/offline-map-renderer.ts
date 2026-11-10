@@ -1079,7 +1079,7 @@ export class OfflineMapRenderer {
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
       layout: {
-        'symbol-placement': 'line', 'symbol-spacing': 70,
+        'symbol-placement': 'line', 'symbol-spacing': 23,
         'text-field': ['match', ['get', 'directionStyle'], 'chevron', '❯', 'triangle', '▶', 'thin', '➜', 'large-classic', '➤', 'large-chevron', '❯', 'large-triangle', '▶', '➤'],
         'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
         'text-size': ['match', ['get', 'directionStyle'], 'large-classic', 24, 'large-chevron', 24, 'large-triangle', 24, 18],
