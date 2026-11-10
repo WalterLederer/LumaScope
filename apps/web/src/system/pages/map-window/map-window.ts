@@ -331,7 +331,7 @@ interface MapErrorEntry {
         <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() === 'online'" aria-label="Show labels"></label>
         <input id="map-label-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
-          [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
+          [disabled]="mapSource() === 'osmand' || mapSource() === 'osmand-atlas'" aria-label="Map label opacity">
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
@@ -1078,7 +1078,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
-  protected readonly labelsVisible = signal(this.readSetting('labelsVisible', 'true') === 'true');
+  protected readonly labelsVisible = signal(this.mapSource() === 'osmand-atlas' ? true : this.mapSource() === 'osmand' ? false : this.readSetting('labelsVisible', 'true') === 'true');
   protected readonly atlasDisplayDensityFactor = signal(this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
