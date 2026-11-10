@@ -30,6 +30,8 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; }
+
 interface MapErrorEntry {
   id: number;
   timestamp: string;
@@ -126,33 +128,48 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
 <div class="settings-tab-content track-tab">
-            
-            <div class="gpx-settings-content">
-              <button type="button" (click)="importGpxTrack()">Import GPX…</button>
-              <div class="color-picker">
-                <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
-                  @if (gpxVisible()) {
-                    <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
-                    <span>{{ selectedGpxColorName() }}</span>
-                  } @else { <span>Off</span> }
-                  <span class="color-picker-chevron">▾</span>
-                </button>
-                @if (colorMenuOpen()) {
-                  <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
-                    <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
-                    @for (color of gpxColors; track color.value) {
-                      <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
-                        <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-              @if (gpxFileName()) { <span class="gpx-filename" [title]="gpxFileName()">{{ gpxFileName() }}</span> }
-              @if (gpxError()) { <span class="gpx-error">{{ gpxError() }}</span> }
-            </div>
+  <div class="gpx-settings-content">
+    <div class="gpx-toolbar">
+      <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
+      <div class="color-picker">
+        <button type="button" class="color-picker-trigger" (click)="toggleColorMenu()" [attr.aria-expanded]="colorMenuOpen()" aria-label="GPX track color and visibility">
+          @if (gpxVisible()) {
+            <span class="color-swatch" [style.background]="gpxColor()" [style.color]="selectedGpxTextColor()">{{ gpxColor() }}</span>
+            <span>{{ selectedGpxColorName() }}</span>
+          } @else { <span>Off</span> }
+          <span class="color-picker-chevron">▾</span>
+        </button>
+        @if (colorMenuOpen()) {
+          <div class="color-picker-menu" role="listbox" aria-label="GPX track colors">
+            <button type="button" class="color-option" role="option" [attr.aria-selected]="!gpxVisible()" (click)="changeGpxColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+            @for (color of gpxColors; track color.value) {
+              <button type="button" class="color-option" role="option" [attr.aria-selected]="gpxColor() === color.value && gpxVisible()" (click)="changeGpxColor(color.value)">
+                <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+              </button>
+            }
           </div>
-
+        }
+      </div>
+      <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+    </div>
+    @if (gpxTracks().length > 0) {
+      <div class="gpx-file-list" role="table" aria-label="GPX tracks">
+        <div class="gpx-file-row gpx-file-header" role="row">
+          <span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">File size</span><span></span>
+        </div>
+        @for (track of gpxTracks(); track track.path) {
+          <div class="gpx-file-row" role="row">
+            <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
+            <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
+            <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
+            <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
+          </div>
+        }
+      </div>
+    }
+    @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
+  </div>
+</div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
@@ -759,6 +776,16 @@ interface MapErrorEntry {
     .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
+    .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
+    .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
+    .gpx-file-list{display:flex;flex-direction:column;gap:0;width:min(900px,100%);border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:4px 8px;box-sizing:border-box}
+    .gpx-file-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,190px) minmax(90px,120px) 28px;align-items:center;gap:10px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row:last-child{border-bottom:0}
+    .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
+    .gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
+    .gpx-file-row .offline-map-remove-button{justify-self:end}
+    @media(max-width:620px){.gpx-file-row{grid-template-columns:minmax(130px,1fr) minmax(100px,130px) 80px 26px;gap:6px}}
     .view-rerender-section .map-cache-actions{min-width:0}
     .view-rerender-section .view-rerender-actions{justify-content:flex-start;align-items:center}
     .view-rerender-section .offline-map-status{max-width:none;flex:1 1 auto}
@@ -1185,7 +1212,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
-  protected readonly gpxFileName = signal(this.readSetting('gpxFileName', ''));
+  protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxError = signal('');
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
@@ -2736,30 +2763,104 @@ export class MapWindow implements OnInit, OnDestroy {
     this.colorMenuOpen.set(false);
     this.applyGpxTrack();
   };
+  protected readonly formatGpxDate = (timestamp: number): string =>
+    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString() : '—';
+  protected readonly formatGpxFileSize = (bytes: number): string => {
+    if (!Number.isFinite(bytes) || bytes < 0) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = bytes / 1024, unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
+  };
   protected readonly importGpxTrack = (): void => {
-    const input = document.createElement('input'); input.type = 'file'; input.accept = '.gpx,application/gpx+xml,application/xml,text/xml';
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.gpx,application/gpx+xml,application/xml,text/xml'; input.multiple = true;
     input.addEventListener('change', () => {
-      const file = input.files?.[0]; if (!file) return;
-      void file.text().then(content => {
-        this.setGpxTrackData(content, file.name, true);
-        const path = this.desktop?.getPathForFile(file);
-        if (path) { this.saveSetting('gpxPath', path); this.saveSetting('gpxFileName', file.name); }
-      }).catch(error => this.gpxError.set(error instanceof Error ? error.message : 'Could not read the GPX file.'));
+      const files = Array.from(input.files ?? []);
+      if (!files.length) return;
+      void this.addGpxFiles(files);
     }, { once: true });
     input.click();
   };
 
-  private async restoreGpxTrack(): Promise<void> {
-    const path = this.readSetting('gpxPath', '');
-    const fileName = this.readSetting('gpxFileName', this.gpxFileName());
-    if (!path || !fileName || !this.desktop) return;
-    const result = await this.desktop.FileSystem.readText(path);
-    if (!result.success) { this.gpxError.set('The previously imported GPX file is no longer available.'); return; }
-    try { this.setGpxTrackData(result.data, fileName, false); }
-    catch (error) { this.gpxError.set(error instanceof Error ? error.message : 'Could not restore the GPX track.'); }
+  private async addGpxFiles(files: File[]): Promise<void> {
+    const added: GpxTrackFile[] = [];
+    const segments: [number, number][][] = [];
+    const current = this.gpxTracks();
+    for (const file of files) {
+      const path = this.desktop?.getPathForFile(file) ?? '';
+      if (current.some(track => (path && track.path === path) || (!path && track.name === file.name && track.sizeBytes === file.size))) continue;
+      try {
+        const content = await file.text();
+        const parsed = this.parseGpxTrackData(content);
+        segments.push(...parsed);
+        added.push({ path: path || `memory:${file.name}:${file.lastModified}`, name: file.name, sizeBytes: file.size, lastModified: file.lastModified });
+      } catch (error) {
+        this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (!added.length) return;
+    const next = [...current, ...added];
+    this.gpxTracks.set(next);
+    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    this.gpxError.set('');
+    this.gpxSegments.push(...segments);
+    this.applyGpxTrack();
+    this.fitGpxTrack();
   }
 
-  private setGpxTrackData(content: string, fileName: string, fitTrack: boolean): void {
+  protected readonly removeGpxTrack = async (path: string): Promise<void> => {
+    const next = this.gpxTracks().filter(track => track.path !== path);
+    this.gpxTracks.set(next);
+    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    await this.reloadGpxTracks();
+  };
+
+  private async reloadGpxTracks(): Promise<void> {
+    if (!this.desktop) return;
+    const segments: [number, number][][] = [];
+    const valid: GpxTrackFile[] = [];
+    for (const track of this.gpxTracks()) {
+      if (track.path.startsWith('memory:')) continue;
+      const result = await this.desktop.FileSystem.readText(track.path);
+      if (!result.success) continue;
+      try { segments.push(...this.parseGpxTrackData(result.data)); valid.push(track); }
+      catch { /* Keep malformed files out of the rendered track set. */ }
+    }
+    this.gpxTracks.set(valid);
+    this.saveSetting('gpxTracks', JSON.stringify(valid));
+    this.gpxSegments = segments;
+    this.applyGpxTrack();
+  }
+
+  private async restoreGpxTrack(): Promise<void> {
+    if (!this.desktop) return;
+    let tracks: GpxTrackFile[] = [];
+    try {
+      const stored = JSON.parse(this.readSetting('gpxTracks', '[]')) as GpxTrackFile[];
+      if (Array.isArray(stored)) tracks = stored.filter(track => track && typeof track.path === 'string' && typeof track.name === 'string');
+    } catch { /* Fall back to the legacy single-file setting below. */ }
+    if (!tracks.length) {
+      const legacyPath = this.readSetting('gpxPath', '');
+      const legacyName = this.readSetting('gpxFileName', '');
+      if (legacyPath && legacyName) tracks = [{ path: legacyPath, name: legacyName, sizeBytes: 0, lastModified: 0 }];
+    }
+    const segments: [number, number][][] = [];
+    const available: GpxTrackFile[] = [];
+    for (const track of tracks) {
+      const result = await this.desktop.FileSystem.readText(track.path);
+      if (!result.success) continue;
+      try { segments.push(...this.parseGpxTrackData(result.data)); available.push(track); }
+      catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
+    }
+    this.gpxTracks.set(available);
+    this.gpxSegments = segments;
+    this.saveSetting('gpxTracks', JSON.stringify(available));
+    this.applyGpxTrack();
+  }
+
+  private parseGpxTrackData(content: string): [number, number][][] {
     const xml = new DOMParser().parseFromString(content, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('The selected file is not valid GPX/XML.');
     const elements = Array.from(xml.getElementsByTagName('*'));
@@ -2773,15 +2874,17 @@ export class MapWindow implements OnInit, OnDestroy {
       if (points.length) segments = [points];
     }
     if (!segments.length) throw new Error('No valid track or route points were found in the GPX file.');
-    this.gpxSegments = segments; this.gpxFileName.set(fileName); this.gpxError.set('');
-    this.applyGpxTrack();
-    if (fitTrack && this.offlineRenderer) {
-      const points = segments.flat();
+    return segments;
+  }
+
+  private fitGpxTrack(): void {
+    const points = this.gpxSegments.flat();
+    if (!points.length) return;
+    if (this.offlineRenderer) {
       const longitudes = points.map(point => point[1]), latitudes = points.map(point => point[0]);
       this.offlineRenderer.map.fitBounds([[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]], { padding: 24, maxZoom: 16, duration: 0 });
       this.zoomLevel.set(this.offlineRenderer.map.getZoom()); this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
-    } else if (fitTrack && this.map) {
-      const points = segments.flat();
+    } else if (this.map) {
       const bounds: [[number, number], [number, number]] = [
         [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
         [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))]
@@ -2790,6 +2893,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.zoomLevel.set(this.map.getZoom()); this.saveSetting('zoom', this.map.getZoom());
     }
   }
+
   private parseGpxPoint(point: Element): [number, number] | null {
     const latitude = Number(point.getAttribute('lat')), longitude = Number(point.getAttribute('lon'));
     return Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
