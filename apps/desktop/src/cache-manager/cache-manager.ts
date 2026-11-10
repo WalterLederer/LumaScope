@@ -549,18 +549,19 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
-    const rows = this.db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude,
+    const rows = this.db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE paths.folder_path = :folder
       ORDER BY photos.file_name COLLATE NOCASE`)
-      .all({ folder: directory }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; location_display_name: string | null }>;
+      .all({ folder: directory }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
       path: join(directory, row.file_name),
       fileName: row.file_name,
       latitude: row.latitude,
       longitude: row.longitude,
+      gpsTimestamp: row.gps_timestamp,
       displayName: row.location_display_name
     }));
   };
