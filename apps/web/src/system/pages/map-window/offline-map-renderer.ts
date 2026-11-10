@@ -1,4 +1,4 @@
-import { addProtocol, Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
+import { addProtocol, Map as MapLibreMap, ScaleControl, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -888,6 +888,7 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    this.map.addControl(new ScaleControl({ maxWidth: 140, unit: 'metric' }), 'bottom-left');
     this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
       ? 'osmand-atlas'
       : styleOverride?.name === 'LumaScope OsmAnd OBF' ? 'osmand' : null;
