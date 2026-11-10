@@ -327,7 +327,9 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       }
 
       await validateHillshadePngForBrowser(png, tile + '; database=' + database.id);
-      const bitmap = await createImageBitmap(new Blob([png], { type: 'image/png' }));
+      const pngBuffer = new ArrayBuffer(png.byteLength);
+      new Uint8Array(pngBuffer).set(png);
+      const bitmap = await createImageBitmap(new Blob([pngBuffer], { type: 'image/png' }));
       try {
         if (bitmap.width !== 256 || bitmap.height !== 256) {
           throw new Error('Hillshade tile has unexpected dimensions (' + bitmap.width + 'x' + bitmap.height + ').');
