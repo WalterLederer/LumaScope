@@ -363,7 +363,7 @@ interface MapErrorEntry {
         Refresh
       </button>
       <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-        {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
+        {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
       </button>
       <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Refresh reloads cached tiles; rerender forces a fresh native render.' : mapSource() === 'osmand' ? 'Refresh reloads cached tiles; rerender forces a fresh native render.' : 'Select an OsmAnd renderer to refresh or rerender visible tiles.') }}</span>
     </div>
