@@ -219,13 +219,14 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
   <div class="settings-tab-content time-slider-tab">
     <div class="time-slider-settings">
-      <label class="time-slider-activate"><input type="checkbox" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"> Activate Time Slider</label>
       @if (timeSliderHasData()) {
         <div class="time-slider-readouts">
           <span class="time-slider-min"><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
           <span class="time-slider-max"><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
         </div>
-        <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
+        <div class="time-slider-control-row">
+          <label class="time-slider-activate" title="Activate or deactivate time filtering"><input type="checkbox" aria-label="Activate Time Slider" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"></label>
+          <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
@@ -234,6 +235,7 @@ interface MapErrorEntry {
           <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
             [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
+          </div>
         </div>
         <div class="time-slider-boundary-box">
           <div class="time-slider-boundary-column time-slider-min">
@@ -875,7 +877,9 @@ interface MapErrorEntry {
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
     .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px}
-    .time-slider-activate{display:flex;align-items:center;gap:8px;font-weight:600}
+    .time-slider-control-row{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:10px}
+    .time-slider-activate{display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer}
+    .time-slider-activate input{margin:0}
     .time-slider-readouts{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-variant-numeric:tabular-nums}
     .time-slider-boundary-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
     .time-slider-boundary-column{display:flex;flex-direction:column;gap:4px;min-width:0}
