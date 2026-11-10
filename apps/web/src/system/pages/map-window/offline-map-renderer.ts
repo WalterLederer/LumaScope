@@ -203,7 +203,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
   osmAndHillshadeDatabasePathProvider = getDatabasePath;
   if (osmAndHillshadeProtocolRegistered) return;
   addProtocol('osmand-hillshade', async (request, abortController) => {
-    const match = /^osmand-hillshade:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    const match = /^osmand-hillshade:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
