@@ -1747,6 +1747,8 @@ export class OfflineMapRenderer {
     // Recreate the Hillshade source/layer so MapLibre discards its raster tile
     // cache and requests every visible tile again from the combined DB protocol.
     // This re-runs the per-database lookup and pixel compositing path.
+    // Restart the bounded console trace so the rerender's requests are visible.
+    osmAndHillshadeDiagnosticCount = 0;
     this.syncHillshadeLayers();
     console.info('[Hillshade] Recomputed visible shade tiles from enabled databases', {
       databases: this.hillshadeDatabases.filter(database => database.enabled && database.available).map(database => database.path.split(/[\\/]/).pop())
