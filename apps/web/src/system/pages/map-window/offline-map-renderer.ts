@@ -1,5 +1,5 @@
 import { addProtocol, Map as MapLibreMap, setWorkerUrl, type MapOptions, type StyleSpecification } from 'maplibre-gl';
-import type { Desktop } from 'internal-api';
+import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -13,7 +13,7 @@ export type OfflineMapStyle = 'lumascope' | 'versatiles-colorful' | 'versatiles-
 let osmAndProtocolRegistered = false;
 let osmAndAtlasProtocolRegistered = false;
 let osmAndAtlasDisplayScaleProvider: (() => number) | null = null;
-let osmAndHillshadeDatabasePathProvider: (() => string) | null = null;
+let osmAndHillshadeDatabasesProvider: (() => OsmAndHillshadeDatabase[]) | null = null;
 let osmAndHillshadeProtocolRegistered = false;
 
 const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
@@ -58,7 +58,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
   addProtocol('osmand', async (request, abortController) => {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
-    const [, zoomText, columnText, rowText] = match;
+    const [, databaseId, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
     const column = Number(columnText);
     const row = Number(rowText);
@@ -203,7 +203,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
   osmAndHillshadeDatabasePathProvider = getDatabasePath;
   if (osmAndHillshadeProtocolRegistered) return;
   addProtocol('osmand-hillshade', async (request, abortController) => {
-    const match = /^osmand-hillshade:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
+    const match = /^osmand-hillshade:\/\/([a-f0-9]{16})\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
@@ -267,33 +267,8 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
 }
 
 function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecification {
-  const result = JSON.parse(JSON.stringify(style)) as StyleSpecification;
-  result.sources['osmand-hillshade'] = {
-    type: 'raster',
-    tiles: ['osmand-hillshade://{z}/{x}/{y}'],
-    tileSize: 256,
-    minzoom: 4,
-    maxzoom: 12,
-    bounds: AUSTRIA_BOUNDS,
-    attribution: '© OpenStreetMap contributors'
-  };
-  const hillshadeLayer = {
-    id: 'osmand-hillshade-raster',
-    type: 'raster' as const,
-    source: 'osmand-hillshade',
-    layout: { visibility: 'none' as const },
-    paint: { 'raster-fade-duration': 0, 'raster-opacity': 0.65 }
-  };
-  const existingIndex = result.layers.findIndex(layer => layer.id === hillshadeLayer.id);
-  if (existingIndex >= 0) {
-    result.layers[existingIndex] = hillshadeLayer;
-  } else {
-    const baseRasterIndex = result.layers.findIndex(layer => layer.id === 'osmand-atlas-raster' || layer.id === 'osmand-raster');
-    const detailLayerIndex = result.layers.findIndex(layer => /road|street|building|poi|label|symbol|boundary|rail|bridge|transport/i.test(layer.id));
-    const insertAt = baseRasterIndex >= 0 ? baseRasterIndex + 1 : detailLayerIndex >= 0 ? detailLayerIndex : result.layers.length;
-    result.layers.splice(insertAt, 0, hillshadeLayer);
-  }
-  return result;
+  // Hillshade sources are installed dynamically from the persisted database list.
+  return JSON.parse(JSON.stringify(style)) as StyleSpecification;
 }
 
 export function createOsmAndMapStyle(): StyleSpecification {
@@ -495,7 +470,7 @@ export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string,
 export class OfflineMapRenderer {
   readonly map: MapLibreMap;
   readonly ready: Promise<void>;
-  private currentMarkerElement: HTMLElement | null = null;
+  private currentMarkerElement: HTMLElement | null = null;\n  private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];\n  private hillshadeOpacity = 0.65;\n  private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
   private readonly tileProtocol: OsmAndTileProtocol | null;
@@ -917,7 +892,7 @@ export class OfflineMapRenderer {
         onError?.(this.lastMapError);
       }
     });
-    this.map.on('load', () => console.info('[OfflineMap] MapLibre style loaded.'));
+    this.map.on('load', () => { console.info('[OfflineMap] MapLibre style loaded.'); this.syncHillshadeLayers(); });
     this.ready = new Promise((resolve, reject) => {
       let settled = false;
       const timeout = window.setTimeout(() => {
@@ -1505,21 +1480,70 @@ export class OfflineMapRenderer {
     }
   }
 
+  setHillshadeDatabases(databases: OsmAndHillshadeDatabase[]): void {
+    this.hillshadeDatabases = databases.slice();
+    this.syncHillshadeLayers();
+  }
+
   setHillshadeVisibility(visible: boolean): void {
-    if (!this.map.getLayer('osmand-hillshade-raster')) return;
-    this.map.setLayoutProperty('osmand-hillshade-raster', 'visibility', visible ? 'visible' : 'none');
+    this.hillshadeVisible = visible;
+    for (const layer of this.map.getStyle().layers) {
+      if (layer.id.startsWith('osmand-hillshade-raster-')) {
+        this.map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
+      }
+    }
   }
 
   setHillshadeOpacity(opacity: number): void {
-    if (!this.map.getLayer('osmand-hillshade-raster')) return;
-    const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
-    this.map.setPaintProperty('osmand-hillshade-raster', 'raster-opacity', value);
+    this.hillshadeOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
+    for (const layer of this.map.getStyle().layers) {
+      if (layer.id.startsWith('osmand-hillshade-raster-')) {
+        this.map.setPaintProperty(layer.id, 'raster-opacity', this.hillshadeOpacity);
+      }
+    }
   }
 
   refreshHillshadeTiles(): void {
-    const source = this.map.getSource('osmand-hillshade') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-    if (!source?.setTiles) return;
-    source.setTiles(['osmand-hillshade://{z}/{x}/{y}?refresh=' + Date.now()]);
+    const refresh = Date.now();
+    for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) {
+      const databaseId = sourceId.slice('osmand-hillshade-'.length);
+      const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
+      source?.setTiles?.(['osmand-hillshade://' + databaseId + '/{z}/{x}/{y}?refresh=' + refresh]);
+    }
+  }
+
+  private syncHillshadeLayers(): void {
+    if (!this.map.isStyleLoaded()) return;
+    const style = this.map.getStyle();
+    for (const layer of style.layers.filter(item => item.id.startsWith('osmand-hillshade-raster'))) {
+      this.map.removeLayer(layer.id);
+    }
+    for (const sourceId of Object.keys(style.sources).filter(id => id.startsWith('osmand-hillshade'))) {
+      this.map.removeSource(sourceId);
+    }
+    const beforeLayer = this.map.getStyle().layers.find(layer =>
+      /road|street|building|poi|label|symbol|boundary|rail|bridge|transport/i.test(layer.id)
+    )?.id;
+    for (const database of this.hillshadeDatabases) {
+      if (!database.enabled || !database.available) continue;
+      const sourceId = 'osmand-hillshade-' + database.id;
+      const layerId = 'osmand-hillshade-raster-' + database.id;
+      this.map.addSource(sourceId, {
+        type: 'raster',
+        tiles: ['osmand-hillshade://' + database.id + '/{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 1,
+        maxzoom: 12,
+        attribution: '© OpenStreetMap contributors'
+      });
+      this.map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        layout: { visibility: this.hillshadeVisible ? 'visible' : 'none' },
+        paint: { 'raster-fade-duration': 0, 'raster-opacity': this.hillshadeOpacity }
+      }, beforeLayer);
+    }
   }
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
