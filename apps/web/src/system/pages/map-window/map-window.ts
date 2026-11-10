@@ -1942,6 +1942,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     this.markerCount.set(0);
     this.updateTimeSliderBounds();
+    this.applyCurrentPhotoVisibility();
   }
   private createImageMarkerIcon(selected: boolean): unknown {
     if (selected) return this.createCurrentLocationIcon();
@@ -3365,7 +3366,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ? this.directoryPhotoTimestampMarkers.find(marker => marker.path.toLowerCase() === this.currentImagePath?.toLowerCase())
       : null;
     const withinTimeRange = !this.timeSliderActive()
-      || (currentPhoto !== undefined && this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp));
+      || (currentPhoto != null && this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp));
     const opacity = this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
