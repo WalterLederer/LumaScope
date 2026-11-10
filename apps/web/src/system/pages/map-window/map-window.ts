@@ -327,8 +327,8 @@ interface MapErrorEntry {
         <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
         <span class="range-value">{{ overlayOpacity() }}%</span>
       </div>
-      <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline'">
-        <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() !== 'offline'" aria-label="Show labels"></label>
+      <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline' && mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+        <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() === 'online'" aria-label="Show labels"></label>
         <input id="map-label-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
           [disabled]="mapSource() !== 'offline'" aria-label="Map label opacity">
@@ -2137,6 +2137,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
+    if (nextSource === 'osmand-atlas' || nextSource === 'osmand') {
+      const labelsEnabled = nextSource === 'osmand-atlas';
+      this.labelsVisible.set(labelsEnabled);
+      this.saveSetting('labelsVisible', labelsEnabled);
+    }
     if (nextSource !== 'offline') {
       this.currentOfflineMapId = null;
       this.activeOfflineMapId.set(null);
@@ -2544,6 +2549,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
   };
   protected readonly changeLabelsVisibility = (visible: boolean): void => {
+    if (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
+      // The two OsmAnd renderers differ by label rendering: Atlas includes labels,
+      // while the plain OsmAnd renderer deliberately omits them.
+      this.changeMapSource(visible ? 'osmand-atlas' : 'osmand');
+      return;
+    }
     this.labelsVisible.set(visible);
     this.saveSetting('labelsVisible', visible);
     this.offlineRenderer?.setTextLabelOpacity(visible ? this.labelOpacity() / 100 : 0);
