@@ -169,6 +169,11 @@ class OsmAndHillshadeWorker {
     child.kill();
   }
 
+  private cleanupConfigurationDirectory(directory: string): void {
+    try { rmSync(directory, { recursive: true, force: true }); }
+    catch (error) { console.warn('[OsmAnd Hillshade] Could not remove helper configuration:', error); }
+  }
+
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
