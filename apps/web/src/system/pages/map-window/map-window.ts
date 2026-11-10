@@ -334,15 +334,15 @@ interface MapErrorEntry {
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="!hillshadeDatabasePath()">
-        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="!hillshadeDatabasePath()" aria-label="Show Hillshade"></label>
+        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="!hillshadeDatabasePath() || mapSource() === 'online'" aria-label="Show Hillshade"></label>
         <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
-          [disabled]="!hillshadeDatabasePath() || !hillshadeVisible()" aria-label="Hillshade opacity">
+          [disabled]="!hillshadeDatabasePath() || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
       </div>
       <div class="range-setting hillshade-database-setting">
         <label>Hillshade DB</label>
-        <span class="offline-map-status" [title]="hillshadeDatabasePath()">{{ hillshadeDatabasePath() ? hillshadeDatabasePath().split(/[\\\\/]/).pop() : 'Not selected' }}</span>
+        <span class="offline-map-status" [title]="hillshadeDatabasePath()">{{ hillshadeDatabaseFileName() }}</span>
         <button type="button" class="map-toolbar-button" (click)="chooseHillshadeDatabase()">Select…</button>
       </div>
     </div>
@@ -1056,6 +1056,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
   protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
   protected readonly hillshadeDatabasePath = signal('');
+  protected readonly hillshadeDatabaseFileName = computed(() => {
+    const path = this.hillshadeDatabasePath();
+    return path ? path.split(/[\\/]/).pop() ?? path : 'Not selected';
+  });
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
     if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
