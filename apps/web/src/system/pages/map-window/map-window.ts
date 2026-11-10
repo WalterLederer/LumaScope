@@ -2904,6 +2904,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeGpxTrackColor = (path: string, color: string): void => {
     if (!this.gpxColors.some(item => item.value === color)) return;
     this.updateGpxTrack(path, { color });
+    this.gpxTrackColorMenuOpen.set(null);
   };
   protected readonly changeGpxTrackLineStyle = (path: string, lineStyle: string): void => {
     if (!['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(lineStyle)) return;
