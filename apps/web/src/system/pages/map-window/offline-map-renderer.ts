@@ -130,15 +130,21 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
     if (!match) throw new Error('Invalid OsmAnd Atlas XYZ tile URL: ' + request.url);
     const [, databaseId, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
-    const column = Number(columnText);
+    const requestedColumn = Number(columnText);
     const row = Number(rowText);
-    const tileCount = 2 ** zoom;
     if (!Number.isInteger(zoom) || zoom < 2 || zoom > 21
-      || !Number.isInteger(column) || !Number.isInteger(row)
-      || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
+      || !Number.isInteger(requestedColumn) || !Number.isInteger(row)) {
       throw new Error('Invalid OsmAnd Atlas tile coordinates.');
     }
+    const tileCount = 2 ** zoom;
+    // MapLibre can request wrapped world copies with x outside [0, 2^z).
+    // XYZ columns wrap horizontally; they are not invalid tile coordinates.
+    const column = ((requestedColumn % tileCount) + tileCount) % tileCount;
     const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column, row };
+    if (row < 0 || row >= tileCount) {
+      const empty = new Uint8ClampedArray(512 * 512 * 4);
+      return { data: await createImageBitmap(new ImageData(empty, 512, 512)) };
+    }
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
       const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
@@ -206,12 +212,16 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     const match = /^osmand-hillshade:\/\/([a-f0-9]{16})\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Hillshade XYZ tile URL: ' + request.url);
     const [, databaseId, zoomText, columnText, rowText] = match;
-    const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
-    const tileCount = 2 ** zoom;
+    const zoom = Number(zoomText), requestedColumn = Number(columnText), row = Number(rowText);
     if (!Number.isInteger(zoom) || zoom < 0 || zoom > 24
-      || !Number.isInteger(column) || !Number.isInteger(row)
-      || column < 0 || row < 0 || column >= tileCount || row >= tileCount) {
+      || !Number.isInteger(requestedColumn) || !Number.isInteger(row)) {
       throw new Error('Invalid OsmAnd Hillshade tile coordinates.');
+    }
+    const tileCount = 2 ** zoom;
+    // Match XYZ world wrapping used by MapLibre for the base Atlas layer.
+    const column = ((requestedColumn % tileCount) + tileCount) % tileCount;
+    if (row < 0 || row >= tileCount) {
+      return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
     const database = osmAndHillshadeDatabasesProvider?.().find(item => item.id === databaseId && item.enabled && item.available);
     const databasePath = database?.path ?? '';
