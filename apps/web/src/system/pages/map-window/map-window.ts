@@ -230,10 +230,10 @@ interface MapErrorEntry {
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
-            [min]="timeSliderMinimum()" [max]="Math.max(timeSliderMinimum(), timeSliderEnd() - timeSliderHandleGap())" step="1" [value]="timeSliderStart()"
+            [min]="timeSliderMinimum()" [max]="timeSliderStartMaximum()" step="1" [value]="timeSliderStart()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target).value)">
           <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
-            [min]="Math.min(timeSliderMaximum(), timeSliderStart() + timeSliderHandleGap())" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
+            [min]="timeSliderEndMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target).value)">
           </div>
         </div>
@@ -3427,6 +3427,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyDirectoryPhotoMarkers();
     this.applyCurrentPhotoVisibility();
   };
+
+  protected readonly timeSliderStartMaximum = (): number =>
+    Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - this.timeSliderHandleGap());
+
+  protected readonly timeSliderEndMinimum = (): number =>
+    Math.min(this.timeSliderMaximum(), this.timeSliderStart() + this.timeSliderHandleGap());
 
   private timeSliderHandleGap(): number {
     const span = Math.max(0, this.timeSliderMaximum() - this.timeSliderMinimum());
