@@ -1909,8 +1909,16 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const directory = await desktop.FileSystem.dirname(imagePath);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      const records = await desktop.CacheManager.getDirectoryPhotoLocations(directory);
+      const [records, imageFiles] = await Promise.all([
+        desktop.CacheManager.getDirectoryPhotoLocations(directory),
+        desktop.FileSystem.readImages(directory, 'name', 'asc')
+      ]);
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+      const modifiedAtByName = new Map(
+        (imageFiles.success ? imageFiles.data : [])
+          .filter(file => !file.isDirectory && Number.isFinite(file.modifiedAt) && file.modifiedAt! > 0)
+          .map(file => [file.name.toLowerCase(), Math.floor(file.modifiedAt! / 1000)])
+      );
       const markers = records
         .filter(record => record.latitude !== null && record.longitude !== null
           && Number.isFinite(record.latitude) && Number.isFinite(record.longitude)
@@ -1920,7 +1928,7 @@ export class MapWindow implements OnInit, OnDestroy {
           fileName: record.fileName,
           latitude: record.latitude!,
           longitude: record.longitude!,
-          gpsTimestamp: record.gpsTimestamp
+          gpsTimestamp: record.gpsTimestamp ?? modifiedAtByName.get(record.fileName.toLowerCase()) ?? null
         }));
 
       this.markerFilesTotal.set(records.length);
