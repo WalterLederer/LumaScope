@@ -625,6 +625,7 @@ export class OfflineMapRenderer {
   private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
   private hillshadeSourceRevision = 0;
   private hillshadeRerenderPending = false;
+  private hillshadeSettingsPending = false;
   private hillshadeOpacity = 0.65;
   private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
@@ -1719,30 +1720,50 @@ export class OfflineMapRenderer {
   }
 
   setHillshadeDatabases(databases: OsmAndHillshadeDatabase[]): void {
-    this.hillshadeDatabases = databases.slice();
-    // A database selection change must invalidate MapLibre's raster SourceCache
-    // just like the explicit Rerender command. Rebuilding the source directly
-    // can leave previously decoded tiles visible after switching databases.
-    this.rerenderHillshadeTiles();
+    const next = databases.slice();
+    const selectionChanged = next.length !== this.hillshadeDatabases.length
+      || next.some((database, index) => {
+        const previous = this.hillshadeDatabases[index];
+        return !previous || previous.id !== database.id || previous.path !== database.path
+          || previous.enabled !== database.enabled || previous.available !== database.available;
+      });
+    this.hillshadeDatabases = next;
+    // applyHillshadeSettings can be called for opacity/visibility restoration too.
+    // Do not tear down and recreate the raster source unless the DB selection
+    // itself actually changed.
+    if (selectionChanged) this.rerenderHillshadeTiles();
   }
 
   setHillshadeVisibility(visible: boolean): void {
     this.hillshadeVisible = visible;
-    if (!this.map.isStyleLoaded()) return;
-    for (const layer of this.map.getStyle().layers) {
-      if (layer.id === 'osmand-hillshade-raster' || layer.id.startsWith('osmand-hillshade-raster-')) {
-        this.map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
-      }
-    }
+    this.applyHillshadeLayerProperties();
   }
 
   setHillshadeOpacity(opacity: number): void {
     this.hillshadeOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
-    if (!this.map.isStyleLoaded()) return;
-    for (const layer of this.map.getStyle().layers) {
-      if (layer.id === 'osmand-hillshade-raster' || layer.id.startsWith('osmand-hillshade-raster-')) {
-        this.map.setPaintProperty(layer.id, 'raster-opacity', this.hillshadeOpacity);
+    this.applyHillshadeLayerProperties();
+  }
+
+  private applyHillshadeLayerProperties(): void {
+    if (!this.map.isStyleLoaded()) {
+      // MapLibre can temporarily report an unloaded style while it is updating
+      // sources or the camera. Keep the latest values and apply them at idle;
+      // silently dropping the update made opacity/visibility appear to need
+      // an unrelated Center action before they took effect.
+      if (!this.hillshadeSettingsPending) {
+        this.hillshadeSettingsPending = true;
+        this.map.once('idle', () => {
+          this.hillshadeSettingsPending = false;
+          this.applyHillshadeLayerProperties();
+        });
       }
+      return;
+    }
+
+    for (const layer of this.map.getStyle().layers) {
+      if (!layer.id.startsWith('osmand-hillshade-raster-') && layer.id !== 'osmand-hillshade-raster') continue;
+      this.map.setLayoutProperty(layer.id, 'visibility', this.hillshadeVisible ? 'visible' : 'none');
+      this.map.setPaintProperty(layer.id, 'raster-opacity', this.hillshadeOpacity);
     }
   }
 
