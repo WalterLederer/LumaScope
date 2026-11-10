@@ -1732,7 +1732,10 @@ export class OfflineMapRenderer {
     if (this.hillshadeDatabases.some(database => database.enabled && database.available)) {
       this.map.addSource('osmand-hillshade', {
         type: 'raster',
-        tiles: ['osmand-hillshade://combined/{z}/{x}/{y}'],
+        // A fresh URL is essential here: MapLibre may retain raster tiles by URL
+        // even after a source with the same ID is removed and recreated. Database
+        // selection changes must never reuse a previously composed tile.
+        tiles: ['osmand-hillshade://combined/{z}/{x}/{y}?refresh=' + Date.now()],
         tileSize: 256,
         minzoom: 1,
         maxzoom: 12,
