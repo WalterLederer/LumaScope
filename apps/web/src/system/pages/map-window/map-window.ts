@@ -2912,7 +2912,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const defaultName = 'Photo-Markers-' + new Date().toISOString().slice(0, 10) + '.gpx';
       const enteredName = window.prompt('GPX file name:', defaultName);
       if (enteredName === null) return;
-      let fileName = enteredName.trim().replace(/[<>:"/\\|?*\\x00-\\x1f]/g, '_');
+      let fileName = enteredName.trim().replace(/[<>:"\/\\|?*\x00-\x1f]/g, '_');
       if (!fileName) {
         this.gpxError.set('Please enter a valid GPX file name.');
         return;
@@ -2920,11 +2920,11 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!fileName.toLowerCase().endsWith('.gpx')) fileName += '.gpx';
       const points = markers.map(marker =>
         `      <trkpt lat="${marker.latitude.toFixed(8)}" lon="${marker.longitude.toFixed(8)}"><name>${this.escapeMarkerHtml(marker.fileName)}</name></trkpt>`
-      ).join('\\n');
+      ).join('\n');
       const content = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
-    <name>${this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, ''))}</name>
+    <name>${this.escapeMarkerHtml(fileName.replace(/\.gpx$/i, ''))}</name>
     <trkseg>
 ${points}
     </trkseg>
