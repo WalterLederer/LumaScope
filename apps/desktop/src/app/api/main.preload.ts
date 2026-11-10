@@ -103,8 +103,10 @@ const api: Desktop = {
   },
 
   OsmAndAtlas: {
-    getHillshadeDatabasePath: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabasePath'),
-    chooseHillshadeDatabase: () => ipcRenderer.invoke('OsmAndAtlas.chooseHillshadeDatabase'),
+    getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
+    addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
+    setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OsmAndAtlas.setHillshadeDatabaseEnabled', id, enabled),
+    removeHillshadeDatabase: (id: string) => ipcRenderer.invoke('OsmAndAtlas.removeHillshadeDatabase', id),
     renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale = 0) => ipcRenderer.invoke('OsmAndAtlas.renderHillshadeTile', databasePath, z, x, y, scale),
     getRuntimeStatus: () => ipcRenderer.invoke('OsmAndAtlas.getRuntimeStatus'),
     getRenderingStyles: () => ipcRenderer.invoke('OsmAndAtlas.getRenderingStyles'),
