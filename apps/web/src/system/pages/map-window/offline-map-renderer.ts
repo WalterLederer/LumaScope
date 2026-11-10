@@ -1776,9 +1776,10 @@ export class OfflineMapRenderer {
         properties: { color: track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true }
       })))
     });
-    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot', 'gpx-track-direction-arrows']) {
+    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
+    this.map.setPaintProperty('gpx-track-direction-arrows', 'text-opacity', opacity);
   }
 
   refreshVisibleTiles(): void {
