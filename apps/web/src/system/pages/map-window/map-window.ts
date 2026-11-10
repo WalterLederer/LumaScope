@@ -887,7 +887,7 @@ interface MapErrorEntry {
     .time-slider-readouts{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;font-size:12px;font-variant-numeric:tabular-nums}
     .time-slider-readouts .time-slider-min{text-align:left}
     .time-slider-readouts .time-slider-max{text-align:right}
-    .time-slider-duration{text-align:center;white-space:nowrap;font-size:12px;font-weight:600;color:var(--color-content-default,#ddd);font-variant-numeric:tabular-nums}
+    .time-slider-duration{text-align:center;white-space:nowrap;font-size:12px;font-weight:700;color:#000;font-variant-numeric:tabular-nums}
     .time-slider-boundary-box{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:16px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:8px 10px;font-variant-numeric:tabular-nums;min-width:0}
     .time-slider-duration-column{align-items:center;justify-content:center;white-space:nowrap}
     .time-slider-boundary-column{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -3432,9 +3432,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const days = Math.floor(totalMinutes / 1440);
     const hours = Math.floor((totalMinutes % 1440) / 60);
     const minutes = totalMinutes % 60;
-    return days + (days === 1 ? ' day, ' : ' days, ')
-      + hours + (hours === 1 ? ' hour, ' : ' hours, ')
-      + minutes + (minutes === 1 ? ' minute' : ' minutes');
+    const parts: string[] = [];
+    if (days > 0) parts.push(days + (days === 1 ? ' day' : ' days'));
+    if (hours > 0) parts.push(hours + (hours === 1 ? ' hour' : ' hours'));
+    if (minutes > 0 || parts.length === 0) parts.push(minutes + (minutes === 1 ? ' minute' : ' minutes'));
+    return parts.join(', ');
   };
 
   protected readonly clearTimeSliderTextSelection = (): void => {
