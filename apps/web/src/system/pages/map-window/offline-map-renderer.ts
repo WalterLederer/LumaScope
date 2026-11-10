@@ -1506,31 +1506,20 @@ export class OfflineMapRenderer {
   }
 
   setHillshadeVisibility(visible: boolean): void {
-    for (const layer of this.map.getStyle().layers) if (layer.id.startsWith('osmand-hillshade-raster-')) this.map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
+    if (!this.map.getLayer('osmand-hillshade-raster')) return;
+    this.map.setLayoutProperty('osmand-hillshade-raster', 'visibility', visible ? 'visible' : 'none');
   }
 
   setHillshadeOpacity(opacity: number): void {
+    if (!this.map.getLayer('osmand-hillshade-raster')) return;
     const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
-    for (const layer of this.map.getStyle().layers) if (layer.id.startsWith('osmand-hillshade-raster-')) this.map.setPaintProperty(layer.id, 'raster-opacity', value);
-  }
-
-  setHillshadeDatabases(entries: HillshadeDatabaseEntry[], opacity: number): void {
-    for (const layer of this.map.getStyle().layers.filter(item => item.id.startsWith('osmand-hillshade-raster-'))) this.map.removeLayer(layer.id);
-    for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) this.map.removeSource(sourceId);
-    const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 0.65;
-    for (const entry of entries) {
-      const sourceId = 'osmand-hillshade-' + entry.id;
-      this.map.addSource(sourceId, { type: 'raster', tiles: ['osmand-hillshade://{z}/{x}/{y}'], tileSize: 256, minzoom: 4, maxzoom: 12, bounds: AUSTRIA_BOUNDS, attribution: '© OpenStreetMap contributors' });
-      this.map.addLayer({ id: 'osmand-hillshade-raster-' + entry.id, type: 'raster', source: sourceId, layout: { visibility: entry.enabled ? 'visible' : 'none' }, paint: { 'raster-fade-duration': 0, 'raster-opacity': value } });
-    }
+    this.map.setPaintProperty('osmand-hillshade-raster', 'raster-opacity', value);
   }
 
   refreshHillshadeTiles(): void {
-    for (const sourceId of Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-'))) {
-      const source = this.map.getSource(sourceId) as { setTiles?: (tiles: string[]) => unknown } | undefined;
-      const entryId = sourceId.slice('osmand-hillshade-'.length);
-      if (source?.setTiles) source.setTiles(['osmand-hillshade://' + entryId + '/{z}/{x}/{y}?refresh=' + Date.now()]);
-    }
+    const source = this.map.getSource('osmand-hillshade') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) return;
+    source.setTiles(['osmand-hillshade://{z}/{x}/{y}?refresh=' + Date.now()]);
   }
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
