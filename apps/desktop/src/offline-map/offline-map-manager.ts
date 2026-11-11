@@ -135,7 +135,8 @@ export class OfflineMapManager {
  readonly setAllEnabled=async(_event:IpcMainInvokeEvent,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   if(typeof enabled!=='boolean')throw new Error('The Active state must be a boolean.');
   for(const [id,item] of this.opened){item.status.enabled=enabled;this.enabledByPath.set(id,enabled);}
-  for(const [id,item] of this.obfFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}\n  for(const [id,item] of this.mapsforgeFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
+  for(const [id,item] of this.obfFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
+  for(const [id,item] of this.mapsforgeFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
   if(!enabled)this.activeId=null;
   await this.persistMaps();
   return this.getMaps();
@@ -198,7 +199,8 @@ export class OfflineMapManager {
     this.enabledByPath.set(path,enabled);
     try{
      if(extname(path).toLowerCase()==='.obf')this.openObfFile(path);
-     else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);\n     else if(extname(path).toLowerCase()==='.map')this.openMapsforgeFile(path);
+     else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);
+     else if(extname(path).toLowerCase()==='.map')this.openMapsforgeFile(path);
     }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
    }
    if(removedMissingPaths){
