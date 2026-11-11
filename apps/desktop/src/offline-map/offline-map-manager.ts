@@ -192,20 +192,26 @@ export class OfflineMapManager {
     void updateAppSettingsSection('offlineMaps',settings as Record<string,unknown>).catch(error=>console.error('[OfflineMap] Could not migrate map settings:',error));
    }
    if(typeof settings.lastDirectory==='string'&&existsSync(settings.lastDirectory))this.lastDirectory=settings.lastDirectory;
-   const unifiedPaths:Record<string,boolean>={};
-   const hasUnifiedPaths=!!settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths);
-   if(hasUnifiedPaths){
-    for(const [path,enabled] of Object.entries(settings.filePaths as Record<string,unknown>))if(typeof enabled==='boolean')unifiedPaths[path]=enabled;
+   const unifiedPaths=new Map<string,boolean>();
+   const hasCanonicalArray=Array.isArray(settings.filePaths)
+    && settings.filePaths.every(entry=>!!entry&&typeof entry==='object'
+     && typeof (entry as {path?:unknown}).path==='string'
+     && typeof (entry as {enabled?:unknown}).enabled==='boolean');
+   if(hasCanonicalArray){
+    for(const entry of settings.filePaths as Array<{path:string;enabled:boolean}>)unifiedPaths.set(entry.path,entry.enabled);
+   }else if(settings.filePaths&&typeof settings.filePaths==='object'&&!Array.isArray(settings.filePaths)){
+    // Migrate the previous object format: { absolutePath: enabled }.
+    for(const [path,enabled] of Object.entries(settings.filePaths as Record<string,unknown>))if(typeof enabled==='boolean')unifiedPaths.set(path,enabled);
    }else{
-    // One-time migration from the former split arrays and enabledByPath object.
+    // Migrate older split path arrays and enabledByPath dictionary.
     const mbtiles=Array.isArray(settings.filePaths)?settings.filePaths.filter((v):v is string=>typeof v==='string'):typeof settings.filePath==='string'?[settings.filePath]:[];
     const obf=Array.isArray(settings.obfPaths)?settings.obfPaths.filter((v):v is string=>typeof v==='string'):[];
-    for(const path of [...mbtiles,...obf])unifiedPaths[path]=settings.enabledByPath?.[path]!==false;
+    for(const path of [...mbtiles,...obf])unifiedPaths.set(path,settings.enabledByPath?.[path]!==false);
    }
    let removedMissingPaths=false;
-   for(const [path,enabled] of Object.entries(unifiedPaths)){
+   for(const [path,enabled] of unifiedPaths){
     if(!existsSync(path)){
-     delete unifiedPaths[path];
+     unifiedPaths.delete(path);
      removedMissingPaths=true;
      continue;
     }
@@ -217,14 +223,14 @@ export class OfflineMapManager {
     }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
    }
    if(removedMissingPaths){
-    void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not remove missing map paths:',error));
+    void updateAppSettingsSection('offlineMaps',{filePaths:[...unifiedPaths].map(([path,enabled])=>({path,enabled}))}).catch(error=>console.error('[OfflineMap] Could not remove missing map paths:',error));
    }
-   if(!hasUnifiedPaths){
-    void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
+   if(!hasCanonicalArray){
+    void updateAppSettingsSection('offlineMaps',{filePaths:[...unifiedPaths].map(([path,enabled])=>({path,enabled}))}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps(preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'):Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps(preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'):Promise<void>{const paths=new Map<string,boolean>();for(const [path,item] of this.opened)paths.set(path,item.status.enabled);for(const [path,item] of this.obfFiles)paths.set(path,item.enabled);for(const [path,item] of this.mapsforgeFiles)paths.set(path,item.enabled);const filePaths=[...paths].map(([path,enabled])=>({path,enabled}));return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
   const absolutePath=resolve(filePath);
   if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
