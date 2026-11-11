@@ -475,17 +475,21 @@ interface MapErrorEntry {
   <details class="view-rerender-section"
     [open]="renderSectionOpen()"
     (toggle)="onLocationDetailsToggle($event)"
-    [class.is-rendering]="renderActiveCount() > 0 || rerenderVisibleTilesBusy()"
-    [class.has-render-errors]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() && lastRenderTileCounts().failed > 0"
-    [class.is-render-complete]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() && renderTotalCount() > 0 && lastRenderTileCounts().failed === 0">
+    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy()"
+    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
+    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
       <span>Render</span>
       <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
         <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
-        @if (renderActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
+        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
           <span>Rendering inactive</span>
         } @else {
-          <span>{{ renderActiveCount() }} / {{ renderTotalCount() }} tile requests remaining</span>
+          <span>
+            @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
+            @if (hillshadeActiveCount() > 0) { @if (renderActiveCount() > 0) { · } Hillshade: {{ hillshadeActiveCount() }} active }
+            @if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
+          </span>
         }
       </span>
     </summary>
@@ -2525,6 +2529,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentTileRequestResults.clear();
       this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
       this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
+      this.hillshadeTotalCount.set(0);
       this.activeHillshadeTiles.clear();
       this.seenHillshadeTiles.clear();
       this.hillshadeActiveCount.set(0);
@@ -4279,6 +4284,13 @@ ${points}
                 done(null, canvas);
                 return;
               }
+              const hillshadeKey = 'online/' + coords.z + '/' + x + '/' + coords.y;
+              const emitHillshadeStatus = (status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string): void => {
+                window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
+                  detail: { key: hillshadeKey, status, error, zoom: coords.z, column: x, row: coords.y }
+                }));
+              };
+              emitHillshadeStatus('loading');
               let hasImage = false;
               for (const database of databases) {
                 let png: Uint8Array;
@@ -4304,9 +4316,11 @@ ${points}
                 }
               }
               context.globalCompositeOperation = 'source-over';
+              emitHillshadeStatus('loaded');
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
+              if (typeof emitHillshadeStatus === 'function') emitHillshadeStatus('error', message);
               this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
               done(error instanceof Error ? error : new Error(message), canvas);
             }
