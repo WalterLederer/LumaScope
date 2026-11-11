@@ -2348,16 +2348,18 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       if (!selected) {
         this.offlineMapStatus.set(null);
-        if (this.map) {
-          this.marker?.setLatLng([latitude, longitude]);
-          this.map.setView([latitude, longitude], this.map.getZoom());
-          return;
-        }
-        const fallback = this.createMap(latitude, longitude, generation, true);
-        this.mapInitialization = fallback;
-        try { await fallback; } finally { if (this.mapInitialization === fallback) this.mapInitialization = null; }
+        this.mapDisplayNotice.set('No enabled MBTiles map covers the current location. Check the map bounds and enabled state in Offline Maps.');
+        // Do not silently substitute the online basemap: that makes switching
+        // to MBTiles appear to work while showing exactly the same online map.
+        this.offlineRenderer?.remove(); this.offlineRenderer = null;
+        this.map?.remove(); this.map = null;
+        this.leafletHillshadeLayer = null; this.leafletHillshadePane = null;
+        this.marker = null; this.directoryMarkerGroup = null;
+        this.tileLayer?.remove(); this.tileLayer = null;
+        this.clearDirectoryMarkers();
         return;
       }
+      this.mapDisplayNotice.set('');
       this.offlineMapStatus.set(selected);
       if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); this.offlineRenderer.map.easeTo({ center: [longitude, latitude] }); return; }
       if (this.mapInitialization) await this.mapInitialization;
@@ -4238,6 +4240,11 @@ ${points}
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
     this.tileLayer = this.leaflet.tileLayer(style.url, style).addTo(this.map);
+    // Leaflet does not emit MapLibre's 'idle' event. Use the base layer's
+    // completed visible-tile batch to finish the shared Display phase.
+    this.tileLayer.on('load', () => {
+      window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
+    });
     this.applyMapColor();
     this.applyHillshadeSettingsIfReady(true);
   }
@@ -4362,6 +4369,11 @@ ${points}
         pane: 'hillshadePane', tileSize: 256, minZoom: 1, maxZoom: 20, maxNativeZoom: 12,
         opacity: this.hillshadeOpacity() / 100, zIndex: 250
       }).addTo(map);
+      // Wait for the Hillshade GridLayer's complete visible tile batch too;
+      // the base map can finish before the asynchronous native shading calls.
+      this.leafletHillshadeLayer.on('load', () => {
+        window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
+      });
     } else {
       this.leafletHillshadeLayer.setOpacity(this.hillshadeOpacity() / 100);
     }
