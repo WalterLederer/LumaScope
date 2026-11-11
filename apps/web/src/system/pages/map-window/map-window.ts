@@ -1011,6 +1011,7 @@ interface MapErrorEntry {
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
     .render-tile-statistics-box{display:flex;flex-direction:row;align-items:flex-start;gap:14px;width:max-content;max-width:100%;margin-left:auto;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
     .render-tile-statistics-box>.render-tile-statistics{flex:0 0 auto}
+    .render-tile-statistics-box>.hillshade-render-statistics{border-left:1px solid var(--color-content-default-low,#666)}
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
     .render-tile-statistics .render-stat-label-column{width:130px}
