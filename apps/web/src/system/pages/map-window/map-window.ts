@@ -571,7 +571,7 @@ interface MapErrorEntry {
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
                     <option value="mbtiles">MBTiles</option>
-                    <option value="obf">OBF</option>
+                    <option value="obf">OsmAnd (.obf)</option>
                     <option value="map">Mapsforge (.map)</option>
                     <option value="inUse">InUse</option>
                     <option value="active">Active</option>
@@ -662,7 +662,7 @@ interface MapErrorEntry {
                 <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
                 <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
                 <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
+                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" class="gpx-open-button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)" title="Open download source" aria-label="Open download source">↗</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
               </tr>
             }
           </tbody>
@@ -1003,7 +1003,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}.download-source-table-wrap{display:block;width:100%!important;max-width:none;min-width:0;overflow-x:auto;flex:1 1 100%;align-self:stretch}.download-source-table th:first-child,.download-source-table td:first-child{width:62%}.download-source-table th:nth-child(2),.download-source-table td:nth-child(2){width:18%}.download-source-table th:nth-child(3),.download-source-table td:nth-child(3){width:12%}.download-source-table th:nth-child(4),.download-source-table td:nth-child(4){width:8%}.download-source-table td{box-sizing:border-box}.download-source-url input{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}.offline-catalogue-toolbar{margin-top:14px}
+    .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}.download-source-table-wrap{display:block;width:100%!important;max-width:none;min-width:0;overflow-x:auto;flex:1 1 100%;align-self:stretch}.download-section{width:100%;max-width:none;min-width:0;box-sizing:border-box}.download-source-table th:first-child,.download-source-table td:first-child{width:56%}.download-source-table th:nth-child(2),.download-source-table td:nth-child(2){width:22%}.download-source-table th:nth-child(3),.download-source-table td:nth-child(3){width:10%}.download-source-table th:nth-child(4),.download-source-table td:nth-child(4){width:12%}.download-source-table td{box-sizing:border-box}.download-source-url input{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}.offline-catalogue-toolbar{margin-top:14px}
     .offline-catalogue-table-wrap{max-height:360px;overflow:auto;margin-top:6px}
     .offline-catalogue-table{width:100%;min-width:820px;table-layout:fixed}
     .offline-catalogue-table th,.offline-catalogue-table td{box-sizing:border-box;padding-left:12px;padding-right:12px}
