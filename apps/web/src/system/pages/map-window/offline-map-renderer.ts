@@ -630,6 +630,8 @@ export class OfflineMapRenderer {
   private hillshadeVisible = false;
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
+  private walkingFigureElement: HTMLDivElement | null = null;
+  private walkingFigureCoordinates: [number, number] | null = null;
   private readonly tileProtocol: OsmAndTileProtocol | null;
   private readonly tileStatusLayer: HTMLDivElement;
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
@@ -1576,6 +1578,11 @@ export class OfflineMapRenderer {
   }
 
   private readonly updateOverlayPositions = (): void => {
+    if (this.walkingFigureElement && this.walkingFigureCoordinates) {
+      const point = this.map.project(this.walkingFigureCoordinates);
+      this.walkingFigureElement.style.left = `${point.x}px`;
+      this.walkingFigureElement.style.top = `${point.y}px`;
+    }
     if (this.currentMarkerElement && this.currentLocation) {
       const point = this.map.project(this.currentLocation);
       this.currentMarkerElement.style.left = `${point.x}px`;
@@ -1653,6 +1660,25 @@ export class OfflineMapRenderer {
           : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Loading tile data';
       }
     }
+  }
+
+  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number): void {
+    if (!this.walkingFigureElement) {
+      this.walkingFigureElement = document.createElement('div');
+      this.walkingFigureElement.className = 'offline-walking-figure';
+      this.walkingFigureElement.style.cssText = 'position:absolute;left:0;top:0;width:26px;height:32px;display:block;pointer-events:none;z-index:10001;overflow:visible;transform:translate(-50%,-50%);visibility:visible;opacity:1;';
+      this.overlayElement.appendChild(this.walkingFigureElement);
+    }
+    this.walkingFigureCoordinates = [longitude, latitude];
+    this.walkingFigureElement.innerHTML = html;
+    this.walkingFigureElement.style.transform = `translate(-50%,-50%) rotate(${bearing}deg)`;
+    this.updateOverlayPositions();
+  }
+
+  clearWalkingFigure(): void {
+    this.walkingFigureElement?.remove();
+    this.walkingFigureElement = null;
+    this.walkingFigureCoordinates = null;
   }
 
   setCurrentLocation(latitude: number, longitude: number, color: string, opacity: number, shape: 'pin' | 'circle' | 'square' | 'diamond' = 'pin'): void {
@@ -2198,6 +2224,7 @@ export class OfflineMapRenderer {
     this.map.off('dragend', this.onDiagnosticMapDragEnd);
     this.map.off('render', this.updateOverlayPositions);
     this.clearPhotoPreview();
+    this.clearWalkingFigure();
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
     this.currentLocation = null;
