@@ -2809,9 +2809,8 @@ export class MapWindow implements OnInit, OnDestroy {
       // Apply all OBF states and the preset in one IPC call and one settings write.
       // Custom intentionally preserves the user's individual enabled states.
       const updates = value === 'custom' ? [] : this.offlineMaps()
-        .filter(map => map.type === 'obf')
-        .map(map => ({ id: map.id, enabled: this.obfMapMatchesPreset(map, value) }))
-        .filter(update => this.offlineMaps().find(map => map.id === update.id)?.enabled !== update.enabled);
+        .filter(map => map.type === 'obf' && map.enabled !== this.obfMapMatchesPreset(map, value))
+        .map(map => ({ id: map.id, enabled: this.obfMapMatchesPreset(map, value) }));
       this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
     this.refreshOfflineMapRendering();
