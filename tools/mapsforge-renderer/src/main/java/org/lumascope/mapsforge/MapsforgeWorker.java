@@ -2,11 +2,13 @@ package org.lumascope.mapsforge;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.Tile;
 import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
 import org.mapsforge.map.datastore.MapDataStore;
+import org.mapsforge.map.datastore.MultiMapDataStore;
 import org.mapsforge.map.layer.cache.InMemoryTileCache;
 import org.mapsforge.map.layer.renderer.DatabaseRenderer;
 import org.mapsforge.map.layer.renderer.RendererJob;
@@ -43,6 +45,7 @@ public final class MapsforgeWorker {
     private RenderThemeFuture renderThemeFuture;
     private DatabaseRenderer renderer;
     private String activeMapPath = "";
+    private final java.util.List<String> activeMapPaths = new java.util.ArrayList<>();
 
     private MapsforgeWorker() {}
 
@@ -82,12 +85,20 @@ public final class MapsforgeWorker {
                 JsonObject response = ok(command);
                 response.addProperty("opened", mapDataStore != null);
                 response.addProperty("map_path", activeMapPath);
+                JsonArray paths = new JsonArray();
+                activeMapPaths.forEach(paths::add);
+                response.add("map_paths", paths);
                 return response;
             }
             case "open":
-                openMap(requiredString(request, "map_path"), optionalString(request, "theme_path"));
+                java.util.List<String> paths = readMapPaths(request);
+                openMaps(paths, optionalString(request, "theme_path"));
                 JsonObject opened = ok(command);
                 opened.addProperty("map_path", activeMapPath);
+                JsonArray openedPaths = new JsonArray();
+                activeMapPaths.forEach(openedPaths::add);
+                opened.add("map_paths", openedPaths);
+                opened.addProperty("map_count", activeMapPaths.size());
                 opened.addProperty("tile_size", TILE_SIZE);
                 return opened;
             case "render":
@@ -103,17 +114,27 @@ public final class MapsforgeWorker {
         }
     }
 
-    private void openMap(String mapPathValue, String themePathValue) throws Exception {
-        Path mapPath = Path.of(mapPathValue).toAbsolutePath().normalize();
-        if (!Files.isRegularFile(mapPath)) {
-            throw new IllegalArgumentException("Mapsforge map file not found: " + mapPath);
+    private void openMaps(java.util.List<String> mapPathValues, String themePathValue) throws Exception {
+        if (mapPathValues.isEmpty()) {
+            throw new IllegalArgumentException("At least one Mapsforge map path is required.");
         }
 
         closeMap();
-        MapDataStore newMapDataStore = null;
+        java.util.List<MapDataStore> openedStores = new java.util.ArrayList<>();
+        MultiMapDataStore combinedStore = null;
         InMemoryTileCache newTileCache = null;
         try {
-            newMapDataStore = new MapFile(mapPath.toFile());
+            for (String mapPathValue : mapPathValues) {
+                Path mapPath = Path.of(mapPathValue).toAbsolutePath().normalize();
+                if (!Files.isRegularFile(mapPath)) {
+                    throw new IllegalArgumentException("Mapsforge map file not found: " + mapPath);
+                }
+                openedStores.add(new MapFile(mapPath.toFile()));
+            }
+            combinedStore = new MultiMapDataStore(MultiMapDataStore.DataPolicy.DEDUPLICATE);
+            for (MapDataStore store : openedStores) {
+                combinedStore.addMapDataStore(store, false, false);
+            }
             newTileCache = new InMemoryTileCache(TILE_CACHE_CAPACITY);
 
             DisplayModel newDisplayModel = new DisplayModel();
@@ -135,7 +156,7 @@ public final class MapsforgeWorker {
             newThemeFuture.run();
 
             DatabaseRenderer newRenderer = new DatabaseRenderer(
-                newMapDataStore,
+                combinedStore,
                 AwtGraphicFactory.INSTANCE,
                 newTileCache,
                 null,
@@ -144,15 +165,20 @@ public final class MapsforgeWorker {
                 null
             );
 
-            this.mapDataStore = newMapDataStore;
+            this.mapDataStore = combinedStore;
             this.tileCache = newTileCache;
             this.displayModel = newDisplayModel;
             this.renderThemeFuture = newThemeFuture;
             this.renderer = newRenderer;
-            this.activeMapPath = mapPath.toString();
+            this.activeMapPaths.clear();
+            for (String value : mapPathValues) {
+                this.activeMapPaths.add(Path.of(value).toAbsolutePath().normalize().toString());
+            }
+            this.activeMapPath = String.join(";", this.activeMapPaths);
         } catch (Exception error) {
             if (newTileCache != null) newTileCache.destroy();
-            if (newMapDataStore != null) newMapDataStore.close();
+            if (combinedStore != null) combinedStore.close();
+            else for (MapDataStore store : openedStores) store.close();
             throw error;
         }
     }
@@ -175,6 +201,9 @@ public final class MapsforgeWorker {
         RendererJob job = new RendererJob(
             tile, mapDataStore, renderThemeFuture, displayModel, 1.0f, false, false
         );
+        if (!mapDataStore.supportsTile(tile)) {
+            throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
+        }
         TileBitmap bitmap = renderer.executeJob(job);
         if (bitmap == null) {
             throw new IllegalStateException("Mapsforge returned no bitmap for z=" + zoom + " x=" + x + " y=" + y);
@@ -207,6 +236,7 @@ public final class MapsforgeWorker {
             mapDataStore = null;
         }
         activeMapPath = "";
+        activeMapPaths.clear();
     }
 
     private static JsonObject ok(String command) {
@@ -214,6 +244,22 @@ public final class MapsforgeWorker {
         response.addProperty("status", "ok");
         response.addProperty("command", command);
         return response;
+    }
+
+    private static java.util.List<String> readMapPaths(JsonObject request) {
+        java.util.List<String> paths = new java.util.ArrayList<>();
+        if (request.has("map_paths") && request.get("map_paths").isJsonArray()) {
+            for (com.google.gson.JsonElement element : request.getAsJsonArray("map_paths")) {
+                String value = element.getAsString();
+                if (!value.isBlank() && !paths.contains(value)) paths.add(value);
+            }
+        } else if (request.has("map_path")) {
+            paths.add(requiredString(request, "map_path"));
+        }
+        if (paths.isEmpty()) {
+            throw new IllegalArgumentException("Missing map_path or non-empty map_paths array.");
+        }
+        return paths;
     }
 
     private static String requiredString(JsonObject object, String name) {
