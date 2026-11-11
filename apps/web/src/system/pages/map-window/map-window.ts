@@ -244,9 +244,10 @@ interface MapErrorEntry {
           <div class="time-slider-animate-options">
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
-            <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show walking figure</span></label>
+            <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show track symbol</span></label>
+            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="plane">Airplane</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option></select></label>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
-            <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
+            <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Figure size</span><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"><strong>{{ walkingFigureSize().toFixed(1) }}×</strong></label>
           </div>
         </details>
@@ -1427,6 +1428,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderAnimationSpeed = signal(Math.max(0.1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
   protected readonly walkingFigureSize = signal(Math.max(0.5, Math.min(3, Number(this.readSetting('walkingFigureSize', '1')) || 1)));
   protected readonly walkingFigureAnimationSpeed = signal(Math.max(0.2, Math.min(3, Number(this.readSetting('walkingFigureAnimationSpeed', '1')) || 1)));
+  protected readonly walkingFigureType = signal((['walker', 'car', 'plane', 'bicycle', 'motorcycle'].includes(this.readSetting('walkingFigureType', 'walker')) ? this.readSetting('walkingFigureType', 'walker') : 'walker') as 'walker' | 'car' | 'plane' | 'bicycle' | 'motorcycle');
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   private lastWalkingBearing = 0;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
@@ -3571,6 +3573,13 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
 
+  protected readonly changeWalkingFigureType = (value: string): void => {
+    if (!['walker', 'car', 'plane', 'bicycle', 'motorcycle'].includes(value)) return;
+    this.walkingFigureType.set(value as 'walker' | 'car' | 'plane' | 'bicycle' | 'motorcycle');
+    this.saveSetting('walkingFigureType', value);
+    this.updateWalkingMarker();
+  };
+
   private ensureWalkingFigureAnimationStyles(): void {
     // The walker SVG is inserted with innerHTML by Leaflet/MapLibre. Angular's
     // emulated component styles add _ngcontent attributes, so scoped CSS cannot
@@ -3583,6 +3592,9 @@ export class MapWindow implements OnInit, OnDestroy {
       .lumascope-walker .walker-limb {
         transform-box: fill-box;
         transform-origin: top center;
+        animation: none;
+      }
+      .lumascope-walker.is-moving .walker-limb {
         animation: lumascope-walker-step var(--walker-animation-duration, .72s) ease-in-out infinite alternate;
       }
       .lumascope-walker .walker-arm,
@@ -3611,7 +3623,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.ensureWalkingFigureAnimationStyles();
 
     // Keep each GPX segment separate: joining separate segments or tracks can
-    // put the animated figure on a straight line that is not part of the GPX.
+    // put the animated symbol on a straight line that is not part of the GPX.
     const activeTracks = this.gpxTracks().filter(track => track.active !== false && !track.missing);
     const timedSegments = activeTracks.flatMap(track =>
       (this.gpxPointDataByTrack.get(track.path) ?? []).map(segment =>
@@ -3621,7 +3633,8 @@ export class MapWindow implements OnInit, OnDestroy {
       ).filter(segment => segment.length > 0)
     );
     const currentTime = this.timeSliderEnd();
-    let latitude: number, longitude: number, bearing = 0;
+    let latitude: number, longitude: number, bearing = this.lastWalkingBearing;
+    let trackSpeedMetersPerSecond = 0;
     const selectedSegment = timedSegments.find(segment =>
       currentTime >= segment[0].time && currentTime <= segment[segment.length - 1].time
     );
@@ -3643,18 +3656,19 @@ export class MapWindow implements OnInit, OnDestroy {
       };
       [latitude, longitude] = coordinateAt(currentTime);
 
-      // Derive heading from a several-second window rather than a single pair
-      // of raw GPS fixes. This suppresses GPS jitter and avoids rapid rotations
-      // when consecutive GPX points contain tiny position fluctuations.
+      // Use the same local GPX interval for heading and speed, avoiding GPS jitter.
       const headingWindowSeconds = 4;
-      const before = coordinateAt(Math.max(selectedSegment[0].time, currentTime - headingWindowSeconds / 2));
-      const after = coordinateAt(Math.min(selectedSegment[selectedSegment.length - 1].time, currentTime + headingWindowSeconds / 2));
+      const beforeTime = Math.max(selectedSegment[0].time, currentTime - headingWindowSeconds / 2);
+      const afterTime = Math.min(selectedSegment[selectedSegment.length - 1].time, currentTime + headingWindowSeconds / 2);
+      const before = coordinateAt(beforeTime);
+      const after = coordinateAt(afterTime);
       const meanLatitude = (before[0] + after[0]) * Math.PI / 360;
       const north = (after[0] - before[0]) * Math.PI / 180;
       const east = (after[1] - before[1]) * Math.PI / 180 * Math.cos(meanLatitude);
       const distance = Math.hypot(north, east) * 6371000;
+      const elapsed = Math.max(0, afterTime - beforeTime);
       if (distance >= 1.5) bearing = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
-      else bearing = this.lastWalkingBearing;
+      if (elapsed > 0) trackSpeedMetersPerSecond = distance / elapsed;
       this.lastWalkingBearing = bearing;
     } else if (timedSegments.length) {
       // Outside a recorded segment, stay on the nearest actual GPX point.
@@ -3679,29 +3693,51 @@ export class MapWindow implements OnInit, OnDestroy {
       const north = (next.latitude - latitude) * Math.PI / 180;
       const east = (next.longitude - longitude) * Math.PI / 180 * Math.cos(latitude * Math.PI / 180);
       if (Math.hypot(north, east) * 6371000 >= 1.5) bearing = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
-      else bearing = this.lastWalkingBearing;
       this.lastWalkingBearing = bearing;
     }
 
-    const html = `<div class="lumascope-walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
+    // The timeline traverses its complete range in about 60 seconds at 1×.
+    // Convert recorded GPX speed into the symbol's actual on-screen travel speed.
+    const timelineFactor = this.timeSliderAnimating()
+      ? (this.timeSliderMaximum() - this.timeSliderMinimum()) / 60 * this.timeSliderAnimationSpeed()
+      : 0;
+    const displayedSpeed = trackSpeedMetersPerSecond * timelineFactor;
+    const isWalking = this.walkingFigureType() === 'walker';
+    const isMoving = isWalking && this.timeSliderAnimating() && displayedSpeed >= 0.15;
+    const gaitSpeed = Math.max(0.2, Math.min(3,
+      displayedSpeed / 1.4 * this.walkingFigureAnimationSpeed()));
+    const figureType = this.walkingFigureType();
+    const vehicleSymbols: Record<string, string> = {
+      car: '🚗', plane: '✈️', bicycle: '🚲', motorcycle: '🏍️'
+    };
+    const orientationOffset = figureType === 'car' || figureType === 'bicycle' || figureType === 'motorcycle' ? -90 : 0;
+    const html = isWalking
+      ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
+      : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing, this.walkingFigureSize(), this.walkingFigureAnimationSpeed());
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving);
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     if (!this.leaflet || !this.map) return;
+    const existingElement = this.walkingMarker?.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
+    if (existingElement?.dataset['figureType'] !== figureType) {
+      this.walkingMarker?.remove();
+      this.walkingMarker = null;
+    }
     if (!this.walkingMarker) {
-      const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [26, 32], iconAnchor: [13, 16] });
+      const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [34, 34], iconAnchor: [17, 17] });
       this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
     } else {
       this.walkingMarker.setLatLng([latitude, longitude]);
     }
     const walkerElement = this.walkingMarker.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
     if (walkerElement) {
-      walkerElement.style.transform = `rotate(${bearing}deg) scale(${this.walkingFigureSize()})`;
-      walkerElement.style.setProperty('--walker-animation-duration', `${0.72 / this.walkingFigureAnimationSpeed()}s`);
+      walkerElement.classList.toggle('is-moving', isMoving);
+      walkerElement.style.transform = `rotate(${bearing + orientationOffset}deg) scale(${this.walkingFigureSize()})`;
+      walkerElement.style.setProperty('--walker-animation-duration', `${0.72 / gaitSpeed}s`);
     }
   }
 
