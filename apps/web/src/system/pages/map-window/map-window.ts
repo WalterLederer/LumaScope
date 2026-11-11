@@ -3162,6 +3162,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
       this.hillshadeDatabases.set(databases);
+      this.updateHillshadePresetFromSelection(databases);
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
       if (databases.length === 0) { this.hillshadeVisible.set(false); this.saveSetting('hillshadeVisible', false); }
     } catch (error) {
