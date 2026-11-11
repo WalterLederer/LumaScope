@@ -306,6 +306,13 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     const databases = (osmAndHillshadeDatabasesProvider?.() ?? [])
       .filter(database => database.enabled && database.available);
     const tile = 'z' + zoom + '/x' + column + '/y' + row;
+    const tileKey = 'maplibre/' + tile;
+    const emitHillshadeStatus = (status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string): void => {
+      window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
+        detail: { key: tileKey, status, error, zoom, column, row }
+      }));
+    };
+    emitHillshadeStatus('loading');
     const diagnosticId = ++osmAndHillshadeDiagnosticCount;
     const traceTile = diagnosticId <= 24;
     if (traceTile) {
@@ -317,6 +324,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     }
     if (!databases.length) {
       if (traceTile) console.info('[Hillshade][tile-result]', { request: diagnosticId, tile, result: 'no-enabled-databases' });
+      emitHillshadeStatus('loaded');
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
 
@@ -382,6 +390,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       if (traceTile) console.info('[Hillshade][tile-result]', {
         request: diagnosticId, tile, result: 'no-pixels-from-any-database'
       });
+      emitHillshadeStatus('loaded');
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
 
@@ -390,7 +399,9 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     });
     context.putImageData(new ImageData(merged, 256, 256), 0, 0);
     const blob = await canvas.convertToBlob({ type: 'image/png' });
-    return { data: await blob.arrayBuffer() };
+    const data = await blob.arrayBuffer();
+    emitHillshadeStatus('loaded');
+    return { data };
   });
   osmAndHillshadeProtocolRegistered = true;
 }
