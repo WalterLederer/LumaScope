@@ -931,7 +931,7 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:12px;height:15px;max-width:12px;max-height:15px;position:relative;transform-origin:50% 50%;filter:drop-shadow(0 1px 1px #000b)}.lumascope-walker svg{display:block;width:12px!important;height:15px!important;max-width:12px;max-height:15px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b)}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -3545,6 +3545,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.timeSliderWalkerVisible() || (!this.leaflet || !this.map) && !this.offlineRenderer || !this.timeSliderActive()) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
+      this.offlineRenderer?.clearWalkingFigure();
       return;
     }
 
@@ -3603,43 +3604,16 @@ export class MapWindow implements OnInit, OnDestroy {
       bearing = (Math.atan2(next.longitude - longitude, next.latitude - latitude) * 180 / Math.PI + 360) % 360;
     }
 
-    // MapLibre markers live outside Angular component styling; give the SVG
-    // explicit inline dimensions so its visibility does not depend on scoped CSS.
-    const html = `<div class="lumascope-walker" style="display:block;width:12px;height:15px;position:relative;transform:rotate(${bearing}deg);transform-origin:50% 50%;filter:drop-shadow(0 1px 1px #000b)"><svg width="12" height="15" viewBox="0 0 30 38" style="display:block;width:12px;height:15px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
+    const html = `<div class="lumascope-walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b)"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
-      if (!this.walkingMapLibreMarker) {
-        const element = document.createElement('div');
-        element.className = 'lumascope-walker-icon';
-        element.style.width = '14px';
-        element.style.height = '17px';
-        element.style.maxWidth = '14px';
-        element.style.maxHeight = '17px';
-        element.style.overflow = 'visible';
-        element.style.pointerEvents = 'none';
-        element.style.display = 'block';
-        element.style.visibility = 'visible';
-        element.style.opacity = '1';
-        element.style.zIndex = '10000';
-        element.style.background = 'transparent';
-        element.style.border = '0';
-        element.setAttribute('aria-hidden', 'true');
-        element.innerHTML = html;
-        this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
-          .setLngLat([longitude, latitude]).addTo(this.offlineRenderer.map);
-        const markerElement = this.walkingMapLibreMarker.getElement();
-        markerElement.style.zIndex = '10000';
-        markerElement.style.visibility = 'visible';
-        markerElement.style.opacity = '1';
-      } else {
-        this.walkingMapLibreMarker.setLngLat([longitude, latitude]);
-        this.walkingMapLibreMarker.getElement().innerHTML = html;
-      }
+      this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing);
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     if (!this.leaflet || !this.map) return;
-    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [14, 17], iconAnchor: [7, 8] });
+    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [26, 32], iconAnchor: [13, 16] });
     if (!this.walkingMarker) this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
     else this.walkingMarker.setLatLng([latitude, longitude]).setIcon(icon);
   }
