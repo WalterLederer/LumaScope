@@ -1409,7 +1409,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.lastHillshadeTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.activeHillshadeTiles.delete(key);
       this.recordMapError('Hillshade tile', (detail.error || 'Hillshade tile rendering failed')
-        + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']');
+        + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']', true);
     } else if (detail.status === 'cancelled') {
       this.activeHillshadeTiles.delete(key);
     }
@@ -1963,10 +1963,12 @@ export class MapWindow implements OnInit, OnDestroy {
     return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
   }
 
-  private recordMapError(source: string, message: string): void {
+  private recordMapError(source: string, message: string, force = false): void {
     // MapLibre aborts obsolete tile requests during zoom/source changes. These
-    // are expected lifecycle cancellations, not renderer failures.
-    if (/\b(cancelled|canceled)\b/i.test(message)) return;
+    // are expected lifecycle cancellations, not renderer failures. Explicit
+    // error-status events (notably Hillshade) must still be recorded even when
+    // the underlying exception text happens to contain the word "cancelled".
+    if (!force && /\b(cancelled|canceled)\b/i.test(message)) return;
     const mapSource = this.mapSource();
     const renderer = ({
       online: 'Online map renderer',
