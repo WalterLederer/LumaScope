@@ -1987,7 +1987,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // are expected lifecycle cancellations, not renderer failures. Explicit
     // error-status events (notably Hillshade) must still be recorded even when
     // the underlying exception text happens to contain the word "cancelled".
-    if (!force && /\b(cancelled|canceled)\b/i.test(message)) return;
+    if (!force && /\b(cancel(?:led|ed|lation)?|abort(?:ed|ion)?)\b/i.test(message)) return;
     const mapSource = this.mapSource();
     const renderer = ({
       online: 'Online map renderer',
