@@ -542,6 +542,11 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'hillshade'">
   <div class="settings-tab-content offline-maps-tab-content">
     <div class="mbtiles-selection offline-map-toolbar">
+      <label class="offline-map-preset-control">Preset:
+        <select [value]="hillshadePreset()" (change)="changeHillshadePreset($any($event.target).value)">
+          <option value="austria">Austria</option><option value="austria-plus">Austria+</option><option value="europe">Europe</option><option value="all">All</option><option value="none">None</option><option value="custom">Custom</option>
+        </select>
+      </label>
       <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
       <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true)" [disabled]="hillshadeDatabaseCount() === 0">Activate all</button>
       <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false)" [disabled]="hillshadeDatabaseCount() === 0">Deactivate all</button>
@@ -561,11 +566,7 @@ interface MapErrorEntry {
   <div class="mbtiles-selection offline-map-toolbar">
     <label class="offline-map-preset-control">OBF preset:
       <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
-        <option value="austria">Austria</option>
-        <option value="europe">Europe</option>
-        <option value="all">All</option>
-        <option value="custom">Custom</option>
-        <option value="custom-no-world-map">Custom (no world map)</option>
+        <option value="austria">Austria</option><option value="austria-plus">Austria+</option><option value="europe">Europe</option><option value="all">All</option><option value="none">None</option><option value="custom">Custom</option>
       </select>
     </label>
     <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
@@ -1369,10 +1370,13 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
     return maps;
   });
-  protected readonly offlineMapPreset = signal<'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map'>(
-    (['austria', 'europe', 'all', 'custom', 'custom-no-world-map'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map')
-      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map'
-      : 'austria'
+  protected readonly offlineMapPreset = signal<'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom'>(
+    (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
+      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
+  );
+  protected readonly hillshadePreset = signal<'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom'>(
+    (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
+      ? this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
   );
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly rerenderVisibleTilesBusy = signal(false);
@@ -2822,7 +2826,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
   };
   protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
-    if (value !== 'austria' && value !== 'europe' && value !== 'all' && value !== 'custom' && value !== 'custom-no-world-map') return;
+    if (value !== 'austria' && value !== 'austria-plus' && value !== 'europe' && value !== 'all' && value !== 'none' && value !== 'custom') return;
     this.offlineMapPreset.set(value);
     this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
@@ -2838,27 +2842,29 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private obfMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
-    selectedPreset: 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map' = this.offlineMapPreset()
+    selectedPreset: 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' = this.offlineMapPreset()
   ): boolean {
     if (map.type !== 'obf') return false;
     const fileName = map.fileName || map.name;
     const isWorldBasemap = /^World_basemap\.obf$/i.test(fileName);
-    if (isWorldBasemap) return selectedPreset !== 'custom-no-world-map';
+    if (selectedPreset === 'none') return false;
+    if (isWorldBasemap) return true;
     // The legacy nationwide extract is obsolete and must never be activated by Austria.
     if (selectedPreset === 'austria' && /^Austria_europe\.obf$/i.test(fileName)) return false;
     const isAustria = /austria|österreich|osterreich/i.test(fileName);
+    const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
     const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
-    return selectedPreset === 'all' || selectedPreset === 'custom' || selectedPreset === 'custom-no-world-map'
-      || (selectedPreset === 'austria' ? isAustria : isEurope);
+    return selectedPreset === 'all' || selectedPreset === 'custom'
+      || (selectedPreset === 'austria' ? isAustria : selectedPreset === 'austria-plus' ? isAustriaPlus : selectedPreset === 'europe' ? isEurope : false);
   }
 
   private getObfPresetForMaps(
     maps: import('internal-api').OfflineMapStatus[]
-  ): 'austria' | 'europe' | 'all' | 'custom-no-world-map' | 'custom' | null {
+  ): 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' | null {
     const obfMaps = maps.filter(map => map.type === 'obf');
     if (obfMaps.length === 0) return null;
-    const candidates: Array<'austria' | 'europe' | 'all' | 'custom-no-world-map'> =
-      ['austria', 'europe', 'all', 'custom-no-world-map'];
+    const candidates: Array<'austria' | 'austria-plus' | 'europe' | 'all' | 'none'> =
+      ['none', 'austria', 'austria-plus', 'europe', 'all'];
     return candidates.find(preset =>
       obfMaps.every(map => map.enabled === this.obfMapMatchesPreset(map, preset))
     ) ?? 'custom';
@@ -3066,6 +3072,29 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
     timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
+  protected readonly changeHillshadePreset = async (value: string): Promise<void> => {
+    if (!['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'].includes(value)) return;
+    const preset = value as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom';
+    this.hillshadePreset.set(preset);
+    this.saveSetting('hillshadePreset', preset);
+    if (preset !== 'custom' && this.desktop) {
+      let databases = this.hillshadeDatabases();
+      for (const database of databases) {
+        if (!database.available) continue;
+        const fileName = this.hillshadeDatabaseFileName(database.path);
+        const isAustria = /austria|österreich|osterreich/i.test(fileName);
+        const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
+        const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
+        const enabled = preset === 'all' || (preset === 'austria' && isAustria)
+          || (preset === 'austria-plus' && isAustriaPlus) || (preset === 'europe' && isEurope);
+        if (database.enabled !== enabled) {
+          databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(database.id, enabled);
+          this.hillshadeDatabases.set(databases);
+        }
+      }
+    }
+    if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+  };
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
