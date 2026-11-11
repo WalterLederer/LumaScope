@@ -323,7 +323,7 @@ export class OsmAndManager {
         filePaths?: unknown; obfPreset?: unknown;
       };
       if (settings.filePaths && typeof settings.filePaths === 'object' && !Array.isArray(settings.filePaths)) {
-        const preset = settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'custom' || settings.obfPreset === 'custom-no-world-map' ? settings.obfPreset : 'austria';
+        const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
         selectedPaths = Object.entries(settings.filePaths as Record<string, unknown>)
           .filter(([path, enabled]) => enabled === true && /\.obf$/i.test(path))
           .map(([path]) => path)
@@ -331,10 +331,12 @@ export class OsmAndManager {
             if (!existsSync(path)) return false;
             const name = path.split(/[\\/]/).pop() ?? path;
             const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
-            if (isWorldBasemap) return preset !== 'custom-no-world-map';
+            if (preset === 'none') return false;
+            if (isWorldBasemap) return true;
             const isAustria = /austria|österreich|osterreich/i.test(name);
+            const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(name);
             const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
-            return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
+            return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : preset === 'austria-plus' ? isAustriaPlus : preset === 'europe' ? isEurope : false);
           });
       }
     } catch { /* Keep the configured fallback OBF map. */ }
