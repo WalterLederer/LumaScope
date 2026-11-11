@@ -928,7 +928,7 @@ interface MapErrorEntry {
     .time-slider-range.disabled{opacity:.55}
     .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
     .time-slider-animate-button:disabled{opacity:.45;cursor:default}
-    .time-slider-animate-section,.time-slider-minmax-section{margin-top:7px}
+    .time-slider-animate-section,.time-slider-minmax-section{margin-top:0}
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
     .time-slider-range{user-select:none;-webkit-user-select:none}
