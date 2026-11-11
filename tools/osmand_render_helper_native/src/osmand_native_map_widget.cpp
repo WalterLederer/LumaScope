@@ -71,7 +71,10 @@ constexpr float kStableSymbolsOpacity = 1.0f;
 constexpr float kInteractiveSymbolsOpacity = 0.0f;
 constexpr int kInteractionSettleDelayMs = 140;
 constexpr double kPi = 3.14159265358979323846;
-constexpr int kConcurrentObfReadLimit = 0;
+// OsmAndCore only provides explicit shared read throttles for limits 1 and 2.
+ // Zero disables the throttle; with hundreds of regional OBF files that can
+ // start too many simultaneous reads and prevent Atlas from reaching an idle frame.
+constexpr int kConcurrentObfReadLimit = 2;
 
 constexpr GLenum kGlColorBufferBit = 0x00004000;
 constexpr GLenum kGlDepthBufferBit = 0x00000100;
