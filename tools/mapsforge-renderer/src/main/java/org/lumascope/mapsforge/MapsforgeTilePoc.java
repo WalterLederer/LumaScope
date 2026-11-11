@@ -2,7 +2,7 @@ package org.lumascope.mapsforge;
 
 import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.Tile;
-import org.mapsforge.map.awt.AwtGraphicFactory;
+import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
 import org.mapsforge.map.datastore.MapDataStore;
 import org.mapsforge.map.layer.renderer.DatabaseRenderer;
 import org.mapsforge.map.layer.renderer.RendererJob;
