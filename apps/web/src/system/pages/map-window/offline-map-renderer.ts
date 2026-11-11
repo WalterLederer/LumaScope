@@ -1674,7 +1674,7 @@ export class OfflineMapRenderer {
     }
   }
 
-  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number): void {
+  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number, size = 1, animationSpeed = 1): void {
     if (!this.walkingFigureElement) {
       this.walkingFigureElement = document.createElement('div');
       this.walkingFigureElement.className = 'offline-walking-figure';
@@ -1687,7 +1687,10 @@ export class OfflineMapRenderer {
     const walker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
     if (!walker) this.walkingFigureElement.innerHTML = html;
     const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
-    if (activeWalker) activeWalker.style.transform = `rotate(${bearing}deg)`;
+    if (activeWalker) {
+      activeWalker.style.transform = `rotate(${bearing}deg) scale(${size})`;
+      activeWalker.style.setProperty('--walker-animation-speed', String(animationSpeed));
+    }
     this.walkingFigureElement.style.transform = 'translate(-50%,-50%)';
     this.updateOverlayPositions();
   }
