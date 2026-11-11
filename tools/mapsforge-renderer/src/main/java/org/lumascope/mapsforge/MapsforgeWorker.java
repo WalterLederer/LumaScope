@@ -46,6 +46,7 @@ public final class MapsforgeWorker {
     private DatabaseRenderer renderer;
     private String activeMapPath = "";
     private final java.util.List<String> activeMapPaths = new java.util.ArrayList<>();
+    private final java.util.List<MapDataStore> activeMapStores = new java.util.ArrayList<>();
 
     private MapsforgeWorker() {}
 
@@ -166,6 +167,8 @@ public final class MapsforgeWorker {
             );
 
             this.mapDataStore = combinedStore;
+            this.activeMapStores.clear();
+            this.activeMapStores.addAll(openedStores);
             this.tileCache = newTileCache;
             this.displayModel = newDisplayModel;
             this.renderThemeFuture = newThemeFuture;
@@ -198,12 +201,16 @@ public final class MapsforgeWorker {
         }
 
         Tile tile = new Tile(x, y, (byte) zoom, TILE_SIZE);
+        int coveringMapCount = 0;
+        for (MapDataStore store : activeMapStores) {
+            if (store.supportsTile(tile)) coveringMapCount++;
+        }
+        if (coveringMapCount == 0) {
+            throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
+        }
         RendererJob job = new RendererJob(
             tile, mapDataStore, renderThemeFuture, displayModel, 1.0f, false, false
         );
-        if (!mapDataStore.supportsTile(tile)) {
-            throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
-        }
         TileBitmap bitmap = renderer.executeJob(job);
         if (bitmap == null) {
             throw new IllegalStateException("Mapsforge returned no bitmap for z=" + zoom + " x=" + x + " y=" + y);
@@ -219,6 +226,7 @@ public final class MapsforgeWorker {
         response.addProperty("width", TILE_SIZE);
         response.addProperty("height", TILE_SIZE);
         response.addProperty("format", "png");
+        response.addProperty("covering_map_count", coveringMapCount);
         response.addProperty("png_base64", Base64.getEncoder().encodeToString(output.toByteArray()));
         return response;
     }
@@ -237,6 +245,7 @@ public final class MapsforgeWorker {
         }
         activeMapPath = "";
         activeMapPaths.clear();
+        activeMapStores.clear();
     }
 
     private static JsonObject ok(String command) {
