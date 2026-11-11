@@ -3499,7 +3499,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!added.length) return;
     const next = [...current, ...added];
     this.gpxTracks.set(next);
-    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     this.gpxError.set('');
     this.rebuildGpxSegments();
     this.applyGpxTrack();
@@ -3517,7 +3517,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxSegmentsByTrack.delete(path);
     this.gpxPointDataByTrack.delete(path);
     this.gpxTracks.set(next);
-    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     await this.reloadGpxTracks();
   };
 
@@ -3558,22 +3558,58 @@ export class MapWindow implements OnInit, OnDestroy {
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
     this.gpxTracks.set(valid);
-    this.saveSetting('gpxTracks', JSON.stringify(valid));
+    void this.persistGpxTracks(valid);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
   }
 
+  private gpxSettingsWriteQueue: Promise<void> = Promise.resolve();
+
+  private async persistGpxTracks(tracks: GpxTrackFile[]): Promise<void> {
+    if (!this.desktop) return;
+    const operation = this.gpxSettingsWriteQueue.then(async () => {
+      const settings = await this.desktop!.ProcessManager.getAppSettings();
+      const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+        ? settings['gpx'] as Record<string, unknown> : {};
+      await this.desktop!.ProcessManager.setAppSettingsSection('gpx', {
+        tracks: tracks.filter(track => !track.path.startsWith('memory:'))
+      });
+      // Keep the legacy map-window key out of the config after migration.
+      if (gpx['tracks'] === undefined) {
+        await this.desktop!.ProcessManager.setAppSettingsSection('mapWindow', {
+          gpxTracks: undefined, gpxPath: undefined, gpxFileName: undefined
+        });
+      }
+    });
+    this.gpxSettingsWriteQueue = operation.catch(error => console.error('[GPX] Could not save tracks to application config:', error));
+    await operation;
+  }
+
   private async restoreGpxTrack(): Promise<void> {
     if (!this.desktop) return;
-    let tracks: GpxTrackFile[] = [];
-    try {
-      const stored = JSON.parse(this.readSetting('gpxTracks', '[]')) as GpxTrackFile[];
-      if (Array.isArray(stored)) tracks = stored.filter(track => track && typeof track.path === 'string' && typeof track.name === 'string');
-    } catch { /* Fall back to the legacy single-file setting below. */ }
+    const settings = await this.desktop.ProcessManager.getAppSettings();
+    const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+      ? settings['gpx'] as Record<string, unknown> : {};
+    let tracks: GpxTrackFile[] = Array.isArray(gpx['tracks'])
+      ? gpx['tracks'].filter((track): track is GpxTrackFile =>
+          !!track && typeof track === 'object' && typeof track.path === 'string' && typeof track.name === 'string')
+      : [];
     if (!tracks.length) {
-      const legacyPath = this.readSetting('gpxPath', '');
-      const legacyName = this.readSetting('gpxFileName', '');
-      if (legacyPath && legacyName) tracks = [{ path: legacyPath, name: legacyName, sizeBytes: 0, lastModified: 0 }];
+      const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
+        ? settings['mapWindow'] as Record<string, unknown> : {};
+      const legacyStored = mapWindow['gpxTracks'];
+      if (typeof legacyStored === 'string') {
+        try {
+          const parsed: unknown = JSON.parse(legacyStored);
+          if (Array.isArray(parsed)) tracks = parsed.filter((track): track is GpxTrackFile =>
+            !!track && typeof track === 'object' && typeof track.path === 'string' && typeof track.name === 'string');
+        } catch { /* Continue with the former single-track keys. */ }
+      }
+      if (!tracks.length) {
+        const legacyPath = typeof mapWindow['gpxPath'] === 'string' ? mapWindow['gpxPath'] : '';
+        const legacyName = typeof mapWindow['gpxFileName'] === 'string' ? mapWindow['gpxFileName'] : '';
+        if (legacyPath && legacyName) tracks = [{ path: legacyPath, name: legacyName, sizeBytes: 0, lastModified: 0 }];
+      }
     }
     const segments: [number, number][][] = [];
     const available: GpxTrackFile[] = [];
@@ -3595,7 +3631,7 @@ export class MapWindow implements OnInit, OnDestroy {
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
-    this.saveSetting('gpxTracks', JSON.stringify(available));
+    void this.persistGpxTracks(available);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
   }
@@ -3651,14 +3687,14 @@ export class MapWindow implements OnInit, OnDestroy {
   private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
-    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     this.applyGpxTrack();
   }
 
   protected readonly changeGpxTrackActive = (path: string, active: boolean): void => {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, active } : track);
     this.gpxTracks.set(next);
-    this.saveSetting('gpxTracks', JSON.stringify(next.filter(track => !track.path.startsWith('memory:'))));
+    void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     this.rebuildGpxSegments();
     this.applyGpxTrack();
   };
