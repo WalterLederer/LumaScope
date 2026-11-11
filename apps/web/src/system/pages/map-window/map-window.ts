@@ -1597,6 +1597,7 @@ export class MapWindow implements OnInit, OnDestroy {
       registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
       void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
         this.hillshadeDatabases.set(databases);
+        this.updateHillshadePresetFromSelection(databases);
         if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
       }).catch(error => this.recordMapError('Hillshade databases', error instanceof Error ? error.message : String(error)));
     }
@@ -3072,6 +3073,23 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
     timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
+  private hillshadeDatabaseMatchesPreset(database: OsmAndHillshadeDatabase, preset: 'austria' | 'austria-plus' | 'europe' | 'all' | 'none'): boolean {
+    if (!database.available || preset === 'none') return false;
+    if (preset === 'all') return true;
+    const fileName = this.hillshadeDatabaseFileName(database.path);
+    if (preset === 'austria') return /austria|österreich|osterreich/i.test(fileName);
+    if (preset === 'austria-plus') return /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
+    return /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
+  }
+  private updateHillshadePresetFromSelection(databases: OsmAndHillshadeDatabase[]): void {
+    const available = databases.filter(database => database.available);
+    if (!available.length) return;
+    const candidates: Array<'none' | 'austria' | 'austria-plus' | 'europe' | 'all'> = ['none', 'austria', 'austria-plus', 'europe', 'all'];
+    const matching = candidates.find(preset => available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
+    const next = matching ?? 'custom';
+    this.hillshadePreset.set(next);
+    this.saveSetting('hillshadePreset', next);
+  }
   protected readonly changeHillshadePreset = async (value: string): Promise<void> => {
     if (!['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'].includes(value)) return;
     const preset = value as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom';
@@ -3081,12 +3099,7 @@ export class MapWindow implements OnInit, OnDestroy {
       let databases = this.hillshadeDatabases();
       for (const database of databases) {
         if (!database.available) continue;
-        const fileName = this.hillshadeDatabaseFileName(database.path);
-        const isAustria = /austria|österreich|osterreich/i.test(fileName);
-        const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
-        const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
-        const enabled = preset === 'all' || (preset === 'austria' && isAustria)
-          || (preset === 'austria-plus' && isAustriaPlus) || (preset === 'europe' && isEurope);
+        const enabled = this.hillshadeDatabaseMatchesPreset(database, preset);
         if (database.enabled !== enabled) {
           databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(database.id, enabled);
           this.hillshadeDatabases.set(databases);
@@ -3112,6 +3125,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabases();
       this.hillshadeDatabases.set(databases);
+      this.updateHillshadePresetFromSelection(databases);
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
     } catch (error) {
       this.recordMapError('Add Hillshade databases', error instanceof Error ? error.message : String(error));
@@ -3122,6 +3136,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(id, enabled);
       this.hillshadeDatabases.set(databases);
+      this.updateHillshadePresetFromSelection(databases);
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
     } catch (error) {
       this.recordMapError('Update Hillshade database', error instanceof Error ? error.message : String(error));
@@ -3136,6 +3151,7 @@ export class MapWindow implements OnInit, OnDestroy {
         databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(database.id, enabled);
         this.hillshadeDatabases.set(databases);
       }
+      this.updateHillshadePresetFromSelection(databases);
       if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
     } catch (error) {
       this.recordMapError('Update Hillshade databases', error instanceof Error ? error.message : String(error));
