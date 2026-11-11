@@ -1674,7 +1674,7 @@ export class OfflineMapRenderer {
     }
   }
 
-  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number, size = 1, animationSpeed = 1): void {
+  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number, size = 1, animationSpeed = 1, figureType = 'walker', isMoving = false): void {
     if (!this.walkingFigureElement) {
       this.walkingFigureElement = document.createElement('div');
       this.walkingFigureElement.className = 'offline-walking-figure';
@@ -1682,12 +1682,13 @@ export class OfflineMapRenderer {
       this.overlayElement.appendChild(this.walkingFigureElement);
     }
     this.walkingFigureCoordinates = [longitude, latitude];
-    // Keep the SVG node alive so its limb animation is not restarted on every
-    // 50 ms playback update. Only the geographic position and heading change.
+    // Keep the current DOM node alive during playback so the gait animation
+    // remains continuous. Rebuild only when the selected symbol changes.
     const walker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
-    if (!walker) this.walkingFigureElement.innerHTML = html;
+    if (!walker || walker.dataset['figureType'] !== figureType) this.walkingFigureElement.innerHTML = html;
     const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
     if (activeWalker) {
+      activeWalker.classList.toggle('is-moving', isMoving);
       activeWalker.style.transform = `rotate(${bearing}deg) scale(${size})`;
       activeWalker.style.setProperty('--walker-animation-duration', `${0.72 / animationSpeed}s`);
     }
