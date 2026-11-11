@@ -1628,12 +1628,14 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const offline = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const saved = offline?.['updateSources'];
-      const defaults =     { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
-    { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
-    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
-    { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
-    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
-    { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true };
+      const defaults: Array<{ url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean }> = [
+        { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
+        { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
+        { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
+        { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
+        { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
+        { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true }
+      ];
       if (Array.isArray(saved) && saved.length > 0) {
         const valid = saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean } =>
           !!entry && typeof entry === 'object'
