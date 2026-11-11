@@ -351,6 +351,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
         console.error('[Hillshade][database-error]', {
           request: diagnosticId, tile, databaseId: database.id, database: database.path, error: message
         });
+        emitHillshadeStatus('error', message);
         throw error;
       }
 
