@@ -758,9 +758,10 @@ export class OfflineMapRenderer {
     const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
     const previous = this.tileStatuses.get(key);
     // MapLibre may retry a failed tile repeatedly. Keep the first real failure
-    // visible throughout subsequent loading/rerendering events; only a
-    // successful tile load is allowed to clear the failure overlay.
-    if (previous?.status === 'error' && detail.status !== 'loaded') return;
+    // visible throughout automatic loading/retry events. An explicit user-
+    // initiated rerender is different: clear the stale failure so its progress
+    // or a new error can be shown for this fresh render attempt.
+    if (previous?.status === 'error' && detail.status !== 'loaded' && detail.status !== 'rerendering') return;
     if (detail.status === 'loaded' || detail.status === 'cancelled') {
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
