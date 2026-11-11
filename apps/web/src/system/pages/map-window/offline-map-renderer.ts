@@ -156,7 +156,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (abortController.signal.aborted || /\\b(cancelled|canceled)\\b/i.test(message)) {
+        if (abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message)) {
           emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: message });
           return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
         }
