@@ -513,7 +513,7 @@ interface MapErrorEntry {
       </div>
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
-        <caption>Map tiles</caption>
+        
         <colgroup>
           <col class="render-stat-label-column">
           <col class="render-stat-value-column">
@@ -521,7 +521,7 @@ interface MapErrorEntry {
         </colgroup>
         <thead>
           <tr>
-            <th scope="col" class="render-counter-heading">Render Counter</th>
+            <th scope="col" class="render-counter-heading">Map tiles</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
@@ -545,10 +545,10 @@ interface MapErrorEntry {
         </tbody>
       </table>
       <table class="render-tile-statistics hillshade-render-statistics" aria-live="polite">
-        <caption>Hillshade</caption>
+        
         <thead>
           <tr>
-            <th scope="col" class="render-counter-heading">Render Counter</th>
+            <th scope="col" class="render-counter-heading">Hillshade</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
