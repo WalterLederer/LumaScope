@@ -663,6 +663,9 @@ export class OsmAndAtlasManager {
               const name = path.split(/[\\/]/).pop() ?? path;
               const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
               if (isWorldBasemap) return preset !== 'custom-no-world-map';
+              // The old nationwide Austria extract is no longer maintained.
+              // Austria preset must use the current regional extracts only.
+              if (preset === 'austria' && /^Austria_europe\.obf$/i.test(name)) return false;
               const isAustria = /austria|österreich|osterreich/i.test(name);
               const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
               return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
