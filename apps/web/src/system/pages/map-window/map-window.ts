@@ -3489,7 +3489,12 @@ export class MapWindow implements OnInit, OnDestroy {
         const parsed = this.parseGpxTrackData(content);
         const pointData = this.parseGpxTrackPointData(content);
         const trackPath = path || `memory:${file.name}:${file.lastModified}`;
-        added.push({ path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true, color: this.gpxColors[(current.length + added.length) % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid' });
+        added.push({
+          path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified,
+          active: true,
+          color: this.gpxColors[(current.length + added.length) % this.gpxColors.length]?.value ?? this.gpxColor(),
+          lineStyle: 'solid', lineWidth: 4, showDirection: false, directionStyle: 'classic'
+        });
         this.gpxSegmentsByTrack.set(trackPath, parsed);
         this.gpxPointDataByTrack.set(trackPath, pointData);
       } catch (error) {
@@ -3584,12 +3589,28 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  private serializeGpxTracks(tracks: GpxTrackFile[]): Array<Record<string, unknown>> {
+    return tracks.filter(track => !track.path.startsWith('memory:')).map(track => ({
+      path: track.path,
+      name: track.name,
+      sizeBytes: Number.isFinite(track.sizeBytes) ? track.sizeBytes : 0,
+      lastModified: Number.isFinite(track.lastModified) ? track.lastModified : 0,
+      active: track.active !== false,
+      color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(),
+      lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid',
+      lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth ?? 4 : 4,
+      showDirection: track.showDirection === true,
+      directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? track.directionStyle : 'classic'
+    }));
+  }
+
   private async persistGpxTracks(tracks: GpxTrackFile[]): Promise<void> {
     if (!this.desktop) return;
+    const serializedTracks = this.serializeGpxTracks(tracks);
     const operation = this.gpxSettingsWriteQueue.then(async () => {
       const settings = await this.desktop!.ProcessManager.getAppSettings();
       await this.desktop!.ProcessManager.setAppSettingsSection('gpx', {
-        tracks: tracks.filter(track => !track.path.startsWith('memory:'))
+        tracks: serializedTracks
       });
       // Remove former map-window GPX keys once they have been copied to the shared list.
       const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
@@ -3713,7 +3734,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeGpxTrackDirection = (path: string, value: string): void => {
     const styles = ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'];
     if (value !== 'off' && !styles.includes(value)) return;
-    this.updateGpxTrack(path, { showDirection: value !== 'off', directionStyle: value === 'off' ? undefined : value as GpxTrackFile['directionStyle'] });
+    const currentStyle = this.gpxTracks().find(track => track.path === path)?.directionStyle ?? 'classic';
+    this.updateGpxTrack(path, {
+      showDirection: value !== 'off',
+      directionStyle: value === 'off' ? currentStyle : value as GpxTrackFile['directionStyle']
+    });
     this.gpxTrackDirectionMenuOpen.set(null);
   };
   private gpxDirectionArrows(segment: [number, number][]): Array<{ position: [number, number]; bearing: number }> {
