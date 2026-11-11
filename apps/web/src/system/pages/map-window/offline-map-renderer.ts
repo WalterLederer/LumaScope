@@ -405,7 +405,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     return { data };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      emitHillshadeStatus(/\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error', message);
+      emitHillshadeStatus(/\b(cancelled|canceled|aborted)\b/i.test(message) ? 'cancelled' : 'error', message);
       throw error;
     }
   });
