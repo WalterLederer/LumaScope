@@ -7,6 +7,7 @@ import { ProcessManager } from '../process-manager/process-manager';
 import { OfflineMapManager } from '../offline-map/offline-map-manager';
 import { OsmAndManager } from '../osmand/osmand-manager';
 import { OsmAndAtlasManager } from '../osmand/osmand-atlas-manager';
+import { MapsforgeManager } from '../mapsforge/mapsforge-manager';
 import { ThumbManager } from '../thumb-manager/thumb-manager';
 
 /**
@@ -25,7 +26,8 @@ export class Injector {
     Histogram: new Histogram(),
     OfflineMapManager: new OfflineMapManager(),
     OsmAndManager: new OsmAndManager(),
-    OsmAndAtlasManager: new OsmAndAtlasManager()
+    OsmAndAtlasManager: new OsmAndAtlasManager(),
+    MapsforgeManager: new MapsforgeManager()
   } as const;
 
   private constructor() {
