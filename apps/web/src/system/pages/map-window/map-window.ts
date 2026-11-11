@@ -492,7 +492,7 @@ interface MapErrorEntry {
             @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
             @if (hillshadeActiveCount() > 0 || hillshadeDisplayPending()) {
               @if (renderActiveCount() > 0) { · }
-              @if (hillshadeActiveCount() > 0) { Hillshade: {{ hillshadeActiveCount() }} active }
+              @if (hillshadeActiveCount() > 0) { Hillshade: {{ hillshadeCompletedCount() }}/{{ hillshadeTotalCount() }} tiles · {{ hillshadeActiveCount() }} active }
               @else { Hillshade: Display }
               <progress class="hillshade-active-progress" [value]="hillshadeProgressValue()" [max]="hillshadeProgressMaximum()" aria-label="Hillshade rendering progress"></progress>
             }
@@ -1412,16 +1412,22 @@ export class MapWindow implements OnInit, OnDestroy {
     if (detail.status === 'loading') {
       this.renderDisplayPending.set(false);
       this.hillshadeDisplayPending.set(false);
+      this.completedHillshadeTiles.delete(key);
+      this.hillshadeCompletedCount.set(this.completedHillshadeTiles.size);
       this.activeHillshadeTiles.add(key);
       if (!this.seenHillshadeTiles.has(key)) {
         this.seenHillshadeTiles.add(key);
         this.hillshadeTotalCount.update(total => total + 1);
       }
     } else if (detail.status === 'loaded') {
+      this.completedHillshadeTiles.add(key);
+      this.hillshadeCompletedCount.set(this.completedHillshadeTiles.size);
       this.totalHillshadeTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
       this.lastHillshadeTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
       this.activeHillshadeTiles.delete(key);
     } else if (detail.status === 'error') {
+      this.completedHillshadeTiles.add(key);
+      this.hillshadeCompletedCount.set(this.completedHillshadeTiles.size);
       this.totalHillshadeTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.lastHillshadeTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.activeHillshadeTiles.delete(key);
@@ -2583,8 +2589,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
       this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
       this.hillshadeTotalCount.set(0);
+      this.hillshadeCompletedCount.set(0);
       this.activeHillshadeTiles.clear();
       this.seenHillshadeTiles.clear();
+      this.completedHillshadeTiles.clear();
       this.hillshadeActiveCount.set(0);
       this.hillshadeTotalCount.set(0);
       this.renderActiveCount.set(0);
@@ -2942,6 +2950,8 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.activeRenderTiles.clear();
     this.activeHillshadeTiles.clear();
+    this.completedHillshadeTiles.clear();
+    this.hillshadeCompletedCount.set(0);
     this.renderActiveCount.set(0);
     this.hillshadeActiveCount.set(0);
     this.renderDisplayPending.set(false);
