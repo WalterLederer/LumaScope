@@ -4277,6 +4277,7 @@ ${points}
             return canvas;
           }
           void (async () => {
+            let emitHillshadeStatus: ((status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string) => void) | null = null;
             try {
               const tileCount = 2 ** coords.z;
               const x = ((coords.x % tileCount) + tileCount) % tileCount;
@@ -4285,7 +4286,7 @@ ${points}
                 return;
               }
               const hillshadeKey = 'online/' + coords.z + '/' + x + '/' + coords.y;
-              const emitHillshadeStatus = (status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string): void => {
+              emitHillshadeStatus = (status, error): void => {
                 window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
                   detail: { key: hillshadeKey, status, error, zoom: coords.z, column: x, row: coords.y }
                 }));
@@ -4320,7 +4321,7 @@ ${points}
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              if (typeof emitHillshadeStatus === 'function') emitHillshadeStatus('error', message);
+              emitHillshadeStatus?.('error', message);
               this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
               done(error instanceof Error ? error : new Error(message), canvas);
             }
