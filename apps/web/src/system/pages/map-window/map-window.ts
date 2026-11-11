@@ -228,7 +228,7 @@ interface MapErrorEntry {
         </div>
         <div class="time-slider-control-row">
           <label class="time-slider-activate" title="Activate or deactivate time filtering"><input type="checkbox" aria-label="Activate Time Slider" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"></label>
-          <div class="time-slider-range" [class.disabled]="!timeSliderActive()" (pointerdown)="clearTimeSliderTextSelection()">
+          <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
           <div class="time-slider-range-track"></div>
           <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
           <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
@@ -248,20 +248,25 @@ interface MapErrorEntry {
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="1" max="10" step="1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
           </div>
         </details>
-        <div class="time-slider-boundary-box">
-          <div class="time-slider-boundary-column time-slider-min">
-            <div class="time-slider-boundary-value"><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</div>
-            <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</div>
+        <details class="time-slider-minmax-section marker-summary-section">
+          <summary>MinMax</summary>
+          <div class="time-slider-minmax-content">
+            <div class="time-slider-boundary-box">
+              <div class="time-slider-boundary-column time-slider-min">
+                <div class="time-slider-boundary-value"><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</div>
+                <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</div>
+              </div>
+              <div class="time-slider-boundary-column time-slider-duration-column">
+                <div class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderMinimum(), timeSliderMaximum()) }}</div>
+              </div>
+              <div class="time-slider-boundary-column time-slider-max">
+                <div class="time-slider-boundary-value"><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</div>
+                <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</div>
+              </div>
+            </div>
+            <span class="time-slider-help">{{ timeSliderHelpText() }}</span>
           </div>
-          <div class="time-slider-boundary-column time-slider-duration-column">
-            <div class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderMinimum(), timeSliderMaximum()) }}</div>
-          </div>
-          <div class="time-slider-boundary-column time-slider-max">
-            <div class="time-slider-boundary-value"><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</div>
-            <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</div>
-          </div>
-        </div>
-        <span class="time-slider-help">{{ timeSliderHelpText() }}</span>
+        </details>
       } @else {
         <span class="time-slider-help">Load GPX files or enable photo markers with timestamps to define the time range.</span>
       }
@@ -890,7 +895,7 @@ interface MapErrorEntry {
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
-    .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px;user-select:none;-webkit-user-select:none}
+    .time-slider-settings{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(100%,1100px);padding:6px 2px;user-select:text;-webkit-user-select:text}
     .time-slider-control-row{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:10px}
     .time-slider-activate{display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer}
     .time-slider-activate input{margin:0}
@@ -919,8 +924,10 @@ interface MapErrorEntry {
     .time-slider-range.disabled{opacity:.55}
     .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
     .time-slider-animate-button:disabled{opacity:.45;cursor:default}
-    .time-slider-animate-section{margin-top:7px}
-    .time-slider-animate-section>summary{color:#000}
+    .time-slider-animate-section,.time-slider-minmax-section{margin-top:7px}
+    .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
+    .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
+    .time-slider-range{user-select:none;-webkit-user-select:none}
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
@@ -3611,11 +3618,19 @@ export class MapWindow implements OnInit, OnDestroy {
         element.style.overflow = 'visible';
         element.style.pointerEvents = 'none';
         element.style.display = 'block';
+        element.style.visibility = 'visible';
+        element.style.opacity = '1';
+        element.style.zIndex = '10000';
         element.style.background = 'transparent';
         element.style.border = '0';
+        element.setAttribute('aria-hidden', 'true');
         element.innerHTML = html;
-        this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center', pitchAlignment: 'map', rotationAlignment: 'map' })
+        this.walkingMapLibreMarker = new MapLibreMarker({ element, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
           .setLngLat([longitude, latitude]).addTo(this.offlineRenderer.map);
+        const markerElement = this.walkingMapLibreMarker.getElement();
+        markerElement.style.zIndex = '10000';
+        markerElement.style.visibility = 'visible';
+        markerElement.style.opacity = '1';
       } else {
         this.walkingMapLibreMarker.setLngLat([longitude, latitude]);
         this.walkingMapLibreMarker.getElement().innerHTML = html;
