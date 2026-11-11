@@ -657,10 +657,21 @@ export class OsmAndAtlasManager {
         };
         if (Array.isArray(settings.filePaths)) {
           const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
-          const savedPaths = settings.filePaths.filter((entry): entry is { path: string; enabled: boolean } =>
-            !!entry && typeof entry === 'object'
-            && typeof (entry as { path?: unknown }).path === 'string'
-            && typeof (entry as { enabled?: unknown }).enabled === 'boolean');
+          const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.filePaths)
+            ? settings.filePaths.flatMap(entry => {
+              if (typeof entry === 'string') return [{ path: entry, enabled: true }];
+              if (entry && typeof entry === 'object'
+                && typeof (entry as { path?: unknown }).path === 'string'
+                && typeof (entry as { enabled?: unknown }).enabled === 'boolean') {
+                return [{ path: (entry as { path: string }).path, enabled: (entry as { enabled: boolean }).enabled }];
+              }
+              return [];
+            })
+            : settings.filePaths && typeof settings.filePaths === 'object'
+              ? Object.entries(settings.filePaths as Record<string, unknown>)
+                .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
+                .map(([path, enabled]) => ({ path, enabled }))
+              : [];
           selectedPaths = savedPaths
             .filter(entry => entry.enabled && /\.obf$/i.test(entry.path))
             .map(entry => entry.path)
