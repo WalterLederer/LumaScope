@@ -1116,7 +1116,11 @@ export class ImageView {
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
     const imageView = gpx['imageView'] && typeof gpx['imageView'] === 'object'
-      ? gpx['imageView'] as Record<string, unknown> : {};
+      ? { ...(gpx['imageView'] as Record<string, unknown>) } : {};
+    // Move legacy image-view GPX preferences from the former preferences section.
+    if (imageView['opacity'] === undefined && preferences['gpxTrackOpacity'] !== undefined) imageView['opacity'] = preferences['gpxTrackOpacity'];
+    if (imageView['color'] === undefined && preferences['gpxTrackColor'] !== undefined) imageView['color'] = preferences['gpxTrackColor'];
+    if (imageView['visible'] === undefined && preferences['gpxTrackVisible'] !== undefined) imageView['visible'] = preferences['gpxTrackVisible'] === true || preferences['gpxTrackVisible'] === 'true';
     let tracks = Array.isArray(gpx['tracks'])
       ? gpx['tracks'].filter((track): track is Record<string, unknown> =>
           !!track && typeof track === 'object' && typeof (track as Record<string, unknown>)['path'] === 'string' && typeof (track as Record<string, unknown>)['name'] === 'string')
@@ -1135,7 +1139,11 @@ export class ImageView {
     if (tracks.length && (!Array.isArray(gpx['tracks']) || legacyPath)) {
       await this.processManager.setAppSettingsSection('gpx', { tracks });
     }
-    if (legacyPath || legacyName) {
+    if (Object.keys(imageView).length && JSON.stringify(imageView) !== JSON.stringify(gpx['imageView'] ?? {})) {
+      await this.processManager.setAppSettingsSection('gpx', { imageView });
+    }
+    if (legacyPath || legacyName || preferences['gpxTrackOpacity'] !== undefined
+        || preferences['gpxTrackColor'] !== undefined || preferences['gpxTrackVisible'] !== undefined) {
       await this.processManager.setAppSettingsSection('preferences', {
         gpxTrackPath: undefined, gpxTrackFileName: undefined,
         gpxTrackOpacity: undefined, gpxTrackColor: undefined, gpxTrackVisible: undefined
