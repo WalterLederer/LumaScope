@@ -5,7 +5,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
@@ -245,7 +245,7 @@ interface MapErrorEntry {
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show walking figure</span></label>
-            <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="1" max="10" step="1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
+            <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
           </div>
         </details>
         <details class="time-slider-minmax-section marker-summary-section">
@@ -931,7 +931,7 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b)}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .38s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.38s}.lumascope-walker .walker-leg{animation-duration:.38s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
+    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .72s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.72s}.lumascope-walker .walker-leg{animation-duration:.72s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -1419,8 +1419,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderEnd = signal(0);
   protected readonly timeSliderAnimating = signal(false);
   protected readonly timeSliderWalkerVisible = signal(this.readSetting('timeSliderWalkerVisible', 'false') === 'true');
-  protected readonly timeSliderAnimationSpeed = signal(Math.max(1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
+  protected readonly timeSliderAnimationSpeed = signal(Math.max(0.1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
+  private lastWalkingBearing = 0;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
@@ -3521,7 +3522,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly changeTimeSliderAnimationSpeed = (value: string | number): void => {
-    const speed = Math.max(1, Math.min(10, Math.round(Number(value))));
+    const speed = Math.max(0.1, Math.min(10, Math.round(Number(value) * 10) / 10));
     if (!Number.isFinite(speed)) return;
     this.timeSliderAnimationSpeed.set(speed);
     this.saveSetting('timeSliderAnimationSpeed', speed);
@@ -3561,26 +3562,40 @@ export class MapWindow implements OnInit, OnDestroy {
     );
     const currentTime = this.timeSliderEnd();
     let latitude: number, longitude: number, bearing = 0;
-    let selectedSegment = timedSegments.find(segment =>
+    const selectedSegment = timedSegments.find(segment =>
       currentTime >= segment[0].time && currentTime <= segment[segment.length - 1].time
     );
 
     if (selectedSegment) {
-      const nextIndex = selectedSegment.findIndex(item => item.time >= currentTime);
-      if (nextIndex <= 0) {
-        latitude = selectedSegment[0].point.latitude;
-        longitude = selectedSegment[0].point.longitude;
-      } else {
+      const coordinateAt = (time: number): [number, number] => {
+        const nextIndex = selectedSegment.findIndex(item => item.time >= time);
+        if (nextIndex <= 0) return [selectedSegment[0].point.latitude, selectedSegment[0].point.longitude];
+        if (nextIndex < 0) {
+          const last = selectedSegment[selectedSegment.length - 1].point;
+          return [last.latitude, last.longitude];
+        }
         const a = selectedSegment[nextIndex - 1], b = selectedSegment[nextIndex];
-        const fraction = Math.max(0, Math.min(1, (currentTime - a.time) / Math.max(0.001, b.time - a.time)));
-        latitude = a.point.latitude + (b.point.latitude - a.point.latitude) * fraction;
-        longitude = a.point.longitude + (b.point.longitude - a.point.longitude) * fraction;
-        const dLon = (b.point.longitude - a.point.longitude) * Math.PI / 180;
-        const y = Math.sin(dLon) * Math.cos(b.point.latitude * Math.PI / 180);
-        const x = Math.cos(a.point.latitude * Math.PI / 180) * Math.sin(b.point.latitude * Math.PI / 180)
-          - Math.sin(a.point.latitude * Math.PI / 180) * Math.cos(b.point.latitude * Math.PI / 180) * Math.cos(dLon);
-        bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-      }
+        const fraction = Math.max(0, Math.min(1, (time - a.time) / Math.max(0.001, b.time - a.time)));
+        return [
+          a.point.latitude + (b.point.latitude - a.point.latitude) * fraction,
+          a.point.longitude + (b.point.longitude - a.point.longitude) * fraction
+        ];
+      };
+      [latitude, longitude] = coordinateAt(currentTime);
+
+      // Derive heading from a several-second window rather than a single pair
+      // of raw GPS fixes. This suppresses GPS jitter and avoids rapid rotations
+      // when consecutive GPX points contain tiny position fluctuations.
+      const headingWindowSeconds = 4;
+      const before = coordinateAt(Math.max(selectedSegment[0].time, currentTime - headingWindowSeconds / 2));
+      const after = coordinateAt(Math.min(selectedSegment[selectedSegment.length - 1].time, currentTime + headingWindowSeconds / 2));
+      const meanLatitude = (before[0] + after[0]) * Math.PI / 360;
+      const north = (after[0] - before[0]) * Math.PI / 180;
+      const east = (after[1] - before[1]) * Math.PI / 180 * Math.cos(meanLatitude);
+      const distance = Math.hypot(north, east) * 6371000;
+      if (distance >= 1.5) bearing = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
+      else bearing = this.lastWalkingBearing;
+      this.lastWalkingBearing = bearing;
     } else if (timedSegments.length) {
       // Outside a recorded segment, stay on the nearest actual GPX point.
       const nearest = timedSegments.flat().reduce((best, item) =>
@@ -3601,10 +3616,14 @@ export class MapWindow implements OnInit, OnDestroy {
       latitude = points[index].latitude;
       longitude = points[index].longitude;
       const next = points[Math.min(points.length - 1, index + 1)];
-      bearing = (Math.atan2(next.longitude - longitude, next.latitude - latitude) * 180 / Math.PI + 360) % 360;
+      const north = (next.latitude - latitude) * Math.PI / 180;
+      const east = (next.longitude - longitude) * Math.PI / 180 * Math.cos(latitude * Math.PI / 180);
+      if (Math.hypot(north, east) * 6371000 >= 1.5) bearing = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
+      else bearing = this.lastWalkingBearing;
+      this.lastWalkingBearing = bearing;
     }
 
-    const html = `<div class="lumascope-walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b)"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
+    const html = `<div class="lumascope-walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
@@ -3613,9 +3632,14 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     if (!this.leaflet || !this.map) return;
-    const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [26, 32], iconAnchor: [13, 16] });
-    if (!this.walkingMarker) this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
-    else this.walkingMarker.setLatLng([latitude, longitude]).setIcon(icon);
+    if (!this.walkingMarker) {
+      const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [26, 32], iconAnchor: [13, 16] });
+      this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
+    } else {
+      this.walkingMarker.setLatLng([latitude, longitude]);
+    }
+    const walkerElement = this.walkingMarker.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
+    if (walkerElement) walkerElement.style.transform = `rotate(${bearing}deg)`;
   }
 
   private setTimeSliderEnd(next: number): void {
