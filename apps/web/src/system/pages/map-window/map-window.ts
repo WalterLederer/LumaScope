@@ -507,6 +507,7 @@ interface MapErrorEntry {
       </div>
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
+        <caption>Map tiles</caption>
         <colgroup>
           <col class="render-stat-label-column">
           <col class="render-stat-value-column">
@@ -534,6 +535,33 @@ interface MapErrorEntry {
             <th scope="row">Errors</th>
             <td>{{ totalRenderTileCounts().failed.toLocaleString(locale) }}</td>
             <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="render-tile-statistics hillshade-render-statistics" aria-live="polite">
+        <caption>Hillshade</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="render-counter-heading">Render Counter</th>
+            <th scope="col">Total</th>
+            <th scope="col">Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Rendered</th>
+            <td>{{ totalHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ lastHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Errors</th>
+            <td>{{ totalHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ lastHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">In progress</th>
+            <td>{{ hillshadeActiveCount().toLocaleString(locale) }}</td>
+            <td>{{ hillshadeTotalCount().toLocaleString(locale) }}</td>
           </tr>
         </tbody>
       </table>
@@ -1247,6 +1275,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly currentTileRequestResults = new Map<string, 'pending' | 'cached'>();
   protected readonly totalRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
+  protected readonly hillshadeActiveCount = signal(0);
+  protected readonly hillshadeTotalCount = signal(0);
+  protected readonly totalHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
+  protected readonly lastHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
+  private readonly activeHillshadeTiles = new Set<string>();
+  private readonly seenHillshadeTiles = new Set<string>();
   private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
@@ -1334,6 +1368,31 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!expectedProtocol || detail.protocol !== expectedProtocol || !this.renderInitStatus()) return;
     if (detail.status === 'loading') this.renderInitStatus.set('Loading first tile …');
     else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error' || detail.status === 'cache-loading') this.renderInitStatus.set('');
+  };
+  private readonly onHillshadeTileStatus = (event: Event): void => {
+    const detail = (event as CustomEvent<{ key?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
+    if (!detail || !detail.key) return;
+    const key = detail.key;
+    if (detail.status === 'loading') {
+      this.activeHillshadeTiles.add(key);
+      if (!this.seenHillshadeTiles.has(key)) {
+        this.seenHillshadeTiles.add(key);
+        this.hillshadeTotalCount.update(total => total + 1);
+      }
+    } else if (detail.status === 'loaded') {
+      this.totalHillshadeTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
+      this.lastHillshadeTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
+      this.activeHillshadeTiles.delete(key);
+    } else if (detail.status === 'error') {
+      this.totalHillshadeTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
+      this.lastHillshadeTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
+      this.activeHillshadeTiles.delete(key);
+      this.recordMapError('Hillshade tile', (detail.error || 'Hillshade tile rendering failed')
+        + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']');
+    } else if (detail.status === 'cancelled') {
+      this.activeHillshadeTiles.delete(key);
+    }
+    this.hillshadeActiveCount.set(this.activeHillshadeTiles.size);
   };
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
@@ -1598,6 +1657,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.addEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     if (this.desktop) {
       registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
       void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
@@ -1793,6 +1853,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.walkingMarker?.remove(); this.walkingMarker = null;
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
@@ -2463,6 +2524,11 @@ export class MapWindow implements OnInit, OnDestroy {
       this.seenRenderTiles.clear();
       this.currentTileRequestResults.clear();
       this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
+      this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
+      this.activeHillshadeTiles.clear();
+      this.seenHillshadeTiles.clear();
+      this.hillshadeActiveCount.set(0);
+      this.hillshadeTotalCount.set(0);
       this.renderActiveCount.set(0);
       this.renderTotalCount.set(0);
       void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
