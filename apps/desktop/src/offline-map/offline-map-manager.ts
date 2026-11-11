@@ -123,7 +123,7 @@ export class OfflineMapManager {
  readonly setEnabledBatch=async(
   _event:IpcMainInvokeEvent,
   updates:Array<{id:string;enabled:boolean}>,
-  preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'
+  preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'
  ):Promise<OfflineMapStatus[]>=>{
   if(!Array.isArray(updates))throw new Error('Map updates must be an array.');
   for(const update of updates){
@@ -224,7 +224,7 @@ export class OfflineMapManager {
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps(preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'):Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps(preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'):Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
   const absolutePath=resolve(filePath);
   if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
