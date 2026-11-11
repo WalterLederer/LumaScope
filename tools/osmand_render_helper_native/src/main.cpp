@@ -47,7 +47,10 @@ namespace
 constexpr int kReferenceTileSize = 256;
 constexpr double kDefaultMinZoom = 2.0;
 constexpr double kDefaultMaxZoom = 19.0;
-constexpr int kConcurrentObfReadLimit = 0;
+// OsmAndCore only provides explicit shared read throttles for limits 1 and 2.
+ // Zero disables the throttle; with hundreds of regional OBF files that can
+ // start too many simultaneous reads and prevent Atlas from reaching an idle frame.
+constexpr int kConcurrentObfReadLimit = 2;
 
 QJsonObject makeErrorResponse(const QString& message)
 {
