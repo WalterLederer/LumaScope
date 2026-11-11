@@ -246,6 +246,8 @@ interface MapErrorEntry {
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show walking figure</span></label>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
+            <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
+            <label class="time-slider-speed-control"><span>Figure size</span><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"><strong>{{ walkingFigureSize().toFixed(1) }}×</strong></label>
           </div>
         </details>
         <details class="time-slider-minmax-section marker-summary-section">
@@ -931,7 +933,7 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step .72s ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:.72s}.lumascope-walker .walker-leg{animation-duration:.72s}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+    .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step calc(.72s / var(--walker-animation-speed,1)) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:calc(.72s / var(--walker-animation-speed,1))}.lumascope-walker .walker-leg{animation-duration:calc(.72s / var(--walker-animation-speed,1))}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
@@ -1420,6 +1422,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderAnimating = signal(false);
   protected readonly timeSliderWalkerVisible = signal(this.readSetting('timeSliderWalkerVisible', 'false') === 'true');
   protected readonly timeSliderAnimationSpeed = signal(Math.max(0.1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
+  protected readonly walkingFigureSize = signal(Math.max(0.5, Math.min(3, Number(this.readSetting('walkingFigureSize', '1')) || 1)));
+  protected readonly walkingFigureAnimationSpeed = signal(Math.max(0.2, Math.min(3, Number(this.readSetting('walkingFigureAnimationSpeed', '1')) || 1)));
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   private lastWalkingBearing = 0;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
@@ -3542,6 +3546,22 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
 
+  protected readonly changeWalkingFigureSize = (value: string | number): void => {
+    const size = Math.max(0.5, Math.min(3, Math.round(Number(value) * 10) / 10));
+    if (!Number.isFinite(size)) return;
+    this.walkingFigureSize.set(size);
+    this.saveSetting('walkingFigureSize', size);
+    this.updateWalkingMarker();
+  };
+
+  protected readonly changeWalkingFigureAnimationSpeed = (value: string | number): void => {
+    const speed = Math.max(0.2, Math.min(3, Math.round(Number(value) * 10) / 10));
+    if (!Number.isFinite(speed)) return;
+    this.walkingFigureAnimationSpeed.set(speed);
+    this.saveSetting('walkingFigureAnimationSpeed', speed);
+    this.updateWalkingMarker();
+  };
+
   private updateWalkingMarker(): void {
     if (!this.timeSliderWalkerVisible() || (!this.leaflet || !this.map) && !this.offlineRenderer || !this.timeSliderActive()) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
@@ -3627,7 +3647,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing);
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing, this.walkingFigureSize(), this.walkingFigureAnimationSpeed());
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
@@ -3639,7 +3659,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.walkingMarker.setLatLng([latitude, longitude]);
     }
     const walkerElement = this.walkingMarker.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
-    if (walkerElement) walkerElement.style.transform = `rotate(${bearing}deg)`;
+    if (walkerElement) {
+      walkerElement.style.transform = `rotate(${bearing}deg) scale(${this.walkingFigureSize()})`;
+      walkerElement.style.setProperty('--walker-animation-speed', String(this.walkingFigureAnimationSpeed()));
+    }
   }
 
   private setTimeSliderEnd(next: number): void {
