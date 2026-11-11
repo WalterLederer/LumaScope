@@ -1671,9 +1671,20 @@ export class MapWindow implements OnInit, OnDestroy {
         void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { updateSources: defaults }).catch(error => console.error('Could not save default download sources:', error));
       }
     }).catch(error => console.error('Could not load download source settings:', error));
-    void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: this.offlineMapPreset() }).catch(error => console.error('Could not persist OBF preset:', error));
-    void this.desktop?.OfflineMap.getMaps().then(maps => {
+    void this.desktop?.OfflineMap.getMaps().then(async maps => {
       this.offlineMaps.set(maps);
+      // The stored preset describes the last applied preset, not necessarily the
+      // current OBF selection. Manual changes from older versions are normalized
+      // to Custom during startup so the selector never claims a false preset.
+      const storedPreset = this.offlineMapPreset();
+      const hasObfPresetMismatch = storedPreset !== 'custom'
+        && maps.some(map => map.type === 'obf')
+        && maps.some(map => map.type === 'obf' && map.enabled !== this.obfMapMatchesPreset(map, storedPreset));
+      if (hasObfPresetMismatch) {
+        this.offlineMapPreset.set('custom');
+        this.saveSetting('offlineMapPreset', 'custom');
+        await this.desktop?.OfflineMap.setEnabledBatch([], 'custom');
+      }
       // An offline source without any compatible loaded MBTiles cannot be used.
       // Restore the online source instead of leaving the selector on an empty map.
       if (!maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') this.changeMapSource('online');
@@ -2854,7 +2865,16 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
-    this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(id, enabled));
+    const map = this.offlineMaps().find(item => item.id === id);
+    const obfSelectionChanged = map?.type === 'obf' && map.enabled !== enabled;
+    this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(
+      [{ id, enabled }],
+      obfSelectionChanged ? 'custom' : undefined
+    ));
+    if (obfSelectionChanged) {
+      this.offlineMapPreset.set('custom');
+      this.saveSetting('offlineMapPreset', 'custom');
+    }
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
@@ -2868,10 +2888,16 @@ export class MapWindow implements OnInit, OnDestroy {
     const visibleMaps = this.filteredOfflineMaps();
     if (visibleMaps.length === 0) return;
     try {
+      const obfSelectionChanged = visibleMaps.some(map => map.type === 'obf' && map.enabled !== enabled);
       const updated = await this.desktop.OfflineMap.setEnabledBatch(
-        visibleMaps.map(map => ({ id: map.id, enabled }))
+        visibleMaps.map(map => ({ id: map.id, enabled })),
+        obfSelectionChanged ? 'custom' : undefined
       );
       this.offlineMaps.set(updated);
+      if (obfSelectionChanged) {
+        this.offlineMapPreset.set('custom');
+        this.saveSetting('offlineMapPreset', 'custom');
+      }
       this.refreshOfflineMapRendering();
     } catch (error) {
       console.error('[OfflineMap] Could not update Active state for visible maps:', error);
