@@ -1304,6 +1304,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentTileRequestResults.delete(key);
       this.activeRenderTiles.delete(key);
     } else if (detail.status === 'error') {
+      this.recordMapError(
+        detail.protocol === 'osmand-atlas' ? 'OsmAnd Atlas tile' : 'OsmAnd tile',
+        (detail.error || 'Tile rendering failed') + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']'
+      );
       this.totalRenderTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.lastRenderTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.currentTileRequestResults.delete(key);
