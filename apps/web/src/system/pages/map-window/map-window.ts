@@ -475,22 +475,23 @@ interface MapErrorEntry {
   <details class="view-rerender-section"
     [open]="renderSectionOpen()"
     (toggle)="onLocationDetailsToggle($event)"
-    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy()"
-    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
-    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
+    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()"
+    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
+    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
       <span>Render</span>
-      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()">
-        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()">
+        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()) {
           <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
         }
-        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
+        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()) {
           <span>Rendering inactive</span>
         } @else {
           <span>
             @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
             @if (hillshadeActiveCount() > 0) { @if (renderActiveCount() > 0) { · } Hillshade: {{ hillshadeActiveCount() }} active }
-            @if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
+            @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0) { Display }
+            @else if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
           </span>
         }
       </span>
@@ -1274,13 +1275,15 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
+  protected readonly renderDisplayPending = signal(false);
   protected readonly renderTotalCount = signal(0);
   protected readonly renderProgressValue = computed(() => this.rerenderVisibleTilesBusy()
     ? this.rerenderVisibleTilesProgress().completed
-    : Math.max(0, this.renderTotalCount() - this.renderActiveCount()));
+    : Math.max(0, this.renderTotalCount() + this.hillshadeTotalCount()
+      - this.renderActiveCount() - this.hillshadeActiveCount()));
   protected readonly renderProgressMaximum = computed(() => this.rerenderVisibleTilesBusy()
-    ? Math.max(1, this.rerenderVisibleTilesProgress().total)
-    : Math.max(1, this.renderTotalCount()));
+    ? Math.max(1, this.rerenderVisibleTilesProgress().total + 1)
+    : Math.max(1, this.renderTotalCount() + this.hillshadeTotalCount() + 1));
   protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
@@ -1345,6 +1348,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas')) return;
     const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loading' || detail.status === 'rerendering') {
+      this.renderDisplayPending.set(false);
       this.activeRenderTiles.add(key);
       this.currentTileRequestResults.set(key, 'pending');
       if (!this.seenRenderTiles.has(key)) {
@@ -1378,6 +1382,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.activeRenderTiles.delete(key);
     }
     this.renderActiveCount.set(this.activeRenderTiles.size);
+    if (this.activeRenderTiles.size === 0 && ['loaded', 'error', 'cancelled', 'warning'].includes(detail.status ?? '')) {
+      this.renderDisplayPending.set(true);
+    }
     if (!expectedProtocol || detail.protocol !== expectedProtocol || !this.renderInitStatus()) return;
     if (detail.status === 'loading') this.renderInitStatus.set('Loading first tile …');
     else if (detail.status === 'loaded' || detail.status === 'warning' || detail.status === 'error' || detail.status === 'cache-loading') this.renderInitStatus.set('');
@@ -1387,6 +1394,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!detail || !detail.key) return;
     const key = detail.key;
     if (detail.status === 'loading') {
+      this.renderDisplayPending.set(false);
       this.activeHillshadeTiles.add(key);
       if (!this.seenHillshadeTiles.has(key)) {
         this.seenHillshadeTiles.add(key);
@@ -1406,6 +1414,14 @@ export class MapWindow implements OnInit, OnDestroy {
       this.activeHillshadeTiles.delete(key);
     }
     this.hillshadeActiveCount.set(this.activeHillshadeTiles.size);
+    if (this.activeHillshadeTiles.size === 0 && ['loaded', 'error', 'cancelled'].includes(detail.status ?? '')) {
+      this.renderDisplayPending.set(true);
+    }
+  };
+  private readonly onMapDisplayReady = (): void => {
+    if (this.renderActiveCount() === 0 && this.hillshadeActiveCount() === 0 && !this.rerenderVisibleTilesBusy()) {
+      this.renderDisplayPending.set(false);
+    }
   };
   protected readonly colorMenuOpen = signal(false);
   protected readonly mapSourceMenuOpen = signal(false);
@@ -1670,6 +1686,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.addEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.addEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     if (this.desktop) {
       registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
@@ -1866,6 +1883,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.walkingMarker?.remove(); this.walkingMarker = null;
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
