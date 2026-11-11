@@ -117,20 +117,33 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
-  const item=this.opened.get(id); const obf=this.obfFiles.get(id); const mapsforge=this.mapsforgeFiles.get(id);
-  if(mapsforge&&typeof enabled==='boolean'){mapsforge.enabled=enabled;this.enabledByPath.set(id,enabled);await this.persistMaps();}
-  if(obf&&typeof enabled==='boolean'){
-   // OBF regions are independent and may be active together.
-   obf.enabled=enabled;this.enabledByPath.set(id,enabled);await this.persistMaps();
-  }
-  if(item&&typeof enabled==='boolean'){
-   item.status.enabled=enabled;
-   this.enabledByPath.set(id,enabled);
-   if(!enabled&&this.activeId===id)this.activeId=null;
-   await this.persistMaps();
-  }
-  return this.getMaps();
+  return this.setEnabledBatchInternal([{id,enabled}]);
  };
+ @IpcHandler({name:'OfflineMap.setEnabledBatch'})
+ readonly setEnabledBatch=async(
+  _event:IpcMainInvokeEvent,
+  updates:Array<{id:string;enabled:boolean}>,
+  preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'
+ ):Promise<OfflineMapStatus[]>=>{
+  if(!Array.isArray(updates))throw new Error('Map updates must be an array.');
+  for(const update of updates){
+   if(!update||typeof update.id!=='string'||typeof update.enabled!=='boolean')throw new Error('Each map update must contain an ID and boolean enabled state.');
+  }
+  return this.setEnabledBatchInternal(updates,preset);
+ };
+ private async setEnabledBatchInternal(
+  updates:Array<{id:string;enabled:boolean}>,
+  preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'
+ ):Promise<OfflineMapStatus[]>{
+  for(const {id,enabled} of updates){
+   const item=this.opened.get(id);const obf=this.obfFiles.get(id);const mapsforge=this.mapsforgeFiles.get(id);
+   if(mapsforge){mapsforge.enabled=enabled;this.enabledByPath.set(id,enabled);}
+   if(obf){obf.enabled=enabled;this.enabledByPath.set(id,enabled);}
+   if(item){item.status.enabled=enabled;this.enabledByPath.set(id,enabled);if(!enabled&&this.activeId===id)this.activeId=null;}
+  }
+  await this.persistMaps(preset);
+  return this.getMaps();
+ }
  @IpcHandler({name:'OfflineMap.setAllEnabled'})
  readonly setAllEnabled=async(_event:IpcMainInvokeEvent,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   if(typeof enabled!=='boolean')throw new Error('The Active state must be a boolean.');
@@ -211,7 +224,7 @@ export class OfflineMapManager {
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps(preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'):Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
   const absolutePath=resolve(filePath);
   if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
