@@ -3572,9 +3572,16 @@ export class MapWindow implements OnInit, OnDestroy {
       ? settings['gpx'] as Record<string, unknown> : {};
     const mapView = gpx['mapWindow'] && typeof gpx['mapWindow'] === 'object'
       ? gpx['mapWindow'] as Record<string, unknown> : {};
+    const legacyMapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
+      ? settings['mapWindow'] as Record<string, unknown> : {};
     await this.desktop.ProcessManager.setAppSettingsSection('gpx', {
       mapWindow: { ...mapView, ...patch }
     });
+    if (legacyMapWindow['gpxColor'] !== undefined || legacyMapWindow['gpxOpacity'] !== undefined || legacyMapWindow['gpxVisible'] !== undefined) {
+      await this.desktop.ProcessManager.setAppSettingsSection('mapWindow', {
+        gpxColor: undefined, gpxOpacity: undefined, gpxVisible: undefined
+      });
+    }
   }
 
   private async persistGpxTracks(tracks: GpxTrackFile[]): Promise<void> {
