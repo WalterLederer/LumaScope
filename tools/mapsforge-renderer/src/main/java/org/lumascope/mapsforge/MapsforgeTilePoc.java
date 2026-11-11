@@ -10,7 +10,7 @@ import org.mapsforge.map.model.DisplayModel;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.rendertheme.XmlRenderTheme;
 import org.mapsforge.map.rendertheme.ExternalRenderTheme;
-import org.mapsforge.map.rendertheme.MapsforgeThemes;
+import org.mapsforge.map.rendertheme.internal.MapsforgeThemes;
 import org.mapsforge.map.rendertheme.rule.RenderThemeFuture;
 
 import java.io.File;
