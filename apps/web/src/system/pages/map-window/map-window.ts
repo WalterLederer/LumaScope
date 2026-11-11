@@ -490,9 +490,10 @@ interface MapErrorEntry {
         } @else {
           <span>
             @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
-            @if (hillshadeActiveCount() > 0) {
+            @if (hillshadeActiveCount() > 0 || hillshadeDisplayPending()) {
               @if (renderActiveCount() > 0) { · }
-              Hillshade: {{ hillshadeActiveCount() }} active
+              @if (hillshadeActiveCount() > 0) { Hillshade: {{ hillshadeActiveCount() }} active }
+              @else { Hillshade: Display }
               <progress class="hillshade-active-progress" [value]="hillshadeProgressValue()" [max]="hillshadeProgressMaximum()" aria-label="Hillshade rendering progress"></progress>
             }
             @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0) { Display }
@@ -1306,6 +1307,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly totalRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly hillshadeActiveCount = signal(0);
+  protected readonly hillshadeDisplayPending = signal(false);
   protected readonly hillshadeTotalCount = signal(0);
   protected readonly totalHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
   protected readonly lastHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
@@ -1409,6 +1411,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const key = detail.key;
     if (detail.status === 'loading') {
       this.renderDisplayPending.set(false);
+      this.hillshadeDisplayPending.set(false);
       this.activeHillshadeTiles.add(key);
       if (!this.seenHillshadeTiles.has(key)) {
         this.seenHillshadeTiles.add(key);
@@ -1429,12 +1432,14 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.hillshadeActiveCount.set(this.activeHillshadeTiles.size);
     if (this.activeHillshadeTiles.size === 0 && ['loaded', 'error', 'cancelled'].includes(detail.status ?? '')) {
+      this.hillshadeDisplayPending.set(true);
       this.renderDisplayPending.set(true);
     }
   };
   private readonly onMapDisplayReady = (): void => {
     if (this.renderActiveCount() === 0 && this.hillshadeActiveCount() === 0 && !this.rerenderVisibleTilesBusy()) {
       this.renderDisplayPending.set(false);
+      this.hillshadeDisplayPending.set(false);
     }
   };
   protected readonly colorMenuOpen = signal(false);
@@ -2767,7 +2772,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly changeMapSource = (value: string): void => {
     if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas') return;
-    // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
+    // MBTiles selection is validated against enabled maps and geographic bounds during initialization.
     const nextSource = value;
     const previousSource = this.mapSource();
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
