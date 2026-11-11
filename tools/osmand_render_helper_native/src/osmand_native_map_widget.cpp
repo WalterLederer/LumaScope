@@ -1,0 +1,1393 @@
+#include "osmand_native_map_widget.h"
+
+#include "file_system_core_resources_provider.h"
+#include "osmand_core_runtime.h"
+
+#include <algorithm>
+#include <cstdlib>
+#include <cstdint>
+#include <cmath>
+#include <memory>
+#include <iostream>
+
+#include <QDir>
+#include <QCryptographicHash>
+#include <QFile>
+#include <QFileInfo>
+#include <QXmlStreamReader>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLocale>
+#include <QMetaObject>
+#include <QMouseEvent>
+#include <QOpenGLContext>
+#include <QImage>
+#include <QOpenGLFunctions>
+#include <QPointer>
+#include <QStandardPaths>
+#include <QStringList>
+#include <QStringList>
+#include <QSurfaceFormat>
+#include <QThread>
+#include <QtGlobal>
+#include <QWheelEvent>
+
+#include <SkBitmap.h>
+#include <SkData.h>
+#include <SkEncodedImageFormat.h>
+
+#include <OsmAndCore.h>
+#include <OsmAndCore/CachingTypefaceFinder.h>
+#include <OsmAndCore/EmbeddedTypefaceFinder.h>
+#include <OsmAndCore/Logging.h>
+#include <OsmAndCore/ObfsCollection.h>
+#include <OsmAndCore/SimpleQueryController.h>
+#include <OsmAndCore/TextRasterizer.h>
+#include <OsmAndCore/Utilities.h>
+#include <OsmAndCore/Data/MapObject.h>
+#include <OsmAndCore/Map/AtlasMapRendererConfiguration.h>
+#include <OsmAndCore/Map/IMapRenderer.h>
+#include <OsmAndCore/Map/MapObjectsSymbolsProvider.h>
+#include <OsmAndCore/Map/MapPresentationEnvironment.h>
+#include <OsmAndCore/Map/MapPrimitivesProvider.h>
+#include <OsmAndCore/Map/MapPrimitiviser.h>
+#include <OsmAndCore/Map/MapRasterLayerProvider_Software.h>
+#include <OsmAndCore/Map/SymbolRasterizer.h>
+#include <OsmAndCore/Map/MapStylesCollection.h>
+#include <OsmAndCore/Map/ObfMapObjectsProvider.h>
+
+namespace
+{
+constexpr int kReferenceTileSize = 256;
+constexpr double kMercatorLatBound = 85.05112878;
+constexpr double kDefaultMinZoom = 2.0;
+constexpr double kDefaultMaxZoom = 19.0;
+constexpr double kDefaultZoom = 2.0;
+constexpr float kDefaultFieldOfView = 16.5f;
+constexpr float kDefaultElevationAngle = 90.0f;
+constexpr float kStableDetailedDistance = 0.5f;
+constexpr float kInteractiveDetailedDistance = 0.0f;
+constexpr float kStableSymbolsOpacity = 1.0f;
+constexpr float kInteractiveSymbolsOpacity = 0.0f;
+constexpr int kInteractionSettleDelayMs = 140;
+constexpr double kPi = 3.14159265358979323846;
+constexpr int kConcurrentObfReadLimit = 0;
+
+constexpr GLenum kGlColorBufferBit = 0x00004000;
+constexpr GLenum kGlDepthBufferBit = 0x00000100;
+constexpr GLenum kGlScissorTest = 0x0C11;
+
+inline double clampLatitude(double latitude)
+{
+    return std::clamp(latitude, -kMercatorLatBound, kMercatorLatBound);
+}
+
+QString openGlShadersCachePath()
+{
+    const auto baseCachePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    if (baseCachePath.isEmpty())
+        return QString();
+
+    QByteArray fingerprintSeed("shader-cache-v2");
+    if (auto* currentContext = QOpenGLContext::currentContext())
+    {
+        if (auto* functions = currentContext->functions())
+        {
+            const auto appendString = [&fingerprintSeed, functions](const GLenum name)
+            {
+                const auto* rawValue = reinterpret_cast<const char*>(functions->glGetString(name));
+                if (rawValue != nullptr)
+                    fingerprintSeed.append(rawValue);
+                fingerprintSeed.append('\n');
+            };
+            appendString(GL_VENDOR);
+            appendString(GL_RENDERER);
+            appendString(GL_VERSION);
+            appendString(GL_SHADING_LANGUAGE_VERSION);
+        }
+    }
+
+    const auto cacheKey = QString::fromLatin1(
+        QCryptographicHash::hash(fingerprintSeed, QCryptographicHash::Sha1).toHex().left(16));
+    const auto cachePath = QDir(baseCachePath).filePath(
+        QStringLiteral("maps/osmand_gl_shaders/%1").arg(cacheKey));
+    QDir().mkpath(cachePath);
+    return cachePath;
+}
+
+bool writeImageAsPng(const sk_sp<const SkImage>& image, const QString& outputPath)
+{
+    if (!image)
+        return false;
+
+    QDir().mkpath(QFileInfo(outputPath).absolutePath());
+    const auto encodedImage = image->encodeToData(SkEncodedImageFormat::kPNG, 100);
+    if (!encodedImage)
+        return false;
+
+    QFile outputFile(outputPath);
+    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+
+    const auto bytesWritten =
+        outputFile.write(reinterpret_cast<const char*>(encodedImage->data()), encodedImage->size());
+    outputFile.close();
+    return bytesWritten == encodedImage->size();
+}
+
+QSurfaceFormat nativeWidgetSurfaceFormat()
+{
+    auto format = QSurfaceFormat::defaultFormat();
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    if (format.depthBufferSize() < 24)
+        format.setDepthBufferSize(24);
+    if (format.stencilBufferSize() < 8)
+        format.setStencilBufferSize(8);
+    return format;
+}
+
+std::shared_ptr<const OsmAnd::TextRasterizer> createEmbeddedOnlyTextRasterizer()
+{
+    return std::make_shared<OsmAnd::TextRasterizer>(
+        std::shared_ptr<const OsmAnd::ITypefaceFinder>(
+            new OsmAnd::CachingTypefaceFinder(
+                std::shared_ptr<const OsmAnd::ITypefaceFinder>(
+                    new OsmAnd::EmbeddedTypefaceFinder()))));
+}
+
+void dumpTextRasterizerProbe(
+    const QString& tag,
+    const std::shared_ptr<const OsmAnd::TextRasterizer>& rasterizer,
+    const QString& text)
+{
+    if (!rasterizer || text.isEmpty())
+        return;
+
+    OsmAnd::TextRasterizer::Style style;
+    style
+        .setSize(24.0f)
+        .setBold(false)
+        .setItalic(false)
+        .setColor(OsmAnd::ColorARGB(255, 0, 0, 0))
+        .setHaloRadius(4)
+        .setHaloColor(OsmAnd::ColorARGB(255, 255, 255, 255));
+
+    const auto image = rasterizer->rasterize(text, style);
+    const auto outputPath = QDir::current().filePath(
+        QStringLiteral("debug/text_probe_%1.png").arg(tag));
+    const auto ok = writeImageAsPng(image, outputPath);
+    const auto payload = QJsonObject{
+        {QStringLiteral("tag"), tag},
+        {QStringLiteral("path"), outputPath},
+        {QStringLiteral("ok"), ok},
+        {QStringLiteral("width"), image ? image->width() : 0},
+        {QStringLiteral("height"), image ? image->height() : 0},
+        {QStringLiteral("text"), text},
+    };
+    std::cout
+        << "[osmand_native_widget][text_probe] "
+        << QJsonDocument(payload).toJson(QJsonDocument::Compact).constData()
+        << std::endl;
+}
+
+}
+
+OsmAndNativeMapWidget* OsmAndNativeMapWidget::create(
+    const Configuration& configuration,
+    QWidget* parent,
+    QString& errorMessage)
+{
+    auto* widget = new OsmAndNativeMapWidget(configuration, parent);
+    if (!widget->initializeResources(errorMessage))
+    {
+        delete widget;
+        return nullptr;
+    }
+    return widget;
+}
+
+OsmAndNativeMapWidget::OsmAndNativeMapWidget(const Configuration& configuration, QWidget* parent)
+    : QOpenGLWidget(parent)
+    , _configuration(configuration)
+    , _interactionTimer(this)
+{
+    setFormat(nativeWidgetSurfaceFormat());
+    _interactionTimer.setSingleShot(true);
+    _interactionTimer.setInterval(kInteractionSettleDelayMs);
+    connect(&_interactionTimer, &QTimer::timeout, this, &OsmAndNativeMapWidget::finishInteractiveRendering);
+
+    // Linux drivers can leave stale content with partial-damage compositing.
+    // Keep a runtime switch: 1 => PartialUpdate (A), 0/default => NoPartialUpdate (B).
+#if defined(Q_OS_LINUX)
+    setUpdateBehavior(
+        qEnvironmentVariableIntValue("IPHOTO_OSMAND_GL_PARTIAL_UPDATE") > 0
+            ? QOpenGLWidget::PartialUpdate
+            : QOpenGLWidget::NoPartialUpdate);
+#else
+    setUpdateBehavior(QOpenGLWidget::PartialUpdate);
+#endif
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
+    setAutoFillBackground(false);
+    setMouseTracking(true);
+    setFocusPolicy(Qt::StrongFocus);
+    setMinimumSize(640, 480);
+}
+
+OsmAndNativeMapWidget::~OsmAndNativeMapWidget()
+{
+    cleanupRenderer();
+    if (_resourcesReady)
+        OsmAndCoreRuntime::instance().release();
+}
+
+double OsmAndNativeMapWidget::zoomLevel() const
+{
+    return _zoomLevel;
+}
+
+double OsmAndNativeMapWidget::minZoomLevel() const
+{
+    return _minZoomLevel;
+}
+
+double OsmAndNativeMapWidget::maxZoomLevel() const
+{
+    return _maxZoomLevel;
+}
+
+void OsmAndNativeMapWidget::setZoomLevel(double zoomLevel)
+{
+    const auto clampedZoom = std::clamp(zoomLevel, _minZoomLevel, _maxZoomLevel);
+    if (std::abs(clampedZoom - _zoomLevel) <= 1e-6)
+        return;
+
+    beginInteractiveRendering();
+    scheduleInteractiveRenderingFinish();
+    _zoomLevel = clampedZoom;
+    wrapCenter();
+    syncRendererCamera(false);
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::resetView()
+{
+    finishInteractiveRendering();
+    _centerX = 0.5;
+    _centerY = 0.5;
+    _zoomLevel = _defaultZoomLevel;
+    wrapCenter();
+    syncRendererCamera(false);
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::panByPixels(double deltaX, double deltaY)
+{
+    const auto currentWorldSize = worldSize();
+    if (currentWorldSize <= 0.0)
+        return;
+
+    beginInteractiveRendering();
+    scheduleInteractiveRenderingFinish();
+    _centerX -= deltaX / currentWorldSize;
+    _centerY -= deltaY / currentWorldSize;
+    wrapCenter();
+    syncRendererCamera(false);
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::setCenterLonLat(double longitude, double latitude)
+{
+    finishInteractiveRendering();
+    const auto normalized = lonLatToNormalized(longitude, latitude);
+    _centerX = normalized.x();
+    _centerY = normalized.y();
+    wrapCenter();
+    syncRendererCamera(false);
+    requestFullUpdate();
+}
+
+QPointF OsmAndNativeMapWidget::centerLonLat() const
+{
+    return normalizedToLonLat(_centerX, _centerY);
+}
+
+bool OsmAndNativeMapWidget::projectLonLat(double longitude, double latitude, QPointF& outScreenPoint) const
+{
+    if (!_mapRenderer)
+        return false;
+
+    const auto position31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(latitude, longitude));
+    OsmAnd::PointI screenPoint;
+    if (!_mapRenderer->obtainScreenPointFromPosition(position31, screenPoint, false))
+        return false;
+
+    outScreenPoint = QPointF(screenPoint.x, screenPoint.y);
+    return true;
+}
+
+bool OsmAndNativeMapWidget::isFrameReady(
+    bool& rendererIdle,
+    bool& frameInvalidated,
+    QString& errorMessage)
+{
+    rendererIdle = false;
+    frameInvalidated = true;
+
+    if (QThread::currentThread() != thread())
+    {
+        errorMessage = QStringLiteral("Frame status check must run on the widget GUI thread");
+        return false;
+    }
+
+    if (!isValid() || !context())
+    {
+        errorMessage = QStringLiteral("OpenGL widget has no valid context");
+        return false;
+    }
+
+    if (!_mapRenderer || !_mapRenderer->isRenderingInitialized())
+    {
+        errorMessage = _initError.isEmpty()
+            ? QStringLiteral("AtlasMapRenderer is not initialized")
+            : _initError;
+        return false;
+    }
+
+    rendererIdle = _mapRenderer->isIdle();
+    frameInvalidated = _mapRenderer->isFrameInvalidated();
+
+    return true;
+}
+
+bool OsmAndNativeMapWidget::grabFrameRgba(
+    QByteArray& pixelData, int& frameWidth, int& frameHeight, int& frameStride,
+    bool& rendererIdle, bool& frameInvalidated, QString& errorMessage)
+{
+    pixelData.clear();
+    frameWidth = 0;
+    frameHeight = 0;
+    frameStride = 0;
+    rendererIdle = false;
+    frameInvalidated = true;
+
+    if (QThread::currentThread() != thread())
+    {
+        errorMessage = QStringLiteral("Framebuffer capture must run on the widget GUI thread");
+        return false;
+    }
+    if (!isValid() || !context())
+    {
+        errorMessage = QStringLiteral("OpenGL widget has no valid context; show the widget before capture");
+        return false;
+    }
+    if (!_mapRenderer || !_mapRenderer->isRenderingInitialized())
+    {
+        errorMessage = _initError.isEmpty()
+            ? QStringLiteral("AtlasMapRenderer is not initialized")
+            : _initError;
+        return false;
+    }
+
+    // Force a synchronous QWidget paint pass before reading the widget FBO.
+    // Atlas resource/symbol work can still be asynchronous; the two state flags
+    // below let the caller distinguish a settled frame from an intermediate one.
+    repaint();
+    const auto frame = grabFramebuffer();
+
+    if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr && !frame.isNull())
+    {
+        std::cerr
+            << "[OsmAnd Atlas][geometry] framebuffer"
+            << " size=" << frame.width() << "x" << frame.height()
+            << " bytesPerLine=" << frame.bytesPerLine()
+            << " widget=" << width() << "x" << height()
+            << " dpr=" << devicePixelRatioF()
+            << std::endl;
+    }
+
+    if (frame.isNull())
+    {
+        errorMessage = QStringLiteral("QOpenGLWidget returned an empty framebuffer");
+        return false;
+    }
+
+    const auto rgbaFrame = frame.convertToFormat(QImage::Format_RGBA8888);
+    if (rgbaFrame.isNull() || rgbaFrame.sizeInBytes() <= 0)
+    {
+        errorMessage = QStringLiteral("Failed to convert framebuffer to RGBA8");
+        return false;
+    }
+
+    frameWidth = rgbaFrame.width();
+    frameHeight = rgbaFrame.height();
+    frameStride = rgbaFrame.bytesPerLine();
+    pixelData = QByteArray(
+        reinterpret_cast<const char*>(rgbaFrame.constBits()),
+        static_cast<qsizetype>(rgbaFrame.sizeInBytes()));
+    rendererIdle = _mapRenderer->isIdle();
+    frameInvalidated = _mapRenderer->isFrameInvalidated();
+    return !pixelData.isEmpty();
+}
+
+void OsmAndNativeMapWidget::initializeGL()
+{
+    const bool debugRenderPhases = std::getenv("OSMAND_ATLAS_DEBUG_RENDER_PHASES") != nullptr;
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] initializeGL begin contextValid="
+                  << (context() && context()->isValid()) << std::endl;
+
+    _openGlInitializationTimer.start();
+    connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &OsmAndNativeMapWidget::cleanupRenderer, Qt::DirectConnection);
+    const auto rendererReady = ensureRenderer();
+    if (!rendererReady && _initError.isEmpty())
+        _initError = QStringLiteral("Failed to initialize the native OsmAnd renderer");
+    _openGlInitializationMs = _openGlInitializationTimer.elapsed();
+
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] initializeGL end rendererReady="
+                  << rendererReady << " elapsedMs=" << _openGlInitializationMs
+                  << " error=" << _initError.toStdString() << std::endl;
+}
+
+qint64 OsmAndNativeMapWidget::openGlInitializationMs() const
+{
+    return _openGlInitializationMs;
+}
+
+qint64 OsmAndNativeMapWidget::firstFrameMs() const
+{
+    return _firstFrameMs;
+}
+
+void OsmAndNativeMapWidget::resizeGL(int width, int height)
+{
+    Q_UNUSED(width)
+    Q_UNUSED(height)
+    syncRendererViewport(true);
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::showEvent(QShowEvent* event)
+{
+    QOpenGLWidget::showEvent(event);
+    syncRendererViewport(true);
+    syncRendererCamera(true);
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::paintGL()
+{
+    const bool debugRenderPhases = std::getenv("OSMAND_ATLAS_DEBUG_RENDER_PHASES") != nullptr;
+    static std::uint64_t paintSequence = 0;
+    const auto paintId = ++paintSequence;
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] paintGL begin frame=" << paintId
+                  << " size=" << width() << "x" << height()
+                  << " contextValid=" << (context() && context()->isValid()) << std::endl;
+
+    if (auto* functions = context() ? context()->functions() : nullptr)
+    {
+        const auto hadScissor = functions->glIsEnabled(kGlScissorTest) == GL_TRUE;
+        if (hadScissor)
+            functions->glDisable(kGlScissorTest);
+
+        functions->glClearColor(0.53f, 0.65f, 0.76f, 1.0f);
+        functions->glClear(kGlColorBufferBit | kGlDepthBufferBit);
+
+        if (hadScissor)
+            functions->glEnable(kGlScissorTest);
+    }
+
+    if (!ensureRenderer())
+    {
+        if (debugRenderPhases)
+            std::cerr << "[OsmAnd Atlas][render-phase] paintGL renderer-not-ready frame="
+                      << paintId << " error=" << _initError.toStdString() << std::endl;
+        return;
+    }
+
+    syncRendererViewport(false);
+    syncRendererCamera(false);
+
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] update begin frame=" << paintId << std::endl;
+    _mapRenderer->update();
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] prepareFrame begin frame=" << paintId << std::endl;
+    const auto framePrepared = _mapRenderer->prepareFrame();
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] prepareFrame end frame=" << paintId
+                  << " prepared=" << framePrepared << std::endl;
+    if (framePrepared)
+    {
+        if (debugRenderPhases)
+            std::cerr << "[OsmAnd Atlas][render-phase] renderFrame begin frame=" << paintId << std::endl;
+        _mapRenderer->renderFrame();
+        if (debugRenderPhases)
+            std::cerr << "[OsmAnd Atlas][render-phase] renderFrame end frame=" << paintId << std::endl;
+    }
+
+    if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr)
+    {
+        static int lastWidth = -1;
+        static int lastHeight = -1;
+
+        if (width() != lastWidth || height() != lastHeight)
+        {
+            GLint viewport[4] = {};
+            if (auto* functions = context() ? context()->functions() : nullptr)
+            {
+                functions->glGetIntegerv(GL_VIEWPORT, viewport);
+
+                std::cerr
+                    << "[OsmAnd Atlas][geometry] glViewport"
+                    << " x=" << viewport[0]
+                    << " y=" << viewport[1]
+                    << " width=" << viewport[2]
+                    << " height=" << viewport[3]
+                    << " widget=" << width() << "x" << height()
+                    << " dpr=" << devicePixelRatioF()
+                    << std::endl;
+            }
+
+            lastWidth = width();
+            lastHeight = height();
+        }
+    }
+
+    if (_firstFrameMs < 0 && _openGlInitializationTimer.isValid())
+        _firstFrameMs = _openGlInitializationTimer.elapsed();
+
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] paintGL end frame=" << paintId
+                  << " rendererIdle=" << _mapRenderer->isIdle()
+                  << " frameInvalidated=" << _mapRenderer->isFrameInvalidated() << std::endl;
+
+    if (!_mapRenderer->isIdle() || _mapRenderer->isFrameInvalidated())
+        requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        beginInteractiveRendering();
+        scheduleInteractiveRenderingFinish();
+        _dragging = true;
+        _lastMousePosition = event->position();
+        setCursor(Qt::ClosedHandCursor);
+        setFocus(Qt::MouseFocusReason);
+        event->accept();
+        return;
+    }
+
+    QOpenGLWidget::mousePressEvent(event);
+}
+
+void OsmAndNativeMapWidget::mouseMoveEvent(QMouseEvent* event)
+{
+    if (_dragging && (event->buttons() & Qt::LeftButton))
+    {
+        const auto currentPosition = event->position();
+        const auto delta = currentPosition - _lastMousePosition;
+        _lastMousePosition = currentPosition;
+        if (!delta.isNull())
+            panByPixels(delta.x(), delta.y());
+        event->accept();
+        return;
+    }
+
+    QOpenGLWidget::mouseMoveEvent(event);
+}
+
+void OsmAndNativeMapWidget::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (_dragging && event->button() == Qt::LeftButton)
+    {
+        _dragging = false;
+        unsetCursor();
+        scheduleInteractiveRenderingFinish();
+        event->accept();
+        return;
+    }
+
+    QOpenGLWidget::mouseReleaseEvent(event);
+}
+
+void OsmAndNativeMapWidget::wheelEvent(QWheelEvent* event)
+{
+    const auto delta = event->angleDelta().y();
+    if (delta == 0)
+    {
+        QOpenGLWidget::wheelEvent(event);
+        return;
+    }
+
+    const auto zoomFactor = 1.0 + static_cast<double>(delta) / 1200.0;
+    const auto nextZoom = std::clamp(_zoomLevel * zoomFactor, _minZoomLevel, _maxZoomLevel);
+    if (std::abs(nextZoom - _zoomLevel) <= 1e-6)
+    {
+        event->accept();
+        return;
+    }
+
+    const auto oldWorldSize = worldSize();
+    const auto centerPixelX = _centerX * oldWorldSize;
+    const auto centerPixelY = _centerY * oldWorldSize;
+    const auto topLeftX = centerPixelX - width() / 2.0;
+    const auto topLeftY = centerPixelY - height() / 2.0;
+
+    const auto mouseWorldX = (topLeftX + event->position().x()) / oldWorldSize;
+    const auto mouseWorldY = (topLeftY + event->position().y()) / oldWorldSize;
+
+    _zoomLevel = nextZoom;
+    const auto newWorldSize = worldSize();
+    const auto newCenterPixelX = mouseWorldX * newWorldSize - event->position().x() + width() / 2.0;
+    const auto newCenterPixelY = mouseWorldY * newWorldSize - event->position().y() + height() / 2.0;
+
+    beginInteractiveRendering();
+    scheduleInteractiveRenderingFinish();
+    _centerX = newCenterPixelX / newWorldSize;
+    _centerY = newCenterPixelY / newWorldSize;
+    wrapCenter();
+    syncRendererCamera(false);
+    requestFullUpdate();
+    event->accept();
+}
+
+bool OsmAndNativeMapWidget::initializeResources(QString& errorMessage)
+{
+    if (_configuration.obfPaths.isEmpty())
+    {
+        errorMessage = QStringLiteral("No enabled OsmAnd OBF maps are selected.");
+        return false;
+    }
+    for (const auto& obfPath : _configuration.obfPaths)
+    {
+        if (!QFileInfo::exists(obfPath))
+        {
+            errorMessage = QStringLiteral("OBF file does not exist: %1").arg(obfPath);
+            return false;
+        }
+    }
+    if (!QFileInfo::exists(_configuration.stylePath))
+    {
+        errorMessage = QStringLiteral("Rendering style does not exist: %1").arg(_configuration.stylePath);
+        return false;
+    }
+    if (!QFileInfo(_configuration.resourcesRoot).isDir())
+    {
+        errorMessage = QStringLiteral("OsmAnd resources directory does not exist: %1").arg(_configuration.resourcesRoot);
+        return false;
+    }
+    if (!OsmAndCoreRuntime::instance().acquire(_configuration.resourcesRoot, errorMessage))
+        return false;
+
+    const bool debugStyleLoad = std::getenv("OSMAND_ATLAS_DEBUG_STYLE_LOAD") != nullptr;
+    if (debugStyleLoad)
+    {
+        const QFileInfo selectedStyleInfo(_configuration.stylePath);
+        const QFileInfo resourcesInfo(_configuration.resourcesRoot);
+        std::cerr << "[OsmAnd Atlas][style-load] begin"
+                  << " selectedPath=" << selectedStyleInfo.absoluteFilePath().toStdString()
+                  << " selectedCanonical=" << selectedStyleInfo.canonicalFilePath().toStdString()
+                  << " selectedExists=" << selectedStyleInfo.exists()
+                  << " selectedSize=" << selectedStyleInfo.size()
+                  << " resourcesRoot=" << resourcesInfo.absoluteFilePath().toStdString()
+                  << " resourcesCanonical=" << resourcesInfo.canonicalFilePath().toStdString()
+                  << std::endl;
+    }
+
+    _stylesCollection = std::make_shared<OsmAnd::MapStylesCollection>();
+
+    // Load the complete style inheritance chain from base to selected style.
+    // Specialized styles such as offroad.render.xml depend on topo.render.xml;
+    // loading only the selected XML lets the collection accept the file but
+    // leaves its parent selectors unresolved, producing blank map frames.
+    QStringList styleChain;
+    QString currentStylePath = _configuration.stylePath;
+    const auto stylesDirectory = QDir(_configuration.resourcesRoot).filePath(QStringLiteral("rendering_styles"));
+    while (!currentStylePath.isEmpty())
+    {
+        if (styleChain.contains(currentStylePath))
+        {
+            OsmAndCoreRuntime::instance().release();
+            errorMessage = QStringLiteral("Circular OsmAnd rendering-style dependency: %1").arg(currentStylePath);
+            return false;
+        }
+        styleChain.append(currentStylePath);
+
+        QFile currentStyleFile(currentStylePath);
+        if (!currentStyleFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            OsmAndCoreRuntime::instance().release();
+            errorMessage = QStringLiteral("Unable to read rendering style: %1").arg(currentStylePath);
+            return false;
+        }
+        QXmlStreamReader styleXml(&currentStyleFile);
+        while (!styleXml.atEnd() && !styleXml.isStartElement())
+            styleXml.readNext();
+        if (!styleXml.isStartElement() || styleXml.name() != QStringLiteral("renderingStyle"))
+        {
+            OsmAndCoreRuntime::instance().release();
+            errorMessage = QStringLiteral("Invalid OsmAnd rendering-style root element: %1").arg(currentStylePath);
+            return false;
+        }
+
+        const auto styleAttributes = styleXml.attributes();
+        const auto declaredStyleName = styleAttributes.value(QStringLiteral("name")).toString().trimmed();
+        const auto dependency = styleAttributes.value(QStringLiteral("depends")).toString().trimmed();
+        const auto declaredDefaultColor = styleAttributes.value(QStringLiteral("defaultColor")).toString().trimmed();
+        if (debugStyleLoad)
+        {
+            const QFileInfo styleInfo(currentStylePath);
+            std::cerr << "[OsmAnd Atlas][style-load] dependency-scan"
+                      << " path=" << styleInfo.absoluteFilePath().toStdString()
+                      << " canonical=" << styleInfo.canonicalFilePath().toStdString()
+                      << " exists=" << styleInfo.exists()
+                      << " size=" << styleInfo.size()
+                      << " declaredName=" << declaredStyleName.toStdString()
+                      << " depends=" << (dependency.isEmpty() ? "<none>" : dependency.toStdString())
+                      << " defaultColor=" << (declaredDefaultColor.isEmpty() ? "<none>" : declaredDefaultColor.toStdString())
+                      << std::endl;
+        }
+        if (dependency.isEmpty())
+            break;
+
+        const auto dependencyPath = QDir(stylesDirectory).filePath(dependency + QStringLiteral(".render.xml"));
+        if (!QFileInfo::exists(dependencyPath))
+        {
+            OsmAndCoreRuntime::instance().release();
+            errorMessage = QStringLiteral("Rendering style dependency '%1' required by '%2' was not found: %3")
+                .arg(dependency, currentStylePath, dependencyPath);
+            return false;
+        }
+        currentStylePath = dependencyPath;
+    }
+
+    std::reverse(styleChain.begin(), styleChain.end());
+    if (debugStyleLoad)
+    {
+        std::cerr << "[OsmAnd Atlas][style-load] inheritance-chain count=" << styleChain.size() << std::endl;
+        for (int index = 0; index < styleChain.size(); ++index)
+            std::cerr << "[OsmAnd Atlas][style-load] chain[" << index << "]="
+                      << QFileInfo(styleChain.at(index)).absoluteFilePath().toStdString() << std::endl;
+    }
+
+    for (int index = 0; index < styleChain.size(); ++index)
+    {
+        const auto& stylePath = styleChain.at(index);
+        const auto addSucceeded = _stylesCollection->addStyleFromFile(stylePath);
+        if (debugStyleLoad)
+            std::cerr << "[OsmAnd Atlas][style-load] addStyleFromFile"
+                      << " index=" << index
+                      << " path=" << QFileInfo(stylePath).absoluteFilePath().toStdString()
+                      << " success=" << addSucceeded
+                      << std::endl;
+        if (!addSucceeded)
+        {
+            OsmAndCoreRuntime::instance().release();
+            errorMessage = QStringLiteral("Unable to load rendering style or dependency: %1").arg(stylePath);
+            if (debugStyleLoad)
+                std::cerr << "[OsmAnd Atlas][style-load] FAILED " << errorMessage.toStdString() << std::endl;
+            return false;
+        }
+    }
+
+    _obfsCollection = std::make_shared<OsmAnd::ObfsCollection>();
+    for (const auto& obfPath : _configuration.obfPaths)
+        _obfsCollection->addFile(obfPath);
+
+    // MapStylesCollection registers each style by its filename stem
+    // (e.g. offroad.render.xml -> "offroad"). The XML "name" attribute is
+    // only the display title and must never be used as the registry key.
+    _styleName = QFileInfo(_configuration.stylePath).fileName();
+    if (_styleName.endsWith(QStringLiteral(".render.xml"), Qt::CaseInsensitive))
+        _styleName.chop(QStringLiteral(".render.xml").size());
+    _locale = QLocale::system().name().section(QLatin1Char('_'), 0, 0).toLower();
+    if (_locale.isEmpty())
+        _locale = QStringLiteral("en");
+
+    if (debugStyleLoad)
+        std::cerr << "[OsmAnd Atlas][style-load] selected-style-key"
+                  << " registeredKey=" << _styleName.toStdString()
+                  << " selectedFile=" << QFileInfo(_configuration.stylePath).fileName().toStdString()
+                  << " locale=" << _locale.toStdString()
+                  << " resourcesReady=true"
+                  << std::endl;
+
+    if (debugStyleLoad)
+    {
+        const auto selectedFileKey = _styleName;
+        std::cerr << "[OsmAnd Atlas][style-load] registry-snapshot"
+                  << " selectedFileKey=" << selectedFileKey.toStdString()
+                  << " selectedXmlTitleIsDisplayOnly=true"
+                  << std::endl;
+
+        const auto registeredStyles = _stylesCollection->getCollection();
+        for (const auto& registeredStyle : registeredStyles)
+        {
+            if (!registeredStyle)
+                continue;
+            std::cerr << "[OsmAnd Atlas][style-load] registered-style"
+                      << " name=" << registeredStyle->name.toStdString()
+                      << " title=" << registeredStyle->title.toStdString()
+                      << " parent=" << registeredStyle->parentName.toStdString()
+                      << " pointer=" << static_cast<const void*>(registeredStyle.get())
+                      << std::endl;
+        }
+
+        const auto selectedStyle = _stylesCollection->getStyleByName(selectedFileKey);
+        std::cerr << "[OsmAnd Atlas][style-load] selected-style-lookup"
+                  << " registered=" << static_cast<bool>(selectedStyle)
+                  << " pointer=" << static_cast<const void*>(selectedStyle.get())
+                  << std::endl;
+        if (selectedStyle)
+            std::cerr << "[OsmAnd Atlas][style-load] selected-style-entry"
+                      << " name=" << selectedStyle->name.toStdString()
+                      << " title=" << selectedStyle->title.toStdString()
+                      << " parent=" << selectedStyle->parentName.toStdString()
+                      << std::endl;
+    }
+
+    _resourcesReady = true;
+    return true;
+}
+
+bool OsmAndNativeMapWidget::ensureRenderer()
+{
+    const bool debugRenderPhases = std::getenv("OSMAND_ATLAS_DEBUG_RENDER_PHASES") != nullptr;
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] ensureRenderer begin style="
+                  << _styleName.toStdString() << std::endl;
+    if (_mapRenderer)
+        return true;
+    if (!_resourcesReady)
+        return false;
+
+    const bool debugStyleLoad = std::getenv("OSMAND_ATLAS_DEBUG_STYLE_LOAD") != nullptr;
+    const auto unresolvedStyle = _stylesCollection->getStyleByName(_styleName);
+    const auto mapStyle = _stylesCollection->getResolvedStyleByName(_styleName);
+    if (debugRenderPhases || debugStyleLoad)
+    {
+        std::cerr << "[OsmAnd Atlas][style-load] resolve"
+                  << " requestedName=" << _styleName.toStdString()
+                  << " registered=" << static_cast<bool>(unresolvedStyle)
+                  << " registeredPointer=" << static_cast<const void*>(unresolvedStyle.get())
+                  << " resolved=" << static_cast<bool>(mapStyle)
+                  << " resolvedPointer=" << static_cast<const void*>(mapStyle.get())
+                  << std::endl;
+        if (unresolvedStyle)
+            std::cerr << "[OsmAnd Atlas][style-load] resolve-entry"
+                      << " name=" << unresolvedStyle->name.toStdString()
+                      << " title=" << unresolvedStyle->title.toStdString()
+                      << " parent=" << unresolvedStyle->parentName.toStdString()
+                      << std::endl;
+    }
+    if (!mapStyle)
+    {
+        _initError = QStringLiteral("Unable to resolve rendering style: %1").arg(_styleName);
+        if (std::getenv("OSMAND_ATLAS_DEBUG_STYLE_LOAD") != nullptr)
+            std::cerr << "[OsmAnd Atlas][style-load] FAILED " << _initError.toStdString() << std::endl;
+        return false;
+    }
+
+    // The atlas helper disables Qt automatic HiDPI scaling, so use the
+    // explicit monitor scale supplied by the host application instead.
+    const auto configuredScale = std::isfinite(_configuration.displayScale)
+        ? _configuration.displayScale : 1.0;
+    const auto displayScale = static_cast<float>(std::clamp(configuredScale, 1.0, 4.0));
+    _mapPresentationEnvironment = std::make_shared<OsmAnd::MapPresentationEnvironment>(
+        mapStyle,
+        displayScale,
+        displayScale,
+        displayScale);
+    _mapPresentationEnvironment->setLocaleLanguageId(_locale);
+    _mapPresentationEnvironment->setSettings(QHash<QString, QString>{
+        {QStringLiteral("nightMode"), _configuration.nightMode ? QStringLiteral("true") : QStringLiteral("false")},
+    });
+
+    _primitiviser = std::make_shared<OsmAnd::MapPrimitiviser>(_mapPresentationEnvironment);
+    _mapObjectsProvider = std::make_shared<OsmAnd::ObfMapObjectsProvider>(
+        _obfsCollection,
+        OsmAnd::ObfMapObjectsProvider::Mode::OnlyBinaryMapObjects,
+        kConcurrentObfReadLimit);
+    _mapPrimitivesProvider = std::make_shared<OsmAnd::MapPrimitivesProvider>(
+        _mapObjectsProvider,
+        _primitiviser,
+        kReferenceTileSize);
+    _mapSymbolsProvider = std::make_shared<OsmAnd::MapObjectsSymbolsProvider>(
+        _mapPrimitivesProvider,
+        kReferenceTileSize,
+        std::shared_ptr<const OsmAnd::SymbolRasterizer>(),
+        true);
+    _mapRasterLayerProvider = std::make_shared<OsmAnd::MapRasterLayerProvider_Software>(
+        _mapPrimitivesProvider,
+        true,
+        true);
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] providers-created" << std::endl;
+    _mapRenderer = OsmAnd::createMapRenderer(OsmAnd::MapRendererClass::AtlasMapRenderer_OpenGL2plus);
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] createMapRenderer complete available="
+                  << static_cast<bool>(_mapRenderer) << std::endl;
+    if (!_mapRenderer)
+    {
+        _initError = QStringLiteral("No supported OsmAnd renderer found");
+        return false;
+    }
+
+    OsmAnd::MapRendererSetupOptions setupOptions;
+    setupOptions.gpuWorkerThreadEnabled = false;
+    setupOptions.displayDensityFactor = displayScale;
+    setupOptions.pathToOpenGLShadersCache = openGlShadersCachePath();
+#if defined(Q_OS_LINUX)
+    // The default batch-size heuristic can trigger a long shader warm-up on
+    // Linux, leaving the first visible frame blank until enough render passes
+    // complete. Cap the batch width here so startup reaches a drawable map
+    // state promptly without affecting Windows defaults.
+    setupOptions.maxNumberOfRasterMapLayersInBatch = 4;
+#endif
+    setupOptions.frameUpdateRequestCallback =
+        [widget = QPointer<OsmAndNativeMapWidget>(this)]
+        (const OsmAnd::IMapRenderer*)
+        {
+            if (!widget)
+                return;
+
+            QMetaObject::invokeMethod(
+                widget.data(),
+                [widget]()
+                {
+                    if (widget)
+                        widget->requestFullUpdate();
+                },
+                Qt::QueuedConnection);
+        };
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] renderer-setup begin" << std::endl;
+    if (!_mapRenderer->setup(setupOptions))
+    {
+        _initError = QStringLiteral("Failed to setup the OsmAnd renderer");
+        _mapRenderer.reset();
+        return false;
+    }
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] renderer-setup end" << std::endl;
+
+    const auto rendererConfiguration = std::static_pointer_cast<OsmAnd::AtlasMapRendererConfiguration>(_mapRenderer->getConfiguration());
+    rendererConfiguration->referenceTileSizeOnScreenInPixels = static_cast<float>(kReferenceTileSize);
+    _mapRenderer->setConfiguration(rendererConfiguration);
+    _mapRenderer->setFieldOfView(kDefaultFieldOfView);
+    _mapRenderer->setElevationAngle(kDefaultElevationAngle);
+    _mapRenderer->setMapLayerProvider(0, _mapRasterLayerProvider);
+    _mapRenderer->addSymbolsProvider(_mapSymbolsProvider);
+    _mapRenderer->setResourceWorkerThreadsLimit(static_cast<unsigned int>(std::clamp(QThread::idealThreadCount(), 4, 8)));
+    syncRendererViewport(true);
+    syncRendererCamera(true);
+
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] initializeRendering begin" << std::endl;
+    if (!_mapRenderer->initializeRendering(true))
+    {
+        _initError = QStringLiteral("Failed to initialize native OsmAnd rendering");
+        _mapRenderer.reset();
+        return false;
+    }
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] initializeRendering end" << std::endl;
+
+    // The Atlas helper renders individual XYZ tiles. The renderer's inferred
+    // minimum zoom can be raised by the selected OBF data set (for example to
+    // zoom 8 when only detailed regional map levels are present). That must not
+    // clamp the camera: MapLibre still requests valid lower-zoom tiles, which
+    // should render the available overview data or the normal map background.
+    const auto requestedMinZoom = static_cast<OsmAnd::ZoomLevel>(static_cast<int>(kDefaultMinZoom));
+    if (!_mapRenderer->setMinZoomLevel(requestedMinZoom, true))
+    {
+        std::cerr << "[OsmAnd Atlas] Could not lower renderer minimum zoom to "
+                  << static_cast<int>(kDefaultMinZoom)
+                  << "; actual minimum remains " << _mapRenderer->getMinZoomLevel()
+                  << std::endl;
+    }
+    _minZoomLevel = std::max(kDefaultMinZoom, static_cast<double>(_mapRenderer->getMinZoomLevel()));
+    _maxZoomLevel = std::max(_minZoomLevel, static_cast<double>(_mapRenderer->getMaxZoomLevel()));
+    _defaultZoomLevel = std::clamp(kDefaultZoom, _minZoomLevel, _maxZoomLevel);
+    _zoomLevel = std::clamp(_zoomLevel, _minZoomLevel, _maxZoomLevel);
+    _mapRenderer->setDetailedDistance(kStableDetailedDistance, true);
+    _mapRenderer->setSymbolsOpacity(kStableSymbolsOpacity, true);
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] caption-diagnostics begin" << std::endl;
+    maybeDumpCaptionDiagnostics();
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] caption-diagnostics end" << std::endl;
+    syncRendererCamera(true);
+    if (debugRenderPhases)
+        std::cerr << "[OsmAnd Atlas][render-phase] ensureRenderer end" << std::endl;
+    return true;
+}
+
+void OsmAndNativeMapWidget::maybeDumpCaptionDiagnostics()
+{
+    if (_captionDiagnosticsDumped || !_mapObjectsProvider)
+        return;
+    if (std::getenv("IPHOTO_OSMAND_DEBUG_CAPTIONS") == nullptr)
+        return;
+
+    _captionDiagnosticsDumped = true;
+
+    const auto integralZoom = std::clamp(
+        static_cast<int>(std::floor(_zoomLevel)),
+        static_cast<int>(kDefaultMinZoom),
+        static_cast<int>(kDefaultMaxZoom));
+    const auto zoomLevel = static_cast<OsmAnd::ZoomLevel>(integralZoom);
+    const auto tilesCount = 1 << integralZoom;
+    const auto tileX = std::clamp(static_cast<int>(std::floor(_centerX * tilesCount)), 0, tilesCount - 1);
+    const auto tileY = std::clamp(static_cast<int>(std::floor(_centerY * tilesCount)), 0, tilesCount - 1);
+    const auto tileId = OsmAnd::TileId::fromXY(tileX, tileY);
+
+    OsmAnd::ObfMapObjectsProvider::Request request;
+    request.tileId = tileId;
+    request.zoom = zoomLevel;
+    request.detailedZoom = zoomLevel;
+    request.visibleArea31 = OsmAnd::Utilities::tileBoundingBox31(tileId, zoomLevel);
+    request.areaTime = QDateTime::currentMSecsSinceEpoch();
+    request.queryController = std::make_shared<OsmAnd::SimpleQueryController>();
+
+    std::shared_ptr<OsmAnd::ObfMapObjectsProvider::Data> mapObjectsData;
+    if (!_mapObjectsProvider->obtainTiledObfMapObjects(request, mapObjectsData) || !mapObjectsData)
+    {
+        std::cerr << "[osmand_native_widget][caption] failed to obtain map objects for diagnostics" << std::endl;
+        return;
+    }
+
+    std::cout
+        << "[osmand_native_widget][caption] "
+        << QJsonDocument(QJsonObject{
+               {QStringLiteral("tile_z"), integralZoom},
+               {QStringLiteral("tile_x"), tileX},
+               {QStringLiteral("tile_y"), tileY},
+               {QStringLiteral("objects"), static_cast<int>(mapObjectsData->mapObjects.size())},
+           }).toJson(QJsonDocument::Compact).constData()
+        << std::endl;
+
+    int emitted = 0;
+    for (const auto& mapObject : constOf(mapObjectsData->mapObjects))
+    {
+        if (!mapObject || mapObject->captions.isEmpty())
+            continue;
+
+        const auto nativeCaption = mapObject->getCaptionInNativeLanguage();
+        const auto englishCaption = mapObject->getCaptionInLanguage(QStringLiteral("en"));
+        if (nativeCaption.isEmpty() && englishCaption.isEmpty())
+            continue;
+
+        const auto payload = QJsonObject{
+            {QStringLiteral("object"), mapObject->toString()},
+            {QStringLiteral("native"), nativeCaption},
+            {QStringLiteral("en"), englishCaption},
+            {QStringLiteral("captions_count"), static_cast<int>(mapObject->captions.size())},
+        };
+        std::cout
+            << "[osmand_native_widget][caption] "
+            << QJsonDocument(payload).toJson(QJsonDocument::Compact).constData()
+            << std::endl;
+
+        emitted++;
+        if (emitted >= 20)
+            break;
+    }
+
+    if (std::getenv("IPHOTO_OSMAND_DEBUG_TEXT_SYMBOLS") != nullptr && _mapPrimitivesProvider)
+    {
+        OsmAnd::MapPrimitivesProvider::Request primitivesRequest;
+        primitivesRequest.tileId = tileId;
+        primitivesRequest.zoom = zoomLevel;
+        primitivesRequest.detailedZoom = zoomLevel;
+        primitivesRequest.visibleArea31 = request.visibleArea31;
+        primitivesRequest.areaTime = request.areaTime;
+        primitivesRequest.queryController = request.queryController;
+
+        std::shared_ptr<OsmAnd::MapPrimitivesProvider::Data> primitivesData;
+        if (_mapPrimitivesProvider->obtainTiledPrimitives(primitivesRequest, primitivesData)
+            && primitivesData
+            && primitivesData->primitivisedObjects)
+        {
+            int textSymbolsEmitted = 0;
+            for (const auto& symbolsGroupEntry : rangeOf(constOf(primitivesData->primitivisedObjects->symbolsGroups)))
+            {
+                const auto& symbolsGroup = symbolsGroupEntry.value();
+                for (const auto& symbol : constOf(symbolsGroup->symbols))
+                {
+                    const auto textSymbol =
+                        std::dynamic_pointer_cast<const OsmAnd::MapPrimitiviser::TextSymbol>(symbol);
+                    if (!textSymbol)
+                        continue;
+
+                    const auto payload = QJsonObject{
+                        {QStringLiteral("base"), textSymbol->baseValue},
+                        {QStringLiteral("value"), textSymbol->value},
+                        {QStringLiteral("on_path"), textSymbol->drawOnPath},
+                        {QStringLiteral("shield"), textSymbol->shieldResourceName},
+                    };
+                    std::cout
+                        << "[osmand_native_widget][text_symbol] "
+                        << QJsonDocument(payload).toJson(QJsonDocument::Compact).constData()
+                        << std::endl;
+
+                    textSymbolsEmitted++;
+                    if (textSymbolsEmitted >= 20)
+                        break;
+                }
+                if (textSymbolsEmitted >= 20)
+                    break;
+            }
+        }
+    }
+
+    if (std::getenv("IPHOTO_OSMAND_DEBUG_TEXT_RASTERIZER") != nullptr)
+    {
+        QStringList sampleLines{
+            QStringLiteral("Germany"),
+            QStringLiteral("Deutschland"),
+            QStringLiteral("Lower Saxony"),
+            QStringLiteral("Niedersachsen"),
+            QStringLiteral("Saxony-Anhalt"),
+            QStringLiteral("Thuringia"),
+            QStringLiteral("Bad Nenndorf"),
+            QStringLiteral("Bueckeburg"),
+            QStringLiteral("Thueringen"),
+        };
+        for (const auto& mapObject : constOf(mapObjectsData->mapObjects))
+        {
+            if (!mapObject)
+                continue;
+
+            const auto englishCaption = mapObject->getCaptionInLanguage(QStringLiteral("en"));
+            if (!englishCaption.isEmpty() && !sampleLines.contains(englishCaption))
+                sampleLines.push_back(englishCaption);
+
+            if (sampleLines.size() >= 12)
+                break;
+        }
+
+        const auto sampleText = sampleLines.join(QLatin1Char('\n'));
+        dumpTextRasterizerProbe(
+            QStringLiteral("default"),
+            OsmAnd::TextRasterizer::getDefault(),
+            sampleText);
+        dumpTextRasterizerProbe(
+            QStringLiteral("system"),
+            OsmAnd::TextRasterizer::getOnlySystemFonts(),
+            sampleText);
+        dumpTextRasterizerProbe(
+            QStringLiteral("embedded"),
+            createEmbeddedOnlyTextRasterizer(),
+            sampleText);
+    }
+}
+
+void OsmAndNativeMapWidget::syncRendererViewport(bool forcedUpdate)
+{
+    if (!_mapRenderer)
+        return;
+
+    const auto configuredScale = std::isfinite(_configuration.displayScale)
+        ? _configuration.displayScale : 1.0;
+    const auto scale = std::clamp(configuredScale, 1.0, 4.0);
+    const auto logicalWidth = std::max(1, width());
+    const auto logicalHeight = std::max(1, height());
+
+    if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr)
+    {
+        static int lastWidth = -1;
+        static int lastHeight = -1;
+        static double lastScale = -1.0;
+
+        if (logicalWidth != lastWidth || logicalHeight != lastHeight || scale != lastScale)
+        {
+            std::cerr
+                << "[OsmAnd Atlas][geometry] viewport"
+                << " widgetLogical=" << logicalWidth << "x" << logicalHeight
+                << " widgetDpr=" << devicePixelRatioF()
+                << " presentationScale=" << scale
+                << " rendererViewport=" << logicalWidth
+                << "x" << logicalHeight
+                << " forced=" << forcedUpdate
+                << std::endl;
+
+            lastWidth = logicalWidth;
+            lastHeight = logicalHeight;
+            lastScale = scale;
+        }
+    }
+
+    // Keep the geographic viewport identical to the actual framebuffer.
+    // Applying displayScale here enlarges the GL viewport (for example 768px
+    // inside a 512px FBO at 150% density), so grabFramebuffer() captures only
+    // its centre and neighbouring XYZ tiles no longer share exact edges.
+    // High-DPI symbol/text sizing is already applied by MapPresentationEnvironment.
+    _mapRenderer->setWindowSize(OsmAnd::PointI(logicalWidth, logicalHeight), forcedUpdate);
+    _mapRenderer->setViewport(OsmAnd::AreaI(0, 0, logicalHeight, logicalWidth), forcedUpdate);
+    _mapRenderer->setViewportScale(1.0f, forcedUpdate);
+    _mapRenderer->setViewportShift(logicalWidth / 2, logicalHeight / 2, forcedUpdate);
+}
+
+void OsmAndNativeMapWidget::syncRendererCamera(bool forcedUpdate)
+{
+    if (!_mapRenderer)
+        return;
+
+    const auto center = normalizedToLonLat(_centerX, _centerY);
+    const auto target31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(center.y(), center.x()));
+    _mapRenderer->setTarget(target31, forcedUpdate);
+    _mapRenderer->setZoom(static_cast<float>(_zoomLevel), forcedUpdate);
+    _mapRenderer->setAzimuth(0.0f, forcedUpdate);
+    _mapRenderer->setElevationAngle(kDefaultElevationAngle, forcedUpdate);
+    if (forcedUpdate)
+        _mapRenderer->forcedFrameInvalidate();
+}
+
+void OsmAndNativeMapWidget::beginInteractiveRendering()
+{
+    if (_interactionTimer.isActive())
+        _interactionTimer.stop();
+
+    if (_interactiveRendering)
+        return;
+
+    _interactiveRendering = true;
+    if (_mapRenderer)
+    {
+        // Keep the reference tile size stable while interacting so the camera
+        // scale does not visibly jump at the start/end of drag or wheel input.
+        _mapRenderer->setDetailedDistance(kInteractiveDetailedDistance);
+        _mapRenderer->setSymbolsOpacity(kInteractiveSymbolsOpacity);
+        if (!_symbolsSuspendedByInteraction && !_mapRenderer->isSymbolsUpdateSuspended())
+            _symbolsSuspendedByInteraction = _mapRenderer->suspendSymbolsUpdate();
+        _mapRenderer->forcedFrameInvalidate();
+    }
+}
+
+void OsmAndNativeMapWidget::scheduleInteractiveRenderingFinish()
+{
+    _interactionTimer.start();
+}
+
+void OsmAndNativeMapWidget::finishInteractiveRendering()
+{
+    if (_interactionTimer.isActive())
+        _interactionTimer.stop();
+
+    if (!_interactiveRendering)
+        return;
+
+    _interactiveRendering = false;
+    if (_mapRenderer)
+    {
+        _mapRenderer->setDetailedDistance(kStableDetailedDistance);
+        _mapRenderer->setSymbolsOpacity(kStableSymbolsOpacity);
+        if (_symbolsSuspendedByInteraction)
+        {
+            _mapRenderer->resumeSymbolsUpdate();
+            _symbolsSuspendedByInteraction = false;
+        }
+        _mapRenderer->forcedFrameInvalidate();
+    }
+    else
+    {
+        _symbolsSuspendedByInteraction = false;
+    }
+
+    requestFullUpdate();
+}
+
+void OsmAndNativeMapWidget::requestFullUpdate()
+{
+    QOpenGLWidget::update(rect());
+}
+
+void OsmAndNativeMapWidget::cleanupRenderer()
+{
+    if (_interactionTimer.isActive())
+        _interactionTimer.stop();
+
+    if (!_mapRenderer)
+        return;
+
+    if (_symbolsSuspendedByInteraction)
+    {
+        _mapRenderer->resumeSymbolsUpdate();
+        _symbolsSuspendedByInteraction = false;
+    }
+    _interactiveRendering = false;
+
+    const auto hadContext = context() != nullptr;
+    if (hadContext)
+        makeCurrent();
+
+    if (_mapRenderer->isRenderingInitialized())
+        _mapRenderer->releaseRendering(false);
+
+    _mapRenderer.reset();
+    _mapRasterLayerProvider.reset();
+    _mapSymbolsProvider.reset();
+    _mapPrimitivesProvider.reset();
+    _mapObjectsProvider.reset();
+    _primitiviser.reset();
+    _mapPresentationEnvironment.reset();
+
+    if (hadContext)
+        doneCurrent();
+}
+
+void OsmAndNativeMapWidget::wrapCenter()
+{
+    _centerX = std::fmod(_centerX, 1.0);
+    if (_centerX < 0.0)
+        _centerX += 1.0;
+
+    if (_configuration.allowVerticalViewportOverflow)
+    {
+        // Tile centers must remain at their requested XYZ coordinates even when
+        // the overscan viewport extends beyond the north/south world edges.
+        _centerY = std::clamp(_centerY, 0.0, 1.0);
+        return;
+    }
+
+    const auto currentWorldSize = worldSize();
+    const auto viewportHeight = std::max(1, height());
+    const auto halfViewRatio = static_cast<double>(viewportHeight) / (2.0 * currentWorldSize);
+    if (halfViewRatio >= 0.5)
+    {
+        _centerY = 0.5;
+        return;
+    }
+
+    const auto minCenter = halfViewRatio;
+    const auto maxCenter = 1.0 - halfViewRatio;
+    _centerY = std::clamp(_centerY, minCenter, maxCenter);
+}
+
+double OsmAndNativeMapWidget::worldSize() const
+{
+    return static_cast<double>(kReferenceTileSize) * std::pow(2.0, _zoomLevel);
+}
+
+QPointF OsmAndNativeMapWidget::lonLatToNormalized(double longitude, double latitude)
+{
+    const auto clampedLatitude = clampLatitude(latitude);
+    const auto x = (longitude + 180.0) / 360.0;
+    const auto sinLatitude = std::sin(clampedLatitude * kPi / 180.0);
+    const auto y = 0.5 - std::log((1.0 + sinLatitude) / (1.0 - sinLatitude)) / (4.0 * kPi);
+    return {x, y};
+}
+
+QPointF OsmAndNativeMapWidget::normalizedToLonLat(double normalizedX, double normalizedY)
+{
+    const auto wrappedX = normalizedX - std::floor(normalizedX);
+    const auto clampedY = std::clamp(normalizedY, 0.0, 1.0);
+    const auto longitude = wrappedX * 360.0 - 180.0;
+    const auto latitude = std::atan(std::sinh(kPi * (1.0 - 2.0 * clampedY))) * 180.0 / kPi;
+    return {longitude, latitude};
+}
