@@ -30,6 +30,15 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     // Read only after the previous write has completed so concurrent windows
     // cannot overwrite each other's settings with stale snapshots.
     const settings = readAppSettings();
+    if (section === 'root') {
+      // Reserved section name for one-time cleanup of former top-level config keys.
+      const updated = { ...settings, ...values };
+      for (const [key, value] of Object.entries(values)) {
+        if (value === undefined) delete updated[key];
+      }
+      await writeJsonAtomically(settingsPath(), updated);
+      return;
+    }
     const previous = settings[section];
     const merged: Record<string, unknown> = {
       ...(previous && typeof previous === 'object' && !Array.isArray(previous)
