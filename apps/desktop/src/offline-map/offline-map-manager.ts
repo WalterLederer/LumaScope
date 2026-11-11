@@ -133,7 +133,7 @@ export class OfflineMapManager {
  };
  private async setEnabledBatchInternal(
   updates:Array<{id:string;enabled:boolean}>,
-  preset?:'austria'|'europe'|'all'|'custom'|'custom-no-world-map'
+  preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'
  ):Promise<OfflineMapStatus[]>{
   for(const {id,enabled} of updates){
    const item=this.opened.get(id);const obf=this.obfFiles.get(id);const mapsforge=this.mapsforgeFiles.get(id);
