@@ -1237,6 +1237,7 @@ export class OfflineMapRenderer {
     // This is important when switching online/offline: the first idle can occur
     // before the final Shortbread label tiles are queryable, while no drag follows.
     this.map.on('idle', refreshOverlays);
+    this.map.on('idle', () => window.dispatchEvent(new CustomEvent('lumascope-map-display-ready')));
     this.map.on('moveend', refreshOverlays);
     this.map.on('zoomend', refreshOverlays);
     this.map.on('sourcedata', event => {
