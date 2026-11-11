@@ -3658,6 +3658,11 @@ export class MapWindow implements OnInit, OnDestroy {
         imageView: { ...imageView, activePath: legacyImagePath }
       });
     }
+    if (legacyImagePath || legacyImageName) {
+      await this.desktop.ProcessManager.setAppSettingsSection('root', {
+        gpxTrackPath: undefined, gpxTrackFileName: undefined
+      });
+    }
     if (legacyImagePath || legacyImageName || preferences['gpxTrackOpacity'] !== undefined
         || preferences['gpxTrackColor'] !== undefined || preferences['gpxTrackVisible'] !== undefined) {
       await this.desktop.ProcessManager.setAppSettingsSection('preferences', {
