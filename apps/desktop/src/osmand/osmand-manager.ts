@@ -184,7 +184,9 @@ class OsmAndHelperWorker {
 
     const reader = this.reader;
     if (!reader) throw new Error('OsmAnd helper output stream is unavailable.');
-    const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 30000, 'OsmAnd tile header timed out');
+    // The native helper writes the binary header only after synchronous OBF lookup and rasterization finish.
+    // Large or cold OBF tiles can legitimately take longer than the old 30-second IPC timeout.
+    const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 120000, 'OsmAnd tile render timed out while waiting for the native renderer');
     if (header.toString('ascii', 0, 4) !== 'OSMR'
       || header.readUInt16LE(4) !== 1
       || header.readUInt16LE(6) !== HEADER_BYTES) {
