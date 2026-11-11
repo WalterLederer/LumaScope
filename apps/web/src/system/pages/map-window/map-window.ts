@@ -505,6 +505,9 @@ interface MapErrorEntry {
           <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
             {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
           </button>
+          <button type="button" class="danger" (click)="cancelMapRendering()" title="Stops the current OsmAnd Atlas rendering and clears the active render progress." [disabled]="!isMapRenderingActive()">
+            Cancel
+          </button>
         </div>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
@@ -2901,6 +2904,32 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('Refresh visible OsmAnd tiles', message);
     }
   };
+  protected readonly isMapRenderingActive = (): boolean =>
+    this.renderActiveCount() > 0 || this.hillshadeActiveCount() > 0
+    || this.rerenderVisibleTilesBusy() || this.renderDisplayPending();
+
+  protected readonly cancelMapRendering = async (): Promise<void> => {
+    if (!this.isMapRenderingActive()) return;
+    // Stop any camera animation and cancel queued/in-flight Atlas helper work.
+    this.offlineRenderer?.map.stop();
+    try {
+      if (this.mapSource() === 'osmand-atlas') {
+        await this.desktop?.OsmAndAtlas.cancelRendering();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.recordMapError('Cancel map rendering', message);
+    }
+    this.activeRenderTiles.clear();
+    this.activeHillshadeTiles.clear();
+    this.renderActiveCount.set(0);
+    this.hillshadeActiveCount.set(0);
+    this.renderDisplayPending.set(false);
+    this.rerenderVisibleTilesBusy.set(false);
+    this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+    this.rerenderVisibleTilesStatus.set('Rendering cancelled.');
+  };
+
   protected readonly rerenderVisibleTiles = async (): Promise<void> => {
     const renderer = this.offlineRenderer;
     const source = this.mapSource();
