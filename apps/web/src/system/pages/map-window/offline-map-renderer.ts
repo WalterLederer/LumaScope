@@ -313,6 +313,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       }));
     };
     emitHillshadeStatus('loading');
+    try {
     const diagnosticId = ++osmAndHillshadeDiagnosticCount;
     const traceTile = diagnosticId <= 24;
     if (traceTile) {
@@ -351,7 +352,6 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
         console.error('[Hillshade][database-error]', {
           request: diagnosticId, tile, databaseId: database.id, database: database.path, error: message
         });
-        emitHillshadeStatus('error', message);
         throw error;
       }
 
@@ -403,6 +403,11 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     const data = await blob.arrayBuffer();
     emitHillshadeStatus('loaded');
     return { data };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      emitHillshadeStatus(/\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error', message);
+      throw error;
+    }
   });
   osmAndHillshadeProtocolRegistered = true;
 }
