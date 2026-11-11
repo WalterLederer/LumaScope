@@ -117,7 +117,8 @@ export class OfflineMapManager {
  };
  @IpcHandler({name:'OfflineMap.setEnabled'})
  readonly setEnabled=async(_event:IpcMainInvokeEvent,id:string,enabled:boolean):Promise<OfflineMapStatus[]>=>{
-  const item=this.opened.get(id); const obf=this.obfFiles.get(id);
+  const item=this.opened.get(id); const obf=this.obfFiles.get(id); const mapsforge=this.mapsforgeFiles.get(id);
+  if(mapsforge&&typeof enabled==='boolean'){mapsforge.enabled=enabled;this.enabledByPath.set(id,enabled);await this.persistMaps();}
   if(obf&&typeof enabled==='boolean'){
    // OBF regions are independent and may be active together.
    obf.enabled=enabled;this.enabledByPath.set(id,enabled);await this.persistMaps();
