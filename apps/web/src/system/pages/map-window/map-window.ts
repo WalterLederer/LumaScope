@@ -564,9 +564,9 @@ interface MapErrorEntry {
                   </select>
                 </label>
                 <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
-                <button class="offline-map-add-button offline-map-clear-button" type="button" (click)="clearOfflineMapsList()" [disabled]="offlineMaps().length === 0">Clear maps list</button>
-                <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="offlineMaps().length === 0">Activate all</button>
-                <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="offlineMaps().length === 0">Deactivate all</button>
+                <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="clearOfflineMapsList()" [disabled]="filteredOfflineMaps().length === 0">Clear visible maps</button>
+                <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="filteredOfflineMaps().length === 0">Activate visible maps</button>
+                <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="filteredOfflineMaps().length === 0">Deactivate visible maps</button>
                 <label class="offline-map-list-filter">Filter:
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
@@ -2802,25 +2802,36 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
       await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: value });
-      if (value !== 'custom-no-world-map') {
-        const worldMap = this.offlineMaps().find(map => map.type === 'obf' && /^World_basemap\.obf$/i.test(map.fileName || map.name));
-        if (worldMap && !worldMap.enabled) {
-          this.offlineMaps.set(await this.desktop.OfflineMap.setEnabled(worldMap.id, true));
+      // A named preset is an activation preset as well as a renderer filter.
+      // This also makes it recover correctly after "Deactivate visible maps".
+      // Custom intentionally preserves the user's individual enabled states.
+      if (value !== 'custom') {
+        let updated = this.offlineMaps();
+        for (const map of updated) {
+          if (map.type !== 'obf') continue;
+          const enabled = this.obfMapMatchesPreset(map, value);
+          if (map.enabled !== enabled) updated = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
         }
+        this.offlineMaps.set(updated);
       }
     }
     this.refreshOfflineMapRendering();
   };
 
-  private obfMapMatchesPreset(map: import('internal-api').OfflineMapStatus): boolean {
+  private obfMapMatchesPreset(
+    map: import('internal-api').OfflineMapStatus,
+    selectedPreset: 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map' = this.offlineMapPreset()
+  ): boolean {
     if (map.type !== 'obf') return false;
     const fileName = map.fileName || map.name;
+    const isWorldBasemap = /^World_basemap\.obf$/i.test(fileName);
+    if (isWorldBasemap) return selectedPreset !== 'custom-no-world-map';
+    // The legacy nationwide extract is obsolete and must never be activated by Austria.
+    if (selectedPreset === 'austria' && /^Austria_europe\.obf$/i.test(fileName)) return false;
     const isAustria = /austria|österreich|osterreich/i.test(fileName);
     const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
-    const preset = this.offlineMapPreset();
-    const isWorldBasemap = /^World_basemap\.obf$/i.test(map.fileName || map.name);
-    if (isWorldBasemap) return preset !== 'custom-no-world-map';
-    return preset === 'all' || preset === 'custom' || preset === 'custom-no-world-map' || (preset === 'austria' ? isAustria : isEurope);
+    return selectedPreset === 'all' || selectedPreset === 'custom' || selectedPreset === 'custom-no-world-map'
+      || (selectedPreset === 'austria' ? isAustria : isEurope);
   }
 
   protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
@@ -2855,27 +2866,24 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   protected readonly setAllOfflineMapsEnabled = async (enabled: boolean): Promise<void> => {
-    if (!this.desktop || this.offlineMaps().length === 0) return;
+    if (!this.desktop) return;
+    const visibleMaps = this.filteredOfflineMaps();
+    if (visibleMaps.length === 0) return;
     try {
-      this.offlineMaps.set(await this.desktop.OfflineMap.setAllEnabled(enabled));
-      if (this.currentLatitude !== null && this.currentLongitude !== null
-        && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
-        this.mapSourceGeneration++; this.mapInitialization = null;
-        this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
-        this.currentOfflineMapId = null;
-        void this.initialize(this.currentLatitude, this.currentLongitude);
-      }
+      let updated = this.offlineMaps();
+      for (const map of visibleMaps) updated = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
+      this.offlineMaps.set(updated);
+      this.refreshOfflineMapRendering();
     } catch (error) {
-      console.error('[OfflineMap] Could not update Active state for all loaded maps:', error);
+      console.error('[OfflineMap] Could not update Active state for visible maps:', error);
     }
   };
   protected readonly clearOfflineMapsList = async (): Promise<void> => {
     if (!this.desktop) return;
-    const maps = this.offlineMaps();
+    const maps = this.filteredOfflineMaps();
     if (maps.length === 0) return;
     const confirmed = window.confirm(
-      `Remove all ${maps.length} map(s) from the LumaScope list? The map files on disk will not be deleted.`
+      `Remove all ${maps.length} visible map(s) from the LumaScope list? The map files on disk will not be deleted.`
     );
     if (!confirmed) return;
     try {
