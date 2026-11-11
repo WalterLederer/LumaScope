@@ -490,7 +490,11 @@ interface MapErrorEntry {
         } @else {
           <span>
             @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
-            @if (hillshadeActiveCount() > 0) { @if (renderActiveCount() > 0) { · } Hillshade: {{ hillshadeActiveCount() }} active }
+            @if (hillshadeActiveCount() > 0) {
+              @if (renderActiveCount() > 0) { · }
+              Hillshade: {{ hillshadeActiveCount() }} active
+              <progress class="hillshade-active-progress" [value]="hillshadeProgressValue()" [max]="hillshadeProgressMaximum()" aria-label="Hillshade rendering progress"></progress>
+            }
             @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0) { Display }
             @else if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
           </span>
@@ -796,14 +800,15 @@ interface MapErrorEntry {
 </div>
 </section>
       }
-      @if (mapDisplayNotice() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
-        <div class="map-display-notice" role="alert">
-          <strong>Map cannot be displayed</strong>
-          <span>{{ mapDisplayNotice() }}</span>
-          <button type="button" (click)="openResourcesDownloadTab()">Open Download tab</button>
-        </div>
-      }
       <div class="map-content">
+        @if (mapDisplayNotice() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
+          <div class="map-display-notice" role="alert">
+            <button type="button" class="map-display-notice-close" (click)="mapDisplayNotice.set('')" title="Dismiss map notice" aria-label="Dismiss map notice">×</button>
+            <strong>Map cannot be displayed</strong>
+            <span>{{ mapDisplayNotice() }}</span>
+            <button type="button" (click)="settingsOpen.set(true); selectSettingsTab('offlineMaps')">Open OfflineMaps tab</button>
+          </div>
+        }
         @if (settingsOpen() && activeSettingsTab() === 'offlineMaps') {
           <div class="offline-map-list-view">
             <div class="mbtiles-map-list">
@@ -890,8 +895,8 @@ interface MapErrorEntry {
     .resize-ne,.resize-sw,.resize-nw,.resize-se{width:12px;height:12px}
     .resize-ne{top:0;right:0;cursor:nesw-resize}.resize-sw{bottom:0;left:0;cursor:nesw-resize}
     .resize-nw{top:0;left:0;cursor:nwse-resize}.resize-se{right:0;bottom:0;cursor:nwse-resize}
-    .map-display-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;max-width:min(520px,calc(100% - 36px));padding:18px 22px;text-align:center;background:var(--color-surface-default-high,#292a2d);border:1px solid var(--color-content-default-low,#666);border-radius:8px;box-shadow:0 5px 24px rgba(0,0,0,.35);color:var(--color-content-default-high,#eee)}
-    .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}
+    .map-display-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;max-width:min(520px,calc(100% - 36px));padding:22px 30px 18px;text-align:center;background:var(--color-surface-default-high,#292a2d);border:1px solid var(--color-content-default-low,#666);border-radius:8px;box-shadow:0 5px 24px rgba(0,0,0,.35);color:var(--color-content-default-high,#eee)}
+    .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}.map-display-notice .map-display-notice-close{position:absolute;top:5px;right:6px;margin:0;padding:1px 6px;font-size:17px;line-height:1.2;border:0;background:transparent}
     :host ::ng-deep .maplibregl-ctrl-bottom-left{z-index:40!important;pointer-events:none}:host ::ng-deep .leaflet-bottom.leaflet-left{z-index:1000!important;pointer-events:none}
     :host ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl,:host ::ng-deep .leaflet-bottom.leaflet-left .leaflet-control{pointer-events:auto}
     :host ::ng-deep .maplibregl-ctrl-scale,:host ::ng-deep .leaflet-control-scale-line{opacity:.85;transition:opacity .15s ease;background:rgba(255,255,255,.94);color:#111;border:1px solid rgba(0,0,0,.88);box-shadow:0 1px 3px rgba(0,0,0,.45);font-size:10px;font-weight:700;text-shadow:none;padding:2px 5px}
@@ -955,6 +960,7 @@ interface MapErrorEntry {
      .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
     .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
     .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
+    .hillshade-active-progress{display:inline-block;width:112px;height:10px;margin-left:7px;vertical-align:middle;accent-color:#65a9ff}
     .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:7px 8px 8px;border:1px solid var(--color-content-default-low,#454545);border-radius:6px;background:transparent;transition:background-color 140ms ease,border-color 140ms ease}
     .view-rerender-section.is-rendering{background:rgba(220,165,35,.14);border-color:rgba(220,165,35,.48)}
     .view-rerender-section.is-render-complete{background:rgba(45,150,75,.10);border-color:rgba(65,165,95,.32)}
@@ -1288,6 +1294,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderProgressMaximum = computed(() => this.rerenderVisibleTilesBusy()
     ? Math.max(1, this.rerenderVisibleTilesProgress().total + 1)
     : Math.max(1, this.renderTotalCount() + this.hillshadeTotalCount() + 1));
+  protected readonly hillshadeProgressValue = computed(() =>
+    Math.max(0, this.hillshadeTotalCount() - this.hillshadeActiveCount()));
+  protected readonly hillshadeProgressMaximum = computed(() =>
+    Math.max(1, this.hillshadeTotalCount() + 1));
   protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
@@ -2352,7 +2362,10 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       if (!selected) {
         this.offlineMapStatus.set(null);
-        this.mapDisplayNotice.set('No enabled MBTiles map covers the current location. Check the map bounds and enabled state in Offline Maps.');
+        const hasActiveMbtiles = this.offlineMaps().some(map => map.enabled && (!map.type || map.type === 'mbtiles'));
+        this.mapDisplayNotice.set(hasActiveMbtiles
+          ? 'No active .mbtiles map covers the current location. Check the map bounds in OfflineMaps.'
+          : 'No .mbtiles active. Activate an MBTiles map in OfflineMaps.');
         // Do not silently substitute the online basemap: that makes switching
         // to MBTiles appear to work while showing exactly the same online map.
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
@@ -2755,8 +2768,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeMapSource = (value: string): void => {
     if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas') return;
     // MBTiles requires a loaded map; OsmAnd uses its separately configured OBF runtime.
-    const nextSource = value === 'offline' && this.offlineMaps().length === 0 ? 'online' : value;
+    const nextSource = value;
     const previousSource = this.mapSource();
+    if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
     if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
       void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
@@ -4387,9 +4401,12 @@ ${points}
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              emitHillshadeStatus?.('error', message);
-              this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
-              done(error instanceof Error ? error : new Error(message), canvas);
+              const cancelled = /\\b(cancelled|canceled|aborted)\\b/i.test(message);
+              emitHillshadeStatus?.(cancelled ? 'cancelled' : 'error', message);
+              if (!cancelled) {
+                this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
+              }
+              done(cancelled ? null : error instanceof Error ? error : new Error(message), canvas);
             }
           })();
           return canvas;
