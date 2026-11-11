@@ -4406,7 +4406,7 @@ ${points}
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              const cancelled = /\\b(cancelled|canceled|aborted)\\b/i.test(message);
+              const cancelled = /\b(cancelled|canceled|aborted)\b/i.test(message);
               emitHillshadeStatus?.(cancelled ? 'cancelled' : 'error', message);
               if (!cancelled) {
                 this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
