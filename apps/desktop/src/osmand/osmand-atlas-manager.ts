@@ -343,7 +343,9 @@ class OsmAndAtlasWorker {
 
     console.info('[OsmAnd Atlas][style-trace] helper spawn', {
       stylePath: this.stylePath,
-      resourcesPath: this.resourcesPath
+      resourcesPath: this.resourcesPath,
+      obfCount: this.obfPaths.length,
+      obfPaths: [...this.obfPaths]
     });
     const spawnStartedAt = Date.now();
     const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));
@@ -884,7 +886,8 @@ export class OsmAndAtlasManager {
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
     await this.styleChange;
-    await this.refreshSelectedObf();
+    // OBF selection is refreshed by getRuntimeStatus() during map initialization.
+    // Do not reread settings and stat every selected OBF for every tile request.
     if (!Number.isInteger(z) || z < 2 || z > 22) throw new Error('OsmAnd Atlas zoom must be an integer between 2 and 22.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
