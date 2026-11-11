@@ -570,6 +570,9 @@ interface MapErrorEntry {
                 <label class="offline-map-list-filter">Filter:
                   <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
                     <option value="all">All</option>
+                    <option value="mbtiles">MBTiles</option>
+                    <option value="obf">OBF</option>
+                    <option value="map">Mapsforge (.map)</option>
                     <option value="inUse">InUse</option>
                     <option value="active">Active</option>
                     <option value="updates">Updates</option>
@@ -1329,7 +1332,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly offlineMapListFilter = signal<'all' | 'inUse' | 'active' | 'updates' | 'current' | 'noMatch'>('all');
+  protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'inUse' | 'active' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
@@ -1339,6 +1342,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly filteredOfflineMaps = computed(() => {
     const maps = this.offlineMaps();
     const filter = this.offlineMapListFilter();
+    if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
+    if (filter === 'obf') return maps.filter(map => map.type === 'obf');
+    if (filter === 'map') return maps.filter(map => map.type === 'mapsforge');
     if (filter === 'inUse') return maps.filter(map => this.isOfflineMapInUse(map));
     if (filter === 'active') return maps.filter(map => map.enabled);
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
