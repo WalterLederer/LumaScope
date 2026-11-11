@@ -545,7 +545,11 @@ interface MapErrorEntry {
         </tbody>
       </table>
       <table class="render-tile-statistics hillshade-render-statistics" aria-live="polite">
-        
+        <colgroup>
+          <col class="render-stat-label-column">
+          <col class="render-stat-value-column">
+          <col class="render-stat-value-column">
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" class="render-counter-heading">Hillshade (#{{ activeHillshadeDatabaseCount() }})</th>
