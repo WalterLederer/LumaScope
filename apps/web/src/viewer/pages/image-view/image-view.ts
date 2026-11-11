@@ -1115,6 +1115,8 @@ export class ImageView {
     const settings = await this.processManager.getAppSettings();
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
+    const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
+      ? settings['preferences'] as Record<string, unknown> : {};
     const imageView = gpx['imageView'] && typeof gpx['imageView'] === 'object'
       ? { ...(gpx['imageView'] as Record<string, unknown>) } : {};
     // Move legacy image-view GPX preferences from the former preferences section.
@@ -1126,9 +1128,6 @@ export class ImageView {
           !!track && typeof track === 'object' && typeof (track as Record<string, unknown>)['path'] === 'string' && typeof (track as Record<string, unknown>)['name'] === 'string')
       : [];
 
-    // One-time migration of the former single-track fields from the old config preferences.
-    const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
-      ? settings['preferences'] as Record<string, unknown> : {};
     const legacyPath = typeof preferences['gpxTrackPath'] === 'string' ? preferences['gpxTrackPath']
       : typeof settings['gpxTrackPath'] === 'string' ? settings['gpxTrackPath'] as string : '';
     const legacyName = typeof preferences['gpxTrackFileName'] === 'string' ? preferences['gpxTrackFileName']
