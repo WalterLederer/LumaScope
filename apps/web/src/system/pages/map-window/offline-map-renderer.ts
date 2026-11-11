@@ -1665,12 +1665,12 @@ export class OfflineMapRenderer {
         label.style.background = warning ? 'rgba(92,66,18,.94)' : 'rgba(92,24,20,.94)';
         message.style.cssText = 'min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;';
         const tileId = 'z' + status.zoom + '/x' + status.column + '/y' + status.row;
-        const timeout = !warning && /\\b(timeout|timed out|did not settle)\\b/i.test(status.error || '');
+        const timeout = !warning && /\b(timeout|timed out|did not settle)\b/i.test(status.error || '');
         message.textContent = warning
-          ? 'WARNING · ' + tileId + '\\nWorld_basemap.obf needed'
-          : (timeout ? 'TIMEOUT' : 'TILE ERROR') + ' · ' + tileId + '\\n' + (status.error || 'Unknown rendering error');
+          ? 'WARNING · ' + tileId + '\nWorld_basemap.obf needed'
+          : (timeout ? 'TIMEOUT' : 'TILE ERROR') + ' · ' + tileId + '\n' + (status.error || 'Unknown rendering error');
         label.title = (warning ? 'Tile warning · ' : timeout ? 'Tile render timeout · ' : 'Tile render error · ')
-          + tileId + '\\n' + (status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error'));
+          + tileId + '\n' + (status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error'));
       } else {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
