@@ -3569,13 +3569,13 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const operation = this.gpxSettingsWriteQueue.then(async () => {
       const settings = await this.desktop!.ProcessManager.getAppSettings();
-      const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
-        ? settings['gpx'] as Record<string, unknown> : {};
       await this.desktop!.ProcessManager.setAppSettingsSection('gpx', {
         tracks: tracks.filter(track => !track.path.startsWith('memory:'))
       });
-      // Keep the legacy map-window key out of the config after migration.
-      if (gpx['tracks'] === undefined) {
+      // Remove former map-window GPX keys once they have been copied to the shared list.
+      const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
+        ? settings['mapWindow'] as Record<string, unknown> : {};
+      if (mapWindow['gpxTracks'] !== undefined || mapWindow['gpxPath'] !== undefined || mapWindow['gpxFileName'] !== undefined) {
         await this.desktop!.ProcessManager.setAppSettingsSection('mapWindow', {
           gpxTracks: undefined, gpxPath: undefined, gpxFileName: undefined
         });
@@ -4260,7 +4260,7 @@ ${points}
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.gpxSegmentsByTrack.set(destination, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
-      this.saveSetting('gpxTracks', JSON.stringify(this.gpxTracks().filter(item => !item.path.startsWith('memory:'))));
+      void this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
       this.rebuildGpxSegments();
       this.gpxError.set('');
       this.applyGpxTrack();
