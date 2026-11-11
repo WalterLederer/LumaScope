@@ -50,8 +50,8 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     for (const [key, value] of Object.entries(values)) {
       if (value === undefined) delete merged[key];
     }
-    // The unified offlineMaps.filePaths object replaces the former split
-    // path lists and enabledByPath dictionary; do not leave stale keys behind.
+    // The unified offlineMaps.filePaths array replaces the former object and
+    // split path lists; do not leave stale compatibility keys behind.
     if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) {
       delete merged.obfPaths;
       delete merged.enabledByPath;
