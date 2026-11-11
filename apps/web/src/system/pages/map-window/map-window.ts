@@ -2902,10 +2902,10 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const obfSelectionChanged = visibleMaps.some(map => map.type === 'obf' && map.enabled !== enabled);
       const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
-      const updatedSelection = this.offlineMaps().map(map => {
-        const update = updates.find(item => item.id === map.id);
-        return update ? { ...map, enabled: update.enabled } : map;
-      });
+      const updateById = new Map(updates.map(update => [update.id, update.enabled]));
+      const updatedSelection = this.offlineMaps().map(map =>
+        updateById.has(map.id) ? { ...map, enabled: updateById.get(map.id)! } : map
+      );
       const matchingPreset = obfSelectionChanged ? this.getObfPresetForMaps(updatedSelection) : null;
       const updated = await this.desktop.OfflineMap.setEnabledBatch(
         updates,
