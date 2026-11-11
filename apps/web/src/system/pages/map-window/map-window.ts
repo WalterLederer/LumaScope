@@ -239,7 +239,7 @@ interface MapErrorEntry {
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
         </div>
-        <details class="time-slider-animate-section marker-summary-section">
+        <details class="time-slider-animate-section">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
@@ -250,7 +250,7 @@ interface MapErrorEntry {
             <label class="time-slider-speed-control"><span>Figure size</span><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"><strong>{{ walkingFigureSize().toFixed(1) }}×</strong></label>
           </div>
         </details>
-        <details class="time-slider-minmax-section marker-summary-section">
+        <details class="time-slider-minmax-section">
           <summary>MinMax</summary>
           <div class="time-slider-minmax-content">
             <div class="time-slider-boundary-box">
@@ -928,7 +928,7 @@ interface MapErrorEntry {
     .time-slider-range.disabled{opacity:.55}
     .time-slider-animate-button{flex:0 0 auto;min-width:76px;padding:5px 12px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;cursor:pointer}
     .time-slider-animate-button:disabled{opacity:.45;cursor:default}
-    .time-slider-animate-section,.time-slider-minmax-section{margin-top:0}
+    .time-slider-animate-section,.time-slider-minmax-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;margin-top:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}.time-slider-minmax-section{padding-top:0;border-top:0}
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
     .time-slider-range{user-select:none;-webkit-user-select:none}
