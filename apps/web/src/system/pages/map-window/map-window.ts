@@ -1295,10 +1295,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderProgressMaximum = computed(() => this.rerenderVisibleTilesBusy()
     ? Math.max(1, this.rerenderVisibleTilesProgress().total + 1)
     : Math.max(1, this.renderTotalCount() + this.hillshadeTotalCount() + 1));
-  protected readonly hillshadeProgressValue = computed(() =>
-    Math.max(0, this.hillshadeTotalCount() - this.hillshadeActiveCount()));
+  protected readonly hillshadeProgressValue = computed(() => this.hillshadeCompletedCount());
   protected readonly hillshadeProgressMaximum = computed(() =>
-    Math.max(1, this.hillshadeTotalCount() + 1));
+    Math.max(1, this.hillshadeTotalCount()));
   protected readonly opacitySectionOpen = signal(this.readSetting('opacitySectionOpen', 'true') === 'true');
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
@@ -1309,10 +1308,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeActiveCount = signal(0);
   protected readonly hillshadeDisplayPending = signal(false);
   protected readonly hillshadeTotalCount = signal(0);
+  protected readonly hillshadeCompletedCount = signal(0);
   protected readonly totalHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
   protected readonly lastHillshadeTileCounts = signal({ rendered: 0, failed: 0 });
   private readonly activeHillshadeTiles = new Set<string>();
   private readonly seenHillshadeTiles = new Set<string>();
+  private readonly completedHillshadeTiles = new Set<string>();
   private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
