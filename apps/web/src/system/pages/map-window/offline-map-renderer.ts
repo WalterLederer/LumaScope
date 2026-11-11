@@ -756,6 +756,11 @@ export class OfflineMapRenderer {
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
     if (!detail || detail.protocol !== this.tileProtocol) return;
     const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
+    const previous = this.tileStatuses.get(key);
+    // MapLibre may retry a failed tile repeatedly. Keep the first real failure
+    // visible throughout subsequent loading/rerendering events; only a
+    // successful tile load is allowed to clear the failure overlay.
+    if (previous?.status === 'error' && detail.status !== 'loaded') return;
     if (detail.status === 'loaded' || detail.status === 'cancelled') {
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
