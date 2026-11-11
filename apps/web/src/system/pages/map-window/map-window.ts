@@ -559,10 +559,10 @@ interface MapErrorEntry {
             <td>{{ totalHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
             <td>{{ lastHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
           </tr>
-          <tr class="render-stat-spacer" aria-hidden="true">
-            <th scope="row"></th>
-            <td></td>
-            <td></td>
+          <tr>
+            <th scope="row">From cache</th>
+            <td>–</td>
+            <td>–</td>
           </tr>
           <tr>
             <th scope="row">Errors</th>
