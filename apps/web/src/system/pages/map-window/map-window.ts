@@ -1546,8 +1546,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
     if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
   }).catch(error => console.error('Could not restore map zoom:', error)) ?? Promise.resolve();
-  protected readonly gpxColor = signal(this.readSetting('gpxColor', '#ff3b30'));
-  protected readonly gpxOpacity = signal(this.readNumber('gpxOpacity', 100, 0, 100));
+  protected readonly gpxColor = signal('#ff3b30');
+  protected readonly gpxOpacity = signal(100);
   protected readonly markerOpacity = signal(this.readNumber('markerOpacity', 100, 0, 100));
   protected readonly markersVisible = signal(this.readSetting('markersVisible', 'true') === 'true');
   protected readonly locationOpacity = signal(this.readNumber('locationOpacity', 100, 0, 100));
@@ -1562,7 +1562,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
-  protected readonly gpxVisible = signal(this.readSetting('gpxVisible', 'true') === 'true');
+  protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
@@ -3220,7 +3220,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapVisible.set(visible); this.saveSetting('mapVisible', visible); this.applyMapOpacity();
   };
   protected readonly changeTrackVisibility = (visible: boolean): void => {
-    this.gpxVisible.set(visible); this.saveSetting('gpxVisible', visible); this.applyGpxTrack();
+    this.gpxVisible.set(visible); void this.persistGpxMapSettings({ visible }); this.applyGpxTrack();
   };
   protected readonly changeMarkersVisibility = (visible: boolean): void => {
     this.markersVisible.set(visible); this.saveSetting('markersVisible', visible);
@@ -3427,14 +3427,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeGpxOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
-    this.gpxOpacity.set(next); this.saveSetting('gpxOpacity', next); this.applyGpxTrack();
+    this.gpxOpacity.set(next); void this.persistGpxMapSettings({ opacity: next }); this.applyGpxTrack();
   };
   protected readonly gpxSelection = (): string => this.gpxVisible() ? this.gpxColor() : 'off';
   protected readonly changeGpxColor = (value: string): void => {
-    if (value === 'off') { this.gpxVisible.set(false); this.saveSetting('gpxVisible', false); }
+    if (value === 'off') { this.gpxVisible.set(false); void this.persistGpxMapSettings({ visible: false }); }
     else if (this.gpxColors.some(color => color.value === value)) {
       this.gpxColor.set(value); this.gpxVisible.set(true);
-      this.saveSetting('gpxColor', value); this.saveSetting('gpxVisible', true);
+      void this.persistGpxMapSettings({ color: value, visible: true });
     } else return;
     this.colorMenuOpen.set(false);
     this.applyGpxTrack();
@@ -3565,6 +3565,18 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private gpxSettingsWriteQueue: Promise<void> = Promise.resolve();
 
+  private async persistGpxMapSettings(patch: Record<string, unknown>): Promise<void> {
+    if (!this.desktop) return;
+    const settings = await this.desktop.ProcessManager.getAppSettings();
+    const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+      ? settings['gpx'] as Record<string, unknown> : {};
+    const mapView = gpx['mapWindow'] && typeof gpx['mapWindow'] === 'object'
+      ? gpx['mapWindow'] as Record<string, unknown> : {};
+    await this.desktop.ProcessManager.setAppSettingsSection('gpx', {
+      mapWindow: { ...mapView, ...patch }
+    });
+  }
+
   private async persistGpxTracks(tracks: GpxTrackFile[]): Promise<void> {
     if (!this.desktop) return;
     const operation = this.gpxSettingsWriteQueue.then(async () => {
@@ -3590,6 +3602,19 @@ export class MapWindow implements OnInit, OnDestroy {
     const settings = await this.desktop.ProcessManager.getAppSettings();
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
+    const mapView = gpx['mapWindow'] && typeof gpx['mapWindow'] === 'object'
+      ? gpx['mapWindow'] as Record<string, unknown> : {};
+    const legacyMapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
+      ? settings['mapWindow'] as Record<string, unknown> : {};
+    const color = mapView['color'] ?? legacyMapWindow['gpxColor'];
+    if (typeof color === 'string' && this.gpxColors.some(item => item.value === color)) this.gpxColor.set(color);
+    const opacity = Number(mapView['opacity'] ?? legacyMapWindow['gpxOpacity']);
+    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 100) this.gpxOpacity.set(opacity);
+    const visible = mapView['visible'] ?? legacyMapWindow['gpxVisible'];
+    if (typeof visible === 'boolean' || visible === 'true' || visible === 'false') this.gpxVisible.set(visible === true || visible === 'true');
+    if (mapView['color'] === undefined || mapView['opacity'] === undefined || mapView['visible'] === undefined) {
+      await this.persistGpxMapSettings({ color: this.gpxColor(), opacity: this.gpxOpacity(), visible: this.gpxVisible() });
+    }
     let tracks: GpxTrackFile[] = Array.isArray(gpx['tracks'])
       ? gpx['tracks'].filter((track): track is GpxTrackFile =>
           !!track && typeof track === 'object' && typeof track.path === 'string' && typeof track.name === 'string')
