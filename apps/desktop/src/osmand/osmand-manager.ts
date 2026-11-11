@@ -322,11 +322,15 @@ export class OsmAndManager {
       const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
         filePaths?: unknown; obfPreset?: unknown;
       };
-      if (settings.filePaths && typeof settings.filePaths === 'object' && !Array.isArray(settings.filePaths)) {
+      if (Array.isArray(settings.filePaths)) {
         const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
-        selectedPaths = Object.entries(settings.filePaths as Record<string, unknown>)
-          .filter(([path, enabled]) => enabled === true && /\.obf$/i.test(path))
-          .map(([path]) => path)
+        const savedPaths = settings.filePaths.filter((entry): entry is { path: string; enabled: boolean } =>
+          !!entry && typeof entry === 'object'
+          && typeof (entry as { path?: unknown }).path === 'string'
+          && typeof (entry as { enabled?: unknown }).enabled === 'boolean');
+        selectedPaths = savedPaths
+          .filter(entry => entry.enabled && /\.obf$/i.test(entry.path))
+          .map(entry => entry.path)
           .filter(path => {
             if (!existsSync(path)) return false;
             const name = path.split(/[\\/]/).pop() ?? path;
