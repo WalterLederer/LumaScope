@@ -8,6 +8,7 @@ import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
+interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpacity(opacity: number): LeafletGridLayer; redraw(): LeafletGridLayer; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
@@ -16,6 +17,7 @@ interface MapInstance {
   setZoom(zoom: number): MapInstance;
   containerPointToLatLng(point: [number, number]): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
+  createPane(name: string): HTMLElement;
   fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
   remove(): void;
 }
@@ -23,6 +25,7 @@ interface LeafletMapApi {
   map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number }): MapInstance;
   control: { scale(options: { metric: boolean; imperial: boolean; position: 'bottomleft'; maxWidth: number }): { addTo(map: MapInstance): unknown } };
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): { addTo(map: MapInstance): { remove(): void } };
+  GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
@@ -461,10 +464,10 @@ interface MapErrorEntry {
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
-        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0 || mapSource() === 'online'" aria-label="Show Hillshade"></label>
+        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
         <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
           [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
-          [disabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible() || mapSource() === 'online'" aria-label="Hillshade opacity">
+          [disabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity">
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
       </div>
     </div>
@@ -1200,6 +1203,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
   private leaflet: LeafletMapApi | null = null;
+  private leafletHillshadeLayer: LeafletGridLayer | null = null;
+  private leafletHillshadePane: HTMLElement | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
@@ -1598,7 +1603,7 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
         this.hillshadeDatabases.set(databases);
         this.updateHillshadePresetFromSelection(databases);
-        if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+        this.applyHillshadeSettingsIfReady(true);
       }).catch(error => this.recordMapError('Hillshade databases', error instanceof Error ? error.message : String(error)));
     }
     document.documentElement.style.backgroundColor = 'transparent';
@@ -1807,6 +1812,8 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.onResize);
     this.map?.remove();
     this.map = null;
+    this.leafletHillshadeLayer = null;
+    this.leafletHillshadePane = null;
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     // Native OsmAnd render helpers are persistent main-process workers. Stop them
     // when their map window goes away so they cannot keep GPU contexts alive.
@@ -2238,7 +2245,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapSourceGeneration++;
         generation = this.mapSourceGeneration;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
         this.tileLayer?.remove(); this.tileLayer = null; this.clearDirectoryMarkers();
         this.currentOfflineMapId = nextId;
         this.mapInitialization = null;
@@ -2663,7 +2670,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineMapStatus.set(null);
     }
     if (this.currentLatitude !== null && this.currentLongitude !== null) {
-      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -2702,7 +2709,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapInitialization = null;
         this.offlineRenderer?.remove();
         this.offlineRenderer = null;
-        this.map?.remove(); this.map = null;
+        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null;
         void this.initialize(this.currentLatitude, this.currentLongitude);
       }
       void this.refreshOsmAndTileCache();
@@ -2885,7 +2892,7 @@ export class MapWindow implements OnInit, OnDestroy {
       && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -2909,7 +2916,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -2963,7 +2970,7 @@ export class MapWindow implements OnInit, OnDestroy {
         && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
         this.mapSourceGeneration++; this.mapInitialization = null;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
         this.currentOfflineMapId = null;
         void this.initialize(this.currentLatitude, this.currentLongitude);
       }
@@ -2982,7 +2989,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.marker = null; this.directoryMarkerGroup = null;
+      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -3106,19 +3113,19 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       }
     }
-    if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+    this.applyHillshadeSettingsIfReady(true);
   };
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
-    this.offlineRenderer?.setHillshadeVisibility(visible && this.activeHillshadeDatabaseCount() > 0);
+    this.applyHillshadeSettingsIfReady();
   };
   protected readonly changeHillshadeOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.hillshadeOpacity.set(next);
     this.saveSetting('hillshadeOpacity', next);
-    this.offlineRenderer?.setHillshadeOpacity(next / 100);
+    this.applyHillshadeSettingsIfReady();
   };
   protected readonly addHillshadeDatabases = async (): Promise<void> => {
     if (!this.desktop) return;
@@ -3126,7 +3133,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabases();
       this.hillshadeDatabases.set(databases);
       this.updateHillshadePresetFromSelection(databases);
-      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
       this.recordMapError('Add Hillshade databases', error instanceof Error ? error.message : String(error));
     }
@@ -3137,7 +3144,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(id, enabled);
       this.hillshadeDatabases.set(databases);
       this.updateHillshadePresetFromSelection(databases);
-      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
       this.recordMapError('Update Hillshade database', error instanceof Error ? error.message : String(error));
     }
@@ -3152,7 +3159,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.hillshadeDatabases.set(databases);
       }
       this.updateHillshadePresetFromSelection(databases);
-      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
       this.recordMapError('Update Hillshade databases', error instanceof Error ? error.message : String(error));
     }
@@ -3163,7 +3170,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
       this.hillshadeDatabases.set(databases);
       this.updateHillshadePresetFromSelection(databases);
-      if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+      this.applyHillshadeSettingsIfReady(true);
       if (databases.length === 0) { this.hillshadeVisible.set(false); this.saveSetting('hillshadeVisible', false); }
     } catch (error) {
       this.recordMapError('Remove Hillshade database', error instanceof Error ? error.message : String(error));
@@ -4128,6 +4135,7 @@ ${points}
     const style = this.styles[this.mapStyle()];
     this.tileLayer = this.leaflet.tileLayer(style.url, style).addTo(this.map);
     this.applyMapColor();
+    this.applyHillshadeSettingsIfReady(true);
   }
   private applyMapColor(): void {
     const mapLibreCanvas = this.mapElement().nativeElement.querySelector<HTMLElement>('.maplibregl-canvas');
@@ -4154,8 +4162,95 @@ ${points}
     this.applyScaleVisibility();
   }
 
-  private applyHillshadeSettingsIfReady(): void {
-    if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
+  private applyHillshadeSettingsIfReady(refreshLeafletTiles = false): void {
+    if (this.offlineRenderer) {
+      this.applyHillshadeSettings(this.offlineRenderer);
+      return;
+    }
+    if (this.map && this.leaflet) this.applyLeafletHillshadeSettings(refreshLeafletTiles);
+  }
+
+  private applyLeafletHillshadeSettings(refreshTiles: boolean): void {
+    const map = this.map;
+    const leaflet = this.leaflet;
+    const desktop = this.desktop;
+    const databases = this.hillshadeDatabases().filter(database => database.enabled && database.available);
+    if (!map || !leaflet || !desktop || !this.hillshadeVisible() || databases.length === 0) {
+      this.leafletHillshadeLayer?.remove();
+      this.leafletHillshadeLayer = null;
+      return;
+    }
+
+    if (refreshTiles && this.leafletHillshadeLayer) {
+      this.leafletHillshadeLayer.remove();
+      this.leafletHillshadeLayer = null;
+    }
+
+    if (!this.leafletHillshadeLayer) {
+      if (!this.leafletHillshadePane) {
+        this.leafletHillshadePane = map.createPane('hillshadePane');
+        this.leafletHillshadePane.style.zIndex = '250';
+      }
+      const HillshadeGridLayer = leaflet.GridLayer.extend({
+        createTile: (coords, done) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 256;
+          canvas.height = 256;
+          const context = canvas.getContext('2d');
+          if (!context) {
+            done(new Error('Unable to create the Leaflet Hillshade tile canvas.'), canvas);
+            return canvas;
+          }
+          void (async () => {
+            try {
+              const tileCount = 2 ** coords.z;
+              const x = ((coords.x % tileCount) + tileCount) % tileCount;
+              if (coords.y < 0 || coords.y >= tileCount) {
+                done(null, canvas);
+                return;
+              }
+              let hasImage = false;
+              for (const database of databases) {
+                let png: Uint8Array;
+                try {
+                  png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0);
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : String(error);
+                  if (/Hillshade tile not found/i.test(message)) continue;
+                  throw error;
+                }
+                const buffer = new ArrayBuffer(png.byteLength);
+                new Uint8Array(buffer).set(png);
+                const bitmap = await createImageBitmap(new Blob([buffer], { type: 'image/png' }));
+                try {
+                  if (bitmap.width !== 256 || bitmap.height !== 256) {
+                    throw new Error('Hillshade tile has unexpected dimensions (' + bitmap.width + 'x' + bitmap.height + ').');
+                  }
+                  context.globalCompositeOperation = hasImage ? 'destination-over' : 'source-over';
+                  context.drawImage(bitmap, 0, 0);
+                  hasImage = true;
+                } finally {
+                  bitmap.close();
+                }
+              }
+              context.globalCompositeOperation = 'source-over';
+              done(null, canvas);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
+              done(error instanceof Error ? error : new Error(message), canvas);
+            }
+          })();
+          return canvas;
+        }
+      });
+      this.leafletHillshadeLayer = new HillshadeGridLayer({
+        pane: 'hillshadePane', tileSize: 256, minZoom: 1, maxZoom: 20, maxNativeZoom: 12,
+        opacity: this.hillshadeOpacity() / 100, zIndex: 250
+      }).addTo(map);
+    } else {
+      this.leafletHillshadeLayer.setOpacity(this.hillshadeOpacity() / 100);
+    }
   }
 
   private applyMapOpacity(): void {
