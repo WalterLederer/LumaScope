@@ -567,9 +567,6 @@ interface MapErrorEntry {
     <details class="map-cache-section offline-map-filter-section">
       <summary class="map-cache-heading">Filter</summary>
       <div class="map-cache-actions offline-map-filter-actions">
-        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="clearOfflineMapsList()" [disabled]="filteredOfflineMaps().length === 0">Clear visible maps</button>
-        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="filteredOfflineMaps().length === 0">Activate visible maps</button>
-        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="filteredOfflineMaps().length === 0">Deactivate visible maps</button>
         <label class="offline-map-list-filter">Filter:
           <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
             <option value="all">All</option>
@@ -583,6 +580,9 @@ interface MapErrorEntry {
             <option value="noMatch">No matching download</option>
           </select>
         </label>
+        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="clearOfflineMapsList()" [disabled]="filteredOfflineMaps().length === 0">Clear visible maps</button>
+        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(true)" [disabled]="filteredOfflineMaps().length === 0">Activate visible maps</button>
+        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineMapsEnabled(false)" [disabled]="filteredOfflineMaps().length === 0">Deactivate visible maps</button>
       </div>
     </details>
     <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · ' + filteredOfflineMaps().length + ' map(s) filtered' }}
@@ -1001,7 +1001,7 @@ interface MapErrorEntry {
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px;order:0}.offline-map-filter-actions .offline-map-bulk-button{order:1}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-selection.offline-map-toolbar{flex-direction:row;align-items:center}
     .mbtiles-selection.mbtiles-download-controls{flex-direction:row;align-items:center;flex-wrap:nowrap}
@@ -2806,19 +2806,13 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMapPreset.set(value);
     this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
-      await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: value });
-      // A named preset is an activation preset as well as a renderer filter.
-      // This also makes it recover correctly after "Deactivate visible maps".
+      // Apply all OBF states and the preset in one IPC call and one settings write.
       // Custom intentionally preserves the user's individual enabled states.
-      if (value !== 'custom') {
-        let updated = this.offlineMaps();
-        for (const map of updated) {
-          if (map.type !== 'obf') continue;
-          const enabled = this.obfMapMatchesPreset(map, value);
-          if (map.enabled !== enabled) updated = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
-        }
-        this.offlineMaps.set(updated);
-      }
+      const updates = value === 'custom' ? [] : this.offlineMaps()
+        .filter(map => map.type === 'obf')
+        .map(map => ({ id: map.id, enabled: this.obfMapMatchesPreset(map, value) }))
+        .filter(update => this.offlineMaps().find(map => map.id === update.id)?.enabled !== update.enabled);
+      this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
     this.refreshOfflineMapRendering();
   };
@@ -2875,8 +2869,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const visibleMaps = this.filteredOfflineMaps();
     if (visibleMaps.length === 0) return;
     try {
-      let updated = this.offlineMaps();
-      for (const map of visibleMaps) updated = await this.desktop.OfflineMap.setEnabled(map.id, enabled);
+      const updated = await this.desktop.OfflineMap.setEnabledBatch(
+        visibleMaps.map(map => ({ id: map.id, enabled }))
+      );
       this.offlineMaps.set(updated);
       this.refreshOfflineMapRendering();
     } catch (error) {
