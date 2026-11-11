@@ -186,12 +186,21 @@ export class OfflineMapManager {
     const obf=Array.isArray(settings.obfPaths)?settings.obfPaths.filter((v):v is string=>typeof v==='string'):[];
     for(const path of [...mbtiles,...obf])unifiedPaths[path]=settings.enabledByPath?.[path]!==false;
    }
+   let removedMissingPaths=false;
    for(const [path,enabled] of Object.entries(unifiedPaths)){
+    if(!existsSync(path)){
+     delete unifiedPaths[path];
+     removedMissingPaths=true;
+     continue;
+    }
     this.enabledByPath.set(path,enabled);
     try{
      if(extname(path).toLowerCase()==='.obf')this.openObfFile(path);
      else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);
     }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
+   }
+   if(removedMissingPaths){
+    void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not remove missing map paths:',error));
    }
    if(!hasUnifiedPaths){
     void updateAppSettingsSection('offlineMaps',{filePaths:unifiedPaths}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
