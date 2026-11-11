@@ -91,6 +91,8 @@ public final class MapsforgeWorker {
                 response.add("map_paths", paths);
                 return response;
             }
+            case "catalog":
+                return scanCatalog(request);
             case "open":
                 java.util.List<String> paths = readMapPaths(request);
                 openMaps(paths, optionalString(request, "theme_path"));
@@ -113,6 +115,59 @@ public final class MapsforgeWorker {
             default:
                 throw new IllegalArgumentException("Unknown command: " + command);
         }
+    }
+
+    private JsonObject scanCatalog(JsonObject request) throws Exception {
+        String rootValue = requiredString(request, "root_path");
+        Path root = Path.of(rootValue).toAbsolutePath().normalize();
+        if (!Files.isDirectory(root)) {
+            throw new IllegalArgumentException("Mapsforge map directory not found: " + root);
+        }
+
+        JsonArray maps = new JsonArray();
+        JsonArray errors = new JsonArray();
+        int scanned = 0;
+        try (java.util.stream.Stream<Path> files = Files.walk(root)) {
+            for (Path path : (Iterable<Path>) files
+                    .filter(Files::isRegularFile)
+                    .filter(p -> p.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".map"))
+                    .sorted()::iterator) {
+                scanned++;
+                MapFile mapFile = null;
+                try {
+                    mapFile = new MapFile(path.toFile());
+                    org.mapsforge.map.reader.header.MapFileInfo info = mapFile.getMapFileInfo();
+                    JsonObject item = new JsonObject();
+                    item.addProperty("path", path.toString());
+                    item.addProperty("file_name", path.getFileName().toString());
+                    item.addProperty("bounding_box", info.boundingBox.toString());
+                    item.addProperty("min_zoom", Byte.toUnsignedInt(info.zoomLevelMin));
+                    item.addProperty("max_zoom", Byte.toUnsignedInt(info.zoomLevelMax));
+                    item.addProperty("start_zoom", info.startZoomLevel == null ? -1 : Byte.toUnsignedInt(info.startZoomLevel));
+                    item.addProperty("file_size", info.fileSize);
+                    item.addProperty("map_date", info.mapDate);
+                    item.addProperty("created_by", info.createdBy == null ? "" : info.createdBy);
+                    item.addProperty("file_version", info.fileVersion);
+                    maps.add(item);
+                } catch (Exception error) {
+                    JsonObject item = new JsonObject();
+                    item.addProperty("path", path.toString());
+                    item.addProperty("message", error.getClass().getSimpleName() + ": " + String.valueOf(error.getMessage()));
+                    errors.add(item);
+                } finally {
+                    if (mapFile != null) mapFile.close();
+                }
+            }
+        }
+
+        JsonObject response = ok("catalog");
+        response.addProperty("root_path", root.toString());
+        response.addProperty("scanned_count", scanned);
+        response.addProperty("valid_map_count", maps.size());
+        response.addProperty("error_count", errors.size());
+        response.add("maps", maps);
+        response.add("errors", errors);
+        return response;
     }
 
     private void openMaps(java.util.List<String> mapPathValues, String themePathValue) throws Exception {
