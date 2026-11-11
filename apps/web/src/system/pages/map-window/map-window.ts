@@ -245,7 +245,7 @@ interface MapErrorEntry {
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show track symbol</span></label>
-            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="plane">Airplane</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option></select></label>
+            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="van">Van</option><option value="bus">Bus</option><option value="truck">Truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Boat</option></select></label>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Figure size</span><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"><strong>{{ walkingFigureSize().toFixed(1) }}×</strong></label>
@@ -1428,7 +1428,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderAnimationSpeed = signal(Math.max(0.1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
   protected readonly walkingFigureSize = signal(Math.max(0.5, Math.min(3, Number(this.readSetting('walkingFigureSize', '1')) || 1)));
   protected readonly walkingFigureAnimationSpeed = signal(Math.max(0.2, Math.min(3, Number(this.readSetting('walkingFigureAnimationSpeed', '1')) || 1)));
-  protected readonly walkingFigureType = signal((['walker', 'car', 'plane', 'bicycle', 'motorcycle'].includes(this.readSetting('walkingFigureType', 'walker')) ? this.readSetting('walkingFigureType', 'walker') : 'walker') as 'walker' | 'car' | 'plane' | 'bicycle' | 'motorcycle');
+  protected readonly walkingFigureType = signal((['walker', 'car', 'van', 'bus', 'truck', 'plane', 'helicopter', 'train', 'bicycle', 'motorcycle', 'scooter', 'tractor', 'boat'].includes(this.readSetting('walkingFigureType', 'walker')) ? this.readSetting('walkingFigureType', 'walker') : 'walker') as 'walker' | 'car' | 'van' | 'bus' | 'truck' | 'plane' | 'helicopter' | 'train' | 'bicycle' | 'motorcycle' | 'scooter' | 'tractor' | 'boat');
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   private lastWalkingBearing = 0;
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
@@ -3534,6 +3534,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.timeSliderAnimationTimer !== null) clearInterval(this.timeSliderAnimationTimer);
     this.timeSliderAnimationTimer = null;
     this.timeSliderAnimating.set(false);
+    // Immediately remove the walking gait when playback is stopped; otherwise
+    // the last timer tick can leave the CSS animation class active on the marker.
+    this.updateWalkingMarker();
   }
 
   protected readonly changeTimeSliderAnimationSpeed = (value: string | number): void => {
@@ -3574,8 +3577,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeWalkingFigureType = (value: string): void => {
-    if (!['walker', 'car', 'plane', 'bicycle', 'motorcycle'].includes(value)) return;
-    this.walkingFigureType.set(value as 'walker' | 'car' | 'plane' | 'bicycle' | 'motorcycle');
+    if (!['walker', 'car', 'van', 'bus', 'truck', 'plane', 'helicopter', 'train', 'bicycle', 'motorcycle', 'scooter', 'tractor', 'boat'].includes(value)) return;
+    this.walkingFigureType.set(value as 'walker' | 'car' | 'van' | 'bus' | 'truck' | 'plane' | 'helicopter' | 'train' | 'bicycle' | 'motorcycle' | 'scooter' | 'tractor' | 'boat');
     this.saveSetting('walkingFigureType', value);
     this.updateWalkingMarker();
   };
@@ -3708,9 +3711,12 @@ export class MapWindow implements OnInit, OnDestroy {
       displayedSpeed / 1.4 * this.walkingFigureAnimationSpeed()));
     const figureType = this.walkingFigureType();
     const vehicleSymbols: Record<string, string> = {
-      car: '🚗', plane: '✈️', bicycle: '🚲', motorcycle: '🏍️'
+      car: '🚗', van: '🚐', bus: '🚌', truck: '🚚',
+      plane: '✈️', helicopter: '🚁', train: '🚆',
+      bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
+      tractor: '🚜', boat: '🚤'
     };
-    const orientationOffset = figureType === 'car' || figureType === 'bicycle' || figureType === 'motorcycle' ? -90 : 0;
+    const orientationOffset = ['car', 'van', 'bus', 'truck', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType) ? -90 : 0;
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
       : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
