@@ -3571,6 +3571,35 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
 
+  private ensureWalkingFigureAnimationStyles(): void {
+    // The walker SVG is inserted with innerHTML by Leaflet/MapLibre. Angular's
+    // emulated component styles add _ngcontent attributes, so scoped CSS cannot
+    // reach these dynamically-created SVG paths. Install the animation rules
+    // globally once so the limbs animate in both online and offline renderers.
+    if (document.getElementById('lumascope-walker-animation-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'lumascope-walker-animation-styles';
+    style.textContent = `
+      .lumascope-walker .walker-limb {
+        transform-box: fill-box;
+        transform-origin: top center;
+        animation: lumascope-walker-step var(--walker-animation-duration, .72s) ease-in-out infinite alternate;
+      }
+      .lumascope-walker .walker-arm,
+      .lumascope-walker .walker-leg {
+        animation-duration: var(--walker-animation-duration, .72s);
+      }
+      .lumascope-walker .walker-leg.back,
+      .lumascope-walker .walker-arm.back {
+        animation-direction: alternate-reverse;
+      }
+      @keyframes lumascope-walker-step {
+        from { transform: rotate(-16deg); }
+        to { transform: rotate(16deg); }
+      }`;
+    document.head.appendChild(style);
+  }
+
   private updateWalkingMarker(): void {
     if (!this.timeSliderWalkerVisible() || (!this.leaflet || !this.map) && !this.offlineRenderer || !this.timeSliderActive()) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
@@ -3578,6 +3607,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineRenderer?.clearWalkingFigure();
       return;
     }
+
+    this.ensureWalkingFigureAnimationStyles();
 
     // Keep each GPX segment separate: joining separate segments or tracks can
     // put the animated figure on a straight line that is not part of the GPX.
