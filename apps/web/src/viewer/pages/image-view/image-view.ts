@@ -961,29 +961,14 @@ export class ImageView {
   };
   protected readonly locationMapColor = signal(this.readStoredLocationMapColor());
   protected readonly locationMapOpacity = signal(this.readStoredLocationMapOpacity());
-  protected readonly gpxTrackOpacity = signal(this.readStoredGpxTrackOpacity());
+  protected readonly gpxTrackOpacity = signal(100);
   private readonly locationMapColors = ['original', 'light', 'extra-light', 'ultra-light', 'dark', 'grayscale', 'pastel', 'contrast', 'night'] as const;
-
-  private readStoredGpxTrackOpacity(): number {
-    try {
-      const storedValue = this.document.defaultView?.localStorage.getItem('gpxTrackOpacity');
-      if (storedValue === null || storedValue === undefined) return 100;
-      const stored = Number(storedValue);
-      return Number.isFinite(stored) && stored >= 0 && stored <= 100 ? stored : 100;
-    } catch {
-      return 100;
-    }
-  }
 
   protected readonly changeGpxTrackOpacity = (value: string | number): void => {
     const opacity = Math.max(0, Math.min(100, Math.round(Number(value))));
     if (!Number.isFinite(opacity)) return;
     this.gpxTrackOpacity.set(opacity);
-    try {
-      this.document.defaultView?.localStorage.setItem('gpxTrackOpacity', String(opacity));
-    } catch {
-      // The selected GPX track opacity remains active for this session.
-    }
+    void this.persistGpxViewSettings({ opacity });
     for (const layer of this.locationGpxLayers) layer.setStyle({ opacity: 0.92 * opacity / 100 });
   };
 
@@ -1037,7 +1022,7 @@ export class ImageView {
   private locationGpxLayers: LeafletPolyline[] = [];
   private readonly gpxTrackSegments = signal<[number, number][][]>([]);
   protected readonly gpxTrackFileName = signal<string | null>(null);
-  protected readonly gpxTrackVisible = signal(this.readStoredBoolean('gpxTrackVisible', true));
+  protected readonly gpxTrackVisible = signal(true);
   protected readonly gpxTrackStatus = signal<string | null>(null);
   protected readonly gpxTrackColors = [
     { name: 'Red', value: '#ff3b30' },
@@ -1047,7 +1032,7 @@ export class ImageView {
     { name: 'Blue', value: '#0a84ff' },
     { name: 'Magenta', value: '#bf5af2' }
   ] as const;
-  protected readonly gpxTrackColor = signal(this.readStoredGpxTrackColor());
+  protected readonly gpxTrackColor = signal('#ff3b30');
   protected readonly gpxTrackSelection = computed(() => this.gpxTrackVisible() ? this.gpxTrackColor() : 'off');
   private readonly gpxTrackRestore = this.restoreStoredGpxTrack();
   private readonly readStoredLocationMapZoom = (): number => {
@@ -1091,16 +1076,23 @@ export class ImageView {
     input.addEventListener('change', () => {
       const file = input.files?.[0];
       if (!file) return;
-      void file.text().then(content => {
+      void file.text().then(async content => {
         this.setGpxTrackData(content, file.name, true);
-        const path = this.desktop?.getPathForFile(file);
+        const path = this.desktopApi?.getPathForFile(file);
         if (path) {
-          try {
-            this.document.defaultView?.localStorage.setItem('gpxTrackPath', path);
-            this.document.defaultView?.localStorage.setItem('gpxTrackFileName', file.name);
-          } catch {
-            // The imported track remains available for the current session.
-          }
+          const settings = await this.processManager.getAppSettings();
+          const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+            ? settings['gpx'] as Record<string, unknown> : {};
+          const tracks = Array.isArray(gpx['tracks'])
+            ? gpx['tracks'].filter((track): track is Record<string, unknown> =>
+                !!track && typeof track === 'object' && typeof (track as Record<string, unknown>)['path'] === 'string')
+            : [];
+          const next = tracks.filter(track => track['path'] !== path);
+          next.push({ path, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true });
+          await this.processManager.setAppSettingsSection('gpx', {
+            tracks: next,
+            imageView: { ...(gpx['imageView'] && typeof gpx['imageView'] === 'object' ? gpx['imageView'] as Record<string, unknown> : {}), activePath: path }
+          });
         }
       }).catch(error => {
         this.gpxTrackStatus.set(error instanceof Error ? error.message : 'Could not read the GPX file.');
@@ -1109,36 +1101,65 @@ export class ImageView {
     input.click();
   };
 
-  private async restoreStoredGpxTrack(): Promise<void> {
-    let path: string | null = null;
-    let fileName: string | null = null;
-    try {
-      path = this.document.defaultView?.localStorage.getItem('gpxTrackPath') ?? null;
-      fileName = this.document.defaultView?.localStorage.getItem('gpxTrackFileName') ?? null;
-    } catch {
-      return;
-    }
-    if (!path || !fileName || !this.desktop) return;
-
-    const result = await this.desktop.FileSystem.readText(path);
-    if (!result.success) {
-      this.clearStoredGpxTrack();
-      return;
-    }
-
-    try {
-      this.setGpxTrackData(result.data, fileName, false);
-    } catch {
-      this.clearStoredGpxTrack();
-    }
+  private async persistGpxViewSettings(patch: Record<string, unknown>): Promise<void> {
+    const settings = await this.processManager.getAppSettings();
+    const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+      ? settings['gpx'] as Record<string, unknown> : {};
+    const imageView = gpx['imageView'] && typeof gpx['imageView'] === 'object'
+      ? gpx['imageView'] as Record<string, unknown> : {};
+    await this.processManager.setAppSettingsSection('gpx', { imageView: { ...imageView, ...patch } });
   }
 
-  private clearStoredGpxTrack(): void {
+  private async restoreStoredGpxTrack(): Promise<void> {
+    if (!this.desktopApi) return;
+    const settings = await this.processManager.getAppSettings();
+    const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+      ? settings['gpx'] as Record<string, unknown> : {};
+    const imageView = gpx['imageView'] && typeof gpx['imageView'] === 'object'
+      ? gpx['imageView'] as Record<string, unknown> : {};
+    let tracks = Array.isArray(gpx['tracks'])
+      ? gpx['tracks'].filter((track): track is Record<string, unknown> =>
+          !!track && typeof track === 'object' && typeof (track as Record<string, unknown>)['path'] === 'string' && typeof (track as Record<string, unknown>)['name'] === 'string')
+      : [];
+
+    // One-time migration of the former single-track fields from the old config preferences.
+    const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
+      ? settings['preferences'] as Record<string, unknown> : {};
+    const legacyPath = typeof preferences['gpxTrackPath'] === 'string' ? preferences['gpxTrackPath']
+      : typeof settings['gpxTrackPath'] === 'string' ? settings['gpxTrackPath'] as string : '';
+    const legacyName = typeof preferences['gpxTrackFileName'] === 'string' ? preferences['gpxTrackFileName']
+      : typeof settings['gpxTrackFileName'] === 'string' ? settings['gpxTrackFileName'] as string : '';
+    if (!tracks.length && legacyPath && legacyName) {
+      tracks = [{ path: legacyPath, name: legacyName, sizeBytes: 0, lastModified: 0, active: true }];
+    }
+    if (tracks.length && (!Array.isArray(gpx['tracks']) || legacyPath)) {
+      await this.processManager.setAppSettingsSection('gpx', { tracks });
+    }
+    if (legacyPath || legacyName) {
+      await this.processManager.setAppSettingsSection('preferences', {
+        gpxTrackPath: undefined, gpxTrackFileName: undefined,
+        gpxTrackOpacity: undefined, gpxTrackColor: undefined, gpxTrackVisible: undefined
+      });
+    }
+
+    const selectedPath = typeof imageView['activePath'] === 'string' ? imageView['activePath'] : '';
+    const track = tracks.find(item => item['path'] === selectedPath) ?? tracks[tracks.length - 1];
+    const opacity = Number(imageView['opacity']);
+    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 100) this.gpxTrackOpacity.set(opacity);
+    const color = imageView['color'];
+    if (this.gpxTrackColors.some(option => option.value === color)) this.gpxTrackColor.set(color as string);
+    if (typeof imageView['visible'] === 'boolean') this.gpxTrackVisible.set(imageView['visible']);
+    if (!track || typeof track['path'] !== 'string' || typeof track['name'] !== 'string') return;
+
+    const result = await this.desktopApi.FileSystem.readText(track['path']);
+    if (!result.success) {
+      this.gpxTrackStatus.set('GPX file could not be found: ' + track['name']);
+      return;
+    }
     try {
-      this.document.defaultView?.localStorage.removeItem('gpxTrackPath');
-      this.document.defaultView?.localStorage.removeItem('gpxTrackFileName');
-    } catch {
-      // A missing stored GPX path is ignored when browser storage is unavailable.
+      this.setGpxTrackData(result.data, track['name'], false);
+    } catch (error) {
+      this.gpxTrackStatus.set(error instanceof Error ? error.message : 'Could not restore the GPX file.');
     }
   }
 
@@ -1190,16 +1211,6 @@ export class ImageView {
     return [latitude, longitude];
   }
 
-  private readStoredGpxTrackColor(): string {
-    try {
-      const stored = this.document.defaultView?.localStorage.getItem('gpxTrackColor');
-      if (this.gpxTrackColors.some(color => color.value === stored)) return stored as string;
-    } catch {
-      // Use the default GPX track color when browser storage is unavailable.
-    }
-    return '#ff3b30';
-  }
-
   protected readonly setGpxTrackColor = (selection: string): void => {
     if (selection === 'off') {
       this.setGpxTrackVisible(false);
@@ -1207,21 +1218,13 @@ export class ImageView {
     }
     if (!this.gpxTrackColors.some(option => option.value === selection)) return;
     this.gpxTrackColor.set(selection);
-    try {
-      this.document.defaultView?.localStorage.setItem('gpxTrackColor', selection);
-    } catch {
-      // The selected GPX track color remains active for the current session.
-    }
+    void this.persistGpxViewSettings({ color: selection });
     this.setGpxTrackVisible(true);
   };
 
   protected readonly setGpxTrackVisible = (visible: boolean): void => {
     this.gpxTrackVisible.set(visible);
-    try {
-      this.document.defaultView?.localStorage.setItem('gpxTrackVisible', String(visible));
-    } catch {
-      // The selected overlay state remains active for the current session.
-    }
+    void this.persistGpxViewSettings({ visible });
     this.applyGpxTrack();
   };
 
