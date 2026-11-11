@@ -1139,6 +1139,11 @@ export class ImageView {
     if (Object.keys(imageView).length && JSON.stringify(imageView) !== JSON.stringify(gpx['imageView'] ?? {})) {
       await this.processManager.setAppSettingsSection('gpx', { imageView });
     }
+    if (legacyPath || legacyName) {
+      await this.processManager.setAppSettingsSection('root', {
+        gpxTrackPath: undefined, gpxTrackFileName: undefined
+      });
+    }
     if (legacyPath || legacyName || preferences['gpxTrackOpacity'] !== undefined
         || preferences['gpxTrackColor'] !== undefined || preferences['gpxTrackVisible'] !== undefined) {
       await this.processManager.setAppSettingsSection('preferences', {
