@@ -1089,10 +1089,8 @@ export class ImageView {
             : [];
           const next = tracks.filter(track => track['path'] !== path);
           next.push({ path, name: file.name, sizeBytes: file.size, lastModified: file.lastModified, active: true });
-          await this.processManager.setAppSettingsSection('gpx', {
-            tracks: next,
-            imageView: { ...(gpx['imageView'] && typeof gpx['imageView'] === 'object' ? gpx['imageView'] as Record<string, unknown> : {}), activePath: path }
-          });
+          await this.processManager.setAppSettingsSection('gpx', { tracks: next });
+          await this.persistGpxViewSettings({ activePath: path, visible: true });
         }
       }).catch(error => {
         this.gpxTrackStatus.set(error instanceof Error ? error.message : 'Could not read the GPX file.');
