@@ -3643,6 +3643,28 @@ export class MapWindow implements OnInit, OnDestroy {
         if (legacyPath && legacyName) tracks = [{ path: legacyPath, name: legacyName, sizeBytes: 0, lastModified: 0 }];
       }
     }
+    // Also migrate the former image-view single-track config fields into the shared list.
+    const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
+      ? settings['preferences'] as Record<string, unknown> : {};
+    const legacyImagePath = typeof preferences['gpxTrackPath'] === 'string' ? preferences['gpxTrackPath']
+      : typeof settings['gpxTrackPath'] === 'string' ? settings['gpxTrackPath'] as string : '';
+    const legacyImageName = typeof preferences['gpxTrackFileName'] === 'string' ? preferences['gpxTrackFileName']
+      : typeof settings['gpxTrackFileName'] === 'string' ? settings['gpxTrackFileName'] as string : '';
+    if (legacyImagePath && legacyImageName && !tracks.some(track => track.path === legacyImagePath)) {
+      tracks.push({ path: legacyImagePath, name: legacyImageName, sizeBytes: 0, lastModified: 0, active: true });
+      const imageView = gpx['imageView'] && typeof gpx['imageView'] === 'object'
+        ? gpx['imageView'] as Record<string, unknown> : {};
+      await this.desktop.ProcessManager.setAppSettingsSection('gpx', {
+        imageView: { ...imageView, activePath: legacyImagePath }
+      });
+    }
+    if (legacyImagePath || legacyImageName || preferences['gpxTrackOpacity'] !== undefined
+        || preferences['gpxTrackColor'] !== undefined || preferences['gpxTrackVisible'] !== undefined) {
+      await this.desktop.ProcessManager.setAppSettingsSection('preferences', {
+        gpxTrackPath: undefined, gpxTrackFileName: undefined,
+        gpxTrackOpacity: undefined, gpxTrackColor: undefined, gpxTrackVisible: undefined
+      });
+    }
     const segments: [number, number][][] = [];
     const available: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
