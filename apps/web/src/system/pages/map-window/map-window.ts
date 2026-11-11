@@ -480,8 +480,10 @@ interface MapErrorEntry {
     [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
       <span>Render</span>
-      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
-        <progress [value]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() ? 0 : renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()">
+        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy()) {
+          <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
+        }
         @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy()) {
           <span>Rendering inactive</span>
         } @else {
@@ -561,11 +563,6 @@ interface MapErrorEntry {
             <th scope="row">Errors</th>
             <td>{{ totalHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
             <td>{{ lastHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
-          </tr>
-          <tr>
-            <th scope="row">In progress</th>
-            <td>{{ hillshadeActiveCount().toLocaleString(locale) }}</td>
-            <td>{{ hillshadeTotalCount().toLocaleString(locale) }}</td>
           </tr>
         </tbody>
       </table>
