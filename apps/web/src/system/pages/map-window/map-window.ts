@@ -469,7 +469,12 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
-  <details class="view-rerender-section" [open]="renderSectionOpen()" (toggle)="onLocationDetailsToggle($event)" [style.background]="renderActiveCount() > 0 ? 'rgba(180, 45, 45, 0.13)' : 'rgba(45, 150, 75, 0.10)'">
+  <details class="view-rerender-section"
+    [open]="renderSectionOpen()"
+    (toggle)="onLocationDetailsToggle($event)"
+    [class.is-rendering]="renderActiveCount() > 0 || rerenderVisibleTilesBusy()"
+    [class.has-render-errors]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() && lastRenderTileCounts().failed > 0"
+    [class.is-render-complete]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy() && renderTotalCount() > 0 && lastRenderTileCounts().failed === 0">
     <summary>
       <span>Render</span>
       <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()" [attr.aria-disabled]="renderActiveCount() === 0 && !rerenderVisibleTilesBusy()">
@@ -903,7 +908,10 @@ interface MapErrorEntry {
      .map-cache-progress span{flex:0 0 auto;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
     .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
     .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
-    .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
+    .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:7px 8px 8px;border:1px solid var(--color-content-default-low,#454545);border-radius:6px;background:transparent;transition:background-color 140ms ease,border-color 140ms ease}
+    .view-rerender-section.is-rendering{background:rgba(55,125,190,.13);border-color:rgba(75,145,210,.38)}
+    .view-rerender-section.is-render-complete{background:rgba(45,150,75,.10);border-color:rgba(65,165,95,.32)}
+    .view-rerender-section.has-render-errors{background:rgba(180,55,55,.14);border-color:rgba(205,75,75,.42)}
     .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
