@@ -521,7 +521,7 @@ interface MapErrorEntry {
         </colgroup>
         <thead>
           <tr>
-            <th scope="col" class="render-counter-heading">Map tiles</th>
+            <th scope="col" class="render-counter-heading">Map tiles (#{{ activeOfflineMapCount() }})</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
@@ -548,7 +548,7 @@ interface MapErrorEntry {
         
         <thead>
           <tr>
-            <th scope="col" class="render-counter-heading">Hillshade</th>
+            <th scope="col" class="render-counter-heading">Hillshade (#{{ activeHillshadeDatabaseCount() }})</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
@@ -947,7 +947,7 @@ interface MapErrorEntry {
     .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
     .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
     .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:7px 8px 8px;border:1px solid var(--color-content-default-low,#454545);border-radius:6px;background:transparent;transition:background-color 140ms ease,border-color 140ms ease}
-    .view-rerender-section.is-rendering{background:rgba(55,125,190,.13);border-color:rgba(75,145,210,.38)}
+    .view-rerender-section.is-rendering{background:rgba(220,165,35,.14);border-color:rgba(220,165,35,.48)}
     .view-rerender-section.is-render-complete{background:rgba(45,150,75,.10);border-color:rgba(65,165,95,.32)}
     .view-rerender-section.has-render-errors{background:rgba(180,55,55,.14);border-color:rgba(205,75,75,.42)}
     .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
