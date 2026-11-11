@@ -692,7 +692,19 @@ export class OfflineMapRenderer {
     const data = event as { sourceId?: string; sourceDataType?: string; coord?: { canonical?: { z: number; x: number; y: number } } };
     const canonical = data.coord?.canonical;
     if (!canonical || data.sourceDataType !== 'content' || data.sourceId === 'osmand-hillshade' || String(data.sourceId ?? '').startsWith('osmand-hillshade-')) return;
-    this.setMapLibreTileStatus(data.sourceId ?? 'map', canonical.z, canonical.x, canonical.y, 'loaded');
+    const sourceId = data.sourceId ?? 'map';
+    this.setMapLibreTileStatus(sourceId, canonical.z, canonical.x, canonical.y, 'loaded');
+
+    // MapLibre's sourcedata/tile event is the final confirmation that the
+    // raster tile was accepted and uploaded. Clear a stale native timeout
+    // overlay as well, even if an older aborted request reported its error late.
+    if (sourceId === 'osmand' || sourceId === 'osmand-atlas') {
+      const key = `${sourceId}//${canonical.z}/${canonical.x}/${canonical.y}`;
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+      this.updateOsmAndTileStatusPositions();
+    }
   };
   private readonly onMapLibreTileError = (event: unknown): void => {
     const data = event as { sourceId?: string; coord?: { canonical?: { z: number; x: number; y: number } }; error?: unknown };
