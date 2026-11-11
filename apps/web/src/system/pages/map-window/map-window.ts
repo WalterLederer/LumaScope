@@ -1745,6 +1745,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.locationAddress.set('This image does not contain GPS coordinates.');
         this.map?.remove();
         this.map = null;
+        this.leafletHillshadeLayer = null;
+        this.leafletHillshadePane = null;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
         this.currentOfflineMapId = null;
         this.activeOfflineMapId.set(null);
@@ -3223,6 +3225,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineRenderer = null;
       this.map?.remove();
       this.map = null;
+      this.leafletHillshadeLayer = null;
+      this.leafletHillshadePane = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
