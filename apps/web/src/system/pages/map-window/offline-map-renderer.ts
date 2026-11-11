@@ -1689,7 +1689,7 @@ export class OfflineMapRenderer {
     const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
     if (activeWalker) {
       activeWalker.style.transform = `rotate(${bearing}deg) scale(${size})`;
-      activeWalker.style.setProperty('--walker-animation-speed', String(animationSpeed));
+      activeWalker.style.setProperty('--walker-animation-duration', `${0.72 / animationSpeed}s`);
     }
     this.walkingFigureElement.style.transform = 'translate(-50%,-50%)';
     this.updateOverlayPositions();
