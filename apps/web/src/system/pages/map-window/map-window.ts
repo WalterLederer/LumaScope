@@ -208,7 +208,7 @@ interface MapErrorEntry {
                 </div>
               }
             </div>
-            <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
+            <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button><button type="button" class="file-path-copy-button" (click)="copyFilePath(track.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button>
           </div>
         }
       </div>
@@ -944,6 +944,7 @@ interface MapErrorEntry {
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
     .gpx-time-range{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .marker-time-range{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;font-variant-numeric:tabular-nums}
+    .file-path-copy-button{width:23px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default-medium,#bbb);font-size:14px;line-height:18px;cursor:pointer}.file-path-copy-button:hover{background:var(--color-surface-default-medium,#444);color:var(--color-content-default,#fff);border-color:var(--color-content-default-medium,#999)}
     .gpx-row-actions{display:flex;align-items:center;justify-content:center;gap:3px}.gpx-fit-button,.gpx-open-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover,.gpx-open-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-open-button{width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-open-button:disabled{opacity:.35;cursor:default}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
