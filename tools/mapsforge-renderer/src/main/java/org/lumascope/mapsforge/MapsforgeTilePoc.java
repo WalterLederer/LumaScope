@@ -4,6 +4,7 @@ import org.mapsforge.core.graphics.TileBitmap;
 import org.mapsforge.core.model.Tile;
 import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
 import org.mapsforge.map.datastore.MapDataStore;
+import org.mapsforge.map.layer.cache.InMemoryTileCache;
 import org.mapsforge.map.layer.renderer.DatabaseRenderer;
 import org.mapsforge.map.layer.renderer.RendererJob;
 import org.mapsforge.map.model.DisplayModel;
@@ -49,6 +50,7 @@ public final class MapsforgeTilePoc {
         }
 
         MapDataStore mapDataStore = null;
+        InMemoryTileCache tileCache = new InMemoryTileCache(4);
         try {
             mapDataStore = new MapFile(mapPath.toFile());
 
@@ -66,7 +68,7 @@ public final class MapsforgeTilePoc {
             DatabaseRenderer renderer = new DatabaseRenderer(
                 mapDataStore,
                 AwtGraphicFactory.INSTANCE,
-                null,
+                tileCache,
                 null,
                 true,
                 false,
@@ -103,6 +105,7 @@ public final class MapsforgeTilePoc {
             error.printStackTrace(System.err);
             System.exit(1);
         } finally {
+            tileCache.destroy();
             if (mapDataStore != null) {
                 mapDataStore.close();
             }
