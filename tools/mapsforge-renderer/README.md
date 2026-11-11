@@ -65,13 +65,21 @@ Render tiles from the already-open map set:
 
 A successful render response contains `status`, `request_id`, XYZ coordinates, `width`, `height`, `format: "png"`, and `png_base64`. An error response has `status: "error"` and a `message`.
 
+Scan a directory recursively and read metadata from every `.map` file without keeping the maps open:
+
+```json
+{"command":"catalog","root_path":"D:\\\\Maps\\\\MapsForge\\\\maps\\\\v5"}
+```
+
+The catalog response contains each readable map's path, bounding box, min/max zoom, start zoom, file size, map date, creator and file version. Invalid or unreadable files are returned separately in `errors`. This is a metadata scan; it does not render tiles or load the whole collection into memory.
+
 Other commands:
 
 - `{"command":"ping"}` reports whether a map is open.
 - `{"command":"close"}` closes the current map but keeps the worker process alive.
 - `{"command":"quit"}` closes the map and exits the process.
 
-The worker currently opens one map at a time and handles render requests sequentially. Multiple-map coverage selection and parallel rendering are later steps. The worker is deliberately separate from the OsmAnd OBF renderer.
+The worker can open one or multiple explicitly supplied map files in a combined datastore and handles render requests sequentially. The catalog command can scan a complete directory tree, but automatic selection and prioritization of maps for each viewport is not yet implemented. The worker is deliberately separate from the OsmAnd OBF renderer.
 
 ## Next integration steps
 
