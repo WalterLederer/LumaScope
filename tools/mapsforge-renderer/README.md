@@ -42,13 +42,21 @@ java -jar tools/mapsforge-renderer/target/mapsforge-renderer.jar --worker
 
 The worker reads one JSON request per stdin line and writes exactly one JSON response per stdout line. Diagnostics are written to stderr. Commands are processed sequentially by the same JVM and renderer instance.
 
-Open a map (the theme path is optional; null selects Mapsforge's built-in default theme):
+Open one map (the theme path is optional; null selects Mapsforge's built-in default theme):
 
 ```json
 {"command":"open","map_path":"D:\\Maps\\MapsForge\\maps\\v5\\austria.map","theme_path":null}
 ```
 
-Render tiles from the already-open map:
+Open multiple map files in one combined datastore:
+
+```json
+{"command":"open","map_paths":["D:\\Maps\\region-a.map","D:\\Maps\\region-b.map"],"theme_path":null}
+```
+
+The worker combines the supplied maps with Mapsforge's `MultiMapDataStore` using `DEDUPLICATE`. Each requested tile is checked against the individual map coverage first; the combined datastore then reads the maps that support that tile. A render response includes `covering_map_count`, the number of loaded map files that report coverage for that tile. Existing `map_path` requests remain supported.
+
+Render tiles from the already-open map set:
 
 ```json
 {"command":"render","request_id":1,"z":14,"x":8937,"y":5681}
