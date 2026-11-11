@@ -20,6 +20,46 @@ let osmAndHillshadeDiagnosticCount = 0;
 const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
 const EMPTY_HILLSHADE_PNG = Uint8Array.from(atob(EMPTY_HILLSHADE_PNG_BASE64), character => character.charCodeAt(0));
 
+// Shared renderer-independent Hillshade PNG cache. The same z/x/y tile is
+// reused when switching between Leaflet (online) and MapLibre (MBTiles).
+const HILLSHADE_CACHE_MAX_BYTES = 128 * 1024 * 1024;
+const hillshadePngCache = new Map<string, Uint8Array>();
+let hillshadePngCacheBytes = 0;
+
+export function createHillshadeTileCacheKey(
+  databases: OsmAndHillshadeDatabase[], zoom: number, column: number, row: number
+): string {
+  const sources = databases.map(database => database.path.toLowerCase());
+  return JSON.stringify([sources, zoom, column, row]);
+}
+
+export function getCachedHillshadeTile(key: string): Uint8Array | null {
+  const cached = hillshadePngCache.get(key);
+  if (!cached) return null;
+  // Refresh insertion order to implement least-recently-used eviction.
+  hillshadePngCache.delete(key);
+  hillshadePngCache.set(key, cached);
+  return cached;
+}
+
+export function cacheHillshadeTile(key: string, png: Uint8Array): void {
+  if (png.byteLength > HILLSHADE_CACHE_MAX_BYTES) return;
+  const previous = hillshadePngCache.get(key);
+  if (previous) {
+    hillshadePngCacheBytes -= previous.byteLength;
+    hillshadePngCache.delete(key);
+  }
+  while (hillshadePngCacheBytes + png.byteLength > HILLSHADE_CACHE_MAX_BYTES) {
+    const oldest = hillshadePngCache.entries().next().value as [string, Uint8Array] | undefined;
+    if (!oldest) break;
+    hillshadePngCache.delete(oldest[0]);
+    hillshadePngCacheBytes -= oldest[1].byteLength;
+  }
+  const stored = png.slice();
+  hillshadePngCache.set(key, stored);
+  hillshadePngCacheBytes += stored.byteLength;
+}
+
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
 type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
@@ -307,6 +347,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       .filter(database => database.enabled && database.available);
     const tile = 'z' + zoom + '/x' + column + '/y' + row;
     const tileKey = 'maplibre/' + tile;
+    const cacheKey = createHillshadeTileCacheKey(databases, zoom, column, row);
     const emitHillshadeStatus = (status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string): void => {
       window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
         detail: { key: tileKey, status, error, zoom, column, row }
@@ -327,6 +368,11 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       if (traceTile) console.info('[Hillshade][tile-result]', { request: diagnosticId, tile, result: 'no-enabled-databases' });
       emitHillshadeStatus('loaded');
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
+    }
+    const cachedPng = getCachedHillshadeTile(cacheKey);
+    if (cachedPng) {
+      emitHillshadeStatus('loaded');
+      return { data: cachedPng.slice().buffer as ArrayBuffer };
     }
 
     const canvas = new OffscreenCanvas(256, 256);
@@ -391,6 +437,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       if (traceTile) console.info('[Hillshade][tile-result]', {
         request: diagnosticId, tile, result: 'no-pixels-from-any-database'
       });
+      cacheHillshadeTile(cacheKey, EMPTY_HILLSHADE_PNG);
       emitHillshadeStatus('loaded');
       return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
     }
@@ -401,6 +448,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     context.putImageData(new ImageData(merged, 256, 256), 0, 0);
     const blob = await canvas.convertToBlob({ type: 'image/png' });
     const data = await blob.arrayBuffer();
+    cacheHillshadeTile(cacheKey, new Uint8Array(data));
     emitHillshadeStatus('loaded');
     return { data };
     } catch (error) {
