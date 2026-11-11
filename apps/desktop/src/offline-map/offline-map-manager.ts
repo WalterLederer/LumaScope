@@ -4,7 +4,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
-export interface OfflineMapStatus { type?:'mbtiles'|'obf'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
+export interface OfflineMapStatus { type?:'mbtiles'|'obf'|'mapsforge'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
 export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'; url:string; }
@@ -14,6 +14,7 @@ const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePat
 export class OfflineMapManager {
  private readonly opened=new Map<string,OpenOfflineMap>();
  private readonly obfFiles=new Map<string,OfflineMapStatus>();
+ private readonly mapsforgeFiles=new Map<string,OfflineMapStatus>();
  private activeId:string|null=null;
  private readonly enabledByPath=new Map<string,boolean>();
  private tileDiagnosticsCount=0;
@@ -21,16 +22,16 @@ export class OfflineMapManager {
  constructor(){this.restoreMaps();}
  @IpcHandler({name:'OfflineMap.chooseFile'})
  readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapImportResult>=>{
-  const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'Offline maps',extensions:['mbtiles','obf']}]});
+  const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'Offline maps',extensions:['mbtiles','obf','map']}]});
   if(result.canceled||!result.filePaths.length)return {maps:await this.getMaps(),errors:[]};
   this.lastDirectory=dirname(result.filePaths[0]);
   const errors:string[]=[];
-  for(const filePath of result.filePaths){try{if(extname(filePath).toLowerCase()==='.obf')this.openObfFile(filePath);else this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
+  for(const filePath of result.filePaths){try{if(extname(filePath).toLowerCase()==='.obf')this.openObfFile(filePath);else if(extname(filePath).toLowerCase()==='.map')this.openMapsforgeFile(filePath);else this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
   await this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
   return {maps:await this.getMaps(),errors};
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
- readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})));
+ readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})),[...this.mapsforgeFiles.values()].map(item=>({...item})));
  @IpcHandler({name:'OfflineMap.checkForUpdates'})
  readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
   const offlineSettings=(readAppSettings().offlineMaps??{}) as Record<string,unknown>;
@@ -133,14 +134,14 @@ export class OfflineMapManager {
  readonly setAllEnabled=async(_event:IpcMainInvokeEvent,enabled:boolean):Promise<OfflineMapStatus[]>=>{
   if(typeof enabled!=='boolean')throw new Error('The Active state must be a boolean.');
   for(const [id,item] of this.opened){item.status.enabled=enabled;this.enabledByPath.set(id,enabled);}
-  for(const [id,item] of this.obfFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
+  for(const [id,item] of this.obfFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}\n  for(const [id,item] of this.mapsforgeFiles){item.enabled=enabled;this.enabledByPath.set(id,enabled);}
   if(!enabled)this.activeId=null;
   await this.persistMaps();
   return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.removeFile'})
  readonly removeFile=async(_event:IpcMainInvokeEvent,id:string):Promise<OfflineMapStatus[]>=>{
-  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||item)await this.persistMaps(); return this.getMaps();
+  const obf=this.obfFiles.get(id);if(obf)this.obfFiles.delete(id);const mapsforge=this.mapsforgeFiles.get(id);if(mapsforge)this.mapsforgeFiles.delete(id); const item=this.opened.get(id); if(item){item.database.close();this.opened.delete(id);if(this.activeId===id)this.activeId=null;} if(obf||mapsforge||item)await this.persistMaps(); return this.getMaps();
  };
  @IpcHandler({name:'OfflineMap.getStatus'})
  readonly getStatus=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus>=>{const item=this.activeId?this.opened.get(this.activeId):null;return item?{...item.status}:{...EMPTY_STATUS};};
@@ -196,7 +197,7 @@ export class OfflineMapManager {
     this.enabledByPath.set(path,enabled);
     try{
      if(extname(path).toLowerCase()==='.obf')this.openObfFile(path);
-     else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);
+     else if(extname(path).toLowerCase()==='.mbtiles')this.openFile(path);\n     else if(extname(path).toLowerCase()==='.map')this.openMapsforgeFile(path);
     }catch(error){console.warn('[OfflineMap] Could not restore offline map:',path,error);}
    }
    if(removedMissingPaths){
@@ -207,7 +208,17 @@ export class OfflineMapManager {
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps():Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps():Promise<void>{const filePaths:Record<string,boolean>={};for(const [path,item] of this.opened)filePaths[path]=item.status.enabled;for(const [path,item] of this.obfFiles)filePaths[path]=item.enabled;for(const [path,item] of this.mapsforgeFiles)filePaths[path]=item.enabled;return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private openMapsforgeFile(filePath:string):void{
+  const absolutePath=resolve(filePath);
+  if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
+  if(!existsSync(absolutePath))throw new Error('The selected Mapsforge map file does not exist.');
+  if(this.mapsforgeFiles.has(absolutePath))return;
+  const fileStats=statSync(absolutePath);
+  if(!fileStats.isFile()||fileStats.size<=0)throw new Error('The selected Mapsforge map file is empty or invalid.');
+  const fileName=basename(absolutePath);
+  this.mapsforgeFiles.set(absolutePath,{type:'mapsforge',id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName,fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:fileName.replace(/\\.map$/i,''),format:'Mapsforge',minZoom:0,maxZoom:22,bounds:null,error:null});
+ }
  private openObfFile(filePath:string):void{
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
