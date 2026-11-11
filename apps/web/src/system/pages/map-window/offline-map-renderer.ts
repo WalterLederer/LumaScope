@@ -1682,8 +1682,13 @@ export class OfflineMapRenderer {
       this.overlayElement.appendChild(this.walkingFigureElement);
     }
     this.walkingFigureCoordinates = [longitude, latitude];
-    this.walkingFigureElement.innerHTML = html;
-    this.walkingFigureElement.style.transform = `translate(-50%,-50%) rotate(${bearing}deg)`;
+    // Keep the SVG node alive so its limb animation is not restarted on every
+    // 50 ms playback update. Only the geographic position and heading change.
+    const walker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
+    if (!walker) this.walkingFigureElement.innerHTML = html;
+    const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
+    if (activeWalker) activeWalker.style.transform = `rotate(${bearing}deg)`;
+    this.walkingFigureElement.style.transform = 'translate(-50%,-50%)';
     this.updateOverlayPositions();
   }
 
