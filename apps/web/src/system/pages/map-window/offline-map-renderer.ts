@@ -673,13 +673,15 @@ export class OfflineMapRenderer {
       window.clearTimeout(this.atlasZoomCheckTimer);
       this.atlasZoomCheckTimer = null;
     }
-    // Status overlays belong to a specific viewport. Remove them immediately
-    // when the camera starts moving; requests from the settled viewport will
-    // publish fresh entries. Late completions for aborted requests are ignored
-    // by the protocol's cancelled status.
-    this.tileStatuses.clear();
-    for (const element of this.tileStatusElements.values()) element.remove();
-    this.tileStatusElements.clear();
+    // Progress overlays belong to the current viewport. Keep actual tile
+    // errors and warnings so they remain visible when the user pans away and
+    // returns; cancelled requests are never retained as failures.
+    for (const [key, status] of this.tileStatuses) {
+      if (status.status === 'error' || status.status === 'warning') continue;
+      this.tileStatuses.delete(key);
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
+    }
     this.updateOsmAndTileStatusPositions();
   };
   private readonly onMapLibreTileLoading = (event: unknown): void => {
@@ -739,13 +741,13 @@ export class OfflineMapRenderer {
   private readonly onTileVisualsChanged = (event: Event): void => {
     const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
     this.tileVisualsEnabled = detail?.enabled !== false;
-    this.tileStatusLayer.style.display = this.tileVisualsEnabled ? '' : 'none';
-    if (!this.tileVisualsEnabled) {
-      // Remove existing tile overlays as well as hiding the layer. Tab changes
-      // and subsequent status events must not make disabled visuals reappear.
-      for (const element of this.tileStatusElements.values()) element.remove();
-      this.tileStatusElements.clear();
-      return;
+    // The checkbox controls progress indicators only. Keep failed tiles and
+    // warnings visible regardless of the progress setting.
+    this.tileStatusLayer.style.display = '';
+    for (const [key, status] of this.tileStatuses) {
+      if (this.tileVisualsEnabled || status.status === 'error' || status.status === 'warning') continue;
+      this.tileStatusElements.get(key)?.remove();
+      this.tileStatusElements.delete(key);
     }
     this.updateOsmAndTileStatusPositions();
   };
@@ -1615,8 +1617,14 @@ export class OfflineMapRenderer {
   };
 
   private updateOsmAndTileStatusPositions(): void {
-    if (!this.tileVisualsEnabled || !this.tileProtocol || !this.tileStatusLayer) return;
+    if (!this.tileProtocol || !this.tileStatusLayer) return;
     for (const [key, status] of this.tileStatuses) {
+      const isPersistentStatus = status.status === 'error' || status.status === 'warning';
+      if (!this.tileVisualsEnabled && !isPersistentStatus) {
+        this.tileStatusElements.get(key)?.remove();
+        this.tileStatusElements.delete(key);
+        continue;
+      }
       let element = this.tileStatusElements.get(key);
       if (!element) {
         element = document.createElement('div');
@@ -1656,10 +1664,13 @@ export class OfflineMapRenderer {
         label.style.borderColor = warning ? 'rgba(255,205,90,.9)' : 'rgba(255,125,110,.8)';
         label.style.background = warning ? 'rgba(92,66,18,.94)' : 'rgba(92,24,20,.94)';
         message.style.cssText = 'min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;';
+        const tileId = 'z' + status.zoom + '/x' + status.column + '/y' + status.row;
+        const timeout = !warning && /\\b(timeout|timed out|did not settle)\\b/i.test(status.error || '');
         message.textContent = warning
-          ? 'World_basemap.obf needed'
-          : 'Tile rendering failed:\n' + (status.error || 'Unknown rendering error');
-        label.title = status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error');
+          ? 'WARNING · ' + tileId + '\\nWorld_basemap.obf needed'
+          : (timeout ? 'TIMEOUT' : 'TILE ERROR') + ' · ' + tileId + '\\n' + (status.error || 'Unknown rendering error');
+        label.title = (warning ? 'Tile warning · ' : timeout ? 'Tile render timeout · ' : 'Tile render error · ')
+          + tileId + '\\n' + (status.error ?? (warning ? 'World overview map data is missing.' : 'Unknown rendering error'));
       } else {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
