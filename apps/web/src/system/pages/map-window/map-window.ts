@@ -659,7 +659,7 @@ interface MapErrorEntry {
                 <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
                 <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option></select></td>
                 <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-                <td><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
+                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)">Open</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
               </tr>
             }
           </tbody>
@@ -1000,7 +1000,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .download-source-table{min-width:720px}.offline-catalogue-toolbar{margin-top:14px}
+    .download-source-table{min-width:0;width:100%;table-layout:fixed}.offline-catalogue-toolbar{margin-top:14px}
     .offline-catalogue-table-wrap{max-height:360px;overflow:auto;margin-top:6px}
     .offline-catalogue-table{width:100%;min-width:820px;table-layout:fixed}
     .offline-catalogue-table th,.offline-catalogue-table td{box-sizing:border-box;padding-left:12px;padding-right:12px}
@@ -1013,8 +1013,8 @@ interface MapErrorEntry {
     .offline-catalogue-file-name{white-space:normal!important;overflow-wrap:anywhere;word-break:normal;line-height:1.35}
     .offline-catalogue-matched{background:rgba(46,160,67,.20)}
     .offline-catalogue-matched:hover{background:rgba(46,160,67,.28)}
-    .download-source-url{min-width:380px}.download-source-url input{width:100%;min-width:320px;box-sizing:border-box}.download-source-table select{max-width:110px}
-    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:max-content;max-width:100%;table-layout:auto;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:420px;max-width:420px}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:145px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:85px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:90px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:65px}.hillshade-file-name{max-width:420px;overflow:hidden;text-overflow:ellipsis;cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .download-source-url{min-width:0;width:auto}.download-source-url input{width:100%;min-width:0;box-sizing:border-box}.download-source-table select{max-width:110px}
+    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;max-width:100%;table-layout:fixed;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:auto;min-width:0}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:145px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:85px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:90px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:65px}.hillshade-file-name{max-width:none;overflow:hidden;text-overflow:ellipsis;cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
@@ -1365,11 +1365,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean }>>([
-    { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
     { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
-    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
     { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
-    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false }
+    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
+    { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true }
   ]);
   protected readonly osmAndResourcesPath = signal('');
   protected readonly osmAndResourcesError = signal('');
@@ -1627,7 +1628,13 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const offline = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const saved = offline?.['updateSources'];
-      if (Array.isArray(saved)) {
+      const defaults =     { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
+    { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
+    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
+    { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
+    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
+    { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true };
+      if (Array.isArray(saved) && saved.length > 0) {
         const valid = saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles'; useForUpdates: boolean } =>
           !!entry && typeof entry === 'object'
           && typeof (entry as { url?: unknown }).url === 'string'
@@ -1635,6 +1642,9 @@ export class MapWindow implements OnInit, OnDestroy {
           && typeof (entry as { useForUpdates?: unknown }).useForUpdates === 'boolean'
         );
         this.downloadSources.set(valid);
+      } else {
+        this.downloadSources.set(defaults);
+        void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { updateSources: defaults }).catch(error => console.error('Could not save default download sources:', error));
       }
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { obfPreset: this.offlineMapPreset() }).catch(error => console.error('Could not persist OBF preset:', error));
