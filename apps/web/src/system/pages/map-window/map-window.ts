@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
@@ -4371,12 +4371,25 @@ ${points}
                 return;
               }
               const hillshadeKey = 'online/' + coords.z + '/' + x + '/' + coords.y;
+              const cacheKey = createHillshadeTileCacheKey(databases, coords.z, x, coords.y);
               emitHillshadeStatus = (status, error): void => {
                 window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
                   detail: { key: hillshadeKey, status, error, zoom: coords.z, column: x, row: coords.y }
                 }));
               };
               emitHillshadeStatus('loading');
+              const cachedPng = getCachedHillshadeTile(cacheKey);
+              if (cachedPng) {
+                const bitmap = await createImageBitmap(new Blob([cachedPng.slice().buffer as ArrayBuffer], { type: 'image/png' }));
+                try {
+                  context.drawImage(bitmap, 0, 0);
+                } finally {
+                  bitmap.close();
+                }
+                emitHillshadeStatus('loaded');
+                done(null, canvas);
+                return;
+              }
               let hasImage = false;
               for (const database of databases) {
                 let png: Uint8Array;
@@ -4402,6 +4415,9 @@ ${points}
                 }
               }
               context.globalCompositeOperation = 'source-over';
+              const cachedBlob = await new Promise<Blob>((resolve, reject) =>
+                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to encode Hillshade cache tile.')), 'image/png'));
+              cacheHillshadeTile(cacheKey, new Uint8Array(await cachedBlob.arrayBuffer()));
               emitHillshadeStatus('loaded');
               done(null, canvas);
             } catch (error) {
