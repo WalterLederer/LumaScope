@@ -1,21 +1,16 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [string]$SdkRoot = $(if ($env:LUMASCOPE_OSMAND_SDK_ROOT) {
-        $env:LUMASCOPE_OSMAND_SDK_ROOT
-    } else {
-        Join-Path $PSScriptRoot '..\..\..\OsmAnd-SDK'
-    }),
+    [string]$Source = (Join-Path $PSScriptRoot '..\osmand_render_helper_native\dist'),
     [string]$Destination = (Join-Path $PSScriptRoot 'stage\helpers')
 )
 
 $ErrorActionPreference = 'Stop'
 
-$sdkRootResolved = (Resolve-Path -LiteralPath $SdkRoot).Path
-$source = Join-Path $sdkRootResolved 'tools\osmand_render_helper_native\dist'
-if (-not (Test-Path -LiteralPath $source -PathType Container)) {
-    throw "OsmAnd helper distribution directory not found: $source"
+if (-not (Test-Path -LiteralPath $Source -PathType Container)) {
+    throw "LumaScope OsmAnd helper distribution directory not found: $Source"
 }
+$source = (Resolve-Path -LiteralPath $Source).Path
 
 $requiredFiles = @(
     'osmand_render_helper.exe',
@@ -42,7 +37,7 @@ $atlasHelper = Join-Path $source 'osmand_atlas_render_helper.exe'
 $atlasUsage = (& $atlasHelper 2>&1 | Out-String)
 $atlasExitCode = $LASTEXITCODE
 if ($atlasExitCode -ne 2 -or $atlasUsage -notmatch '<display-scale>') {
-    throw "The Atlas helper in '$source' is outdated. Rebuild osmand_atlas_render_helper from the current OsmAnd-SDK source; it must accept <map.obf> <resources-root> <style-file> <display-scale>."
+    throw "The Atlas helper in '$source' is outdated. Rebuild osmand_atlas_render_helper from the current LumaScope tools source; it must accept <map.obf> <resources-root> <style-file> <display-scale>."
 }
 
 $destinationPath = [IO.Path]::GetFullPath($Destination)
