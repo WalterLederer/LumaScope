@@ -559,6 +559,11 @@ interface MapErrorEntry {
             <td>{{ totalHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
             <td>{{ lastHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
           </tr>
+          <tr class="render-stat-spacer" aria-hidden="true">
+            <th scope="row"></th>
+            <td></td>
+            <td></td>
+          </tr>
           <tr>
             <th scope="row">Errors</th>
             <td>{{ totalHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
@@ -1014,6 +1019,7 @@ interface MapErrorEntry {
     .render-tile-statistics thead th{font-weight:700}
     .render-tile-statistics tbody tr:last-child th,.render-tile-statistics tbody tr:last-child td{border-bottom:0}
     .render-tile-statistics tbody th{font-weight:400;color:var(--color-content-default-medium,#aaa)}
+    .render-tile-statistics .render-stat-spacer{visibility:hidden}
 
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .map-source-settings,.opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:180px;padding:5px 10px}
