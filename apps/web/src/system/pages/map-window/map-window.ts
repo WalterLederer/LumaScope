@@ -1259,7 +1259,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
   private osmAndStyleRestore: Promise<void> = Promise.resolve();
-  private tileLayer: { remove(): void } | null = null;
+  private tileLayer: LeafletTileLayer | null = null;
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
