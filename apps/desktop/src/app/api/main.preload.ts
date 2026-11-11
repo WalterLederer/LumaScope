@@ -126,6 +126,7 @@ const api: Desktop = {
     checkForUpdates: () => ipcRenderer.invoke('OfflineMap.checkForUpdates'),
     removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OfflineMap.setEnabled', id, enabled),
+    setEnabledBatch: (updates: Array<{ id: string; enabled: boolean }>, preset?: 'austria' | 'europe' | 'all' | 'custom' | 'custom-no-world-map') => ipcRenderer.invoke('OfflineMap.setEnabledBatch', updates, preset),
     setAllEnabled: (enabled: boolean) => ipcRenderer.invoke('OfflineMap.setAllEnabled', enabled),
     getStatus: () => ipcRenderer.invoke('OfflineMap.getStatus'),
     selectForCoordinates: (latitude: number, longitude: number) => ipcRenderer.invoke('OfflineMap.selectForCoordinates', latitude, longitude)
