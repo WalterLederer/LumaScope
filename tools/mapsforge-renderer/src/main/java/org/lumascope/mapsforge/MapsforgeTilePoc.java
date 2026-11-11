@@ -26,6 +26,15 @@ public final class MapsforgeTilePoc {
     private MapsforgeTilePoc() {}
 
     public static void main(String[] args) {
+        if (args.length == 1 && "--worker".equals(args[0])) {
+            try {
+                MapsforgeWorker.run();
+            } catch (Exception error) {
+                System.err.println("MAPSFORGE_WORKER_FATAL " + error.getClass().getSimpleName() + ": " + error.getMessage());
+                System.exit(1);
+            }
+            return;
+        }
         if (args.length < 5 || args.length > 6) {
             System.err.println("Usage: java -jar mapsforge-renderer.jar <map.map> <zoom> <x> <y> <output.png> [theme.xml]");
             System.exit(2);
