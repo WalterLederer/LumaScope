@@ -22,7 +22,7 @@ export class OfflineMapManager {
  constructor(){this.restoreMaps();}
  @IpcHandler({name:'OfflineMap.chooseFile'})
  readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapImportResult>=>{
-  const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'Offline maps',extensions:['mbtiles','obf','map']}]});
+  const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'All offline maps (*.mbtiles, *.obf, *.map)',extensions:['mbtiles','obf','map']},{name:'Mapsforge maps (*.map)',extensions:['map']},{name:'MBTiles (*.mbtiles)',extensions:['mbtiles']},{name:'OsmAnd OBF (*.obf)',extensions:['obf']}]});
   if(result.canceled||!result.filePaths.length)return {maps:await this.getMaps(),errors:[]};
   this.lastDirectory=dirname(result.filePaths[0]);
   const errors:string[]=[];
