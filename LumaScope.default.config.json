@@ -239,6 +239,10 @@
         "name": "DACH",
         "regex": "germany|deutschland|austria|österreich|osterreich|switzerland|schweiz|suisse|svizzera"
       },
+      "us": {
+        "name": "US",
+        "regex": "^us[_-]"
+      },
       "europe": {
         "name": "Europe",
         "regex": "(?:^|[_. -])europe(?:[_. -]|$)"
