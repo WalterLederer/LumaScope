@@ -6,6 +6,7 @@ import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
+interface MapPresetOption { id: string; name: string; regex: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
@@ -620,7 +621,7 @@ interface MapErrorEntry {
     <div class="mbtiles-selection offline-map-toolbar">
       <label class="offline-map-preset-control">Preset:
         <select [value]="hillshadePreset()" (change)="changeHillshadePreset($any($event.target).value)">
-          <option value="austria">Austria</option><option value="austria-plus">Austria+</option><option value="europe">Europe</option><option value="all">All</option><option value="none">None</option><option value="custom">Custom</option>
+          @for (preset of mapPresetOptions(); track preset.id) { <option [value]="preset.id">{{ preset.name }}</option> }
         </select>
       </label>
       <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
@@ -1549,6 +1550,14 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
     return maps;
   });
+  protected readonly mapPresetOptions = signal<MapPresetOption[]>([
+    { id: 'austria', name: 'Austria', regex: 'austria|österreich|osterreich' },
+    { id: 'austria-plus', name: 'Austria+', regex: 'austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein' },
+    { id: 'europe', name: 'Europe', regex: '(?:^|[_. -])europe(?:[_. -]|$)' },
+    { id: 'all', name: 'All', regex: '.*' },
+    { id: 'none', name: 'None', regex: '(?!)' },
+    { id: 'custom', name: 'Custom', regex: '.*' }
+  ]);
   protected readonly offlineMapPreset = signal<'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom'>(
     (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
       ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
@@ -1752,6 +1761,17 @@ export class MapWindow implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
+      const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
+      const configuredPresets = offlineSettings?.['presets'];
+      if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
+        const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
+          if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+          const preset = value as Record<string, unknown>;
+          return typeof preset['name'] === 'string' && typeof preset['regex'] === 'string'
+            ? [{ id, name: preset['name'], regex: preset['regex'] }] : [];
+        });
+        if (options.length) this.mapPresetOptions.set(options);
+      }
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       const savedSymbolSettings = saved?.['timeSliderSymbolSettings']
         && typeof saved['timeSliderSymbolSettings'] === 'object'
@@ -3089,6 +3109,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.refreshOfflineMapRendering();
   };
 
+  private presetMatchesFileName(preset: string, fileName: string): boolean {
+    const definition = this.mapPresetOptions().find(item => item.id === preset);
+    if (!definition) return false;
+    try { return new RegExp(definition.regex, 'i').test(fileName); } catch { return false; }
+  }
+
   private obfMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
     selectedPreset: 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' = this.offlineMapPreset()
@@ -3100,11 +3126,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (isWorldBasemap) return true;
     // The legacy nationwide extract is obsolete and must never be activated by Austria.
     if (selectedPreset === 'austria' && /^Austria_europe\.obf$/i.test(fileName)) return false;
-    const isAustria = /austria|österreich|osterreich/i.test(fileName);
-    const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
-    const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
     return selectedPreset === 'all' || selectedPreset === 'custom'
-      || (selectedPreset === 'austria' ? isAustria : selectedPreset === 'austria-plus' ? isAustriaPlus : selectedPreset === 'europe' ? isEurope : false);
+      || this.presetMatchesFileName(selectedPreset, fileName);
   }
 
   private mapsforgeMapMatchesPreset(
@@ -3115,12 +3138,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (map.type !== 'mapsforge') return false;
     const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
     if (baseName === 'world.map') return true;
-    if (selectedPreset === 'austria') return baseName === 'austria';
-    if (selectedPreset === 'austria-plus') {
-      return [
-        'austria', 'hungary', 'czech-republic', 'germany',
-        'italy', 'slovakia', 'slovenia', 'switzerland'
-      ].includes(baseName);
+    if (selectedPreset === 'austria' || selectedPreset === 'austria-plus') {
+      return this.presetMatchesFileName(selectedPreset, baseName);
     }
 
     // For Europe, use the loaded OsmAnd country extracts as the authoritative
@@ -3371,9 +3390,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!database.available || preset === 'none') return false;
     if (preset === 'all') return true;
     const fileName = this.hillshadeDatabaseFileName(database.path);
-    if (preset === 'austria') return /austria|österreich|osterreich/i.test(fileName);
-    if (preset === 'austria-plus') return /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(fileName);
-    return /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
+    return this.presetMatchesFileName(preset, fileName);
   }
   private updateHillshadePresetFromSelection(databases: OsmAndHillshadeDatabase[]): void {
     const available = databases.filter(database => database.available);
