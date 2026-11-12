@@ -6,8 +6,7 @@ import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
-interface MapPresetOption { id: string; name: string; regex: string; }
-interface OsmAndToMapsForgeMapping { osmAnd: string; mapsForge: string; }
+interface MapPresetOption { id: string; name: string; regex: string; mapsForgeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
@@ -1552,7 +1551,6 @@ export class MapWindow implements OnInit, OnDestroy {
     return maps;
   });
   protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
-  private readonly osmAndToMapsForgeMappings = signal<OsmAndToMapsForgeMapping[]>([]);
   protected readonly offlineMapPreset = signal<string>(this.readSetting('offlineMapPreset', 'austria'));
   protected readonly hillshadePreset = signal<string>(this.readSetting('hillshadePreset', 'austria'));
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
@@ -1751,23 +1749,16 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnInit(): void {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
-      const configuredMappings = offlineSettings?.['OsmAndToMapsForge'];
-      if (Array.isArray(configuredMappings)) {
-        this.osmAndToMapsForgeMappings.set(configuredMappings.flatMap(entry => {
-          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
-          const mapping = entry as Record<string, unknown>;
-          return typeof mapping['OsmAnd'] === 'string' && typeof mapping['MapsForge'] === 'string'
-            ? [{ osmAnd: mapping['OsmAnd'], mapsForge: mapping['MapsForge'] }]
-            : [];
-        }));
-      }
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
         const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
           if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
           const preset = value as Record<string, unknown>;
           return typeof preset['name'] === 'string' && typeof preset['regex'] === 'string'
-            ? [{ id, name: preset['name'], regex: preset['regex'] }] : [];
+            ? [{
+                id, name: preset['name'], regex: preset['regex'],
+                ...(typeof preset['mapsForgeRegex'] === 'string' ? { mapsForgeRegex: preset['mapsForgeRegex'] } : {})
+              }] : [];
         });
         if (options.length) {
           this.mapPresetOptions.set(options);
@@ -3139,47 +3130,21 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapsforgeMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
     selectedPreset: string,
-    allMaps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()
+    _allMaps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()
   ): boolean {
     if (map.type !== 'mapsforge') return false;
-    const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
-    if (baseName === 'world.map') return true;
-    const regionSuffixes: Record<string, RegExp> = {
-      europe: /_europe\.obf$/i,
-      asia: /_asia\.obf$/i,
-      africa: /_africa\.obf$/i,
-      northamerica: /_northamerica\.obf$/i,
-      centralamerica: /_centralamerica\.obf$/i,
-      southamerica: /_southamerica\.obf$/i,
-      'australia-oceania': /_australia[-_]oceania\.obf$/i
-    };
-    const regionSuffix = regionSuffixes[selectedPreset];
-    if (!regionSuffix) {
-      return this.presetMatchesFileName(selectedPreset, baseName);
-    }
+    const fileName = (map.fileName || map.name).split(/[\\/]/).pop() ?? '';
+    if (/^world\.map$/i.test(fileName)) return true;
+    if (selectedPreset === 'none') return false;
+    if (selectedPreset === 'all') return true;
 
-    // Regional OsmAnd extracts are authoritative for Mapsforge country files:
-    // e.g. Cyprus_europe.obf -> cyprus.map and India_asia.obf -> india.map.
-    // A continent-wide file such as Asia.obf also maps to asia.map.
-    const normalizeCountryName = (name: string): string => name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
-    const mappings = this.osmAndToMapsForgeMappings();
-    const regionMaps = new Set(allMaps
-      .filter(candidate => candidate.type === 'obf')
-      .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
-      .filter(fileName => this.presetMatchesFileName(selectedPreset, fileName))
-      .flatMap(fileName => {
-        const mapping = mappings.find(item => {
-          try { return new RegExp(item.osmAnd, 'i').test(fileName); } catch { return false; }
-        });
-        const derivedName = mapping?.mapsForge
-          ?? fileName.replace(/\.obf$/i, '').replace(regionSuffix, '');
-        return [normalizeCountryName(derivedName)];
-      }));
-    return regionMaps.has(normalizeCountryName(baseName));
+    // Mapsforge files are selected directly by their own filenames. Regional
+    // presets use mapsForgeRegex from the default config; other presets fall
+    // back to their regular preset regex (e.g. Austria, DACH).
+    const definition = this.mapPresetOptions().find(item => item.id === selectedPreset);
+    if (!definition) return false;
+    const pattern = definition.mapsForgeRegex || definition.regex;
+    try { return new RegExp(pattern, 'i').test(fileName); } catch { return false; }
   }
 
   private getOfflineMapPresetForMaps(
