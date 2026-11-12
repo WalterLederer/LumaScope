@@ -2203,16 +2203,9 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private readWalkingFigureSymbolSettings(): Record<string, TimeSliderSymbolSettings> {
     try {
-      const parsed = JSON.parse(this.readSetting('timeSliderSymbolSettings', '{}')) as Record<string, Partial<TimeSliderSymbolSettings>>;
-      const result: Record<string, TimeSliderSymbolSettings> = {};
-      for (const [symbol, settings] of Object.entries(parsed ?? {})) {
-        const rotation = Number(settings?.rotation ?? 0);
-        result[symbol] = {
-          rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
-          flipHorizontal: settings?.flipHorizontal === true || settings?.flipVertical === true
-        };
-      }
-      return result;
+      const parsed = JSON.parse(this.readSetting('timeSliderSymbolSettings', '{}')) as
+        Record<string, Partial<TimeSliderSymbolSettings> & { flipVertical?: boolean }>;
+      return normalizeGpxSymbolSettings(parsed ?? {});
     } catch { return {}; }
   }
   private readNumber(key: string, fallback: number, min: number, max: number): number {
