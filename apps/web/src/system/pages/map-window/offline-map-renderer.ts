@@ -1,5 +1,5 @@
 import { addProtocol, Map as MapLibreMap, ScaleControl, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
-import { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
+import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
