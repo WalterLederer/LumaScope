@@ -225,6 +225,32 @@
         "fileType": "mapsforge",
         "useForUpdates": false
       }
-    ]
+    ],
+    "presets": {
+      "austria": {
+        "name": "Austria",
+        "regex": "austria|österreich|osterreich"
+      },
+      "austria-plus": {
+        "name": "Austria+",
+        "regex": "austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein"
+      },
+      "europe": {
+        "name": "Europe",
+        "regex": "(?:^|[_. -])europe(?:[_. -]|$)"
+      },
+      "all": {
+        "name": "All",
+        "regex": ".*"
+      },
+      "none": {
+        "name": "None",
+        "regex": "(?!)"
+      },
+      "custom": {
+        "name": "Custom",
+        "regex": ".*"
+      }
+    }
   }
 }
