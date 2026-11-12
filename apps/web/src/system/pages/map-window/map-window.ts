@@ -11,7 +11,7 @@ interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpaci
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpacity(opacity: number): LeafletGridLayer; redraw(): LeafletGridLayer; on(event: 'load', callback: () => void): LeafletGridLayer; remove(): void; }
-interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
+interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpacity(opacity: number): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
   setView(center: [number, number], zoom: number): MapInstance;
@@ -40,7 +40,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
-interface RouteWaypoint { latitude: number; longitude: number; }
+interface RouteWaypoint { latitude: number; longitude: number; name?: string; }
 
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
@@ -156,13 +156,14 @@ interface MapErrorEntry {
     @if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Date</span><span role="columnheader">Track time (min – max)</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span><span></span>
+          <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Waypoints</span><span role="columnheader">Date</span><span role="columnheader">Track time (min – max)</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span><span></span>
         </div>
         @for (track of gpxTracks(); track track.path) {
           <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing">
             <div class="gpx-row-actions" role="cell"><button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to entire track">⤢</button><button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name + ' in default editor'" title="Open in default GPX editor">↗</button></div>
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
             <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
+            <span class="gpx-waypoint-count" role="cell">{{ track.missing || track.readError ? '—' : gpxWaypointCount(track.path) }}</span>
             <span role="cell">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : formatGpxDate(track.lastModified) }}</span>
             <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : gpxTrackTimeRange(track.path) }}</span>
             <span role="cell">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : formatGpxFileSize(track.sizeBytes) }}</span>
@@ -245,7 +246,7 @@ interface MapErrorEntry {
     </div>
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
-        <div class="routing-point-row"><span class="routing-point-index">{{ i + 1 }}.</span><span>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</span><button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button></div>
+        <div class="routing-point-row"><span class="routing-point-index">{{ i + 1 }}.</span><span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span><button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button></div>
       }
       @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Enable map clicking and select at least two locations.</span> }
     </div>
@@ -1132,16 +1133,16 @@ interface MapErrorEntry {
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
-    .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) minmax(135px,175px) minmax(245px,290px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
+    .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) 72px minmax(135px,175px) minmax(245px,290px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-missing{color:#ff5b5b;background:color-mix(in srgb,#e53935 9%,transparent)}.gpx-file-row.gpx-missing .gpx-file-name{color:#ff5b5b}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
     .gpx-file-header{font-weight:700;color:var(--color-content-default-medium,#aaa)}
-    .gpx-time-range{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .gpx-waypoint-count{font-size:11px;text-align:center;font-variant-numeric:tabular-nums}.gpx-time-range{font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .marker-time-range{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;font-variant-numeric:tabular-nums}
     .file-path-copy-button{width:23px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default-medium,#bbb);font-size:14px;line-height:18px;cursor:pointer}.file-path-copy-button:hover{background:var(--color-surface-default-medium,#444);color:var(--color-content-default,#fff);border-color:var(--color-content-default-medium,#999)}
     .gpx-row-actions{display:flex;align-items:center;justify-content:center;gap:3px}.gpx-fit-button,.gpx-open-button{justify-self:center;width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-fit-button:hover,.gpx-open-button:hover{background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}.gpx-open-button{width:24px;height:22px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:15px;line-height:18px;cursor:pointer}.gpx-open-button:disabled{opacity:.35;cursor:default}.gpx-active-toggle{display:flex;align-items:center;justify-content:center}.gpx-active-toggle input{margin:0}.gpx-file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
-    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
+    @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 58px 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
@@ -1921,12 +1922,31 @@ export class MapWindow implements OnInit, OnDestroy {
       this.walkingFigureSymbolSettings.set(restoredSymbolSettings);
       this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restoredSymbolSettings));
       if (!saved) return;
+      const configuredOpacity = Number(saved['opacity']);
+      if (Number.isFinite(configuredOpacity) && configuredOpacity >= 0 && configuredOpacity <= 100) {
+        this.mapOpacity.set(configuredOpacity);
+        this.saveSetting('opacity', configuredOpacity);
+      }
+      if (typeof saved['mapVisible'] === 'boolean') {
+        this.mapVisible.set(saved['mapVisible']);
+        this.saveSetting('mapVisible', saved['mapVisible']);
+      }
+      const configuredWaypoints = Array.isArray(saved['routeWaypoints']) ? saved['routeWaypoints'] : [];
+      const restoredWaypoints = configuredWaypoints.flatMap((entry: unknown) => {
+        if (!entry || typeof entry !== 'object') return [];
+        const point = entry as Record<string, unknown>;
+        const latitude = Number(point['latitude']), longitude = Number(point['longitude']);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return [];
+        return [{ latitude, longitude, ...(typeof point['name'] === 'string' ? { name: point['name'] } : {}) }];
+      });
+      this.routeWaypoints.set(restoredWaypoints);
+      this.updateRouteWaypointMarkers();
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
       if (typeof saved['timeSliderAnimationSectionOpen'] === 'boolean') {
         this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
         this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
       }
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -3700,7 +3720,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapColor.set(value as MapColor); this.saveSetting('color', value); this.applyMapColor();
   };
   protected readonly changeMapVisibility = (visible: boolean): void => {
-    this.mapVisible.set(visible); this.saveSetting('mapVisible', visible); this.applyMapOpacity();
+    this.mapVisible.set(visible); this.saveSetting('mapVisible', visible);
+    this.persistLocationUiState({ mapVisible: visible });
+    this.applyMapOpacity();
   };
   protected readonly changeTrackVisibility = (visible: boolean): void => {
     this.gpxVisible.set(visible); void this.persistGpxMapSettings({ visible }); this.applyGpxTrack();
@@ -3866,7 +3888,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeMapOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
-    this.mapOpacity.set(next); this.saveSetting('opacity', next); this.applyMapOpacity();
+    this.mapOpacity.set(next); this.saveSetting('opacity', next);
+    this.persistLocationUiState({ opacity: next });
+    this.applyMapOpacity();
   };
   protected readonly changeLabelsVisibility = (visible: boolean): void => {
     if (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
@@ -4906,20 +4930,46 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
     if (!this.routePointPicking() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
-    this.routeWaypoints.update(points => [...points, { latitude, longitude }]);
+    const waypoint: RouteWaypoint = { latitude, longitude };
+    this.routeWaypoints.update(points => [...points, waypoint]);
+    this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
+    void this.resolveRouteWaypointName(waypoint);
   };
 
   protected readonly removeRouteWaypoint = (index: number): void => {
     this.routeWaypoints.update(points => points.filter((_, i) => i !== index));
+    this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
   };
 
   protected readonly clearRouteWaypoints = (): void => {
     this.routeWaypoints.set([]);
+    this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
     this.routeStatus.set('');
   };
+
+  private persistRouteWaypoints(): void {
+    this.persistLocationUiState({ routeWaypoints: this.routeWaypoints().map(point => ({
+      latitude: point.latitude, longitude: point.longitude, ...(point.name ? { name: point.name } : {})
+    })) });
+  }
+
+  private async resolveRouteWaypointName(waypoint: RouteWaypoint): Promise<void> {
+    try {
+      const result = await lookupReverseGeocoding(waypoint.latitude, waypoint.longitude, navigator.language || 'en');
+      const name = result?.displayName?.trim();
+      if (!name) return;
+      this.routeWaypoints.update(points => points.map(point => point === waypoint ? { ...point, name } : point));
+      this.persistRouteWaypoints();
+    } catch (error) {
+      console.warn('[Routing] Could not resolve route point location:', error);
+    }
+  }
+
+  protected readonly gpxWaypointCount = (path: string): number =>
+    (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
 
   private updateRouteWaypointMarkers(): void {
     for (const marker of this.routeWaypointMarkers) marker.remove();
@@ -4992,8 +5042,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.rebuildGpxSegments();
       this.applyGpxTrack();
       this.fitGpxTrack(destination);
-      this.routeStatus.set('Route saved and added to the GPX track list.');
-      this.routePointPicking.set(false);
+      this.routeStatus.set('Route saved and added to the GPX track list. Route points were kept.');
     } catch (error) {
       this.routeStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
@@ -5126,6 +5175,9 @@ ${points}
     // Leaflet does not emit MapLibre's 'idle' event. Use the base layer's
     // completed visible-tile batch to finish the shared Display phase.
     this.tileLayer.on('load', () => {
+      // Reapply the configured opacity after Leaflet has completed its initial
+      // tile batch; the pane can be recreated during first-time layer setup.
+      this.applyMapOpacity();
       window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
     });
     this.applyMapColor();
@@ -5284,6 +5336,7 @@ ${points}
   private applyMapOpacity(): void {
     const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
     this.offlineRenderer?.setBasemapOpacity(opacity);
+    this.tileLayer?.setOpacity(opacity);
     const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
     if (pane) pane.style.opacity = String(opacity);
   }
