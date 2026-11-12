@@ -3182,9 +3182,6 @@ export class MapWindow implements OnInit, OnDestroy {
     return regionMaps.has(normalizeCountryName(baseName));
   }
 
-
-  }
-
   private getOfflineMapPresetForMaps(
     maps: import('internal-api').OfflineMapStatus[]
   ): string | null {
