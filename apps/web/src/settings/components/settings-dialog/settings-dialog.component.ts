@@ -216,12 +216,16 @@ export class SettingsPanelComponent {
     { dll: 'dwmapi.dll', api: 'DwmGetWindowAttribute', purpose: 'Reads DWMWA_EXTENDED_FRAME_BOUNDS for the visible window frame; GetWindowRect is used as fallback.' },
     { dll: 'kernel32.dll', api: 'OpenProcess', purpose: 'Opens the owning process with query-limited-information access when a window is large enough to be a useful capture source.' },
     { dll: 'kernel32.dll', api: 'QueryFullProcessImageNameW', purpose: 'Retrieves the executable path of the process that owns an enumerated window.' },
-    { dll: 'kernel32.dll', api: 'CloseHandle', purpose: 'Releases the process handle opened while resolving a window’s executable path.' },
+    { dll: 'kernel32.dll', api: 'CloseHandle', purpose: 'Releases process handles used during window enumeration and the duplicated stdout handle when the native Atlas helper shuts down.' },
     { dll: 'kernel32.dll', api: 'GetStdHandle', purpose: 'In the native C++ OsmAnd Atlas helper, obtains the original stdout and stderr handles for its binary frame protocol.' },
     { dll: 'kernel32.dll', api: 'GetCurrentProcess', purpose: 'Supplies the current-process pseudo-handle when duplicating the Atlas helper protocol output handle.' },
     { dll: 'kernel32.dll', api: 'DuplicateHandle', purpose: 'Keeps a dedicated copy of the Atlas helper’s original stdout handle for binary tile-frame output.' },
     { dll: 'kernel32.dll', api: 'SetStdHandle', purpose: 'Redirects the Atlas helper’s standard output to stderr so diagnostic text cannot corrupt the binary frame protocol.' },
-    { dll: 'kernel32.dll', api: 'WriteFile', purpose: 'Writes the Atlas helper’s binary frame header and RGBA pixel payload to the preserved stdout handle.' }
+    { dll: 'kernel32.dll', api: 'WriteFile', purpose: 'Writes the Atlas helper’s binary frame header and RGBA pixel payload to the preserved stdout handle.' },
+    { dll: 'ole32.dll', api: 'CoInitializeEx / CoUninitialize', purpose: 'Initializes and releases the COM multithreaded apartment used by the native JPEG XR encoder.' },
+    { dll: 'ole32.dll', api: 'CoCreateInstance', purpose: 'Creates the Windows Imaging Component (WIC) imaging factory used by the JPEG XR encoder.' },
+    { dll: 'oleaut32.dll', api: 'VariantInit / VariantClear', purpose: 'Initializes and releases the VARIANT value used to pass JPEG XR encoder quality settings through WIC.' },
+    { dll: 'Windows Imaging Component (COM)', api: 'IWICImagingFactory / IWICStream / IWICBitmapEncoder / IWICBitmapFrameEncode', purpose: 'Creates the output stream and JPEG XR encoder, configures image dimensions, pixel format and quality, writes FP16 pixel rows, and commits the encoded image.' }
   ] as const;
 
   private readonly externalProgramFunction = (call: ExternalProcessCall): string => {
