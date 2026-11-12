@@ -522,7 +522,16 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
       || column < 0 || column >= tileCount || row < 0 || row >= tileCount) {
       throw new Error('Invalid Mapsforge XYZ tile coordinates.');
     }
-    const result = await desktop.Mapsforge.renderTile(zoom, column, row);
+    let result: Awaited<ReturnType<Desktop['Mapsforge']['renderTile']>>;
+    try {
+      result = await desktop.Mapsforge.renderTile(zoom, column, row);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!abortController.signal.aborted && !/\\b(cancelled|canceled)\\b/i.test(message)) {
+        window.dispatchEvent(new CustomEvent('lumascope-mapsforge-tile-error', { detail: { message, zoom, column, row } }));
+      }
+      throw error;
+    }
     if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
     if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
       throw new Error('Mapsforge renderer returned an invalid PNG tile.');
