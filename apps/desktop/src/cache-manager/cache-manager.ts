@@ -243,11 +243,11 @@ export class CacheManager {
 
     const db = this.databaseForDirectoryOrActive(directory);
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
-      .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
+    const allRows = db.prepare('SELECT photos.*, paths.relative_folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+      .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { relative_folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, this.databaseKeyForPath(directory))));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.relative_folder_path, this.databaseKeyForPath(directory))));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
@@ -255,7 +255,7 @@ export class CacheManager {
     let entries = 0;
     for (const row of rows) {
       if (this.isClearCancelled(operationId)) break;
-      const source = join(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name);
+      const source = join(this.resolveStoredFolderPath(row.relative_folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
@@ -289,16 +289,16 @@ export class CacheManager {
 
     const db = this.databaseForPath(directory);
     const root = resolve(directory);
-    const rows = db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path,
+    const rows = db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.relative_folder_path,
           CASE WHEN location_names.display_name IS NULL THEN 1 ELSE 0 END AS needs_refresh
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id
       WHERE photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
         AND (photos.location_name_id IS NULL OR photos.location_name_id = 0 OR location_names.display_name IS NULL)
-      ORDER BY paths.folder_path, photos.file_name`)
-      .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { folder_path: string; needs_refresh: number }>;
+      ORDER BY paths.relative_folder_path, photos.file_name`)
+      .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { relative_folder_path: string; needs_refresh: number }>;
     const candidates = rows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.relative_folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
@@ -381,11 +381,11 @@ export class CacheManager {
     if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
     const selectedDatabaseKey = databaseKey.toUpperCase();
     const db = this.databases.get(selectedDatabaseKey) ?? this.databaseForPath(selectedDatabaseKey + '\\');
-    const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
+    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
       OR (photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL)`)
-      .all() as unknown as Array<PhotoRow & { folder_path: string }>;
+      .all() as unknown as Array<PhotoRow & { relative_folder_path: string }>;
     const summary: CacheSummary = {
       total: { entries: 0, bytes: 0 },
       fullSize: { entries: 0, bytes: 0 },
@@ -397,7 +397,7 @@ export class CacheManager {
     };
 
     for (const row of rows) {
-      const source = join(this.resolveStoredFolderPath(row.folder_path, selectedDatabaseKey), row.file_name);
+      const source = join(this.resolveStoredFolderPath(row.relative_folder_path, selectedDatabaseKey), row.file_name);
       if (row.latitude !== null && row.longitude !== null
         && Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
         && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
@@ -580,10 +580,10 @@ export class CacheManager {
     const folder = dirname(sourceNames[0]);
     const db = this.databaseForPath(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
-    const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
-      JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder COLLATE NOCASE
+    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path FROM photos
+      JOIN paths ON paths.id = photos.path_id WHERE paths.relative_folder_path = :folder COLLATE NOCASE
       AND (photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL)`)
-      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { folder_path: string }>;
+      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { relative_folder_path: string }>;
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
     const thumbnailPaths: string[] = [];
     const fullSizePaths: string[] = [];
@@ -627,7 +627,7 @@ export class CacheManager {
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE paths.folder_path = :folder COLLATE NOCASE
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
       ORDER BY photos.file_name COLLATE NOCASE`)
       .all({ folder: this.toRelativeFolderPath(directory, this.databaseKeyForPath(directory)) ?? '' }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
@@ -644,10 +644,10 @@ export class CacheManager {
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
     const db = this.databaseForPath(sourceName);
-    const row = db.prepare(`SELECT photos.*, paths.folder_path
+    const row = db.prepare(`SELECT photos.*, paths.relative_folder_path
       FROM photos
       JOIN paths ON paths.id = photos.path_id
-      WHERE paths.folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
     const columnTypes = new Map<string, string>();
@@ -657,8 +657,8 @@ export class CacheManager {
     }
     const databaseKey = this.databaseKeyForPath(sourceName);
     const typedRecord: Record<string, string | number | null> = { ...row };
-    if (typeof row.folder_path === 'string') {
-      typedRecord.folder_path_expanded = this.resolveStoredFolderPath(row.folder_path, databaseKey);
+    if (typeof row.relative_folder_path === 'string') {
+      typedRecord.relative_folder_path_expanded = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
     }
     typedRecord.database_path = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     for (const key of Object.keys(row)) {
@@ -840,7 +840,7 @@ export class CacheManager {
   };
 
   private readonly getPhoto = (sourceName: string, db = this.databaseForPath(sourceName)): PhotoRow | null => {
-    const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE')
+    const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.relative_folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE')
       .get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
   };
@@ -848,8 +848,8 @@ export class CacheManager {
   private readonly ensurePhoto = (sourceName: string, size: number, modified: number, db = this.databaseForPath(sourceName)): PhotoRow => {
     const folder = this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName));
     if (folder === null) throw new Error(`Image path is outside the cache database drive: ${sourceName}`);
-    db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
-    const path = db.prepare('SELECT id FROM paths WHERE folder_path = :folder COLLATE NOCASE').get({ folder }) as { id: number };
+    db.prepare('INSERT OR IGNORE INTO paths (relative_folder_path) VALUES (:folder)').run({ folder });
+    const path = db.prepare('SELECT id FROM paths WHERE relative_folder_path = :folder COLLATE NOCASE').get({ folder }) as { id: number };
     db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
       VALUES (:pathId, :file, :size, :modified, 0)
       ON CONFLICT(path_id, file_name) DO UPDATE SET
@@ -885,9 +885,9 @@ export class CacheManager {
       this.currentReverseGeocodingPhotoId = photo.id;
       this.currentReverseGeocodingDatabaseKey = databaseKey;
       this.currentReverseGeocodingDisplayName = null;
-      const source = db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
-        .get({ photoId: photo.id }) as { folder_path: string; file_name: string } | undefined;
-      this.currentReverseGeocodingPath = source ? join(this.resolveStoredFolderPath(source.folder_path, databaseKey), source.file_name) : null;
+      const source = db.prepare(`SELECT paths.relative_folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
+        .get({ photoId: photo.id }) as { relative_folder_path: string; file_name: string } | undefined;
+      this.currentReverseGeocodingPath = source ? join(this.resolveStoredFolderPath(source.relative_folder_path, databaseKey), source.file_name) : null;
       db.prepare(`UPDATE photos
         SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId`)
@@ -997,18 +997,18 @@ export class CacheManager {
   private readonly getKindStats = async (kind: 'thumbnail' | 'fullsize', directory?: string, recursive = false): Promise<CacheClearResult> => {
     const db = this.databaseForDirectoryOrActive(directory);
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
-      .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
+    const allRows = db.prepare('SELECT photos.*, paths.relative_folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+      .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { relative_folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.relative_folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
     let bytes = 0;
     let existingEntries = 0;
     for (const row of rows) {
-      const path = this.getSidecarPath(join(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name), kind === 'fullsize');
+      const path = this.getSidecarPath(join(this.resolveStoredFolderPath(row.relative_folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name), kind === 'fullsize');
       try {
         const info = await stat(path);
         bytes += info.size;
@@ -1035,6 +1035,26 @@ export class CacheManager {
     if (!migrations.some(item => item.name === 'migrateLegacyCacheFilesToPhotosV8')) {
       this.migrateLegacyCacheFiles(db, databaseKey);
       insert.run({ name: 'migrateLegacyCacheFilesToPhotosV8' });
+    }
+    if (!migrations.some(item => item.name === 'renameFolderPathToRelativeFolderPathV17')) {
+      const columns = db.prepare('PRAGMA table_info(paths)').all() as Array<{ name: string }>;
+      const hasOldColumn = columns.some(column => column.name === 'folder_path');
+      const hasNewColumn = columns.some(column => column.name === 'relative_folder_path');
+      if (hasOldColumn && !hasNewColumn) {
+        db.exec('BEGIN IMMEDIATE;');
+        try {
+          db.exec('ALTER TABLE paths RENAME COLUMN folder_path TO relative_folder_path;');
+          insert.run({ name: 'renameFolderPathToRelativeFolderPathV17' });
+          db.exec('COMMIT;');
+        } catch (error) {
+          try { db.exec('ROLLBACK;'); } catch { /* Keep the original migration error. */ }
+          throw error;
+        }
+      } else if (hasNewColumn) {
+        insert.run({ name: 'renameFolderPathToRelativeFolderPathV17' });
+      } else {
+        throw new Error('Cache database migration failed: paths.relative_folder_path is missing.');
+      }
     }
     db.exec("DELETE FROM cache_storage_types WHERE name = 'central';");
     rm(this.legacyCacheDir, { recursive: true, force: true }).catch(() => undefined);
