@@ -1408,6 +1408,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private locationUpdateVersion = 0;
   private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
+  private mapWindowConfigRestore: Promise<void> = Promise.resolve();
   private rendererTransition: Promise<void> = Promise.resolve();
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
@@ -1886,7 +1887,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    void this.desktop?.ProcessManager.getAppSettings().then(settings => {
+    this.mapWindowConfigRestore = this.desktop
+      ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
@@ -1962,7 +1964,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
       if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
-    }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
+      }).catch(error => console.warn('[Location] Could not restore window UI state:', error))
+      : Promise.resolve();
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     window.addEventListener('lumascope-mapsforge-tile-error', this.onMapsforgeTileError);
     window.addEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
@@ -2603,6 +2606,9 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   private async initialize(latitude: number, longitude: number): Promise<void> {
+    // Restore persisted mapWindow values before creating any renderer. In
+    // particular, Mapsforge must receive the saved opacity on its first style.
+    await this.mapWindowConfigRestore;
     await this.mapZoomRestore;
     // Do not let the initial map request apply the stale renderer-local
     // default before the shared persisted OsmAnd style has been restored.
