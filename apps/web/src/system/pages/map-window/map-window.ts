@@ -3134,7 +3134,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const matches = (map: import('internal-api').OfflineMapStatus, preset: typeof candidates[number]): boolean => {
       if (map.type === 'obf') return this.obfMapMatchesPreset(map, preset);
       if (map.type === 'mapsforge') {
-        const baseName = (map.fileName || map.name).split(/[\\\\/]/).pop()?.toLowerCase() ?? '';
+        const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.toLowerCase() ?? '';
         if (baseName === 'world.map') return preset !== 'none';
         if (preset === 'none') return false;
         if (preset === 'all') return true;
