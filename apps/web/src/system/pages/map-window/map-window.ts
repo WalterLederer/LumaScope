@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
-import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, gpxSymbolOrientationOffset, normalizeGpxSymbolSettings } from './gpx-animation';
+import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
