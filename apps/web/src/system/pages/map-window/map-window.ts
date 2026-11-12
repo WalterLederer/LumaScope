@@ -257,7 +257,7 @@ interface MapErrorEntry {
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                 <span class="time-slider-symbol-front">Front</span>
               </div>
-              <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
+              <label class="time-slider-symbol-rotation"><span>Rotation (°)</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
               <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
@@ -1016,7 +1016,7 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .time-slider-symbol-adjustments{display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1 1 100%;padding:2px 0 4px}
+    .time-slider-symbol-adjustments{display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1 1 320px;min-width:0;padding:2px 0 4px}
     .time-slider-symbol-preview-row{display:flex;align-items:center;gap:9px}
     .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
     .time-slider-symbol-preview-box>span{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}.time-slider-symbol-preview-box svg{display:block;width:30px;height:38px;overflow:visible}
