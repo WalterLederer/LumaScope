@@ -199,6 +199,9 @@ public final class MapsforgeWorker {
             // to the Windows display DPI reported by Electron.
             float effectiveScale = Math.max(1f, Math.min(4f, deviceScaleFactor));
             DisplayModel.setDeviceScaleFactor(effectiveScale);
+            // Mapsforge keeps the render-theme text scale as a separate static
+            // setting; device density alone is neutralized by fixed XYZ tiles.
+            DisplayModel.textScale = effectiveScale;
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
 
@@ -271,7 +274,7 @@ public final class MapsforgeWorker {
             throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
         }
         RendererJob job = new RendererJob(
-            tile, mapDataStore, renderThemeFuture, displayModel, textScale, false, false
+            tile, mapDataStore, renderThemeFuture, displayModel, 1f, false, false
         );
         TileBitmap bitmap = renderer.executeJob(job);
         if (bitmap == null) {
@@ -298,6 +301,7 @@ public final class MapsforgeWorker {
         renderThemeFuture = null;
         displayModel = null;
         textScale = 1f;
+        DisplayModel.textScale = 1f;
         if (tileCache != null) {
             tileCache.destroy();
             tileCache = null;
