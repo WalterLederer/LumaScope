@@ -39,7 +39,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
-interface TimeSliderSymbolSettings { rotation: number; flipVertical: boolean; }
+interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
@@ -258,7 +258,7 @@ interface MapErrorEntry {
                 <span class="time-slider-symbol-front">Front</span>
               </div>
               <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
-              <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipVertical" (change)="changeWalkingFigureFlipVertical($any($event.target).checked)"><span>Flip vertical</span></label>
+              <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
@@ -2208,7 +2208,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const rotation = Number(settings?.rotation ?? 0);
         result[symbol] = {
           rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
-          flipVertical: settings?.flipVertical === true
+          flipHorizontal: settings?.flipHorizontal === true || settings?.flipVertical === true
         };
       }
       return result;
@@ -4119,7 +4119,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
-    this.walkingFigureSymbolSettings()[this.walkingFigureType()] ?? { rotation: 0, flipVertical: false };
+    this.walkingFigureSymbolSettings()[this.walkingFigureType()] ?? { rotation: 0, flipHorizontal: false };
 
   protected readonly walkingFigurePreviewHtml = (): string => {
     if (this.walkingFigureType() === 'walker') {
@@ -4140,16 +4140,15 @@ export class MapWindow implements OnInit, OnDestroy {
     return ['car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType) ? -90 : 0;
   }
 
-  private walkingFigureFlipTransform(figureType: string, flip: boolean): string {
-    if (!flip) return '';
-    // Vehicle emoji face right, so their side-to-side axis is vertical before
-    // the -90° orientation correction. The walker and remaining symbols face up.
-    return this.walkingFigureOrientationOffset(figureType) === -90 ? 'scaleY(-1)' : 'scaleX(-1)';
+  private walkingFigureFlipTransform(_figureType: string, flip: boolean): string {
+    // Mirror the symbol across its own vertical axis (swap its left and right).
+    // The transform is applied in symbol-local coordinates before map rotation.
+    return flip ? 'scaleX(-1)' : '';
   }
 
   protected readonly walkingFigurePreviewTransform = (): string => {
     const settings = this.selectedWalkingFigureSymbolSettings();
-    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipVertical)}`;
+    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipHorizontal)}`;
   };
 
   private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>, persistConfig = true): void {
@@ -4172,8 +4171,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateSelectedWalkingFigureSettings({ rotation: ((Math.round(rotation) % 360) + 360) % 360 }, false);
   };
 
-  protected readonly changeWalkingFigureFlipVertical = (enabled: boolean): void => {
-    this.updateSelectedWalkingFigureSettings({ flipVertical: enabled });
+  protected readonly changeWalkingFigureFlipHorizontal = (enabled: boolean): void => {
+    this.updateSelectedWalkingFigureSettings({ flipHorizontal: enabled });
   };
 
   private ensureWalkingFigureAnimationStyles(): void {
@@ -4332,15 +4331,15 @@ export class MapWindow implements OnInit, OnDestroy {
     // left side of the map. The per-symbol checkbox remains an additional
     // manual inversion, so it can correct symbols whose artwork faces opposite.
     const movingLeft = Math.sin(bearing * Math.PI / 180) < -0.01;
-    const effectiveFlipVertical = symbolSettings.flipVertical !== movingLeft;
-    const symbolTransform = `rotate(${bearing + orientationOffset}deg) ${this.walkingFigureFlipTransform(figureType, effectiveFlipVertical)} scale(${this.walkingFigureSize()})`;
+    const effectiveFlipHorizontal = symbolSettings.flipHorizontal !== movingLeft;
+    const symbolTransform = `rotate(${bearing + orientationOffset}deg) ${this.walkingFigureFlipTransform(figureType, effectiveFlipHorizontal)} scale(${this.walkingFigureSize()})`;
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
       : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, effectiveFlipVertical);
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, effectiveFlipHorizontal);
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
