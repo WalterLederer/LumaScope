@@ -1070,6 +1070,7 @@ export class CacheManager {
       const photosForPath = db.prepare('SELECT * FROM photos WHERE path_id = :id ORDER BY id');
       const findPhoto = db.prepare('SELECT id FROM photos WHERE path_id = :pathId AND file_name = :file COLLATE NOCASE');
       const movePhoto = db.prepare('UPDATE photos SET path_id = :pathId WHERE id = :id');
+      const deletePathPhotos = db.prepare('DELETE FROM photos WHERE path_id = :id');
       const deletePath = db.prepare('DELETE FROM paths WHERE id = :id');
       const updateFolder = db.prepare('UPDATE paths SET folder_path = :folder WHERE id = :id');
       const mergePhoto = db.prepare(`UPDATE photos SET
@@ -1093,6 +1094,11 @@ export class CacheManager {
         const folder = /^[a-z]:/i.test(item.folder_path)
           ? this.toRelativeFolderPath(item.folder_path, databaseKey)
           : item.folder_path.replace(/[\\/]+/g, '\\').replace(/^\\+|\\+$/g, '');
+        if (folder !== null && (isAbsolute(folder) || /^[a-z]:/i.test(folder) || folder === '..' || folder.startsWith('..' + sep))) {
+          deletePathPhotos.run({ id: item.id });
+          deletePath.run({ id: item.id });
+          continue;
+        }
         if (folder === null) {
           deletePathPhotos.run({ id: item.id });
           deletePath.run({ id: item.id });
