@@ -3350,6 +3350,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const presetMaps = maps.filter(map => map.type === 'obf' || map.type === 'mapsforge');
     if (presetMaps.length === 0) return null;
     const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
+    const allEnabled = presetMaps.every(map => map.enabled);
+    const noneEnabled = presetMaps.every(map => !map.enabled);
+    if (allEnabled && candidates.includes('all')) return 'all';
+    if (noneEnabled && candidates.includes('none')) return 'none';
+
     const matches = (map: import('internal-api').OfflineMapStatus, preset: typeof candidates[number]): boolean => {
       if (map.type === 'obf') return this.obfMapMatchesPreset(map, preset);
       if (map.type === 'mapsforge') {
@@ -3391,9 +3396,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const currentMaps = this.offlineMaps();
     const map = currentMaps.find(item => item.id === id);
-    const obfSelectionChanged = map?.type === 'obf' && map.enabled !== enabled;
+    const presetSelectionChanged = (map?.type === 'obf' || map?.type === 'mapsforge') && map.enabled !== enabled;
     const nextMaps = currentMaps.map(item => item.id === id ? { ...item, enabled } : item);
-    const matchingPreset = obfSelectionChanged ? this.getOfflineMapPresetForMaps(nextMaps) : null;
+    const matchingPreset = presetSelectionChanged ? this.getOfflineMapPresetForMaps(nextMaps) : null;
     this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(
       [{ id, enabled }],
       matchingPreset ?? undefined
@@ -3415,13 +3420,15 @@ export class MapWindow implements OnInit, OnDestroy {
     const visibleMaps = this.filteredOfflineMaps();
     if (visibleMaps.length === 0) return;
     try {
-      const obfSelectionChanged = visibleMaps.some(map => map.type === 'obf' && map.enabled !== enabled);
+      const presetSelectionChanged = visibleMaps.some(map =>
+        (map.type === 'obf' || map.type === 'mapsforge') && map.enabled !== enabled
+      );
       const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
       const updateById = new Map(updates.map(update => [update.id, update.enabled]));
       const updatedSelection = this.offlineMaps().map(map =>
         updateById.has(map.id) ? { ...map, enabled: updateById.get(map.id)! } : map
       );
-      const matchingPreset = obfSelectionChanged ? this.getOfflineMapPresetForMaps(updatedSelection) : null;
+      const matchingPreset = presetSelectionChanged ? this.getOfflineMapPresetForMaps(updatedSelection) : null;
       const updated = await this.desktop.OfflineMap.setEnabledBatch(
         updates,
         matchingPreset ?? undefined
@@ -3584,8 +3591,8 @@ export class MapWindow implements OnInit, OnDestroy {
     // Otherwise, e.g. a list containing only Austrian files would be labelled
     // "Austria" even when the user has selected every available file.
     const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
-    const matching = allEnabled ? 'all'
-      : noneEnabled ? 'none'
+    const matching = allEnabled && candidates.includes('all') ? 'all'
+      : noneEnabled && candidates.includes('none') ? 'none'
       : candidates.find(preset => preset !== 'all' && preset !== 'none'
         && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
     const next = matching ?? 'custom';
