@@ -283,6 +283,12 @@
         "name": "Custom",
         "regex": ".*"
       }
-    }
+    },
+    "OsmAndToMapsForge": [
+      {
+        "OsmAnd": "^GB_",
+        "MapsForge": "great-britain"
+      }
+    ]
   }
 }
