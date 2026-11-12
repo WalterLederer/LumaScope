@@ -5059,8 +5059,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!/\.gpx$/i.test(destination)) destination += '.gpx';
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
       const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
+      const returnedWaypointCount = routePoints.length;
       const routingPointComment = [
         'Routing provider: ' + providerName,
+        'Waypoints returned by routing server: ' + returnedWaypointCount,
         'Request timestamp (UTC): ' + requestTimestamp,
         'Profile: ' + requestProfile,
         'Routing points (complete list; inactive points were not sent to the provider):',
@@ -5087,7 +5089,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.rebuildGpxSegments();
       this.applyGpxTrack();
       this.fitGpxTrack(destination);
-      this.routeStatus.set('Route saved and added to the GPX track list. Route points were kept.');
+      this.routeStatus.set('Saved GPX (' + returnedWaypointCount + ' waypoints returned by routing server). Route added to GPX track list; route points were kept.');
     } catch (error) {
       this.routeStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
