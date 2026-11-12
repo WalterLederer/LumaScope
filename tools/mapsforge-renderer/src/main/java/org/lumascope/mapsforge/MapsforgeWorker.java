@@ -44,6 +44,7 @@ public final class MapsforgeWorker {
     private DisplayModel displayModel;
     private RenderThemeFuture renderThemeFuture;
     private DatabaseRenderer renderer;
+    private float renderTextScale = 1f;
     private String activeMapPath = "";
     private final java.util.List<String> activeMapPaths = new java.util.ArrayList<>();
     private final java.util.List<MapDataStore> activeMapStores = new java.util.ArrayList<>();
@@ -200,7 +201,10 @@ public final class MapsforgeWorker {
             DisplayModel.setDeviceScaleFactor(effectiveScale);
             // Mapsforge keeps the render-theme text scale as a separate static
             // setting; device density alone is neutralized by fixed XYZ tiles.
-            DisplayModel.textScale = effectiveScale;
+            // Keep the static theme scale neutral; apply the user factor to each
+            // RendererJob so the fixed 256 px XYZ tile size is preserved.
+            DisplayModel.textScale = 1f;
+            this.renderTextScale = effectiveScale;
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
 
@@ -272,7 +276,7 @@ public final class MapsforgeWorker {
             throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
         }
         RendererJob job = new RendererJob(
-            tile, mapDataStore, renderThemeFuture, displayModel, 1f, false, false
+            tile, mapDataStore, renderThemeFuture, displayModel, renderTextScale, false, false
         );
         TileBitmap bitmap = renderer.executeJob(job);
         if (bitmap == null) {
@@ -299,6 +303,7 @@ public final class MapsforgeWorker {
         renderThemeFuture = null;
         displayModel = null;
         DisplayModel.textScale = 1f;
+        renderTextScale = 1f;
         if (tileCache != null) {
             tileCache.destroy();
             tileCache = null;
