@@ -193,13 +193,14 @@ export class MapsforgeManager {
   };
 
   @IpcHandler({ name: 'Mapsforge.open' })
-  readonly open = async (_event: IpcMainInvokeEvent, mapPaths: string[], themePath?: string | null): Promise<MapsforgeResponse> => {
+  readonly open = async (_event: IpcMainInvokeEvent, mapPaths: string[], themePath?: string | null, deviceScaleFactor?: number): Promise<MapsforgeResponse> => {
     if (!Array.isArray(mapPaths) || mapPaths.length === 0 || mapPaths.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('Select at least one valid Mapsforge .map file.');
     }
     return this.worker.request('open', {
       map_paths: [...new Set(mapPaths.map(path => path.trim()))],
-      theme_path: typeof themePath === 'string' && themePath.trim() ? themePath.trim() : null
+      theme_path: typeof themePath === 'string' && themePath.trim() ? themePath.trim() : null,
+      device_scale_factor: Number.isFinite(deviceScaleFactor) ? Math.max(1, Math.min(4, Number(deviceScaleFactor))) : 1
     });
   };
 
