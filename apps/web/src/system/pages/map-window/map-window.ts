@@ -2792,7 +2792,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     try {
-      await this.desktop.Mapsforge.open(maps.map(map => map.filePath));
+      await this.desktop.Mapsforge.open(maps.map(map => map.filePath), null, Math.max(1, Math.min(4, window.devicePixelRatio || 1)));
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
         // changeMapSource() already queued close() after this open request.
         // Closing again here is unsafe: a rapid switch back to Mapsforge may
