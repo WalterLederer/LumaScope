@@ -194,12 +194,13 @@ public final class MapsforgeWorker {
             }
             newTileCache = new InMemoryTileCache(TILE_CACHE_CAPACITY);
 
-            // Keep XYZ tile geometry and non-text styling at native scale.
-            // RendererJob.textScale is the dedicated label/font scale.
-            float effectiveScale = Math.max(1f, Math.min(4f, deviceScaleFactor));
-            DisplayModel.setDeviceScaleFactor(1f);
+            // Keep XYZ tile geometry fixed at 256 px, but apply the selected
+            // density to Mapsforge's DisplayModel so render-theme text, symbols,
+            // and strokes use the same scale as the other map renderers.
+            float effectiveScale = Math.max(1f, Math.min(3f, deviceScaleFactor));
+            DisplayModel.setDeviceScaleFactor(effectiveScale);
             DisplayModel.textScale = 1f;
-            this.renderTextScale = effectiveScale;
+            this.renderTextScale = 1f;
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
 
