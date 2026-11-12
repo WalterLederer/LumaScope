@@ -1361,6 +1361,21 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .time-slider-control-card>strong{color:#000}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
+    .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+    .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .routing-pick-toggle{display:flex;align-items:center;gap:6px}
+    .routing-key-row label{font-weight:600}
+    .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
+    .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
+    .routing-point-row{display:flex;align-items:center;gap:10px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}
+    .routing-point-row>span:nth-child(2){font-family:Consolas,monospace;font-variant-numeric:tabular-nums}
+    .routing-point-index{width:22px;font-weight:700;color:#0a84ff}
+    .routing-point-row .offline-map-remove-button{margin-left:auto}
+    .routing-waypoint-icon{background:transparent;border:0}
+    .routing-waypoint-icon span{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px #0009}
+    .routing-actions .offline-map-status{flex:1;min-width:180px}
+    @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
+
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
