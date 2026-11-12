@@ -4150,11 +4150,10 @@ export class MapWindow implements OnInit, OnDestroy {
     sailboat: '⛵', rocket: '🚀'
   }[this.walkingFigureType()] ?? '🚶');
 
-  private walkingFigureOrientationOffset(_figureType: string): number {
-    // Vehicle and transport emoji are already oriented to the right in their
-    // native artwork. Do not apply the old -90° correction, which turned the
-    // front of the symbol downward at a zero-degree rotation.
-    return 0;
+  private walkingFigureOrientationOffset(figureType: string): number {
+    // GPX bearings are compass angles (0° north, 90° east), while vehicle
+    // emoji artwork is aligned horizontally with its front facing right.
+    return figureType === 'walker' ? 0 : -90;
   }
 
   private walkingFigureFlipTransform(_figureType: string, flip: boolean): string {
@@ -4362,7 +4361,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, effectiveFlipHorizontal);
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, effectiveFlipHorizontal, figureType !== 'walker');
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
