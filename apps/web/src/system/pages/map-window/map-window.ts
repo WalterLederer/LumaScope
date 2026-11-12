@@ -418,6 +418,16 @@ interface MapErrorEntry {
         </select>
       </label>
     }
+    @if (mapSource() === 'mapsforge' && hasActiveMapsforgeMaps()) {
+      <label class="offline-style-control"><span>Mapsforge Theme</span>
+        <select [value]="mapsforgeThemePath()" (change)="changeMapsforgeTheme($any($event.target).value)">
+          <option value="">Default (built-in)</option>
+          @for (theme of mapsforgeThemes(); track theme.path) {
+            <option [value]="theme.path">{{ theme.relativePath }}</option>
+          }
+        </select>
+      </label>
+    }
   </div>
   <label class="view-map-color"><span>Color</span>
     <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
@@ -811,15 +821,9 @@ interface MapErrorEntry {
         <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
         <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
         <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
-        @if (mapsforgeThemes().length > 0) {
-          <label>Render theme
-            <select [value]="mapsforgeThemePath()" (change)="changeMapsforgeTheme($any($event.target).value)">
-              @for (theme of mapsforgeThemes(); track theme.path) { <option [value]="theme.path">{{ theme.relativePath }}</option> }
-            </select>
-          </label>
-        }
+        <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
         @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
-        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. The folder and selected XML path are stored in the application settings; theme files remain external.</p>
+        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
       </div>
     </details>
   </div>
@@ -1633,6 +1637,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapsforgeThemePath = signal('');
   protected readonly mapsforgeThemes = signal<import('internal-api').MapsforgeTheme[]>([]);
   protected readonly mapsforgeThemeError = signal('');
+  protected readonly hasActiveMapsforgeMaps = computed(() => this.offlineMaps().some(map => map.type === 'mapsforge' && map.enabled && map.available));
   protected readonly mapDisplayNotice = signal('');
   protected readonly openResourcesDownloadTab = (): void => { this.settingsOpen.set(true); this.selectSettingsTab('download'); };
   protected readonly offlineMapStatusText = computed(() => {
@@ -1915,12 +1920,12 @@ export class MapWindow implements OnInit, OnDestroy {
             try {
               const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
               this.mapsforgeThemes.set(themes);
-              const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? themes[0] ?? null;
-              this.mapsforgeThemePath.set(selectedTheme?.path ?? '');
-              if (selectedTheme && selectedTheme.path !== savedThemePath) {
-                await this.desktop!.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder, themePath: selectedTheme.path });
+              const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? null;
+              const selectedPath = selectedTheme?.path ?? '';
+              this.mapsforgeThemePath.set(selectedPath);
+              if (selectedPath !== savedThemePath) {
+                await this.desktop!.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder, themePath: selectedPath });
               }
-              if (themes.length === 0) this.mapsforgeThemeError.set('No Mapsforge XML render themes found in the selected folder.');
             } catch (error) {
               this.mapsforgeThemeError.set(error instanceof Error ? error.message : String(error));
             }
@@ -3571,14 +3576,13 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
       this.mapsforgeThemes.set(themes);
-      const selected = themes.find(theme => theme.path === this.mapsforgeThemePath()) ?? themes[0] ?? null;
-      this.mapsforgeThemePath.set(selected?.path ?? '');
+      const selected = themes.find(theme => theme.path === this.mapsforgeThemePath()) ?? null;
+      const selectedPath = selected?.path ?? '';
+      this.mapsforgeThemePath.set(selectedPath);
       await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
-        themeFolder: this.mapsforgeThemeFolder(), themePath: selected?.path ?? ''
+        themeFolder: this.mapsforgeThemeFolder(), themePath: selectedPath
       });
-      if (themes.length === 0) {
-        this.mapsforgeThemeError.set('No Mapsforge XML render themes found in this folder or its subfolders.');
-      } else if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.refreshOfflineMapRendering();
       }
     } catch (error) {
@@ -3586,7 +3590,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   protected readonly changeMapsforgeTheme = async (path: string): Promise<void> => {
-    if (!this.mapsforgeThemes().some(theme => theme.path === path)) return;
+    if (path !== '' && !this.mapsforgeThemes().some(theme => theme.path === path)) return;
     this.mapsforgeThemePath.set(path);
     await this.desktop?.ProcessManager.setAppSettingsSection('mapsforge', {
       themeFolder: this.mapsforgeThemeFolder(), themePath: path
