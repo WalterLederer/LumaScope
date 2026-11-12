@@ -257,7 +257,7 @@ interface MapErrorEntry {
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                 <span class="time-slider-symbol-front">Front</span>
               </div>
-              <label class="time-slider-symbol-rotation"><span>Rotation (°)</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
+              <label class="time-slider-symbol-rotation"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
               <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
