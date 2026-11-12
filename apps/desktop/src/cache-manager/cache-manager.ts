@@ -1070,7 +1070,6 @@ export class CacheManager {
       const photosForPath = db.prepare('SELECT * FROM photos WHERE path_id = :id ORDER BY id');
       const findPhoto = db.prepare('SELECT id FROM photos WHERE path_id = :pathId AND file_name = :file COLLATE NOCASE');
       const movePhoto = db.prepare('UPDATE photos SET path_id = :pathId WHERE id = :id');
-      const deletePathPhotos = db.prepare('DELETE FROM photos WHERE path_id = :id');
       const deletePath = db.prepare('DELETE FROM paths WHERE id = :id');
       const updateFolder = db.prepare('UPDATE paths SET folder_path = :folder WHERE id = :id');
       const mergePhoto = db.prepare(`UPDATE photos SET
@@ -1131,7 +1130,7 @@ export class CacheManager {
     if (!table) return;
     const rows = db.prepare('SELECT * FROM cache_files').all() as Array<Record<string, SQLOutputValue>>;
     const insertPath = db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)');
-    const findPath = db.prepare('SELECT id FROM paths WHERE folder_path = :folder');
+    const findPath = db.prepare('SELECT id FROM paths WHERE folder_path = :folder COLLATE NOCASE');
     const insertPhoto = db.prepare('INSERT OR IGNORE INTO photos (path_id, file_name, file_size, modified_at, is_hdr) VALUES (:pathId, :file, :size, :modified, :hdr)');
     const updatePhoto = db.prepare('UPDATE photos SET thumbnail_cache_id = CASE WHEN :full = 0 THEN :cacheId ELSE thumbnail_cache_id END, thumbnail_cache_version = CASE WHEN :full = 0 THEN :version ELSE thumbnail_cache_version END, fullsize_cache_id = CASE WHEN :full = 1 THEN :cacheId ELSE fullsize_cache_id END, fullsize_cache_version = CASE WHEN :full = 1 THEN :version ELSE fullsize_cache_version END WHERE path_id = :pathId AND file_name = :file');
     for (const row of rows) {
