@@ -486,14 +486,14 @@ function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecificati
   return JSON.parse(JSON.stringify(style)) as StyleSpecification;
 }
 
-export function createMapsforgeMapStyle(): StyleSpecification {
+export function createMapsforgeMapStyle(refresh = Date.now()): StyleSpecification {
   return {
     version: 8,
     name: 'LumaScope Mapsforge',
     sources: {
       mapsforge: {
         type: 'raster',
-        tiles: ['mapsforge://{z}/{x}/{y}'],
+        tiles: [`mapsforge://{z}/{x}/{y}?refresh=${refresh}`],
         tileSize: 256,
         minzoom: 0,
         maxzoom: 22,
