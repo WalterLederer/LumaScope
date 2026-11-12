@@ -625,9 +625,23 @@ interface MapErrorEntry {
         </select>
       </label>
       <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
-      <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true)" [disabled]="hillshadeDatabaseCount() === 0">Activate all</button>
-      <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false)" [disabled]="hillshadeDatabaseCount() === 0">Deactivate all</button>
-      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active</span>
+      <details class="map-cache-section offline-map-filter-section">
+        <summary class="map-cache-heading">Filter</summary>
+        <div class="map-cache-actions offline-map-filter-actions">
+          <label class="offline-map-list-filter">Filter:
+            <select [value]="hillshadeListFilter()" (change)="hillshadeListFilter.set($any($event.target).value)">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="missing">Missing</option>
+            </select>
+          </label>
+          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="clearVisibleHillshadeDatabases()" [disabled]="filteredHillshadeDatabases().length === 0">Clear visible maps</button>
+          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && !database.enabled)">Activate visible maps</button>
+          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && database.enabled)">Deactivate visible maps</button>
+        </div>
+      </details>
+      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active · {{ filteredHillshadeDatabases().length }} filtered</span>
     </div>
   </div>
 </div>
@@ -872,7 +886,7 @@ interface MapErrorEntry {
                 <table class="mbtiles-map-table hillshade-map-table">
                   <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade file</th><th>Last modified</th><th>File size</th><th>Status</th><th></th><th></th></tr></thead>
                   <tbody>
-                    @for (database of hillshadeDatabases(); track database.id) {
+                    @for (database of filteredHillshadeDatabases(); track database.id) {
                       <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
                         <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
@@ -1587,6 +1601,15 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
   protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
   protected readonly hillshadeDatabases = signal<OsmAndHillshadeDatabase[]>([]);
+  protected readonly hillshadeListFilter = signal<'all' | 'active' | 'inactive' | 'missing'>('all');
+  protected readonly filteredHillshadeDatabases = computed(() => {
+    const databases = this.hillshadeDatabases();
+    const filter = this.hillshadeListFilter();
+    if (filter === 'active') return databases.filter(database => database.available && database.enabled);
+    if (filter === 'inactive') return databases.filter(database => database.available && !database.enabled);
+    if (filter === 'missing') return databases.filter(database => !database.available);
+    return databases;
+  });
   protected readonly hillshadeDatabaseCount = computed(() => this.hillshadeDatabases().length);
   protected readonly activeHillshadeDatabaseCount = computed(() => this.hillshadeDatabases().filter(item => item.enabled && item.available).length);
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
@@ -3441,12 +3464,13 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('Update Hillshade database', error instanceof Error ? error.message : String(error));
     }
   };
-  protected readonly setAllHillshadeDatabasesEnabled = async (enabled: boolean): Promise<void> => {
+  protected readonly setAllHillshadeDatabasesEnabled = async (enabled: boolean, visibleOnly = false): Promise<void> => {
     if (!this.desktop) return;
     try {
+      const targetIds = new Set((visibleOnly ? this.filteredHillshadeDatabases() : this.hillshadeDatabases()).map(database => database.id));
       let databases = this.hillshadeDatabases();
       for (const database of databases) {
-        if (!database.available || database.enabled === enabled) continue;
+        if (!targetIds.has(database.id) || !database.available || database.enabled === enabled) continue;
         databases = await this.desktop.OsmAndAtlas.setHillshadeDatabaseEnabled(database.id, enabled);
         this.hillshadeDatabases.set(databases);
       }
@@ -3454,6 +3478,31 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
       this.recordMapError('Update Hillshade databases', error instanceof Error ? error.message : String(error));
+    }
+  };
+  protected readonly clearVisibleHillshadeDatabases = async (): Promise<void> => {
+    if (!this.desktop) return;
+    const visible = this.filteredHillshadeDatabases();
+    if (visible.length === 0) return;
+    const confirmed = window.confirm(
+      `Remove all ${visible.length} visible Hillshade database(s) from the LumaScope list? The files on disk will not be deleted.`
+    );
+    if (!confirmed) return;
+    try {
+      let databases = this.hillshadeDatabases();
+      for (const database of visible) {
+        if (!databases.some(item => item.id === database.id)) continue;
+        databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(database.id);
+        this.hillshadeDatabases.set(databases);
+      }
+      this.updateHillshadePresetFromSelection(databases);
+      this.applyHillshadeSettingsIfReady(true);
+      if (databases.length === 0) {
+        this.hillshadeVisible.set(false);
+        this.saveSetting('hillshadeVisible', false);
+      }
+    } catch (error) {
+      this.recordMapError('Remove Hillshade databases', error instanceof Error ? error.message : String(error));
     }
   };
   protected readonly removeHillshadeDatabase = async (id: string): Promise<void> => {
