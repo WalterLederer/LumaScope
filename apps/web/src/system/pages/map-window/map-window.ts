@@ -1969,7 +1969,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
+      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge' || this.mapSource() === 'mapsforge') {
         // Re-evaluate the geographic coverage for every selected photo. This
         // also handles transitions between offline maps and the online fallback.
         void this.initialize(nextLatitude!, nextLongitude!);
@@ -3055,7 +3055,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMapImportErrors.set(result.errors);
     if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && map.type !== 'obf')) this.changeMapSource('online');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
-    else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+    else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.currentOfflineMapId = null;
@@ -3296,6 +3296,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
         && this.obfMapMatchesPreset(map);
     }
+    if (map.type === 'mapsforge') return this.mapSource() === 'mapsforge';
     return this.mapSource() === 'offline' && map.id === this.activeOfflineMapId();
   }
 
