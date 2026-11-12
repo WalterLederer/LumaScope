@@ -4151,7 +4151,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('walkingFigureType', value);
     this.updateWalkingMarker();
   };
-  protected readonly walkingFigureTypeName = (): string => ({
+  protected readonly walkingFigureTypeName = (): string => {
+    const names: Record<string, string> = 
     walker: 'Walking person',
     car: 'Car (PKW)',
     carFront: 'Car (front)',
@@ -4198,7 +4199,9 @@ export class MapWindow implements OnInit, OnDestroy {
     ferry: 'Ferry',
     cruiseShip: 'Cruise ship',
     canoe: 'Canoe',
-  }[this.walkingFigureType()] ?? 'Walking person');
+  };
+    return names[this.walkingFigureType()] ?? 'Walking person';
+  };
   private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
     return normalizeGpxSymbolSettings(value);
   }
