@@ -193,11 +193,12 @@ public final class MapsforgeWorker {
             }
             newTileCache = new InMemoryTileCache(TILE_CACHE_CAPACITY);
 
+            // DisplayModel reads the static device scale when it is created.
+            // Keep the XYZ output tile at 256 px while scaling labels and symbols
+            // to the Windows display DPI reported by Electron.
+            DisplayModel.setDeviceScaleFactor(Math.max(1f, Math.min(4f, deviceScaleFactor)));
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
-            // Match Mapsforge label and symbol sizing to the Windows display DPI.
-            // The tile remains 256 px; only the renderer's display scale changes.
-            newDisplayModel.setDeviceScaleFactor(Math.max(1f, Math.min(4f, deviceScaleFactor)));
 
             XmlRenderTheme theme;
             if (themePathValue == null || themePathValue.isBlank()) {
