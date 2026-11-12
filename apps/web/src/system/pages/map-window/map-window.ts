@@ -4316,7 +4316,14 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.timeSliderActive()) return source;
     const pointSegments = this.gpxPointDataByTrack.get(track.path) ?? [];
     const visible: [number, number][][] = [];
-    for (const segment of pointSegments) {
+    source.forEach((sourceSegment, index) => {
+      const segment = pointSegments[index];
+      // Routes without timestamps (e.g. routes returned by openrouteservice)
+      // are independent of the GPX time slider and must remain visible.
+      if (!segment?.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp)))) {
+        if (sourceSegment.length >= 2) visible.push(sourceSegment);
+        return;
+      }
       let run: [number, number][] = [];
       const flush = (): void => { if (run.length >= 2) visible.push(run); run = []; };
       for (const point of segment) {
@@ -4326,7 +4333,7 @@ export class MapWindow implements OnInit, OnDestroy {
         } else flush();
       }
       flush();
-    }
+    });
     return visible;
   }
 
