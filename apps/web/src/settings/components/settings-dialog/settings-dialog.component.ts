@@ -503,6 +503,15 @@ export class SettingsPanelComponent {
         void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
       }
     });
+    let previousSummaryDrive: string | null = null;
+    effect(() => {
+      const folder = this.currentFolderPath().trim();
+      const drive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
+      if (!drive || drive === previousSummaryDrive) return;
+      previousSummaryDrive = drive;
+      this.selectedCacheDatabaseKey.set(drive);
+      void this.updateCacheSummary(drive);
+    });
     effect(() => {
       const buildActive = this.cacheBuildActive();
       const clearing = this.isClearing();
