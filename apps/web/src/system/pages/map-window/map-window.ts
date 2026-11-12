@@ -246,19 +246,19 @@ interface MapErrorEntry {
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
         </div>
-        <details class="time-slider-animate-section">
+        <details class="time-slider-animate-section" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show track symbol</span></label>
-            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="rocket">Rocket</option></select></label>
+            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="autoRickshaw">Auto rickshaw</option><option value="rocket">Rocket</option><option value="smallPlane">Small airplane</option><option value="flyingSaucer">Flying saucer</option><option value="locomotive">Steam locomotive</option><option value="railCar">Rail car</option><option value="tram">Tram</option><option value="mountainRailway">Mountain railway</option><option value="monorail">Monorail</option><option value="highSpeedTrain">High-speed train</option><option value="bulletTrain">Bullet train</option><option value="lightRail">Light rail</option><option value="metro">Metro</option><option value="motorYacht">Motor yacht</option><option value="ferry">Ferry</option><option value="cruiseShip">Cruise ship</option><option value="canoe">Canoe</option></select></label>
             <div class="time-slider-symbol-adjustments">
               <div class="time-slider-symbol-preview-row">
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                 <span class="time-slider-symbol-front">Front</span>
               </div>
-              <label class="time-slider-symbol-rotation"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
+              <label class="time-slider-symbol-rotation"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label><button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
               <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
@@ -1024,7 +1024,7 @@ interface MapErrorEntry {
     .time-slider-symbol-front{font-size:12px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
     .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:190px;flex:1;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-rotation input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}
-    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}
+    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}.time-slider-symbol-snap{padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
@@ -1589,6 +1589,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
   protected readonly timeSliderActive = signal(this.readSetting('timeSliderActive', 'false') === 'true');
+  protected readonly timeSliderAnimationSectionOpen = signal(this.readSetting('timeSliderAnimationSectionOpen', 'false') === 'true');
   protected readonly timeSliderMinimum = signal(0);
   protected readonly timeSliderMaximum = signal(0);
   protected readonly timeSliderStart = signal(0);
@@ -1729,7 +1730,11 @@ export class MapWindow implements OnInit, OnDestroy {
         this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restored));
       }
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['timeSliderAnimationSectionOpen'] === 'boolean') {
+        this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
+        this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
+      }
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -1950,6 +1955,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({
       settingsOpen: this.settingsOpen(),
       activeSettingsTab: this.activeSettingsTab(),
+      timeSliderAnimationSectionOpen: this.timeSliderAnimationSectionOpen(),
       renderVisualsEnabled: this.renderVisualsEnabled(),
       opacitySectionOpen: this.opacitySectionOpen(),
       renderSectionOpen: this.renderSectionOpen(),
@@ -4031,6 +4037,19 @@ export class MapWindow implements OnInit, OnDestroy {
     window.getSelection()?.removeAllRanges();
   };
 
+  protected readonly changeTimeSliderAnimationSectionOpen = (open: boolean): void => {
+    if (this.timeSliderAnimationSectionOpen() === open) return;
+    this.timeSliderAnimationSectionOpen.set(open);
+    this.saveSetting('timeSliderAnimationSectionOpen', open);
+    this.persistLocationUiState({ timeSliderAnimationSectionOpen: open });
+  };
+
+  protected readonly snapWalkingFigureRotation = (): void => {
+    const current = this.selectedWalkingFigureSymbolSettings().rotation;
+    const snapped = (Math.round(current / 90) * 90) % 360;
+    this.updateSelectedWalkingFigureSettings({ rotation: snapped });
+  };
+
   protected readonly changeTimeSliderActive = (active: boolean): void => {
     this.timeSliderActive.set(active);
     this.saveSetting('timeSliderActive', active);
@@ -4138,7 +4157,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly walkingFigurePreviewTransform = (): string => {
     return buildGpxSymbolTransform({
       figureType: this.walkingFigureType(),
-      bearing: 0,
+      bearing: 90,
       settings: this.selectedWalkingFigureSymbolSettings()
     });
   };
