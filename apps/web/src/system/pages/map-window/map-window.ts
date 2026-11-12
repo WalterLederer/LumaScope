@@ -43,55 +43,6 @@ interface GpxTrackPoint { latitude: number; longitude: number; elevation: number
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
-const DEFAULT_TIME_SLIDER_SYMBOL_SETTINGS: Readonly<Record<string, TimeSliderSymbolSettings>> = {
-  firetruck: { rotation: 180, flipHorizontal: true },
-  trolleybus: { rotation: 180, flipHorizontal: true },
-  car: { rotation: 180, flipHorizontal: true },
-  taxiFront: { rotation: 270, flipHorizontal: false },
-  suv: { rotation: 180, flipHorizontal: true },
-  racecar: { rotation: 180, flipHorizontal: true },
-  ambulance: { rotation: 180, flipHorizontal: true },
-  bus: { rotation: 180, flipHorizontal: true },
-  truck: { rotation: 180, flipHorizontal: true },
-  delivery: { rotation: 180, flipHorizontal: true },
-  plane: { rotation: 319, flipHorizontal: false },
-  helicopter: { rotation: 270, flipHorizontal: true },
-  bulletTrain: { rotation: 180, flipHorizontal: true },
-  mountainRailway: { rotation: 180, flipHorizontal: false },
-  autoRickshaw: { rotation: 180, flipHorizontal: true },
-  ferry: { rotation: 270, flipHorizontal: true },
-  motorYacht: { rotation: 270, flipHorizontal: true },
-  cruiseShip: { rotation: 270, flipHorizontal: true },
-  canoe: { rotation: 270, flipHorizontal: true },
-  locomotive: { rotation: 180, flipHorizontal: true },
-  scooter: { rotation: 180, flipHorizontal: true },
-  police: { rotation: 180, flipHorizontal: true },
-  van: { rotation: 180, flipHorizontal: true },
-  taxi: { rotation: 180, flipHorizontal: true },
-  pickup: { rotation: 180, flipHorizontal: true },
-  policeFront: { rotation: 270, flipHorizontal: false },
-  busFront: { rotation: 270, flipHorizontal: false },
-  train: { rotation: 180, flipHorizontal: false },
-  bicycle: { rotation: 180, flipHorizontal: true },
-  motorcycle: { rotation: 180, flipHorizontal: true },
-  tractor: { rotation: 180, flipHorizontal: true },
-  boat: { rotation: 270, flipHorizontal: true },
-  ship: { rotation: 270, flipHorizontal: true },
-  sailboat: { rotation: 270, flipHorizontal: false },
-  cableCar: { rotation: 270, flipHorizontal: false },
-  rocket: { rotation: 315, flipHorizontal: false },
-  smallPlane: { rotation: 314, flipHorizontal: false },
-  flyingSaucer: { rotation: 270, flipHorizontal: false },
-  railCar: { rotation: 180, flipHorizontal: false },
-  tram: { rotation: 180, flipHorizontal: false },
-  monorail: { rotation: 180, flipHorizontal: true },
-  highSpeedTrain: { rotation: 180, flipHorizontal: true },
-  lightRail: { rotation: 180, flipHorizontal: true },
-  metro: { rotation: 180, flipHorizontal: false },
-  carFront: { rotation: 270, flipHorizontal: false },
-  walker: { rotation: 271, flipHorizontal: false }
-};
-
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface MapErrorEntry {
@@ -1788,7 +1739,6 @@ export class MapWindow implements OnInit, OnDestroy {
       });
       this.walkingFigureSymbolSettings.set(restoredSymbolSettings);
       this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restoredSymbolSettings));
-      this.persistLocationUiState({ timeSliderSymbolSettings: restoredSymbolSettings });
       if (!saved) return;
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
       if (typeof saved['timeSliderAnimationSectionOpen'] === 'boolean') {
@@ -1876,35 +1826,13 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const offline = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const saved = offline?.['updateSources'];
-      const defaults: Array<{ url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean }> = [
-        { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
-        { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
-        { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
-        { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
-        { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
-        { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true },
-        { url: 'https://download.osmand.net/latest-night-build/', fileType: 'android', useForUpdates: false },
-        { url: 'https://download.mapsforge.org/maps/', fileType: 'mapsforge', useForUpdates: false }
-      ];
-      if (Array.isArray(saved) && saved.length > 0) {
-        const valid = saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean } =>
-          !!entry && typeof entry === 'object'
-          && typeof (entry as { url?: unknown }).url === 'string'
-          && ['obf', 'mbtiles', 'mapsforge', 'android', 'others'].includes(String((entry as { fileType?: unknown }).fileType))
-          && typeof (entry as { useForUpdates?: unknown }).useForUpdates === 'boolean'
-        );
-        const merged = [...valid];
-        for (const source of defaults.slice(6)) {
-          if (!merged.some(entry => entry.url === source.url)) merged.push(source);
-        }
-        this.downloadSources.set(merged);
-        if (merged.length !== valid.length) {
-          void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { updateSources: merged }).catch(error => console.error('Could not add new default download sources:', error));
-        }
-      } else {
-        this.downloadSources.set(defaults);
-        void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', { updateSources: defaults }).catch(error => console.error('Could not save default download sources:', error));
-      }
+      const valid = Array.isArray(saved) ? saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean } =>
+        !!entry && typeof entry === 'object'
+        && typeof (entry as { url?: unknown }).url === 'string'
+        && ['obf', 'mbtiles', 'mapsforge', 'android', 'others'].includes(String((entry as { fileType?: unknown }).fileType))
+        && typeof (entry as { useForUpdates?: unknown }).useForUpdates === 'boolean'
+      ) : [];
+      this.downloadSources.set(valid);
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       this.offlineMaps.set(maps);
@@ -4199,14 +4127,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
   private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
-    const merged: Record<string, Partial<TimeSliderSymbolSettings>> = {};
-    for (const [symbol, defaults] of Object.entries(DEFAULT_TIME_SLIDER_SYMBOL_SETTINGS)) {
-      merged[symbol] = { ...defaults, ...(value[symbol] ?? {}) };
-    }
-    for (const [symbol, settings] of Object.entries(value)) {
-      if (!Object.hasOwn(merged, symbol)) merged[symbol] = settings;
-    }
-    return normalizeGpxSymbolSettings(merged);
+    return normalizeGpxSymbolSettings(value);
   }
 
   protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
