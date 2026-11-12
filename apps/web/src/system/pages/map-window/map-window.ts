@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
+import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, gpxSymbolOrientationOffset, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
@@ -39,7 +40,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
-interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; flipVertical?: boolean; }
+interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
@@ -4121,15 +4122,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
   private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
-    const result: Record<string, TimeSliderSymbolSettings> = {};
-    for (const [symbol, settings] of Object.entries(value)) {
-      const rotation = Number(settings?.rotation ?? 0);
-      result[symbol] = {
-        rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
-        flipHorizontal: settings?.flipHorizontal === true || settings?.flipVertical === true
-      };
-    }
-    return result;
+    return normalizeGpxSymbolSettings(value);
   }
 
   protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
@@ -4142,35 +4135,15 @@ export class MapWindow implements OnInit, OnDestroy {
     return this.walkingFigurePreviewSymbol();
   };
 
-  protected readonly walkingFigurePreviewSymbol = (): string => ({
-    walker: '🚶', car: '🚗', taxi: '🚕', racecar: '🏎️', van: '🚐', pickup: '🛻',
-    ambulance: '🚑', police: '🚓', firetruck: '🚒', bus: '🚌', truck: '🚚',
-    delivery: '🚛', plane: '✈️', helicopter: '🚁', train: '🚆', bicycle: '🚲',
-    motorcycle: '🏍️', scooter: '🛵', tractor: '🚜', boat: '🚤', ship: '🚢',
-    sailboat: '⛵', rocket: '🚀'
-  }[this.walkingFigureType()] ?? '🚶');
-
-  private walkingFigureOrientationOffset(figureType: string): number {
-    // GPX bearings are compass angles (0° north, 90° east), while vehicle
-    // emoji artwork is aligned horizontally with its front facing right.
-    return figureType === 'walker' ? 0 : -90;
-  }
-
-  private walkingFigureFlipTransform(_figureType: string, flip: boolean): string {
-    // Mirror the symbol across its own vertical axis (swap its left and right).
-    // The transform is applied in symbol-local coordinates before map rotation.
-    return flip ? 'scaleX(-1)' : '';
-  }
-
-  private walkingFigureFlipVerticalTransform(figureType: string): string {
-    // Vehicle emoji artwork is vertically inverted relative to the map marker's
-    // local coordinate system; keep the walking-person SVG unchanged.
-    return figureType !== 'walker' ? 'scaleY(-1)' : '';
-  }
+  protected readonly walkingFigurePreviewSymbol = (): string =>
+    GPX_SYMBOLS[this.walkingFigureType()] ?? GPX_SYMBOLS['walker'];
 
   protected readonly walkingFigurePreviewTransform = (): string => {
-    const settings = this.selectedWalkingFigureSymbolSettings();
-    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipVerticalTransform(this.walkingFigureType())} ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipHorizontal)}`;
+    return buildGpxSymbolTransform({
+      figureType: this.walkingFigureType(),
+      bearing: 0,
+      settings: this.selectedWalkingFigureSymbolSettings()
+    });
   };
 
   private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>, persistConfig = true): void {
@@ -4340,28 +4313,23 @@ export class MapWindow implements OnInit, OnDestroy {
     const gaitSpeed = Math.max(0.2, Math.min(3,
       displayedSpeed / 1.4 * this.walkingFigureAnimationSpeed()));
     const figureType = this.walkingFigureType();
-    const vehicleSymbols: Record<string, string> = {
-      car: '🚗', taxi: '🚕', racecar: '🏎️', van: '🚐', pickup: '🛻',
-      ambulance: '🚑', police: '🚓', firetruck: '🚒', bus: '🚌',
-      truck: '🚚', delivery: '🚛', plane: '✈️', helicopter: '🚁',
-      train: '🚆', bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
-      tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵', rocket: '🚀'
-    };
+
     const symbolSettings = this.walkingFigureSymbolSettings()[figureType] ?? { rotation: 0, flipHorizontal: false };
-    const orientationOffset = this.walkingFigureOrientationOffset(figureType) + symbolSettings.rotation;
-    // Automatically mirror the symbol when its travel direction points to the
-    // left side of the map. The per-symbol checkbox remains an additional
-    // manual inversion, so it can correct symbols whose artwork faces opposite.
+    // The shared transform owns compass-to-artwork orientation, automatic direction
+    // mirroring, manual correction, vertical correction and scaling.
     const movingLeft = Math.sin(bearing * Math.PI / 180) < -0.01;
-    const effectiveFlipHorizontal = symbolSettings.flipHorizontal !== movingLeft;
-    const symbolTransform = `rotate(${bearing + orientationOffset}deg) ${this.walkingFigureFlipVerticalTransform(figureType)} ${this.walkingFigureFlipTransform(figureType, effectiveFlipHorizontal)} scale(${this.walkingFigureSize()})`;
+    const symbolTransform = buildGpxSymbolTransform({
+      figureType, bearing, settings: symbolSettings, size: this.walkingFigureSize(),
+      movingLeft, autoFlipDirection: true
+    });
+    const animationDuration = gpxAnimationDuration(gaitSpeed);
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
-      : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
+      : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${GPX_VEHICLE_SYMBOLS[figureType]}</div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, effectiveFlipHorizontal, figureType !== 'walker');
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, symbolTransform, animationDuration, figureType, isMoving);
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
@@ -4381,7 +4349,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (walkerElement) {
       walkerElement.classList.toggle('is-moving', isMoving);
       walkerElement.style.transform = symbolTransform;
-      walkerElement.style.setProperty('--walker-animation-duration', `${0.72 / gaitSpeed}s`);
+      walkerElement.style.setProperty('--walker-animation-duration', animationDuration);
     }
   }
 
