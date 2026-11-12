@@ -264,7 +264,7 @@ class OsmAndAtlasWorker {
         // rejecting the IPC call (Electron logs rejected handlers as errors).
         return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
       }
-      return this.renderQueued(longitude, latitude, zoom);
+      return this.renderQueued(longitude, latitude, zoom, generation);
     });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
@@ -286,10 +286,14 @@ class OsmAndAtlasWorker {
   }
 
   async cancelPending(): Promise<void> {
-    // Invalidate requests that are still queued, but let the active frame finish.
-    // Killing the helper here caused SIGTERM errors on ordinary zoom changes and
-    // forced the next tile to recreate the OpenGL context.
+    // Invalidate queued requests while allowing the current frame to finish.
     this.renderGeneration++;
+  }
+
+  async abort(): Promise<void> {
+    // A renderer switch must not wait for a slow OBF frame or its timeout.
+    this.renderGeneration++;
+    await this.shutdown();
   }
 
   async shutdown(): Promise<void> {
@@ -308,8 +312,9 @@ class OsmAndAtlasWorker {
     catch (error) { console.warn('[OsmAnd Atlas] Could not remove helper configuration:', error); }
   }
 
-  private async renderQueued(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
+  private async renderQueued(longitude: number, latitude: number, zoom: number, generation: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
+    if (generation !== this.renderGeneration) throw new Error('OsmAnd Atlas render was cancelled by a renderer switch.');
     const maxRetries = 2;
     for (let attempt = 0; ; attempt++) {
       try {
@@ -317,6 +322,10 @@ class OsmAndAtlasWorker {
         return await this.renderOnce(longitude, latitude, zoom);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        if (generation !== this.renderGeneration) {
+          await this.shutdown();
+          throw new Error('OsmAnd Atlas render was cancelled by a renderer switch.');
+        }
         const isTimeout = /timed?\s*out|timeout|did not settle/i.test(message);
         if (!isTimeout || attempt >= maxRetries || this.retired) {
           await this.shutdown();
@@ -1012,7 +1021,7 @@ export class OsmAndAtlasManager {
   @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
   readonly cancelRendering = async (): Promise<void> => {
     this.pendingTiles.clear();
-    await Promise.all(this.workers.map(worker => worker.cancelPending()));
+    await Promise.all(this.workers.map(worker => worker.abort()));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
