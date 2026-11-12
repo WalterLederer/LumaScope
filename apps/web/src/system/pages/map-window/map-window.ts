@@ -1550,22 +1550,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
     return maps;
   });
-  protected readonly mapPresetOptions = signal<MapPresetOption[]>([
-    { id: 'austria', name: 'Austria', regex: 'austria|österreich|osterreich' },
-    { id: 'austria-plus', name: 'Austria+', regex: 'austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein' },
-    { id: 'europe', name: 'Europe', regex: '(?:^|[_. -])europe(?:[_. -]|$)' },
-    { id: 'all', name: 'All', regex: '.*' },
-    { id: 'none', name: 'None', regex: '(?!)' },
-    { id: 'custom', name: 'Custom', regex: '.*' }
-  ]);
-  protected readonly offlineMapPreset = signal<string>(
-    (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
-      ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
-  );
-  protected readonly hillshadePreset = signal<string>(
-    (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
-      ? this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
-  );
+  protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
+  protected readonly offlineMapPreset = signal<string>(this.readSetting('offlineMapPreset', 'austria'));
+  protected readonly hillshadePreset = signal<string>(this.readSetting('hillshadePreset', 'austria'));
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly rerenderVisibleTilesBusy = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
