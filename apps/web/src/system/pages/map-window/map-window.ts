@@ -267,7 +267,7 @@ interface MapErrorEntry {
           <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
         </div>
       }
-      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Enable map clicking and select at least two locations.</span> }
+      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
     </div>
     <div class="routing-actions">
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || !routeApiKey().trim()">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
