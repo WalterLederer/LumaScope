@@ -5032,7 +5032,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.routeBusy.set(true);
     this.routeStatus.set('Requesting route from ' + providerName + '…');
     try {
-      const response = await fetch('https://api.openrouteservice.org/v2/directions/' + this.routeProfile() + '/geojson', {
+      const response = await fetch('https://api.openrouteservice.org/v2/directions/' + requestProfile + '/geojson', {
         method: 'POST',
         headers: { 'Authorization': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/geo+json, application/json' },
         body: JSON.stringify({ coordinates: activePoints.map(point => [point.longitude, point.latitude]), instructions: false })
@@ -5058,7 +5058,7 @@ export class MapWindow implements OnInit, OnDestroy {
       let destination = save.data;
       if (!/\.gpx$/i.test(destination)) destination += '.gpx';
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
-      const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\\n');
+      const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
       const routingPointComment = [
         'Routing provider: ' + providerName,
         'Request timestamp (UTC): ' + requestTimestamp,
@@ -5066,15 +5066,15 @@ export class MapWindow implements OnInit, OnDestroy {
         'Routing points (complete list; inactive points were not sent to the provider):',
         ...points.map((point, index) => {
           const status = point.active === false ? 'INACTIVE' : 'ACTIVE';
-          const name = (point.name || '(no resolved location name)').replace(/[\\r\\n]+/g, ' ').replace(/--/g, '- -').trim();
+          const name = (point.name || '(no resolved location name)').replace(/[\r\n]+/g, ' ').replace(/--/g, '- -').trim();
           return (index + 1) + '. [' + status + '] ' + name + ' | latitude=' + point.latitude.toFixed(8) + ' | longitude=' + point.longitude.toFixed(8);
         })
-      ].map(line => '  ' + line).join('\\n').replace(/-+\\s*$/, '- -');
-      const content = '<?xml version="1.0" encoding="UTF-8"?>\\n'
-        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\\n'
-        + '<!--\\n' + routingPointComment + '\\n-->\\n'
-        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\\\.gpx$/i, '')) + '</name><trkseg>\\n'
-        + trackPoints + '\\n  </trkseg></trk>\\n</gpx>\\n';
+      ].map(line => '  ' + line).join('\n');
+      const content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n'
+        + '<!--\n' + routingPointComment + '\n-->\n'
+        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\.gpx$/i, '')) + '</name><trkseg>\n'
+        + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
       const written = await desktop.FileSystem.writeText(destination, content);
       if (!written.success) throw new Error(written.errorMessage);
       const parsed = this.parseGpxTrackData(content);
