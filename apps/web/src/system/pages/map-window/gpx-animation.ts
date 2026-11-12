@@ -12,11 +12,14 @@ export interface GpxSymbolTransformOptions {
 }
 
 export const GPX_VEHICLE_SYMBOLS: Readonly<Record<string, string>> = {
-  car: '🚗', taxi: '🚕', racecar: '🏎️', van: '🚐', pickup: '🛻',
-  ambulance: '🚑', police: '🚓', firetruck: '🚒', bus: '🚌',
+  car: '🚗', carFront: '🚘', suv: '🚙',
+  taxi: '🚕', taxiFront: '🚖', racecar: '🏎️', van: '🚐', pickup: '🛻',
+  ambulance: '🚑', police: '🚓', policeFront: '🚔', firetruck: '🚒',
+  bus: '🚌', busFront: '🚍', trolleybus: '🚎',
   truck: '🚚', delivery: '🚛', plane: '✈️', helicopter: '🚁',
   train: '🚆', bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
-  tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵', rocket: '🚀'
+  tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵',
+  cableCar: '🚡', rocket: '🚀'
 };
 
 export const GPX_SYMBOLS: Readonly<Record<string, string>> = {
