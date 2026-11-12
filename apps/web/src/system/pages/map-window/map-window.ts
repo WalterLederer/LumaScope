@@ -39,6 +39,8 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
+interface TimeSliderSymbolSettings { rotation: number; flipVertical: boolean; }
+
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface MapErrorEntry {
@@ -250,6 +252,14 @@ interface MapErrorEntry {
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show track symbol</span></label>
             <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="taxi">Taxi</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="rocket">Rocket</option></select></label>
+            <div class="time-slider-symbol-adjustments">
+              <div class="time-slider-symbol-preview-row">
+                <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [style.transform]="walkingFigurePreviewTransform()">{{ walkingFigurePreviewSymbol() }}</span></div>
+                <span class="time-slider-symbol-front">Front ↑</span>
+              </div>
+              <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
+              <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipVertical" (change)="changeWalkingFigureFlipVertical($any($event.target).checked)"><span>Flip vertical</span></label>
+            </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Figure size</span><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"><strong>{{ walkingFigureSize().toFixed(1) }}×</strong></label>
@@ -615,7 +625,7 @@ interface MapErrorEntry {
     </div>
   </details>
   <div class="mbtiles-selection offline-map-toolbar">
-    <label class="offline-map-preset-control">OBF preset:
+    <label class="offline-map-preset-control">Preset:
       <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
         <option value="austria">Austria</option><option value="austria-plus">Austria+</option><option value="europe">Europe</option><option value="all">All</option><option value="none">None</option><option value="custom">Custom</option>
       </select>
@@ -1006,6 +1016,16 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
+    .time-slider-symbol-adjustments{display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1 1 100%;padding:2px 0 4px}
+    .time-slider-symbol-preview-row{display:flex;align-items:center;gap:9px}
+    .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
+    .time-slider-symbol-preview-box>span{display:block;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}
+    .time-slider-symbol-front{font-size:12px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
+    .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:190px;flex:1;font-size:12px;color:var(--color-content-default-medium,#aaa)}
+    .time-slider-symbol-rotation input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}
+    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}
+    .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
+    .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
@@ -1578,6 +1598,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly walkingFigureSize = signal(Math.max(0.5, Math.min(3, Number(this.readSetting('walkingFigureSize', '1')) || 1)));
   protected readonly walkingFigureAnimationSpeed = signal(Math.max(0.2, Math.min(3, Number(this.readSetting('walkingFigureAnimationSpeed', '1')) || 1)));
   protected readonly walkingFigureType = signal((['walker', 'car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'plane', 'helicopter', 'train', 'bicycle', 'motorcycle', 'scooter', 'tractor', 'boat', 'ship', 'sailboat', 'rocket'].includes(this.readSetting('walkingFigureType', 'walker')) ? this.readSetting('walkingFigureType', 'walker') : 'walker') as 'walker' | 'car' | 'van' | 'bus' | 'truck' | 'plane' | 'helicopter' | 'train' | 'bicycle' | 'motorcycle' | 'scooter' | 'tractor' | 'boat');
+  protected readonly walkingFigureSymbolSettings = signal<Record<string, TimeSliderSymbolSettings>>(this.readWalkingFigureSymbolSettings());
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   private lastWalkingBearing = 0;
   private smoothedWalkingBearing: number | null = null;
@@ -1697,6 +1718,11 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       if (!saved) return;
+      if (saved['timeSliderSymbolSettings'] && typeof saved['timeSliderSymbolSettings'] === 'object' && !Array.isArray(saved['timeSliderSymbolSettings'])) {
+        const restored = this.normalizeWalkingFigureSymbolSettings(saved['timeSliderSymbolSettings'] as Record<string, Partial<TimeSliderSymbolSettings>>);
+        this.walkingFigureSymbolSettings.set(restored);
+        this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restored));
+      }
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
       if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
@@ -2173,6 +2199,20 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private readSetting(key: string, fallback: string): string {
     try { return localStorage.getItem(this.storagePrefix + key) ?? fallback; } catch { return fallback; }
+  }
+  private readWalkingFigureSymbolSettings(): Record<string, TimeSliderSymbolSettings> {
+    try {
+      const parsed = JSON.parse(this.readSetting('timeSliderSymbolSettings', '{}')) as Record<string, Partial<TimeSliderSymbolSettings>>;
+      const result: Record<string, TimeSliderSymbolSettings> = {};
+      for (const [symbol, settings] of Object.entries(parsed ?? {})) {
+        const rotation = Number(settings?.rotation ?? 0);
+        result[symbol] = {
+          rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
+          flipVertical: settings?.flipVertical === true
+        };
+      }
+      return result;
+    } catch { return {}; }
   }
   private readNumber(key: string, fallback: number, min: number, max: number): number {
     const value = Number(this.readSetting(key, String(fallback)));
@@ -4066,6 +4106,57 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('walkingFigureType', value);
     this.updateWalkingMarker();
   };
+  private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
+    const result: Record<string, TimeSliderSymbolSettings> = {};
+    for (const [symbol, settings] of Object.entries(value)) {
+      const rotation = Number(settings?.rotation ?? 0);
+      result[symbol] = {
+        rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
+        flipVertical: settings?.flipVertical === true
+      };
+    }
+    return result;
+  }
+
+  protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
+    this.walkingFigureSymbolSettings()[this.walkingFigureType()] ?? { rotation: 0, flipVertical: false };
+
+  protected readonly walkingFigurePreviewSymbol = (): string => ({
+    walker: '🚶', car: '🚗', taxi: '🚕', racecar: '🏎️', van: '🚐', pickup: '🛻',
+    ambulance: '🚑', police: '🚓', firetruck: '🚒', bus: '🚌', truck: '🚚',
+    delivery: '🚛', plane: '✈️', helicopter: '🚁', train: '🚆', bicycle: '🚲',
+    motorcycle: '🏍️', scooter: '🛵', tractor: '🚜', boat: '🚤', ship: '🚢',
+    sailboat: '⛵', rocket: '🚀'
+  }[this.walkingFigureType()] ?? '🚶');
+
+  private walkingFigureOrientationOffset(figureType: string): number {
+    return ['car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType) ? -90 : 0;
+  }
+
+  protected readonly walkingFigurePreviewTransform = (): string => {
+    const settings = this.selectedWalkingFigureSymbolSettings();
+    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) scaleX(${settings.flipVertical ? -1 : 1})`;
+  };
+
+  private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>): void {
+    const symbol = this.walkingFigureType();
+    const current = this.selectedWalkingFigureSymbolSettings();
+    const next = { ...this.walkingFigureSymbolSettings(), [symbol]: { ...current, ...patch } };
+    this.walkingFigureSymbolSettings.set(next);
+    this.saveSetting('timeSliderSymbolSettings', JSON.stringify(next));
+    this.persistLocationUiState({ timeSliderSymbolSettings: next });
+    this.updateWalkingMarker();
+  }
+
+  protected readonly changeWalkingFigureRotation = (value: string | number): void => {
+    const rotation = Number(value);
+    if (!Number.isFinite(rotation)) return;
+    this.updateSelectedWalkingFigureSettings({ rotation: ((Math.round(rotation) % 360) + 360) % 360 });
+  };
+
+  protected readonly changeWalkingFigureFlipVertical = (enabled: boolean): void => {
+    this.updateSelectedWalkingFigureSettings({ flipVertical: enabled });
+  };
 
   private ensureWalkingFigureAnimationStyles(): void {
     // The walker SVG is inserted with innerHTML by Leaflet/MapLibre. Angular's
@@ -4217,14 +4308,16 @@ export class MapWindow implements OnInit, OnDestroy {
       train: '🚆', bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
       tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵', rocket: '🚀'
     };
-    const orientationOffset = ['car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType) ? -90 : 0;
+    const symbolSettings = this.walkingFigureSymbolSettings()[figureType] ?? { rotation: 0, flipVertical: false };
+    const orientationOffset = this.walkingFigureOrientationOffset(figureType) + symbolSettings.rotation;
+    const symbolTransform = `rotate(${bearing + orientationOffset}deg) scaleX(${symbolSettings.flipVertical ? -1 : 1}) scale(${this.walkingFigureSize()})`;
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
       : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
     if (this.offlineRenderer) {
       this.walkingMarker?.remove(); this.walkingMarker = null;
       this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving);
+      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, bearing + orientationOffset, this.walkingFigureSize(), gaitSpeed, figureType, isMoving, symbolSettings.flipVertical);
       return;
     }
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
@@ -4243,7 +4336,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const walkerElement = this.walkingMarker.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
     if (walkerElement) {
       walkerElement.classList.toggle('is-moving', isMoving);
-      walkerElement.style.transform = `rotate(${bearing + orientationOffset}deg) scale(${this.walkingFigureSize()})`;
+      walkerElement.style.transform = symbolTransform;
       walkerElement.style.setProperty('--walker-animation-duration', `${0.72 / gaitSpeed}s`);
     }
   }
