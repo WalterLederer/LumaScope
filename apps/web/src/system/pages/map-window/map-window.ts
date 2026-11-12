@@ -643,7 +643,7 @@ interface MapErrorEntry {
   <div class="mbtiles-selection offline-map-toolbar">
     <label class="offline-map-preset-control">Preset:
       <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
-        <option value="austria">Austria</option><option value="austria-plus">Austria+</option><option value="europe">Europe</option><option value="all">All</option><option value="none">None</option><option value="custom">Custom</option>
+        @for (preset of mapPresetOptions(); track preset.id) { <option [value]="preset.id">{{ preset.name }}</option> }
       </select>
     </label>
     <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
