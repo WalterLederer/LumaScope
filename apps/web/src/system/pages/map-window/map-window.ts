@@ -254,8 +254,8 @@ interface MapErrorEntry {
             <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="taxi">Taxi</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="rocket">Rocket</option></select></label>
             <div class="time-slider-symbol-adjustments">
               <div class="time-slider-symbol-preview-row">
-                <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [style.transform]="walkingFigurePreviewTransform()">{{ walkingFigurePreviewSymbol() }}</span></div>
-                <span class="time-slider-symbol-front">Front ↑</span>
+                <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
+                <span class="time-slider-symbol-front">Front</span>
               </div>
               <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
               <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipVertical" (change)="changeWalkingFigureFlipVertical($any($event.target).checked)"><span>Flip vertical</span></label>
@@ -1019,7 +1019,7 @@ interface MapErrorEntry {
     .time-slider-symbol-adjustments{display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1 1 100%;padding:2px 0 4px}
     .time-slider-symbol-preview-row{display:flex;align-items:center;gap:9px}
     .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
-    .time-slider-symbol-preview-box>span{display:block;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}
+    .time-slider-symbol-preview-box>span{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}.time-slider-symbol-preview-box svg{display:block;width:30px;height:38px;overflow:visible}
     .time-slider-symbol-front{font-size:12px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
     .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:190px;flex:1;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-rotation input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}
@@ -4120,6 +4120,13 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
     this.walkingFigureSymbolSettings()[this.walkingFigureType()] ?? { rotation: 0, flipVertical: false };
+
+  protected readonly walkingFigurePreviewHtml = (): string => {
+    if (this.walkingFigureType() === 'walker') {
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg>';
+    }
+    return this.walkingFigurePreviewSymbol();
+  };
 
   protected readonly walkingFigurePreviewSymbol = (): string => ({
     walker: '🚶', car: '🚗', taxi: '🚕', racecar: '🏎️', van: '🚐', pickup: '🛻',
