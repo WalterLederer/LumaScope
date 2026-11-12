@@ -527,7 +527,7 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
       result = await desktop.Mapsforge.renderTile(zoom, column, row);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (!abortController.signal.aborted && !/\\b(cancelled|canceled)\\b/i.test(message)) {
+      if (!abortController.signal.aborted && !/\b(cancelled|canceled)\b/i.test(message)) {
         window.dispatchEvent(new CustomEvent('lumascope-mapsforge-tile-error', { detail: { message, zoom, column, row } }));
       }
       throw error;
