@@ -1905,6 +1905,13 @@ export class MapWindow implements OnInit, OnDestroy {
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       this.offlineMaps.set(maps);
+      if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
+        this.mapSourceGeneration++;
+        this.mapInitialization = null;
+        this.offlineRenderer?.remove();
+        this.offlineRenderer = null;
+        void this.initialize(this.currentLatitude, this.currentLongitude);
+      }
       // The stored preset describes the last applied preset, not necessarily the
       // current OBF selection. Manual changes from older versions are normalized
       // to Custom during startup so the selector never claims a false preset.
@@ -1916,7 +1923,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       // An offline source without any compatible loaded MBTiles cannot be used.
       // Restore the online source instead of leaving the selector on an empty map.
-      if (!maps.some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') this.changeMapSource('online');
+      if (!maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') this.changeMapSource('online');
     }).catch(error => console.error('Could not read offline map list:', error));
     const bearingParameter = this.route.snapshot.queryParamMap.get('bearing');
     const initialBearing = bearingParameter === null ? NaN : Number(bearingParameter);
@@ -2766,7 +2773,7 @@ export class MapWindow implements OnInit, OnDestroy {
         [longitude, latitude],
         this.validZoom(this.zoomLevel()),
         message => {
-          if (generation !== this.mapSourceGeneration || /\\b(cancelled|canceled)\\b/i.test(message)) return;
+          if (generation !== this.mapSourceGeneration || /\b(cancelled|canceled)\b/i.test(message)) return;
           this.recordMapError('Mapsforge rendering', message);
           console.error('[Mapsforge] Tile rendering error:', message);
         },
