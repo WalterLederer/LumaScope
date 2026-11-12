@@ -3022,7 +3022,9 @@ export class MapWindow implements OnInit, OnDestroy {
           id: map.id,
           enabled: map.type === 'obf'
             ? this.obfMapMatchesPreset(map, value)
-            : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus' | 'europe', this.offlineMaps())
+            : (map.fileName || map.name).split(/[\\/]/).pop()?.toLowerCase() === 'world.map'
+              ? value !== 'none'
+              : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus' | 'europe', this.offlineMaps())
         }));
       this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
