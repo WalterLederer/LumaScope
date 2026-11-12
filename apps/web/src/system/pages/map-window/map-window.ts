@@ -806,6 +806,21 @@ interface MapErrorEntry {
         @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
       </div>
+      <div class="osmand-resources-picker">
+        <strong>Mapsforge XML theme folder</strong>
+        <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
+        <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
+        <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
+        @if (mapsforgeThemes().length > 0) {
+          <label>Render theme
+            <select [value]="mapsforgeThemePath()" (change)="changeMapsforgeTheme($any($event.target).value)">
+              @for (theme of mapsforgeThemes(); track theme.path) { <option [value]="theme.path">{{ theme.relativePath }}</option> }
+            </select>
+          </label>
+        }
+        @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
+        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. The folder and selected XML path are stored in the application settings; theme files remain external.</p>
+      </div>
     </details>
   </div>
 </div>
@@ -1125,8 +1140,8 @@ interface MapErrorEntry {
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2147483002}
     .map-source-picker-label{font-weight:600}
-    .map-source-picker-trigger{min-width:220px;text-align:left;position:relative;padding-right:28px}
-    .map-source-picker-trigger::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.8;pointer-events:none}
+    .map-source-picker-trigger{min-width:220px;text-align:left;position:relative;padding-right:36px}
+    .map-source-picker-trigger::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-52%);font-size:18px;font-weight:700;line-height:1;opacity:.95;pointer-events:none}
     .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483003}
     .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
     .map-source-picker-table th,.map-source-picker-table td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--color-content-default-low,#454545)}
@@ -1336,6 +1351,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private locationUpdateVersion = 0;
   private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
+  private rendererTransition: Promise<void> = Promise.resolve();
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
   private osmAndStyleRestore: Promise<void> = Promise.resolve();
@@ -1613,6 +1629,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean }>>([]);
   protected readonly osmAndResourcesPath = signal('');
   protected readonly osmAndResourcesError = signal('');
+  protected readonly mapsforgeThemeFolder = signal('');
+  protected readonly mapsforgeThemePath = signal('');
+  protected readonly mapsforgeThemes = signal<import('internal-api').MapsforgeTheme[]>([]);
+  protected readonly mapsforgeThemeError = signal('');
   protected readonly mapDisplayNotice = signal('');
   protected readonly openResourcesDownloadTab = (): void => { this.settingsOpen.set(true); this.selectSettingsTab('download'); };
   protected readonly offlineMapStatusText = computed(() => {
@@ -1886,6 +1906,20 @@ export class MapWindow implements OnInit, OnDestroy {
           const resourcesPath = typeof osmand?.['resourcesPath'] === 'string'
             ? osmand['resourcesPath'] : '';
           this.osmAndResourcesPath.set(resourcesPath);
+
+          const mapsforge = settings['mapsforge'] as Record<string, unknown> | undefined;
+          const themeFolder = typeof mapsforge?.['themeFolder'] === 'string' ? mapsforge['themeFolder'] : '';
+          const savedThemePath = typeof mapsforge?.['themePath'] === 'string' ? mapsforge['themePath'] : '';
+          this.mapsforgeThemeFolder.set(themeFolder);
+          if (themeFolder) {
+            const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
+            this.mapsforgeThemes.set(themes);
+            const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? themes[0] ?? null;
+            this.mapsforgeThemePath.set(selectedTheme?.path ?? '');
+            if (selectedTheme && selectedTheme.path !== savedThemePath) {
+              await this.desktop!.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder, themePath: selectedTheme.path });
+            }
+          }
 
           // config.json is the single source of truth for the shared style.
           // The dropdown is initialized directly from osmand.renderingStyle;
@@ -2479,6 +2513,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Do not let the initial map request apply the stale renderer-local
     // default before the shared persisted OsmAnd style has been restored.
     await this.osmAndStyleRestore;
+    await this.rendererTransition;
     let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'mapsforge') {
       if (this.offlineRenderer) {
@@ -2794,7 +2829,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     try {
-      await this.desktop.Mapsforge.open(maps.map(map => map.filePath), null, this.displayDensityFactor());
+      await this.desktop.Mapsforge.open(maps.map(map => map.filePath), this.mapsforgeThemePath() || null, this.displayDensityFactor());
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
         // changeMapSource() already queued close() after this open request.
         // Closing again here is unsafe: a rapid switch back to Mapsforge may
@@ -3023,23 +3058,21 @@ export class MapWindow implements OnInit, OnDestroy {
     setMapsforgeTileProtocolActive(false);
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
-    if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
-      // Cancel queued/in-flight Atlas tiles before stopping its workers. Otherwise
-      // old Atlas requests can continue logging after another renderer is active.
-      void (async () => {
-        try {
+    if (previousSource !== nextSource) {
+      // Serialize teardown before the next renderer initializes. Atlas may have
+      // many queued OBF tiles; Mapsforge must not wait for their 30-second timeout.
+      this.rendererTransition = this.rendererTransition.then(async () => {
+        if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
           await this.desktop?.OsmAndAtlas.cancelRendering();
           await this.desktop?.OsmAndAtlas.shutdown();
-        } catch (error) {
-          console.warn('Could not stop OsmAnd Atlas helpers:', error);
         }
-      })();
-    }
-    if (previousSource === 'osmand' && nextSource !== 'osmand') {
-      void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
-    }
-    if (previousSource === 'mapsforge' && nextSource !== 'mapsforge') {
-      void this.desktop?.Mapsforge.close().catch(error => console.warn('Could not close Mapsforge renderer:', error));
+        if (previousSource === 'osmand' && nextSource !== 'osmand') {
+          await this.desktop?.OsmAnd.shutdown();
+        }
+        if (previousSource === 'mapsforge' && nextSource !== 'mapsforge') {
+          await this.desktop?.Mapsforge.close();
+        }
+      }).catch(error => console.warn('Could not stop previous map renderer:', error));
     }
     this.mapSourceGeneration++;
     this.mapInitialization = null;
@@ -3519,6 +3552,43 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly openDownloadSource = async (url: string): Promise<void> => {
     if (this.isValidDownloadUrl(url)) await this.desktop?.ProcessManager.openExternal(url);
+  };
+  protected readonly chooseMapsforgeThemeFolder = async (): Promise<void> => {
+    if (!this.desktop) return;
+    const result = await this.desktop.Dialogs.openFolder(this.mapsforgeThemeFolder() || undefined);
+    if (!result.success) return;
+    this.mapsforgeThemeFolder.set(result.data);
+    await this.refreshMapsforgeThemes();
+  };
+  protected readonly refreshMapsforgeThemes = async (): Promise<void> => {
+    if (!this.desktop || !this.mapsforgeThemeFolder()) return;
+    this.mapsforgeThemeError.set('');
+    try {
+      const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
+      this.mapsforgeThemes.set(themes);
+      const selected = themes.find(theme => theme.path === this.mapsforgeThemePath()) ?? themes[0] ?? null;
+      this.mapsforgeThemePath.set(selected?.path ?? '');
+      await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
+        themeFolder: this.mapsforgeThemeFolder(), themePath: selected?.path ?? ''
+      });
+      if (themes.length === 0) {
+        this.mapsforgeThemeError.set('No Mapsforge XML render themes found in this folder or its subfolders.');
+      } else if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
+        this.refreshOfflineMapRendering();
+      }
+    } catch (error) {
+      this.mapsforgeThemeError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+  protected readonly changeMapsforgeTheme = async (path: string): Promise<void> => {
+    if (!this.mapsforgeThemes().some(theme => theme.path === path)) return;
+    this.mapsforgeThemePath.set(path);
+    await this.desktop?.ProcessManager.setAppSettingsSection('mapsforge', {
+      themeFolder: this.mapsforgeThemeFolder(), themePath: path
+    });
+    if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      this.refreshOfflineMapRendering();
+    }
   };
   protected readonly chooseOsmAndResourcesFolder = async (): Promise<void> => {
     if (!this.desktop) return;
