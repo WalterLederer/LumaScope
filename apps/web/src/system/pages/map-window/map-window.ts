@@ -6,7 +6,7 @@ import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
-interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; }
+interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
@@ -1809,7 +1809,8 @@ export class MapWindow implements OnInit, OnDestroy {
           return typeof preset['name'] === 'string' && typeof preset['OsmAndRegex'] === 'string'
             ? [{
                 id, name: preset['name'], osmAndRegex: preset['OsmAndRegex'],
-                ...(typeof preset['mapsForgeRegex'] === 'string' ? { mapsForgeRegex: preset['mapsForgeRegex'] } : {})
+                ...(typeof preset['mapsForgeRegex'] === 'string' ? { mapsForgeRegex: preset['mapsForgeRegex'] } : {}),
+                ...(typeof preset['HillshadeRegex'] === 'string' ? { hillshadeRegex: preset['HillshadeRegex'] } : {})
               }] : [];
         });
         if (options.length) {
@@ -3580,7 +3581,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!database.available || preset === 'none') return false;
     if (preset === 'all') return true;
     const fileName = this.hillshadeDatabaseFileName(database.path);
-    return this.presetMatchesFileName(preset, fileName);
+    const definition = this.mapPresetOptions().find(item => item.id === preset);
+    const pattern = definition?.hillshadeRegex;
+    if (!pattern) return false;
+    try { return new RegExp(pattern, 'i').test(fileName); } catch { return false; }
   }
   private updateHillshadePresetFromSelection(databases: OsmAndHillshadeDatabase[]): void {
     const available = databases.filter(database => database.available);
