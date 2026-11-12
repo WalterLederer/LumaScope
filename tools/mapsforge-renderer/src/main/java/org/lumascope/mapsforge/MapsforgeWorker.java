@@ -95,7 +95,7 @@ public final class MapsforgeWorker {
                 return scanCatalog(request);
             case "open":
                 java.util.List<String> paths = readMapPaths(request);
-                openMaps(paths, optionalString(request, "theme_path"));
+                openMaps(paths, optionalString(request, "theme_path"), optionalFloat(request, "device_scale_factor", 1f));
                 JsonObject opened = ok(command);
                 opened.addProperty("map_path", activeMapPath);
                 JsonArray openedPaths = new JsonArray();
@@ -170,7 +170,7 @@ public final class MapsforgeWorker {
         return response;
     }
 
-    private void openMaps(java.util.List<String> mapPathValues, String themePathValue) throws Exception {
+    private void openMaps(java.util.List<String> mapPathValues, String themePathValue, float deviceScaleFactor) throws Exception {
         if (mapPathValues.isEmpty()) {
             throw new IllegalArgumentException("At least one Mapsforge map path is required.");
         }
@@ -195,6 +195,9 @@ public final class MapsforgeWorker {
 
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
+            // Match Mapsforge label and symbol sizing to the Windows display DPI.
+            // The tile remains 256 px; only the renderer's display scale changes.
+            newDisplayModel.setDeviceScaleFactor(Math.max(1f, Math.min(4f, deviceScaleFactor)));
 
             XmlRenderTheme theme;
             if (themePathValue == null || themePathValue.isBlank()) {
@@ -333,6 +336,12 @@ public final class MapsforgeWorker {
         String value = object.get(name).getAsString();
         if (value.isBlank()) throw new IllegalArgumentException("Field must not be empty: " + name);
         return value;
+    }
+
+    private static float optionalFloat(JsonObject object, String name, float fallback) {
+        if (!object.has(name) || object.get(name).isJsonNull()) return fallback;
+        float value = object.get(name).getAsFloat();
+        return Float.isFinite(value) && value > 0f ? value : fallback;
     }
 
     private static String optionalString(JsonObject object, String name) {
