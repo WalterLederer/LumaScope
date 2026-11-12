@@ -3007,8 +3007,14 @@ export class MapWindow implements OnInit, OnDestroy {
       const updates = value === 'custom' ? [] : this.offlineMaps()
         .filter(map => {
           if (map.type === 'obf') return map.enabled !== this.obfMapMatchesPreset(map, value);
-          if (map.type === 'mapsforge' && (value === 'austria' || value === 'austria-plus' || value === 'europe')) {
-            return map.enabled !== this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps());
+          if (map.type === 'mapsforge') {
+            const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.toLowerCase() ?? '';
+            if (baseName === 'world.map') {
+              return map.enabled !== (value !== 'none');
+            }
+            if (value === 'austria' || value === 'austria-plus' || value === 'europe') {
+              return map.enabled !== this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps());
+            }
           }
           return false;
         })
@@ -3048,6 +3054,7 @@ export class MapWindow implements OnInit, OnDestroy {
   ): boolean {
     if (map.type !== 'mapsforge') return false;
     const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
+    if (baseName === 'world.map') return true;
     if (selectedPreset === 'austria') return baseName === 'austria';
     if (selectedPreset === 'austria-plus') {
       return [
