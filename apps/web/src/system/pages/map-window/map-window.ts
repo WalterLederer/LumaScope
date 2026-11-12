@@ -4150,8 +4150,11 @@ export class MapWindow implements OnInit, OnDestroy {
     sailboat: '⛵', rocket: '🚀'
   }[this.walkingFigureType()] ?? '🚶');
 
-  private walkingFigureOrientationOffset(figureType: string): number {
-    return ['car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType) ? -90 : 0;
+  private walkingFigureOrientationOffset(_figureType: string): number {
+    // Vehicle and transport emoji are already oriented to the right in their
+    // native artwork. Do not apply the old -90° correction, which turned the
+    // front of the symbol downward at a zero-degree rotation.
+    return 0;
   }
 
   private walkingFigureFlipTransform(_figureType: string, flip: boolean): string {
