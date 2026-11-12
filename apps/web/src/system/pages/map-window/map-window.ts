@@ -42,6 +42,56 @@ interface GpxTrackPoint { latitude: number; longitude: number; elevation: number
 
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
+
+const DEFAULT_TIME_SLIDER_SYMBOL_SETTINGS: Readonly<Record<string, TimeSliderSymbolSettings>> = {
+  firetruck: { rotation: 180, flipHorizontal: true },
+  trolleybus: { rotation: 180, flipHorizontal: true },
+  car: { rotation: 180, flipHorizontal: true },
+  taxiFront: { rotation: 270, flipHorizontal: false },
+  suv: { rotation: 180, flipHorizontal: true },
+  racecar: { rotation: 180, flipHorizontal: true },
+  ambulance: { rotation: 180, flipHorizontal: true },
+  bus: { rotation: 180, flipHorizontal: true },
+  truck: { rotation: 180, flipHorizontal: true },
+  delivery: { rotation: 180, flipHorizontal: true },
+  plane: { rotation: 319, flipHorizontal: false },
+  helicopter: { rotation: 270, flipHorizontal: true },
+  bulletTrain: { rotation: 180, flipHorizontal: true },
+  mountainRailway: { rotation: 180, flipHorizontal: false },
+  autoRickshaw: { rotation: 180, flipHorizontal: true },
+  ferry: { rotation: 270, flipHorizontal: true },
+  motorYacht: { rotation: 270, flipHorizontal: true },
+  cruiseShip: { rotation: 270, flipHorizontal: true },
+  canoe: { rotation: 270, flipHorizontal: true },
+  locomotive: { rotation: 180, flipHorizontal: true },
+  scooter: { rotation: 180, flipHorizontal: true },
+  police: { rotation: 180, flipHorizontal: true },
+  van: { rotation: 180, flipHorizontal: true },
+  taxi: { rotation: 180, flipHorizontal: true },
+  pickup: { rotation: 180, flipHorizontal: true },
+  policeFront: { rotation: 270, flipHorizontal: false },
+  busFront: { rotation: 270, flipHorizontal: false },
+  train: { rotation: 180, flipHorizontal: false },
+  bicycle: { rotation: 180, flipHorizontal: true },
+  motorcycle: { rotation: 180, flipHorizontal: true },
+  tractor: { rotation: 180, flipHorizontal: true },
+  boat: { rotation: 270, flipHorizontal: true },
+  ship: { rotation: 270, flipHorizontal: true },
+  sailboat: { rotation: 270, flipHorizontal: false },
+  cableCar: { rotation: 270, flipHorizontal: false },
+  rocket: { rotation: 315, flipHorizontal: false },
+  smallPlane: { rotation: 314, flipHorizontal: false },
+  flyingSaucer: { rotation: 270, flipHorizontal: false },
+  railCar: { rotation: 180, flipHorizontal: false },
+  tram: { rotation: 180, flipHorizontal: false },
+  monorail: { rotation: 180, flipHorizontal: true },
+  highSpeedTrain: { rotation: 180, flipHorizontal: true },
+  lightRail: { rotation: 180, flipHorizontal: true },
+  metro: { rotation: 180, flipHorizontal: false },
+  carFront: { rotation: 270, flipHorizontal: false },
+  walker: { rotation: 271, flipHorizontal: false }
+};
+
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface MapErrorEntry {
@@ -1727,12 +1777,19 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnInit(): void {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
+      const savedSymbolSettings = saved?.['timeSliderSymbolSettings']
+        && typeof saved['timeSliderSymbolSettings'] === 'object'
+        && !Array.isArray(saved['timeSliderSymbolSettings'])
+        ? saved['timeSliderSymbolSettings'] as Record<string, Partial<TimeSliderSymbolSettings>>
+        : {};
+      const restoredSymbolSettings = this.normalizeWalkingFigureSymbolSettings({
+        ...this.readWalkingFigureSymbolSettings(),
+        ...savedSymbolSettings
+      });
+      this.walkingFigureSymbolSettings.set(restoredSymbolSettings);
+      this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restoredSymbolSettings));
+      this.persistLocationUiState({ timeSliderSymbolSettings: restoredSymbolSettings });
       if (!saved) return;
-      if (saved['timeSliderSymbolSettings'] && typeof saved['timeSliderSymbolSettings'] === 'object' && !Array.isArray(saved['timeSliderSymbolSettings'])) {
-        const restored = this.normalizeWalkingFigureSymbolSettings(saved['timeSliderSymbolSettings'] as Record<string, Partial<TimeSliderSymbolSettings>>);
-        this.walkingFigureSymbolSettings.set(restored);
-        this.saveSetting('timeSliderSymbolSettings', JSON.stringify(restored));
-      }
       if (typeof saved['settingsOpen'] === 'boolean') this.settingsOpen.set(saved['settingsOpen']);
       if (typeof saved['timeSliderAnimationSectionOpen'] === 'boolean') {
         this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
@@ -2219,7 +2276,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const parsed = JSON.parse(this.readSetting('timeSliderSymbolSettings', '{}')) as
         Record<string, Partial<TimeSliderSymbolSettings> & { flipVertical?: boolean }>;
-      return normalizeGpxSymbolSettings(parsed ?? {});
+      return this.normalizeWalkingFigureSymbolSettings(parsed ?? {});
     } catch { return {}; }
   }
   private readNumber(key: string, fallback: number, min: number, max: number): number {
@@ -4142,7 +4199,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
   private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
-    return normalizeGpxSymbolSettings(value);
+    const merged: Record<string, Partial<TimeSliderSymbolSettings>> = {};
+    for (const [symbol, defaults] of Object.entries(DEFAULT_TIME_SLIDER_SYMBOL_SETTINGS)) {
+      merged[symbol] = { ...defaults, ...(value[symbol] ?? {}) };
+    }
+    for (const [symbol, settings] of Object.entries(value)) {
+      if (!Object.hasOwn(merged, symbol)) merged[symbol] = settings;
+    }
+    return normalizeGpxSymbolSettings(merged);
   }
 
   protected readonly selectedWalkingFigureSymbolSettings = (): TimeSliderSymbolSettings =>
