@@ -5176,6 +5176,7 @@ ${points}
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
     this.tileLayer = this.leaflet.tileLayer(style.url, style).addTo(this.map);
+    this.applyMapOpacity();
     // Leaflet does not emit MapLibre's 'idle' event. Use the base layer's
     // completed visible-tile batch to finish the shared Display phase.
     this.tileLayer.on('load', () => {
@@ -5341,8 +5342,7 @@ ${points}
     const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
     this.offlineRenderer?.setBasemapOpacity(opacity);
     this.tileLayer?.setOpacity(opacity);
-    const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
-    if (pane) pane.style.opacity = String(opacity);
+
   }
   private gpxLineDashArray(style: NonNullable<GpxTrackFile['lineStyle']>): string | undefined {
     const patterns: Record<NonNullable<GpxTrackFile['lineStyle']>, string | undefined> = {
