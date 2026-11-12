@@ -4,7 +4,7 @@ import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'i
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, createMapsforgeMapStyle, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
@@ -382,6 +382,7 @@ interface MapErrorEntry {
                 <tr><td><button type="button" (click)="selectMapSource('offline')">MBTiles</button></td><td>.mbtiles</td><td>Offline</td></tr>
                 <tr><td><button type="button" (click)="selectMapSource('osmand')">OsmAnd (no labels)</button></td><td>.obf</td><td>Offline</td></tr>
                 <tr><td><button type="button" (click)="selectMapSource('osmand-atlas')">OsmAnd Atlas</button></td><td>.obf</td><td>Offline</td></tr>
+                <tr><td><button type="button" (click)="selectMapSource('mapsforge')">Mapsforge</button></td><td>.map</td><td>Offline</td></tr>
               </tbody>
             </table>
           </div>
@@ -1532,15 +1533,16 @@ export class MapWindow implements OnInit, OnDestroy {
     online: 'Online map',
     offline: 'MBTiles',
     osmand: 'OsmAnd (no labels)',
-    'osmand-atlas': 'OsmAnd Atlas'
+    'osmand-atlas': 'OsmAnd Atlas',
+    mapsforge: 'Mapsforge'
   })[this.mapSource()]);
-  protected readonly selectMapSource = (source: 'online' | 'offline' | 'osmand' | 'osmand-atlas'): void => {
+  protected readonly selectMapSource = (source: 'online' | 'offline' | 'osmand' | 'osmand-atlas' | 'mapsforge'): void => {
     this.mapSourceMenuOpen.set(false);
     this.changeMapSource(source);
   };
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
-  protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
+  protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas' | 'mapsforge'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly osmAndStyle = signal('default.render.xml');
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
@@ -2426,6 +2428,19 @@ export class MapWindow implements OnInit, OnDestroy {
     // default before the shared persisted OsmAnd style has been restored.
     await this.osmAndStyleRestore;
     let generation = this.mapSourceGeneration;
+    if (this.mapSource() === 'mapsforge') {
+      if (this.offlineRenderer) {
+        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        return;
+      }
+      if (this.mapInitialization) await this.mapInitialization;
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge' || this.offlineRenderer) return;
+      const initialization = this.createMapsforgeMap(latitude, longitude, generation);
+      this.mapInitialization = initialization;
+      try { await initialization; } finally { if (this.mapInitialization === initialization) this.mapInitialization = null; }
+      return;
+    }
     if (this.mapSource() === 'osmand-atlas') {
       if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(latitude, longitude);
@@ -2723,6 +2738,81 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
+  private async createMapsforgeMap(latitude: number, longitude: number, generation: number): Promise<void> {
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') return;
+    this.renderInitStatus.set('Render init …');
+    if (!this.desktop) {
+      this.renderInitStatus.set('');
+      this.mapDisplayNotice.set('Desktop API is not connected.');
+      return;
+    }
+    const maps = this.offlineMaps().filter(map => map.type === 'mapsforge' && map.enabled && map.available);
+    if (maps.length === 0) {
+      this.renderInitStatus.set('');
+      this.mapDisplayNotice.set('No active Mapsforge .map files. Add and activate Mapsforge maps in OfflineMaps.');
+      this.recordMapError('Mapsforge', 'No active Mapsforge .map files are loaded.');
+      return;
+    }
+    try {
+      await this.desktop.Mapsforge.open(maps.map(map => map.filePath));
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
+        await this.desktop.Mapsforge.close();
+        return;
+      }
+      registerMapsforgeTileProtocol(this.desktop);
+      this.mapDisplayNotice.set('');
+      const renderer = new OfflineMapRenderer(
+        this.mapElement().nativeElement,
+        [longitude, latitude],
+        this.validZoom(this.zoomLevel()),
+        message => {
+          if (generation !== this.mapSourceGeneration || /\\b(cancelled|canceled)\\b/i.test(message)) return;
+          this.recordMapError('Mapsforge rendering', message);
+          console.error('[Mapsforge] Tile rendering error:', message);
+        },
+        'lumascope', '', 0, 22, undefined, 'shortbread', [], createMapsforgeMapStyle()
+      );
+      this.offlineRenderer = renderer;
+      window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
+      try {
+        await renderer.ready;
+      } catch (error) {
+        renderer.remove();
+        if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+        throw error;
+      }
+      if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
+        renderer.remove();
+        if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+        await this.desktop.Mapsforge.close();
+        return;
+      }
+      const latestLatitude = this.currentLatitude ?? latitude;
+      const latestLongitude = this.currentLongitude ?? longitude;
+      renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(),
+        (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
+      renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+      this.applyMapColor();
+      this.applyMapOpacity();
+      this.applyHillshadeSettings(renderer);
+      renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+      this.persistZoom(renderer.map.getZoom());
+      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+      await this.restoreGpxTrack();
+      this.applyOpacitySettings();
+      window.addEventListener('resize', this.onResize);
+    } catch (error) {
+      if (generation !== this.mapSourceGeneration) return;
+      this.renderInitStatus.set('');
+      const message = error instanceof Error ? error.message : String(error);
+      this.mapDisplayNotice.set('Mapsforge renderer could not be initialized: ' + message);
+      this.recordMapError('Mapsforge initialization', message);
+      console.error('[Mapsforge] Initialization failed:', error);
+    } finally {
+      if (generation === this.mapSourceGeneration) this.renderInitStatus.set('');
+    }
+  }
+
   private async createOsmAndMap(latitude: number, longitude: number, generation: number): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'osmand') return;
     this.renderInitStatus.set('Render init …');
@@ -2880,7 +2970,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeMapSource = (value: string): void => {
-    if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas') return;
+    if (value !== 'online' && value !== 'offline' && value !== 'osmand' && value !== 'osmand-atlas' && value !== 'mapsforge') return;
     // MBTiles selection is validated against enabled maps and geographic bounds during initialization.
     const nextSource = value;
     const previousSource = this.mapSource();
@@ -2891,6 +2981,9 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (previousSource === 'osmand' && nextSource !== 'osmand') {
       void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
+    }
+    if (previousSource === 'mapsforge' && nextSource !== 'mapsforge') {
+      void this.desktop?.Mapsforge.close().catch(error => console.warn('Could not close Mapsforge renderer:', error));
     }
     this.mapSourceGeneration++;
     this.mapInitialization = null;
