@@ -421,7 +421,7 @@ export interface MapsforgeTileResult {
 export interface DesktopMapsforge {
   readonly getStatus: () => Promise<MapsforgeTileResult>;
   readonly scanCatalog: (rootPath: string) => Promise<MapsforgeTileResult>;
-  readonly open: (mapPaths: string[], themePath?: string | null) => Promise<MapsforgeTileResult>;
+  readonly open: (mapPaths: string[], themePath?: string | null, deviceScaleFactor?: number) => Promise<MapsforgeTileResult>;
   readonly renderTile: (z: number, x: number, y: number) => Promise<MapsforgeTileResult>;
   readonly close: () => Promise<MapsforgeTileResult>;
   readonly shutdown: () => Promise<void>;
