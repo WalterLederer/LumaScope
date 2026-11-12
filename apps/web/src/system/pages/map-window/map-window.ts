@@ -856,7 +856,7 @@ interface MapErrorEntry {
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OBF' : map.type === 'mapsforge' ? 'Mapsforge' : 'MBTiles' }}</i></td>
+                        <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
@@ -1125,7 +1125,8 @@ interface MapErrorEntry {
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2147483002}
     .map-source-picker-label{font-weight:600}
-    .map-source-picker-trigger{min-width:220px;text-align:left}
+    .map-source-picker-trigger{min-width:220px;text-align:left;position:relative;padding-right:28px}
+    .map-source-picker-trigger::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;opacity:.8;pointer-events:none}
     .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483003}
     .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
     .map-source-picker-table th,.map-source-picker-table td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--color-content-default-low,#454545)}
