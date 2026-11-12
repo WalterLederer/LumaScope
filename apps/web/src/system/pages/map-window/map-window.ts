@@ -258,8 +258,11 @@ interface MapErrorEntry {
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                 <span class="time-slider-symbol-front">Front</span>
               </div>
-              <label class="time-slider-symbol-rotation"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label><button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
-              <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
+              <div class="time-slider-symbol-controls">
+                <label class="time-slider-symbol-rotation"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
+                <button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
+                <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
+              </div>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
             <label class="time-slider-speed-control"><span>Walking animation speed</span><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"><strong>{{ walkingFigureAnimationSpeed() }}×</strong></label>
@@ -1017,14 +1020,15 @@ interface MapErrorEntry {
     .time-slider-animate-options{display:flex;align-items:center;gap:20px;padding:8px 0 3px;flex-wrap:wrap}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:#000;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}
     .time-slider-speed-control{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-content-default-medium,#aaa);flex:1;min-width:220px}.time-slider-speed-control input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}.time-slider-speed-control strong{min-width:24px;text-align:right;color:var(--color-content-default,#fff)}
-    .time-slider-symbol-adjustments{display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1 1 320px;min-width:0;padding:2px 0 4px}
-    .time-slider-symbol-preview-row{display:flex;align-items:center;gap:9px}
+    .time-slider-symbol-adjustments{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;flex:1 1 320px;min-width:0;padding:2px 0 4px}
+    .time-slider-symbol-preview-row{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+    .time-slider-symbol-controls{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:6px;flex:1;min-width:220px}
     .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
     .time-slider-symbol-preview-box>span{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}.time-slider-symbol-preview-box svg{display:block;width:30px;height:38px;overflow:visible}
     .time-slider-symbol-front{font-size:12px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
-    .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:190px;flex:1;font-size:12px;color:var(--color-content-default-medium,#aaa)}
+    .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:0;width:100%;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-rotation input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}
-    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}.time-slider-symbol-snap{padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}.time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
@@ -4302,20 +4306,27 @@ export class MapWindow implements OnInit, OnDestroy {
       this.lastWalkingBearing = bearing;
     }
 
-    // Smooth compass heading across playback ticks. Circular angle interpolation
-    // avoids 359°↔0° flips; a turn-rate limit filters abrupt GPS bearing spikes.
-    const bearingNow = Date.now();
-    if (this.smoothedWalkingBearing === null) {
+    // Manual slider seeking must use the exact GPX heading immediately.
+    // Time-based smoothing is only useful during continuous playback. Otherwise
+    // rapid seek operations accumulate a turn-rate-limited lag and the marker
+    // appears to rotate gradually even though the selected GPX position changed.
+    if (!this.timeSliderAnimating()) {
       this.smoothedWalkingBearing = bearing;
+      this.lastWalkingBearingUpdate = Date.now();
     } else {
-      const elapsedSeconds = Math.max(0.016, Math.min(0.5, (bearingNow - this.lastWalkingBearingUpdate) / 1000));
-      const delta = ((bearing - this.smoothedWalkingBearing + 540) % 360) - 180;
-      const filteredDelta = delta * (1 - Math.exp(-elapsedSeconds / 0.9));
-      const maxTurn = 75 * elapsedSeconds;
-      this.smoothedWalkingBearing = (this.smoothedWalkingBearing + Math.max(-maxTurn, Math.min(maxTurn, filteredDelta)) + 360) % 360;
+      const bearingNow = Date.now();
+      if (this.smoothedWalkingBearing === null) {
+        this.smoothedWalkingBearing = bearing;
+      } else {
+        const elapsedSeconds = Math.max(0.016, Math.min(0.5, (bearingNow - this.lastWalkingBearingUpdate) / 1000));
+        const delta = ((bearing - this.smoothedWalkingBearing + 540) % 360) - 180;
+        const filteredDelta = delta * (1 - Math.exp(-elapsedSeconds / 0.9));
+        const maxTurn = 75 * elapsedSeconds;
+        this.smoothedWalkingBearing = (this.smoothedWalkingBearing + Math.max(-maxTurn, Math.min(maxTurn, filteredDelta)) + 360) % 360;
+      }
+      this.lastWalkingBearingUpdate = bearingNow;
     }
-    this.lastWalkingBearingUpdate = bearingNow;
-    bearing = this.smoothedWalkingBearing;
+    bearing = this.smoothedWalkingBearing ?? bearing;
     this.lastWalkingBearing = bearing;
 
     // The timeline traverses its complete range in about 60 seconds at 1×.
