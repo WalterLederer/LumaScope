@@ -108,8 +108,14 @@ export class SettingsPanelComponent {
   protected readonly cacheSummary = signal<CacheSummary>({
     total: { entries: 0, bytes: 0 }, fullSize: { entries: 0, bytes: 0 },
     thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
-    gps: { entries: 0, bytes: 0 }, databases: []
+    gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
   });
+  protected readonly selectedCacheDatabaseKey = signal<string | null>(null);
+  protected readonly selectCacheDatabase = (databaseKey: string): void => {
+    if (!databaseKey || !this.cacheSummary().databases.some(database => database.key === databaseKey)) return;
+    this.selectedCacheDatabaseKey.set(databaseKey);
+    void this.updateCacheSummary(databaseKey);
+  };
   protected readonly cacheSummaryLoading = signal(false);
   protected readonly cacheSummaryError = signal<string | null>(null);
   private cacheSummaryRequestId = 0;
@@ -626,13 +632,16 @@ export class SettingsPanelComponent {
     }
   };
 
-  private readonly updateCacheSummary = async (): Promise<void> => {
+  private readonly updateCacheSummary = async (databaseKey = this.selectedCacheDatabaseKey() ?? undefined): Promise<void> => {
     const requestId = ++this.cacheSummaryRequestId;
     this.cacheSummaryLoading.set(true);
     try {
-      const summary = await this.cacheManager.getCacheSummary();
+      const summary = await this.cacheManager.getCacheSummary(databaseKey);
       if (requestId === this.cacheSummaryRequestId) {
         this.cacheSummary.set(summary);
+        if (!this.selectedCacheDatabaseKey() || !summary.databases.some(database => database.key === this.selectedCacheDatabaseKey())) {
+          this.selectedCacheDatabaseKey.set(summary.selectedDatabaseKey);
+        }
         this.cacheSummaryError.set(null);
       }
     } catch (error) {
