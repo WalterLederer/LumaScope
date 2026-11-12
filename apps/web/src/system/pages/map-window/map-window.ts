@@ -4163,9 +4163,15 @@ export class MapWindow implements OnInit, OnDestroy {
     return flip ? 'scaleX(-1)' : '';
   }
 
+  private walkingFigureFlipVerticalTransform(figureType: string): string {
+    // Vehicle emoji artwork is vertically inverted relative to the map marker's
+    // local coordinate system; keep the walking-person SVG unchanged.
+    return figureType !== 'walker' ? 'scaleY(-1)' : '';
+  }
+
   protected readonly walkingFigurePreviewTransform = (): string => {
     const settings = this.selectedWalkingFigureSymbolSettings();
-    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipHorizontal)}`;
+    return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipVerticalTransform(this.walkingFigureType())} ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipHorizontal)}`;
   };
 
   private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>, persistConfig = true): void {
@@ -4349,7 +4355,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // manual inversion, so it can correct symbols whose artwork faces opposite.
     const movingLeft = Math.sin(bearing * Math.PI / 180) < -0.01;
     const effectiveFlipHorizontal = symbolSettings.flipHorizontal !== movingLeft;
-    const symbolTransform = `rotate(${bearing + orientationOffset}deg) ${this.walkingFigureFlipTransform(figureType, effectiveFlipHorizontal)} scale(${this.walkingFigureSize()})`;
+    const symbolTransform = `rotate(${bearing + orientationOffset}deg) ${this.walkingFigureFlipVerticalTransform(figureType)} ${this.walkingFigureFlipTransform(figureType, effectiveFlipHorizontal)} scale(${this.walkingFigureSize()})`;
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
       : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${vehicleSymbols[figureType]}</div>`;
