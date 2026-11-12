@@ -490,9 +490,7 @@ export class CacheManager {
       throw new Error('A list of valid image paths is required.');
     }
 
-    const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));(`SELECT photos.* FROM photos
-      JOIN paths ON paths.id = photos.path_id
-      WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3)) AND photos.file_name = :file COLLATE NOCASE`);
+    const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));
 
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
       const db = this.databaseForPath(sourceName);
@@ -848,7 +846,6 @@ export class CacheManager {
   };
 
   private readonly getPhoto = (sourceName: string, db = this.databaseForPath(sourceName)): PhotoRow | null => {
-    const folder = dirname(sourceName);
     const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3)) AND photos.file_name = :file COLLATE NOCASE')
       .get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
@@ -1009,7 +1006,7 @@ export class CacheManager {
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
-      const relativeFolder = relative(root, resolve(row.folder_path));
+      const relativeFolder = relative(root, resolve(this.rebaseStoredPath(row.folder_path, directory ?? (this.activeDatabaseKey + '\\'))));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
