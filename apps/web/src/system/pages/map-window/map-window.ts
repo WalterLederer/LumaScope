@@ -4152,7 +4152,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateWalkingMarker();
   };
   protected readonly walkingFigureTypeName = (): string => {
-    const names: Record<string, string> = 
+    const names: Record<string, string> = {
     walker: 'Walking person',
     car: 'Car (PKW)',
     carFront: 'Car (front)',
