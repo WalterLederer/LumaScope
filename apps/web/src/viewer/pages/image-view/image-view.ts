@@ -569,47 +569,19 @@ export class ImageView {
   protected readonly photoDatabaseRecordEntries = computed(() => {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
-    const expandedFields = new Set([
-      'path_id',
-      'thumbnail_cache_id',
-      'fullsize_cache_id',
-      'coordinate_source_id',
-      'location_name_id'
-    ]);
-    const timestampFields = new Set(['modified_at']);
     return Object.entries(record)
       .filter(([key]) => key !== 'database_path' && !key.endsWith('_expanded') && !key.endsWith('_type'))
-      .map(([key, value]) => {
-        const isTimestamp = timestampFields.has(key) && typeof value === 'number' && Number.isFinite(value);
-        const isFileSize = key === 'file_size' && typeof value === 'number' && Number.isFinite(value) && value >= 0;
-        const dateValue = isTimestamp ? new Date(value as number) : null;
-        const formatFileSize = (bytes: number): string => {
-          if (bytes < 1024) return `${bytes} B`;
-          const units = ['KB', 'MB', 'GB', 'TB'];
-          let size = bytes / 1024;
-          let unitIndex = 0;
-          while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex++;
-          }
-          return `${size.toFixed(2)} ${units[unitIndex]}`;
-        };
-        return {
-          key,
-          type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
-          value: JSON.stringify(value) ?? 'null',
-          expanded: expandedFields.has(key) && record[`${key}_expanded`] != null
-            ? JSON.stringify(record[`${key}_expanded`])
-            : isTimestamp && dateValue && !Number.isNaN(dateValue.getTime())
-              ? JSON.stringify(dateValue.toLocaleString())
-              : isFileSize
-                ? JSON.stringify(formatFileSize(value as number))
-                : null,
-          isExpandedId: expandedFields.has(key) && record[`${key}_expanded`] != null,
-          isTimestamp,
-          isFileSize
-        };
-      });
+      .map(([key, value]) => ({
+        key,
+        type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
+        value: JSON.stringify(value) ?? 'null',
+        expanded: key === 'folder_path' && record.folder_path_expanded != null
+          ? JSON.stringify(record.folder_path_expanded)
+          : null,
+        isExpandedId: false,
+        isTimestamp: false,
+        isFileSize: false
+      }));
   });
   protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
   private photoDatabaseRecordRequest = 0;
