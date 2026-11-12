@@ -3132,7 +3132,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (selectedPreset === 'none') return false;
     if (isWorldBasemap) return true;
     // The legacy nationwide extract is obsolete and must never be activated by Austria.
-    if (selectedPreset === 'austria' && /^Austria_europe\.obf$/i.test(fileName)) return false;
+    if ((selectedPreset === 'austria' || selectedPreset === 'austria-plus') && /^Austria_europe\.obf$/i.test(fileName)) return false;
     return selectedPreset === 'all' || selectedPreset === 'custom'
       || this.presetMatchesFileName(selectedPreset, fileName);
   }
