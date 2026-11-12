@@ -1038,7 +1038,7 @@ interface MapErrorEntry {
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-speed-control strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-animation-speed{flex:1 1 180px}
-    .time-slider-symbol-controls-row{display:grid;grid-template-columns:minmax(150px,auto) minmax(150px,1fr);align-items:stretch;gap:8px 10px;min-width:0;width:100%}
+    .time-slider-symbol-controls-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr);align-items:stretch;gap:8px 10px;min-width:0;width:100%}
     .time-slider-symbol-select{display:flex;grid-column:1;grid-row:2;min-width:0;font-size:12px;color:CanvasText}
     .time-slider-symbol-select select{width:100%;min-width:0;padding:5px 7px;border:1px solid var(--color-border-default,#777);border-radius:4px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}.time-slider-symbol-visibility{align-self:center;flex:0 0 auto;min-height:18px}
@@ -1558,11 +1558,11 @@ export class MapWindow implements OnInit, OnDestroy {
     { id: 'none', name: 'None', regex: '(?!)' },
     { id: 'custom', name: 'Custom', regex: '.*' }
   ]);
-  protected readonly offlineMapPreset = signal<'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom'>(
+  protected readonly offlineMapPreset = signal<string>(
     (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
       ? this.readSetting('offlineMapPreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
   );
-  protected readonly hillshadePreset = signal<'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom'>(
+  protected readonly hillshadePreset = signal<string>(
     (['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'] as const).includes(this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom')
       ? this.readSetting('hillshadePreset', 'custom') as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' : 'austria'
   );
@@ -3083,7 +3083,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
   };
   protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
-    if (value !== 'austria' && value !== 'austria-plus' && value !== 'europe' && value !== 'all' && value !== 'none' && value !== 'custom') return;
+    if (!this.mapPresetOptions().some(preset => preset.id === value)) return;
     this.offlineMapPreset.set(value);
     this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
@@ -3097,7 +3097,7 @@ export class MapWindow implements OnInit, OnDestroy {
             if (baseName === 'world.map') {
               return map.enabled !== (value !== 'none');
             }
-            if (value === 'austria' || value === 'austria-plus' || value === 'europe') {
+            if (value !== 'all' && value !== 'none' && value !== 'custom') {
               return map.enabled !== this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps());
             }
           }
@@ -3109,7 +3109,7 @@ export class MapWindow implements OnInit, OnDestroy {
             ? this.obfMapMatchesPreset(map, value)
             : (map.fileName || map.name).split(/[\\/]/).pop()?.toLowerCase() === 'world.map'
               ? value !== 'none'
-              : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus' | 'europe', this.offlineMaps())
+              : this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps())
         }));
       this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
@@ -3124,7 +3124,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private obfMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
-    selectedPreset: 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' = this.offlineMapPreset()
+    selectedPreset: string = this.offlineMapPreset()
   ): boolean {
     if (map.type !== 'obf') return false;
     const fileName = map.fileName || map.name;
@@ -3139,13 +3139,13 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private mapsforgeMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
-    selectedPreset: 'austria' | 'austria-plus' | 'europe',
+    selectedPreset: string,
     allMaps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()
   ): boolean {
     if (map.type !== 'mapsforge') return false;
     const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
     if (baseName === 'world.map') return true;
-    if (selectedPreset === 'austria' || selectedPreset === 'austria-plus') {
+    if (selectedPreset !== 'europe') {
       return this.presetMatchesFileName(selectedPreset, baseName);
     }
 
@@ -3167,14 +3167,13 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private getOfflineMapPresetForMaps(
     maps: import('internal-api').OfflineMapStatus[]
-  ): 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' | null {
+  ): string | null {
     // A preset describes the complete OBF + Mapsforge selection, not OBF alone.
     // This prevents startup from showing Austria while unrelated .map files
     // remain enabled from a previous or manually changed configuration.
     const presetMaps = maps.filter(map => map.type === 'obf' || map.type === 'mapsforge');
     if (presetMaps.length === 0) return null;
-    const candidates: Array<'none' | 'austria' | 'austria-plus' | 'europe' | 'all'> =
-      ['none', 'austria', 'austria-plus', 'europe', 'all'];
+    const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
     const matches = (map: import('internal-api').OfflineMapStatus, preset: typeof candidates[number]): boolean => {
       if (map.type === 'obf') return this.obfMapMatchesPreset(map, preset);
       if (map.type === 'mapsforge') {
@@ -3393,7 +3392,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
     timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
-  private hillshadeDatabaseMatchesPreset(database: OsmAndHillshadeDatabase, preset: 'austria' | 'austria-plus' | 'europe' | 'all' | 'none'): boolean {
+  private hillshadeDatabaseMatchesPreset(database: OsmAndHillshadeDatabase, preset: string): boolean {
     if (!database.available || preset === 'none') return false;
     if (preset === 'all') return true;
     const fileName = this.hillshadeDatabaseFileName(database.path);
@@ -3402,15 +3401,15 @@ export class MapWindow implements OnInit, OnDestroy {
   private updateHillshadePresetFromSelection(databases: OsmAndHillshadeDatabase[]): void {
     const available = databases.filter(database => database.available);
     if (!available.length) return;
-    const candidates: Array<'none' | 'austria' | 'austria-plus' | 'europe' | 'all'> = ['none', 'austria', 'austria-plus', 'europe', 'all'];
+    const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
     const matching = candidates.find(preset => available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
     const next = matching ?? 'custom';
     this.hillshadePreset.set(next);
     this.saveSetting('hillshadePreset', next);
   }
   protected readonly changeHillshadePreset = async (value: string): Promise<void> => {
-    if (!['austria', 'austria-plus', 'europe', 'all', 'none', 'custom'].includes(value)) return;
-    const preset = value as 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom';
+    if (!this.mapPresetOptions().some(preset => preset.id === value)) return;
+    const preset = value;
     this.hillshadePreset.set(preset);
     this.saveSetting('hillshadePreset', preset);
     if (preset !== 'custom' && this.desktop) {
