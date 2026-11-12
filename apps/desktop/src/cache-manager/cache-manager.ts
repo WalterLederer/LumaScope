@@ -657,7 +657,7 @@ export class CacheManager {
       LEFT JOIN cache_storage_types AS cache_full ON cache_full.id = photos.fullsize_cache_id
       LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE
+      WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3)) AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
     const columnTypes = new Map(
