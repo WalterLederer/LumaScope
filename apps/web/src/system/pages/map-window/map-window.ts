@@ -4317,10 +4317,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const symbolSettings = this.walkingFigureSymbolSettings()[figureType] ?? { rotation: 0, flipHorizontal: false };
     // The shared transform owns compass-to-artwork orientation, automatic direction
     // mirroring, manual correction, vertical correction and scaling.
-    const movingLeft = Math.sin(bearing * Math.PI / 180) < -0.01;
     const symbolTransform = buildGpxSymbolTransform({
       figureType, bearing, settings: symbolSettings, size: this.walkingFigureSize(),
-      movingLeft, autoFlipDirection: true
+      autoFlipDirection: true
     });
     const animationDuration = gpxAnimationDuration(gaitSpeed);
     const html = isWalking
