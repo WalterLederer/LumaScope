@@ -1446,12 +1446,12 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private readonly onOsmAndTileStatus = (event: Event): void => {
     const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
-    const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : null;
+    const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : this.mapSource() === 'mapsforge' ? 'mapsforge' : null;
     if (detail?.status === 'diagnostic' && detail.protocol === 'osmand-atlas' && detail.error) {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
       return;
     }
-    if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas')) return;
+    if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas' && detail.protocol !== 'mapsforge')) return;
     const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loading' || detail.status === 'rerendering') {
       this.renderDisplayPending.set(false);
@@ -1475,10 +1475,12 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentTileRequestResults.delete(key);
       this.activeRenderTiles.delete(key);
     } else if (detail.status === 'error') {
-      this.recordMapError(
-        detail.protocol === 'osmand-atlas' ? 'OsmAnd Atlas tile' : 'OsmAnd tile',
-        (detail.error || 'Tile rendering failed') + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']'
-      );
+      if (detail.protocol !== 'mapsforge') {
+        this.recordMapError(
+          detail.protocol === 'osmand-atlas' ? 'OsmAnd Atlas tile' : 'OsmAnd tile',
+          (detail.error || 'Tile rendering failed') + ' [z=' + detail.zoom + ', x=' + detail.column + ', y=' + detail.row + ']'
+        );
+      }
       this.totalRenderTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.lastRenderTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.currentTileRequestResults.delete(key);
