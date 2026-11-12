@@ -65,6 +65,7 @@ export class CacheManager {
   private currentReverseGeocodingPath: string | null = null;
   private currentReverseGeocodingDisplayName: string | null = null;
   private currentReverseGeocodingPhotoId: number | null = null;
+  private currentReverseGeocodingDatabaseKey: string | null = null;
 
   private readonly activeClearOperations = new Set<string>();
 
@@ -294,7 +295,7 @@ export class CacheManager {
       await this.ensureLocationName({
         ...row,
         location_name_id: row.needs_refresh === 1 ? null : row.location_name_id
-      }, db, true, false, row.needs_refresh === 1);
+      }, db, true, false, row.needs_refresh === 1, this.databaseKeyForPath(directory));
       const saved = db.prepare(`SELECT photos.location_name_id, location_names.display_name
         FROM photos LEFT JOIN location_names ON location_names.id = photos.location_name_id
         WHERE photos.id = :id`)
@@ -373,7 +374,7 @@ export class CacheManager {
     };
 
     for (const row of rows) {
-      const source = join(row.folder_path, row.file_name);
+      const source = join(this.rebaseStoredPath(row.folder_path, this.activeDatabaseKey + '\\'), row.file_name);
       if (row.latitude !== null && row.longitude !== null
         && Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
         && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
@@ -414,22 +415,6 @@ export class CacheManager {
     summary.total.entries = summary.fullSize.entries + summary.thumbnails.entries;
     summary.total.bytes = summary.fullSize.bytes + summary.thumbnails.bytes;
 
-    const findDatabases = async (directory: string): Promise<void> => {
-      let entries;
-      try { entries = await readdir(directory, { withFileTypes: true }); }
-      catch { return; }
-      for (const entry of entries) {
-        const path = join(directory, entry.name);
-        if (entry.isDirectory()) {
-          await findDatabases(path);
-        } else if (entry.isFile() && /\.(?:sqlite|sqlite3|db)$/i.test(entry.name)) {
-          try {
-            const info = await stat(path);
-            summary.databases.push({ path, bytes: info.size });
-          } catch { /* Database may disappear during enumeration. */ }
-        }
-      }
-    };
     for (const key of this.databases.keys()) {
       const databasePath = join(key + '\\', '.cache', 'cache.sqlite');
       try { const info = await stat(databasePath); summary.databases.push({ path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
@@ -905,6 +890,7 @@ export class CacheManager {
       let thrownError: unknown = null;
       const startedAt = Date.now();
       this.currentReverseGeocodingPhotoId = photo.id;
+      this.currentReverseGeocodingDatabaseKey = databaseKey;
       this.currentReverseGeocodingDisplayName = null;
       const source = db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
         .get({ photoId: photo.id }) as { folder_path: string; file_name: string } | undefined;
@@ -918,7 +904,7 @@ export class CacheManager {
         const location = await lookupReverseGeocoding(photo.latitude!, photo.longitude!, 'en');
         if (location) {
           displayName = location.displayName;
-          if (this.currentReverseGeocodingPhotoId === photo.id) this.currentReverseGeocodingDisplayName = location.displayName;
+          if (this.currentReverseGeocodingPhotoId === photo.id && this.currentReverseGeocodingDatabaseKey === databaseKey) this.currentReverseGeocodingDisplayName = location.displayName;
           db.prepare(`INSERT OR IGNORE INTO location_names
             (latitude, longitude, place_name, display_name, street, country_code, region, locality, provider, updated_at)
             VALUES (:latitude, :longitude, :placeName, :displayName, :street, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
@@ -992,7 +978,7 @@ export class CacheManager {
           forceRefresh: forceRefresh ? 1 : 0
         });
       if (throwOnError && thrownError) throw thrownError;
-      if (this.currentReverseGeocodingPhotoId === photo.id) this.currentReverseGeocodingDisplayName = displayName;
+      if (this.currentReverseGeocodingPhotoId === photo.id && this.currentReverseGeocodingDatabaseKey === databaseKey) this.currentReverseGeocodingDisplayName = displayName;
       return displayName;
     })();
 
