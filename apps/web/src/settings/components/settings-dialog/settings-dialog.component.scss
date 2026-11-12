@@ -965,3 +965,26 @@ section {
     color: var(--color-content-default-medium);
   }
 }
+
+
+.cache-summary-database-select {
+  display: grid;
+  gap: var(--dim-small);
+  min-width: 0;
+  margin-bottom: var(--dim-medium);
+
+  span {
+    color: var(--color-content-default-medium);
+    font-size: 0.8rem;
+  }
+
+  select {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 8px;
+    border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+    border-radius: 4px;
+    background: var(--color-surface-default-low);
+    color: var(--color-content-default);
+  }
+}
