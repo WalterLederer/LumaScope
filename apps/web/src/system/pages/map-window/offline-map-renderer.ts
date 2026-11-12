@@ -60,7 +60,7 @@ export function cacheHillshadeTile(key: string, png: Uint8Array): void {
   hillshadePngCacheBytes += stored.byteLength;
 }
 
-type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre';
+type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre' | 'mapsforge';
 type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
@@ -522,17 +522,28 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
       || column < 0 || column >= tileCount || row < 0 || row >= tileCount) {
       throw new Error('Invalid Mapsforge XYZ tile coordinates.');
     }
+    const tileStatus = (status: OsmAndTileStatus, error?: string): void => {
+      window.dispatchEvent(new CustomEvent<OsmAndTileStatusEventDetail>('lumascope-osmand-tile-status', {
+        detail: { protocol: 'mapsforge', zoom, column, row, status, ...(error ? { error } : {}) }
+      }));
+    };
+    tileStatus('loading');
     let result: Awaited<ReturnType<Desktop['Mapsforge']['renderTile']>>;
     try {
       result = await desktop.Mapsforge.renderTile(zoom, column, row);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (!abortController.signal.aborted && !/\b(cancelled|canceled)\b/i.test(message)) {
+      const cancelled = abortController.signal.aborted || /\\b(cancelled|canceled)\\b/i.test(message);
+      tileStatus(cancelled ? 'cancelled' : 'error', message);
+      if (!cancelled) {
         window.dispatchEvent(new CustomEvent('lumascope-mapsforge-tile-error', { detail: { message, zoom, column, row } }));
       }
       throw error;
     }
-    if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
+    if (abortController.signal.aborted) {
+      tileStatus('cancelled');
+      throw new Error('Mapsforge tile request was cancelled.');
+    }
     if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
       throw new Error('Mapsforge renderer returned an invalid PNG tile.');
     }
@@ -544,6 +555,7 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
       bitmap.close();
       throw new Error('Mapsforge tile request was cancelled.');
     }
+    tileStatus('loaded');
     return { data: bitmap };
   });
   mapsforgeProtocolRegistered = true;
