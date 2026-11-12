@@ -1,0 +1,230 @@
+{
+  "defaultConfigVersion": 1,
+  "mapWindow": {
+    "timeSliderSymbolSettings": {
+      "firetruck": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "trolleybus": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "car": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "taxiFront": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "suv": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "racecar": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "ambulance": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "bus": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "truck": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "delivery": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "plane": {
+        "rotation": 319,
+        "flipHorizontal": false
+      },
+      "helicopter": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "bulletTrain": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "mountainRailway": {
+        "rotation": 180,
+        "flipHorizontal": false
+      },
+      "autoRickshaw": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "ferry": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "motorYacht": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "cruiseShip": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "canoe": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "locomotive": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "scooter": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "police": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "van": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "taxi": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "pickup": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "policeFront": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "busFront": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "train": {
+        "rotation": 180,
+        "flipHorizontal": false
+      },
+      "bicycle": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "motorcycle": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "tractor": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "boat": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "ship": {
+        "rotation": 270,
+        "flipHorizontal": true
+      },
+      "sailboat": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "cableCar": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "rocket": {
+        "rotation": 315,
+        "flipHorizontal": false
+      },
+      "smallPlane": {
+        "rotation": 314,
+        "flipHorizontal": false
+      },
+      "flyingSaucer": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "railCar": {
+        "rotation": 180,
+        "flipHorizontal": false
+      },
+      "tram": {
+        "rotation": 180,
+        "flipHorizontal": false
+      },
+      "monorail": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "highSpeedTrain": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "lightRail": {
+        "rotation": 180,
+        "flipHorizontal": true
+      },
+      "metro": {
+        "rotation": 180,
+        "flipHorizontal": false
+      },
+      "carFront": {
+        "rotation": 270,
+        "flipHorizontal": false
+      },
+      "walker": {
+        "rotation": 271,
+        "flipHorizontal": false
+      }
+    }
+  },
+  "offlineMaps": {
+    "updateSources": [
+      {
+        "url": "https://download.geofabrik.de/europe/austria.html",
+        "fileType": "mbtiles",
+        "useForUpdates": false
+      },
+      {
+        "url": "https://www.limaps.org/tileserver.html",
+        "fileType": "mbtiles",
+        "useForUpdates": true
+      },
+      {
+        "url": "https://shortbread-tiles.org/download/",
+        "fileType": "mbtiles",
+        "useForUpdates": false
+      },
+      {
+        "url": "https://download.osmand.net/list.php",
+        "fileType": "obf",
+        "useForUpdates": true
+      },
+      {
+        "url": "https://github.com/osmandapp/OsmAnd-resources",
+        "fileType": "obf",
+        "useForUpdates": false
+      },
+      {
+        "url": "https://download.osmand.net/latest-night-build/",
+        "fileType": "android",
+        "useForUpdates": false
+      },
+      {
+        "url": "https://download.mapsforge.org/maps/",
+        "fileType": "mapsforge",
+        "useForUpdates": false
+      }
+    ]
+  }
+}
