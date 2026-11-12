@@ -230,57 +230,68 @@
       "austria": {
         "name": "Austria",
         "OsmAndRegex": "austria|österreich|osterreich",
-        "mapsForgeRegex": "^austria\\.map$"
+        "mapsForgeRegex": "^austria\\.map$",
+        "HillshadeRegex": "^Hillshade\\s+Austria(?:\\s|\\.|$)"
       },
       "austria-plus": {
         "name": "Austria+",
         "OsmAndRegex": "austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein",
-        "mapsForgeRegex": "^(?:austria|germany|czech-republic|slovakia|hungary|slovenia|italy|switzerland|liechtenstein)\\.map$"
+        "mapsForgeRegex": "^(?:austria|germany|czech-republic|slovakia|hungary|slovenia|italy|switzerland|liechtenstein)\\.map$",
+        "HillshadeRegex": "^Hillshade\\s+(?:Austria|Germany|Deutschland|Czechia|Czech-republic|Slovakia|Hungary|Slovenia|Italy|Switzerland|Liechtenstein)(?:\\s|\\.|$)"
       },
       "dach": {
         "name": "DACH",
         "OsmAndRegex": "germany|deutschland|austria|österreich|osterreich|switzerland|schweiz|suisse|svizzera",
-        "mapsForgeRegex": "^(?:germany|austria|switzerland)\\.map$"
+        "mapsForgeRegex": "^(?:germany|austria|switzerland)\\.map$",
+        "HillshadeRegex": "^Hillshade\\s+(?:Germany|Deutschland|Austria|Switzerland)(?:\\s|\\.|$)"
       },
       "us": {
         "name": "US",
         "OsmAndRegex": "^us[_-]",
-        "mapsForgeRegex": "^(?:us-(?:midwest|northeast|south|west)|alabama|alaska-[12]|arizona|arkansas|california|colorado|connecticut|delaware|district-of-columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new-hampshire|new-jersey|new-mexico|new-york|north-carolina|north-dakota|ohio|oklahoma|oregon|pennsylvania|puerto-rico|rhode-island|south-carolina|south-dakota|tennessee|texas|us-virgin-islands|utah|vermont|virginia|washington|west-virginia|wisconsin|wyoming)\\.map$"
+        "mapsForgeRegex": "^(?:us-(?:midwest|northeast|south|west)|alabama|alaska-[12]|arizona|arkansas|california|colorado|connecticut|delaware|district-of-columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new-hampshire|new-jersey|new-mexico|new-york|north-carolina|north-dakota|ohio|oklahoma|oregon|pennsylvania|puerto-rico|rhode-island|south-carolina|south-dakota|tennessee|texas|us-virgin-islands|utah|vermont|virginia|washington|west-virginia|wisconsin|wyoming)\\.map$",
+        "HillshadeRegex": "^Hillshade\\s+(?:US|United-states)(?:\\s|\\.|$)"
       },
       "europe": {
         "name": "Europe",
         "mapsForgeRegex": "^(?:albania|andorra|austria|azores|belarus|belgium|bosnia-herzegovina|bulgaria|croatia|cyprus|czech-republic|denmark|estonia|faroe-islands|finland|france|georgia|germany|great-britain|greece|guernsey-jersey|hungary|iceland|ireland-and-northern-ireland|isle-of-man|italy|kosovo|latvia|liechtenstein|lithuania|luxembourg|macedonia|malta|moldova|monaco|montenegro|netherlands|norway|poland|portugal|romania|serbia|slovakia|slovenia|spain|sweden|switzerland|turkey|ukraine)\\.map$",
-        "OsmAndRegex": "(?:^|[_. -])europe(?:[_. -]|$)"
+        "OsmAndRegex": "(?:^|[_. -])europe(?:[_. -]|$)",
+        "HillshadeRegex": "(?:^|\\s)europe\\.sqlitedb$"
       },
       "asia": {
         "name": "Asia",
         "OsmAndRegex": "(?:^|[_-])asia\\.obf$",
-        "mapsForgeRegex": "^(?:afghanistan|armenia|azerbaijan|bangladesh|bhutan|cambodia|east-timor|gcc-states|india|indonesia|iran|iraq|israel-and-palestine|japan|jordan|kazakhstan|kyrgyzstan|laos|lebanon|malaysia-singapore-brunei|maldives|mongolia|myanmar|nepal|north-korea|pakistan|philippines|south-korea|sri-lanka|syria|taiwan|tajikistan|thailand|turkmenistan|uzbekistan|vietnam|yemen)\\.map$"
+        "mapsForgeRegex": "^(?:afghanistan|armenia|azerbaijan|bangladesh|bhutan|cambodia|east-timor|gcc-states|india|indonesia|iran|iraq|israel-and-palestine|japan|jordan|kazakhstan|kyrgyzstan|laos|lebanon|malaysia-singapore-brunei|maldives|mongolia|myanmar|nepal|north-korea|pakistan|philippines|south-korea|sri-lanka|syria|taiwan|tajikistan|thailand|turkmenistan|uzbekistan|vietnam|yemen)\\.map$",
+        "HillshadeRegex": "(?:^|\\s)asia\\.sqlitedb$"
       },
       "africa": {
         "name": "Africa",
         "mapsForgeRegex": "^(?:algeria|angola|benin|botswana|burkina-faso|burundi|cameroon|canary-islands|cape-verde|central-african-republic|chad|comores|congo-brazzaville|congo-democratic-republic|djibouti|egypt|equatorial-guinea|eritrea|ethiopia|gabon|ghana|guinea-bissau|guinea|ivory-coast|kenya|lesotho|liberia|libya|madagascar|malawi|mali|mauritania|mauritius|morocco|mozambique|namibia|niger|nigeria|rwanda|saint-helena-ascension-and-tristan-da-cunha|sao-tome-and-principe|senegal-and-gambia|seychelles|sierra-leone|somalia|south-africa-and-lesotho|south-sudan|sudan|swaziland|tanzania|togo|tunisia|uganda|zambia|zimbabwe)\\.map$",
-        "OsmAndRegex": "(?:^|[_-])africa\\.obf$"
+        "OsmAndRegex": "(?:^|[_-])africa\\.obf$",
+        "HillshadeRegex": "(?:^|\\s)africa\\.sqlitedb$"
       },
       "northamerica": {
         "name": "Northamerica",
         "mapsForgeRegex": "^(?:greenland|mexico|us-midwest|us-northeast|us-south|us-west|alberta|british-columbia|manitoba|new-brunswick|newfoundland-and-labrador|northwest-territories|nova-scotia|nunavut|ontario|prince-edward-island|quebec|saskatchewan|yukon|alabama|alaska-1|alaska-2|arizona|arkansas|california|colorado|connecticut|delaware|district-of-columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new-hampshire|new-jersey|new-mexico|new-york|north-carolina|north-dakota|ohio|oklahoma|oregon|pennsylvania|puerto-rico|rhode-island|south-carolina|south-dakota|tennessee|texas|us-virgin-islands|utah|vermont|virginia|washington|west-virginia|wisconsin|wyoming)\\.map$",
-        "OsmAndRegex": "(?:^|[_-])northamerica\\.obf$"
+        "OsmAndRegex": "(?:^|[_-])northamerica\\.obf$",
+        "HillshadeRegex": "(?:^|\\s)northamerica\\.sqlitedb$"
       },
       "centralamerica": {
         "name": "Centralamerica",
         "OsmAndRegex": "(?:^|[_-])centralamerica\\.obf$",
-        "mapsForgeRegex": "^(?:bahamas|belize|costa-rica|cuba|el-salvador|guatemala|haiti-and-domrep|honduras|jamaica|nicaragua|panama)\\.map$"
+        "mapsForgeRegex": "^(?:bahamas|belize|costa-rica|cuba|el-salvador|guatemala|haiti-and-domrep|honduras|jamaica|nicaragua|panama)\\.map$",
+        "HillshadeRegex": "(?:^|\\s)centralamerica\\.sqlitedb$"
       },
       "southamerica": {
         "name": "Southamerica",
         "mapsForgeRegex": "^(?:argentina|bolivia|brazil|centro-oeste|nordeste|norte|sudeste|sul|chile|colombia|ecuador|guyana|paraguay|peru|suriname|uruguay|venezuela)\\.map$",
-        "OsmAndRegex": "(?:^|[_-])southamerica\\.obf$"
+        "OsmAndRegex": "(?:^|[_-])southamerica\\.obf$",
+        "HillshadeRegex": "(?:^|\\s)southamerica\\.sqlitedb$"
       },
       "australia-oceania": {
         "name": "Australia-oceania",
         "mapsForgeRegex": "^(?:american-oceania-1|american-oceania-2|american-oceania-3|australia|cook-islands|fiji-1|fiji-2|ile-de-clipperton|kiribati-1|kiribati-2|kiribati-3|marshall-islands|micronesia|nauru|new-caledonia|new-zealand-1|new-zealand-2|niue|palau|papua-new-guinea|pitcairn-islands|polynesie-francaise|samoa|solomon-islands|tokelau|tonga|tuvalu-1|tuvalu-2|vanuatu|wallis-et-futuna)\\.map$",
-        "OsmAndRegex": "(?:^|[_-])australia[-_]oceania\\.obf$"
+        "OsmAndRegex": "(?:^|[_-])australia[-_]oceania\\.obf$",
+        "HillshadeRegex": "(?:^|\\s)(?:australia|oceania|australia-oceania)\\.sqlitedb$"
       },
       "all": {
         "name": "All",
