@@ -644,54 +644,24 @@ export class CacheManager {
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
     const db = this.databaseForPath(sourceName);
-    const row = db.prepare(`SELECT
-        photos.id,
-        photos.path_id,
-        paths.folder_path AS folder_path,
-        photos.file_name,
-        photos.file_size,
-        photos.modified_at,
-        photos.is_hdr,
-        photos.thumbnail_cache_id,
-        cache_thumb.name AS thumbnail_cache_id_expanded,
-        photos.thumbnail_cache_version,
-        photos.fullsize_cache_id,
-        cache_full.name AS fullsize_cache_id_expanded,
-        photos.fullsize_cache_version,
-        photos.latitude,
-        photos.longitude,
-        photos.altitude_m,
-        photos.gps_timestamp,
-        photos.direction_deg,
-        photos.coordinate_source_id,
-        coordinate_sources.name AS coordinate_source_id_expanded,
-        CASE WHEN photos.location_name_id = 0 THEN NULL ELSE photos.location_name_id END AS location_name_id,
-        CASE WHEN photos.location_name_id = 0 OR location_names.id IS NULL THEN NULL ELSE
-          COALESCE(location_names.display_name,
-            location_names.place_name || COALESCE(', ' || location_names.locality, '') ||
-            COALESCE(', ' || location_names.region, '') ||
-            COALESCE(', ' || location_names.country_code, '')) END AS location_name_id_expanded,
-        location_names.display_name AS location_display_name_expanded,
-        location_names.street AS location_street_expanded
+    const row = db.prepare(`SELECT photos.*, paths.folder_path
       FROM photos
       JOIN paths ON paths.id = photos.path_id
-      LEFT JOIN cache_storage_types AS cache_thumb ON cache_thumb.id = photos.thumbnail_cache_id
-      LEFT JOIN cache_storage_types AS cache_full ON cache_full.id = photos.fullsize_cache_id
-      LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
-      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE paths.folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
-    const columnTypes = new Map(
-      (db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
-        .map(column => [column.name, column.type.toUpperCase()])
-    );
+    const columnTypes = new Map<string, string>();
+    for (const table of ['photos', 'paths']) {
+      const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string; type: string }>;
+      for (const column of columns) columnTypes.set(column.name, column.type.toUpperCase());
+    }
     const databaseKey = this.databaseKeyForPath(sourceName);
     const typedRecord: Record<string, string | number | null> = { ...row };
-    if (typeof typedRecord.folder_path === 'string') typedRecord.folder_path = this.resolveStoredFolderPath(typedRecord.folder_path, databaseKey);
+    if (typeof row.folder_path === 'string') {
+      typedRecord.folder_path_expanded = this.resolveStoredFolderPath(row.folder_path, databaseKey);
+    }
     typedRecord.database_path = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     for (const key of Object.keys(row)) {
-      if (key.endsWith('_expanded')) continue;
       typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
     }
     return typedRecord;
