@@ -658,6 +658,25 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content">
+    <details class="map-cache-section download-section">
+      <summary class="map-cache-heading">Local sources</summary>
+      <div class="osmand-resources-picker">
+        <strong>OsmAnd resources folder</strong>
+        <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
+        <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+        @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
+        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
+      </div>
+      <div class="osmand-resources-picker">
+        <strong>Mapsforge XML theme folder</strong>
+        <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
+        <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
+        <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
+        <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
+        @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
+        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
+      </div>
+    </details>
   <details class="map-cache-section offline-map-updates-section">
     <summary class="map-cache-heading">Updates</summary>
     <div class="map-cache-actions offline-map-update-actions">
@@ -807,25 +826,7 @@ interface MapErrorEntry {
       }
     </details>
 
-    <details class="map-cache-section download-section">
-      <summary class="map-cache-heading">Local sources</summary>
-      <div class="osmand-resources-picker">
-        <strong>OsmAnd resources folder</strong>
-        <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
-        <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
-        @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
-        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
-      </div>
-      <div class="osmand-resources-picker">
-        <strong>Mapsforge XML theme folder</strong>
-        <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
-        <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
-        <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
-        <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
-        @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
-        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
-      </div>
-    </details>
+
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
