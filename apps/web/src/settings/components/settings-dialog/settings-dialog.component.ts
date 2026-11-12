@@ -347,10 +347,11 @@ export class SettingsPanelComponent {
 
   protected readonly supportedFormats = supportedFileFormats;
   protected readonly supportedMapFormats = [
-    { name: 'MBTiles', extensions: '.mbtiles', renderer: 'LumaScope / MapLibre', details: 'Offline raster or vector tile database.' },
-    { name: 'OsmAnd', extensions: '.obf', renderer: 'OsmAnd native renderer', details: 'Offline vector map data; labels depend on the selected OsmAnd renderer.' },
-    { name: 'MapsForge', extensions: '.map', renderer: 'Mapsforge 0.25.0', details: 'Offline vector map data; visible detail depends on the selected XML render theme.' },
-    { name: 'Hillshade database', extensions: '.sqlite', renderer: 'Hillshade', details: 'SQLite elevation database used to generate shaded-relief overlays; not a standalone base map.' }
+    { name: 'Online map (XYZ tiles)', extensions: 'URL / XYZ tile endpoint', online: true, renderer: 'MapLibre', details: 'Online raster or vector tiles loaded from a tile-server URL; requires an internet connection.' },
+    { name: 'MBTiles', extensions: '.mbtiles', online: false, renderer: 'LumaScope / MapLibre', details: 'Offline raster or vector tile database.' },
+    { name: 'OsmAnd', extensions: '.obf', online: false, renderer: 'OsmAnd native renderer', details: 'Offline vector map data; labels depend on the selected OsmAnd renderer.' },
+    { name: 'MapsForge', extensions: '.map', online: false, renderer: 'Mapsforge 0.25.0', details: 'Offline vector map data; visible detail depends on the selected XML render theme.' },
+    { name: 'Hillshade database', extensions: '.sqlite', online: false, renderer: 'Hillshade', details: 'SQLite elevation database used to generate shaded-relief overlays; not a standalone base map.' }
   ] as const;
 
   protected readonly keyShortcuts = [
