@@ -2054,7 +2054,16 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     // Native OsmAnd render helpers are persistent main-process workers. Stop them
     // when their map window goes away so they cannot keep GPU contexts alive.
-    if (this.mapSource() === 'osmand-atlas') void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
+    if (this.mapSource() === 'osmand-atlas') {
+      void (async () => {
+        try {
+          await this.desktop?.OsmAndAtlas.cancelRendering();
+          await this.desktop?.OsmAndAtlas.shutdown();
+        } catch (error) {
+          console.warn('Could not stop OsmAnd Atlas helpers:', error);
+        }
+      })();
+    }
     if (this.mapSource() === 'osmand') void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
   }
 
@@ -2781,7 +2790,9 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       await this.desktop.Mapsforge.open(maps.map(map => map.filePath));
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
-        await this.desktop.Mapsforge.close();
+        // changeMapSource() already queued close() after this open request.
+        // Closing again here is unsafe: a rapid switch back to Mapsforge may
+        // have queued a newer open(), which this stale continuation would close.
         return;
       }
       registerMapsforgeTileProtocol(this.desktop);
@@ -3002,7 +3013,16 @@ export class MapWindow implements OnInit, OnDestroy {
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
     if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
-      void this.desktop?.OsmAndAtlas.shutdown().catch(error => console.warn('Could not stop OsmAnd Atlas helpers:', error));
+      // Cancel queued/in-flight Atlas tiles before stopping its workers. Otherwise
+      // old Atlas requests can continue logging after another renderer is active.
+      void (async () => {
+        try {
+          await this.desktop?.OsmAndAtlas.cancelRendering();
+          await this.desktop?.OsmAndAtlas.shutdown();
+        } catch (error) {
+          console.warn('Could not stop OsmAnd Atlas helpers:', error);
+        }
+      })();
     }
     if (previousSource === 'osmand' && nextSource !== 'osmand') {
       void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
