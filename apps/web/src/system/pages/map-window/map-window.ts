@@ -4960,7 +4960,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
-    if (!this.routePointPicking() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
     const waypoint: RouteWaypoint = { latitude, longitude, active: true };
     this.routeWaypoints.update(points => [...points, waypoint]);
