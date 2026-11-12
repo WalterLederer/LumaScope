@@ -701,17 +701,11 @@ interface MapErrorEntry {
         <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
       </div>
       <div class="map-cache-actions">
-        <button type="button" (click)="rerenderVisibleTiles()" [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
-          {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender visible tiles' }}
+        <span class="offline-map-status">{{ osmAndTileCacheStatus() || 'Stores cached PNG tiles for OsmAnd and OsmAnd Atlas.' }}</span>
+        <button type="button" class="danger" (click)="clearOsmAndTileCache()" [disabled]="osmAndTileCacheBusy()">
+          {{ osmAndTileCacheBusy() ? 'Clearing…' : 'Clear cache' }}
         </button>
-        <span class="offline-map-status">{{ rerenderVisibleTilesStatus() || (mapSource() === 'osmand-atlas' ? 'Rerenders visible OsmAnd tiles without reading cached PNGs.' : mapSource() === 'osmand' ? 'Rerenders visible no-label tiles without reading cached PNGs.' : 'Select an OsmAnd renderer to rerender visible tiles.') }}</span>
       </div>
-      @if (rerenderVisibleTilesBusy()) {
-        <div class="map-cache-progress">
-          <progress [value]="rerenderVisibleTilesProgress().completed" [max]="rerenderVisibleTilesProgress().total"></progress>
-          <span>{{ rerenderVisibleTilesProgress().total - rerenderVisibleTilesProgress().completed }} / {{ rerenderVisibleTilesProgress().total }} visible tiles remaining</span>
-        </div>
-      }
     </div>
   </div>
 </div>
@@ -1601,6 +1595,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapPreset = signal<string>(this.readSetting('offlineMapPreset', 'austria'));
   protected readonly hillshadePreset = signal<string>(this.readSetting('hillshadePreset', 'austria'));
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
+  protected readonly osmAndTileCacheBusy = signal(false);
+  protected readonly osmAndTileCacheStatus = signal('');
   protected readonly rerenderVisibleTilesBusy = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
@@ -3167,6 +3163,28 @@ export class MapWindow implements OnInit, OnDestroy {
       this.osmAndTileCache.set(await this.desktop.CacheManager.getOsmAndTileCacheSummary());
     } catch (error) {
       console.error('Could not read OsmAnd tile cache summary:', error);
+    }
+  };
+  protected readonly clearOsmAndTileCache = async (): Promise<void> => {
+    if (!this.desktop || this.osmAndTileCacheBusy()) return;
+    const current = this.osmAndTileCache();
+    const confirmed = window.confirm(
+      `Clear the OsmAnd tile cache?\n\n${current.entries.toLocaleString(this.locale)} PNG tiles (about ${this.formatOfflineMapSize(current.bytes)}) will be deleted from:\n${current.path}\n\nThe tiles will be rendered again when needed.`
+    );
+    if (!confirmed) return;
+
+    this.osmAndTileCacheBusy.set(true);
+    this.osmAndTileCacheStatus.set('');
+    try {
+      const result = await this.desktop.CacheManager.clearOsmAndTileCache();
+      await this.refreshOsmAndTileCache();
+      this.osmAndTileCacheStatus.set(`Cleared ${result.entries.toLocaleString(this.locale)} tile(s) · ${this.formatOfflineMapSize(result.bytes)} freed.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.osmAndTileCacheStatus.set('Clear cache failed: ' + message);
+      this.recordMapError('Clear OsmAnd tile cache', message);
+    } finally {
+      this.osmAndTileCacheBusy.set(false);
     }
   };
   protected readonly refreshVisibleTiles = (): void => {
