@@ -45,6 +45,17 @@
           @if (cacheSummaryError()) {
             <p class="cache-status error" role="alert">Could not load cache summary: {{ cacheSummaryError() }}</p>
           }
+          <label class="cache-summary-database-select">
+            <span>Cache database</span>
+            <select [value]="selectedCacheDatabaseKey() ?? ''" (change)="selectCacheDatabase($any($event.target).value)"
+                    [disabled]="cacheSummaryLoading() || cacheSummary().databases.length === 0">
+              @for (database of cacheSummary().databases; track database.key) {
+                <option [value]="database.key">{{ database.key }} · {{ database.path }}</option>
+              } @empty {
+                <option value="">No active cache database</option>
+              }
+            </select>
+          </label>
           <div class="cache-summary-category">
             <span>Total cache entries</span>
             <strong>{{ cacheSummary().total.entries }} files · {{ cacheSummary().total.bytes | byteSize }}</strong>
