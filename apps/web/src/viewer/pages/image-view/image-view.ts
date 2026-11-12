@@ -575,8 +575,8 @@ export class ImageView {
         key,
         type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
         value: JSON.stringify(value) ?? 'null',
-        expanded: key === 'folder_path' && record.folder_path_expanded != null
-          ? JSON.stringify(record.folder_path_expanded)
+        expanded: key === 'relative_folder_path' && record.relative_folder_path_expanded != null
+          ? JSON.stringify(record.relative_folder_path_expanded)
           : null,
         isExpandedId: false,
         isTimestamp: false,
