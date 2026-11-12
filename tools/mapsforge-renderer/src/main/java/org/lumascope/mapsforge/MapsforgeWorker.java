@@ -194,15 +194,10 @@ public final class MapsforgeWorker {
             }
             newTileCache = new InMemoryTileCache(TILE_CACHE_CAPACITY);
 
-            // DisplayModel reads the static device scale when it is created.
-            // Keep the XYZ output tile at 256 px while scaling labels and symbols
-            // to the Windows display DPI reported by Electron.
+            // Keep XYZ tile geometry and non-text styling at native scale.
+            // RendererJob.textScale is the dedicated label/font scale.
             float effectiveScale = Math.max(1f, Math.min(4f, deviceScaleFactor));
-            DisplayModel.setDeviceScaleFactor(effectiveScale);
-            // Mapsforge keeps the render-theme text scale as a separate static
-            // setting; device density alone is neutralized by fixed XYZ tiles.
-            // Keep the static theme scale neutral; apply the user factor to each
-            // RendererJob so the fixed 256 px XYZ tile size is preserved.
+            DisplayModel.setDeviceScaleFactor(1f);
             DisplayModel.textScale = 1f;
             this.renderTextScale = effectiveScale;
             DisplayModel newDisplayModel = new DisplayModel();
@@ -303,6 +298,7 @@ public final class MapsforgeWorker {
         renderThemeFuture = null;
         displayModel = null;
         DisplayModel.textScale = 1f;
+        DisplayModel.setDeviceScaleFactor(1f);
         renderTextScale = 1f;
         if (tileCache != null) {
             tileCache.destroy();
