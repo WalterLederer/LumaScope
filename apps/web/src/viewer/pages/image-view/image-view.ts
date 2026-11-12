@@ -570,14 +570,15 @@ export class ImageView {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
     return Object.entries(record)
-      .filter(([key]) => key !== 'database_path' && !key.endsWith('_expanded') && !key.endsWith('_type'))
+      .filter(([key]) => key !== 'database_path' && key !== 'relative_folder_path' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
       .map(([key, value]) => ({
         key,
         type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
         // Display SQLite TEXT values verbatim; JSON.stringify would escape backslashes.
         value: typeof value === 'string' ? value : JSON.stringify(value) ?? 'null',
-        expanded: key === 'relative_folder_path' && record['relative_folder_path_expanded'] != null
-          ? String(record['relative_folder_path_expanded'])
+        expanded: ['path_id', 'coordinate_source_id', 'location_name_id'].includes(key)
+          && record[`${key}_expanded`] != null
+          ? String(record[`${key}_expanded`])
           : null,
         isExpandedId: false,
         isTimestamp: false,
