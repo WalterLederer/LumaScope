@@ -578,7 +578,7 @@ export class ImageView {
     ]);
     const timestampFields = new Set(['modified_at']);
     return Object.entries(record)
-      .filter(([key]) => !key.endsWith('_expanded') && !key.endsWith('_type'))
+      .filter(([key]) => key !== 'database_path' && !key.endsWith('_expanded') && !key.endsWith('_type'))
       .map(([key, value]) => {
         const isTimestamp = timestampFields.has(key) && typeof value === 'number' && Number.isFinite(value);
         const isFileSize = key === 'file_size' && typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -683,8 +683,10 @@ export class ImageView {
   protected readonly setActiveImageSidebarTab = (tab: string): void => {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     this.activeImageSidebarTab.set(tab);
-    if (tab === 'cache') this.refreshCurrentImageCache();
-    if (tab === 'image' && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
+    if (tab === 'cache') {
+      this.refreshCurrentImageCache();
+      void this.loadPhotoDatabaseRecord();
+    }
     if (tab === 'image') {
       // The EXIF stream may have completed while the Image tab was inactive.
       // Expose its latest result immediately; the active request updates it
@@ -1813,7 +1815,7 @@ export class ImageView {
       .pipe(takeUntilDestroyed())
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
-        if (image && this.activeImageSidebarTab() === 'image' && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
+        if (image && this.activeImageSidebarTab() === 'cache') void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
         this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
