@@ -2644,8 +2644,8 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
-    const syncOfflineZoom
-    renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport()); = (): void => this.persistZoom(renderer.map.getZoom());
+    const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
+    renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('zoomend', syncOfflineZoom);
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
