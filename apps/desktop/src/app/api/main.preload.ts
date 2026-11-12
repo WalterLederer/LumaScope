@@ -64,7 +64,7 @@ const api: Desktop = {
     cancelClear: (operationId: string) => ipcRenderer.invoke('CacheManager.cancelClear', operationId),
     deleteImage: (sourceName: string) => ipcRenderer.invoke('CacheManager.deleteImage', sourceName),
     cacheSize: () => ipcRenderer.invoke('CacheManager.cacheSize'),
-    getCacheSummary: () => ipcRenderer.invoke('CacheManager.getCacheSummary'),
+    getCacheSummary: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getCacheSummary', databaseKey),
     resolveMissingLocationNames: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.resolveMissingLocationNames', directory, recursive),
     cancelResolveMissingLocationNames: () => ipcRenderer.invoke('CacheManager.cancelResolveMissingLocationNames'),
     getBackgroundReverseGeocodingStatus: () => ipcRenderer.invoke('CacheManager.getBackgroundReverseGeocodingStatus'),
