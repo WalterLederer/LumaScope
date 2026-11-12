@@ -245,7 +245,8 @@
       },
       "europe": {
         "name": "Europe",
-        "regex": "(?:^|[_. -])europe(?:[_. -]|$)"
+        "regex": "(?:^|[_. -])europe(?:[_. -]|$)",
+        "mapsForgeRegex": "^(?:albania|andorra|austria|azores|belarus|belgium|bosnia-herzegovina|bulgaria|croatia|cyprus|czech-republic|denmark|estonia|faroe-islands|finland|france|georgia|germany|great-britain|greece|guernsey-jersey|hungary|iceland|ireland-and-northern-ireland|isle-of-man|italy|kosovo|latvia|liechtenstein|lithuania|luxembourg|macedonia|malta|moldova|monaco|montenegro|netherlands|norway|poland|portugal|romania|serbia|slovakia|slovenia|spain|sweden|switzerland|turkey|ukraine)\\.map$"
       },
       "asia": {
         "name": "Asia",
@@ -253,11 +254,13 @@
       },
       "africa": {
         "name": "Africa",
-        "regex": "(?:^|[_-])africa\\.obf$"
+        "regex": "(?:^|[_-])africa\\.obf$",
+        "mapsForgeRegex": "^(?:algeria|angola|benin|botswana|burkina-faso|burundi|cameroon|canary-islands|cape-verde|central-african-republic|chad|comores|congo-brazzaville|congo-democratic-republic|djibouti|egypt|equatorial-guinea|eritrea|ethiopia|gabon|ghana|guinea-bissau|guinea|ivory-coast|kenya|lesotho|liberia|libya|madagascar|malawi|mali|mauritania|mauritius|morocco|mozambique|namibia|niger|nigeria|rwanda|saint-helena-ascension-and-tristan-da-cunha|sao-tome-and-principe|senegal-and-gambia|seychelles|sierra-leone|somalia|south-africa-and-lesotho|south-sudan|sudan|swaziland|tanzania|togo|tunisia|uganda|zambia|zimbabwe)\\.map$"
       },
       "northamerica": {
         "name": "Northamerica",
-        "regex": "(?:^|[_-])northamerica\\.obf$"
+        "regex": "(?:^|[_-])northamerica\\.obf$",
+        "mapsForgeRegex": "^(?:greenland|mexico|us-midwest|us-northeast|us-south|us-west|alberta|british-columbia|manitoba|new-brunswick|newfoundland-and-labrador|northwest-territories|nova-scotia|nunavut|ontario|prince-edward-island|quebec|saskatchewan|yukon|alabama|alaska-1|alaska-2|arizona|arkansas|california|colorado|connecticut|delaware|district-of-columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new-hampshire|new-jersey|new-mexico|new-york|north-carolina|north-dakota|ohio|oklahoma|oregon|pennsylvania|puerto-rico|rhode-island|south-carolina|south-dakota|tennessee|texas|us-virgin-islands|utah|vermont|virginia|washington|west-virginia|wisconsin|wyoming)\\.map$"
       },
       "centralamerica": {
         "name": "Centralamerica",
@@ -265,11 +268,13 @@
       },
       "southamerica": {
         "name": "Southamerica",
-        "regex": "(?:^|[_-])southamerica\\.obf$"
+        "regex": "(?:^|[_-])southamerica\\.obf$",
+        "mapsForgeRegex": "^(?:argentina|bolivia|brazil|centro-oeste|nordeste|norte|sudeste|sul|chile|colombia|ecuador|guyana|paraguay|peru|suriname|uruguay|venezuela)\\.map$"
       },
       "australia-oceania": {
         "name": "Australia-oceania",
-        "regex": "(?:^|[_-])australia[-_]oceania\\.obf$"
+        "regex": "(?:^|[_-])australia[-_]oceania\\.obf$",
+        "mapsForgeRegex": "^(?:american-oceania-1|american-oceania-2|american-oceania-3|australia|cook-islands|fiji-1|fiji-2|ile-de-clipperton|kiribati-1|kiribati-2|kiribati-3|marshall-islands|micronesia|nauru|new-caledonia|new-zealand-1|new-zealand-2|niue|palau|papua-new-guinea|pitcairn-islands|polynesie-francaise|samoa|solomon-islands|tokelau|tonga|tuvalu-1|tuvalu-2|vanuatu|wallis-et-futuna)\\.map$"
       },
       "all": {
         "name": "All",
@@ -283,12 +288,6 @@
         "name": "Custom",
         "regex": ".*"
       }
-    },
-    "OsmAndToMapsForge": [
-      {
-        "OsmAnd": "^GB_",
-        "MapsForge": "great-britain"
-      }
-    ]
+    }
   }
 }
