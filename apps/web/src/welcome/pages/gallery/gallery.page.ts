@@ -202,6 +202,8 @@ export class GalleryPage {
     // Keep the native window title in sync with the active gallery directory.
     this.selectedLocation$.subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
+      // Selecting a gallery folder also selects its drive-local cache database.
+      if (location) void this.desktopApi?.CacheManager.getDirectoryPhotoLocations(location).catch(() => undefined);
     });
 
     // Refresh cache details only when returning from the image viewer.
