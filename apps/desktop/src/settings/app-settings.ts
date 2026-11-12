@@ -12,20 +12,50 @@ let writeQueue: Promise<void> = Promise.resolve();
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
+const isLegacyDefaultUpdateSources = (value: unknown): boolean => {
+  const legacy = [
+    ['https://download.geofabrik.de/europe/austria.html', 'mbtiles', false],
+    ['https://www.limaps.org/tileserver.html', 'mbtiles', true],
+    ['https://shortbread-tiles.org/download/', 'mbtiles', false],
+    ['https://download.osmand.net/list.php', 'obf', true],
+    ['https://github.com/osmandapp/OsmAnd-resources', 'obf', false],
+    ['https://fides.fe.uni-lj.si/~arpadb/osmand/', 'obf', true],
+    ['https://download.osmand.net/latest-night-build/', 'android', false],
+    ['https://download.mapsforge.org/maps/', 'mapsforge', false]
+  ] as const;
+  return Array.isArray(value) && value.length === legacy.length
+    && value.every((entry, index) => {
+      if (!isPlainObject(entry)) return false;
+      const expected = legacy[index];
+      return entry['url'] === expected[0]
+        && entry['fileType'] === expected[1]
+        && entry['useForUpdates'] === expected[2];
+    });
+};
+
 const mergeSettings = (defaults: Record<string, unknown>, user: Record<string, unknown>): AppSettings => {
   const merged: Record<string, unknown> = { ...defaults };
   for (const [key, value] of Object.entries(user)) {
-    merged[key] = isPlainObject(value) && isPlainObject(defaults[key])
-      ? mergeSettings(defaults[key] as Record<string, unknown>, value)
-      : value;
+    // Older releases wrote their built-in download-source list into the user
+    // config. Replace only that exact untouched legacy list with current defaults.
+    if (key === 'updateSources' && isLegacyDefaultUpdateSources(value) && Array.isArray(defaults[key])) {
+      merged[key] = defaults[key];
+    } else {
+      merged[key] = isPlainObject(value) && isPlainObject(defaults[key])
+        ? mergeSettings(defaults[key] as Record<string, unknown>, value)
+        : value;
+    }
   }
   return merged;
 };
 
-const defaultSettingsPath = (): string => join(
-  app.isPackaged ? dirname(process.execPath) : app.getAppPath(),
-  'LumaScope.default.config.json'
-);
+const defaultSettingsPath = (): string => {
+  const fileName = 'LumaScope.default.config.json';
+  const candidates = app.isPackaged
+    ? [join(dirname(process.execPath), fileName)]
+    : [join(process.cwd(), fileName), join(app.getAppPath(), fileName)];
+  return candidates.find(path => existsSync(path)) ?? candidates[0];
+};
 
 const readJsonObject = (path: string): AppSettings => {
   try {
