@@ -883,22 +883,24 @@ interface MapErrorEntry {
           <div class="offline-map-list-view">
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
-                <table class="mbtiles-map-table hillshade-map-table">
-                  <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade file</th><th>Last modified</th><th>File size</th><th>Status</th><th></th><th></th></tr></thead>
-                  <tbody>
-                    @for (database of filteredHillshadeDatabases(); track database.id) {
-                      <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
-                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
-                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
-                        <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
-                        <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+                @if (filteredHillshadeDatabases().length > 0) {
+                  <table class="mbtiles-map-table hillshade-map-table">
+                    <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade file</th><th>Last modified</th><th>File size</th><th>Status</th><th></th><th></th></tr></thead>
+                    <tbody>
+                      @for (database of filteredHillshadeDatabases(); track database.id) {
+                        <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
+                          <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                          <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
+                          <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
+                          <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
+                          <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
+                          <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                          <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else { <span class="offline-map-status">No Hillshade databases match this filter.</span> }
               } @else { <span class="offline-map-status">No Hillshade databases loaded. Use “Add Hillshade files...” above.</span> }
             </div>
           </div>
