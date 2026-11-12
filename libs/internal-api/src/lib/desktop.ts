@@ -419,9 +419,12 @@ export interface MapsforgeTileResult {
   [key: string]: unknown;
 }
 
+export interface MapsforgeTheme { path: string; fileName: string; relativePath: string; }
+
 export interface DesktopMapsforge {
   readonly getStatus: () => Promise<MapsforgeTileResult>;
   readonly scanCatalog: (rootPath: string) => Promise<MapsforgeTileResult>;
+  readonly scanThemes: (folderPath: string) => Promise<MapsforgeTheme[]>;
   readonly open: (mapPaths: string[], themePath?: string | null, deviceScaleFactor?: number) => Promise<MapsforgeTileResult>;
   readonly renderTile: (z: number, x: number, y: number) => Promise<MapsforgeTileResult>;
   readonly close: () => Promise<MapsforgeTileResult>;
