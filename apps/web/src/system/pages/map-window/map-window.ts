@@ -3154,13 +3154,36 @@ export class MapWindow implements OnInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
+    const mappings = this.readOsmAndToMapsForgeMappings();
     const regionMaps = new Set(allMaps
       .filter(candidate => candidate.type === 'obf')
       .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
       .filter(fileName => this.presetMatchesFileName(selectedPreset, fileName))
-      .map(fileName => fileName.replace(/\.obf$/i, '').replace(regionSuffix, ''))
-      .map(normalizeCountryName));
+      .flatMap(fileName => {
+        const mapping = mappings.find(item => {
+          try { return new RegExp(item.osmAnd, 'i').test(fileName); } catch { return false; }
+        });
+        const derivedName = mapping?.mapsForge
+          ?? fileName.replace(/\.obf$/i, '').replace(regionSuffix, '');
+        return [normalizeCountryName(derivedName)];
+      }));
     return regionMaps.has(normalizeCountryName(baseName));
+  }
+
+  private readOsmAndToMapsForgeMappings(): Array<{ osmAnd: string; mapsForge: string }> {
+    const settings = this.defaultConfig?.['offlineMaps'];
+    const configured = settings && typeof settings === 'object'
+      ? (settings as Record<string, unknown>)['OsmAndToMapsForge']
+      : null;
+    if (!Array.isArray(configured)) return [];
+    return configured.flatMap(entry => {
+      if (!entry || typeof entry !== 'object') return [];
+      const item = entry as Record<string, unknown>;
+      return typeof item['OsmAnd'] === 'string' && typeof item['MapsForge'] === 'string'
+        ? [{ osmAnd: item['OsmAnd'], mapsForge: item['MapsForge'] }]
+        : [];
+    });
+  }
   }
 
   private getOfflineMapPresetForMaps(
