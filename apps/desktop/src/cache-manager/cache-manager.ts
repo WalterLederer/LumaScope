@@ -375,8 +375,12 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
-  readonly getCacheSummary = async (): Promise<CacheSummary> => {
-    const db = this.activeDatabase();
+  readonly getCacheSummary = async (_event?: IpcMainInvokeEvent, requestedDatabaseKey?: string): Promise<CacheSummary> => {
+    const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
+    if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
+    const selectedDatabaseKey = databaseKey.toUpperCase();
+    const db = this.databases.get(selectedDatabaseKey);
+    if (!db) throw new Error(`Cache database is not active: ${databaseKey}`);
     const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
@@ -388,11 +392,12 @@ export class CacheManager {
       thumbnails: { entries: 0, bytes: 0 },
       sidecar: { entries: 0, bytes: 0 },
       gps: { entries: 0, bytes: 0 },
+      selectedDatabaseKey,
       databases: []
     };
 
     for (const row of rows) {
-      const source = join(this.resolveStoredFolderPath(row.folder_path, this.activeDatabaseKey!), row.file_name);
+      const source = join(this.resolveStoredFolderPath(row.folder_path, selectedDatabaseKey), row.file_name);
       if (row.latitude !== null && row.longitude !== null
         && Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
         && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
@@ -435,7 +440,7 @@ export class CacheManager {
 
     for (const key of this.databases.keys()) {
       const databasePath = join(key + '\\', '.cache', 'LumaScope.cache.sqlite');
-      try { const info = await stat(databasePath); summary.databases.push({ path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
+      try { const info = await stat(databasePath); summary.databases.push({ key, path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
     }
     summary.databases.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: 'base' }));
     return summary;
@@ -681,8 +686,10 @@ export class CacheManager {
       (db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
         .map(column => [column.name, column.type.toUpperCase()])
     );
+    const databaseKey = this.databaseKeyForPath(sourceName);
     const typedRecord: Record<string, string | number | null> = { ...row };
-    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.resolveStoredFolderPath(typedRecord.path_id_expanded, this.databaseKeyForPath(sourceName));
+    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.resolveStoredFolderPath(typedRecord.path_id_expanded, databaseKey);
+    typedRecord.database_path = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     for (const key of Object.keys(row)) {
       if (key.endsWith('_expanded')) continue;
       typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
