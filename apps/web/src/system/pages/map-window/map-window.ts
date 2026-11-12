@@ -1840,7 +1840,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // The stored preset describes the last applied preset, not necessarily the
       // current OBF selection. Manual changes from older versions are normalized
       // to Custom during startup so the selector never claims a false preset.
-      const matchingPreset = this.getObfPresetForMaps(maps);
+      const matchingPreset = this.getOfflineMapPresetForMaps(maps);
       if (matchingPreset && matchingPreset !== this.offlineMapPreset()) {
         this.offlineMapPreset.set(matchingPreset);
         this.saveSetting('offlineMapPreset', matchingPreset);
@@ -3121,15 +3121,29 @@ export class MapWindow implements OnInit, OnDestroy {
     return europeCountries.has(normalizeCountryName(baseName));
   }
 
-  private getObfPresetForMaps(
+  private getOfflineMapPresetForMaps(
     maps: import('internal-api').OfflineMapStatus[]
   ): 'austria' | 'austria-plus' | 'europe' | 'all' | 'none' | 'custom' | null {
-    const obfMaps = maps.filter(map => map.type === 'obf');
-    if (obfMaps.length === 0) return null;
-    const candidates: Array<'austria' | 'austria-plus' | 'europe' | 'all' | 'none'> =
+    // A preset describes the complete OBF + Mapsforge selection, not OBF alone.
+    // This prevents startup from showing Austria while unrelated .map files
+    // remain enabled from a previous or manually changed configuration.
+    const presetMaps = maps.filter(map => map.type === 'obf' || map.type === 'mapsforge');
+    if (presetMaps.length === 0) return null;
+    const candidates: Array<'none' | 'austria' | 'austria-plus' | 'europe' | 'all'> =
       ['none', 'austria', 'austria-plus', 'europe', 'all'];
+    const matches = (map: import('internal-api').OfflineMapStatus, preset: typeof candidates[number]): boolean => {
+      if (map.type === 'obf') return this.obfMapMatchesPreset(map, preset);
+      if (map.type === 'mapsforge') {
+        const baseName = (map.fileName || map.name).split(/[\\\\/]/).pop()?.toLowerCase() ?? '';
+        if (baseName === 'world.map') return preset !== 'none';
+        if (preset === 'none') return false;
+        if (preset === 'all') return true;
+        return this.mapsforgeMapMatchesPreset(map, preset, maps);
+      }
+      return map.enabled;
+    };
     return candidates.find(preset =>
-      obfMaps.every(map => map.enabled === this.obfMapMatchesPreset(map, preset))
+      presetMaps.every(map => map.enabled === matches(map, preset))
     ) ?? 'custom';
   }
 
@@ -3159,7 +3173,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const map = currentMaps.find(item => item.id === id);
     const obfSelectionChanged = map?.type === 'obf' && map.enabled !== enabled;
     const nextMaps = currentMaps.map(item => item.id === id ? { ...item, enabled } : item);
-    const matchingPreset = obfSelectionChanged ? this.getObfPresetForMaps(nextMaps) : null;
+    const matchingPreset = obfSelectionChanged ? this.getOfflineMapPresetForMaps(nextMaps) : null;
     this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(
       [{ id, enabled }],
       matchingPreset ?? undefined
@@ -3187,7 +3201,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const updatedSelection = this.offlineMaps().map(map =>
         updateById.has(map.id) ? { ...map, enabled: updateById.get(map.id)! } : map
       );
-      const matchingPreset = obfSelectionChanged ? this.getObfPresetForMaps(updatedSelection) : null;
+      const matchingPreset = obfSelectionChanged ? this.getOfflineMapPresetForMaps(updatedSelection) : null;
       const updated = await this.desktop.OfflineMap.setEnabledBatch(
         updates,
         matchingPreset ?? undefined
