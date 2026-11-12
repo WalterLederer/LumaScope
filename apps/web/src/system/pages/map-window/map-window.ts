@@ -234,7 +234,7 @@ interface MapErrorEntry {
       <label class="routing-pick-toggle"><input type="checkbox" [checked]="routePointPicking()" (change)="changeRoutePointPicking($any($event.target).checked)"> Add route points by clicking the map</label>
       <label>Travel mode
         <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
-          <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking / hiking</option>
+          <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
         </select>
       </label>
     </div>
@@ -4934,6 +4934,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly calculateRoute = async (): Promise<void> => {
+    const desktop = this.desktop;
+    if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
     const points = this.routeWaypoints();
     const apiKey = this.routeApiKey().trim();
     if (!apiKey) { this.routeStatus.set('Enter your personal API key first.'); return; }
@@ -4962,15 +4964,16 @@ export class MapWindow implements OnInit, OnDestroy {
       if (generation !== this.routeRequestGeneration) return;
       const defaultName = 'Route-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.gpx';
       const lastTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
-      const folder = lastTrack ? await this.desktop!.FileSystem.dirname(lastTrack.path) : '';
-      const suggestedPath = folder ? await this.desktop!.FileSystem.join(folder, defaultName) : defaultName;
-      const save = await this.desktop!.Dialogs.saveFile(suggestedPath);
+      const folder = lastTrack ? await desktop.FileSystem.dirname(lastTrack.path) : '';
+      const suggestedPath = folder ? await desktop.FileSystem.join(folder, defaultName) : defaultName;
+      const save = await desktop.Dialogs.saveFile(suggestedPath);
       if (!save.success) { this.routeStatus.set('Route calculated; saving was cancelled.'); return; }
-      const destination = save.data;
+      let destination = save.data;
+      if (!/\.gpx$/i.test(destination)) destination += '.gpx';
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
       const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
       const content = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, '')) + '</name><trkseg>\n' + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
-      const written = await this.desktop!.FileSystem.writeText(destination, content);
+      const written = await desktop.FileSystem.writeText(destination, content);
       if (!written.success) throw new Error(written.errorMessage);
       const parsed = this.parseGpxTrackData(content);
       const track: GpxTrackFile = { path: destination, name: fileName, sizeBytes: new Blob([content]).size, lastModified: Date.now(), active: true,
