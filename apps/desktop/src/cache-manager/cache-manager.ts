@@ -102,7 +102,6 @@ export class CacheManager {
       this.databases.set(key, db);
       this.init(db);
     }
-    this.activeDatabaseKey = key;
     return db;
   };
 
@@ -617,6 +616,7 @@ export class CacheManager {
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
     const db = this.databaseForPath(directory);
+    this.activeDatabaseKey = this.databaseKeyForPath(directory);
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
@@ -681,6 +681,7 @@ export class CacheManager {
         .map(column => [column.name, column.type.toUpperCase()])
     );
     const typedRecord: Record<string, string | number | null> = { ...row };
+    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.rebaseStoredPath(typedRecord.path_id_expanded, sourceName);
     for (const key of Object.keys(row)) {
       if (key.endsWith('_expanded')) continue;
       typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
