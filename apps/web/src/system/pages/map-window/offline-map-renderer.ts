@@ -1961,8 +1961,15 @@ export class OfflineMapRenderer {
   }
 
   setHillshadeVisibility(visible: boolean): void {
+    if (this.hillshadeVisible === visible) {
+      this.applyHillshadeLayerProperties();
+      return;
+    }
     this.hillshadeVisible = visible;
-    this.applyHillshadeLayerProperties();
+    // A hidden raster layer still causes MapLibre to fetch its source tiles.
+    // Rebuild instead: hiding removes the source entirely (and aborts pending
+    // requests); showing it creates a fresh source for the current viewport.
+    this.rerenderHillshadeTiles();
   }
 
   setHillshadeOpacity(opacity: number): void {
@@ -2075,7 +2082,7 @@ export class OfflineMapRenderer {
     const beforeLayer = this.map.getStyle().layers.find(layer =>
       /road|street|building|poi|label|symbol|boundary|rail|bridge|transport/i.test(layer.id)
     )?.id;
-    if (this.hillshadeDatabases.some(database => database.enabled && database.available)) {
+    if (this.hillshadeVisible && this.hillshadeDatabases.some(database => database.enabled && database.available)) {
       // Use a new MapLibre source identity for every database selection change.
       // A new URL alone is insufficient if MapLibre keeps the old SourceCache
       // when a source is removed and re-added under the same ID.
@@ -2105,7 +2112,9 @@ export class OfflineMapRenderer {
         zoom: this.map.getZoom()
       });
     } else {
-      console.warn('[Hillshade][source-not-created]', 'No enabled and available Hillshade database.');
+      console.info('[Hillshade][source-not-created]', this.hillshadeVisible
+        ? 'No enabled and available Hillshade database.'
+        : 'Hillshade is disabled; no raster source or tile requests are created.');
     }
     this.map.triggerRepaint();
   }
