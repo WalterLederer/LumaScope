@@ -6,7 +6,7 @@ import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
-interface MapPresetOption { id: string; name: string; regex: string; mapsForgeRegex?: string; }
+interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
@@ -1754,9 +1754,9 @@ export class MapWindow implements OnInit, OnDestroy {
         const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
           if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
           const preset = value as Record<string, unknown>;
-          return typeof preset['name'] === 'string' && typeof preset['regex'] === 'string'
+          return typeof preset['name'] === 'string' && typeof preset['OsmAndRegex'] === 'string'
             ? [{
-                id, name: preset['name'], regex: preset['regex'],
+                id, name: preset['name'], osmAndRegex: preset['OsmAndRegex'],
                 ...(typeof preset['mapsForgeRegex'] === 'string' ? { mapsForgeRegex: preset['mapsForgeRegex'] } : {})
               }] : [];
         });
@@ -3109,7 +3109,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private presetMatchesFileName(preset: string, fileName: string): boolean {
     const definition = this.mapPresetOptions().find(item => item.id === preset);
     if (!definition) return false;
-    try { return new RegExp(definition.regex, 'i').test(fileName); } catch { return false; }
+    try { return new RegExp(definition.osmAndRegex, 'i').test(fileName); } catch { return false; }
   }
 
   private obfMapMatchesPreset(
@@ -3143,7 +3143,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // back to their regular preset regex (e.g. Austria, DACH).
     const definition = this.mapPresetOptions().find(item => item.id === selectedPreset);
     if (!definition) return false;
-    const pattern = definition.mapsForgeRegex || definition.regex;
+    const pattern = definition.mapsForgeRegex || definition.osmAndRegex;
     try { return new RegExp(pattern, 'i').test(fileName); } catch { return false; }
   }
 
