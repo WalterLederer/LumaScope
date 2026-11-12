@@ -574,9 +574,10 @@ export class ImageView {
       .map(([key, value]) => ({
         key,
         type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
-        value: JSON.stringify(value) ?? 'null',
+        // Display SQLite TEXT values verbatim; JSON.stringify would escape backslashes.
+        value: typeof value === 'string' ? value : JSON.stringify(value) ?? 'null',
         expanded: key === 'relative_folder_path' && record['relative_folder_path_expanded'] != null
-          ? JSON.stringify(record['relative_folder_path_expanded'])
+          ? String(record['relative_folder_path_expanded'])
           : null,
         isExpandedId: false,
         isTimestamp: false,
