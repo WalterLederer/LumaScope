@@ -263,7 +263,7 @@ interface MapErrorEntry {
               <h4>Symbol</h4>
               <div class="time-slider-symbol-controls-row">
                 <label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"></label>
-                <div class="time-slider-symbol-preview-row">
+                <div class="time-slider-symbol-preview-row time-slider-symbol-preview-card">
                   <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                   <span class="time-slider-symbol-front">Front</span>
                 </div>
@@ -1043,7 +1043,7 @@ interface MapErrorEntry {
     .time-slider-symbol-select{display:flex;min-width:0;font-size:12px;color:CanvasText}
     .time-slider-symbol-select select{width:100%;min-width:0;padding:5px 7px;border:1px solid var(--color-border-default,#777);border-radius:4px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}.time-slider-symbol-visibility{align-self:center;flex:0 0 auto;min-height:18px}
-    .time-slider-symbol-preview-row{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+    .time-slider-symbol-preview-row{display:flex;align-items:center;gap:6px;flex:0 0 auto}.time-slider-symbol-preview-card{padding:5px 8px;background:var(--color-surface-default-low,#252525);border:1px solid var(--color-content-default-low,#666);border-radius:9px}
     .time-slider-symbol-size{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 8px;min-width:0;font-size:12px;color:CanvasText}
     .time-slider-symbol-size strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-symbol-size input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
