@@ -1,7 +1,7 @@
 import { app, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { delimiter, dirname, join, relative, resolve } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
 interface MapsforgeResponse {
@@ -190,6 +190,25 @@ export class MapsforgeManager {
   readonly scanCatalog = async (_event: IpcMainInvokeEvent, rootPath: string): Promise<MapsforgeResponse> => {
     if (typeof rootPath !== 'string' || !rootPath.trim()) throw new Error('Select a Mapsforge map folder.');
     return this.worker.request('catalog', { root_path: rootPath.trim() });
+  };
+
+  @IpcHandler({ name: 'Mapsforge.scanThemes' })
+  readonly scanThemes = async (_event: IpcMainInvokeEvent, folderPath: string): Promise<Array<{ path: string; fileName: string; relativePath: string }>> => {
+    if (typeof folderPath !== 'string' || !folderPath.trim()) throw new Error('Select a Mapsforge theme folder.');
+    const root = resolve(folderPath.trim());
+    if (!existsSync(root)) throw new Error('Mapsforge theme folder not found: ' + root);
+    const themes: Array<{ path: string; fileName: string; relativePath: string }> = [];
+    const visit = (directory: string): void => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) visit(path);
+        else if (entry.isFile() && /\.xml$/i.test(entry.name)) {
+          themes.push({ path, fileName: entry.name, relativePath: relative(root, path) });
+        }
+      }
+    };
+    visit(root);
+    return themes.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
   };
 
   @IpcHandler({ name: 'Mapsforge.open' })
