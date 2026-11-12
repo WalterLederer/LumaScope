@@ -4,7 +4,7 @@ import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'i
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, createMapsforgeMapStyle, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
@@ -2043,6 +2043,10 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     this.mapSourceGeneration++;
     this.mapInitialization = null;
+    setMapsforgeTileProtocolActive(false);
+    if (this.mapSource() === 'mapsforge') {
+      void this.desktop?.Mapsforge.close().catch(error => console.warn('Could not close Mapsforge renderer:', error));
+    }
     this.unsubscribeLocation?.();
     this.markerScanGeneration++;
     this.clearDirectoryMarkers();
@@ -2796,6 +2800,7 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       registerMapsforgeTileProtocol(this.desktop);
+      setMapsforgeTileProtocolActive(true);
       this.mapDisplayNotice.set('');
       const renderer = new OfflineMapRenderer(
         this.mapElement().nativeElement,
@@ -3010,6 +3015,8 @@ export class MapWindow implements OnInit, OnDestroy {
     // MBTiles selection is validated against enabled maps and geographic bounds during initialization.
     const nextSource = value;
     const previousSource = this.mapSource();
+    // Stop late requests from a map instance that is being replaced.
+    setMapsforgeTileProtocolActive(false);
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
     if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
