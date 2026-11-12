@@ -97,7 +97,7 @@ export class CacheManager {
     if (!db) {
       const databaseDirectory = join(key + '\\', '.cache');
       mkdirSync(databaseDirectory, { recursive: true });
-      const databasePath = join(databaseDirectory, 'cache.sqlite');
+      const databasePath = join(databaseDirectory, 'LumaScope.cache.sqlite');
       db = new DatabaseSync(databasePath);
       try {
         db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
@@ -423,7 +423,7 @@ export class CacheManager {
     summary.total.bytes = summary.fullSize.bytes + summary.thumbnails.bytes;
 
     for (const key of this.databases.keys()) {
-      const databasePath = join(key + '\\', '.cache', 'cache.sqlite');
+      const databasePath = join(key + '\\', '.cache', 'LumaScope.cache.sqlite');
       try { const info = await stat(databasePath); summary.databases.push({ path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
     }
     summary.databases.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: 'base' }));
