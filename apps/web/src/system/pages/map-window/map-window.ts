@@ -252,7 +252,7 @@ interface MapErrorEntry {
             <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()">{{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <label class="time-slider-walker-toggle"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"><span>Show track symbol</span></label>
-            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="taxi">Taxi</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="rocket">Rocket</option></select></label>
+            <label class="time-slider-speed-control"><span>Symbol</span><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="rocket">Rocket</option></select></label>
             <div class="time-slider-symbol-adjustments">
               <div class="time-slider-symbol-preview-row">
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
@@ -1598,7 +1598,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderAnimationSpeed = signal(Math.max(0.1, Math.min(10, Number(this.readSetting('timeSliderAnimationSpeed', '1')) || 1)));
   protected readonly walkingFigureSize = signal(Math.max(0.5, Math.min(3, Number(this.readSetting('walkingFigureSize', '1')) || 1)));
   protected readonly walkingFigureAnimationSpeed = signal(Math.max(0.2, Math.min(3, Number(this.readSetting('walkingFigureAnimationSpeed', '1')) || 1)));
-  protected readonly walkingFigureType = signal((['walker', 'car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'plane', 'helicopter', 'train', 'bicycle', 'motorcycle', 'scooter', 'tractor', 'boat', 'ship', 'sailboat', 'rocket'].includes(this.readSetting('walkingFigureType', 'walker')) ? this.readSetting('walkingFigureType', 'walker') : 'walker') as 'walker' | 'car' | 'van' | 'bus' | 'truck' | 'plane' | 'helicopter' | 'train' | 'bicycle' | 'motorcycle' | 'scooter' | 'tractor' | 'boat');
+  protected readonly walkingFigureType = signal<string>(
+    Object.hasOwn(GPX_SYMBOLS, this.readSetting('walkingFigureType', 'walker'))
+      ? this.readSetting('walkingFigureType', 'walker')
+      : 'walker'
+  );
   protected readonly walkingFigureSymbolSettings = signal<Record<string, TimeSliderSymbolSettings>>(this.readWalkingFigureSymbolSettings());
   private timeSliderAnimationTimer: ReturnType<typeof setInterval> | null = null;
   private lastWalkingBearing = 0;
@@ -4109,8 +4113,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly changeWalkingFigureType = (value: string): void => {
-    if (!['walker', 'car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'plane', 'helicopter', 'train', 'bicycle', 'motorcycle', 'scooter', 'tractor', 'boat', 'ship', 'sailboat', 'rocket'].includes(value)) return;
-    this.walkingFigureType.set(value as 'walker' | 'car' | 'van' | 'bus' | 'truck' | 'plane' | 'helicopter' | 'train' | 'bicycle' | 'motorcycle' | 'scooter' | 'tractor' | 'boat');
+    if (!Object.hasOwn(GPX_SYMBOLS, value)) return;
+    this.walkingFigureType.set(value);
     this.saveSetting('walkingFigureType', value);
     this.updateWalkingMarker();
   };
