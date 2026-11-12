@@ -4987,7 +4987,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const result = await lookupReverseGeocoding(waypoint.latitude, waypoint.longitude, navigator.language || 'en');
       const name = result?.displayName?.trim();
       if (!name) return;
-      this.routeWaypoints.update(points => points.map(point => point === waypoint ? { ...point, name } : point));
+      this.routeWaypoints.update(points => points.map(point => point.latitude === waypoint.latitude && point.longitude === waypoint.longitude ? { ...point, name } : point));
       this.persistRouteWaypoints();
     } catch (error) {
       console.warn('[Routing] Could not resolve route point location:', error);
