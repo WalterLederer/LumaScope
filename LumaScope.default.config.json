@@ -254,8 +254,8 @@
       "europe": {
         "name": "Europe",
         "mapsForgeRegex": "^(?:albania|andorra|austria|azores|belarus|belgium|bosnia-herzegovina|bulgaria|croatia|cyprus|czech-republic|denmark|estonia|faroe-islands|finland|france|georgia|germany|great-britain|greece|guernsey-jersey|hungary|iceland|ireland-and-northern-ireland|isle-of-man|italy|kosovo|latvia|liechtenstein|lithuania|luxembourg|macedonia|malta|moldova|monaco|montenegro|netherlands|norway|poland|portugal|romania|serbia|slovakia|slovenia|spain|sweden|switzerland|turkey|ukraine)\\.map$",
-        "OsmAndRegex": "(?:^|[_. -])europe(?:[_. -]|$)",
-        "HillshadeRegex": "(?:^|\\s)europe\\.sqlitedb$"
+        "OsmAndRegex": "(?:^|[_. -])(?:europe|albania|andorra|austria|belarus|belgium|bosnia|bulgaria|croatia|cyprus|czech|denmark|estonia|faroe|finland|france|georgia|germany|great.?britain|greece|guernsey|hungary|iceland|ireland|isle.?of.?man|italy|kosovo|latvia|liechtenstein|lithuania|luxembourg|macedonia|malta|moldova|monaco|montenegro|netherlands|norway|poland|portugal|romania|serbia|slovakia|slovenia|spain|sweden|switzerland|turkey|ukraine)(?:[_. -]|$)",
+        "HillshadeRegex": "^Hillshade\\s+(?:Albania|Andorra|Austria|Belarus|Belgium|Bosnia[- ]Herzegovina|Bulgaria|Croatia|Cyprus|Czech(?:ia|[- ]Republic)?|Denmark|Estonia|Faroe(?:[- ]Islands)?|Finland|France|Georgia|Germany|Great[- ]Britain|Greece|Guernsey(?:[- ]Jersey)?|Hungary|Iceland|Ireland(?:[- ]and[- ]Northern[- ]Ireland)?|Isle[- ]of[- ]Man|Italy|Kosovo|Latvia|Liechtenstein|Lithuania|Luxembourg|Macedonia|Malta|Moldova|Monaco|Montenegro|Netherlands|Norway|Poland|Portugal|Romania|Serbia|Slovakia|Slovenia|Spain|Sweden|Switzerland|Turkey|Ukraine)(?:\\s|\\.|$)"
       },
       "asia": {
         "name": "Asia",
