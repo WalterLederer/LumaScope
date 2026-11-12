@@ -40,6 +40,10 @@
       {
         "from": "tools/osmand-runtime/stage/helpers",
         "to": "osmand/helpers"
+      },
+      {
+        "from": "tools/mapsforge-renderer/target/mapsforge-renderer.jar",
+        "to": "mapsforge/mapsforge-renderer.jar"
       }
     ]
   },
