@@ -56,11 +56,11 @@ interface PhotoRow {
 
 export class CacheManager {
   private readonly userData = app.getPath('userData');
-  private readonly cacheConfigFile = join(this.userData, 'cache.sqlite');
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
-  private readonly db: DatabaseSync;
+  private readonly databases = new Map<string, DatabaseSync>();
+  private activeDatabaseKey: string | null = null;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
-  private readonly pendingLocationLookups = new Map<number, Promise<string | null>>();
+  private readonly pendingLocationLookups = new Map<string, Promise<string | null>>();
   private locationLookupCancelled = false;
   private currentReverseGeocodingPath: string | null = null;
   private currentReverseGeocodingDisplayName: string | null = null;
@@ -73,10 +73,52 @@ export class CacheManager {
 
   constructor() {
     mkdirSync(this.userData, { recursive: true });
-    this.db = new DatabaseSync(this.cacheConfigFile);
-    this.db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
-    this.init();
+    app.on('before-quit', () => {
+      for (const db of this.databases.values()) {
+        try { db.close(); } catch { /* Ignore shutdown races. */ }
+      }
+      this.databases.clear();
+    });
   }
+
+  private readonly databaseKeyForPath = (sourcePath: string): string => {
+    const absolutePath = resolve(sourcePath);
+    const root = resolve(absolutePath.slice(0, 3));
+    if (!/^[a-z]:\\\\?$/i.test(root) && !/^[a-z]:$/i.test(root)) {
+      throw new Error(`Cache database requires a local drive path: ${sourcePath}`);
+    }
+    return root.slice(0, 2).toUpperCase();
+  };
+
+  private readonly databaseForPath = (sourcePath: string): DatabaseSync => {
+    const key = this.databaseKeyForPath(sourcePath);
+    let db = this.databases.get(key);
+    if (!db) {
+      const databaseDirectory = join(key + '\\\\', '.cache');
+      mkdirSync(databaseDirectory, { recursive: true });
+      const databasePath = join(databaseDirectory, 'cache.sqlite');
+      db = new DatabaseSync(databasePath);
+      db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
+      this.databases.set(key, db);
+      this.init(db);
+    }
+    this.activeDatabaseKey = key;
+    return db;
+  };
+
+  private readonly activeDatabase = (): DatabaseSync => {
+    if (!this.activeDatabaseKey) throw new Error('No gallery drive has selected a cache database yet.');
+    const db = this.databases.get(this.activeDatabaseKey);
+    if (!db) throw new Error('The active gallery cache database is not open.');
+    return db;
+  };
+
+  private readonly rebaseStoredPath = (storedPath: string, currentPath: string): string => {
+    const currentDrive = resolve(currentPath).slice(0, 2);
+    return /^[a-z]:/i.test(storedPath) && /^[a-z]:/i.test(currentDrive)
+      ? currentDrive + storedPath.slice(2)
+      : storedPath;
+  };
 
   @IpcHandler({ name: 'CacheManager.clear' })
   readonly clear = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false, operationId?: string): Promise<CacheClearResult> =>
@@ -147,7 +189,7 @@ export class CacheManager {
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       entries++;
     }
-    this.db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
+    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
     return { entries, bytes };
   };
 
@@ -179,7 +221,7 @@ export class CacheManager {
     }
 
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const allRows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+    const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
@@ -194,7 +236,7 @@ export class CacheManager {
       const source = join(row.folder_path, row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
-      this.db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
+      db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
       entries++;
     }
     return { entries, bytes, cancelled: this.isClearCancelled(operationId) };
@@ -224,7 +266,7 @@ export class CacheManager {
     }
 
     const root = resolve(directory);
-    const rows = this.db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path,
+    const rows = db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path,
           CASE WHEN location_names.display_name IS NULL THEN 1 ELSE 0 END AS needs_refresh
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id
@@ -249,7 +291,7 @@ export class CacheManager {
         ...row,
         location_name_id: row.needs_refresh === 1 ? null : row.location_name_id
       }, true, false, row.needs_refresh === 1);
-      const saved = this.db.prepare(`SELECT photos.location_name_id, location_names.display_name
+      const saved = db.prepare(`SELECT photos.location_name_id, location_names.display_name
         FROM photos LEFT JOIN location_names ON location_names.id = photos.location_name_id
         WHERE photos.id = :id`)
         .get({ id: row.id }) as { location_name_id: number | null; display_name: string | null } | undefined;
@@ -269,7 +311,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getBackgroundReverseGeocodingStatus' })
   readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
-    const totals = this.db.prepare(`SELECT
+    const totals = db.prepare(`SELECT
         COUNT(*) AS total,
         SUM(CASE WHEN location_names.id IS NOT NULL AND location_names.display_name IS NOT NULL THEN 1 ELSE 0 END) AS resolved,
         SUM(CASE WHEN (photos.location_name_id IS NULL OR photos.location_name_id = 0 OR location_names.display_name IS NULL)
@@ -284,7 +326,7 @@ export class CacheManager {
     const resolved = Number(totals.resolved ?? 0);
     const errors = Number(totals.errors ?? 0);
     let inProgress = 0;
-    const findActivePhoto = this.db.prepare(`SELECT photos.location_lookup_error, location_names.display_name
+    const findActivePhoto = db.prepare(`SELECT photos.location_lookup_error, location_names.display_name
       FROM photos
       LEFT JOIN location_names ON location_names.id = photos.location_name_id
       WHERE photos.id = :id
@@ -308,7 +350,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (): Promise<CacheSummary> => {
-    const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
+    const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
       OR (photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL)`)
@@ -452,7 +494,7 @@ export class CacheManager {
     }
 
     const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));
-    const findPhoto = this.db.prepare(`SELECT photos.* FROM photos
+    const findPhoto = db.prepare(`SELECT photos.* FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE`);
 
@@ -520,7 +562,7 @@ export class CacheManager {
     if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] };
     const folder = dirname(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
-    const rows = this.db.prepare(`SELECT photos.*, paths.folder_path FROM photos
+    const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder
       AND (photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL)`)
       .all({ folder }) as unknown as Array<PhotoRow & { folder_path: string }>;
@@ -561,7 +603,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
-    const rows = this.db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
+    const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
@@ -581,7 +623,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
-    const row = this.db.prepare(`SELECT
+    const row = db.prepare(`SELECT
         photos.id,
         photos.path_id,
         paths.folder_path AS path_id_expanded,
@@ -620,7 +662,7 @@ export class CacheManager {
     `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
     const columnTypes = new Map(
-      (this.db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
+      (db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
         .map(column => [column.name, column.type.toUpperCase()])
     );
     const typedRecord: Record<string, string | number | null> = { ...row };
@@ -649,7 +691,7 @@ export class CacheManager {
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
 
     if (row.latitude !== latitude || row.longitude !== longitude) {
-      this.db.prepare(`UPDATE photos SET latitude = :latitude, longitude = :longitude,
+      db.prepare(`UPDATE photos SET latitude = :latitude, longitude = :longitude,
         location_name_id = NULL, location_lookup_error = NULL, location_lookup_attempted_at = NULL
         WHERE id = :id`)
         .run({ latitude, longitude, id: row.id });
@@ -661,7 +703,7 @@ export class CacheManager {
     // and only contact the provider when this photo has no linked location yet.
     const resolvedDisplayName = await this.ensureLocationName(updated, true, true, false);
 
-    const saved = this.db.prepare(`SELECT location_names.display_name, location_names.place_name,
+    const saved = db.prepare(`SELECT location_names.display_name, location_names.place_name,
         location_names.locality, location_names.region, location_names.country_code
       FROM photos JOIN location_names ON location_names.id = photos.location_name_id WHERE photos.id = :id`)
       .get({ id: row.id }) as { display_name: string | null; place_name: string; locality: string | null; region: string | null; country_code: string | null } | undefined;
@@ -687,7 +729,7 @@ export class CacheManager {
     const sourceStats = await stat(sourceName);
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
     const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
-    this.db.prepare(`UPDATE photos SET is_hdr = :isHdr,
+    db.prepare(`UPDATE photos SET is_hdr = :isHdr,
       location_name_id = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
       location_lookup_error = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_error END,
       location_lookup_attempted_at = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_attempted_at END,
@@ -732,7 +774,7 @@ export class CacheManager {
   readonly forgetParallel = (sourceName: string, sourceTag: string): void => {
     const row = this.getPhoto(sourceName);
     if (row?.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL && row.fullsize_cache_version === getFullSizeCacheVersionCode(sourceTag)) {
-      this.db.prepare('UPDATE photos SET fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
+      db.prepare('UPDATE photos SET fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
     }
   };
 
@@ -746,7 +788,7 @@ export class CacheManager {
       if (previous?.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
         await rm(this.getSidecarPath(sourceName, true), { force: true });
       }
-      this.db.prepare('UPDATE photos SET fullsize_cache_id = :cacheId, fullsize_cache_version = :version WHERE id = :id')
+      db.prepare('UPDATE photos SET fullsize_cache_id = :cacheId, fullsize_cache_version = :version WHERE id = :id')
         .run({ cacheId: CACHE_STORAGE_TYPE.PARALLEL, version: getFullSizeCacheVersionCode(sourceTag), id: row.id });
       return targetPath;
     } catch { return null; }
@@ -792,23 +834,23 @@ export class CacheManager {
       const generated = callback ? await callback(targetPath) : (await copyFile(sourceName, targetPath), true);
       if (!generated) return null;
     }
-    this.db.prepare('UPDATE photos SET ' + (full ? 'fullsize' : 'thumbnail') + '_cache_id = :cacheId, ' +
+    db.prepare('UPDATE photos SET ' + (full ? 'fullsize' : 'thumbnail') + '_cache_id = :cacheId, ' +
       (full ? 'fullsize' : 'thumbnail') + '_cache_version = :version WHERE id = :id')
       .run({ cacheId: CACHE_STORAGE_TYPE.SIDECAR, version: storedVersion, id: row.id });
     return targetPath;
   };
 
   private readonly getPhoto = (sourceName: string): PhotoRow | null => {
-    const row = this.db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE')
+    const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE')
       .get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
   };
 
   private readonly ensurePhoto = (sourceName: string, size: number, modified: number): PhotoRow => {
     const folder = dirname(sourceName);
-    this.db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
-    const path = this.db.prepare('SELECT id FROM paths WHERE folder_path = :folder').get({ folder }) as { id: number };
-    this.db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
+    db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
+    const path = db.prepare('SELECT id FROM paths WHERE folder_path = :folder').get({ folder }) as { id: number };
+    db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
       VALUES (:pathId, :file, :size, :modified, 0)
       ON CONFLICT(path_id, file_name) DO UPDATE SET
         is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
@@ -841,10 +883,10 @@ export class CacheManager {
       const startedAt = Date.now();
       this.currentReverseGeocodingPhotoId = photo.id;
       this.currentReverseGeocodingDisplayName = null;
-      const source = this.db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
+      const source = db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
         .get({ photoId: photo.id }) as { folder_path: string; file_name: string } | undefined;
       this.currentReverseGeocodingPath = source ? join(source.folder_path, source.file_name) : null;
-      this.db.prepare(`UPDATE photos
+      db.prepare(`UPDATE photos
         SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId`)
         .run({ attemptedAt: startedAt, photoId: photo.id });
@@ -854,7 +896,7 @@ export class CacheManager {
         if (location) {
           displayName = location.displayName;
           if (this.currentReverseGeocodingPhotoId === photo.id) this.currentReverseGeocodingDisplayName = location.displayName;
-          this.db.prepare(`INSERT OR IGNORE INTO location_names
+          db.prepare(`INSERT OR IGNORE INTO location_names
             (latitude, longitude, place_name, display_name, street, country_code, region, locality, provider, updated_at)
             VALUES (:latitude, :longitude, :placeName, :displayName, :street, :countryCode, :region, :locality, 'nominatim', :updatedAt)`)
             .run({
@@ -868,7 +910,7 @@ export class CacheManager {
               locality: location.locality,
               updatedAt: Date.now()
             });
-          const saved = this.db.prepare(`SELECT id FROM location_names
+          const saved = db.prepare(`SELECT id FROM location_names
             WHERE lower(trim(place_name)) = lower(trim(:placeName))
               AND lower(trim(COALESCE(display_name, ''))) = lower(trim(:displayName))
               AND lower(trim(COALESCE(street, ''))) = lower(trim(COALESCE(:street, '')))
@@ -886,12 +928,12 @@ export class CacheManager {
               region: location.region,
               locality: location.locality
             }) as { id: number } | undefined
-            ?? this.db.prepare(`SELECT id FROM location_names
+            ?? db.prepare(`SELECT id FROM location_names
               WHERE latitude = :latitude AND longitude = :longitude AND provider = 'nominatim'`)
               .get({ latitude: photo.latitude, longitude: photo.longitude }) as { id: number } | undefined;
           if (saved) {
             locationNameId = saved.id;
-            this.db.prepare(`UPDATE location_names
+            db.prepare(`UPDATE location_names
               SET display_name = :displayName, street = :street, updated_at = :updatedAt
               WHERE id = :id`)
               .run({ displayName: location.displayName, street: location.street, updatedAt: Date.now(), id: saved.id });
@@ -912,7 +954,7 @@ export class CacheManager {
         });
       }
 
-      this.db.prepare(`UPDATE photos SET
+      db.prepare(`UPDATE photos SET
           location_name_id = CASE WHEN :locationNameId IS NOT NULL THEN :locationNameId ELSE location_name_id END,
           location_lookup_error = :lookupError,
           location_lookup_attempted_at = :attemptedAt
@@ -952,7 +994,7 @@ export class CacheManager {
 
   private readonly getKindStats = async (kind: 'thumbnail' | 'fullsize', directory?: string, recursive = false): Promise<CacheClearResult> => {
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const allRows = this.db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+    const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
@@ -974,12 +1016,12 @@ export class CacheManager {
   };
 
   private readonly init = (): void => {
-    this.db.exec(createMigrationTable);
-    const migrations = this.db.prepare(getMigrationRecords).all() as Array<{ name: string }>;
-    const insert = this.db.prepare(insertMigrationRecord);
+    db.exec(createMigrationTable);
+    const migrations = db.prepare(getMigrationRecords).all() as Array<{ name: string }>;
+    const insert = db.prepare(insertMigrationRecord);
     for (const migration of dbMigrations) {
       if (!migrations.some(item => item.name === migration.name)) {
-        this.db.exec(migration.query);
+        db.exec(migration.query);
         insert.run({ name: migration.name });
       }
     }
@@ -987,18 +1029,18 @@ export class CacheManager {
       this.migrateLegacyCacheFiles();
       insert.run({ name: 'migrateLegacyCacheFilesToPhotosV8' });
     }
-    this.db.exec("DELETE FROM cache_storage_types WHERE name = 'central';");
+    db.exec("DELETE FROM cache_storage_types WHERE name = 'central';");
     rm(this.legacyCacheDir, { recursive: true, force: true }).catch(() => undefined);
   };
 
   private readonly migrateLegacyCacheFiles = (): void => {
-    const table = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'cache_files'").get();
+    const table = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'cache_files'").get();
     if (!table) return;
-    const rows = this.db.prepare('SELECT * FROM cache_files').all() as Array<Record<string, SQLOutputValue>>;
-    const insertPath = this.db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)');
-    const findPath = this.db.prepare('SELECT id FROM paths WHERE folder_path = :folder');
-    const insertPhoto = this.db.prepare('INSERT OR IGNORE INTO photos (path_id, file_name, file_size, modified_at, is_hdr) VALUES (:pathId, :file, :size, :modified, :hdr)');
-    const updatePhoto = this.db.prepare('UPDATE photos SET thumbnail_cache_id = CASE WHEN :full = 0 THEN :cacheId ELSE thumbnail_cache_id END, thumbnail_cache_version = CASE WHEN :full = 0 THEN :version ELSE thumbnail_cache_version END, fullsize_cache_id = CASE WHEN :full = 1 THEN :cacheId ELSE fullsize_cache_id END, fullsize_cache_version = CASE WHEN :full = 1 THEN :version ELSE fullsize_cache_version END WHERE path_id = :pathId AND file_name = :file');
+    const rows = db.prepare('SELECT * FROM cache_files').all() as Array<Record<string, SQLOutputValue>>;
+    const insertPath = db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)');
+    const findPath = db.prepare('SELECT id FROM paths WHERE folder_path = :folder');
+    const insertPhoto = db.prepare('INSERT OR IGNORE INTO photos (path_id, file_name, file_size, modified_at, is_hdr) VALUES (:pathId, :file, :size, :modified, :hdr)');
+    const updatePhoto = db.prepare('UPDATE photos SET thumbnail_cache_id = CASE WHEN :full = 0 THEN :cacheId ELSE thumbnail_cache_id END, thumbnail_cache_version = CASE WHEN :full = 0 THEN :version ELSE thumbnail_cache_version END, fullsize_cache_id = CASE WHEN :full = 1 THEN :cacheId ELSE fullsize_cache_id END, fullsize_cache_version = CASE WHEN :full = 1 THEN :version ELSE fullsize_cache_version END WHERE path_id = :pathId AND file_name = :file');
     for (const row of rows) {
       const source = String(row.source_name ?? '');
       const storageId = Number(row.storage_type_id);
@@ -1014,6 +1056,6 @@ export class CacheManager {
       insertPhoto.run({ pathId: path.id, file, size: Number(row.source_size ?? 0), modified: Number(row.updated_at ?? 0), hdr: 0 });
       updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: full ? getFullSizeCacheVersionCode(tag) : tag === THUMBNAIL_CACHE_TAG ? THUMBNAIL_CACHE_VERSION : null, pathId: path.id, file });
     }
-    this.db.exec('DROP TABLE cache_files; DROP TABLE IF EXISTS cache_volume_settings;');
+    db.exec('DROP TABLE cache_files; DROP TABLE IF EXISTS cache_volume_settings;');
   };
 }
