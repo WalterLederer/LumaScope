@@ -644,9 +644,13 @@ export class CacheManager {
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
     const db = this.databaseForPath(sourceName);
-    const row = db.prepare(`SELECT photos.*, paths.relative_folder_path
+    const row = db.prepare(`SELECT photos.*, paths.relative_folder_path,
+        coordinate_sources.name AS coordinate_source_name,
+        COALESCE(location_names.display_name, location_names.place_name) AS location_name_display
       FROM photos
       JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE
     `).get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
@@ -658,8 +662,10 @@ export class CacheManager {
     const databaseKey = this.databaseKeyForPath(sourceName);
     const typedRecord: Record<string, string | number | null> = { ...row };
     if (typeof row.relative_folder_path === 'string') {
-      typedRecord.relative_folder_path_expanded = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
+      typedRecord.path_id_expanded = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
     }
+    typedRecord.coordinate_source_id_expanded = row.coordinate_source_name ?? null;
+    typedRecord.location_name_id_expanded = row.location_name_display ?? null;
     typedRecord.database_path = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     for (const key of Object.keys(row)) {
       typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
