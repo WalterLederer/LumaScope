@@ -237,7 +237,7 @@ export class CacheManager {
     let entries = 0;
     for (const row of rows) {
       if (this.isClearCancelled(operationId)) break;
-      const source = join(this.rebaseStoredPath(row.folder_path, this.activeDatabaseKey + '\\'), row.file_name);
+      const source = join(this.rebaseStoredPath(row.folder_path, directory ?? (this.activeDatabaseKey + '\\')), row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
@@ -338,22 +338,23 @@ export class CacheManager {
       WHERE photos.id = :id
         AND photos.latitude BETWEEN -90 AND 90 AND photos.longitude BETWEEN -180 AND 180`);
     for (const pendingKey of this.pendingLocationLookups.keys()) {
-      const [databaseKey, photoId] = pendingKey.split(':');
+      const [databaseKey, photoId] = pendingKey.split('|');
       if (databaseKey !== this.activeDatabaseKey) continue;
       const active = findActivePhoto.get({ id: Number(photoId) }) as { display_name: string | null; location_lookup_error: string | null } | undefined;
       if (active && active.display_name === null && active.location_lookup_error === null) inProgress++;
     }
 
     const pending = Math.max(0, total - resolved - errors - inProgress);
-    const status = this.pendingLocationLookups.size > 0
+    const activePendingCount = [...this.pendingLocationLookups.keys()].filter(key => key.startsWith(`${this.activeDatabaseKey}|`)).length;
+    const status = activePendingCount > 0
       ? 'running'
       : total > 0 && pending === 0
         ? 'completed'
         : 'idle';
 
     return { total, resolved, pending, inProgress, errors, status,
-      currentFilePath: this.currentReverseGeocodingPath,
-      currentDisplayName: this.currentReverseGeocodingDisplayName };
+      currentFilePath: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingPath : null,
+      currentDisplayName: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingDisplayName : null };
   };
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
@@ -879,7 +880,7 @@ export class CacheManager {
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return null;
 
-    const pendingKey = `${databaseKey}:${photo.id}`;
+    const pendingKey = `${databaseKey}|${photo.id}`;
     const pending = this.pendingLocationLookups.get(pendingKey);
     if (pending) return pending;
 
