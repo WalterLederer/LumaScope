@@ -3060,7 +3060,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
     this.offlineMapImportErrors.set(result.errors);
-    if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && map.type !== 'obf')) this.changeMapSource('online');
+    if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type))) this.changeMapSource('online');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
     else if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
@@ -3382,12 +3382,12 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       this.offlineMaps.set(remaining);
       this.offlineMapUpdateCheckStatus.set('');
-      if (!remaining.some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') {
+      if (!remaining.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
         this.changeMapSource('online');
         return;
       }
       if (this.currentLatitude !== null && this.currentLongitude !== null
-        && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+        && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
         this.mapSourceGeneration++; this.mapInitialization = null;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
         this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
@@ -3402,11 +3402,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
     if (!this.desktop) return;
     this.offlineMaps.set(await this.desktop.OfflineMap.removeFile(id));
-    if (!this.offlineMaps().some(map => map.enabled && map.type !== 'obf') && this.mapSource() === 'offline') {
+    if (!this.offlineMaps().some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
       this.changeMapSource('online');
       return;
     }
-    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
