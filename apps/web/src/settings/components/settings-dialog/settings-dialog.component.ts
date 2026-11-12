@@ -277,6 +277,12 @@ export class SettingsPanelComponent {
 
 
   protected readonly supportedFormats = supportedFileFormats;
+  protected readonly supportedMapFormats = [
+    { name: 'MBTiles', extensions: '.mbtiles', renderer: 'LumaScope / MapLibre', details: 'Offline raster or vector tile database.' },
+    { name: 'OsmAnd', extensions: '.obf', renderer: 'OsmAnd native renderer', details: 'Offline vector map data; labels depend on the selected OsmAnd renderer.' },
+    { name: 'MapsForge', extensions: '.map', renderer: 'Mapsforge 0.25.0', details: 'Offline vector map data; visible detail depends on the selected XML render theme.' },
+    { name: 'SRTM elevation', extensions: '.hgt', renderer: 'Hillshade', details: 'Elevation data used to generate shaded-relief overlays; not a standalone base map.' }
+  ] as const;
 
   protected readonly keyShortcuts = [
     { keys: 'Ctrl + Win + PrtScn', action: 'Copy the topmost visible window to the clipboard', global: true, id: 'top-window' as const },
