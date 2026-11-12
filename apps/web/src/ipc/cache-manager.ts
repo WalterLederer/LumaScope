@@ -33,7 +33,7 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly cacheSize = () => window.desktop.CacheManager.cacheSize();
 
-  readonly getCacheSummary = (): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary();
+  readonly getCacheSummary = (databaseKey?: string): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary(databaseKey);
 
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
