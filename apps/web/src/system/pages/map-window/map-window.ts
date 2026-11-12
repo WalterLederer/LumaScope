@@ -1433,6 +1433,17 @@ export class MapWindow implements OnInit, OnDestroy {
     if (isRender) this.persistLocationUiState({ renderSectionOpen: section.open });
   };
   protected readonly renderInitStatus = signal('');
+  private readonly onMapsforgeTileError = (event: Event): void => {
+    if (this.mapSource() !== 'mapsforge') return;
+    const detail = (event as CustomEvent<{ message?: string; zoom?: number; column?: number; row?: number }>).detail;
+    const message = detail?.message ?? 'Unknown Mapsforge tile error.';
+    const noCoverage = /No loaded Mapsforge map covers tile/i.test(message);
+    this.mapDisplayNotice.set(noCoverage
+      ? 'No active Mapsforge map covers the current map area. Check the geographic coverage of the enabled .map files.'
+      : 'Mapsforge tile rendering failed: ' + message);
+    this.recordMapError('Mapsforge tile coverage', message);
+  };
+
   private readonly onOsmAndTileStatus = (event: Event): void => {
     const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : null;
@@ -1828,6 +1839,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
     }).catch(error => console.warn('[Location] Could not restore window UI state:', error));
     window.addEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.addEventListener('lumascope-mapsforge-tile-error', this.onMapsforgeTileError);
     window.addEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.addEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     if (this.desktop) {
@@ -2010,6 +2022,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.walkingMarker?.remove(); this.walkingMarker = null;
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
+    window.removeEventListener('lumascope-mapsforge-tile-error', this.onMapsforgeTileError);
     window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.renderInitStatus.set('');
