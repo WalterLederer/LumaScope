@@ -1369,7 +1369,7 @@ interface MapErrorEntry {
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
     .routing-point-row{display:flex;align-items:center;gap:10px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}
-    .routing-point-row>span:nth-child(2){font-family:Consolas,monospace;font-variant-numeric:tabular-nums}
+    .routing-point-location{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;font-family:inherit;overflow:hidden}.routing-point-location strong{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.routing-point-location small{font-family:Consolas,monospace;font-size:11px;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .routing-point-index{width:22px;font-weight:700;color:#0a84ff}
     .routing-point-row .offline-map-remove-button{margin-left:auto}
     .routing-waypoint-icon{background:transparent;border:0}
@@ -1931,6 +1931,10 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapVisible.set(saved['mapVisible']);
         this.saveSetting('mapVisible', saved['mapVisible']);
       }
+      if (!Number.isFinite(configuredOpacity)) {
+        this.persistLocationUiState({ opacity: this.mapOpacity(), mapVisible: this.mapVisible() });
+      }
+      this.applyMapOpacity();
       const configuredWaypoints = Array.isArray(saved['routeWaypoints']) ? saved['routeWaypoints'] : [];
       const restoredWaypoints = configuredWaypoints.flatMap((entry: unknown) => {
         if (!entry || typeof entry !== 'object') return [];
