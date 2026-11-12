@@ -1772,7 +1772,9 @@ export class OfflineMapRenderer {
     const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
     if (activeWalker) {
       activeWalker.classList.toggle('is-moving', isMoving);
-      activeWalker.style.transform = `rotate(${bearing}deg) scaleX(${flipVertical ? -1 : 1}) scale(${size})`;
+      const vehicleFacesRight = ['car', 'taxi', 'racecar', 'van', 'pickup', 'ambulance', 'police', 'firetruck', 'bus', 'truck', 'delivery', 'bicycle', 'motorcycle', 'scooter', 'tractor'].includes(figureType);
+      const flipTransform = flipVertical ? (vehicleFacesRight ? 'scaleY(-1)' : 'scaleX(-1)') : '';
+      activeWalker.style.transform = `rotate(${bearing}deg) ${flipTransform} scale(${size})`;
       activeWalker.style.setProperty('--walker-animation-duration', `${0.72 / animationSpeed}s`);
     }
     this.walkingFigureElement.style.transform = 'translate(-50%,-50%)';
