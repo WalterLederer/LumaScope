@@ -41,7 +41,18 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
+type RouteProfile = 'driving-car' | 'cycling-regular' | 'foot-walking';
+type RouteProviderId = 'openrouteservice' | 'offline-valhalla';
 interface RouteWaypoint { latitude: number; longitude: number; name?: string; active?: boolean; }
+interface RouteCalculationRequest {
+  points: Array<Pick<RouteWaypoint, 'latitude' | 'longitude'>>;
+  profile: RouteProfile;
+  apiKey?: string;
+}
+interface RouteCalculationResult {
+  provider: RouteProviderId;
+  coordinates: Array<{ latitude: number; longitude: number }>;
+}
 
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
@@ -1752,7 +1763,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
-  protected readonly routeProfile = signal<'driving-car' | 'cycling-regular' | 'foot-walking'>('driving-car');
+  protected readonly routeProfile = signal<RouteProfile>('driving-car');
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
@@ -2788,6 +2799,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
+      if (this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
@@ -3120,6 +3132,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
     map.on('contextmenu', event => {
+      if (this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.latlng.lat, event.latlng.lng);
     });
@@ -3140,7 +3153,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
-    (map as unknown as { on: (event: string, callback: (event: { latlng: { lat: number; lng: number } }) => void) => unknown }).on('click', event => this.addRouteWaypoint(event.latlng.lat, event.latlng.lng));
     this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
@@ -5031,38 +5043,73 @@ export class MapWindow implements OnInit, OnDestroy {
     });
   }
 
+  private async requestRouteGeometry(
+    provider: RouteProviderId,
+    request: RouteCalculationRequest
+  ): Promise<RouteCalculationResult> {
+    switch (provider) {
+      case 'openrouteservice': {
+        const apiKey = request.apiKey?.trim();
+        if (!apiKey) throw new Error('Enter your openrouteservice API key first.');
+        if (request.points.length > 50) {
+          throw new Error('openrouteservice supports at most 50 active waypoints per request.');
+        }
+        const response = await fetch('https://api.openrouteservice.org/v2/directions/' + request.profile + '/geojson', {
+          method: 'POST',
+          headers: { 'Authorization': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/geo+json, application/json' },
+          body: JSON.stringify({
+            coordinates: request.points.map(point => [point.longitude, point.latitude]),
+            instructions: false
+          })
+        });
+        if (!response.ok) {
+          const detail = await response.text();
+          throw new Error('openrouteservice returned HTTP ' + response.status + ': ' + detail.slice(0, 500));
+        }
+        const payload = await response.json() as { features?: Array<{ geometry?: { type?: string; coordinates?: number[][] } }> };
+        const coordinates = payload.features?.[0]?.geometry?.coordinates;
+        if (!coordinates || coordinates.length < 2) {
+          throw new Error('The routing service returned no usable route geometry.');
+        }
+        const routePoints = coordinates
+          .filter(point => Array.isArray(point) && point.length >= 2
+            && Number.isFinite(point[0]) && Number.isFinite(point[1]))
+          .map(point => ({ latitude: point[1], longitude: point[0] }));
+        if (routePoints.length < 2) {
+          throw new Error('The returned route contains fewer than two valid coordinates.');
+        }
+        return { provider, coordinates: routePoints };
+      }
+      case 'offline-valhalla':
+        // Reserved adapter boundary for a locally installed Valhalla engine.
+        // It will consume local graph data and map the shared profiles to
+        // Valhalla costing models (auto, bicycle, pedestrian) without changing
+        // the waypoint UI or GPX writer.
+        throw new Error('Offline routing is not configured yet. A local Valhalla engine and routing graph data are required.');
+    }
+  }
+
   protected readonly calculateRoute = async (): Promise<void> => {
     const desktop = this.desktop;
     if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
     const points = this.routeWaypoints();
     const activePoints = points.filter(point => point.active !== false);
     const apiKey = this.routeApiKey().trim();
-    if (!apiKey) { this.routeStatus.set('Enter your personal API key first.'); return; }
     if (activePoints.length < 2) { this.routeStatus.set('Activate at least two route points.'); return; }
-    if (activePoints.length > 50) { this.routeStatus.set('A maximum of 50 active waypoints is supported by the hosted service.'); return; }
-    const providerName = 'openrouteservice';
+    const provider: RouteProviderId = 'openrouteservice';
+    const providerName = provider;
     const requestTimestamp = new Date().toISOString();
     const requestProfile = this.routeProfile();
     const generation = ++this.routeRequestGeneration;
     this.routeBusy.set(true);
     this.routeStatus.set('Requesting route from ' + providerName + '…');
     try {
-      const response = await fetch('https://api.openrouteservice.org/v2/directions/' + requestProfile + '/geojson', {
-        method: 'POST',
-        headers: { 'Authorization': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/geo+json, application/json' },
-        body: JSON.stringify({ coordinates: activePoints.map(point => [point.longitude, point.latitude]), instructions: false })
+      const routeResult = await this.requestRouteGeometry(provider, {
+        points: activePoints,
+        profile: requestProfile,
+        apiKey
       });
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error('openrouteservice returned HTTP ' + response.status + ': ' + detail.slice(0, 500));
-      }
-      const payload = await response.json() as { features?: Array<{ geometry?: { type?: string; coordinates?: number[][] } }> };
-      const coordinates = payload.features?.[0]?.geometry?.coordinates;
-      if (!coordinates || coordinates.length < 2) throw new Error('The routing service returned no usable route geometry.');
-      const routePoints = coordinates.filter(point => Array.isArray(point) && point.length >= 2
-        && Number.isFinite(point[0]) && Number.isFinite(point[1]))
-        .map(point => ({ latitude: point[1], longitude: point[0] }));
-      if (routePoints.length < 2) throw new Error('The returned route contains fewer than two valid coordinates.');
+      const routePoints = routeResult.coordinates;
       if (generation !== this.routeRequestGeneration) return;
       const defaultName = 'Route-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.gpx';
       const lastTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
