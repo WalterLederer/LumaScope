@@ -1536,16 +1536,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapErrorSequence = 0;
   protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
-  protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean }>>([
-    { url: 'https://download.geofabrik.de/europe/austria.html', fileType: 'mbtiles', useForUpdates: false },
-    { url: 'https://www.limaps.org/tileserver.html', fileType: 'mbtiles', useForUpdates: true },
-    { url: 'https://shortbread-tiles.org/download/', fileType: 'mbtiles', useForUpdates: false },
-    { url: 'https://download.osmand.net/list.php', fileType: 'obf', useForUpdates: true },
-    { url: 'https://github.com/osmandapp/OsmAnd-resources', fileType: 'obf', useForUpdates: false },
-    { url: 'https://fides.fe.uni-lj.si/~arpadb/osmand/', fileType: 'obf', useForUpdates: true },
-    { url: 'https://download.osmand.net/latest-night-build/', fileType: 'android', useForUpdates: false },
-    { url: 'https://download.mapsforge.org/maps/', fileType: 'mapsforge', useForUpdates: false }
-  ]);
+  protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean }>>([]);
   protected readonly osmAndResourcesPath = signal('');
   protected readonly osmAndResourcesError = signal('');
   protected readonly mapDisplayNotice = signal('');
