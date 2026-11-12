@@ -17,6 +17,7 @@ import { Injector } from '../../injector/injector';
 import App from '../app';
 import { IpcRegistry } from '../decorators/ipc-registry';
 import { captureLoupeFrame, releaseLoupeFrame, sampleLoupeRectangle, sampleLoupeRegion } from '../loupe-capture';
+import { MapsforgeManager } from '../../mapsforge/mapsforge-manager';
 
 let exrInitPromise: Promise<void> | undefined;
 let vipsInitPromise: Promise<typeof Vips> | undefined;
@@ -891,7 +892,8 @@ export default class ElectronEvents {
           injector.inject('Histogram'),
           injector.inject('OfflineMapManager'),
           injector.inject('OsmAndManager'),
-          injector.inject('OsmAndAtlasManager')
+          injector.inject('OsmAndAtlasManager'),
+          injector.inject('MapsforgeManager')
         ]
       );
 
