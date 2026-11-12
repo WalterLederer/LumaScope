@@ -3047,7 +3047,7 @@ export class MapWindow implements OnInit, OnDestroy {
     allMaps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()
   ): boolean {
     if (map.type !== 'mapsforge') return false;
-    const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\\.map$/i, '').toLowerCase() ?? '';
+    const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
     if (selectedPreset === 'austria') return baseName === 'austria';
     if (selectedPreset === 'austria-plus') {
       return [
@@ -3060,14 +3060,14 @@ export class MapWindow implements OnInit, OnDestroy {
     // list. E.g. Cyprus_europe.obf matches the Mapsforge file cyprus.map.
     const normalizeCountryName = (name: string): string => name
       .normalize('NFD')
-      .replace(/[\\u0300-\\u036f]/g, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
     const europeCountries = new Set(allMaps
       .filter(candidate => candidate.type === 'obf')
       .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
-      .filter(fileName => /_europe\\.obf$/i.test(fileName) && !/^world_basemap\\.obf$/i.test(fileName))
-      .map(fileName => fileName.replace(/_europe\\.obf$/i, ''))
+      .filter(fileName => /_europe\.obf$/i.test(fileName) && !/^world_basemap\.obf$/i.test(fileName))
+      .map(fileName => fileName.replace(/_europe\.obf$/i, ''))
       .map(normalizeCountryName));
     return europeCountries.has(normalizeCountryName(baseName));
   }
