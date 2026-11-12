@@ -44,6 +44,7 @@ public final class MapsforgeWorker {
     private DisplayModel displayModel;
     private RenderThemeFuture renderThemeFuture;
     private DatabaseRenderer renderer;
+    private float textScale = 1f;
     private String activeMapPath = "";
     private final java.util.List<String> activeMapPaths = new java.util.ArrayList<>();
     private final java.util.List<MapDataStore> activeMapStores = new java.util.ArrayList<>();
@@ -196,7 +197,8 @@ public final class MapsforgeWorker {
             // DisplayModel reads the static device scale when it is created.
             // Keep the XYZ output tile at 256 px while scaling labels and symbols
             // to the Windows display DPI reported by Electron.
-            DisplayModel.setDeviceScaleFactor(Math.max(1f, Math.min(4f, deviceScaleFactor)));
+            float effectiveScale = Math.max(1f, Math.min(4f, deviceScaleFactor));
+            DisplayModel.setDeviceScaleFactor(effectiveScale);
             DisplayModel newDisplayModel = new DisplayModel();
             newDisplayModel.setFixedTileSize(TILE_SIZE);
 
@@ -230,6 +232,7 @@ public final class MapsforgeWorker {
             this.activeMapStores.addAll(openedStores);
             this.tileCache = newTileCache;
             this.displayModel = newDisplayModel;
+            this.textScale = effectiveScale;
             this.renderThemeFuture = newThemeFuture;
             this.renderer = newRenderer;
             this.activeMapPaths.clear();
@@ -268,7 +271,7 @@ public final class MapsforgeWorker {
             throw new IllegalArgumentException("No loaded Mapsforge map covers tile z=" + zoom + " x=" + x + " y=" + y);
         }
         RendererJob job = new RendererJob(
-            tile, mapDataStore, renderThemeFuture, displayModel, 1.0f, false, false
+            tile, mapDataStore, renderThemeFuture, displayModel, textScale, false, false
         );
         TileBitmap bitmap = renderer.executeJob(job);
         if (bitmap == null) {
@@ -294,6 +297,7 @@ public final class MapsforgeWorker {
         renderer = null;
         renderThemeFuture = null;
         displayModel = null;
+        textScale = 1f;
         if (tileCache != null) {
             tileCache.destroy();
             tileCache = null;
