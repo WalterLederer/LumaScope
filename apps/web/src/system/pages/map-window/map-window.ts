@@ -3526,9 +3526,17 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private updateHillshadePresetFromSelection(databases: OsmAndHillshadeDatabase[]): void {
     const available = databases.filter(database => database.available);
-    if (!available.length) return;
+    const allEnabled = available.length > 0 && available.every(database => database.enabled);
+    const noneEnabled = available.length === 0 || available.every(database => !database.enabled);
+
+    // Explicit global selections take precedence over narrower presets.
+    // Otherwise, e.g. a list containing only Austrian files would be labelled
+    // "Austria" even when the user has selected every available file.
     const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
-    const matching = candidates.find(preset => available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
+    const matching = allEnabled ? 'all'
+      : noneEnabled ? 'none'
+      : candidates.find(preset => preset !== 'all' && preset !== 'none'
+        && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
     const next = matching ?? 'custom';
     this.hillshadePreset.set(next);
     this.saveSetting('hillshadePreset', next);
