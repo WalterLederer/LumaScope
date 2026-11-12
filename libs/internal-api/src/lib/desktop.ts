@@ -397,6 +397,36 @@ export interface DesktopOsmAndAtlas {
   readonly shutdown: () => Promise<void>;
 }
 
+export interface MapsforgeTileResult {
+  status: 'ok';
+  command?: string;
+  request_id?: number;
+  z?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  format?: 'png';
+  covering_map_count?: number;
+  png_base64?: string;
+  opened?: boolean;
+  map_path?: string;
+  map_paths?: string[];
+  map_count?: number;
+  tile_size?: number;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export interface DesktopMapsforge {
+  readonly getStatus: () => Promise<MapsforgeTileResult>;
+  readonly scanCatalog: (rootPath: string) => Promise<MapsforgeTileResult>;
+  readonly open: (mapPaths: string[], themePath?: string | null) => Promise<MapsforgeTileResult>;
+  readonly renderTile: (z: number, x: number, y: number) => Promise<MapsforgeTileResult>;
+  readonly close: () => Promise<MapsforgeTileResult>;
+  readonly shutdown: () => Promise<void>;
+}
+
 export interface Desktop {
   readonly ProcessManager: DesktopProcessManager;
   readonly Profiling: {
@@ -415,6 +445,7 @@ export interface Desktop {
   readonly OfflineMap: DesktopOfflineMap;
   readonly OsmAnd: DesktopOsmAnd;
   readonly OsmAndAtlas: DesktopOsmAndAtlas;
+  readonly Mapsforge: DesktopMapsforge;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
 
   openFolder: () => Promise<FileListing>;
