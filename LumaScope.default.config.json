@@ -240,7 +240,7 @@
       "dach": {
         "name": "DACH",
         "OsmAndRegex": "germany|deutschland|austria|österreich|osterreich|switzerland|schweiz|suisse|svizzera",
-        "mapsForgeRegex": "^(?:germany|austria|switzerland|liechtenstein)\\.map$"
+        "mapsForgeRegex": "^(?:germany|austria|switzerland)\\.map$"
       },
       "us": {
         "name": "US",
