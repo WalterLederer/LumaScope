@@ -39,7 +39,7 @@ type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
 
-interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
+interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; flipVertical?: boolean; }
 
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
@@ -4112,7 +4112,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const rotation = Number(settings?.rotation ?? 0);
       result[symbol] = {
         rotation: Number.isFinite(rotation) ? ((Math.round(rotation) % 360) + 360) % 360 : 0,
-        flipVertical: settings?.flipVertical === true
+        flipHorizontal: settings?.flipHorizontal === true || settings?.flipVertical === true
       };
     }
     return result;
@@ -4325,7 +4325,7 @@ export class MapWindow implements OnInit, OnDestroy {
       train: '🚆', bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
       tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵', rocket: '🚀'
     };
-    const symbolSettings = this.walkingFigureSymbolSettings()[figureType] ?? { rotation: 0, flipVertical: false };
+    const symbolSettings = this.walkingFigureSymbolSettings()[figureType] ?? { rotation: 0, flipHorizontal: false };
     const orientationOffset = this.walkingFigureOrientationOffset(figureType) + symbolSettings.rotation;
     // Automatically mirror the symbol when its travel direction points to the
     // left side of the map. The per-symbol checkbox remains an additional
