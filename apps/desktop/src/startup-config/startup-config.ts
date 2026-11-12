@@ -1,7 +1,6 @@
 import { appConfigName } from 'internal-api';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { updateAppSettingsSection } from '../settings/app-settings';
+import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 export class StartupConfig {
   private _bounds: Electron.Rectangle | null = null;
@@ -97,9 +96,7 @@ export class StartupConfig {
 
   private readonly load = () => {
     try {
-      const configPath = this.configPath();
-      const result = readFileSync(configPath, 'utf-8');
-      return JSON.parse(result);
+      return readAppSettings();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
         console.error('ERROR: Unable to load startup config file', error);
