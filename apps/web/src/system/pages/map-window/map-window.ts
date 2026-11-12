@@ -2799,7 +2799,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
-      if (this.activeSettingsTab() !== 'routing') return;
+      if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
@@ -2931,6 +2931,7 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('contextmenu', event => {
+      if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
@@ -3005,6 +3006,7 @@ export class MapWindow implements OnInit, OnDestroy {
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       renderer.map.on('contextmenu', event => {
+      if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
@@ -3111,6 +3113,7 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('contextmenu', event => {
+      if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
@@ -3132,7 +3135,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
     map.on('contextmenu', event => {
-      if (this.activeSettingsTab() !== 'routing') return;
+      if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
       this.addRouteWaypoint(event.latlng.lat, event.latlng.lng);
     });
