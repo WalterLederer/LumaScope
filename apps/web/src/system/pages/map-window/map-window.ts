@@ -3132,24 +3132,35 @@ export class MapWindow implements OnInit, OnDestroy {
     if (map.type !== 'mapsforge') return false;
     const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\.map$/i, '').toLowerCase() ?? '';
     if (baseName === 'world.map') return true;
-    if (selectedPreset !== 'europe') {
+    const regionSuffixes: Record<string, RegExp> = {
+      europe: /_europe\.obf$/i,
+      asia: /_asia\.obf$/i,
+      africa: /_africa\.obf$/i,
+      northamerica: /_northamerica\.obf$/i,
+      centralamerica: /_centralamerica\.obf$/i,
+      southamerica: /_southamerica\.obf$/i,
+      'australia-oceania': /_australia[-_]oceania\.obf$/i
+    };
+    const regionSuffix = regionSuffixes[selectedPreset];
+    if (!regionSuffix) {
       return this.presetMatchesFileName(selectedPreset, baseName);
     }
 
-    // For Europe, use the loaded OsmAnd country extracts as the authoritative
-    // list. E.g. Cyprus_europe.obf matches the Mapsforge file cyprus.map.
+    // Regional OsmAnd extracts are authoritative for Mapsforge country files:
+    // e.g. Cyprus_europe.obf -> cyprus.map and India_asia.obf -> india.map.
+    // A continent-wide file such as Asia.obf also maps to asia.map.
     const normalizeCountryName = (name: string): string => name
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
-    const europeCountries = new Set(allMaps
+    const regionMaps = new Set(allMaps
       .filter(candidate => candidate.type === 'obf')
       .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
-      .filter(fileName => /_europe\.obf$/i.test(fileName) && !/^world_basemap\.obf$/i.test(fileName))
-      .map(fileName => fileName.replace(/_europe\.obf$/i, ''))
+      .filter(fileName => this.presetMatchesFileName(selectedPreset, fileName))
+      .map(fileName => fileName.replace(/\.obf$/i, '').replace(regionSuffix, ''))
       .map(normalizeCountryName));
-    return europeCountries.has(normalizeCountryName(baseName));
+    return regionMaps.has(normalizeCountryName(baseName));
   }
 
   private getOfflineMapPresetForMaps(
