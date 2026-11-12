@@ -91,6 +91,355 @@
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       @if (activeImageSidebarTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
+        <section class="image-database-section">
+          <button class="section-heading" type="button" (click)="toggleSidebarSection('database')">
+            <span class="section-chevron">{{sidebarSectionExpanded('database') ? 'v' : '>'}}</span>SQLite database record
+          </button>
+          @if (sidebarSectionExpanded('database')) {
+            <div class="image-database-record-status" role="status">{{photoDatabaseRecordStatus()}}</div>
+            @if (photoDatabaseRecord()) {
+              <div class="image-database-record-path">
+                <span>Database file</span>
+                <code [title]="photoDatabaseRecord()?.['database_path'] ?? ''">{{photoDatabaseRecord()?.['database_path'] ?? '—'}}</code>
+              </div>
+              <div class="image-database-record" role="list" aria-label="SQLite database fields">
+                @for (entry of photoDatabaseRecordEntries(); track entry.key) {
+                  <div class="image-database-record-row" [class.is-expanded-id]="entry.isExpandedId" role="listitem">
+                    <span class="image-database-record-key">"{{entry.key}}"</span>: {{entry.value}}@if (entry.type) { <span class="image-database-record-type">[{{entry.type}}]</span>}@if (entry.expanded !== null) { <span [class.image-database-record-expanded]="!entry.isTimestamp && !entry.isFileSize" [class.image-database-record-timestamp]="entry.isTimestamp" [class.image-database-record-filesize]="entry.isFileSize">({{entry.expanded}})</span>}
+                  </div>
+                }
+              </div>
+            }
+            <div class="image-database-actions">
+              <button type="button" class="image-database-refresh-button" [disabled]="photoLocationResolveActive() || !gpsCoordinates()" (click)="resolveCurrentPhotoLocation()">{{photoLocationResolveActive() ? 'Resolving location…' : 'Resolve location'}}</button>
+              <button type="button" class="image-database-refresh-button" (click)="loadPhotoDatabaseRecord()">Refresh database record</button>
+            </div>
+            @if (photoLocationResolveError()) {
+              <textarea class="image-location-resolve-error" aria-label="Location lookup error" readonly rows="3" [value]="photoLocationResolveError()"></textarea>
+            }
+          }
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'capture') {
+        <section class="capture-window-launch" aria-label="Screen Capture">
+          <p>Screen Capture is available in its own window.</p>
+          <button type="button" class="capture-window-open-button" (click)="openCaptureWindow()">Open Screen Capture window…</button>
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'zoom') {
+      <section>
+        <button class="section-heading" (click)="toggleSidebarSection('zoom')"><span class="section-chevron">{{sidebarSectionExpanded('zoom') ? 'v' : '>'}}</span>Zoom</button>
+        @if (sidebarSectionExpanded('zoom')) {
+          <div class="viewer-zoom-controls" aria-label="Image zoom">
+            <button type="button" class="status-icon-button" (click)="resetZoom()" title="Reset zoom / fit to window" aria-label="Reset zoom">⟲</button>
+            <button type="button" class="status-icon-button" (click)="zoomOut()" title="Zoom out" aria-label="Zoom out">−</button>
+            <button type="button" class="status-icon-button" (click)="zoomIn()" title="Zoom in" aria-label="Zoom in">+</button>
+            <div class="viewer-zoom-slider"><ui-slider [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
+            <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
+          </div>
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'corrections') {
+      <section>
+        @if(sidebarSectionExpanded('corrections')) {
+          <section class="correction-subsection basic-correction-section">
+            <button class="section-heading" (click)="toggleSidebarSection('basic')"><span class="section-chevron">{{sidebarSectionExpanded('basic') ? 'v' : '>'}}</span>Basic</button>
+            @if (sidebarSectionExpanded('basic')) {
+              <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
+              <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="imageContrast()" (input)="setImageContrast($any($event.target).value)"/></label>
+              <label class="channel-control"><span><b>Gamma</b><span>{{imageGamma().toFixed(2)}}</span></span><input type="range" min="0.1" max="3" step=".01" [value]="imageGamma()" (input)="setImageGamma($any($event.target).value)" title="Gamma correction; 1.00 = unchanged"/></label>
+              <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
+            }
+          </section>
+          <section class="correction-subsection rgb-correction-section">
+            <button class="section-heading" (click)="toggleSidebarSection('rgbLevels')"><span class="section-chevron">{{sidebarSectionExpanded('rgbLevels') ? 'v' : '>'}}</span>RGB</button>
+            @if (sidebarSectionExpanded('rgbLevels')) {
+              <div class="rgb-correction-controls" aria-label="RGB channel levels">
+                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="redChannelLevel()" (input)="setRedChannelLevel($any($event.target).value)"/></label>
+                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="greenChannelLevel()" (input)="setGreenChannelLevel($any($event.target).value)"/></label>
+                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="blueChannelLevel()" (input)="setBlueChannelLevel($any($event.target).value)"/></label>
+              </div>
+            }
+          </section>
+          <section class="correction-subsection inverse-section">
+            <button class="section-heading" (click)="toggleSidebarSection('inverse')"><span class="section-chevron">{{sidebarSectionExpanded('inverse') ? 'v' : '>'}}</span>Inverse</button>
+            @if (sidebarSectionExpanded('inverse')) {
+              <div class="rgb-inversion-controls">
+                <div class="rgb-inversion-row">
+                  <label><input type="checkbox" [checked]="invertRedChannel()" (change)="setInvertRedChannel($any($event.target).checked)"/> R</label>
+                  <label><input type="checkbox" [checked]="invertGreenChannel()" (change)="setInvertGreenChannel($any($event.target).checked)"/> G</label>
+                  <label><input type="checkbox" [checked]="invertBlueChannel()" (change)="setInvertBlueChannel($any($event.target).checked)"/> B</label>
+                  <label><input type="checkbox" [checked]="invertAllRgbChannels()" (change)="setInvertAllRgbChannels($any($event.target).checked)"/> All</label>
+                </div>
+              </div>
+            }
+          </section>
+          <section class="tone-curve-section">
+            <button class="section-heading" (click)="toggleSidebarSection('toneCurve')"><span class="section-chevron">{{sidebarSectionExpanded('toneCurve') ? 'v' : '>'}}</span>Tone curve</button>
+            @if (sidebarSectionExpanded('toneCurve')) {
+          <div class="tone-curve-controls">
+            <svg class="tone-curve" viewBox="0 0 120 72" role="img" aria-label="Tone curve with adjustable black and white points">
+              <path class="tone-curve-grid" d="M4 4V68H116M4 36H116M60 4V68" />
+              <path class="tone-curve-line" [attr.d]="'M4 68 H' + (4 + blackPoint() * 56) + ' L' + (4 + whitePoint() * 56) + ' 4 H116'" />
+            </svg>
+            <label class="channel-control"><span><span>Black point</span><span>{{(blackPoint()*100).toFixed(0)}}%</span></span><input type="range" min="0" [max]="whitePoint() - 0.01" step=".005" [value]="blackPoint()" (input)="setBlackPoint($any($event.target).value)"/></label>
+            <label class="channel-control"><span><span>White point</span><span>{{(whitePoint()*100).toFixed(0)}}%</span></span><input type="range" [min]="blackPoint() + 0.01" max="2" step=".01" [value]="whitePoint()" (input)="setWhitePoint($any($event.target).value)"/></label>
+          </div>
+            }
+          </section>
+          <button (click)="resetCorrections()">Reset corrections</button>
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'highlight') {
+      <section><strong class="section-title">Highlight</strong>
+        @if (sidebarSectionExpanded('highlight')) {
+          <label class="hdr-highlight-toggle"><input type="checkbox" [checked]="highlightHdrPixels()" (change)="setHdrPixelHighlight($any($event.target).checked)"/> Highlight HDR pixels</label>
+          @if (highlightHdrPixels()) {
+            <label class="hdr-threshold-control">
+              <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{hdrHighlightThresholdNits().toLocaleString()}} nits</span></span>
+              <input type="range" min="1" max="125" step="0.1" [value]="hdrHighlightThreshold()" (input)="setHdrHighlightThreshold($any($event.target).value)" aria-label="HDR highlight threshold from 80 to 10000 nits"/>
+            </label>
+          }
+          <label class="sdr-overexposure-toggle"><input type="checkbox" [checked]="highlightSdrOverexposure()" (change)="setSdrOverexposureHighlight($any($event.target).checked)"/> Highlight overexposed SDR pixels</label>
+          @if (highlightSdrOverexposure()) {
+            <label class="sdr-overexposure-threshold">
+              <span><b>SDR threshold</b><span>{{sdrOverexposureThreshold()}} / 255</span></span>
+              <input type="range" min="0" max="255" step="1" [value]="sdrOverexposureThreshold()" (input)="setSdrOverexposureThreshold($any($event.target).value)" aria-label="SDR overexposure threshold from 0 to 255"/>
+            </label>
+          }
+          <label class="sdr-underexposure-toggle"><input type="checkbox" [checked]="highlightSdrUnderexposure()" (change)="setSdrUnderexposureHighlight($any($event.target).checked)"/> Highlight underexposed SDR pixels</label>
+          @if (highlightSdrUnderexposure()) {
+            <label class="sdr-underexposure-threshold">
+              <span><b>SDR shadow threshold</b><span>{{sdrUnderexposureThreshold()}} / 255</span></span>
+              <input type="range" min="0" max="64" step="1" [value]="sdrUnderexposureThreshold()" (input)="setSdrUnderexposureThreshold($any($event.target).value)" aria-label="SDR underexposure threshold from 0 to 64"/>
+            </label>
+          }
+        }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'zoom') {
+      <section><button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
+        @if(sidebarSectionExpanded('loupe')) {
+          <button class="section-heading" (click)="toggleSidebarSection('magnifierSettings')"><span class="section-chevron">{{sidebarSectionExpanded('magnifierSettings') ? 'v' : '>'}}</span>Magnifier Settings</button>
+          @if(sidebarSectionExpanded('magnifierSettings')) {
+            <label class="channel-control"><span><b>Magnifier zoom (mouse wheel)</b><span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
+            <label class="channel-control"><span><b>Magnifier size</b><span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
+            <label class="channel-control"><span><b>Magnifier brightness</b><span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
+            <div class="channel-control"><b>Magnifier Shape</b><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
+            <section><button class="section-heading" (click)="toggleSidebarSection('loupeRenderer')"><span class="section-chevron">{{sidebarSectionExpanded('loupeRenderer') ? 'v' : '>'}}</span>Magnifier renderer</button>@if(sidebarSectionExpanded('loupeRenderer')) {<button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>}</section>
+          }
+        }
+      @if (sidebarSectionExpanded('loupe') && loupeEnabled()) {
+        <section class="loupe-info-box location-info-box" aria-label="Location pixel information">
+          <div class="loupe-info-heading location-heading">
+            <span class="loupe-coordinates">
+              @if (loupeSample(); as sample) {
+                X: {{ loupeSourcePoint().x }}/{{ imageDimensions().width > 0 ? imageDimensions().width - 1 : '—' }} · Y: {{ loupeSourcePoint().y }}/{{ imageDimensions().height > 0 ? imageDimensions().height - 1 : '—' }}
+              } @else {
+                X: —/{{ loupeCaptureGeometry()?.width || '—' }} · Y: —/{{ loupeCaptureGeometry()?.height || '—' }}
+              }
+            </span>
+          </div>
+          <section class="loupe-sdr-info" aria-label="SDR pixel information">
+            <div class="loupe-info-subheading"><span class="loupe-rgb-swatch" [style.background-color]="pixelColor() ? 'rgb(' + pixelColor()?.r + ' ' + pixelColor()?.g + ' ' + pixelColor()?.b + ')' : 'transparent'" aria-hidden="true"></span><span>SDR 0x (max=255)</span></div>
+            @if (pixelColor(); as rgb) {
+              <div class="loupe-channel-meters" aria-label="SDR RGB channel values and levels">
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.r.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="rgb.r / 255 * 100"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.g.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="rgb.g / 255 * 100"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ rgb.b.toString(16).padStart(2, '0').toUpperCase() }}</span>
+                  <span class="loupe-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="rgb.b / 255 * 100"></span></span>
+                </div>
+              </div>
+            } @else {
+              <div class="loupe-channel-meters">
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+              </div>
+            }
+          </section>
+          <section class="loupe-hdr-info" aria-label="HDR pixel information">
+            <div class="loupe-info-subheading"><span class="loupe-rgb-swatch loupe-hdr-swatch-container" aria-hidden="true"><canvas class="loupe-hdr-swatch-canvas"></canvas></span><span>HDR 0x (max=10k nits)</span></div>
+            @if (loupeHdrRgb(); as hdr) {
+              <div class="loupe-channel-meters hdr-rgb-channels" aria-label="HDR RGB channel values and levels; logarithmic scale to 10000 nits; scRGB 1.0 reference-white boundary">
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.rHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="hdrRgbBarWidth(hdr.r)"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.gHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="hdrRgbBarWidth(hdr.g)"></span></span>
+                </div>
+                <div class="loupe-channel-meter">
+                  <span class="loupe-channel-value">{{ hdr.bHex }}</span>
+                  <span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="hdrRgbBarWidth(hdr.b)"></span></span>
+                </div>
+              </div>
+              <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ hdr.r | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ hdr.g | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ hdr.b | number:'1.0-4' }}</span><span class="loupe-scrgb-label">scRGB</span></div>
+            } @else if (loupeCaptureError(); as captureError) {
+              <div class="loupe-capture-error" role="status">HDR pixel info unavailable: {{ captureError }}</div>
+            } @else {
+              <div class="loupe-channel-meters">
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+                <div class="loupe-channel-meter"><span class="loupe-channel-value">—</span><span class="loupe-rgb-track"></span></div>
+              </div>
+              <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-values">—</span><span class="loupe-scrgb-label">scRGB</span></div>
+            }
+          </section>
+          @if (loupeShowsCapturePreview()) {
+              <section class="loupe-hdr-info loupe-capture-pixel-info" aria-label="Capture preview FP16 pixel values">
+                <div class="loupe-info-subheading"><span class="loupe-rgb-swatch loupe-capture-rgb-swatch-container" aria-hidden="true"><canvas class="loupe-capture-rgb-swatch-canvas"></canvas></span><span>Capture preview · FP16/scRGB (raw values)</span></div>
+                @if (loupeCaptureRgb(); as captureRgb) {
+                  <div class="loupe-channel-meters hdr-rgb-channels">
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.rHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill red" [style.width.%]="hdrRgbBarWidth(captureRgb.r)"></span></span></div>
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.gHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill green" [style.width.%]="hdrRgbBarWidth(captureRgb.g)"></span></span></div>
+                    <div class="loupe-channel-meter"><span class="loupe-channel-value">{{ captureRgb.bHex }}</span><span class="loupe-rgb-track hdr-rgb-track"><span class="loupe-rgb-fill blue" [style.width.%]="hdrRgbBarWidth(captureRgb.b)"></span></span></div>
+                  </div>
+                  <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ captureRgb.r * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ captureRgb.g * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-values">{{ captureRgb.b * 0.5 | number:'1.0-4' }}</span><span class="loupe-scrgb-label">scRGB</span></div>
+                  <div class="loupe-hdr-linear"><span class="loupe-scrgb-values">{{ captureRgb.r * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-values">{{ captureRgb.g * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-values">{{ captureRgb.b * 40 | number:'1.0-1' }}</span><span class="loupe-scrgb-label">cd/m²</span></div>
+                  @if (loupeRgbDifference(); as diff) {
+                    <div class="loupe-hdr-linear" title="Hauptbild minus Capture Preview nach dem bestehenden Capture-Faktor 0,5">
+                      <span class="loupe-scrgb-values">{{ diff.r.delta | number:'1.0-4' }}<small> ({{ diff.r.percent === null ? '—' : diff.r.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-values">{{ diff.g.delta | number:'1.0-4' }}<small> ({{ diff.g.percent === null ? '—' : diff.g.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-values">{{ diff.b.delta | number:'1.0-4' }}<small> ({{ diff.b.percent === null ? '—' : diff.b.percent.toFixed(1) }}%)</small></span>
+                      <span class="loupe-scrgb-label">Δ scRGB (%)</span>
+                    </div>
+                  }
+                } @else { <div class="loupe-capture-error">No capture pixel at the current cursor position. Check that the preview source matches the current display/window.</div> }
+              </section>
+          }
+
+          <label class="histogram-capture-preview-toggle loupe-capture-preview-toggle">
+            <input type="checkbox" [checked]="loupeShowsCapturePreview()" (change)="loupeShowsCapturePreview.set($any($event.target).checked)" />
+            Show also capture preview
+          </label>
+          @if (loupeShowsCapturePreview()) {
+            @if (capturePreview) {
+              <figure class="loupe-capture-preview">
+                <canvas #loupeCapturePreviewCanvas aria-label="HDR Capture Preview at magnifier cursor coordinates"></canvas>
+                <figcaption>HDR Capture Preview · {{ capturePreview.width }} × {{ capturePreview.height }} · cursor pixel X: {{ loupeCaptureRgb()?.x ?? '—' }} · Y: {{ loupeCaptureRgb()?.y ?? '—' }}</figcaption>
+              </figure>
+              <figure class="loupe-capture-zoom-preview">
+                <div class="loupe-capture-zoom-viewport">
+                  <canvas #loupeCaptureZoomCanvas aria-label="WebGPU magnification of the HDR capture preview at the cursor pixel"></canvas>
+                  <div class="loupe-crosshair" aria-hidden="true"></div>
+                </div>
+                <figcaption>Capture preview · WebGPU magnifier · zoom {{ (loupePixelSize() * (loupeCaptureGeometry()?.scaleFactor ?? 1) / loupeSizeScale()).toFixed(2) }}× · center pixel X: {{ loupeCaptureRgb()?.x ?? '—' }} · Y: {{ loupeCaptureRgb()?.y ?? '—' }}</figcaption>
+              </figure>
+            } @else { <p class="loupe-capture-error">No capture preview available. Open the Capture tab and select “Preview source” first.</p> }
+          }
+        </section>
+      }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'view') {
+      <section><strong class="section-title">View mode (V)</strong>
+        @if(sidebarSectionExpanded('mode')) { <div class="mode-row">
+<button class="mode-button" [class.active]="comparisonMode()==='hdr'" [disabled]="!isHdrImage" (click)="setComparisonMode('hdr')" aria-label="HDR view" title="HDR view"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></button>
+<button class="mode-button" [class.active]="comparisonMode()==='sdr'" (click)="setComparisonMode('sdr')" aria-label="SDR view" title="SDR view"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"></button>
+<button class="mode-button" [class.active]="comparisonMode()==='side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('side-by-side')" aria-label="Side by side overlay" title="Side by side · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('stacked')" aria-label="Stacked overlay" title="Stacked · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair vertical overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='dual-side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-side-by-side')" aria-label="Full size side by side without overlay" title="Full size side by side · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+<button class="mode-button" [class.active]="comparisonMode()==='dual-stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-stacked')" aria-label="Full size stacked without overlay" title="Full size stacked · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair vertical"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
+</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><input type="range" min="1" max="99" [value]="comparisonSplit()" (input)="previewComparisonSplit($any($event.target).value)" (change)="setComparisonSplit($any($event.target).value)"/>} }
+      </section>
+      }
+      @if (activeImageSidebarTab() === 'histogram') {
+        <section class="histogram-inline" aria-label="SDR and HDR image histogram">
+          @if (histogramLoading()) {
+              <p>Calculating histogram…</p>
+            } @else if (histogramError()) {
+              <p>{{ histogramErrorMessage() }}</p>
+            } @else if (histogramData(); as histogram) {
+              <div class="histogram-legend">
+                <span class="white-legend">White / luminance</span>
+                <span class="red-legend">R</span>
+                <span class="green-legend">G</span>
+                <span class="blue-legend">B</span>
+                <span class="boundary-legend">100 cd/m²</span>
+              </div>
+              <div class="histogram-plots histogram-plots-stacked">
+                <div class="histogram-chart">
+                  <div class="histogram-chart-title">Linear</div>
+                  <svg class="histogram-plot"
+                       viewBox="0 0 256 160"
+                       role="img"
+                       aria-label="Linear luminance histogram including SDR and HDR"
+                       data-scale="linear"
+                       (mousemove)="onHistogramMouseMove($event)"
+                       (mouseleave)="onHistogramMouseLeave()">
+                    @for (tick of histogramPaths().linearYTicks; track tick.value) {
+                      <path class="histogram-grid" [attr.d]="'M0 ' + tick.y + 'H256'" />
+                      <text class="histogram-y-label" x="2" [attr.y]="tick.y - 2">{{ tick.value }}</text>
+                    }
+                    <path class="histogram-divider" [attr.d]="'M' + histogramPaths().linearBoundary + ' 4V152'" />
+                    <path class="histogram-white" [attr.d]="histogramPaths().linear.white" />
+                    <path class="histogram-red" [attr.d]="histogramPaths().linear.red" />
+                    <path class="histogram-green" [attr.d]="histogramPaths().linear.green" />
+                    <path class="histogram-blue" [attr.d]="histogramPaths().linear.blue" />
+                  </svg>
+                  <div class="histogram-axis"><span>0</span><span>{{ histogram.maximumNits | number:'1.0-0' }} cd/m²</span></div>
+                </div>
+                <div class="histogram-chart">
+                  <div class="histogram-chart-title">Logarithmic</div>
+                  <svg class="histogram-plot"
+                       viewBox="0 0 256 160"
+                       role="img"
+                       aria-label="Logarithmic luminance histogram including SDR and HDR"
+                       data-scale="logarithmic"
+                       (mousemove)="onHistogramMouseMove($event)"
+                       (mouseleave)="onHistogramMouseLeave()">
+                    @for (tick of histogramPaths().logarithmicYTicks; track tick.value) {
+                      <path class="histogram-grid" [attr.d]="'M0 ' + tick.y + 'H256'" />
+                      <text class="histogram-y-label" x="2" [attr.y]="tick.y - 2">{{ tick.value }}</text>
+                    }
+                    <path class="histogram-divider" [attr.d]="'M' + histogramPaths().logarithmicBoundary + ' 4V152'" />
+                    <path class="histogram-white" [attr.d]="histogramPaths().logarithmic.white" />
+                    <path class="histogram-red" [attr.d]="histogramPaths().logarithmic.red" />
+                    <path class="histogram-green" [attr.d]="histogramPaths().logarithmic.green" />
+                    <path class="histogram-blue" [attr.d]="histogramPaths().logarithmic.blue" />
+                  </svg>
+                  <div class="histogram-axis"><span>{{ histogram.minimumLogNits | number:'1.1-1' }} cd/m²</span><span>{{ histogram.maximumNits | number:'1.0-0' }} cd/m²</span></div>
+                </div>
+              </div>
+              <div class="histogram-readout" aria-live="polite">
+                {{ histogramHoverStatus() ?? 'Move over the histogram to inspect values' }}
+              </div>
+            }
+          <label class="histogram-capture-preview-toggle">
+            <input type="checkbox"
+                   [checked]="histogramUsesCapturePreview()"
+                   (change)="setHistogramCapturePreview($any($event.target).checked)" />
+            Use capture preview
+          </label>
+          @if (histogramUsesCapturePreview() && capturePreviewStore.frame(); as capturePreview) {
+            <figure class="histogram-capture-preview">
+              <canvas #histogramCaptureCanvas aria-label="HDR Capture Preview image used for histogram"></canvas>
+              <figcaption>HDR Capture Preview · {{ capturePreview.width }} × {{ capturePreview.height }}</figcaption>
+            </figure>
+          }
+        </section>
+      }
+      @if (activeImageSidebarTab() === 'location') {
+        <section class="capture-window-launch" aria-label="Image location window">
+          <p>Location is available in its own window.</p>
+          <button type="button" class="capture-window-open-button" (click)="openLocationWindow()">Open Location window…</button>
+          <button type="button" class="capture-window-open-button" (click)="openOverlayWindow()">Open overlay window…</button>
+        </section>
+
+      }
+      @if (activeImageSidebarTab() === 'image') {
+      <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
         <section class="image-actions-section">
           <button class="section-heading" type="button" (click)="toggleSidebarSection('actions')"><span class="section-chevron">{{sidebarSectionExpanded('actions') ? 'v' : '>'}}</span>Actions</button>
           @if (sidebarSectionExpanded('actions')) {
