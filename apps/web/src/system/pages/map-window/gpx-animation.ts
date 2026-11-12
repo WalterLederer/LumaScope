@@ -13,13 +13,18 @@ export interface GpxSymbolTransformOptions {
 
 export const GPX_VEHICLE_SYMBOLS: Readonly<Record<string, string>> = {
   car: '🚗', carFront: '🚘', suv: '🚙',
-  taxi: '🚕', taxiFront: '🚖', racecar: '🏎️', van: '🚐', pickup: '🛻',
+  taxi: '🚕', taxiFront: '🚖', autoRickshaw: '🛺',
+  racecar: '🏎️', van: '🚐', pickup: '🛻',
   ambulance: '🚑', police: '🚓', policeFront: '🚔', firetruck: '🚒',
   bus: '🚌', busFront: '🚍', trolleybus: '🚎',
-  truck: '🚚', delivery: '🚛', plane: '✈️', helicopter: '🚁',
-  train: '🚆', bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
-  tractor: '🚜', boat: '🚤', ship: '🚢', sailboat: '⛵',
-  cableCar: '🚡', rocket: '🚀'
+  truck: '🚚', delivery: '🚛', tractor: '🚜',
+  plane: '✈️', smallPlane: '🛩️', helicopter: '🚁', flyingSaucer: '🛸',
+  train: '🚆', locomotive: '🚂', railCar: '🚃', tram: '🚋',
+  mountainRailway: '🚞', monorail: '🚝', highSpeedTrain: '🚄',
+  bulletTrain: '🚅', lightRail: '🚈', metro: '🚇',
+  bicycle: '🚲', motorcycle: '🏍️', scooter: '🛵',
+  boat: '🚤', motorYacht: '🛥️', ferry: '⛴️', cruiseShip: '🛳️',
+  canoe: '🛶', ship: '🚢', sailboat: '⛵', cableCar: '🚡', rocket: '🚀'
 };
 
 export const GPX_SYMBOLS: Readonly<Record<string, string>> = {
@@ -41,9 +46,24 @@ export function normalizeGpxSymbolSettings(
   return result;
 }
 
-/** Converts a compass bearing (0° north, 90° east) to the artwork's local axis. */
+/**
+ * Converts compass bearings (0° north, 90° east) to each glyph's artwork axis.
+ * Side-view vehicle emoji in Segoe UI Emoji face left, so +90° aligns them
+ * with a northbound heading. Front-facing and top-down glyphs already point up.
+ */
+const GPX_SYMBOL_ORIENTATION_OFFSETS: Readonly<Record<string, number>> = {
+  walker: 0,
+  carFront: 0, taxiFront: 0, policeFront: 0, busFront: 0,
+  plane: 0, smallPlane: 0, helicopter: 0, flyingSaucer: 0,
+  bicycle: 90, motorcycle: 90, scooter: 90,
+  boat: 0, motorYacht: 0, ferry: 0, cruiseShip: 0, canoe: 0, ship: 0, sailboat: 0,
+  cableCar: 0, rocket: 0
+};
+
 export function gpxSymbolOrientationOffset(figureType: string): number {
-  return figureType === 'walker' ? 0 : -90;
+  return Object.hasOwn(GPX_SYMBOL_ORIENTATION_OFFSETS, figureType)
+    ? GPX_SYMBOL_ORIENTATION_OFFSETS[figureType]
+    : 90;
 }
 
 /** Returns one canonical CSS transform for preview, Leaflet and MapLibre DOM markers. */
@@ -59,7 +79,7 @@ export function buildGpxSymbolTransform(options: GpxSymbolTransformOptions): str
   const flipHorizontal = autoFlipDirection
     ? settings.flipHorizontal !== movingLeft
     : settings.flipHorizontal;
-  const flipVertical = figureType !== 'walker';
+  const flipVertical = false;
   return [
     `rotate(${bearing + rotation}deg)`,
     flipVertical ? 'scaleY(-1)' : '',
