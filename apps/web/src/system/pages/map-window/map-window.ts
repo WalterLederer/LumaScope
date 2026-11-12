@@ -7,6 +7,7 @@ import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimation
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; regex: string; }
+interface OsmAndToMapsForgeMapping { osmAnd: string; mapsForge: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
@@ -1551,6 +1552,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return maps;
   });
   protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
+  private readonly osmAndToMapsForgeMappings = signal<OsmAndToMapsForgeMapping[]>([]);
   protected readonly offlineMapPreset = signal<string>(this.readSetting('offlineMapPreset', 'austria'));
   protected readonly hillshadePreset = signal<string>(this.readSetting('hillshadePreset', 'austria'));
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
@@ -1749,6 +1751,16 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnInit(): void {
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
+      const configuredMappings = offlineSettings?.['OsmAndToMapsForge'];
+      if (Array.isArray(configuredMappings)) {
+        this.osmAndToMapsForgeMappings.set(configuredMappings.flatMap(entry => {
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+          const mapping = entry as Record<string, unknown>;
+          return typeof mapping['OsmAnd'] === 'string' && typeof mapping['MapsForge'] === 'string'
+            ? [{ osmAnd: mapping['OsmAnd'], mapsForge: mapping['MapsForge'] }]
+            : [];
+        }));
+      }
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
         const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
@@ -3154,7 +3166,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
-    const mappings = this.readOsmAndToMapsForgeMappings();
+    const mappings = this.osmAndToMapsForgeMappings();
     const regionMaps = new Set(allMaps
       .filter(candidate => candidate.type === 'obf')
       .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
@@ -3170,20 +3182,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return regionMaps.has(normalizeCountryName(baseName));
   }
 
-  private readOsmAndToMapsForgeMappings(): Array<{ osmAnd: string; mapsForge: string }> {
-    const settings = this.defaultConfig?.['offlineMaps'];
-    const configured = settings && typeof settings === 'object'
-      ? (settings as Record<string, unknown>)['OsmAndToMapsForge']
-      : null;
-    if (!Array.isArray(configured)) return [];
-    return configured.flatMap(entry => {
-      if (!entry || typeof entry !== 'object') return [];
-      const item = entry as Record<string, unknown>;
-      return typeof item['OsmAnd'] === 'string' && typeof item['MapsForge'] === 'string'
-        ? [{ osmAnd: item['OsmAnd'], mapsForge: item['MapsForge'] }]
-        : [];
-    });
-  }
+
   }
 
   private getOfflineMapPresetForMaps(
