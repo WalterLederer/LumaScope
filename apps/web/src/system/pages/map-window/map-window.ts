@@ -1542,7 +1542,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
-  protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas' | 'mapsforge'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : 'online');
+  protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas' | 'mapsforge'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : this.readSetting('source', 'online') === 'mapsforge' ? 'mapsforge' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly osmAndStyle = signal('default.render.xml');
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
@@ -1969,7 +1969,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
-      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
+      if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
         // Re-evaluate the geographic coverage for every selected photo. This
         // also handles transitions between offline maps and the online fallback.
         void this.initialize(nextLatitude!, nextLongitude!);
