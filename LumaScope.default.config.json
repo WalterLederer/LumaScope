@@ -247,6 +247,30 @@
         "name": "Europe",
         "regex": "(?:^|[_. -])europe(?:[_. -]|$)"
       },
+      "asia": {
+        "name": "Asia",
+        "regex": "(?:^|[_-])asia\\.obf$"
+      },
+      "africa": {
+        "name": "Africa",
+        "regex": "(?:^|[_-])africa\\.obf$"
+      },
+      "northamerica": {
+        "name": "Northamerica",
+        "regex": "(?:^|[_-])northamerica\\.obf$"
+      },
+      "centralamerica": {
+        "name": "Centralamerica",
+        "regex": "(?:^|[_-])centralamerica\\.obf$"
+      },
+      "southamerica": {
+        "name": "Southamerica",
+        "regex": "(?:^|[_-])southamerica\\.obf$"
+      },
+      "australia-oceania": {
+        "name": "Australia-oceania",
+        "regex": "(?:^|[_-])australia[-_]oceania\\.obf$"
+      },
       "all": {
         "name": "All",
         "regex": ".*"
