@@ -1912,12 +1912,17 @@ export class MapWindow implements OnInit, OnDestroy {
           const savedThemePath = typeof mapsforge?.['themePath'] === 'string' ? mapsforge['themePath'] : '';
           this.mapsforgeThemeFolder.set(themeFolder);
           if (themeFolder) {
-            const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
-            this.mapsforgeThemes.set(themes);
-            const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? themes[0] ?? null;
-            this.mapsforgeThemePath.set(selectedTheme?.path ?? '');
-            if (selectedTheme && selectedTheme.path !== savedThemePath) {
-              await this.desktop!.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder, themePath: selectedTheme.path });
+            try {
+              const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
+              this.mapsforgeThemes.set(themes);
+              const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? themes[0] ?? null;
+              this.mapsforgeThemePath.set(selectedTheme?.path ?? '');
+              if (selectedTheme && selectedTheme.path !== savedThemePath) {
+                await this.desktop!.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder, themePath: selectedTheme.path });
+              }
+              if (themes.length === 0) this.mapsforgeThemeError.set('No Mapsforge XML render themes found in the selected folder.');
+            } catch (error) {
+              this.mapsforgeThemeError.set(error instanceof Error ? error.message : String(error));
             }
           }
 
