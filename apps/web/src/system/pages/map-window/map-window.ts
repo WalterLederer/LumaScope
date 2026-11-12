@@ -40,6 +40,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
+interface RouteWaypoint { latitude: number; longitude: number; }
 
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
@@ -79,6 +80,7 @@ interface MapErrorEntry {
 <nav class="settings-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
@@ -225,6 +227,35 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
   </div>
 </div>
+</div>
+<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
+  <div class="settings-tab-content routing-tab">
+    <div class="routing-toolbar">
+      <label class="routing-pick-toggle"><input type="checkbox" [checked]="routePointPicking()" (change)="changeRoutePointPicking($any($event.target).checked)"> Add route points by clicking the map</label>
+      <label>Travel mode
+        <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
+          <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking / hiking</option>
+        </select>
+      </label>
+    </div>
+    <div class="routing-key-row">
+      <label for="ors-api-key">openrouteservice API key</label>
+      <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
+      <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
+    </div>
+    <div class="routing-points-list">
+      @for (point of routeWaypoints(); track $index; let i = $index) {
+        <div class="routing-point-row"><span class="routing-point-index">{{ i + 1 }}.</span><span>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</span><button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button></div>
+      }
+      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Enable map clicking and select at least two locations.</span> }
+    </div>
+    <div class="routing-actions">
+      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || routeWaypoints().length < 2 || !routeApiKey().trim()">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Clear points</button>
+      <span class="offline-map-status">{{ routeStatus() }}</span>
+    </div>
+    @if (routeWaypoints().length > 50) { <span class="gpx-error">openrouteservice supports at most 50 waypoints per request.</span> }
+  </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
   <div class="settings-tab-content time-slider-tab">
@@ -1375,13 +1406,13 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryPhotoTimestampMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
   private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
@@ -1695,6 +1726,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
+  protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
+  protected readonly routePointPicking = signal(false);
+  protected readonly routeProfile = signal<'driving-car' | 'cycling-regular' | 'foot-walking'>('driving-car');
+  protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
+  protected readonly routeBusy = signal(false);
+  protected readonly routeStatus = signal('');
+  private routeWaypointMarkers: Array<{ remove(): void }> = [];
+  private routeRequestGeneration = 0;
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
@@ -1872,7 +1911,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
         this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
       }
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -2696,6 +2735,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('zoomend', syncOfflineZoom);
+    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    this.updateRouteWaypointMarkers();
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
@@ -2822,6 +2863,8 @@ export class MapWindow implements OnInit, OnDestroy {
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    this.updateRouteWaypointMarkers();
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
@@ -3020,6 +3063,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
+    (map as unknown as { on: (event: string, callback: (event: { latlng: { lat: number; lng: number } }) => void) => unknown }).on('click', event => this.addRouteWaypoint(event.latlng.lat, event.latlng.lng));
+    this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
@@ -4820,6 +4865,112 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return result;
   }
+
+  protected readonly changeRouteApiKey = (value: string): void => {
+    this.routeApiKey.set(value);
+    this.persistLocationUiState({ openRouteServiceApiKey: value || undefined });
+  };
+
+  protected readonly changeRoutePointPicking = (enabled: boolean): void => {
+    this.routePointPicking.set(enabled);
+    this.routeStatus.set(enabled ? 'Click the map to add ordered route points.' : '');
+    if (enabled) this.selectSettingsTab('routing');
+  };
+
+  protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
+    if (!this.routePointPicking() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
+    this.routeWaypoints.update(points => [...points, { latitude, longitude }]);
+    this.updateRouteWaypointMarkers();
+  };
+
+  protected readonly removeRouteWaypoint = (index: number): void => {
+    this.routeWaypoints.update(points => points.filter((_, i) => i !== index));
+    this.updateRouteWaypointMarkers();
+  };
+
+  protected readonly clearRouteWaypoints = (): void => {
+    this.routeWaypoints.set([]);
+    this.updateRouteWaypointMarkers();
+    this.routeStatus.set('');
+  };
+
+  private updateRouteWaypointMarkers(): void {
+    for (const marker of this.routeWaypointMarkers) marker.remove();
+    this.routeWaypointMarkers = [];
+    const points = this.routeWaypoints();
+    if (this.offlineRenderer) {
+      this.offlineRenderer.setRouteWaypoints(points);
+      return;
+    }
+    if (!this.map || !this.leaflet) return;
+    points.forEach((point, index) => {
+      const icon = this.leaflet!.divIcon({
+        className: 'routing-waypoint-icon',
+        html: '<span>' + (index + 1) + '</span>',
+        iconSize: [26, 26], iconAnchor: [13, 13]
+      });
+      this.routeWaypointMarkers.push(this.leaflet!.marker([point.latitude, point.longitude], { icon }).addTo(this.map!) as MapMarker & { remove(): void });
+    });
+  }
+
+  protected readonly calculateRoute = async (): Promise<void> => {
+    const points = this.routeWaypoints();
+    const apiKey = this.routeApiKey().trim();
+    if (!apiKey) { this.routeStatus.set('Enter your personal API key first.'); return; }
+    if (points.length < 2) { this.routeStatus.set('Add at least two route points.'); return; }
+    if (points.length > 50) { this.routeStatus.set('A maximum of 50 waypoints is supported by the hosted service.'); return; }
+    const generation = ++this.routeRequestGeneration;
+    this.routeBusy.set(true);
+    this.routeStatus.set('Requesting route from openrouteservice…');
+    try {
+      const response = await fetch('https://api.openrouteservice.org/v2/directions/' + this.routeProfile() + '/geojson', {
+        method: 'POST',
+        headers: { 'Authorization': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/geo+json, application/json' },
+        body: JSON.stringify({ coordinates: points.map(point => [point.longitude, point.latitude]), instructions: false })
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error('openrouteservice returned HTTP ' + response.status + ': ' + detail.slice(0, 500));
+      }
+      const payload = await response.json() as { features?: Array<{ geometry?: { type?: string; coordinates?: number[][] } }> };
+      const coordinates = payload.features?.[0]?.geometry?.coordinates;
+      if (!coordinates || coordinates.length < 2) throw new Error('The routing service returned no usable route geometry.');
+      const routePoints = coordinates.filter(point => Array.isArray(point) && point.length >= 2
+        && Number.isFinite(point[0]) && Number.isFinite(point[1]))
+        .map(point => ({ latitude: point[1], longitude: point[0] }));
+      if (routePoints.length < 2) throw new Error('The returned route contains fewer than two valid coordinates.');
+      if (generation !== this.routeRequestGeneration) return;
+      const defaultName = 'Route-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.gpx';
+      const lastTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
+      const folder = lastTrack ? await this.desktop!.FileSystem.dirname(lastTrack.path) : '';
+      const suggestedPath = folder ? await this.desktop!.FileSystem.join(folder, defaultName) : defaultName;
+      const save = await this.desktop!.Dialogs.saveFile(suggestedPath);
+      if (!save.success) { this.routeStatus.set('Route calculated; saving was cancelled.'); return; }
+      const destination = save.data;
+      const fileName = destination.split(/[\\/]/).pop() || defaultName;
+      const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
+      const content = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, '')) + '</name><trkseg>\n' + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
+      const written = await this.desktop!.FileSystem.writeText(destination, content);
+      if (!written.success) throw new Error(written.errorMessage);
+      const parsed = this.parseGpxTrackData(content);
+      const track: GpxTrackFile = { path: destination, name: fileName, sizeBytes: new Blob([content]).size, lastModified: Date.now(), active: true,
+        color: this.gpxColors[this.gpxTracks().length % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid', lineWidth: 4 };
+      this.gpxTracks.set([...this.gpxTracks(), track]);
+      this.gpxSegmentsByTrack.set(destination, parsed);
+      this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
+      await this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
+      this.rebuildGpxSegments();
+      this.applyGpxTrack();
+      this.fitGpxTrack(destination);
+      this.routeStatus.set('Route saved and added to the GPX track list.');
+      this.routePointPicking.set(false);
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (generation === this.routeRequestGeneration) this.routeBusy.set(false);
+    }
+  };
 
   protected readonly generateGpxFromMarkers = async (): Promise<void> => {
     const desktop = this.desktop;
