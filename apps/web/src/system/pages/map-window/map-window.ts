@@ -1770,7 +1770,14 @@ export class MapWindow implements OnInit, OnDestroy {
           return typeof preset['name'] === 'string' && typeof preset['regex'] === 'string'
             ? [{ id, name: preset['name'], regex: preset['regex'] }] : [];
         });
-        if (options.length) this.mapPresetOptions.set(options);
+        if (options.length) {
+          this.mapPresetOptions.set(options);
+          const loadedMaps = this.offlineMaps();
+          const matchingPreset = loadedMaps.length ? this.getOfflineMapPresetForMaps(loadedMaps) : null;
+          if (matchingPreset) this.offlineMapPreset.set(matchingPreset);
+          const loadedHillshade = this.hillshadeDatabases();
+          if (loadedHillshade.length) this.updateHillshadePresetFromSelection(loadedHillshade);
+        }
       }
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
       const savedSymbolSettings = saved?.['timeSliderSymbolSettings']
@@ -4168,57 +4175,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('walkingFigureType', value);
     this.updateWalkingMarker();
   };
-  protected readonly walkingFigureTypeName = (): string => {
-    const names: Record<string, string> = {
-    walker: 'Walking person',
-    car: 'Car (PKW)',
-    carFront: 'Car (front)',
-    suv: 'SUV',
-    taxi: 'Taxi',
-    taxiFront: 'Taxi (front)',
-    racecar: 'Race car',
-    van: 'Van',
-    pickup: 'Pickup',
-    ambulance: 'Ambulance',
-    police: 'Police car',
-    policeFront: 'Police car (front)',
-    firetruck: 'Fire engine',
-    bus: 'Bus',
-    busFront: 'Bus (front)',
-    trolleybus: 'Trolleybus',
-    truck: 'Truck',
-    delivery: 'Delivery truck',
-    plane: 'Airplane',
-    helicopter: 'Helicopter',
-    train: 'Train',
-    bicycle: 'Bicycle',
-    motorcycle: 'Motorcycle',
-    scooter: 'Scooter',
-    tractor: 'Tractor',
-    boat: 'Motorboat',
-    ship: 'Ship',
-    sailboat: 'Sailboat',
-    cableCar: 'Cable car',
-    autoRickshaw: 'Auto rickshaw',
-    rocket: 'Rocket',
-    smallPlane: 'Small airplane',
-    flyingSaucer: 'Flying saucer',
-    locomotive: 'Steam locomotive',
-    railCar: 'Rail car',
-    tram: 'Tram',
-    mountainRailway: 'Mountain railway',
-    monorail: 'Monorail',
-    highSpeedTrain: 'High-speed train',
-    bulletTrain: 'Bullet train',
-    lightRail: 'Light rail',
-    metro: 'Metro',
-    motorYacht: 'Motor yacht',
-    ferry: 'Ferry',
-    cruiseShip: 'Cruise ship',
-    canoe: 'Canoe',
-  };
-    return names[this.walkingFigureType()] ?? 'Walking person';
-  };
+
   private normalizeWalkingFigureSymbolSettings(value: Record<string, Partial<TimeSliderSymbolSettings>>): Record<string, TimeSliderSymbolSettings> {
     return normalizeGpxSymbolSettings(value);
   }
