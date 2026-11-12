@@ -1372,7 +1372,7 @@ interface MapErrorEntry {
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-pick-toggle{display:flex;align-items:center;gap:6px}
+    .routing-pick-hint{display:flex;align-items:center;gap:6px}
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
