@@ -35,15 +35,7 @@ export class OfflineMapManager {
  @IpcHandler({name:'OfflineMap.checkForUpdates'})
  readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
   const offlineSettings=(readAppSettings().offlineMaps??{}) as Record<string,unknown>;
-  const defaultSources=[
-   {url:'https://download.geofabrik.de/europe/austria.html',fileType:'mbtiles' as const,useForUpdates:false},
-   {url:'https://www.limaps.org/tileserver.html',fileType:'mbtiles' as const,useForUpdates:true},
-   {url:'https://shortbread-tiles.org/download/',fileType:'mbtiles' as const,useForUpdates:false},
-   {url:'https://download.osmand.net/list.php',fileType:'obf' as const,useForUpdates:true},
-   {url:'https://github.com/osmandapp/OsmAnd-resources',fileType:'obf' as const,useForUpdates:false},
-   {url:'https://fides.fe.uni-lj.si/~arpadb/osmand/',fileType:'obf' as const,useForUpdates:true}
-  ];
-  const savedSources=Array.isArray(offlineSettings.updateSources)&&offlineSettings.updateSources.length>0?offlineSettings.updateSources:defaultSources;
+  const savedSources=Array.isArray(offlineSettings.updateSources)?offlineSettings.updateSources:[];
   const sources=savedSources.filter((entry):entry is {url:string;fileType:'obf'|'mbtiles';useForUpdates:boolean}=>{
    if(!entry||typeof entry!=='object')return false;
    const source=entry as Record<string,unknown>;
