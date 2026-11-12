@@ -1091,9 +1091,16 @@ export class CacheManager {
         WHERE id = :id`);
       const canonical = new Map<string, number>();
       for (const item of rows) {
-        const folder = /^[a-z]:/i.test(item.folder_path)
+        let folder: string | null = /^[a-z]:/i.test(item.folder_path)
           ? this.toRelativeFolderPath(item.folder_path, databaseKey)
           : item.folder_path.replace(/[\\/]+/g, '\\').replace(/^\\+|\\+$/g, '');
+        if (folder !== null) {
+          const driveRoot = resolve(databaseKey + '\\');
+          const normalized = relative(driveRoot, resolve(driveRoot, folder));
+          folder = normalized === '..' || normalized.startsWith('..' + sep) || isAbsolute(normalized)
+            ? null
+            : normalized.replace(/[\\/]+/g, '\\').replace(/\\+$/, '');
+        }
         if (folder !== null && (isAbsolute(folder) || /^[a-z]:/i.test(folder) || folder === '..' || folder.startsWith('..' + sep))) {
           deletePathPhotos.run({ id: item.id });
           deletePath.run({ id: item.id });
