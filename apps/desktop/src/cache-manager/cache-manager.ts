@@ -35,7 +35,8 @@ export interface CacheSummary {
   thumbnails: CacheClearResult;
   sidecar: CacheClearResult;
   gps: CacheClearResult;
-  databases: Array<{ path: string; bytes: number }>;
+  selectedDatabaseKey: string | null;
+  databases: Array<{ key: string; path: string; bytes: number }>;
 }
 
 interface PhotoRow {
