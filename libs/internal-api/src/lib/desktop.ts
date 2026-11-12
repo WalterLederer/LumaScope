@@ -77,7 +77,8 @@ export interface CacheSummary {
   thumbnails: CacheClearResult;
   sidecar: CacheClearResult;
   gps: CacheClearResult;
-  databases: Array<{ path: string; bytes: number }>;
+  selectedDatabaseKey: string | null;
+  databases: Array<{ key: string; path: string; bytes: number }>;
 }
 
 export type PhotoDatabaseRecord = Record<string, string | number | null>;
@@ -109,7 +110,7 @@ export interface DesktopCacheManager {
   readonly cancelClear: (operationId: string) => Promise<boolean>;
   readonly deleteImage: (sourceName: string) => Promise<CacheClearResult>;
   readonly cacheSize: () => Promise<number>;
-  readonly getCacheSummary: () => Promise<CacheSummary>;
+  readonly getCacheSummary: (databaseKey?: string) => Promise<CacheSummary>;
   readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
   readonly cancelResolveMissingLocationNames: () => Promise<boolean>;
   readonly getBackgroundReverseGeocodingStatus: () => Promise<BackgroundReverseGeocodingStatus>;
