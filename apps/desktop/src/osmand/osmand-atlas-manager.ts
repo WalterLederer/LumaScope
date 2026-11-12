@@ -653,7 +653,7 @@ export class OsmAndAtlasManager {
       try {
         const appSettings = readAppSettings();
         const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-          filePaths?: unknown; obfPreset?: unknown;
+          filePaths?: unknown; obfPreset?: unknown; presets?: unknown;
         };
         if (Array.isArray(settings.filePaths)) {
           const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
@@ -682,10 +682,19 @@ export class OsmAndAtlasManager {
               if (preset === 'none') return false;
               if (isWorldBasemap) return true;
               if ((preset === 'austria' || preset === 'austria-plus') && /^Austria_europe\.obf$/i.test(name)) return false;
-              const isAustria = /austria|österreich|osterreich/i.test(name);
-              const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(name);
-              const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
-              return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : preset === 'austria-plus' ? isAustriaPlus : preset === 'europe' ? isEurope : false);
+              if (preset === 'all' || preset === 'custom') return true;
+              const definitions = settings.presets && typeof settings.presets === 'object'
+                ? settings.presets as Record<string, unknown> : {};
+              const definition = definitions[preset] && typeof definitions[preset] === 'object'
+                ? definitions[preset] as Record<string, unknown> : {};
+              const fallbackRegex: Record<string, string> = {
+                austria: 'austria|österreich|osterreich',
+                'austria-plus': 'austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein',
+                europe: '(?:^|[_. -])europe(?:[_. -]|$)'
+              };
+              const regex = typeof definition['regex'] === 'string'
+                ? definition['regex'] : fallbackRegex[preset] ?? '(?!)';
+              try { return new RegExp(regex, 'i').test(name); } catch { return false; }
             });
         }
       } catch { /* Keep configured fallback OBF maps. */ }
