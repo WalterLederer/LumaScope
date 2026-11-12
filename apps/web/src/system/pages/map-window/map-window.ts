@@ -260,9 +260,8 @@ interface MapErrorEntry {
               <label class="time-slider-speed-control time-slider-control-card"><span>Walking animation speed</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"></label>
             </section>
             <section class="time-slider-animation-panel time-slider-symbol-panel">
-              <h4>Symbol</h4>
+              <h4 class="time-slider-symbol-heading"><label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"> Symbol</label></h4>
               <div class="time-slider-symbol-controls-row">
-                <label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"></label>
                 <div class="time-slider-symbol-preview-row time-slider-symbol-preview-card">
                   <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                   <span class="time-slider-symbol-front">Front</span>
@@ -1061,6 +1060,8 @@ interface MapErrorEntry {
     .time-slider-control-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px}
     .time-slider-control-card>input[type="range"]{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-control-card>strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}
+    .time-slider-symbol-heading{display:flex;align-items:center;min-height:20px}
+    .time-slider-symbol-heading .time-slider-symbol-visibility{display:inline-flex;align-items:center;gap:7px}
     .time-slider-symbol-rotation{font-size:12px;color:var(--color-content-default-medium,#aaa)}.time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
@@ -1288,6 +1289,7 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
     :host-context(html[data-theme='light']) .settings-tabs .settings-tab.active{background:#31577d;border-color:#65a9ff;color:#fff}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
+    :host-context(html[data-theme='light']) .time-slider-control-card>strong{color:#000}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
   `],
