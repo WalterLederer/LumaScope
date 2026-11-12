@@ -37,6 +37,9 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
+  readonly clearOsmAndTileCache = (): Promise<CacheClearResult> =>
+    window.desktop.CacheManager.clearOsmAndTileCache();
+
   readonly resolveMissingLocationNames = (directory: string, recursive = false) =>
     window.desktop.CacheManager.resolveMissingLocationNames(directory, recursive);
 
