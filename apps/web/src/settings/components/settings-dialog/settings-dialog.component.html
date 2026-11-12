@@ -187,6 +187,21 @@
   @if (mode() !== 'cache') {
     <section class="format-details info-box">
       <details>
+        <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
+        <div class="format-list">
+          <table>
+            <thead><tr><th scope="col">Format</th><th scope="col">Extension</th><th scope="col">Renderer</th><th scope="col">Details</th></tr></thead>
+            <tbody>
+              @for (format of supportedMapFormats; track format.name) {
+                <tr><td><strong>{{ format.name }}</strong></td><td><span class="extensions">{{ format.extensions }}</span></td><td>{{ format.renderer }}</td><td>{{ format.details }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+    <section class="format-details info-box">
+      <details>
       <summary>Supported image formats · {{ formatSummary.hdr }} HDR formats · {{ formatSummary.sdr }} SDR formats · {{ formatSummary.decoders }} decoders</summary>
       <p class="format-note">Bit depth is per channel unless noted. Support for optional features can vary by file.</p>
       <div class="format-list">
