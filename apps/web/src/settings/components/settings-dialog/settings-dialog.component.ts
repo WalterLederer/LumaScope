@@ -161,12 +161,32 @@ export class SettingsPanelComponent {
       entry.functions.add(this.externalProgramFunction(call));
       programs.set(key, entry);
     }
-    // The bundled JPEG XR encoder is a known application helper. Its native
-    // invocation is not always captured by the external-process event monitor.
-    const jxrEncoder = 'jxr-wic-encoder.exe';
-    const jxrEntry = programs.get(jxrEncoder) ?? { programName: jxrEncoder, functions: new Set<string>() };
-    jxrEntry.functions.add('Encode an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder');
-    programs.set(jxrEncoder, jxrEntry);
+    // These renderer processes are launched as persistent workers rather than
+    // through the short-lived external-process wrapper, so seed them explicitly.
+    const knownPrograms: Array<[string, string]> = [
+      [
+        'osmand_atlas_render_helper.exe',
+        'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt). Loads the selected .obf map files, the external OsmAnd resources and the selected rendering-style XML; renders 2×2 XYZ metatiles as RGBA pixels, applies the display-density scale and caches rendered metatiles on disk.'
+      ],
+      [
+        'osmand_render_helper.exe',
+        'C++ OsmAnd native map renderer used for Hillshade database tiles. Reads elevation data directly from the selected SQLite hillshade database and returns rendered raster tiles; it runs independently of the Atlas OBF renderer.'
+      ],
+      [
+        'java.exe',
+        'Java Mapsforge renderer (Mapsforge 0.25.0). Runs the bundled mapsforge-renderer.jar as a persistent worker, reads selected .map files and renders 256×256 vector-map tiles using either the selected external XML render theme or Mapsforge’s built-in default theme; Windows display density is applied to text and symbols.'
+      ],
+      [
+        'jxr-wic-encoder.exe',
+        'Encode an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder.'
+      ]
+    ];
+    for (const [programName, description] of knownPrograms) {
+      const key = programName.toLowerCase();
+      const entry = programs.get(key) ?? { programName, functions: new Set<string>() };
+      entry.functions.add(description);
+      programs.set(key, entry);
+    }
     return [...programs.values()]
       .map(program => ({ programName: program.programName, function: [...program.functions].sort().join('; ') }))
       .sort((left, right) =>
@@ -192,6 +212,21 @@ export class SettingsPanelComponent {
         return 'Read window and monitor geometry for HDR capture';
       }
       return 'Run a Windows PowerShell script for Windows integration';
+    }
+
+    if (program === 'java.exe' || program === 'java') {
+      if (command.includes('mapsforge-renderer.jar')) {
+        return 'Java Mapsforge renderer (Mapsforge 0.25.0): loads .map vector data and an external XML render theme (or the built-in default), then renders 256×256 map tiles with display-density-aware labels and symbols';
+      }
+      return 'Run a Java application or worker process';
+    }
+
+    if (program === 'osmand_atlas_render_helper.exe') {
+      return 'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt): reads .obf maps, OsmAnd resources and rendering-style XML; produces RGBA 2×2 metatiles with display-density scaling and disk caching';
+    }
+
+    if (program === 'osmand_render_helper.exe') {
+      return 'C++ OsmAnd Hillshade renderer: reads elevation data from SQLite hillshade databases and renders raster tiles independently of the Atlas OBF renderer';
     }
 
     if (program === 'jxr-wic-encoder.exe') {
