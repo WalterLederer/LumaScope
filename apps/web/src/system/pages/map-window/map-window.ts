@@ -3007,8 +3007,8 @@ export class MapWindow implements OnInit, OnDestroy {
       const updates = value === 'custom' ? [] : this.offlineMaps()
         .filter(map => {
           if (map.type === 'obf') return map.enabled !== this.obfMapMatchesPreset(map, value);
-          if (map.type === 'mapsforge' && (value === 'austria' || value === 'austria-plus')) {
-            return map.enabled !== this.mapsforgeMapMatchesPreset(map, value);
+          if (map.type === 'mapsforge' && (value === 'austria' || value === 'austria-plus' || value === 'europe')) {
+            return map.enabled !== this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps());
           }
           return false;
         })
@@ -3016,7 +3016,7 @@ export class MapWindow implements OnInit, OnDestroy {
           id: map.id,
           enabled: map.type === 'obf'
             ? this.obfMapMatchesPreset(map, value)
-            : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus')
+            : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus' | 'europe', this.offlineMaps())
         }));
       this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
@@ -3043,21 +3043,33 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private mapsforgeMapMatchesPreset(
     map: import('internal-api').OfflineMapStatus,
-    selectedPreset: 'austria' | 'austria-plus'
+    selectedPreset: 'austria' | 'austria-plus' | 'europe',
+    allMaps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()
   ): boolean {
     if (map.type !== 'mapsforge') return false;
-    const fileName = (map.fileName || map.name).toLowerCase();
-    if (selectedPreset === 'austria') return fileName === 'austria.map';
-    return [
-      'austria.map',
-      'hungary.map',
-      'czech-republic.map',
-      'germany.map',
-      'italy.map',
-      'slovakia.map',
-      'slovenia.map',
-      'switzerland.map'
-    ].includes(fileName);
+    const baseName = (map.fileName || map.name).split(/[\\/]/).pop()?.replace(/\\.map$/i, '').toLowerCase() ?? '';
+    if (selectedPreset === 'austria') return baseName === 'austria';
+    if (selectedPreset === 'austria-plus') {
+      return [
+        'austria', 'hungary', 'czech-republic', 'germany',
+        'italy', 'slovakia', 'slovenia', 'switzerland'
+      ].includes(baseName);
+    }
+
+    // For Europe, use the loaded OsmAnd country extracts as the authoritative
+    // list. E.g. Cyprus_europe.obf matches the Mapsforge file cyprus.map.
+    const normalizeCountryName = (name: string): string => name
+      .normalize('NFD')
+      .replace(/[\\u0300-\\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    const europeCountries = new Set(allMaps
+      .filter(candidate => candidate.type === 'obf')
+      .map(candidate => (candidate.fileName || candidate.name).split(/[\\/]/).pop() ?? '')
+      .filter(fileName => /_europe\\.obf$/i.test(fileName) && !/^world_basemap\\.obf$/i.test(fileName))
+      .map(fileName => fileName.replace(/_europe\\.obf$/i, ''))
+      .map(normalizeCountryName));
+    return europeCountries.has(normalizeCountryName(baseName));
   }
 
   private getObfPresetForMaps(
