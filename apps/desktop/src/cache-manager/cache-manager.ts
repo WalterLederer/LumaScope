@@ -99,9 +99,15 @@ export class CacheManager {
       mkdirSync(databaseDirectory, { recursive: true });
       const databasePath = join(databaseDirectory, 'cache.sqlite');
       db = new DatabaseSync(databasePath);
-      db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
-      this.databases.set(key, db);
-      this.init(db);
+      try {
+        db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
+        this.databases.set(key, db);
+        this.init(db);
+      } catch (error) {
+        this.databases.delete(key);
+        try { db.close(); } catch { /* Ignore initialization cleanup failures. */ }
+        throw error;
+      }
     }
     return db;
   };
