@@ -190,10 +190,16 @@
         <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
         <div class="format-list">
           <table>
-            <thead><tr><th scope="col">Format</th><th scope="col">Extension</th><th scope="col">Renderer</th><th scope="col">Details</th></tr></thead>
+            <thead><tr><th scope="col">Format</th><th scope="col">Extension / source</th><th scope="col">Online</th><th scope="col">Renderer</th><th scope="col">Details</th></tr></thead>
             <tbody>
               @for (format of supportedMapFormats; track format.name) {
-                <tr><td><strong>{{ format.name }}</strong></td><td><span class="extensions">{{ format.extensions }}</span></td><td>{{ format.renderer }}</td><td>{{ format.details }}</td></tr>
+                <tr>
+                  <td><strong>{{ format.name }}</strong></td>
+                  <td><span class="extensions">{{ format.extensions }}</span></td>
+                  <td>{{ format.online ? 'Yes' : 'No' }}</td>
+                  <td>{{ format.renderer }}</td>
+                  <td>{{ format.details }}</td>
+                </tr>
               }
             </tbody>
           </table>
