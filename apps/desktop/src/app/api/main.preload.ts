@@ -120,6 +120,15 @@ const api: Desktop = {
     shutdown: () => ipcRenderer.invoke('OsmAndAtlas.shutdown')
   },
 
+  Mapsforge: {
+    getStatus: () => ipcRenderer.invoke('Mapsforge.getStatus'),
+    scanCatalog: (rootPath: string) => ipcRenderer.invoke('Mapsforge.scanCatalog', rootPath),
+    open: (mapPaths: string[], themePath?: string | null) => ipcRenderer.invoke('Mapsforge.open', mapPaths, themePath),
+    renderTile: (z: number, x: number, y: number) => ipcRenderer.invoke('Mapsforge.renderTile', z, x, y),
+    close: () => ipcRenderer.invoke('Mapsforge.close'),
+    shutdown: () => ipcRenderer.invoke('Mapsforge.shutdown')
+  },
+
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
