@@ -1311,6 +1311,16 @@ export class OfflineMapRenderer {
       paint: { 'circle-radius': 6, 'circle-color': '#2688e8', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2, 'circle-opacity': 1 }
     });
     this.map.addSource('gpx-track', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addSource('route-waypoints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    this.map.addLayer({
+      id: 'route-waypoint-circles', type: 'circle', source: 'route-waypoints',
+      paint: { 'circle-radius': 12, 'circle-color': '#0a84ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 }
+    });
+    this.map.addLayer({
+      id: 'route-waypoint-labels', type: 'symbol', source: 'route-waypoints',
+      layout: { 'text-field': ['get', 'label'], 'text-size': 12, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': '#0a84ff', 'text-halo-width': 1 }
+    });
     const gpxLineStyles: Array<{ id: string; style: string; dash?: number[] }> = [
       { id: 'gpx-track-line', style: 'solid' },
       { id: 'gpx-track-line-dashed', style: 'dashed', dash: [3, 2] },
@@ -2209,6 +2219,19 @@ export class OfflineMapRenderer {
     } else {
       this.refreshClusterLabels();
     }
+  }
+
+  setRouteWaypoints(points: Array<{ latitude: number; longitude: number }>): void {
+    const source = this.map.getSource('route-waypoints') as import('maplibre-gl').GeoJSONSource | undefined;
+    if (!source) return;
+    source.setData({
+      type: 'FeatureCollection',
+      features: points.map((point, index) => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [point.longitude, point.latitude] },
+        properties: { label: String(index + 1) }
+      }))
+    });
   }
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number) => void) | null): void { this.trackHoverHandler = handler; }
