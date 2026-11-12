@@ -102,7 +102,7 @@ export class CacheManager {
       try {
         db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
         this.databases.set(key, db);
-        this.init(db);
+        this.init(db, key);
       } catch (error) {
         this.databases.delete(key);
         try { db.close(); } catch { /* Ignore initialization cleanup failures. */ }
@@ -121,11 +121,22 @@ export class CacheManager {
     return db;
   };
 
-  private readonly rebaseStoredPath = (storedPath: string, currentPath: string): string => {
-    const currentDrive = resolve(currentPath).slice(0, 2);
-    return /^[a-z]:/i.test(storedPath) && /^[a-z]:/i.test(currentDrive)
-      ? currentDrive + storedPath.slice(2)
-      : storedPath;
+  private readonly toRelativeFolderPath = (folderPath: string, databaseKey: string): string | null => {
+    const absolute = resolve(folderPath);
+    if (!/^[a-z]:$/i.test(absolute.slice(0, 2)) || absolute.slice(0, 2).toUpperCase() !== databaseKey.toUpperCase()) return null;
+    const root = resolve(databaseKey + '\\');
+    const value = relative(root, absolute);
+    if (value === '..' || value.startsWith('..' + sep) || isAbsolute(value)) return null;
+    return value.replace(/[\\/]+/g, '\\').replace(/\\+$/, '');
+  };
+
+  private readonly resolveStoredFolderPath = (storedPath: string, databaseKey: string): string => {
+    if (isAbsolute(storedPath) || /^[a-z]:/i.test(storedPath)) throw new Error(`Non-relative cache folder path: ${storedPath}`);
+    const root = resolve(databaseKey + '\\');
+    const absolute = resolve(root, storedPath);
+    const value = relative(root, absolute);
+    if (value === '..' || value.startsWith('..' + sep) || isAbsolute(value)) throw new Error(`Cache folder is outside its drive: ${storedPath}`);
+    return absolute;
   };
 
   @IpcHandler({ name: 'CacheManager.clear' })
@@ -235,7 +246,7 @@ export class CacheManager {
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.rebaseStoredPath(row.folder_path, directory ?? row.folder_path)));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, this.databaseKeyForPath(directory))));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
@@ -243,7 +254,7 @@ export class CacheManager {
     let entries = 0;
     for (const row of rows) {
       if (this.isClearCancelled(operationId)) break;
-      const source = join(this.rebaseStoredPath(row.folder_path, directory ?? (this.activeDatabaseKey + '\\')), row.file_name);
+      const source = join(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
@@ -381,7 +392,7 @@ export class CacheManager {
     };
 
     for (const row of rows) {
-      const source = join(this.rebaseStoredPath(row.folder_path, this.activeDatabaseKey + '\\'), row.file_name);
+      const source = join(this.resolveStoredFolderPath(row.folder_path, this.activeDatabaseKey!), row.file_name);
       if (row.latitude !== null && row.longitude !== null
         && Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
         && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
@@ -565,9 +576,9 @@ export class CacheManager {
     const db = this.databaseForPath(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
     const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
-      JOIN paths ON paths.id = photos.path_id WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3))
+      JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder COLLATE NOCASE
       AND (photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL)`)
-      .all({ folder }) as unknown as Array<PhotoRow & { folder_path: string }>;
+      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
     const thumbnailPaths: string[] = [];
     const fullSizePaths: string[] = [];
@@ -611,9 +622,9 @@ export class CacheManager {
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3))
+      WHERE paths.folder_path = :folder COLLATE NOCASE
       ORDER BY photos.file_name COLLATE NOCASE`)
-      .all({ folder: directory }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
+      .all({ folder: this.toRelativeFolderPath(directory, this.databaseKeyForPath(directory)) ?? '' }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
       path: join(directory, row.file_name),
       fileName: row.file_name,
@@ -663,15 +674,15 @@ export class CacheManager {
       LEFT JOIN cache_storage_types AS cache_full ON cache_full.id = photos.fullsize_cache_id
       LEFT JOIN coordinate_sources ON coordinate_sources.id = photos.coordinate_source_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3)) AND photos.file_name = :file COLLATE NOCASE
-    `).get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
+      WHERE paths.folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE
+    `).get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as Record<string, string | number | null> | undefined;
     if (!row) return null;
     const columnTypes = new Map(
       (db.prepare('PRAGMA table_info(photos)').all() as Array<{ name: string; type: string }>)
         .map(column => [column.name, column.type.toUpperCase()])
     );
     const typedRecord: Record<string, string | number | null> = { ...row };
-    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.rebaseStoredPath(typedRecord.path_id_expanded, sourceName);
+    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.resolveStoredFolderPath(typedRecord.path_id_expanded, this.databaseKeyForPath(sourceName));
     for (const key of Object.keys(row)) {
       if (key.endsWith('_expanded')) continue;
       typedRecord[`${key}_type`] = columnTypes.get(key) ?? 'TEXT';
@@ -852,15 +863,16 @@ export class CacheManager {
   };
 
   private readonly getPhoto = (sourceName: string, db = this.databaseForPath(sourceName)): PhotoRow | null => {
-    const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE lower(substr(paths.folder_path, 3)) = lower(substr(:folder, 3)) AND photos.file_name = :file COLLATE NOCASE')
-      .get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
+    const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder COLLATE NOCASE AND photos.file_name = :file COLLATE NOCASE')
+      .get({ folder: this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName)) ?? '', file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
   };
 
   private readonly ensurePhoto = (sourceName: string, size: number, modified: number, db = this.databaseForPath(sourceName)): PhotoRow => {
-    const folder = dirname(sourceName);
-    const path = (db.prepare('SELECT id FROM paths WHERE lower(substr(folder_path, 3)) = lower(substr(:folder, 3))').get({ folder }) as { id: number } | undefined)
-      ?? (db.prepare('INSERT INTO paths (folder_path) VALUES (:folder) RETURNING id').get({ folder }) as { id: number });
+    const folder = this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName));
+    if (folder === null) throw new Error(`Image path is outside the cache database drive: ${sourceName}`);
+    db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
+    const path = db.prepare('SELECT id FROM paths WHERE folder_path = :folder COLLATE NOCASE').get({ folder }) as { id: number };
     db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
       VALUES (:pathId, :file, :size, :modified, 0)
       ON CONFLICT(path_id, file_name) DO UPDATE SET
@@ -898,7 +910,7 @@ export class CacheManager {
       this.currentReverseGeocodingDisplayName = null;
       const source = db.prepare(`SELECT paths.folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
         .get({ photoId: photo.id }) as { folder_path: string; file_name: string } | undefined;
-      this.currentReverseGeocodingPath = source ? join(this.rebaseStoredPath(source.folder_path, databaseKey + '\\'), source.file_name) : null;
+      this.currentReverseGeocodingPath = source ? join(this.resolveStoredFolderPath(source.folder_path, databaseKey), source.file_name) : null;
       db.prepare(`UPDATE photos
         SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId`)
@@ -1029,7 +1041,7 @@ export class CacheManager {
     return { entries: existingEntries, bytes };
   };
 
-  private readonly init = (db: DatabaseSync): void => {
+  private readonly init = (db: DatabaseSync, databaseKey: string): void => {
     db.exec(createMigrationTable);
     const migrations = db.prepare(getMigrationRecords).all() as Array<{ name: string }>;
     const insert = db.prepare(insertMigrationRecord);
@@ -1039,15 +1051,82 @@ export class CacheManager {
         insert.run({ name: migration.name });
       }
     }
+    if (!migrations.some(item => item.name === 'storeDriveRelativePhotoPathsV16')) {
+      this.migrateDriveRelativePhotoPaths(db, databaseKey);
+      insert.run({ name: 'storeDriveRelativePhotoPathsV16' });
+    }
     if (!migrations.some(item => item.name === 'migrateLegacyCacheFilesToPhotosV8')) {
-      this.migrateLegacyCacheFiles(db);
+      this.migrateLegacyCacheFiles(db, databaseKey);
       insert.run({ name: 'migrateLegacyCacheFilesToPhotosV8' });
     }
     db.exec("DELETE FROM cache_storage_types WHERE name = 'central';");
     rm(this.legacyCacheDir, { recursive: true, force: true }).catch(() => undefined);
   };
 
-  private readonly migrateLegacyCacheFiles = (db: DatabaseSync): void => {
+  private readonly migrateDriveRelativePhotoPaths = (db: DatabaseSync, databaseKey: string): void => {
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const rows = db.prepare('SELECT id, folder_path FROM paths ORDER BY id').all() as Array<{ id: number; folder_path: string }>;
+      const photosForPath = db.prepare('SELECT * FROM photos WHERE path_id = :id ORDER BY id');
+      const findPhoto = db.prepare('SELECT id FROM photos WHERE path_id = :pathId AND file_name = :file COLLATE NOCASE');
+      const movePhoto = db.prepare('UPDATE photos SET path_id = :pathId WHERE id = :id');
+      const deletePathPhotos = db.prepare('DELETE FROM photos WHERE path_id = :id');
+      const deletePath = db.prepare('DELETE FROM paths WHERE id = :id');
+      const updateFolder = db.prepare('UPDATE paths SET folder_path = :folder WHERE id = :id');
+      const mergePhoto = db.prepare(`UPDATE photos SET
+        file_size = CASE WHEN file_size = 0 THEN :file_size ELSE file_size END,
+        modified_at = CASE WHEN modified_at = 0 THEN :modified_at ELSE modified_at END,
+        is_hdr = MAX(is_hdr, :is_hdr),
+        thumbnail_cache_id = COALESCE(thumbnail_cache_id, :thumbnail_cache_id),
+        thumbnail_cache_version = COALESCE(thumbnail_cache_version, :thumbnail_cache_version),
+        fullsize_cache_id = COALESCE(fullsize_cache_id, :fullsize_cache_id),
+        fullsize_cache_version = COALESCE(fullsize_cache_version, :fullsize_cache_version),
+        latitude = COALESCE(latitude, :latitude), longitude = COALESCE(longitude, :longitude),
+        altitude_m = COALESCE(altitude_m, :altitude_m), gps_timestamp = COALESCE(gps_timestamp, :gps_timestamp),
+        direction_deg = COALESCE(direction_deg, :direction_deg),
+        coordinate_source_id = COALESCE(coordinate_source_id, :coordinate_source_id),
+        location_name_id = COALESCE(location_name_id, :location_name_id),
+        location_lookup_error = COALESCE(location_lookup_error, :location_lookup_error),
+        location_lookup_attempted_at = COALESCE(location_lookup_attempted_at, :location_lookup_attempted_at)
+        WHERE id = :id`);
+      const canonical = new Map<string, number>();
+      for (const item of rows) {
+        const folder = /^[a-z]:/i.test(item.folder_path)
+          ? this.toRelativeFolderPath(item.folder_path, databaseKey)
+          : item.folder_path.replace(/[\\/]+/g, '\\').replace(/^\\+|\\+$/g, '');
+        if (folder === null) {
+          deletePathPhotos.run({ id: item.id });
+          deletePath.run({ id: item.id });
+          continue;
+        }
+        const key = folder.toLowerCase();
+        const canonicalId = canonical.get(key);
+        if (canonicalId === undefined) {
+          updateFolder.run({ folder, id: item.id });
+          canonical.set(key, item.id);
+          continue;
+        }
+        const photos = photosForPath.all({ id: item.id }) as Array<Record<string, SQLOutputValue> & { id: number; file_name: string }>;
+        for (const photo of photos) {
+          const existing = findPhoto.get({ pathId: canonicalId, file: photo.file_name }) as { id: number } | undefined;
+          if (existing) {
+            mergePhoto.run({ ...photo, id: existing.id });
+            db.prepare('DELETE FROM photos WHERE id = :id').run({ id: photo.id });
+          } else {
+            movePhoto.run({ pathId: canonicalId, id: photo.id });
+          }
+        }
+        deletePath.run({ id: item.id });
+      }
+      db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch { /* Keep the original migration error. */ }
+      throw error;
+    }
+  };
+
+  private readonly migrateLegacyCacheFiles = (db: DatabaseSync, databaseKey: string): void => {
     const table = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'cache_files'").get();
     if (!table) return;
     const rows = db.prepare('SELECT * FROM cache_files').all() as Array<Record<string, SQLOutputValue>>;
@@ -1059,7 +1138,8 @@ export class CacheManager {
       const source = String(row.source_name ?? '');
       const storageId = Number(row.storage_type_id);
       if (!source || storageId === 1) continue;
-      const folder = dirname(source);
+      const folder = this.toRelativeFolderPath(dirname(source), databaseKey);
+      if (folder === null) continue;
       const file = basename(source);
       const tag = String(row.source_tag ?? '');
       const full = tag.includes('-full-');
