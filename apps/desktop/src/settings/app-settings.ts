@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { appConfigName } from 'internal-api';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { writeJsonAtomically } from '../file-system/json-file';
 
 export type AppSettings = Record<string, unknown>;
@@ -9,18 +9,39 @@ export type AppSettings = Record<string, unknown>;
 const settingsPath = (): string => join(app.getPath('userData'), appConfigName);
 let writeQueue: Promise<void> = Promise.resolve();
 
-export const readAppSettings = (): AppSettings => {
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const mergeSettings = (defaults: Record<string, unknown>, user: Record<string, unknown>): AppSettings => {
+  const merged: Record<string, unknown> = { ...defaults };
+  for (const [key, value] of Object.entries(user)) {
+    merged[key] = isPlainObject(value) && isPlainObject(defaults[key])
+      ? mergeSettings(defaults[key] as Record<string, unknown>, value)
+      : value;
+  }
+  return merged;
+};
+
+const defaultSettingsPath = (): string => join(
+  app.isPackaged ? dirname(process.execPath) : app.getAppPath(),
+  'LumaScope.default.config.json'
+);
+
+const readJsonObject = (path: string): AppSettings => {
   try {
-    const path = settingsPath();
     if (!existsSync(path)) return {};
     const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? value as AppSettings : {};
+    return isPlainObject(value) ? value : {};
   } catch (error) {
-    console.warn('[Settings] Could not read application settings:', error);
+    console.warn('[Settings] Could not read configuration file:', path, error);
     return {};
   }
 };
+
+export const readUserAppSettings = (): AppSettings => readJsonObject(settingsPath());
+
+export const readAppSettings = (): AppSettings =>
+  mergeSettings(readJsonObject(defaultSettingsPath()), readUserAppSettings());
 
 export const updateAppSettingsSection = (section: string, values: Record<string, unknown>): Promise<void> => {
   if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(section)) {
@@ -29,7 +50,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
   const operation = writeQueue.then(async () => {
     // Read only after the previous write has completed so concurrent windows
     // cannot overwrite each other's settings with stale snapshots.
-    const settings = readAppSettings();
+    const settings = readUserAppSettings();
     if (section === 'root') {
       // Reserved section name for one-time cleanup of former top-level config keys.
       const updated = { ...settings, ...values };
