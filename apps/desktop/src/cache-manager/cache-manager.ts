@@ -647,7 +647,7 @@ export class CacheManager {
     const row = db.prepare(`SELECT
         photos.id,
         photos.path_id,
-        paths.folder_path AS path_id_expanded,
+        paths.folder_path AS folder_path,
         photos.file_name,
         photos.file_size,
         photos.modified_at,
@@ -688,7 +688,7 @@ export class CacheManager {
     );
     const databaseKey = this.databaseKeyForPath(sourceName);
     const typedRecord: Record<string, string | number | null> = { ...row };
-    if (typeof typedRecord.path_id_expanded === 'string') typedRecord.path_id_expanded = this.resolveStoredFolderPath(typedRecord.path_id_expanded, databaseKey);
+    if (typeof typedRecord.folder_path === 'string') typedRecord.folder_path = this.resolveStoredFolderPath(typedRecord.folder_path, databaseKey);
     typedRecord.database_path = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     for (const key of Object.keys(row)) {
       if (key.endsWith('_expanded')) continue;
