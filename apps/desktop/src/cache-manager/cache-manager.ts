@@ -379,8 +379,7 @@ export class CacheManager {
     const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
     if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
     const selectedDatabaseKey = databaseKey.toUpperCase();
-    const db = this.databases.get(selectedDatabaseKey);
-    if (!db) throw new Error(`Cache database is not active: ${databaseKey}`);
+    const db = this.databases.get(selectedDatabaseKey) ?? this.databaseForPath(selectedDatabaseKey + '\\');
     const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
