@@ -59,5 +59,11 @@
         "thumb-worker.js"
       ]
     }
+  ],
+  "extraFiles": [
+    {
+      "from": "LumaScope.default.config.json",
+      "to": "."
+    }
   ]
 }
