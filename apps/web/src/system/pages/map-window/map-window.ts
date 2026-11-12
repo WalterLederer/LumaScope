@@ -1107,8 +1107,8 @@ interface MapErrorEntry {
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
     .render-tile-statistics{display:table;width:auto;table-layout:fixed;border-collapse:collapse;font-variant-numeric:tabular-nums}
     .render-tile-statistics .render-stat-label-column{width:130px}
-    .render-tile-statistics .render-stat-value-column{width:150px}
-    .render-tile-statistics th,.render-tile-statistics td{padding:5px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545)}
+    .render-tile-statistics .render-stat-value-column{width:82px}
+    .render-tile-statistics th,.render-tile-statistics td{padding:5px 6px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545)}
     .render-tile-statistics thead th{font-weight:700}
     .render-tile-statistics tbody tr:last-child th,.render-tile-statistics tbody tr:last-child td{border-bottom:0}
     .render-tile-statistics tbody th{font-weight:400;color:var(--color-content-default-medium,#aaa)}
