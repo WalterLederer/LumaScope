@@ -102,6 +102,7 @@ export interface BackgroundReverseGeocodingStatus {
 
 export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
+  readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearThumbnails: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
