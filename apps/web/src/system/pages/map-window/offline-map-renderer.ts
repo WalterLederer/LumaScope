@@ -508,8 +508,13 @@ export function createMapsforgeMapStyle(): StyleSpecification {
 }
 
 let mapsforgeProtocolRegistered = false;
+let mapsforgeDesktopProvider: Desktop | null = null;
 
 export function registerMapsforgeTileProtocol(desktop: Desktop): void {
+  // The protocol outlives the map-window component. Refresh its provider on
+  // every map initialization instead of retaining an instance from an older
+  // component lifecycle.
+  mapsforgeDesktopProvider = desktop;
   if (mapsforgeProtocolRegistered) return;
   addProtocol('mapsforge', async (request, abortController) => {
     const match = /^mapsforge:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
@@ -528,35 +533,33 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
       }));
     };
     tileStatus('loading');
-    let result: Awaited<ReturnType<Desktop['Mapsforge']['renderTile']>>;
     try {
-      result = await desktop.Mapsforge.renderTile(zoom, column, row);
+      const provider = mapsforgeDesktopProvider;
+      if (!provider) throw new Error('Mapsforge desktop renderer is unavailable.');
+      const result = await provider.Mapsforge.renderTile(zoom, column, row);
+      if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
+      if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
+        throw new Error('Mapsforge renderer returned an invalid PNG tile.');
+      }
+      const binary = atob(result.png_base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+      const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+      if (abortController.signal.aborted) {
+        bitmap.close();
+        throw new Error('Mapsforge tile request was cancelled.');
+      }
+      tileStatus('loaded');
+      return { data: bitmap };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const cancelled = abortController.signal.aborted || /\\b(cancelled|canceled)\\b/i.test(message);
+      const cancelled = abortController.signal.aborted || /\\b(cancelled|canceled|abort(?:ed|ion)?)\\b/i.test(message);
       tileStatus(cancelled ? 'cancelled' : 'error', message);
       if (!cancelled) {
         window.dispatchEvent(new CustomEvent('lumascope-mapsforge-tile-error', { detail: { message, zoom, column, row } }));
       }
       throw error;
     }
-    if (abortController.signal.aborted) {
-      tileStatus('cancelled');
-      throw new Error('Mapsforge tile request was cancelled.');
-    }
-    if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
-      throw new Error('Mapsforge renderer returned an invalid PNG tile.');
-    }
-    const binary = atob(result.png_base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
-    if (abortController.signal.aborted) {
-      bitmap.close();
-      throw new Error('Mapsforge tile request was cancelled.');
-    }
-    tileStatus('loaded');
-    return { data: bitmap };
   });
   mapsforgeProtocolRegistered = true;
 }
