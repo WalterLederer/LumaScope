@@ -318,6 +318,32 @@
         </div>
       </details>
     </section>
+    <section class="shortcut-details info-box">
+      <details>
+        <summary>Windows API calls · {{ windowsApiCalls.length }} calls</summary>
+        <p class="format-note">Direct Win32 calls used by LumaScope for HDR display detection, window discovery and geometry, DPI awareness, and the native OsmAnd Atlas helper’s binary output channel. Calls made internally by Electron, Qt, the Java runtime or third-party libraries are not listed here.</p>
+        <div class="shortcut-table-scroll">
+          <table class="shortcut-table">
+            <thead>
+              <tr>
+                <th scope="col">DLL</th>
+                <th scope="col">API call</th>
+                <th scope="col">Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (call of windowsApiCalls; track call.dll + call.api) {
+                <tr>
+                  <td><kbd>{{ call.dll }}</kbd></td>
+                  <td><kbd>{{ call.api }}</kbd></td>
+                  <td>{{ call.purpose }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
   <section class="debug-settings">
     <details>
       <summary>Debug</summary>
