@@ -3326,7 +3326,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineMapPreset.set(matchingPreset);
       this.saveSetting('offlineMapPreset', matchingPreset);
     }
-    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')) {
+    if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
       this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
