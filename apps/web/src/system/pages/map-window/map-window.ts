@@ -441,16 +441,16 @@ interface MapErrorEntry {
       </span>
     </summary>
     <div class="atlas-density-zoom-row">
-      <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas'">
-        <label for="atlas-display-density">Display density factor</label>
-        <input id="atlas-display-density" type="range" min="1" max="3" step="0.05"
-          [value]="atlasDisplayDensityFactor()"
-          (input)="previewAtlasDisplayDensity($any($event.target).value)"
-          (change)="changeAtlasDisplayDensity($any($event.target).value)"
-          [disabled]="mapSource() !== 'osmand-atlas'"
-          aria-label="OsmAnd Atlas display density">
-        <span class="range-value">{{ atlasDisplayDensityFactor() }}×</span>
-        <button type="button" class="map-toolbar-button" (click)="resetAtlasDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas'" title="Reset to Windows display scaling">Windows</button>
+      <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'">
+        <label for="map-display-density">Display density factor</label>
+        <input id="map-display-density" type="range" min="1" max="3" step="0.05"
+          [value]="displayDensityFactor()"
+          (input)="previewDisplayDensity($any($event.target).value)"
+          (change)="changeDisplayDensity($any($event.target).value)"
+          [disabled]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'"
+          aria-label="Map display density">
+        <span class="range-value">{{ displayDensityFactor() }}×</span>
+        <button type="button" class="map-toolbar-button" (click)="resetDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'" title="Reset to Windows display scaling">Windows</button>
       </div>
     </div>
   </details>
@@ -1612,7 +1612,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
   protected readonly labelsVisible = signal(this.mapSource() === 'osmand-atlas' ? true : this.mapSource() === 'osmand' ? false : this.readSetting('labelsVisible', 'true') === 'true');
-  protected readonly atlasDisplayDensityFactor = signal(this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3));
+  protected readonly displayDensityFactor = signal(this.readNumber('displayDensityFactor', this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3), 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
@@ -2674,7 +2674,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    registerOsmAndAtlasTileProtocol(this.desktop, () => this.atlasDisplayDensityFactor());
+    registerOsmAndAtlasTileProtocol(this.desktop, () => this.displayDensityFactor());
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -2792,7 +2792,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     try {
-      await this.desktop.Mapsforge.open(maps.map(map => map.filePath), null, Math.max(1, Math.min(4, window.devicePixelRatio || 1)));
+      await this.desktop.Mapsforge.open(maps.map(map => map.filePath), null, this.displayDensityFactor());
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'mapsforge') {
         // changeMapSource() already queued close() after this open request.
         // Closing again here is unsafe: a rapid switch back to Mapsforge may
@@ -3219,7 +3219,7 @@ export class MapWindow implements OnInit, OnDestroy {
         (z, x, y, forceRender) => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender),
         (z, x, y, displayScale, forceRender) =>
           this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender),
-        this.atlasDisplayDensityFactor(),
+        this.displayDensityFactor(),
         (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
       );
       this.rerenderVisibleTilesStatus.set('');
@@ -3499,7 +3499,7 @@ export class MapWindow implements OnInit, OnDestroy {
       await this.desktop.OsmAnd.setResourcesPath(result.data);
       this.osmAndResourcesPath.set(result.data);
       this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
-      if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
+      if ((this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.refreshOfflineMapRendering();
       }
     } catch (error) {
@@ -3701,19 +3701,19 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('labelOpacity', next);
     this.offlineRenderer?.setTextLabelOpacity(this.labelsVisible() ? next / 100 : 0);
   };
-  protected readonly previewAtlasDisplayDensity = (value: string | number): void => {
+  protected readonly previewDisplayDensity = (value: string | number): void => {
     const density = Number(value);
     if (!Number.isFinite(density)) return;
     const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
-    this.atlasDisplayDensityFactor.set(next);
+    this.displayDensityFactor.set(next);
   };
-  protected readonly changeAtlasDisplayDensity = (value: string | number): void => {
+  protected readonly changeDisplayDensity = (value: string | number): void => {
     const density = Number(value);
     if (!Number.isFinite(density)) return;
     const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
-    this.atlasDisplayDensityFactor.set(next);
-    this.saveSetting('atlasDisplayDensityFactor', next);
-    if (this.mapSource() === 'osmand-atlas' && this.currentLatitude !== null && this.currentLongitude !== null) {
+    this.displayDensityFactor.set(next);
+    this.saveSetting('displayDensityFactor', next);
+    if ((this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
       this.mapSourceGeneration++;
       this.mapInitialization = null;
       this.offlineRenderer?.remove();
@@ -3725,9 +3725,9 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
-  protected readonly resetAtlasDisplayDensity = (): void => {
+  protected readonly resetDisplayDensity = (): void => {
     const windowsScale = Math.round(Math.max(1, Math.min(3, window.devicePixelRatio || 1)) * 100) / 100;
-    this.changeAtlasDisplayDensity(windowsScale);
+    this.changeDisplayDensity(windowsScale);
   };
   protected readonly changeZoom = (value: string | number): void => {
     const zoom = Number(value); if (!Number.isFinite(zoom)) return;
