@@ -44,7 +44,6 @@ public final class MapsforgeWorker {
     private DisplayModel displayModel;
     private RenderThemeFuture renderThemeFuture;
     private DatabaseRenderer renderer;
-    private float textScale = 1f;
     private String activeMapPath = "";
     private final java.util.List<String> activeMapPaths = new java.util.ArrayList<>();
     private final java.util.List<MapDataStore> activeMapStores = new java.util.ArrayList<>();
@@ -235,7 +234,6 @@ public final class MapsforgeWorker {
             this.activeMapStores.addAll(openedStores);
             this.tileCache = newTileCache;
             this.displayModel = newDisplayModel;
-            this.textScale = effectiveScale;
             this.renderThemeFuture = newThemeFuture;
             this.renderer = newRenderer;
             this.activeMapPaths.clear();
@@ -300,7 +298,6 @@ public final class MapsforgeWorker {
         renderer = null;
         renderThemeFuture = null;
         displayModel = null;
-        textScale = 1f;
         DisplayModel.textScale = 1f;
         if (tileCache != null) {
             tileCache.destroy();
