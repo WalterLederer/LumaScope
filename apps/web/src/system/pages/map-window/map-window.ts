@@ -2115,7 +2115,8 @@ export class MapWindow implements OnInit, OnDestroy {
       online: 'Online map renderer',
       offline: 'MBTiles renderer',
       osmand: 'OsmAnd renderer',
-      'osmand-atlas': 'OsmAnd Atlas renderer'
+      'osmand-atlas': 'OsmAnd Atlas renderer',
+      mapsforge: 'Mapsforge renderer'
     } as const)[mapSource] ?? 'Unknown';
     const style = mapSource === 'osmand' || mapSource === 'osmand-atlas'
       ? this.osmAndStyle()
@@ -2123,7 +2124,9 @@ export class MapWindow implements OnInit, OnDestroy {
         ? this.offlineMapStyle()
         : mapSource === 'online'
           ? this.mapStyle()
-          : 'Unknown';
+          : mapSource === 'mapsforge'
+            ? 'Mapsforge'
+            : 'Unknown';
     const now = Date.now();
     const timestamp = new Date(now).toLocaleString(this.locale);
     this.mapErrors.update(errors => {
