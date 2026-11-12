@@ -257,7 +257,7 @@ interface MapErrorEntry {
                 <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
                 <span class="time-slider-symbol-front">Front</span>
               </div>
-              <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
+              <label class="time-slider-symbol-rotation"><span>Rotation</span><input type="range" min="0" max="360" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong></label>
               <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipVertical" (change)="changeWalkingFigureFlipVertical($any($event.target).checked)"><span>Flip vertical</span></label>
             </div>
             <label class="time-slider-speed-control"><span>Animation speed</span><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"><strong>{{ timeSliderAnimationSpeed() }}×</strong></label>
@@ -4152,20 +4152,24 @@ export class MapWindow implements OnInit, OnDestroy {
     return `rotate(${this.walkingFigureOrientationOffset(this.walkingFigureType()) + settings.rotation}deg) ${this.walkingFigureFlipTransform(this.walkingFigureType(), settings.flipVertical)}`;
   };
 
-  private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>): void {
+  private updateSelectedWalkingFigureSettings(patch: Partial<TimeSliderSymbolSettings>, persistConfig = true): void {
     const symbol = this.walkingFigureType();
     const current = this.selectedWalkingFigureSymbolSettings();
     const next = { ...this.walkingFigureSymbolSettings(), [symbol]: { ...current, ...patch } };
     this.walkingFigureSymbolSettings.set(next);
     this.saveSetting('timeSliderSymbolSettings', JSON.stringify(next));
-    this.persistLocationUiState({ timeSliderSymbolSettings: next });
+    if (persistConfig) this.persistLocationUiState({ timeSliderSymbolSettings: next });
     this.updateWalkingMarker();
   }
+
+  protected readonly persistWalkingFigureRotation = (): void => {
+    this.persistLocationUiState({ timeSliderSymbolSettings: this.walkingFigureSymbolSettings() });
+  };
 
   protected readonly changeWalkingFigureRotation = (value: string | number): void => {
     const rotation = Number(value);
     if (!Number.isFinite(rotation)) return;
-    this.updateSelectedWalkingFigureSettings({ rotation: ((Math.round(rotation) % 360) + 360) % 360 });
+    this.updateSelectedWalkingFigureSettings({ rotation: ((Math.round(rotation) % 360) + 360) % 360 }, false);
   };
 
   protected readonly changeWalkingFigureFlipVertical = (enabled: boolean): void => {
