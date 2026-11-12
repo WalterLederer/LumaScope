@@ -194,6 +194,36 @@ export class SettingsPanelComponent {
       );
   });
 
+  protected readonly windowsApiCalls = [
+    { dll: 'user32.dll', api: 'EnumWindows', purpose: 'Enumerates top-level windows in Z-order; supplies the window handles used to build the capture-source list.' },
+    { dll: 'user32.dll', api: 'IsWindow', purpose: 'Checks whether a previously selected HWND still identifies an existing window.' },
+    { dll: 'user32.dll', api: 'IsWindowVisible', purpose: 'Filters out hidden top-level windows when discovering capture sources.' },
+    { dll: 'user32.dll', api: 'IsIconic', purpose: 'Detects minimized windows so they are not offered as usable capture sources.' },
+    { dll: 'user32.dll', api: 'GetWindowTextW', purpose: 'Reads the Unicode title of a window for the capture-source list and diagnostics.' },
+    { dll: 'user32.dll', api: 'GetClassNameW', purpose: 'Reads the window class to exclude desktop, shell and other non-application windows.' },
+    { dll: 'user32.dll', api: 'GetWindowThreadProcessId', purpose: 'Maps a window handle to its owning process ID.' },
+    { dll: 'user32.dll', api: 'GetWindowRect', purpose: 'Reads window bounds; also serves as a fallback when DWM extended frame bounds are unavailable.' },
+    { dll: 'user32.dll', api: 'GetWindow', purpose: 'Reads the owner window (GW_OWNER) to distinguish owned windows from top-level application windows.' },
+    { dll: 'user32.dll', api: 'GetWindowLongPtrW', purpose: 'Reads extended window styles (GWL_EXSTYLE), including WS_EX_TOOLWINDOW filtering.' },
+    { dll: 'user32.dll', api: 'MonitorFromWindow', purpose: 'Finds the monitor nearest to a selected window.' },
+    { dll: 'user32.dll', api: 'MonitorFromRect', purpose: 'Finds the monitor nearest to an enumerated window rectangle.' },
+    { dll: 'user32.dll', api: 'GetMonitorInfoW', purpose: 'Reads monitor and work-area bounds plus the Windows display-device name.' },
+    { dll: 'user32.dll', api: 'SetProcessDpiAwarenessContext', purpose: 'Requests per-monitor-v2 DPI awareness before reading physical window and monitor coordinates.' },
+    { dll: 'user32.dll', api: 'GetDisplayConfigBufferSizes', purpose: 'Queries the buffer sizes needed to enumerate the active Windows display paths and modes.' },
+    { dll: 'user32.dll', api: 'QueryDisplayConfig', purpose: 'Reads the active display topology so monitor identifiers can be matched to their display configuration.' },
+    { dll: 'user32.dll', api: 'DisplayConfigGetDeviceInfo (source name)', purpose: 'Retrieves the GDI display-device name for a display path.' },
+    { dll: 'user32.dll', api: 'DisplayConfigGetDeviceInfo (advanced color)', purpose: 'Reads advanced-colour / HDR capability and active colour information for each display; includes the current and legacy packet versions.' },
+    { dll: 'dwmapi.dll', api: 'DwmGetWindowAttribute', purpose: 'Reads DWMWA_EXTENDED_FRAME_BOUNDS for the visible window frame; GetWindowRect is used as fallback.' },
+    { dll: 'kernel32.dll', api: 'OpenProcess', purpose: 'Opens the owning process with query-limited-information access when a window is large enough to be a useful capture source.' },
+    { dll: 'kernel32.dll', api: 'QueryFullProcessImageNameW', purpose: 'Retrieves the executable path of the process that owns an enumerated window.' },
+    { dll: 'kernel32.dll', api: 'CloseHandle', purpose: 'Releases the process handle opened while resolving a window’s executable path.' },
+    { dll: 'kernel32.dll', api: 'GetStdHandle', purpose: 'In the native C++ OsmAnd Atlas helper, obtains the original stdout and stderr handles for its binary frame protocol.' },
+    { dll: 'kernel32.dll', api: 'GetCurrentProcess', purpose: 'Supplies the current-process pseudo-handle when duplicating the Atlas helper protocol output handle.' },
+    { dll: 'kernel32.dll', api: 'DuplicateHandle', purpose: 'Keeps a dedicated copy of the Atlas helper’s original stdout handle for binary tile-frame output.' },
+    { dll: 'kernel32.dll', api: 'SetStdHandle', purpose: 'Redirects the Atlas helper’s standard output to stderr so diagnostic text cannot corrupt the binary frame protocol.' },
+    { dll: 'kernel32.dll', api: 'WriteFile', purpose: 'Writes the Atlas helper’s binary frame header and RGBA pixel payload to the preserved stdout handle.' }
+  ] as const;
+
   private readonly externalProgramFunction = (call: ExternalProcessCall): string => {
     const program = call.programName.toLowerCase();
     const command = call.commandLine.toLowerCase();
