@@ -297,7 +297,7 @@ export class CacheManager {
       ORDER BY paths.folder_path, photos.file_name`)
       .all() as unknown as Array<Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'> & { folder_path: string; needs_refresh: number }>;
     const candidates = rows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.rebaseStoredPath(row.folder_path, directory ?? row.folder_path)));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
@@ -1024,14 +1024,14 @@ export class CacheManager {
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
-      const relativeFolder = relative(root, resolve(this.rebaseStoredPath(row.folder_path, directory ?? (this.activeDatabaseKey + '\\'))));
+      const relativeFolder = relative(root, resolve(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!)));
       if (relativeFolder === '') return true;
       return recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder);
     });
     let bytes = 0;
     let existingEntries = 0;
     for (const row of rows) {
-      const path = this.getSidecarPath(join(this.rebaseStoredPath(row.folder_path, directory ?? (this.activeDatabaseKey + '\\')), row.file_name), kind === 'fullsize');
+      const path = this.getSidecarPath(join(this.resolveStoredFolderPath(row.folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name), kind === 'fullsize');
       try {
         const info = await stat(path);
         bytes += info.size;
