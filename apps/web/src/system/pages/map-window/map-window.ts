@@ -2949,6 +2949,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
+      renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+      this.updateRouteWaypointMarkers();
       this.persistZoom(renderer.map.getZoom());
       if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
       await this.restoreGpxTrack();
@@ -3045,6 +3047,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
+    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    this.updateRouteWaypointMarkers();
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
