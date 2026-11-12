@@ -20,6 +20,7 @@ interface MapInstance {
   setZoom(zoom: number): MapInstance;
   containerPointToLatLng(point: [number, number]): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
+  on(event: 'contextmenu', callback: (event: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void): MapInstance;
   createPane(name: string): HTMLElement;
   fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
   remove(): void;
@@ -232,7 +233,7 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
-      <label class="routing-pick-toggle"><input type="checkbox" [checked]="routePointPicking()" (change)="changeRoutePointPicking($any($event.target).checked)"> Add route points by clicking the map</label>
+      <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
       <label>Travel mode
         <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
           <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
@@ -1751,7 +1752,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
-  protected readonly routePointPicking = signal(false);
   protected readonly routeProfile = signal<'driving-car' | 'cycling-regular' | 'foot-walking'>('driving-car');
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
   protected readonly routeBusy = signal(false);
@@ -2787,7 +2787,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('zoomend', syncOfflineZoom);
-    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    renderer.map.on('contextmenu', event => {
+      event.originalEvent.preventDefault();
+      this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
+    });
     this.updateRouteWaypointMarkers();
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -2915,7 +2918,10 @@ export class MapWindow implements OnInit, OnDestroy {
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
-    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    renderer.map.on('contextmenu', event => {
+      event.originalEvent.preventDefault();
+      this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
+    });
     this.updateRouteWaypointMarkers();
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -2986,12 +2992,20 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
-      renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+      renderer.map.on('contextmenu', event => {
+      event.originalEvent.preventDefault();
+      this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
+    });
       this.updateRouteWaypointMarkers();
       this.persistZoom(renderer.map.getZoom());
       if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
       await this.restoreGpxTrack();
       this.applyOpacitySettings();
+      // Mapsforge can finish its first style/tile pass after renderer.ready.
+      // Reapply the persisted basemap opacity once the initial viewport is idle.
+      renderer.map.once('idle', () => {
+        if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyMapOpacity();
+      });
       window.addEventListener('resize', this.onResize);
     } catch (error) {
       if (generation !== this.mapSourceGeneration) return;
@@ -3084,7 +3098,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
-    renderer.map.on('click', event => this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng));
+    renderer.map.on('contextmenu', event => {
+      event.originalEvent.preventDefault();
+      this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
+    });
     this.updateRouteWaypointMarkers();
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -3102,6 +3119,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
+    map.on('contextmenu', event => {
+      event.originalEvent.preventDefault();
+      this.addRouteWaypoint(event.latlng.lat, event.latlng.lng);
+    });
     this.updateWalkingMarker();
     this.leaflet.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 140 }).addTo(map);
     const leafletScale = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-control-scale');
@@ -4936,12 +4957,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeRouteApiKey = (value: string): void => {
     this.routeApiKey.set(value);
     this.persistLocationUiState({ openRouteServiceApiKey: value || undefined });
-  };
-
-  protected readonly changeRoutePointPicking = (enabled: boolean): void => {
-    this.routePointPicking.set(enabled);
-    this.routeStatus.set(enabled ? 'Click the map to add ordered route points.' : '');
-    if (enabled) this.selectSettingsTab('routing');
   };
 
   protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
