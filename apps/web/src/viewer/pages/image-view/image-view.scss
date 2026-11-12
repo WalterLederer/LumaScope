@@ -1955,7 +1955,7 @@
 }
 .image-controls-sidebar .image-database-record {
   max-width: 100%;
-  max-height: 650px;
+  max-height: 725px;
   margin: 6px 0;
   padding: 6px 0;
   overflow: auto;
@@ -1982,6 +1982,10 @@
   background: color-mix(in srgb, var(--color-content-default-medium) 12%, transparent);
   border-radius: 2px;
   padding: 0 2px;
+}
+.image-controls-sidebar .image-database-record-key.is-path-table-key {
+  background: color-mix(in srgb, #d69b35 22%, transparent);
+  color: var(--color-content-default);
 }
 .image-controls-sidebar .image-database-record-type {
   color: var(--color-content-default-medium);
