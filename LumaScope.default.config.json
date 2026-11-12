@@ -284,7 +284,7 @@
       },
       "all": {
         "name": "All",
-        "OsmAndRegex": ".*",
+        "OsmAndRegex": ".*\\.obf$",
         "mapsForgeRegex": ".*\\.map$"
       },
       "none": {
@@ -294,7 +294,7 @@
       },
       "custom": {
         "name": "Custom",
-        "OsmAndRegex": ".*",
+        "OsmAndRegex": ".*\\.obf$",
         "mapsForgeRegex": ".*\\.map$"
       }
     }
