@@ -115,7 +115,7 @@ export class OfflineMapManager {
  readonly setEnabledBatch=async(
   _event:IpcMainInvokeEvent,
   updates:Array<{id:string;enabled:boolean}>,
-  preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'
+  preset?:string
  ):Promise<OfflineMapStatus[]>=>{
   if(!Array.isArray(updates))throw new Error('Map updates must be an array.');
   for(const update of updates){
@@ -125,7 +125,7 @@ export class OfflineMapManager {
  };
  private async setEnabledBatchInternal(
   updates:Array<{id:string;enabled:boolean}>,
-  preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'
+  preset?:string
  ):Promise<OfflineMapStatus[]>{
   for(const {id,enabled} of updates){
    const item=this.opened.get(id);const obf=this.obfFiles.get(id);const mapsforge=this.mapsforgeFiles.get(id);
@@ -222,7 +222,7 @@ export class OfflineMapManager {
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
  }
- private persistMaps(preset?:'austria'|'austria-plus'|'europe'|'all'|'none'|'custom'):Promise<void>{const paths=new Map<string,boolean>();for(const [path,item] of this.opened)paths.set(path,item.status.enabled);for(const [path,item] of this.obfFiles)paths.set(path,item.enabled);for(const [path,item] of this.mapsforgeFiles)paths.set(path,item.enabled);const filePaths=[...paths].map(([path,enabled])=>({path,enabled}));return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps(preset?:string):Promise<void>{const paths=new Map<string,boolean>();for(const [path,item] of this.opened)paths.set(path,item.status.enabled);for(const [path,item] of this.obfFiles)paths.set(path,item.enabled);for(const [path,item] of this.mapsforgeFiles)paths.set(path,item.enabled);const filePaths=[...paths].map(([path,enabled])=>({path,enabled}));return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory,...(preset?{obfPreset:preset}:{})}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
   const absolutePath=resolve(filePath);
   if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
