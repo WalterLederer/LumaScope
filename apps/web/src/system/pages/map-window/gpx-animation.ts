@@ -8,7 +8,6 @@ export interface GpxSymbolTransformOptions {
   bearing: number;
   settings: GpxSymbolSettings;
   size?: number;
-  movingLeft?: boolean;
   autoFlipDirection?: boolean;
 }
 
@@ -48,9 +47,12 @@ export function gpxSymbolOrientationOffset(figureType: string): number {
 export function buildGpxSymbolTransform(options: GpxSymbolTransformOptions): string {
   const {
     figureType, bearing, settings, size = 1,
-    movingLeft = false, autoFlipDirection = false
+    autoFlipDirection = false
   } = options;
   const rotation = gpxSymbolOrientationOffset(figureType) + settings.rotation;
+  // Compass bearings use 90° for east and 270° for west. Mirror the artwork
+  // when its direction points left, then apply the user's per-symbol correction.
+  const movingLeft = Math.sin(bearing * Math.PI / 180) < -0.01;
   const flipHorizontal = autoFlipDirection
     ? settings.flipHorizontal !== movingLeft
     : settings.flipHorizontal;
