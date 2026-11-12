@@ -273,7 +273,7 @@ interface MapErrorEntry {
             </section>
             <section class="time-slider-animation-panel time-slider-orientation-panel">
               <h4>Symbol orientation</h4>
-              <label class="time-slider-symbol-rotation time-slider-control-card"><span>Rotation: {{ selectedWalkingFigureSymbolSettings().rotation }}°</span><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
+              <label class="time-slider-symbol-rotation time-slider-control-card"><span>Rotation</span><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
               <div class="time-slider-symbol-orientation-actions">
                 <button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
                 <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
@@ -1037,8 +1037,7 @@ interface MapErrorEntry {
     .time-slider-speed-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px;font-size:12px;color:CanvasText;min-width:0}
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-speed-control strong{min-width:30px;text-align:right;color:CanvasText}
-    .time-slider-animation-speed{display:grid;grid-template-columns:auto minmax(55px,1fr) auto;align-items:center;gap:8px;flex:1 1 180px}
-    .time-slider-animation-speed input{grid-column:auto;min-width:55px}
+    .time-slider-animation-speed{flex:1 1 180px}
     .time-slider-symbol-controls-row{display:grid;grid-template-columns:auto auto minmax(115px,170px) minmax(105px,1fr);align-items:center;gap:10px;min-width:0;width:100%}
     .time-slider-symbol-select{display:flex;min-width:0;font-size:12px;color:CanvasText}
     .time-slider-symbol-select select{width:100%;min-width:0;padding:5px 7px;border:1px solid var(--color-border-default,#777);border-radius:4px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit}
@@ -1049,8 +1048,8 @@ interface MapErrorEntry {
     .time-slider-symbol-size input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     @media(max-width:560px){.time-slider-symbol-controls-row{grid-template-columns:auto auto minmax(0,1fr)}.time-slider-symbol-size{grid-column:1/-1}}
     .time-slider-symbol-orientation-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .time-slider-symbol-rotation{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;font-size:12px;color:CanvasText}
-    .time-slider-symbol-rotation input{width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
+    .time-slider-symbol-rotation{min-width:0;width:100%;font-size:12px;color:CanvasText}
+    .time-slider-symbol-rotation input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
@@ -1059,9 +1058,10 @@ interface MapErrorEntry {
     .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
     .time-slider-symbol-preview-box>span{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}.time-slider-symbol-preview-box svg{display:block;width:30px;height:38px;overflow:visible}
     .time-slider-symbol-front{font-size:12px;color:var(--color-content-default-medium,#aaa);white-space:nowrap}
-    .time-slider-symbol-rotation{display:flex;align-items:center;gap:8px;min-width:0;width:100%;font-size:12px;color:var(--color-content-default-medium,#aaa)}
-    .time-slider-symbol-rotation input{flex:1;min-width:90px;accent-color:var(--color-accent,#2688e8)}
-    .time-slider-symbol-rotation strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}.time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+    .time-slider-control-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px}
+    .time-slider-control-card>input[type="range"]{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
+    .time-slider-control-card>strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}
+    .time-slider-symbol-rotation{font-size:12px;color:var(--color-content-default-medium,#aaa)}.time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
