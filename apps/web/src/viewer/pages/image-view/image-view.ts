@@ -570,7 +570,7 @@ export class ImageView {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
     return Object.entries(record)
-      .filter(([key]) => key !== 'database_path' && key !== 'relative_folder_path' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
+      .filter(([key]) => key !== 'database_path' && key !== 'relative_folder_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
       .map(([key, value]) => ({
         key,
         type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
