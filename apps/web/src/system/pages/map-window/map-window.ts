@@ -1444,6 +1444,22 @@ export class MapWindow implements OnInit, OnDestroy {
     this.recordMapError('Mapsforge tile coverage', message);
   };
 
+  private resetLastRenderCountsForViewport(): void {
+    this.activeRenderTiles.clear();
+    this.seenRenderTiles.clear();
+    this.currentTileRequestResults.clear();
+    this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
+    this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
+    this.hillshadeTotalCount.set(0);
+    this.hillshadeCompletedCount.set(0);
+    this.activeHillshadeTiles.clear();
+    this.seenHillshadeTiles.clear();
+    this.completedHillshadeTiles.clear();
+    this.hillshadeActiveCount.set(0);
+    this.renderActiveCount.set(0);
+    this.renderTotalCount.set(0);
+  }
+
   private readonly onOsmAndTileStatus = (event: Event): void => {
     const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : this.mapSource() === 'mapsforge' ? 'mapsforge' : null;
@@ -2628,7 +2644,8 @@ export class MapWindow implements OnInit, OnDestroy {
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
-    const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
+    const syncOfflineZoom
+    renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport()); = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('zoomend', syncOfflineZoom);
     syncOfflineZoom();
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
@@ -2737,20 +2754,7 @@ export class MapWindow implements OnInit, OnDestroy {
     let previousViewportZoom = renderer.map.getZoom();
     renderer.map.on('movestart', () => {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
-      this.activeRenderTiles.clear();
-      this.seenRenderTiles.clear();
-      this.currentTileRequestResults.clear();
-      this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
-      this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
-      this.hillshadeTotalCount.set(0);
-      this.hillshadeCompletedCount.set(0);
-      this.activeHillshadeTiles.clear();
-      this.seenHillshadeTiles.clear();
-      this.completedHillshadeTiles.clear();
-      this.hillshadeActiveCount.set(0);
-      this.hillshadeTotalCount.set(0);
-      this.renderActiveCount.set(0);
-      this.renderTotalCount.set(0);
+      this.resetLastRenderCountsForViewport();
       void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
         console.warn('[OsmAnd Atlas] Could not cancel obsolete queued tiles:', error));
     });
@@ -2837,6 +2841,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyMapOpacity();
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+      renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       this.persistZoom(renderer.map.getZoom());
       if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
       await this.restoreGpxTrack();
@@ -2932,6 +2937,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     this.persistZoom(renderer.map.getZoom());
     if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
