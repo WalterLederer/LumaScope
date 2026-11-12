@@ -509,6 +509,11 @@ export function createMapsforgeMapStyle(): StyleSpecification {
 
 let mapsforgeProtocolRegistered = false;
 let mapsforgeDesktopProvider: Desktop | null = null;
+let mapsforgeProtocolActive = false;
+
+export function setMapsforgeTileProtocolActive(active: boolean): void {
+  mapsforgeProtocolActive = active;
+}
 
 export function registerMapsforgeTileProtocol(desktop: Desktop): void {
   // The protocol outlives the map-window component. Refresh its provider on
@@ -532,6 +537,9 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
         detail: { protocol: 'mapsforge', zoom, column, row, status, ...(error ? { error } : {}) }
       }));
     };
+    if (!mapsforgeProtocolActive || abortController.signal.aborted) {
+      throw new Error('Mapsforge tile request was cancelled because the renderer is inactive.');
+    }
     tileStatus('loading');
     try {
       const provider = mapsforgeDesktopProvider;
