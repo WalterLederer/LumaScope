@@ -40,7 +40,7 @@ type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
-interface RouteWaypoint { latitude: number; longitude: number; name?: string; }
+interface RouteWaypoint { latitude: number; longitude: number; name?: string; active?: boolean; }
 
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
@@ -246,16 +246,23 @@ interface MapErrorEntry {
     </div>
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
-        <div class="routing-point-row"><span class="routing-point-index">{{ i + 1 }}.</span><span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span><button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button></div>
+        <div class="routing-point-row" [class.inactive]="point.active === false">
+          <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
+                 (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
+                 [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
+          <span class="routing-point-index">{{ i + 1 }}.</span>
+          <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
+          <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
+        </div>
       }
       @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Enable map clicking and select at least two locations.</span> }
     </div>
     <div class="routing-actions">
-      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || routeWaypoints().length < 2 || !routeApiKey().trim()">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || !routeApiKey().trim()">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Clear points</button>
       <span class="offline-map-status">{{ routeStatus() }}</span>
     </div>
-    @if (routeWaypoints().length > 50) { <span class="gpx-error">openrouteservice supports at most 50 waypoints per request.</span> }
+    @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
@@ -1368,7 +1375,7 @@ interface MapErrorEntry {
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
-    .routing-point-row{display:flex;align-items:center;gap:10px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}
+    .routing-point-row{display:flex;align-items:center;gap:8px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}\n    .routing-point-active{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:#0a84ff;cursor:pointer}\n    .routing-point-row.inactive .routing-point-location{opacity:.48}\n    .routing-point-row.inactive .routing-point-index{opacity:.5}
     .routing-point-location{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;font-family:inherit;overflow:hidden}.routing-point-location strong{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.routing-point-location small{font-family:Consolas,monospace;font-size:11px;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .routing-point-index{width:22px;font-weight:700;color:#0a84ff}
     .routing-point-row .offline-map-remove-button{margin-left:auto}
@@ -1943,7 +1950,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const point = entry as Record<string, unknown>;
         const latitude = Number(point['latitude']), longitude = Number(point['longitude']);
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return [];
-        return [{ latitude, longitude, ...(typeof point['name'] === 'string' ? { name: point['name'] } : {}) }];
+        return [{ latitude, longitude, active: point['active'] !== false, ...(typeof point['name'] === 'string' ? { name: point['name'] } : {}) }];
       });
       this.routeWaypoints.set(restoredWaypoints);
       this.updateRouteWaypointMarkers();
@@ -4940,12 +4947,20 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
     if (!this.routePointPicking() || !Number.isFinite(latitude) || !Number.isFinite(longitude)
       || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
-    const waypoint: RouteWaypoint = { latitude, longitude };
+    const waypoint: RouteWaypoint = { latitude, longitude, active: true };
     this.routeWaypoints.update(points => [...points, waypoint]);
     this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
     void this.resolveRouteWaypointName(waypoint);
   };
+
+  protected readonly changeRouteWaypointActive = (index: number, active: boolean): void => {
+    this.routeWaypoints.update(points => points.map((point, i) => i === index ? { ...point, active } : point));
+    this.persistRouteWaypoints();
+  };
+
+  protected readonly activeRouteWaypointCount = (): number =>
+    this.routeWaypoints().filter(point => point.active !== false).length;
 
   protected readonly removeRouteWaypoint = (index: number): void => {
     this.routeWaypoints.update(points => points.filter((_, i) => i !== index));
@@ -4962,7 +4977,8 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private persistRouteWaypoints(): void {
     this.persistLocationUiState({ routeWaypoints: this.routeWaypoints().map(point => ({
-      latitude: point.latitude, longitude: point.longitude, ...(point.name ? { name: point.name } : {})
+      latitude: point.latitude, longitude: point.longitude, active: point.active !== false,
+      ...(point.name ? { name: point.name } : {})
     })) });
   }
 
@@ -5004,18 +5020,22 @@ export class MapWindow implements OnInit, OnDestroy {
     const desktop = this.desktop;
     if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
     const points = this.routeWaypoints();
+    const activePoints = points.filter(point => point.active !== false);
     const apiKey = this.routeApiKey().trim();
     if (!apiKey) { this.routeStatus.set('Enter your personal API key first.'); return; }
-    if (points.length < 2) { this.routeStatus.set('Add at least two route points.'); return; }
-    if (points.length > 50) { this.routeStatus.set('A maximum of 50 waypoints is supported by the hosted service.'); return; }
+    if (activePoints.length < 2) { this.routeStatus.set('Activate at least two route points.'); return; }
+    if (activePoints.length > 50) { this.routeStatus.set('A maximum of 50 active waypoints is supported by the hosted service.'); return; }
+    const providerName = 'openrouteservice';
+    const requestTimestamp = new Date().toISOString();
+    const requestProfile = this.routeProfile();
     const generation = ++this.routeRequestGeneration;
     this.routeBusy.set(true);
-    this.routeStatus.set('Requesting route from openrouteservice…');
+    this.routeStatus.set('Requesting route from ' + providerName + '…');
     try {
       const response = await fetch('https://api.openrouteservice.org/v2/directions/' + this.routeProfile() + '/geojson', {
         method: 'POST',
         headers: { 'Authorization': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/geo+json, application/json' },
-        body: JSON.stringify({ coordinates: points.map(point => [point.longitude, point.latitude]), instructions: false })
+        body: JSON.stringify({ coordinates: activePoints.map(point => [point.longitude, point.latitude]), instructions: false })
       });
       if (!response.ok) {
         const detail = await response.text();
@@ -5038,8 +5058,23 @@ export class MapWindow implements OnInit, OnDestroy {
       let destination = save.data;
       if (!/\.gpx$/i.test(destination)) destination += '.gpx';
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
-      const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
-      const content = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, '')) + '</name><trkseg>\n' + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
+      const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\\n');
+      const routingPointComment = [
+        'Routing provider: ' + providerName,
+        'Request timestamp (UTC): ' + requestTimestamp,
+        'Profile: ' + requestProfile,
+        'Routing points (complete list; inactive points were not sent to the provider):',
+        ...points.map((point, index) => {
+          const status = point.active === false ? 'INACTIVE' : 'ACTIVE';
+          const name = (point.name || '(no resolved location name)').replace(/[\\r\\n]+/g, ' ').replace(/--/g, '- -').trim();
+          return (index + 1) + '. [' + status + '] ' + name + ' | latitude=' + point.latitude.toFixed(8) + ' | longitude=' + point.longitude.toFixed(8);
+        })
+      ].map(line => '  ' + line).join('\\n').replace(/-+\\s*$/, '- -');
+      const content = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\\n'
+        + '<!--\\n' + routingPointComment + '\\n-->\\n'
+        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\\\.gpx$/i, '')) + '</name><trkseg>\\n'
+        + trackPoints + '\\n  </trkseg></trk>\\n</gpx>\\n';
       const written = await desktop.FileSystem.writeText(destination, content);
       if (!written.success) throw new Error(written.errorMessage);
       const parsed = this.parseGpxTrackData(content);
