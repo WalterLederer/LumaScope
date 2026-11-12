@@ -253,7 +253,7 @@
       },
       "africa": {
         "name": "Africa",
-        "regex": "(?:^|[_-])africa\\.obf$"
+        "regex": "(?:^|[_-])africa\\.obf$|^Tunisia(?:[_-].*)?\\.obf$"
       },
       "northamerica": {
         "name": "Northamerica",
@@ -288,6 +288,10 @@
       {
         "OsmAnd": "^GB_",
         "MapsForge": "great-britain"
+      },
+      {
+        "OsmAnd": "^Tunisia(?:_africa)?\\.obf$",
+        "MapsForge": "tunisia"
       }
     ]
   }
