@@ -106,6 +106,8 @@ export class CacheManager {
     return db;
   };
 
+  private readonly databaseForDirectoryOrActive = (directory?: string): DatabaseSync => directory ? this.databaseForPath(directory) : this.activeDatabase();
+
   private readonly activeDatabase = (): DatabaseSync => {
     if (!this.activeDatabaseKey) throw new Error('No gallery drive has selected a cache database yet.');
     const db = this.databases.get(this.activeDatabaseKey);
@@ -171,6 +173,7 @@ export class CacheManager {
   };
 
   private readonly deleteImageEntries = async (sourceName: string): Promise<CacheClearResult> => {
+    const db = this.databaseForPath(sourceName);
     const pending = [...this.pendingEntries.entries()]
       .filter(([key]) => { try { return JSON.parse(key)[0] === sourceName; } catch { return false; } })
       .map(([, operation]) => operation);
@@ -220,6 +223,7 @@ export class CacheManager {
       throw new Error('Recursive cache deletion requires a directory.');
     }
 
+    const db = this.databaseForDirectoryOrActive(directory);
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
     const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
@@ -265,6 +269,7 @@ export class CacheManager {
       throw new Error('A valid location lookup directory is required.');
     }
 
+    const db = this.databaseForPath(directory);
     const root = resolve(directory);
     const rows = db.prepare(`SELECT photos.id, photos.latitude, photos.longitude, photos.location_name_id, paths.folder_path,
           CASE WHEN location_names.display_name IS NULL THEN 1 ELSE 0 END AS needs_refresh
@@ -290,7 +295,7 @@ export class CacheManager {
       await this.ensureLocationName({
         ...row,
         location_name_id: row.needs_refresh === 1 ? null : row.location_name_id
-      }, true, false, row.needs_refresh === 1);
+      }, db, true, false, row.needs_refresh === 1);
       const saved = db.prepare(`SELECT photos.location_name_id, location_names.display_name
         FROM photos LEFT JOIN location_names ON location_names.id = photos.location_name_id
         WHERE photos.id = :id`)
@@ -311,6 +316,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getBackgroundReverseGeocodingStatus' })
   readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
+    const db = this.activeDatabase();
     const totals = db.prepare(`SELECT
         COUNT(*) AS total,
         SUM(CASE WHEN location_names.id IS NOT NULL AND location_names.display_name IS NOT NULL THEN 1 ELSE 0 END) AS resolved,
@@ -350,6 +356,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (): Promise<CacheSummary> => {
+    const db = this.activeDatabase();
     const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
@@ -493,13 +500,13 @@ export class CacheManager {
       throw new Error('A list of valid image paths is required.');
     }
 
-    const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));
-    const findPhoto = db.prepare(`SELECT photos.* FROM photos
+    const metadataByPath = new Map(sourceMetadata.map(item => [item.path, item]));(`SELECT photos.* FROM photos
       JOIN paths ON paths.id = photos.path_id
       WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE`);
 
     return Promise.all([...new Set(sourceNames)].map(async sourceName => {
-      const row = findPhoto.get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
+      const db = this.databaseForPath(sourceName);
+      const row = this.getPhoto(sourceName, db) ?? undefined;
       // Cache status checks must never wait for reverse geocoding. Geocoding is
       // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
@@ -561,6 +568,7 @@ export class CacheManager {
     }
     if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] };
     const folder = dirname(sourceNames[0]);
+    const db = this.databaseForPath(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
     const rows = db.prepare(`SELECT photos.*, paths.folder_path FROM photos
       JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder
@@ -603,6 +611,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
+    const db = this.databaseForPath(directory);
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
@@ -623,6 +632,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
+    const db = this.databaseForPath(sourceName);
     const row = db.prepare(`SELECT
         photos.id,
         photos.path_id,
@@ -686,9 +696,10 @@ export class CacheManager {
       throw new Error('Valid GPS coordinates are required.');
     }
 
+    const db = this.databaseForPath(sourceName);
     const sourceStats = await stat(sourceName);
     if (!sourceStats.isFile()) throw new Error('The selected image file is not available.');
-    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
 
     if (row.latitude !== latitude || row.longitude !== longitude) {
       db.prepare(`UPDATE photos SET latitude = :latitude, longitude = :longitude,
@@ -701,7 +712,7 @@ export class CacheManager {
     if (!updated) return null;
     // Map-window address display is a normal read path: reuse the saved DB location
     // and only contact the provider when this photo has no linked location yet.
-    const resolvedDisplayName = await this.ensureLocationName(updated, true, true, false);
+    const resolvedDisplayName = await this.ensureLocationName(updated, db, true, true, false, this.databaseKeyForPath(sourceName));
 
     const saved = db.prepare(`SELECT location_names.display_name, location_names.place_name,
         location_names.locality, location_names.region, location_names.country_code
@@ -726,8 +737,9 @@ export class CacheManager {
 
 
   readonly updatePhotoMetadata = async (sourceName: string, isHdr: boolean, gps: Awaited<ReturnType<Exif['readPhotoMetadata']>>): Promise<void> => {
+    const db = this.databaseForPath(sourceName);
     const sourceStats = await stat(sourceName);
-    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
     const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
     db.prepare(`UPDATE photos SET is_hdr = :isHdr,
       location_name_id = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
@@ -749,7 +761,7 @@ export class CacheManager {
     if (hasCoordinates) {
       const updated = this.getPhoto(sourceName);
       // Resolve the location in the background so metadata and thumbnail work can continue immediately.
-      if (updated) void this.ensureLocationName(updated);
+      if (updated) void this.ensureLocationName(updated, db, false, false, false, this.databaseKeyForPath(sourceName));
     }
   };
 
@@ -772,7 +784,8 @@ export class CacheManager {
   };
 
   readonly forgetParallel = (sourceName: string, sourceTag: string): void => {
-    const row = this.getPhoto(sourceName);
+    const db = this.databaseForPath(sourceName);
+    const row = this.getPhoto(sourceName, db);
     if (row?.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL && row.fullsize_cache_version === getFullSizeCacheVersionCode(sourceTag)) {
       db.prepare('UPDATE photos SET fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
     }
@@ -781,10 +794,11 @@ export class CacheManager {
   readonly registerParallel = async (sourceName: string, sourceTag: string, targetPath: string): Promise<string | null> => {
     if (!FULL_SIZE_EXTENSIONS.has(extname(sourceName).toLowerCase()) || resolve(targetPath) !== resolve(this.getParallelPath(sourceName))) return null;
     try {
+      const db = this.databaseForPath(sourceName);
       const [sourceStats, targetStats] = await Promise.all([stat(sourceName), stat(targetPath)]);
       if (!targetStats.isFile()) return null;
-      const previous = this.getPhoto(sourceName);
-      const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+      const previous = this.getPhoto(sourceName, db);
+      const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
       if (previous?.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
         await rm(this.getSidecarPath(sourceName, true), { force: true });
       }
@@ -810,12 +824,13 @@ export class CacheManager {
   };
 
   private readonly getOrCreate = async (sourceName: string, sourceTag: string, callback?: (cachePath: string) => Promise<boolean>): Promise<string | null> => {
+    const db = this.databaseForPath(sourceName);
     const sourceStats = await stat(sourceName);
-    const previous = this.getPhoto(sourceName);
+    const previous = this.getPhoto(sourceName, db);
     const full = sourceTag.includes('-full-');
     const previousSize = previous?.file_size;
     const previousModified = previous?.modified_at;
-    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs));
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
     // Cache retrieval and thumbnail generation must never wait for network geocoding.
     const parallelPath = this.getParallelPath(sourceName);
     if (full && existsSync(parallelPath)) {
@@ -840,13 +855,14 @@ export class CacheManager {
     return targetPath;
   };
 
-  private readonly getPhoto = (sourceName: string): PhotoRow | null => {
+  private readonly getPhoto = (sourceName: string, db = this.databaseForPath(sourceName)): PhotoRow | null => {
+    const folder = dirname(sourceName);
     const row = db.prepare('SELECT photos.* FROM photos JOIN paths ON paths.id = photos.path_id WHERE paths.folder_path = :folder AND photos.file_name = :file COLLATE NOCASE')
       .get({ folder: dirname(sourceName), file: basename(sourceName) }) as unknown as PhotoRow | undefined;
     return row ?? null;
   };
 
-  private readonly ensurePhoto = (sourceName: string, size: number, modified: number): PhotoRow => {
+  private readonly ensurePhoto = (sourceName: string, size: number, modified: number, db = this.databaseForPath(sourceName)): PhotoRow => {
     const folder = dirname(sourceName);
     db.prepare('INSERT OR IGNORE INTO paths (folder_path) VALUES (:folder)').run({ folder });
     const path = db.prepare('SELECT id FROM paths WHERE folder_path = :folder').get({ folder }) as { id: number };
@@ -864,15 +880,16 @@ export class CacheManager {
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`)
       .run({ pathId: path.id, file: basename(sourceName), size, modified });
-    return this.getPhoto(sourceName)!;
+    return this.getPhoto(sourceName, db)!;
   };
 
-  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, retryUnknown = false, throwOnError = false, forceRefresh = false): Promise<string | null> => {
+  private readonly ensureLocationName = async (photo: Pick<PhotoRow, 'id' | 'latitude' | 'longitude' | 'location_name_id'>, db: DatabaseSync, retryUnknown = false, throwOnError = false, forceRefresh = false, databaseKey = this.activeDatabaseKey ?? ''): Promise<string | null> => {
     if ((photo.location_name_id !== null && !(retryUnknown && photo.location_name_id === 0) && !forceRefresh) || photo.latitude === null || photo.longitude === null
       || !Number.isFinite(photo.latitude) || !Number.isFinite(photo.longitude)
       || photo.latitude < -90 || photo.latitude > 90 || photo.longitude < -180 || photo.longitude > 180) return null;
 
-    const pending = this.pendingLocationLookups.get(photo.id);
+    const pendingKey = `${databaseKey}:${photo.id}`;
+    const pending = this.pendingLocationLookups.get(pendingKey);
     if (pending) return pending;
 
     const operation = (async (): Promise<string | null> => {
@@ -973,9 +990,9 @@ export class CacheManager {
       return displayName;
     })();
 
-    this.pendingLocationLookups.set(photo.id, operation);
+    this.pendingLocationLookups.set(pendingKey, operation);
     try { return await operation; }
-    finally { if (this.pendingLocationLookups.get(photo.id) === operation) this.pendingLocationLookups.delete(photo.id); }
+    finally { if (this.pendingLocationLookups.get(pendingKey) === operation) this.pendingLocationLookups.delete(pendingKey); }
   };
 
   private readonly getSidecarPath = (sourceName: string, full: boolean): string => {
@@ -993,6 +1010,7 @@ export class CacheManager {
   };
 
   private readonly getKindStats = async (kind: 'thumbnail' | 'fullsize', directory?: string, recursive = false): Promise<CacheClearResult> => {
+    const db = this.databaseForDirectoryOrActive(directory);
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
     const allRows = db.prepare('SELECT photos.*, paths.folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { folder_path: string }>;
@@ -1015,7 +1033,7 @@ export class CacheManager {
     return { entries: existingEntries, bytes };
   };
 
-  private readonly init = (): void => {
+  private readonly init = (db: DatabaseSync): void => {
     db.exec(createMigrationTable);
     const migrations = db.prepare(getMigrationRecords).all() as Array<{ name: string }>;
     const insert = db.prepare(insertMigrationRecord);
@@ -1026,14 +1044,14 @@ export class CacheManager {
       }
     }
     if (!migrations.some(item => item.name === 'migrateLegacyCacheFilesToPhotosV8')) {
-      this.migrateLegacyCacheFiles();
+      this.migrateLegacyCacheFiles(db);
       insert.run({ name: 'migrateLegacyCacheFilesToPhotosV8' });
     }
     db.exec("DELETE FROM cache_storage_types WHERE name = 'central';");
     rm(this.legacyCacheDir, { recursive: true, force: true }).catch(() => undefined);
   };
 
-  private readonly migrateLegacyCacheFiles = (): void => {
+  private readonly migrateLegacyCacheFiles = (db: DatabaseSync): void => {
     const table = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'cache_files'").get();
     if (!table) return;
     const rows = db.prepare('SELECT * FROM cache_files').all() as Array<Record<string, SQLOutputValue>>;
