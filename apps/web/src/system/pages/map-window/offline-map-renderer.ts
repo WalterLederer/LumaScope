@@ -1,5 +1,5 @@
 import { addProtocol, Map as MapLibreMap, ScaleControl, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
-import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 // Angular copies the worker and its shared module to the renderer root.
@@ -1757,7 +1757,7 @@ export class OfflineMapRenderer {
     }
   }
 
-  setWalkingFigure(latitude: number, longitude: number, html: string, bearing: number, size = 1, animationSpeed = 1, figureType = 'walker', isMoving = false, flipHorizontal = false, flipVertical = false): void {
+  setWalkingFigure(latitude: number, longitude: number, html: string, transform: string, animationDuration: string, figureType = 'walker', isMoving = false): void {
     if (!this.walkingFigureElement) {
       this.walkingFigureElement = document.createElement('div');
       this.walkingFigureElement.className = 'offline-walking-figure';
@@ -1772,10 +1772,8 @@ export class OfflineMapRenderer {
     const activeWalker = this.walkingFigureElement.querySelector<HTMLElement>('.lumascope-walker');
     if (activeWalker) {
       activeWalker.classList.toggle('is-moving', isMoving);
-      const flipHorizontalTransform = flipHorizontal ? 'scaleX(-1)' : '';
-      const flipVerticalTransform = flipVertical ? 'scaleY(-1)' : '';
-      activeWalker.style.transform = `rotate(${bearing}deg) ${flipVerticalTransform} ${flipHorizontalTransform} scale(${size})`;
-      activeWalker.style.setProperty('--walker-animation-duration', `${0.72 / animationSpeed}s`);
+      activeWalker.style.transform = transform;
+      activeWalker.style.setProperty('--walker-animation-duration', animationDuration);
     }
     this.walkingFigureElement.style.transform = 'translate(-50%,-50%)';
     this.updateOverlayPositions();
