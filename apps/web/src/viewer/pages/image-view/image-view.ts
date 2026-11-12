@@ -570,7 +570,7 @@ export class ImageView {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
     return Object.entries(record)
-      .filter(([key]) => key !== 'database_path' && key !== 'relative_folder_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
+      .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
       .map(([key, value]) => ({
         key,
         type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
@@ -601,7 +601,7 @@ export class ImageView {
       const record = await this.cacheManager.getPhotoDatabaseRecord(image.path);
       if (request !== this.photoDatabaseRecordRequest) return;
       this.photoDatabaseRecord.set(record);
-      this.photoDatabaseRecordStatus.set(record ? 'Database record loaded.' : 'No database record exists for this image.');
+      this.photoDatabaseRecordStatus.set(record ? '' : 'No database record exists for this image.');
     } catch (error) {
       if (request !== this.photoDatabaseRecordRequest) return;
       this.photoDatabaseRecord.set(null);
