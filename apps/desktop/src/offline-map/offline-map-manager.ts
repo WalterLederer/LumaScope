@@ -5,9 +5,9 @@ import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 export interface OfflineMapStatus { type?:'mbtiles'|'obf'|'mapsforge'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
-export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'; dateMs:number|null; source:string; url:string; matched:boolean; }
+export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'|'mapsforge'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
-interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'; url:string; }
+interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'|'mapsforge'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
@@ -36,10 +36,10 @@ export class OfflineMapManager {
  readonly checkForUpdates=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapUpdateCheckResult>=>{
   const offlineSettings=(readAppSettings().offlineMaps??{}) as Record<string,unknown>;
   const savedSources=Array.isArray(offlineSettings.updateSources)?offlineSettings.updateSources:[];
-  const sources=savedSources.filter((entry):entry is {url:string;fileType:'obf'|'mbtiles';useForUpdates:boolean}=>{
+  const sources=savedSources.filter((entry):entry is {url:string;fileType:'obf'|'mbtiles'|'mapsforge';useForUpdates:boolean}=>{
    if(!entry||typeof entry!=='object')return false;
    const source=entry as Record<string,unknown>;
-   return typeof source.url==='string'&&(source.fileType==='obf'||source.fileType==='mbtiles')&&source.useForUpdates===true;
+   return typeof source.url==='string'&&(source.fileType==='obf'||source.fileType==='mbtiles'||source.fileType==='mapsforge')&&source.useForUpdates===true;
   }).map(source=>({name:(()=>{try{return new URL(source.url).hostname;}catch{return source.url;}})(),url:source.url,fileType:source.fileType}));
   const files:RemoteMapFile[]=[];const sourceErrors:string[]=[];
   const fetchPage=async(url:string):Promise<string>=>{
@@ -58,13 +58,13 @@ export class OfflineMapManager {
    if(match)return Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]));
    return null;
   };
-  const parseFiles=(html:string,baseUrl:string,source:string,fileType:'obf'|'mbtiles'):void=>{
+  const parseFiles=(html:string,baseUrl:string,source:string,fileType:'obf'|'mbtiles'|'mapsforge'):void=>{
    const anchors=html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi);
    for(const anchor of anchors){
     const href=anchor[1].replace(/&amp;/g,'&');const label=anchor[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
     let fileName=label;
     try{fileName=decodeURIComponent(new URL(href,baseUrl).pathname.split('/').pop()||label);}catch{}
-    const extensionPattern=fileType==='obf'?/\.obf(?:\.zip)?$/i:/\.mbtiles$/i;
+    const extensionPattern=fileType==='obf'?/\.obf(?:\.zip)?$/i:fileType==='mapsforge'?/\.map(?:\.zip)?$/i:/\.mbtiles$/i;
     if(!extensionPattern.test(fileName)&&!extensionPattern.test(label))continue;
     if(!extensionPattern.test(fileName))fileName=label;
     const position=anchor.index??0;const rowStart=Math.max(html.lastIndexOf('<tr',position),html.lastIndexOf('<li',position));
@@ -74,8 +74,30 @@ export class OfflineMapManager {
     files.push({fileName,dateMs:parseDate(context,fileName),source,fileType,url:new URL(href,baseUrl).toString()});
    }
   };
+  const crawlMapsforgeDirectory=async(sourceUrl:string,sourceName:string):Promise<void>=>{
+   const root=new URL(sourceUrl);const rootPath=root.pathname.endsWith('/')?root.pathname:root.pathname+'/';
+   const pending:Array<{url:string;depth:number}>=[{url:sourceUrl,depth:0}];const visited=new Set<string>();
+   while(pending.length){
+    const current=pending.shift()!;if(visited.has(current.url))continue;visited.add(current.url);
+    const html=await fetchPage(current.url);parseFiles(html,current.url,sourceName,'mapsforge');
+    if(current.depth>=4)continue;
+    const anchors=html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi);
+    for(const anchor of anchors){
+     const href=anchor[1].replace(/&amp;/g,'&');if(!href.endsWith('/')||href==='../'||href==='./')continue;
+     try{
+      const child=new URL(href,current.url);
+      if(child.origin!==root.origin||!child.pathname.startsWith(rootPath)||visited.has(child.toString()))continue;
+      pending.push({url:child.toString(),depth:current.depth+1});
+     }catch{}
+    }
+   }
+  };
   const tasks=sources.map(async source=>{
    try{
+    if(source.fileType==='mapsforge'){
+     await crawlMapsforgeDirectory(source.url,source.name);
+     return;
+    }
     const html=await fetchPage(source.url);parseFiles(html,source.url,source.name,source.fileType);
     if(source.url.includes('geofabrik.de')){
      const rawIndex=html.match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>\s*(?:raw directory index|directory index)\s*<\/a>/i);
@@ -88,7 +110,7 @@ export class OfflineMapManager {
   });
   await Promise.all(tasks);
   const normalize=(name:string):string=>name.split(/[\\/]/).pop()!.toLowerCase().replace(/\.zip$/i,'').replace(/_2(?=\.obf$)/i,'').normalize('NFKC').replace(/\s+/g,' ').trim();
-  const maps=[...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()]);
+  const maps=[...this.opened.values()].map(value=>value.status).concat([...this.obfFiles.values()],[...this.mapsforgeFiles.values()]);
   let matchedMaps=0;
   const matchedCatalogueKeys=new Set<string>();
   for(const item of maps){
