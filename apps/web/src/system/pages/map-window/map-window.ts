@@ -3005,8 +3005,19 @@ export class MapWindow implements OnInit, OnDestroy {
       // Apply all OBF states and the preset in one IPC call and one settings write.
       // Custom intentionally preserves the user's individual enabled states.
       const updates = value === 'custom' ? [] : this.offlineMaps()
-        .filter(map => map.type === 'obf' && map.enabled !== this.obfMapMatchesPreset(map, value))
-        .map(map => ({ id: map.id, enabled: this.obfMapMatchesPreset(map, value) }));
+        .filter(map => {
+          if (map.type === 'obf') return map.enabled !== this.obfMapMatchesPreset(map, value);
+          if (map.type === 'mapsforge' && (value === 'austria' || value === 'austria-plus')) {
+            return map.enabled !== this.mapsforgeMapMatchesPreset(map, value);
+          }
+          return false;
+        })
+        .map(map => ({
+          id: map.id,
+          enabled: map.type === 'obf'
+            ? this.obfMapMatchesPreset(map, value)
+            : this.mapsforgeMapMatchesPreset(map, value as 'austria' | 'austria-plus')
+        }));
       this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
     }
     this.refreshOfflineMapRendering();
@@ -3028,6 +3039,25 @@ export class MapWindow implements OnInit, OnDestroy {
     const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(fileName);
     return selectedPreset === 'all' || selectedPreset === 'custom'
       || (selectedPreset === 'austria' ? isAustria : selectedPreset === 'austria-plus' ? isAustriaPlus : selectedPreset === 'europe' ? isEurope : false);
+  }
+
+  private mapsforgeMapMatchesPreset(
+    map: import('internal-api').OfflineMapStatus,
+    selectedPreset: 'austria' | 'austria-plus'
+  ): boolean {
+    if (map.type !== 'mapsforge') return false;
+    const fileName = (map.fileName || map.name).toLowerCase();
+    if (selectedPreset === 'austria') return fileName === 'austria.map';
+    return [
+      'austria.map',
+      'hungary.map',
+      'czech-republic.map',
+      'germany.map',
+      'italy.map',
+      'slovakia.map',
+      'slovenia.map',
+      'switzerland.map'
+    ].includes(fileName);
   }
 
   private getObfPresetForMaps(
