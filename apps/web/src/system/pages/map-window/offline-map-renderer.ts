@@ -486,6 +486,60 @@ function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecificati
   return JSON.parse(JSON.stringify(style)) as StyleSpecification;
 }
 
+export function createMapsforgeMapStyle(): StyleSpecification {
+  return {
+    version: 8,
+    name: 'LumaScope Mapsforge',
+    sources: {
+      mapsforge: {
+        type: 'raster',
+        tiles: ['mapsforge://{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: 22,
+        attribution: '© OpenStreetMap contributors'
+      }
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#e8e6df' } },
+      { id: 'mapsforge-raster', type: 'raster', source: 'mapsforge', paint: { 'raster-fade-duration': 0 } }
+    ]
+  };
+}
+
+let mapsforgeProtocolRegistered = false;
+
+export function registerMapsforgeTileProtocol(desktop: Desktop): void {
+  if (mapsforgeProtocolRegistered) return;
+  addProtocol('mapsforge', async (request, abortController) => {
+    const match = /^mapsforge:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
+    if (!match) throw new Error('Invalid Mapsforge XYZ tile URL: ' + request.url);
+    const [, zoomText, columnText, rowText] = match;
+    const zoom = Number(zoomText), column = Number(columnText), row = Number(rowText);
+    const tileCount = 2 ** zoom;
+    if (!Number.isInteger(zoom) || zoom < 0 || zoom > 22
+      || !Number.isInteger(column) || !Number.isInteger(row)
+      || column < 0 || column >= tileCount || row < 0 || row >= tileCount) {
+      throw new Error('Invalid Mapsforge XYZ tile coordinates.');
+    }
+    const result = await desktop.Mapsforge.renderTile(zoom, column, row);
+    if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
+    if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
+      throw new Error('Mapsforge renderer returned an invalid PNG tile.');
+    }
+    const binary = atob(result.png_base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+    if (abortController.signal.aborted) {
+      bitmap.close();
+      throw new Error('Mapsforge tile request was cancelled.');
+    }
+    return { data: bitmap };
+  });
+  mapsforgeProtocolRegistered = true;
+}
+
 export function createOsmAndMapStyle(): StyleSpecification {
   return {
     version: 8,
