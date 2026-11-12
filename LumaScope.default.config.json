@@ -235,6 +235,10 @@
         "name": "Austria+",
         "regex": "austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein"
       },
+      "dach": {
+        "name": "DACH",
+        "regex": "germany|deutschland|austria|österreich|osterreich|switzerland|schweiz|suisse|svizzera"
+      },
       "europe": {
         "name": "Europe",
         "regex": "(?:^|[_. -])europe(?:[_. -]|$)"
