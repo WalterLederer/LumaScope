@@ -28,7 +28,8 @@ export class Injector {
     OfflineMapManager: new OfflineMapManager(),
     OsmAndManager: new OsmAndManager(),
     OsmAndAtlasManager: new OsmAndAtlasManager(),
-    MapsforgeManager: new MapsforgeManager()
+    MapsforgeManager: new MapsforgeManager(),
+    ValhallaManager: new ValhallaManager()
   } as const;
 
   private constructor() {
