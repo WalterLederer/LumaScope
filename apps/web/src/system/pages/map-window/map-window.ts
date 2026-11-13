@@ -253,14 +253,16 @@ interface MapErrorEntry {
           <option value="openrouteservice">openrouteservice</option>
         </select>
       </label>
-      <label class="routing-travel-mode-label">Travel mode
+      <div class="routing-travel-mode-card">
+        <label class="routing-travel-mode-label">Travel mode</label>
         <span class="routing-travel-mode-control">
           <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
             <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
           </select>
           <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
         </span>
-      </label>
+      </div>
+      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
       <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
     </div>
     @if (routeProvider() === 'openrouteservice') {
@@ -270,9 +272,6 @@ interface MapErrorEntry {
         <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
       </div>
     }
-    <div class="routing-actions">
-      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
-    </div>
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
         <div class="routing-point-row" [class.inactive]="point.active === false">
@@ -293,8 +292,8 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
       <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
-      <button type="button" class="offline-map-add-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Clear points</button>
       <span class="offline-map-status">{{ routeStatus() }}</span>
+      <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Remove All</button>
     </div>
     @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
   </div>
@@ -1421,9 +1420,12 @@ interface MapErrorEntry {
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .routing-toolbar{position:relative;width:100%;padding-top:22px}.routing-provider-label{flex:1 1 440px;min-width:280px}.routing-provider-select{width:100%;min-width:280px;max-width:100%}
-    .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:30px;font-size:23px;line-height:1}
+    .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
+    .routing-travel-mode-label{font-size:12px;font-weight:600}
+    .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
+    .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{position:absolute;right:0;top:0;display:flex;align-items:center;gap:6px;margin-left:auto;justify-content:flex-end;text-align:right}
-    .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
+    .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:Canvas;color:CanvasText}
     .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
@@ -1435,6 +1437,9 @@ interface MapErrorEntry {
     .routing-waypoint-icon{background:transparent;border:0}
     .routing-waypoint-icon span{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px #0009}
     .routing-actions .offline-map-status{flex:1;min-width:180px}
+    .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
+    .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
+    .routing-remove-all-button:disabled{opacity:.45}
     @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
 
   `],
