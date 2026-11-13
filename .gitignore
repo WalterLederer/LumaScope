@@ -51,6 +51,7 @@ Thumbs.db
 /.vs
 /tools/Austria_wien_europe.obf
 /tools/osmand-runtime/stage/
+/tools/valhalla-runtime/stage/
 
 # Local Electron packaging cache
 /.electron-dist/
