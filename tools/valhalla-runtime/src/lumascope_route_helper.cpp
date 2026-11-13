@@ -22,12 +22,9 @@ std::string make_error_response(const std::string& message) {
 }
 
 std::string make_ready_response() {
-    boost::property_tree::ptree response;
-    response.put("ready", true);
-
-    std::ostringstream stream;
-    boost::property_tree::write_json(stream, response, false);
-    return stream.str();
+    // Boost.PropertyTree stores values as strings and writes "true" as a
+    // quoted JSON string. The TypeScript handshake requires a real boolean.
+    return R"({"ready":true})";
 }
 
 } // namespace
