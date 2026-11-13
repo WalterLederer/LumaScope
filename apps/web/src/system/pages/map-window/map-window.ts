@@ -3708,10 +3708,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
-    const currentMaps = this.offlineMaps();
-    const map = currentMaps.find(item => item.id === id);
-    const presetSelectionChanged = (map?.type === 'obf' || map?.type === 'mapsforge') && map.enabled !== enabled;
-    const nextMaps = currentMaps.map(item => item.id === id ? { ...item, enabled } : item);
     const updated = await this.desktop.OfflineMap.setEnabledBatch([{ id, enabled }]);
     this.offlineMaps.set(updated);
     this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
@@ -3728,14 +3724,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const visibleMaps = this.filteredOfflineFiles();
     if (visibleMaps.length === 0) return;
     try {
-      const presetSelectionChanged = visibleMaps.some(map =>
-        (map.type === 'obf' || map.type === 'mapsforge') && map.enabled !== enabled
-      );
       const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
-      const updateById = new Map(updates.map(update => [update.id, update.enabled]));
-      const updatedSelection = this.offlineMaps().map(map =>
-        updateById.has(map.id) ? { ...map, enabled: updateById.get(map.id)! } : map
-      );
       const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
       this.offlineMaps.set(updated);
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
