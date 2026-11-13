@@ -1,7 +1,7 @@
-import { app, type IpcMainInvokeEvent } from 'electron';
+import { app, dialog, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
@@ -22,11 +22,18 @@ export interface ValhallaRouteResult {
   coordinates: ValhallaRoutePoint[];
 }
 
+export interface ValhallaConfigEntry {
+  path: string;
+  name: string;
+  available: boolean;
+}
+
 export interface ValhallaRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
   configPath: string;
   configAvailable: boolean;
+  configurations: ValhallaConfigEntry[];
   running: boolean;
 }
 
@@ -91,6 +98,7 @@ interface ValhallaResponse {
 export class ValhallaManager {
   private readonly helperPath = this.resolveHelperPath();
   private configPath = this.readSavedConfigPath();
+  private configurations = this.readSavedConfigurations();
   private child: ChildProcessWithoutNullStreams | null = null;
   private reader: ProcessLineReader | null = null;
   private stderr = '';
@@ -114,7 +122,30 @@ export class ValhallaManager {
   private readSavedConfigPath(): string {
     const settings = readAppSettings().valhalla as Record<string, unknown> | undefined;
     const configured = settings?.configPath;
-    return typeof configured === 'string' ? configured : (process.env.LUMASCOPE_VALHALLA_CONFIG || 'D:\\Maps\\OpenStreetMap\\Valhalla\\Austria\\valhalla.json');
+    return typeof configured === 'string' ? configured : (process.env.LUMASCOPE_VALHALLA_CONFIG || '');
+  }
+
+  private readSavedConfigurations(): ValhallaConfigEntry[] {
+    const settings = readAppSettings().valhalla as Record<string, unknown> | undefined;
+    const saved = Array.isArray(settings?.configurations) ? settings.configurations : [];
+    const entries = saved.flatMap((item: unknown) => {
+      if (!item || typeof item !== 'object') return [];
+      const value = item as Record<string, unknown>;
+      if (typeof value['path'] !== 'string' || !value['path'].trim()) return [];
+      const path = value['path'].trim();
+      return [{ path, name: typeof value['name'] === 'string' ? value['name'] : basename(dirname(path)), available: existsSync(path) }];
+    });
+    if (this.configPath && !entries.some(entry => entry.path.toLowerCase() === this.configPath.toLowerCase())) {
+      entries.unshift({ path: this.configPath, name: basename(dirname(this.configPath)), available: existsSync(this.configPath) });
+    }
+    return entries;
+  }
+
+  private async persistConfigurations(): Promise<void> {
+    await updateAppSettingsSection('valhalla', {
+      configPath: this.configPath || undefined,
+      configurations: this.configurations.map(({ path, name }) => ({ path, name }))
+    });
   }
 
   @IpcHandler({ name: 'Valhalla.getRuntimeStatus' })
@@ -123,6 +154,7 @@ export class ValhallaManager {
     helperAvailable: existsSync(this.helperPath),
     configPath: this.configPath,
     configAvailable: !!this.configPath && existsSync(this.configPath),
+    configurations: this.configurations.map(entry => ({ ...entry, available: existsSync(entry.path) })),
     running: !!this.child && this.child.exitCode === null
   });
 
@@ -134,7 +166,48 @@ export class ValhallaManager {
     const resolvedPath = configPath.trim();
     await this.stop();
     this.configPath = resolvedPath;
-    await updateAppSettingsSection('valhalla', { configPath: resolvedPath });
+    if (!this.configurations.some(entry => entry.path.toLowerCase() === resolvedPath.toLowerCase())) {
+      this.configurations.push({ path: resolvedPath, name: basename(dirname(resolvedPath)), available: true });
+    }
+    await this.persistConfigurations();
+    return this.getRuntimeStatus();
+  };
+
+  @IpcHandler({ name: 'Valhalla.addConfig' })
+  readonly addConfig = async (): Promise<ValhallaRuntimeStatus> => {
+    const result = await dialog.showOpenDialog({
+      title: 'Add Valhalla routing configuration',
+      properties: ['openFile'],
+      filters: [{ name: 'Valhalla configuration', extensions: ['json'] }]
+    });
+    if (result.canceled || result.filePaths.length === 0) return this.getRuntimeStatus();
+    const selectedPath = result.filePaths[0];
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(selectedPath, 'utf8'));
+    } catch (error) {
+      throw new Error('The selected file is not valid JSON: ' + (error instanceof Error ? error.message : String(error)));
+    }
+    if (!parsed || typeof parsed !== 'object' || !('mjolnir' in parsed)) {
+      throw new Error('The selected JSON does not look like a Valhalla configuration (missing "mjolnir").');
+    }
+    if (!this.configurations.some(entry => entry.path.toLowerCase() === selectedPath.toLowerCase())) {
+      this.configurations.push({ path: selectedPath, name: basename(dirname(selectedPath)), available: true });
+      await this.persistConfigurations();
+    }
+    return this.getRuntimeStatus();
+  };
+
+  @IpcHandler({ name: 'Valhalla.removeConfig' })
+  readonly removeConfig = async (_event: IpcMainInvokeEvent, configPath: string): Promise<ValhallaRuntimeStatus> => {
+    const target = typeof configPath === 'string' ? configPath.trim() : '';
+    if (!target) throw new Error('Select a Valhalla configuration to remove.');
+    this.configurations = this.configurations.filter(entry => entry.path.toLowerCase() !== target.toLowerCase());
+    if (this.configPath.toLowerCase() === target.toLowerCase()) {
+      await this.stop();
+      this.configPath = this.configurations[0]?.path ?? '';
+    }
+    await this.persistConfigurations();
     return this.getRuntimeStatus();
   };
 
