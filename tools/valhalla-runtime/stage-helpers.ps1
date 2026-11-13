@@ -17,18 +17,42 @@ if (-not (Test-Path -LiteralPath $BuildDirectory -PathType Container)) {
 
 $buildRoot = (Resolve-Path -LiteralPath $BuildDirectory).Path
 
-# Build the native helper as part of the release packaging workflow so the
-# staged executable always matches the current Valhalla source and build tree.
+# Identify the source tree recorded in this CMake build directory. This makes
+# it visible in the build log which checkout is actually used for compilation.
+$cmakeCache = Join-Path $buildRoot 'CMakeCache.txt'
+if (Test-Path -LiteralPath $cmakeCache -PathType Leaf) {
+    $sourceEntry = Select-String -LiteralPath $cmakeCache -Pattern '^CMAKE_HOME_DIRECTORY:INTERNAL=' | Select-Object -First 1
+    if ($sourceEntry) {
+        Write-Host "Valhalla source: $($sourceEntry.Line.Substring('CMAKE_HOME_DIRECTORY:INTERNAL='.Length))" -ForegroundColor Cyan
+    }
+}
+
+$helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
+
+# Remove the previous executable before invoking CMake. This guarantees that
+# a successful run must link a fresh helper instead of leaving an old EXE in
+# place when the build target is accidentally skipped or its output is stale.
+if (Test-Path -LiteralPath $helper -PathType Leaf) {
+    Remove-Item -LiteralPath $helper -Force
+}
+
+$buildStarted = Get-Date
+Write-Host "Building Valhalla helper target in '$buildRoot'..." -ForegroundColor Cyan
 & cmake --build $buildRoot --config RelWithDebInfo --target valhalla_route_helper --parallel 8
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     throw "Valhalla helper build failed (cmake exit code $buildExitCode)."
 }
 
-$helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
 if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
     throw "Valhalla route helper build completed but the executable is missing: $helper"
 }
+
+$builtHelper = Get-Item -LiteralPath $helper
+if ($builtHelper.LastWriteTime -lt $buildStarted) {
+    throw "Valhalla helper was not freshly generated. Existing build output timestamp: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff')); build started: $($buildStarted.ToString('yyyy-MM-dd HH:mm:ss.fff'))."
+}
+Write-Host "Fresh Valhalla helper generated: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff'))" -ForegroundColor Green
 
 $runtimeDirectories = @(
     (Join-Path $buildRoot 'RelWithDebInfo'),
