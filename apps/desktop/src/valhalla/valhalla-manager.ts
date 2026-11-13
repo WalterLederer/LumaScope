@@ -36,7 +36,7 @@ type LineWaiter = {
 };
 
 class ProcessLineReader {
-  private buffer = Buffer.alloc(0);
+  private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
   private readonly waiters: LineWaiter[] = [];
   private failure: Error | null = null;
 
