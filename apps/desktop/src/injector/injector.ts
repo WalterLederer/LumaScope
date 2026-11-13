@@ -8,6 +8,7 @@ import { OfflineMapManager } from '../offline-map/offline-map-manager';
 import { OsmAndManager } from '../osmand/osmand-manager';
 import { OsmAndAtlasManager } from '../osmand/osmand-atlas-manager';
 import { MapsforgeManager } from '../mapsforge/mapsforge-manager';
+import { ValhallaManager } from '../valhalla/valhalla-manager';
 import { ThumbManager } from '../thumb-manager/thumb-manager';
 
 /**
