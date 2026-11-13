@@ -345,8 +345,8 @@ interface MapErrorEntry {
                 <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
                   (click)="toggleTimeSliderAnimation()"><span class="time-slider-animate-icon" aria-hidden="true">{{ timeSliderAnimating() ? '■' : '▶' }}</span> {{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
                 <label class="time-slider-speed-control time-slider-animation-speed time-slider-control-card"><span>Animation speed</span><strong>{{ timeSliderAnimationSpeed() }}×</strong><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"></label>
+                <label class="time-slider-speed-control time-slider-walking-speed time-slider-control-card"><span>Walking animation speed</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"></label>
               </div>
-              <label class="time-slider-speed-control time-slider-control-card"><span>Walking animation speed</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"></label>
             </section>
             <section class="time-slider-animation-panel time-slider-symbol-panel">
               <h4 class="time-slider-symbol-heading"><label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"> Symbol</label></h4>
@@ -1172,10 +1172,13 @@ interface MapErrorEntry {
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
     .time-slider-range{user-select:none;-webkit-user-select:none}
-    .time-slider-animate-options{display:grid;grid-template-columns:minmax(180px,.85fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px}
+    .time-slider-animate-options{display:grid;grid-template-columns:minmax(360px,1.25fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px}
     .time-slider-animation-panel{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:10px;border:1px solid color-mix(in srgb,CanvasText 28%,Canvas);border-radius:6px;background:Canvas;color:CanvasText}
     .time-slider-animation-panel h4{margin:0;padding:0 0 7px;border-bottom:1px solid color-mix(in srgb,CanvasText 24%,Canvas);font-size:13px;font-weight:600;color:CanvasText}
-    .time-slider-play-speed-row{display:flex;align-items:center;gap:12px;min-width:0;width:100%}
+    .time-slider-play-speed-row{display:flex;align-items:center;gap:10px;min-width:0;width:100%;flex-wrap:nowrap}
+    .time-slider-play-panel .time-slider-speed-control{flex:1 1 0;min-width:0}
+    .time-slider-play-panel .time-slider-speed-control input{min-width:0}
+    .time-slider-walking-speed{min-width:0}
     .time-slider-play-panel .time-slider-animate-button{align-self:flex-start;flex:0 0 auto}
     .time-slider-speed-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px;font-size:12px;color:CanvasText;min-width:0}
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
