@@ -893,7 +893,8 @@ export default class ElectronEvents {
           injector.inject('OfflineMapManager'),
           injector.inject('OsmAndManager'),
           injector.inject('OsmAndAtlasManager'),
-          injector.inject('MapsforgeManager')
+          injector.inject('MapsforgeManager'),
+          injector.inject('ValhallaManager')
         ]
       );
 
