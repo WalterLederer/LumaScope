@@ -114,7 +114,7 @@ export class ValhallaManager {
   private readSavedConfigPath(): string {
     const settings = readAppSettings().valhalla as Record<string, unknown> | undefined;
     const configured = settings?.configPath;
-    return typeof configured === 'string' ? configured : (process.env.LUMASCOPE_VALHALLA_CONFIG || '');
+    return typeof configured === 'string' ? configured : (process.env.LUMASCOPE_VALHALLA_CONFIG || 'D:\\Maps\\OpenStreetMap\\Valhalla\\Austria\\valhalla.json');
   }
 
   @IpcHandler({ name: 'Valhalla.getRuntimeStatus' })
