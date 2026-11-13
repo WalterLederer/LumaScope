@@ -16,9 +16,18 @@ if (-not (Test-Path -LiteralPath $BuildDirectory -PathType Container)) {
 }
 
 $buildRoot = (Resolve-Path -LiteralPath $BuildDirectory).Path
+
+# Build the native helper as part of the release packaging workflow so the
+# staged executable always matches the current Valhalla source and build tree.
+& cmake --build $buildRoot --config RelWithDebInfo --target valhalla_route_helper --parallel 8
+$buildExitCode = $LASTEXITCODE
+if ($buildExitCode -ne 0) {
+    throw "Valhalla helper build failed (cmake exit code $buildExitCode)."
+}
+
 $helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
 if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
-    throw "Valhalla route helper not found: $helper. Build target valhalla_route_helper with configuration RelWithDebInfo first."
+    throw "Valhalla route helper build completed but the executable is missing: $helper"
 }
 
 $runtimeDirectories = @(
