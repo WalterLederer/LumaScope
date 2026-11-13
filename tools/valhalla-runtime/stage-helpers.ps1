@@ -57,8 +57,14 @@ foreach ($directory in $runtimeDirectories) {
         if ($copiedDlls.Add($dll.Name)) {
             Copy-Item -LiteralPath $dll.FullName -Destination $target -Force
         }
-        elseif ((Get-Item -LiteralPath $target).Length -ne $dll.Length) {
-            throw "Conflicting runtime DLL '$($dll.Name)' was found in '$directory'. Resolve the duplicate before packaging."
+        else {
+            # The first matching DLL wins. The build-local vcpkg directory is
+            # listed before the sibling vcpkg fallback, so its ABI-compatible
+            # runtime takes precedence over any older duplicate.
+            $existingLength = (Get-Item -LiteralPath $target).Length
+            if ($existingLength -ne $dll.Length) {
+                Write-Warning "Ignoring duplicate runtime DLL '$($dll.Name)' from '$directory' ($($dll.Length) bytes); keeping the first copy ($existingLength bytes)."
+            }
         }
     }
 }
