@@ -248,7 +248,7 @@ interface MapErrorEntry {
       <label>Routing provider
         <select [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
           @for (configuration of valhallaConfigurations(); track configuration.path) {
-            <option [value]="'offline-valhalla|' + configuration.path">Offline Valhalla — {{ configuration.name }}</option>
+            <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
           }
           @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
           <option value="openrouteservice">openrouteservice</option>
@@ -732,7 +732,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
         <span class="osmand-resources-path">{{ valhallaConfigurations().length }} configuration(s)</span>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
           <div class="valhalla-config-row">
-            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
+            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
             <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" title="Remove from list; file is kept">Remove</button>
