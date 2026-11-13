@@ -17,17 +17,37 @@ if (-not (Test-Path -LiteralPath $BuildDirectory -PathType Container)) {
 
 $buildRoot = (Resolve-Path -LiteralPath $BuildDirectory).Path
 
-# Build the native helper as part of the release packaging workflow so the
-# staged executable always matches the current Valhalla source and build tree.
+# Identify the source tree recorded in this CMake build directory. This makes
+# it visible in the build log which checkout is actually used for compilation.
+$cmakeCache = Join-Path $buildRoot 'CMakeCache.txt'
+if (Test-Path -LiteralPath $cmakeCache -PathType Leaf) {
+    $sourceEntry = Select-String -LiteralPath $cmakeCache -Pattern '^CMAKE_HOME_DIRECTORY:INTERNAL=' | Select-Object -First 1
+    if ($sourceEntry) {
+        Write-Host "Valhalla source: $($sourceEntry.Line.Substring('CMAKE_HOME_DIRECTORY:INTERNAL='.Length))" -ForegroundColor Cyan
+    }
+}
+
+# Let CMake decide whether compilation/linking is necessary. Do not delete the
+# existing executable: an up-to-date target must remain untouched.
+$helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
+$previousHelper = if (Test-Path -LiteralPath $helper -PathType Leaf) { Get-Item -LiteralPath $helper } else { $null }
+
 & cmake --build $buildRoot --config RelWithDebInfo --target valhalla_route_helper --parallel 8
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
     throw "Valhalla helper build failed (cmake exit code $buildExitCode)."
 }
 
-$helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
 if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
     throw "Valhalla route helper build completed but the executable is missing: $helper"
+}
+
+$builtHelper = Get-Item -LiteralPath $helper
+if ($null -eq $previousHelper -or $builtHelper.LastWriteTimeUtc -gt $previousHelper.LastWriteTimeUtc) {
+    Write-Host "Valhalla helper was rebuilt: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff'))" -ForegroundColor Green
+}
+else {
+    Write-Host "Valhalla helper is up to date; no rebuild was needed." -ForegroundColor DarkGray
 }
 
 $runtimeDirectories = @(
