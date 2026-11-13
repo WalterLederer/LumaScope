@@ -320,10 +320,9 @@ export class OsmAndManager {
     try {
       const appSettings = readAppSettings();
       const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-        filePaths?: unknown; obfPreset?: unknown;
+        filePaths?: unknown;
       };
       if (Array.isArray(settings.filePaths)) {
-        const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
         const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.filePaths)
           ? settings.filePaths.flatMap(entry => {
             if (typeof entry === 'string') return [{ path: entry, enabled: true }];
@@ -339,20 +338,12 @@ export class OsmAndManager {
               .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
               .map(([path, enabled]) => ({ path, enabled }))
             : [];
+        // The enabled flags in filePaths are the sole source of truth.
+        // Do not apply a separately persisted regional preset here.
         selectedPaths = savedPaths
-          .filter(entry => entry.enabled && /\.obf$/i.test(entry.path))
+          .filter(entry => entry.enabled && /.obf$/i.test(entry.path))
           .map(entry => entry.path)
-          .filter(path => {
-            if (!existsSync(path)) return false;
-            const name = path.split(/[\\/]/).pop() ?? path;
-            const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
-            if (preset === 'none') return false;
-            if (isWorldBasemap) return true;
-            const isAustria = /austria|österreich|osterreich/i.test(name);
-            const isAustriaPlus = /austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein/i.test(name);
-            const isEurope = /(?:^|[_. -])europe(?:[_. -]|$)/i.test(name);
-            return preset === 'all' || preset === 'custom' || (preset === 'austria' ? isAustria : preset === 'austria-plus' ? isAustriaPlus : preset === 'europe' ? isEurope : false);
-          });
+          .filter(path => existsSync(path));
       }
     } catch { /* Keep the configured fallback OBF map. */ }
     if (selectedPaths.length === this.obfPaths.length
