@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($BuildDirectory)) {
-    $BuildDirectory = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'Valhalla\build-release'
+    $BuildDirectory = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'Valhalla\build-release'
 }
 
 if (-not (Test-Path -LiteralPath $BuildDirectory -PathType Container)) {
