@@ -108,6 +108,8 @@ const api: Desktop = {
 
   Valhalla: {
     getRuntimeStatus: () => ipcRenderer.invoke('Valhalla.getRuntimeStatus'),
+    addConfig: () => ipcRenderer.invoke('Valhalla.addConfig'),
+    removeConfig: (configPath: string) => ipcRenderer.invoke('Valhalla.removeConfig', configPath),
     setConfigPath: (configPath: string) => ipcRenderer.invoke('Valhalla.setConfigPath', configPath),
     route: (request: unknown) => ipcRenderer.invoke('Valhalla.route', request),
     shutdown: () => ipcRenderer.invoke('Valhalla.shutdown')
