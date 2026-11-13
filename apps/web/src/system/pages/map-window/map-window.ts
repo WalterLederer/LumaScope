@@ -244,6 +244,16 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
+     <div class="routing-travel-mode-card">
+        <label class="routing-travel-mode-label">Travel mode</label>
+        <span class="routing-travel-mode-control">
+          <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
+            <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
+          </select>
+          <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
+        </span>
+      </div>
+      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
       <div class="routing-provider-card">
         <label class="routing-provider-label">Routing provider
         <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
@@ -255,16 +265,6 @@ interface MapErrorEntry {
         </select>
         </label>
       </div>
-      <div class="routing-travel-mode-card">
-        <label class="routing-travel-mode-label">Travel mode</label>
-        <span class="routing-travel-mode-control">
-          <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
-            <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
-          </select>
-          <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
-        </span>
-      </div>
-      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
     </div>
     @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     @if (routeProvider() === 'openrouteservice') {
@@ -1454,7 +1454,7 @@ interface MapErrorEntry {
     .hillshade-clear-visible-button{margin-left:auto}
     .routing-point-row .offline-map-remove-button{margin-left:0}.routing-point-reorder{display:flex;flex-direction:column;gap:1px}.routing-point-move-button{width:24px;height:15px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:3px;background:var(--color-surface-default,#303030);color:inherit;font-size:11px;line-height:12px;cursor:pointer}.routing-point-move-button:disabled{opacity:.3;cursor:default}
     .routing-waypoint-icon{background:transparent;border:0}
-    .routing-waypoint-icon span{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px #0009}
+    .routing-waypoint-icon span{display:flex;width:30px;height:30px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 1px 5px #0009}.routing-waypoint-icon span.start{background:#16803c}.routing-waypoint-icon span.end{background:#c62828}
     .routing-actions .offline-map-status{flex:1;min-width:180px}
     .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
@@ -5217,7 +5217,7 @@ export class MapWindow implements OnInit, OnDestroy {
     points.forEach((point, index) => {
       const icon = this.leaflet!.divIcon({
         className: 'routing-waypoint-icon',
-        html: '<span>' + (index + 1) + '</span>',
+        html: '<span class="' + (points.length >= 2 && index === 0 ? 'start' : points.length >= 2 && index === points.length - 1 ? 'end' : 'point') + '">' + (points.length >= 2 && index === 0 ? '▶ ' : points.length >= 2 && index === points.length - 1 ? '■ ' : '') + (index + 1) + '</span>',
         iconSize: [26, 26], iconAnchor: [13, 13]
       });
       this.routeWaypointMarkers.push(this.leaflet!.marker([point.latitude, point.longitude], { icon }).addTo(this.map!) as MapMarker & { remove(): void });
