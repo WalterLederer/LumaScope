@@ -275,9 +275,10 @@ interface MapErrorEntry {
       </div>
     }
     <div class="routing-actions">
-      <label class="routing-name-label">Route name
-        <input class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
-      </label>
+      <div class="routing-name-card">
+        <label class="routing-name-label" for="routing-name-input">Route name</label>
+        <input id="routing-name-input" class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
+      </div>
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
       <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
@@ -1438,7 +1439,7 @@ interface MapErrorEntry {
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
-    .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:Canvas;color:CanvasText}
+    .routing-name-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-name-label{display:block;font-size:12px;font-weight:600}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:Canvas;color:CanvasText}
     .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
