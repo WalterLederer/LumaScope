@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
@@ -82,6 +82,8 @@ interface ValhallaResponse {
   status?: number;
   status_message?: string;
   trip?: {
+    status?: number;
+    status_message?: string;
     legs?: Array<{ shape?: string }>;
   };
 }
@@ -125,7 +127,7 @@ export class ValhallaManager {
   });
 
   @IpcHandler({ name: 'Valhalla.setConfigPath' })
-  readonly setConfigPath = async (_event: Electron.IpcMainInvokeEvent, configPath: string): Promise<ValhallaRuntimeStatus> => {
+  readonly setConfigPath = async (_event: IpcMainInvokeEvent, configPath: string): Promise<ValhallaRuntimeStatus> => {
     if (typeof configPath !== 'string' || !configPath.trim() || !existsSync(configPath.trim())) {
       throw new Error('Select an existing Valhalla configuration file.');
     }
@@ -195,6 +197,9 @@ export class ValhallaManager {
           throw new Error(response.status_message || ('Valhalla route failed with status ' + response.status + '.'));
         }
 
+        if (response.trip?.status !== undefined && response.trip.status !== 0) {
+          throw new Error(response.trip.status_message || ('Valhalla route failed with status ' + response.trip.status + '.'));
+        }
         const legs = response.trip?.legs;
         if (!Array.isArray(legs) || !legs.length) {
           throw new Error(response.status_message || 'Valhalla returned no route legs.');
