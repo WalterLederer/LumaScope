@@ -357,12 +357,12 @@ interface MapErrorEntry {
                 </div>
                 <label class="time-slider-symbol-select"><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="autoRickshaw">Auto rickshaw</option><option value="rocket">Rocket</option><option value="smallPlane">Small airplane</option><option value="flyingSaucer">Flying saucer</option><option value="locomotive">Steam locomotive</option><option value="railCar">Rail car</option><option value="tram">Tram</option><option value="mountainRailway">Mountain railway</option><option value="monorail">Monorail</option><option value="highSpeedTrain">High-speed train</option><option value="bulletTrain">Bullet train</option><option value="lightRail">Light rail</option><option value="metro">Metro</option><option value="motorYacht">Motor yacht</option><option value="ferry">Ferry</option><option value="cruiseShip">Cruise ship</option><option value="canoe">Canoe</option></select></label>
                 <label class="time-slider-symbol-size time-slider-control-card"><span>Symbol size</span><strong>{{ walkingFigureSize().toFixed(1) }}×</strong><input type="range" min="0.5" max="3" step="0.1" [value]="walkingFigureSize()" (input)="changeWalkingFigureSize($any($event.target).value)"></label>
-              </div>
-              <div class="time-slider-symbol-orientation-controls">
-                <label class="time-slider-symbol-rotation time-slider-control-card"><span>Rotation</span><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
-                <div class="time-slider-symbol-orientation-actions">
-                  <button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
-                  <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
+                <div class="time-slider-symbol-orientation-controls">
+                  <label class="time-slider-symbol-rotation time-slider-control-card"><span>Rotation</span><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong><input type="range" min="0" max="359" step="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (input)="changeWalkingFigureRotation($any($event.target).value)" (change)="persistWalkingFigureRotation()"></label>
+                  <div class="time-slider-symbol-orientation-actions">
+                    <button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
+                    <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1172,7 +1172,7 @@ interface MapErrorEntry {
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
     .time-slider-range{user-select:none;-webkit-user-select:none}
-    .time-slider-animate-options{display:grid;grid-template-columns:minmax(180px,.85fr) minmax(250px,1.2fr) minmax(210px,1fr);align-items:stretch;gap:10px;padding:8px 0 3px}
+    .time-slider-animate-options{display:grid;grid-template-columns:minmax(180px,.85fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px}
     .time-slider-animation-panel{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:10px;border:1px solid color-mix(in srgb,CanvasText 28%,Canvas);border-radius:6px;background:Canvas;color:CanvasText}
     .time-slider-animation-panel h4{margin:0;padding:0 0 7px;border-bottom:1px solid color-mix(in srgb,CanvasText 24%,Canvas);font-size:13px;font-weight:600;color:CanvasText}
     .time-slider-play-speed-row{display:flex;align-items:center;gap:12px;min-width:0;width:100%}
@@ -1181,17 +1181,18 @@ interface MapErrorEntry {
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-speed-control strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-animation-speed{flex:1 1 180px}
-    .time-slider-symbol-controls-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr);align-items:stretch;gap:8px 10px;min-width:0;width:100%}
-    .time-slider-symbol-select{display:flex;grid-column:1;grid-row:2;min-width:0;font-size:12px;color:CanvasText}
+    .time-slider-symbol-controls-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px 10px;min-width:0;width:100%}
+    .time-slider-symbol-select{display:flex;flex:1 1 190px;min-width:150px;font-size:12px;color:CanvasText}
     .time-slider-symbol-select select{width:100%;min-width:0;padding:5px 7px;border:1px solid var(--color-border-default,#777);border-radius:4px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}.time-slider-symbol-visibility{align-self:center;flex:0 0 auto;min-height:18px}
     .time-slider-symbol-preview-row{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0}.time-slider-control-card,.time-slider-symbol-preview-card{padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.time-slider-symbol-preview-card{padding:5px 8px}
-    .time-slider-symbol-size{display:grid;grid-column:2;grid-row:1/3;grid-template-columns:minmax(0,1fr) auto;align-self:stretch;align-content:center;gap:4px 8px;min-width:0;font-size:12px;color:CanvasText}
+    .time-slider-symbol-size{display:grid;flex:1 1 150px;grid-template-columns:minmax(0,1fr) auto;align-self:stretch;align-content:center;gap:4px 8px;min-width:130px;font-size:12px;color:CanvasText}
     .time-slider-symbol-size strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-symbol-size input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
-    @media(max-width:560px){.time-slider-symbol-controls-row{grid-template-columns:minmax(130px,1fr) minmax(0,1fr)}.time-slider-symbol-size{grid-column:2;grid-row:1/3}.time-slider-symbol-select{grid-column:1;grid-row:2}}
+    
+    .time-slider-symbol-orientation-controls{display:flex;flex:1 1 220px;align-items:stretch;gap:8px;min-width:190px}
     .time-slider-symbol-orientation-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .time-slider-symbol-rotation{min-width:0;width:100%;font-size:12px;color:CanvasText}
+    .time-slider-symbol-rotation{flex:1 1 150px;min-width:120px;width:auto;font-size:12px;color:CanvasText}
     .time-slider-symbol-rotation input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText}
