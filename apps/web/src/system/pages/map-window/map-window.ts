@@ -244,9 +244,8 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
-      <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
-      <label>Routing provider
-        <select [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
+      <label class="routing-provider-label">Routing provider
+        <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
           @for (configuration of valhallaConfigurations(); track configuration.path) {
             <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
           }
@@ -254,13 +253,17 @@ interface MapErrorEntry {
           <option value="openrouteservice">openrouteservice</option>
         </select>
       </label>
-      <label>Travel mode
-        <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
-          <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
-        </select>
+      <label class="routing-travel-mode-label">Travel mode
+        <span class="routing-travel-mode-control">
+          <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
+            <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
+          </select>
+          <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
+        </span>
       </label>
+      <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
     </div>
-remove old path field    @if (routeProvider() === 'openrouteservice') {
+    @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
         <label for="ors-api-key">openrouteservice API key</label>
         <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
@@ -285,7 +288,12 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
       @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
     </div>
     <div class="routing-actions">
+      <label class="routing-name-label">Route name
+        <input class="routing-name-input" type="text" [value]="routeName()" (input)="routeName.set($any($event.target).value)" placeholder="Route name">
+      </label>
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
+      <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       <button type="button" class="offline-map-add-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Clear points</button>
       <span class="offline-map-status">{{ routeStatus() }}</span>
     </div>
@@ -735,7 +743,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
-            <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" title="Remove from list; file is kept">Remove</button>
+            <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" aria-label="Remove configuration" title="Remove from list; file is kept">×</button>
           </div>
         }
         <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
@@ -868,7 +876,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
                 <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
                 <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
                 <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" class="gpx-open-button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)" title="Open download source" aria-label="Open download source">↗</button><button type="button" (click)="removeDownloadSource(i)" aria-label="Remove download source">Remove</button></td>
+                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" class="gpx-open-button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)" title="Open download source" aria-label="Open download source">↗</button><button type="button" class="mbtiles-remove-button" (click)="removeDownloadSource(i)" aria-label="Remove download source" title="Remove download source">×</button></td>
               </tr>
             }
           </tbody>
@@ -964,7 +972,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
                         <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
                         <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
-                        <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" title="Remove map from LumaScope (file is not deleted)">Remove</button></td>
+                        <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" aria-label="Remove map" title="Remove map from LumaScope (file is not deleted)">×</button></td>
                       </tr>
                     }
                   </tbody>
@@ -990,7 +998,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
                           <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                           <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
                           <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
-                          <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)">Remove</button></td>
+                          <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)" aria-label="Remove Hillshade database" title="Remove Hillshade database">×</button></td>
                         </tr>
                       }
                     </tbody>
@@ -1286,7 +1294,8 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
     .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}
     .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
-    .mbtiles-remove-button{padding:2px 7px;font-size:11px}
+    .mbtiles-remove-button{padding:0 6px;min-width:24px;height:24px;font-size:18px;line-height:1;border:0;background:transparent;color:var(--color-content-default-medium,#aaa);cursor:pointer}
+    .offline-map-remove-button{min-width:24px;height:24px;padding:0;font-size:18px;line-height:1}
     .mbtiles-inuse-column{width:48px;text-align:center;white-space:nowrap}
     .mbtiles-inuse-symbol{display:inline-block;min-width:14px;color:var(--color-content-default-medium,#888);font-size:13px;line-height:1}
     .mbtiles-inuse-symbol.in-use{color:#39b86a}
@@ -1412,7 +1421,11 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-pick-hint{display:flex;align-items:center;gap:6px}
+    .routing-toolbar{width:100%}.routing-provider-label{flex:1 1 440px;min-width:280px}.routing-provider-select{width:100%;min-width:280px;max-width:100%}
+    .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:30px;font-size:23px;line-height:1}
+    .routing-pick-hint{display:flex;align-items:center;gap:6px;margin-left:auto;justify-content:flex-end;text-align:right}
+    .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
+    .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
@@ -1798,6 +1811,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly valhallaConfigurations = signal<Array<{ path: string; name: string; available: boolean }>>([]);
   protected readonly routeConfigBusy = signal(false);
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
+  protected readonly routeSaveDirectory = signal(this.readSetting('routeSaveDirectory', ''));
+  protected readonly routeName = signal(this.readSetting('routeName', 'Route'));
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
   private routeWaypointMarkers: Array<{ remove(): void }> = [];
@@ -5213,6 +5228,20 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  protected readonly chooseRouteSaveLocation = async (): Promise<void> => {
+    const desktop = this.desktop;
+    if (!desktop) { this.routeStatus.set('The desktop folder picker is unavailable.'); return; }
+    try {
+      const result = await desktop.Dialogs.openFolder(this.routeSaveDirectory() || undefined);
+      if (!result.success) return;
+      this.routeSaveDirectory.set(result.data);
+      this.saveSetting('routeSaveDirectory', result.data);
+      this.routeStatus.set('Route save location updated.');
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   protected readonly calculateRoute = async (): Promise<void> => {
     const desktop = this.desktop;
     if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
@@ -5239,13 +5268,26 @@ export class MapWindow implements OnInit, OnDestroy {
       });
       const routePoints = routeResult.coordinates;
       if (generation !== this.routeRequestGeneration) return;
-      const defaultName = 'Route-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.gpx';
-      const lastTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
-      const folder = lastTrack ? await desktop.FileSystem.dirname(lastTrack.path) : '';
-      const suggestedPath = folder ? await desktop.FileSystem.join(folder, defaultName) : defaultName;
-      const save = await desktop.Dialogs.saveFile(suggestedPath);
-      if (!save.success) { this.routeStatus.set('Route calculated; saving was cancelled.'); return; }
-      let destination = save.data;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').replace(/Z$/, '');
+      const baseName = this.routeName().trim().replace(/[\\/:*?"<>|]/g, '-').replace(/[. ]+$/g, '') || 'Route';
+      const defaultName = baseName + '_' + timestamp + '.gpx';
+      let destination = '';
+      const selectedFolder = this.routeSaveDirectory().trim();
+      if (selectedFolder) {
+        destination = await desktop.FileSystem.join(selectedFolder, defaultName);
+      } else {
+        const lastTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
+        const folder = lastTrack ? await desktop.FileSystem.dirname(lastTrack.path) : '';
+        const suggestedPath = folder ? await desktop.FileSystem.join(folder, defaultName) : defaultName;
+        const save = await desktop.Dialogs.saveFile(suggestedPath);
+        if (!save.success) { this.routeStatus.set('Route calculated; saving was cancelled.'); return; }
+        destination = save.data;
+        const selectedDirectory = await desktop.FileSystem.dirname(destination);
+        if (selectedDirectory) {
+          this.routeSaveDirectory.set(selectedDirectory);
+          this.saveSetting('routeSaveDirectory', selectedDirectory);
+        }
+      }
       if (!/\.gpx$/i.test(destination)) destination += '.gpx';
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
       const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
