@@ -339,7 +339,7 @@ interface MapErrorEntry {
         <details class="time-slider-animate-section" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
-            <button type="button" class="time-slider-animate-button time-slider-play-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
+            <button type="button" class="time-slider-animate-button time-slider-play-button" [class.is-playing]="timeSliderAnimating()" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
               (click)="toggleTimeSliderAnimation()"><span class="time-slider-animate-icon" aria-hidden="true">{{ timeSliderAnimating() ? '■' : '▶' }}</span> {{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <section class="time-slider-animation-panel time-slider-play-panel">
               <h4>Speed</h4>
@@ -1179,7 +1179,9 @@ interface MapErrorEntry {
     .time-slider-play-panel{min-width:0}.time-slider-play-panel .time-slider-speed-control{flex:1 1 180px;min-width:180px}
     .time-slider-play-panel .time-slider-speed-control input{min-width:0}
     .time-slider-walking-speed{min-width:180px}
-    .time-slider-play-button{align-self:center;justify-self:start;flex:0 0 auto;background:color-mix(in srgb,var(--color-accent,#2688e8) 18%,Canvas);border-color:color-mix(in srgb,var(--color-accent,#2688e8) 42%,Canvas)}
+    .time-slider-play-button{align-self:center;justify-self:start;flex:0 0 auto;background:color-mix(in srgb,#0a84ff 20%,Canvas)!important;border-color:color-mix(in srgb,#0a84ff 48%,Canvas)!important;color:CanvasText}
+    .time-slider-play-button.is-playing{background:#0a84ff!important;border-color:#0a84ff!important;color:#fff!important}
+    .time-slider-play-button.is-playing:hover{background:#0875df!important;border-color:#0875df!important}
     .time-slider-speed-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px;font-size:12px;color:CanvasText;min-width:0}
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-speed-control strong{min-width:30px;text-align:right;color:CanvasText}
