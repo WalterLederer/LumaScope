@@ -272,19 +272,6 @@ interface MapErrorEntry {
         <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
       </div>
     }
-    <div class="routing-points-list">
-      @for (point of routeWaypoints(); track $index; let i = $index) {
-        <div class="routing-point-row" [class.inactive]="point.active === false">
-          <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
-                 (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
-                 [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
-          <span class="routing-point-index">{{ i + 1 }}.</span>
-          <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
-          <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
-        </div>
-      }
-      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
-    </div>
     <div class="routing-actions">
       <label class="routing-name-label">Route name
         <input class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
@@ -293,9 +280,30 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
       <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       <span class="offline-map-status">{{ routeStatus() }}</span>
-      <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Remove All</button>
+      <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
     </div>
     @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
+    @if (lastSavedRouteGpxPath()) {
+      <div class="routing-last-saved-gpx">
+        <span class="offline-map-status" [title]="lastSavedRouteGpxPath()">Last saved GPX: {{ lastSavedRouteGpxPath() }}</span>
+        <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
+      </div>
+    }
+    <div class="routing-points-list">
+      @for (point of routeWaypoints(); track $index; let i = $index) {
+        <div class="routing-point-row" [class.inactive]="point.active === false">
+          <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
+                 (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
+                 [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
+          @if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶ Start</span> }
+          @if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■ End</span> }
+          <span class="routing-point-index">{{ i + 1 }}.</span>
+          <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
+          <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
+        </div>
+      }
+      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
+    </div>
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
@@ -719,9 +727,9 @@ interface MapErrorEntry {
               <option value="missing">Missing</option>
             </select>
           </label>
-          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="clearVisibleHillshadeDatabases()" [disabled]="filteredHillshadeDatabases().length === 0">Clear visible maps</button>
           <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && !database.enabled)">Activate visible maps</button>
           <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && database.enabled)">Deactivate visible maps</button>
+          <button type="button" class="offline-map-add-button offline-map-bulk-button hillshade-clear-visible-button" (click)="clearVisibleHillshadeDatabases()" [disabled]="filteredHillshadeDatabases().length === 0">× Visible</button>
         </div>
       </details>
       <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active · {{ filteredHillshadeDatabases().length }} filtered</span>
@@ -1433,6 +1441,12 @@ interface MapErrorEntry {
     .routing-point-row{display:flex;align-items:center;gap:8px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}\n    .routing-point-active{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:#0a84ff;cursor:pointer}\n    .routing-point-row.inactive .routing-point-location{opacity:.48}\n    .routing-point-row.inactive .routing-point-index{opacity:.5}
     .routing-point-location{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;font-family:inherit;overflow:hidden}.routing-point-location strong{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.routing-point-location small{font-family:Consolas,monospace;font-size:11px;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .routing-point-index{width:22px;font-weight:700;color:#0a84ff}
+    .routing-point-endpoint{font-size:10px;font-weight:700;white-space:nowrap;padding:3px 6px;border-radius:5px}
+    .routing-point-endpoint.start{color:#067647;background:#d1fadf}
+    .routing-point-endpoint.end{color:#b42318;background:#fee4e2}
+    .routing-last-saved-gpx{display:flex;align-items:center;gap:8px;min-width:0}
+    .routing-last-saved-gpx .offline-map-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .hillshade-clear-visible-button{margin-left:auto}
     .routing-point-row .offline-map-remove-button{margin-left:auto}
     .routing-waypoint-icon{background:transparent;border:0}
     .routing-waypoint-icon span{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px #0009}
@@ -1819,6 +1833,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly routeName = signal(this.readSetting('routeName', 'Route'));
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
+  protected readonly lastSavedRouteGpxPath = signal('');
   private routeWaypointMarkers: Array<{ remove(): void }> = [];
   private routeRequestGeneration = 0;
   protected readonly gpxError = signal('');
@@ -4179,6 +4194,20 @@ export class MapWindow implements OnInit, OnDestroy {
     if (error) this.gpxError.set(error);
   };
 
+  protected readonly deleteLastSavedRouteGpx = async (): Promise<void> => {
+    const path = this.lastSavedRouteGpxPath();
+    if (!path || !this.desktop) return;
+    try {
+      const result = await this.desktop.FileSystem.deleteFile(path);
+      if (!result.success) throw new Error(result.errorMessage || 'Could not delete the GPX file.');
+      await this.removeGpxTrack(path);
+      this.lastSavedRouteGpxPath.set('');
+      this.routeStatus.set('Deleted GPX file: ' + path);
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   protected readonly removeGpxTrack = async (path: string): Promise<void> => {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
@@ -5327,6 +5356,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const track: GpxTrackFile = { path: destination, name: fileName, sizeBytes: new Blob([content]).size, lastModified: Date.now(), active: true,
         color: this.gpxColors[this.gpxTracks().length % this.gpxColors.length]?.value ?? this.gpxColor(), lineStyle: 'solid', lineWidth: 4 };
       this.gpxTracks.set([...this.gpxTracks(), track]);
+      this.lastSavedRouteGpxPath.set(destination);
       this.gpxSegmentsByTrack.set(destination, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
       await this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
