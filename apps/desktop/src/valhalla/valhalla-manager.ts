@@ -230,7 +230,7 @@ export class ValhallaManager {
     }
 
     const helperDirectory = dirname(this.helperPath);
-    const buildDirectory = dirname(dirname(helperDirectory));
+    const buildDirectory = dirname(helperDirectory);
     const environment = {
       ...process.env,
       PATH: [
