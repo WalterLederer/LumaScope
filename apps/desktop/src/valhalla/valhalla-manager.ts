@@ -1,7 +1,7 @@
 import { app, dialog, type IpcMainInvokeEvent } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, delimiter, dirname, join } from 'node:path';
+import { basename, delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
@@ -305,6 +305,40 @@ export class ValhallaManager {
     throw new Error('Valhalla route calculation failed.');
   }
 
+  private loadRuntimeConfig(): Record<string, unknown> {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(this.configPath, 'utf8'));
+    } catch (error) {
+      throw new Error('Could not read Valhalla configuration: ' + (error instanceof Error ? error.message : String(error)));
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('mjolnir' in parsed)) {
+      throw new Error('The selected JSON does not look like a Valhalla configuration (missing "mjolnir").');
+    }
+
+    // Resolve Valhalla's filesystem paths against the selected configuration's
+    // directory before sending the configuration to the helper. This happens
+    // in memory; the user's JSON file is never rewritten or copied.
+    const configDirectory = dirname(this.configPath);
+    const pathKeys = new Set(['tile_dir', 'tile_extract', 'admin', 'transit_dir', 'timezone']);
+    const resolvePaths = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(resolvePaths);
+      if (!value || typeof value !== 'object') return value;
+
+      const result: Record<string, unknown> = {};
+      for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+        if (pathKeys.has(key) && typeof child === 'string' && child.trim() && !isAbsolute(child)) {
+          result[key] = resolve(configDirectory, child);
+        } else {
+          result[key] = resolvePaths(child);
+        }
+      }
+      return result;
+    };
+
+    return resolvePaths(parsed) as Record<string, unknown>;
+  }
+
   private async ensureStarted(): Promise<void> {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('Valhalla route helper not found: ' + this.helperPath);
@@ -325,12 +359,8 @@ export class ValhallaManager {
         process.env.PATH || ''
       ].filter(Boolean).join(delimiter)
     };
-    // Valhalla resolves relative filesystem paths against the process working
-    // directory, not against the directory containing its configuration file.
-    // Run the helper from the selected JSON's directory so portable relative
-    // paths (for example ./tiles) work without rewriting or copying the JSON.
     const configDirectory = dirname(this.configPath);
-    const child = spawn(this.helperPath, [this.configPath], {
+    const child = spawn(this.helperPath, [], {
       cwd: configDirectory,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -347,6 +377,23 @@ export class ValhallaManager {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
+
+    // Initialize the helper through stdin. Its first stdout line is a ready
+    // acknowledgement (or a JSON error); route requests follow on this pipe.
+    await this.writeRequest({ type: 'initialize', config: this.loadRuntimeConfig() });
+    const reader = this.reader;
+    if (!reader) throw new Error('Valhalla helper output stream is unavailable.');
+    const raw = await this.withTimeout(reader.readLine(), 120000, 'Valhalla initialization timed out.');
+    let response: ValhallaResponse & { ready?: boolean };
+    try {
+      response = JSON.parse(raw) as ValhallaResponse & { ready?: boolean };
+    } catch {
+      throw new Error('Valhalla helper returned invalid initialization JSON: ' + raw.slice(0, 500));
+    }
+    if (response.error) throw new Error(response.error);
+    if (response.ready !== true) {
+      throw new Error('Valhalla helper did not confirm successful initialization.');
+    }
   }
 
   private async writeRequest(value: Record<string, unknown>): Promise<void> {
