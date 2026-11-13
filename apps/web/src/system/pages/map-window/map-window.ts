@@ -289,7 +289,7 @@ interface MapErrorEntry {
     </div>
     <div class="routing-actions">
       <label class="routing-name-label">Route name
-        <input class="routing-name-input" type="text" [value]="routeName()" (input)="routeName.set($any($event.target).value)" placeholder="Route name">
+        <input class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
       </label>
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
@@ -5227,6 +5227,11 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     }
   }
+
+  protected readonly changeRouteName = (value: string): void => {
+    this.routeName.set(value);
+    this.saveSetting('routeName', value);
+  };
 
   protected readonly chooseRouteSaveLocation = async (): Promise<void> => {
     const desktop = this.desktop;
