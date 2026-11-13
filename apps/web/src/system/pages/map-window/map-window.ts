@@ -243,10 +243,6 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
-    <label class="routing-waypoints-visibility">
-      <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)">
-      Show routing points on map
-    </label>
     <div class="routing-toolbar">
       <div class="routing-name-card">
         <label class="routing-name-label" for="routing-name-input">Route name</label>
@@ -283,19 +279,21 @@ interface MapErrorEntry {
       </div>
     }
     <div class="routing-actions">
-      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
-      <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
-      <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
+      <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <div class="routing-save-location-card">
+        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
+        <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
+      </div>
       <span class="offline-map-status">{{ routeStatus() }}</span>
+      <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
+        <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
+      </label>
+      @if (lastSavedRouteGpxPath()) {
+        <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the last saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
+      }
       <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
     </div>
     @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
-    @if (lastSavedRouteGpxPath()) {
-      <div class="routing-last-saved-gpx">
-        <span class="offline-map-status" [title]="lastSavedRouteGpxPath()">Last saved GPX: {{ lastSavedRouteGpxPath() }}</span>
-        <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
-      </div>
-    }
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
         <div class="routing-point-row" [class.inactive]="point.active === false">
@@ -1436,7 +1434,7 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
-    .routing-waypoints-visibility{display:flex;align-items:center;gap:7px;align-self:flex-start;font-size:12px;font-weight:600;cursor:pointer}.routing-waypoints-visibility input{margin:0;accent-color:#0a84ff}
+    .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:#0a84ff;cursor:pointer}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .routing-toolbar{width:100%;justify-content:flex-start}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 230px;margin-left:auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
@@ -1463,6 +1461,10 @@ interface MapErrorEntry {
     .routing-waypoint-icon{background:transparent;border:0}
     .routing-waypoint-icon span{display:flex;width:36px;height:36px;align-items:center;justify-content:center;border:3px solid #fff;border-radius:50%;background:#087cff;color:#fff;font-weight:800;font-size:15px;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px #000;box-shadow:0 2px 8px #000c}.routing-waypoint-icon span.start,.routing-waypoint-icon span.end{width:42px;height:42px;font-size:15px}.routing-waypoint-icon span.start{background:#00a84f}.routing-waypoint-icon span.end{background:#e32636}
     .routing-actions .offline-map-status{flex:1;min-width:180px}
+    .routing-save-location-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:190px;max-width:min(360px,35vw);padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
+    .routing-save-location{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
+    .routing-calculate-button{background:color-mix(in srgb,#0a84ff 14%,Canvas);border-color:color-mix(in srgb,#0a84ff 38%,var(--color-content-default-low,#666))}
+    .routing-calculate-button:hover:not(:disabled){background:color-mix(in srgb,#0a84ff 22%,Canvas)}
     .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
     .routing-remove-all-button:disabled{opacity:.45}
