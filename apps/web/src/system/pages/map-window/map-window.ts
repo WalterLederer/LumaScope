@@ -3671,7 +3671,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const definition = this.mapPresetOptions().find(item => item.id === preset);
       const patternLength = presetMaps.reduce((total, map) => {
         if (map.type === 'obf') return total + (definition?.osmAndRegex.length ?? Number.MAX_SAFE_INTEGER);
-        if (map.type === 'mapsforge') return total + ((definition?.mapsForgeRegex || definition?.osmAndRegex).length ?? Number.MAX_SAFE_INTEGER);
+        if (map.type === 'mapsforge') return total + ((definition?.mapsForgeRegex || definition?.osmAndRegex)?.length ?? Number.MAX_SAFE_INTEGER);
         return total;
       }, 0);
       return {
