@@ -270,6 +270,10 @@ interface MapErrorEntry {
         <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
       </div>
     }
+    <div class="routing-actions">
+      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()">Read routing waypoints from GPX</button>
+      <span class="offline-map-status">Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.</span>
+    </div>
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
         <div class="routing-point-row" [class.inactive]="point.active === false">
@@ -5166,23 +5170,26 @@ export class MapWindow implements OnInit, OnDestroy {
       const fileName = destination.split(/[\\/]/).pop() || defaultName;
       const trackPoints = routePoints.map(point => '      <trkpt lat="' + point.latitude.toFixed(8) + '" lon="' + point.longitude.toFixed(8) + '"/>').join('\n');
       const returnedWaypointCount = routePoints.length;
-      const routingPointComment = [
-        'Routing provider: ' + providerName,
-        'Waypoints returned by routing server: ' + returnedWaypointCount,
-        'Request timestamp (UTC): ' + requestTimestamp,
-        'Profile: ' + requestProfile,
-        'Routing points (complete list; inactive points were not sent to the provider):',
-        ...points.map((point, index) => {
-          const status = point.active === false ? 'INACTIVE' : 'ACTIVE';
-          const name = (point.name || '(no resolved location name)').replace(/[\r\n]+/g, ' ').replace(/--/g, '- -').trim();
-          return (index + 1) + '. [' + status + '] ' + name + ' | latitude=' + point.latitude.toFixed(8) + ' | longitude=' + point.longitude.toFixed(8);
-        })
-      ].map(line => '  ' + line).join('\n');
-      const content = '<?xml version="1.0" encoding="UTF-8"?>\n'
-        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n'
-        + '<!--\n' + routingPointComment + '\n-->\n'
-        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\.gpx$/i, '')) + '</name><trkseg>\n'
-        + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
+      const routingPointMetadata = {
+        version: 1,
+        provider: providerName,
+        returnedWaypointCount,
+        requestTimestamp,
+        profile: requestProfile,
+        points: points.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          name: point.name ?? '',
+          active: point.active !== false
+        }))
+      };
+      // Escape hyphens so arbitrary location names cannot create an illegal "--" XML comment sequence.
+      const routingPointComment = JSON.stringify(routingPointMetadata).replace(/-/g, '\\u002d');
+      const content = '<?xml version="1.0" encoding="UTF-8"?>\\n'
+        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\\n'
+        + '<!-- LumaScope routing-waypoints v1\\n' + routingPointComment + '\\n-->\\n'
+        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, '')) + '</name><trkseg>\\n'
+        + trackPoints + '\\n  </trkseg></trk>\\n</gpx>\\n';
       const written = await desktop.FileSystem.writeText(destination, content);
       if (!written.success) throw new Error(written.errorMessage);
       const parsed = this.parseGpxTrackData(content);
@@ -5256,6 +5263,81 @@ ${points}
       this.fitGpxTrack();
     } catch (error) {
       this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  private parseRoutingWaypointsFromGpx(content: string): RouteWaypoint[] | null {
+    const xml = new DOMParser().parseFromString(content, 'application/xml');
+    if (xml.getElementsByTagName('parsererror').length) return null;
+    const comments: string[] = [];
+    const walker = xml.createTreeWalker(xml, NodeFilter.SHOW_COMMENT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) comments.push(node.textContent ?? '');
+
+    for (const comment of comments) {
+      const marker = 'LumaScope routing-waypoints v1';
+      const markerIndex = comment.indexOf(marker);
+      if (markerIndex >= 0) {
+        try {
+          const metadata = JSON.parse(comment.slice(markerIndex + marker.length).trim()) as { version?: number; points?: unknown };
+          if (metadata.version !== 1 || !Array.isArray(metadata.points)) continue;
+          const points = metadata.points.flatMap((entry: unknown) => {
+            if (!entry || typeof entry !== 'object') return [];
+            const value = entry as Record<string, unknown>;
+            const latitude = Number(value['latitude']), longitude = Number(value['longitude']);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+              || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return [];
+            return [{
+              latitude, longitude, active: value['active'] !== false,
+              ...(typeof value['name'] === 'string' && value['name'].trim() ? { name: value['name'].trim() } : {})
+            }];
+          });
+          return points.length ? points : null;
+        } catch { /* Try the legacy text comment below. */ }
+      }
+    }
+
+    // Backward compatibility with the former human-readable comment format.
+    for (const comment of comments) {
+      if (!comment.includes('Routing points (complete list')) continue;
+      const points: RouteWaypoint[] = [];
+      const pattern = /^\\s*\\d+\\. \\[(ACTIVE|INACTIVE)\\] (.*?) \\| latitude=(-?\\d+(?:\\.\\d+)?) \\| longitude=(-?\\d+(?:\\.\\d+)?)/gm;
+      let match: RegExpExecArray | null;
+      while ((match = pattern.exec(comment))) {
+        const latitude = Number(match[3]), longitude = Number(match[4]);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+          || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) continue;
+        const name = match[2] === '(no resolved location name)' ? '' : match[2].trim();
+        points.push({ latitude, longitude, active: match[1] === 'ACTIVE', ...(name ? { name } : {}) });
+      }
+      if (points.length) return points;
+    }
+    return null;
+  }
+
+  protected readonly readRoutingWaypointsFromGpx = async (): Promise<void> => {
+    const desktop = this.desktop;
+    if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
+    const tracks = [...this.gpxTracks()].reverse().filter(track => !track.path.startsWith('memory:') && !track.missing);
+    if (!tracks.length) { this.routeStatus.set('Load a GPX file first.'); return; }
+    this.routeConfigBusy.set(true);
+    try {
+      for (const track of tracks) {
+        const result = await desktop.FileSystem.readText(track.path);
+        if (!result.success) continue;
+        const points = this.parseRoutingWaypointsFromGpx(result.data);
+        if (!points) continue;
+        this.routeWaypoints.set(points);
+        this.persistRouteWaypoints();
+        this.updateRouteWaypointMarkers();
+        this.routeStatus.set('Replaced routing points with ' + points.length + ' waypoint(s) from ' + track.name + '.');
+        return;
+      }
+      this.routeStatus.set('No LumaScope routing waypoint comment was found in the loaded GPX files.');
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.routeConfigBusy.set(false);
     }
   };
 
