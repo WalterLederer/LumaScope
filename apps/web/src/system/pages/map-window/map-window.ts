@@ -243,6 +243,10 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
+    <label class="routing-waypoints-visibility">
+      <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)">
+      Show routing points on map
+    </label>
     <div class="routing-toolbar">
      <div class="routing-travel-mode-card">
         <label class="routing-travel-mode-label">Travel mode</label>
@@ -253,7 +257,7 @@ interface MapErrorEntry {
           <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
         </span>
       </div>
-      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
+      <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
       <div class="routing-provider-card">
         <label class="routing-provider-label">Routing provider
         <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
@@ -1432,10 +1436,12 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+    .routing-waypoints-visibility{display:flex;align-items:center;gap:7px;align-self:flex-start;font-size:12px;font-weight:600;cursor:pointer}.routing-waypoints-visibility input{margin:0;accent-color:#0a84ff}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .routing-toolbar{width:100%;justify-content:flex-start}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 230px;margin-left:auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
+    .routing-gpx-read-button{font-size:11px;padding:6px 8px}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
@@ -1829,6 +1835,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
+  protected readonly routeWaypointMarkersVisible = signal(this.readSetting('routeWaypointMarkersVisible', 'true') !== 'false');
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
   protected readonly routeProvider = signal<RouteProviderId>('offline-valhalla');
   protected readonly routeValhallaConfigPath = signal(this.readSetting('valhallaConfigPath', ''));
@@ -5206,20 +5213,30 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxWaypointCount = (path: string): number =>
     (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
 
+  protected readonly changeRouteWaypointMarkersVisible = (visible: boolean): void => {
+    this.routeWaypointMarkersVisible.set(visible);
+    this.saveSetting('routeWaypointMarkersVisible', String(visible));
+    this.updateRouteWaypointMarkers();
+  };
+
   private updateRouteWaypointMarkers(): void {
     for (const marker of this.routeWaypointMarkers) marker.remove();
     this.routeWaypointMarkers = [];
     const points = this.routeWaypoints();
+    const visible = this.routeWaypointMarkersVisible();
     if (this.offlineRenderer) {
-      this.offlineRenderer.setRouteWaypoints(points);
+      this.offlineRenderer.setRouteWaypoints(points, visible);
       return;
     }
-    if (!this.map || !this.leaflet) return;
+    if (!this.map || !this.leaflet || !visible) return;
     points.forEach((point, index) => {
+      const endpoint = points.length >= 2 && index === 0 ? 'start' : points.length >= 2 && index === points.length - 1 ? 'end' : 'point';
+      const label = endpoint === 'start' ? 'S' + (index + 1) : endpoint === 'end' ? 'E' + (index + 1) : String(index + 1);
+      const size = endpoint === 'point' ? 36 : 42;
       const icon = this.leaflet!.divIcon({
         className: 'routing-waypoint-icon',
-        html: '<span class="' + (points.length >= 2 && index === 0 ? 'start' : points.length >= 2 && index === points.length - 1 ? 'end' : 'point') + '">' + (points.length >= 2 && index === 0 ? '▶ ' : points.length >= 2 && index === points.length - 1 ? '■ ' : '') + (index + 1) + '</span>',
-        iconSize: [26, 26], iconAnchor: [13, 13]
+        html: '<span class="' + endpoint + '">' + label + '</span>',
+        iconSize: [size, size], iconAnchor: [size / 2, size / 2]
       });
       this.routeWaypointMarkers.push(this.leaflet!.marker([point.latitude, point.longitude], { icon }).addTo(this.map!) as MapMarker & { remove(): void });
     });
