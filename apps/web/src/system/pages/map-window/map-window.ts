@@ -1461,7 +1461,7 @@ interface MapErrorEntry {
     .hillshade-clear-visible-button{margin-left:auto}
     .routing-point-row .offline-map-remove-button{margin-left:0}.routing-point-reorder{display:flex;flex-direction:column;gap:1px}.routing-point-move-button{width:24px;height:15px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:3px;background:var(--color-surface-default,#303030);color:inherit;font-size:11px;line-height:12px;cursor:pointer}.routing-point-move-button:disabled{opacity:.3;cursor:default}
     .routing-waypoint-icon{background:transparent;border:0}
-    .routing-waypoint-icon span{display:flex;width:30px;height:30px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 1px 5px #0009}.routing-waypoint-icon span.start{background:#16803c}.routing-waypoint-icon span.end{background:#c62828}
+    .routing-waypoint-icon span{display:flex;width:36px;height:36px;align-items:center;justify-content:center;border:3px solid #fff;border-radius:50%;background:#087cff;color:#fff;font-weight:800;font-size:15px;letter-spacing:.2px;white-space:nowrap;text-shadow:0 1px 2px #000;box-shadow:0 2px 8px #000c}.routing-waypoint-icon span.start,.routing-waypoint-icon span.end{width:42px;height:42px;font-size:15px}.routing-waypoint-icon span.start{background:#00a84f}.routing-waypoint-icon span.end{background:#e32636}
     .routing-actions .offline-map-status{flex:1;min-width:180px}
     .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
