@@ -256,6 +256,13 @@ interface MapErrorEntry {
         </select>
       </label>
     </div>
+    @if (routeProvider() === 'offline-valhalla') {
+      <div class="routing-key-row">
+        <label for="valhalla-config-path">Valhalla config</label>
+        <input id="valhalla-config-path" type="text" [value]="routeValhallaConfigPath()" (input)="routeValhallaConfigPath.set($any($event.target).value)" placeholder="Path to valhalla.json">
+        <button type="button" class="offline-map-add-button" (click)="applyValhallaConfigPath()" [disabled]="routeConfigBusy()">Apply</button>
+      </div>
+    }
     @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
         <label for="ors-api-key">openrouteservice API key</label>
@@ -1772,6 +1779,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
   protected readonly routeProvider = signal<RouteProviderId>('offline-valhalla');
+  protected readonly routeValhallaConfigPath = signal(this.readSetting('valhallaConfigPath', 'D:\\Maps\\OpenStreetMap\\Valhalla\\Austria\\valhalla.json'));
+  protected readonly routeConfigBusy = signal(false);
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
@@ -4980,6 +4989,23 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeRouteApiKey = (value: string): void => {
     this.routeApiKey.set(value);
     this.persistLocationUiState({ openRouteServiceApiKey: value || undefined });
+  };
+
+  protected readonly applyValhallaConfigPath = async (): Promise<void> => {
+    const path = this.routeValhallaConfigPath().trim();
+    if (!path) { this.routeStatus.set('Enter the path to valhalla.json.'); return; }
+    const desktop = this.desktop;
+    if (!desktop) { this.routeStatus.set('The desktop Valhalla service is unavailable.'); return; }
+    this.routeConfigBusy.set(true);
+    try {
+      const status = await desktop.Valhalla.setConfigPath(path);
+      this.saveSetting('valhallaConfigPath', status.configPath);
+      this.routeStatus.set(status.configAvailable ? 'Valhalla configuration saved.' : 'Valhalla configuration is not available.');
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.routeConfigBusy.set(false);
+    }
   };
 
   protected readonly addRouteWaypoint = (latitude: number, longitude: number): void => {
