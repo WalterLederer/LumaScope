@@ -5185,11 +5185,11 @@ export class MapWindow implements OnInit, OnDestroy {
       };
       // Escape hyphens so arbitrary location names cannot create an illegal "--" XML comment sequence.
       const routingPointComment = JSON.stringify(routingPointMetadata).replace(/-/g, '\\u002d');
-      const content = '<?xml version="1.0" encoding="UTF-8"?>\\n'
-        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\\n'
-        + '<!-- LumaScope routing-waypoints v1\\n' + routingPointComment + '\\n-->\\n'
-        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\\.gpx$/i, '')) + '</name><trkseg>\\n'
-        + trackPoints + '\\n  </trkseg></trk>\\n</gpx>\\n';
+      const content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        + '<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1">\n'
+        + '<!-- LumaScope routing-waypoints v1\n' + routingPointComment + '\n-->\n'
+        + '  <trk><name>' + this.escapeMarkerHtml(fileName.replace(/\.gpx$/i, '')) + '</name><trkseg>\n'
+        + trackPoints + '\n  </trkseg></trk>\n</gpx>\n';
       const written = await desktop.FileSystem.writeText(destination, content);
       if (!written.success) throw new Error(written.errorMessage);
       const parsed = this.parseGpxTrackData(content);
@@ -5301,7 +5301,7 @@ ${points}
     for (const comment of comments) {
       if (!comment.includes('Routing points (complete list')) continue;
       const points: RouteWaypoint[] = [];
-      const pattern = /^\\s*\\d+\\. \\[(ACTIVE|INACTIVE)\\] (.*?) \\| latitude=(-?\\d+(?:\\.\\d+)?) \\| longitude=(-?\\d+(?:\\.\\d+)?)/gm;
+      const pattern = /^\s*\d+\. \[(ACTIVE|INACTIVE)\] (.*?) \| latitude=(-?\d+(?:\.\d+)?) \| longitude=(-?\d+(?:\.\d+)?)/gm;
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(comment))) {
         const latitude = Number(match[3]), longitude = Number(match[4]);
