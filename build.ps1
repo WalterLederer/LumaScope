@@ -253,6 +253,7 @@ StopProcesses
 RemoveExecutableDirs
 
 & (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
+& (Join-Path $projectDir "tools/valhalla-runtime/stage-helpers.ps1")
 
 
 # Produktions-Build
@@ -276,7 +277,7 @@ finally {
 }
 
 
-# Verify only the native helper executable. OsmAnd resources are selected
+# Verify the native OsmAnd helper executable. OsmAnd resources are selected
 # from an external folder by the user and are intentionally not packaged.
 $packageResources = Join-Path $projectDir "dist\executables\win-unpacked\resources\osmand"
 $helperPackagePath = Join-Path $packageResources "helpers\osmand_atlas_render_helper.exe"
