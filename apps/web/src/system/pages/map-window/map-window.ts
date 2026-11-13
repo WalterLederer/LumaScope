@@ -244,7 +244,8 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
-      <label class="routing-provider-label">Routing provider
+      <div class="routing-provider-card">
+        <label class="routing-provider-label">Routing provider
         <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
           @for (configuration of valhallaConfigurations(); track configuration.path) {
             <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
@@ -252,7 +253,8 @@ interface MapErrorEntry {
           @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
           <option value="openrouteservice">openrouteservice</option>
         </select>
-      </label>
+        </label>
+      </div>
       <div class="routing-travel-mode-card">
         <label class="routing-travel-mode-label">Travel mode</label>
         <span class="routing-travel-mode-control">
@@ -263,8 +265,8 @@ interface MapErrorEntry {
         </span>
       </div>
       <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
-      <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
     </div>
+    @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
         <label for="ors-api-key">openrouteservice API key</label>
@@ -295,10 +297,13 @@ interface MapErrorEntry {
           <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
                  (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
                  [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
-          @if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶ Start</span> }
-          @if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■ End</span> }
+          <span class="routing-point-endpoint-column">@if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶</span> } @else if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■</span> }</span>
           <span class="routing-point-index">{{ i + 1 }}.</span>
           <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
+          <span class="routing-point-reorder">
+            <button type="button" class="routing-point-move-button" (click)="moveRouteWaypoint(i, -1)" [disabled]="i === 0" [attr.aria-label]="'Move route point ' + (i + 1) + ' up'" title="Move up">↑</button>
+            <button type="button" class="routing-point-move-button" (click)="moveRouteWaypoint(i, 1)" [disabled]="i === routeWaypoints().length - 1" [attr.aria-label]="'Move route point ' + (i + 1) + ' down'" title="Move down">↓</button>
+          </span>
           <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
         </div>
       }
@@ -1427,12 +1432,12 @@ interface MapErrorEntry {
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-toolbar{position:relative;width:100%;padding-top:22px}.routing-provider-label{flex:1 1 440px;min-width:280px}.routing-provider-select{width:100%;min-width:280px;max-width:100%}
+    .routing-toolbar{width:100%;justify-content:flex-start}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 230px;margin-left:auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
-    .routing-pick-hint{position:absolute;right:0;top:0;display:flex;align-items:center;gap:6px;margin-left:auto;justify-content:flex-end;text-align:right}
+    .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
     .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:Canvas;color:CanvasText}
     .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-key-row label{font-weight:600}
@@ -1441,13 +1446,13 @@ interface MapErrorEntry {
     .routing-point-row{display:flex;align-items:center;gap:8px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}\n    .routing-point-active{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:#0a84ff;cursor:pointer}\n    .routing-point-row.inactive .routing-point-location{opacity:.48}\n    .routing-point-row.inactive .routing-point-index{opacity:.5}
     .routing-point-location{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;font-family:inherit;overflow:hidden}.routing-point-location strong{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.routing-point-location small{font-family:Consolas,monospace;font-size:11px;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .routing-point-index{width:22px;font-weight:700;color:#0a84ff}
-    .routing-point-endpoint{font-size:10px;font-weight:700;white-space:nowrap;padding:3px 6px;border-radius:5px}
+    .routing-point-endpoint-column{display:flex;align-items:center;justify-content:center;width:28px;flex:0 0 28px}.routing-point-endpoint{font-size:12px;font-weight:800;white-space:nowrap;padding:3px 5px;border-radius:5px}
     .routing-point-endpoint.start{color:#067647;background:#d1fadf}
     .routing-point-endpoint.end{color:#b42318;background:#fee4e2}
     .routing-last-saved-gpx{display:flex;align-items:center;gap:8px;min-width:0}
     .routing-last-saved-gpx .offline-map-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
     .hillshade-clear-visible-button{margin-left:auto}
-    .routing-point-row .offline-map-remove-button{margin-left:auto}
+    .routing-point-row .offline-map-remove-button{margin-left:0}.routing-point-reorder{display:flex;flex-direction:column;gap:1px}.routing-point-move-button{width:24px;height:15px;padding:0;border:1px solid var(--color-content-default-low,#666);border-radius:3px;background:var(--color-surface-default,#303030);color:inherit;font-size:11px;line-height:12px;cursor:pointer}.routing-point-move-button:disabled{opacity:.3;cursor:default}
     .routing-waypoint-icon{background:transparent;border:0}
     .routing-waypoint-icon span{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border:2px solid #fff;border-radius:50%;background:#0a84ff;color:#fff;font-weight:700;font-size:12px;box-shadow:0 1px 5px #0009}
     .routing-actions .offline-map-status{flex:1;min-width:180px}
@@ -5154,6 +5159,16 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly activeRouteWaypointCount = (): number =>
     this.routeWaypoints().filter(point => point.active !== false).length;
+
+  protected readonly moveRouteWaypoint = (index: number, direction: -1 | 1): void => {
+    const points = [...this.routeWaypoints()];
+    const target = index + direction;
+    if (index < 0 || target < 0 || index >= points.length || target >= points.length) return;
+    [points[index], points[target]] = [points[target], points[index]];
+    this.routeWaypoints.set(points);
+    this.persistRouteWaypoints();
+    this.updateRouteWaypointMarkers();
+  };
 
   protected readonly removeRouteWaypoint = (index: number): void => {
     this.routeWaypoints.update(points => points.filter((_, i) => i !== index));
