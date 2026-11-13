@@ -271,8 +271,7 @@ interface MapErrorEntry {
       </div>
     }
     <div class="routing-actions">
-      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()">Read routing waypoints from GPX</button>
-      <span class="offline-map-status">Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.</span>
+      <button type="button" class="offline-map-add-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
     </div>
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
