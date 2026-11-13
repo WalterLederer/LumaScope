@@ -1314,12 +1314,12 @@ export class OfflineMapRenderer {
     this.map.addSource('route-waypoints', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     this.map.addLayer({
       id: 'route-waypoint-circles', type: 'circle', source: 'route-waypoints',
-      paint: { 'circle-radius': 12, 'circle-color': '#0a84ff', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 }
+      paint: { 'circle-radius': 12, 'circle-color': ['match', ['get', 'endpoint'], 'start', '#16803c', 'end', '#c62828', '#0a84ff'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 }
     });
     this.map.addLayer({
       id: 'route-waypoint-labels', type: 'symbol', source: 'route-waypoints',
-      layout: { 'text-field': ['get', 'label'], 'text-size': 12, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true },
-      paint: { 'text-color': '#ffffff', 'text-halo-color': '#0a84ff', 'text-halo-width': 1 }
+      layout: { 'text-field': ['case', ['==', ['get', 'endpoint'], 'start'], ['concat', '▶', ['get', 'label']], ['==', ['get', 'endpoint'], 'end'], ['concat', '■', ['get', 'label']], ['get', 'label']], 'text-size': 12, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true },
+      paint: { 'text-color': '#ffffff', 'text-halo-color': ['match', ['get', 'endpoint'], 'start', '#16803c', 'end', '#c62828', '#0a84ff'], 'text-halo-width': 1 }
     });
     const gpxLineStyles: Array<{ id: string; style: string; dash?: number[] }> = [
       { id: 'gpx-track-line', style: 'solid' },
@@ -2229,7 +2229,10 @@ export class OfflineMapRenderer {
       features: points.map((point, index) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [point.longitude, point.latitude] },
-        properties: { label: String(index + 1) }
+        properties: {
+          label: String(index + 1),
+          endpoint: points.length >= 2 && index === 0 ? 'start' : points.length >= 2 && index === points.length - 1 ? 'end' : 'point'
+        }
       }))
     });
   }
