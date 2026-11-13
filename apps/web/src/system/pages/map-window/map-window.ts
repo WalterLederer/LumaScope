@@ -246,8 +246,12 @@ interface MapErrorEntry {
     <div class="routing-toolbar">
       <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
       <label>Routing provider
-        <select [value]="routeProvider()" (change)="routeProvider.set($any($event.target).value)">
-          <option value="offline-valhalla">Offline Valhalla</option><option value="openrouteservice">openrouteservice</option>
+        <select [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
+          @for (configuration of valhallaConfigurations(); track configuration.path) {
+            <option [value]="'offline-valhalla|' + configuration.path">Offline Valhalla — {{ configuration.name }}</option>
+          }
+          @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
+          <option value="openrouteservice">openrouteservice</option>
         </select>
       </label>
       <label>Travel mode
@@ -256,14 +260,7 @@ interface MapErrorEntry {
         </select>
       </label>
     </div>
-    @if (routeProvider() === 'offline-valhalla') {
-      <div class="routing-key-row">
-        <label for="valhalla-config-path">Valhalla config</label>
-        <input id="valhalla-config-path" type="text" [value]="routeValhallaConfigPath()" (input)="routeValhallaConfigPath.set($any($event.target).value)" placeholder="Path to valhalla.json">
-        <button type="button" class="offline-map-add-button" (click)="applyValhallaConfigPath()" [disabled]="routeConfigBusy()">Apply</button>
-      </div>
-    }
-    @if (routeProvider() === 'openrouteservice') {
+remove old path field    @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
         <label for="ors-api-key">openrouteservice API key</label>
         <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
@@ -729,6 +726,20 @@ interface MapErrorEntry {
 <div class="settings-tab-content offline-maps-tab-content">
     <details class="map-cache-section download-section">
       <summary class="map-cache-heading">Local sources</summary>
+      <div class="osmand-resources-picker valhalla-config-picker">
+        <strong>Valhalla routing configurations</strong>
+        <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
+        <span class="osmand-resources-path">{{ valhallaConfigurations().length }} configuration(s)</span>
+        @for (configuration of valhallaConfigurations(); track configuration.path) {
+          <div class="valhalla-config-row">
+            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" (change)="setActiveValhallaConfig(configuration.path)" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
+            <span class="valhalla-config-name">{{ configuration.name }}</span>
+            <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
+            <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" title="Remove from list; file is kept">Remove</button>
+          </div>
+        }
+        <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
+      </div>
       <div class="osmand-resources-picker">
         <strong>OsmAnd resources folder</strong>
         <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
@@ -1783,7 +1794,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
   protected readonly routeProvider = signal<RouteProviderId>('offline-valhalla');
-  protected readonly routeValhallaConfigPath = signal(this.readSetting('valhallaConfigPath', 'D:\\Maps\\OpenStreetMap\\Valhalla\\Austria\\valhalla.json'));
+  protected readonly routeValhallaConfigPath = signal(this.readSetting('valhallaConfigPath', ''));
+  protected readonly valhallaConfigurations = signal<Array<{ path: string; name: string; available: boolean }>>([]);
   protected readonly routeConfigBusy = signal(false);
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
   protected readonly routeBusy = signal(false);
@@ -1926,6 +1938,12 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (this.desktop) {
+      void this.desktop.Valhalla.getRuntimeStatus().then(status => {
+        this.valhallaConfigurations.set(status.configurations ?? []);
+        if (!this.routeValhallaConfigPath() && status.configPath) this.routeValhallaConfigPath.set(status.configPath);
+      }).catch(error => console.warn('[Valhalla] Could not load routing configurations:', error));
+    }
     this.mapWindowConfigRestore = this.desktop
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
@@ -4995,6 +5013,56 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ openRouteServiceApiKey: value || undefined });
   };
 
+  protected readonly routeProviderSelection = (): string =>
+    this.routeProvider() === 'openrouteservice'
+      ? 'openrouteservice'
+      : 'offline-valhalla|' + this.routeValhallaConfigPath();
+
+  protected readonly changeRouteProviderSelection = (value: string): void => {
+    if (value === 'openrouteservice') {
+      this.routeProvider.set('openrouteservice');
+      return;
+    }
+    this.routeProvider.set('offline-valhalla');
+    const path = value.startsWith('offline-valhalla|') ? value.slice('offline-valhalla|'.length) : '';
+    if (path) {
+      this.routeValhallaConfigPath.set(path);
+      void this.applyValhallaConfigPath();
+    }
+  };
+
+  protected readonly addValhallaConfig = async (): Promise<void> => {
+    if (!this.desktop) return;
+    this.routeConfigBusy.set(true);
+    try {
+      const status = await this.desktop.Valhalla.addConfig();
+      this.valhallaConfigurations.set(status.configurations ?? []);
+      if (!this.routeValhallaConfigPath() && status.configPath) this.routeValhallaConfigPath.set(status.configPath);
+      this.routeStatus.set('Valhalla configuration list updated.');
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    } finally { this.routeConfigBusy.set(false); }
+  };
+
+  protected readonly setActiveValhallaConfig = async (path: string): Promise<void> => {
+    this.routeValhallaConfigPath.set(path);
+    this.routeProvider.set('offline-valhalla');
+    await this.applyValhallaConfigPath();
+  };
+
+  protected readonly removeValhallaConfig = async (path: string): Promise<void> => {
+    if (!this.desktop) return;
+    this.routeConfigBusy.set(true);
+    try {
+      const status = await this.desktop.Valhalla.removeConfig(path);
+      this.valhallaConfigurations.set(status.configurations ?? []);
+      this.routeValhallaConfigPath.set(status.configPath || '');
+      this.routeStatus.set('Valhalla configuration removed from the list. The JSON file was not deleted.');
+    } catch (error) {
+      this.routeStatus.set(error instanceof Error ? error.message : String(error));
+    } finally { this.routeConfigBusy.set(false); }
+  };
+
   protected readonly applyValhallaConfigPath = async (): Promise<void> => {
     const path = this.routeValhallaConfigPath().trim();
     if (!path) { this.routeStatus.set('Enter the path to valhalla.json.'); return; }
@@ -5124,6 +5192,9 @@ export class MapWindow implements OnInit, OnDestroy {
       case 'offline-valhalla': {
         const desktop = this.desktop;
         if (!desktop) throw new Error('The desktop Valhalla service is unavailable.');
+        const selectedConfig = this.routeValhallaConfigPath().trim();
+        if (!selectedConfig) throw new Error('Add and select a Valhalla configuration in OfflineFiles first.');
+        await desktop.Valhalla.setConfigPath(selectedConfig);
         const result = await desktop.Valhalla.route({
           points: request.points,
           profile: request.profile
