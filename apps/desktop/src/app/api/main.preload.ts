@@ -106,6 +106,13 @@ const api: Desktop = {
     shutdown: () => ipcRenderer.invoke('OsmAnd.shutdown')
   },
 
+  Valhalla: {
+    getRuntimeStatus: () => ipcRenderer.invoke('Valhalla.getRuntimeStatus'),
+    setConfigPath: (configPath: string) => ipcRenderer.invoke('Valhalla.setConfigPath', configPath),
+    route: (request: unknown) => ipcRenderer.invoke('Valhalla.route', request),
+    shutdown: () => ipcRenderer.invoke('Valhalla.shutdown')
+  },
+
   OsmAndAtlas: {
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
     addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
