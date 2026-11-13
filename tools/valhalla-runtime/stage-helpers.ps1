@@ -27,6 +27,35 @@ if (Test-Path -LiteralPath $cmakeCache -PathType Leaf) {
     }
 }
 
+# Register the helper source tracked in LumaScope with the existing Valhalla
+# CMake build. The project include hook adds/replaces the target after Valhalla
+# has defined its library targets, without editing the external Valhalla checkout.
+$sourceDirectory = Split-Path -Parent $buildRoot
+$valhallaSource = $null
+if (Test-Path -LiteralPath $cmakeCache -PathType Leaf) {
+    $sourceEntry = Select-String -LiteralPath $cmakeCache -Pattern '^CMAKE_HOME_DIRECTORY:INTERNAL=' | Select-Object -First 1
+    if ($sourceEntry) {
+        $valhallaSource = $sourceEntry.Line.Substring('CMAKE_HOME_DIRECTORY:INTERNAL='.Length)
+    }
+}
+if ([string]::IsNullOrWhiteSpace($valhallaSource) -or -not (Test-Path -LiteralPath $valhallaSource -PathType Container)) {
+    throw "Could not determine Valhalla source directory from '$cmakeCache'."
+}
+
+$helperSource = Join-Path $PSScriptRoot 'src\lumascope_route_helper.cpp'
+$cmakeHook = Join-Path $PSScriptRoot 'cmake\LumaScopeValhallaHelper.cmake'
+if (-not (Test-Path -LiteralPath $helperSource -PathType Leaf)) {
+    throw "LumaScope Valhalla helper source not found: $helperSource"
+}
+if (-not (Test-Path -LiteralPath $cmakeHook -PathType Leaf)) {
+    throw "LumaScope Valhalla CMake hook not found: $cmakeHook"
+}
+
+& cmake -S $valhallaSource -B $buildRoot "-DCMAKE_PROJECT_valhalla_INCLUDE=$cmakeHook" "-DLUMASCOPE_VALHALLA_HELPER_SOURCE=$helperSource"
+if ($LASTEXITCODE -ne 0) {
+    throw "Valhalla CMake configuration failed (exit code $LASTEXITCODE)."
+}
+
 # Let CMake decide whether compilation/linking is necessary. Do not delete the
 # existing executable: an up-to-date target must remain untouched.
 $helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
