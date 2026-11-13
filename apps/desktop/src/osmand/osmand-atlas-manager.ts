@@ -662,10 +662,9 @@ export class OsmAndAtlasManager {
       try {
         const appSettings = readAppSettings();
         const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-          filePaths?: unknown; obfPreset?: unknown; presets?: unknown;
+          filePaths?: unknown;
         };
         if (Array.isArray(settings.filePaths)) {
-          const preset = settings.obfPreset === 'austria-plus' || settings.obfPreset === 'europe' || settings.obfPreset === 'all' || settings.obfPreset === 'none' || settings.obfPreset === 'custom' ? settings.obfPreset : 'austria';
           const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.filePaths)
             ? settings.filePaths.flatMap(entry => {
               if (typeof entry === 'string') return [{ path: entry, enabled: true }];
@@ -681,30 +680,12 @@ export class OsmAndAtlasManager {
                 .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
                 .map(([path, enabled]) => ({ path, enabled }))
               : [];
+          // The enabled flags in filePaths are the sole source of truth.
+          // Do not apply a separately persisted regional preset here.
           selectedPaths = savedPaths
-            .filter(entry => entry.enabled && /\.obf$/i.test(entry.path))
+            .filter(entry => entry.enabled && /.obf$/i.test(entry.path))
             .map(entry => entry.path)
-            .filter(path => {
-              if (!existsSync(path)) return false;
-              const name = path.split(/[\\/]/).pop() ?? path;
-              const isWorldBasemap = /^World_basemap\.obf$/i.test(name);
-              if (preset === 'none') return false;
-              if (isWorldBasemap) return true;
-              if ((preset === 'austria' || preset === 'austria-plus') && /^Austria_europe\.obf$/i.test(name)) return false;
-              if (preset === 'all' || preset === 'custom') return true;
-              const definitions = settings.presets && typeof settings.presets === 'object'
-                ? settings.presets as Record<string, unknown> : {};
-              const definition = definitions[preset] && typeof definitions[preset] === 'object'
-                ? definitions[preset] as Record<string, unknown> : {};
-              const fallbackRegex: Record<string, string> = {
-                austria: 'austria|österreich|osterreich',
-                'austria-plus': 'austria|österreich|osterreich|germany|deutschland|czech|czechia|tschech|slovakia|slowakei|slovensko|hungary|ungarn|slovenia|slowenien|italy|italien|switzerland|schweiz|liechtenstein',
-                europe: '(?:^|[_. -])europe(?:[_. -]|$)'
-              };
-              const regex = typeof definition['regex'] === 'string'
-                ? definition['regex'] : fallbackRegex[preset] ?? '(?!)';
-              try { return new RegExp(regex, 'i').test(name); } catch { return false; }
-            });
+            .filter(path => existsSync(path));
         }
       } catch { /* Keep configured fallback OBF maps. */ }
       if (selectedPaths.length === this.obfPaths.length
