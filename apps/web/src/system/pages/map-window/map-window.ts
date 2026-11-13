@@ -248,6 +248,10 @@ interface MapErrorEntry {
       Show routing points on map
     </label>
     <div class="routing-toolbar">
+      <div class="routing-name-card">
+        <label class="routing-name-label" for="routing-name-input">Route name</label>
+        <input id="routing-name-input" class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
+      </div>
      <div class="routing-travel-mode-card">
         <label class="routing-travel-mode-label">Travel mode</label>
         <span class="routing-travel-mode-control">
@@ -279,10 +283,6 @@ interface MapErrorEntry {
       </div>
     }
     <div class="routing-actions">
-      <div class="routing-name-card">
-        <label class="routing-name-label" for="routing-name-input">Route name</label>
-        <input id="routing-name-input" class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
-      </div>
       <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
       <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
