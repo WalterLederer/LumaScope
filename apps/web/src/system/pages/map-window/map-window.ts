@@ -3668,18 +3668,26 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       return map.enabled;
     };
-    // Prefer the user's explicitly selected preset when the currently enabled
-    // files still satisfy it. Presets can overlap (for example, an Austria-only
-    // local collection is also a valid subset of the Europe preset); choosing the
-    // first matching regex would silently downgrade Europe to Austria on reload.
-    const selectedPreset = this.offlineMapPreset();
-    if (selectedPreset !== 'custom' && candidates.includes(selectedPreset)
-      && presetMaps.every(map => map.enabled === matches(map, selectedPreset))) {
-      return selectedPreset;
-    }
-    return candidates.find(preset =>
-      presetMaps.every(map => map.enabled === matches(map, preset))
-    ) ?? 'custom';
+    // Several regional presets can produce the same enabled-file set when
+    // only a subset of the regions' files is installed. Choose the compatible
+    // preset that covers the most available files; on a tie, prefer the broader
+    // (less restrictive) filename pattern instead of the default UI selection.
+    const compatible = candidates.map(preset => {
+      const definition = this.mapPresetOptions().find(item => item.id === preset);
+      const patternLength = presetMaps.reduce((total, map) => {
+        if (map.type === 'obf') return total + (definition?.osmAndRegex.length ?? Number.MAX_SAFE_INTEGER);
+        if (map.type === 'mapsforge') return total + ((definition?.mapsForgeRegex || definition?.osmAndRegex).length ?? Number.MAX_SAFE_INTEGER);
+        return total;
+      }, 0);
+      return {
+        preset,
+        covered: presetMaps.filter(map => matches(map, preset)).length,
+        patternLength
+      };
+    }).filter(candidate =>
+      presetMaps.every(map => map.enabled === matches(map, candidate.preset))
+    ).sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
+    return compatible[0]?.preset ?? 'custom';
   }
 
   protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
@@ -3943,17 +3951,22 @@ export class MapWindow implements OnInit, OnDestroy {
     // Otherwise, e.g. a list containing only Austrian files would be labelled
     // "Austria" even when the user has selected every available file.
     const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
-    const matching = allEnabled && candidates.includes('all') ? 'all'
+    const compatible = candidates.filter(preset => preset !== 'all' && preset !== 'none')
+      .map(preset => {
+        const pattern = this.mapPresetOptions().find(item => item.id === preset)?.hillshadeRegex ?? '';
+        return {
+          preset,
+          covered: available.filter(database => this.hillshadeDatabaseMatchesPreset(database, preset)).length,
+          patternLength: pattern.length
+        };
+      })
+      .filter(candidate => available.every(database =>
+        database.enabled === this.hillshadeDatabaseMatchesPreset(database, candidate.preset)
+      ))
+      .sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
+    const next = allEnabled && candidates.includes('all') ? 'all'
       : noneEnabled && candidates.includes('none') ? 'none'
-      : candidates.find(preset => preset !== 'all' && preset !== 'none'
-        && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
-    // Keep the explicitly selected preset when it still describes the active
-    // databases. Region presets overlap when only a subset of files is installed.
-    const selectedPreset = this.hillshadePreset();
-    const selectedStillMatches = selectedPreset !== 'custom'
-      && candidates.includes(selectedPreset)
-      && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, selectedPreset));
-    const next = selectedStillMatches ? selectedPreset : matching ?? 'custom';
+      : compatible[0]?.preset ?? 'custom';
     this.hillshadePreset.set(next);
     this.saveSetting('hillshadePreset', next);
   }
