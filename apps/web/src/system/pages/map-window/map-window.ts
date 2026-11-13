@@ -3933,7 +3933,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .filter(candidate => available.every(database =>
         database.enabled === this.hillshadeDatabaseMatchesPreset(database, candidate.preset)
       ))
-      .sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
+      .sort((a, b) => b.covered - a.covered || b.patternLength - a.patternLength);
     const next = allEnabled && candidates.includes('all') ? 'all'
       : noneEnabled && candidates.includes('none') ? 'none'
       : compatible[0]?.preset ?? 'custom';
