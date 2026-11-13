@@ -245,17 +245,24 @@ interface MapErrorEntry {
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
       <span class="routing-pick-hint">Add route points by RIGHT clicking the map</span>
+      <label>Routing provider
+        <select [value]="routeProvider()" (change)="routeProvider.set($any($event.target).value)">
+          <option value="offline-valhalla">Offline Valhalla</option><option value="openrouteservice">openrouteservice</option>
+        </select>
+      </label>
       <label>Travel mode
         <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
           <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
         </select>
       </label>
     </div>
-    <div class="routing-key-row">
-      <label for="ors-api-key">openrouteservice API key</label>
-      <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
-      <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
-    </div>
+    @if (routeProvider() === 'openrouteservice') {
+      <div class="routing-key-row">
+        <label for="ors-api-key">openrouteservice API key</label>
+        <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
+        <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
+      </div>
+    }
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
         <div class="routing-point-row" [class.inactive]="point.active === false">
@@ -270,7 +277,7 @@ interface MapErrorEntry {
       @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
     </div>
     <div class="routing-actions">
-      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || !routeApiKey().trim()">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">Clear points</button>
       <span class="offline-map-status">{{ routeStatus() }}</span>
     </div>
@@ -1764,6 +1771,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
+  protected readonly routeProvider = signal<RouteProviderId>('offline-valhalla');
   protected readonly routeApiKey = signal(this.readSetting('openRouteServiceApiKey', ''));
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
@@ -5083,12 +5091,15 @@ export class MapWindow implements OnInit, OnDestroy {
         }
         return { provider, coordinates: routePoints };
       }
-      case 'offline-valhalla':
-        // Reserved adapter boundary for a locally installed Valhalla engine.
-        // It will consume local graph data and map the shared profiles to
-        // Valhalla costing models (auto, bicycle, pedestrian) without changing
-        // the waypoint UI or GPX writer.
-        throw new Error('Offline routing is not configured yet. A local Valhalla engine and routing graph data are required.');
+      case 'offline-valhalla': {
+        const desktop = this.desktop;
+        if (!desktop) throw new Error('The desktop Valhalla service is unavailable.');
+        const result = await desktop.Valhalla.route({
+          points: request.points,
+          profile: request.profile
+        });
+        return { provider, coordinates: result.coordinates };
+      }
     }
   }
 
@@ -5099,7 +5110,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const activePoints = points.filter(point => point.active !== false);
     const apiKey = this.routeApiKey().trim();
     if (activePoints.length < 2) { this.routeStatus.set('Activate at least two route points.'); return; }
-    const provider: RouteProviderId = 'openrouteservice';
+    const provider = this.routeProvider();
+    if (provider === 'openrouteservice' && !apiKey) {
+      this.routeStatus.set('Enter your openrouteservice API key first.');
+      return;
+    }
     const providerName = provider;
     const requestTimestamp = new Date().toISOString();
     const requestProfile = this.routeProfile();
