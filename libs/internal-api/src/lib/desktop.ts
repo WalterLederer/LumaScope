@@ -346,6 +346,38 @@ export interface OsmAndRuntimeStatus {
 
 export interface OsmAndRenderingStyle { fileName: string; label: string; selected: boolean; }
 
+export type ValhallaRouteProfile = 'driving-car' | 'cycling-regular' | 'foot-walking';
+
+export interface ValhallaRoutePoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface ValhallaRouteRequest {
+  points: ValhallaRoutePoint[];
+  profile: ValhallaRouteProfile;
+}
+
+export interface ValhallaRouteResult {
+  provider: 'offline-valhalla';
+  coordinates: ValhallaRoutePoint[];
+}
+
+export interface ValhallaRuntimeStatus {
+  helperPath: string;
+  helperAvailable: boolean;
+  configPath: string;
+  configAvailable: boolean;
+  running: boolean;
+}
+
+export interface DesktopValhalla {
+  readonly getRuntimeStatus: () => Promise<ValhallaRuntimeStatus>;
+  readonly setConfigPath: (configPath: string) => Promise<ValhallaRuntimeStatus>;
+  readonly route: (request: ValhallaRouteRequest) => Promise<ValhallaRouteResult>;
+  readonly shutdown: () => Promise<void>;
+}
+
 export interface DesktopOsmAnd {
   readonly getRuntimeStatus: () => Promise<OsmAndRuntimeStatus>;
   readonly getRenderingStyles: () => Promise<OsmAndRenderingStyle[]>;
@@ -449,6 +481,7 @@ export interface Desktop {
   readonly MapOverlayWindow: DesktopMapOverlayWindow;
   readonly OfflineMap: DesktopOfflineMap;
   readonly OsmAnd: DesktopOsmAnd;
+  readonly Valhalla: DesktopValhalla;
   readonly OsmAndAtlas: DesktopOsmAndAtlas;
   readonly Mapsforge: DesktopMapsforge;
   readonly CapturePreviewWindow: DesktopCapturePreviewWindow;
