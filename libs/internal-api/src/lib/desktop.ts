@@ -363,16 +363,25 @@ export interface ValhallaRouteResult {
   coordinates: ValhallaRoutePoint[];
 }
 
+export interface ValhallaConfigEntry {
+  path: string;
+  name: string;
+  available: boolean;
+}
+
 export interface ValhallaRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
   configPath: string;
   configAvailable: boolean;
+  configurations: ValhallaConfigEntry[];
   running: boolean;
 }
 
 export interface DesktopValhalla {
   readonly getRuntimeStatus: () => Promise<ValhallaRuntimeStatus>;
+  readonly addConfig: () => Promise<ValhallaRuntimeStatus>;
+  readonly removeConfig: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly setConfigPath: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly route: (request: ValhallaRouteRequest) => Promise<ValhallaRouteResult>;
   readonly shutdown: () => Promise<void>;
