@@ -3681,7 +3681,7 @@ export class MapWindow implements OnInit, OnDestroy {
       };
     }).filter(candidate =>
       presetMaps.every(map => map.enabled === matches(map, candidate.preset))
-    ).sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
+    ).sort((a, b) => b.covered - a.covered || b.patternLength - a.patternLength);
     return compatible[0]?.preset ?? 'custom';
   }
 
