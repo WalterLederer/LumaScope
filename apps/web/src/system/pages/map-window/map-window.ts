@@ -339,13 +339,13 @@ interface MapErrorEntry {
         <details class="time-slider-animate-section" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
+            <button type="button" class="time-slider-animate-button time-slider-play-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
+              (click)="toggleTimeSliderAnimation()"><span class="time-slider-animate-icon" aria-hidden="true">{{ timeSliderAnimating() ? '■' : '▶' }}</span> {{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
             <section class="time-slider-animation-panel time-slider-play-panel">
-              <h4>Play</h4>
+              <h4>Speed</h4>
               <div class="time-slider-play-speed-row">
-                <button type="button" class="time-slider-animate-button" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
-                  (click)="toggleTimeSliderAnimation()"><span class="time-slider-animate-icon" aria-hidden="true">{{ timeSliderAnimating() ? '■' : '▶' }}</span> {{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
-                <label class="time-slider-speed-control time-slider-animation-speed time-slider-control-card"><span>Animation speed</span><strong>{{ timeSliderAnimationSpeed() }}×</strong><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"></label>
-                <label class="time-slider-speed-control time-slider-walking-speed time-slider-control-card"><span>Walking animation speed</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"></label>
+                <label class="time-slider-speed-control time-slider-animation-speed time-slider-control-card"><span>Animation</span><strong>{{ timeSliderAnimationSpeed() }}×</strong><input type="range" min="0.1" max="10" step="0.1" [value]="timeSliderAnimationSpeed()" (input)="changeTimeSliderAnimationSpeed($any($event.target).value)"></label>
+                <label class="time-slider-speed-control time-slider-walking-speed time-slider-control-card"><span>Walking animation</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><input type="range" min="0.2" max="3" step="0.1" [value]="walkingFigureAnimationSpeed()" (input)="changeWalkingFigureAnimationSpeed($any($event.target).value)" [disabled]="walkingFigureType() !== 'walker'"></label>
               </div>
             </section>
             <section class="time-slider-animation-panel time-slider-symbol-panel">
@@ -1172,35 +1172,35 @@ interface MapErrorEntry {
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
     .time-slider-range{user-select:none;-webkit-user-select:none}
-    .time-slider-animate-options{display:grid;grid-template-columns:minmax(360px,1.25fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px}
+    .time-slider-animate-options{display:grid;grid-template-columns:auto minmax(360px,1.25fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px}
     .time-slider-animation-panel{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:10px;border:1px solid color-mix(in srgb,CanvasText 28%,Canvas);border-radius:6px;background:Canvas;color:CanvasText}
     .time-slider-animation-panel h4{margin:0;padding:0 0 7px;border-bottom:1px solid color-mix(in srgb,CanvasText 24%,Canvas);font-size:13px;font-weight:600;color:CanvasText}
-    .time-slider-play-speed-row{display:flex;align-items:center;gap:10px;min-width:0;width:100%;flex-wrap:nowrap}
-    .time-slider-play-panel .time-slider-speed-control{flex:1 1 0;min-width:0}
+    .time-slider-play-speed-row{display:flex;align-items:stretch;gap:10px;min-width:0;width:100%;flex-wrap:nowrap}
+    .time-slider-play-panel .time-slider-speed-control{flex:1 1 180px;min-width:180px}
     .time-slider-play-panel .time-slider-speed-control input{min-width:0}
-    .time-slider-walking-speed{min-width:0}
-    .time-slider-play-panel .time-slider-animate-button{align-self:flex-start;flex:0 0 auto}
+    .time-slider-walking-speed{min-width:180px}
+    .time-slider-play-button{align-self:center;justify-self:start;flex:0 0 auto}
     .time-slider-speed-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 8px;font-size:12px;color:CanvasText;min-width:0}
     .time-slider-speed-control input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-speed-control strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-animation-speed{flex:1 1 180px}
     .time-slider-symbol-controls-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px 10px;min-width:0;width:100%}
-    .time-slider-symbol-select{display:flex;flex:1 1 190px;min-width:150px;font-size:12px;color:CanvasText}
+    .time-slider-symbol-select{display:flex;flex:1 1 180px;min-width:180px;font-size:12px;color:CanvasText}
     .time-slider-symbol-select select{width:100%;min-width:0;padding:5px 7px;border:1px solid var(--color-border-default,#777);border-radius:4px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit}
     .time-slider-walker-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText;cursor:pointer}.time-slider-walker-toggle input{accent-color:var(--color-accent,#2688e8);margin:0}.time-slider-symbol-visibility{align-self:center;flex:0 0 auto;min-height:18px}
     .time-slider-symbol-preview-row{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0}.time-slider-control-card,.time-slider-symbol-preview-card{padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.time-slider-symbol-preview-card{padding:5px 8px}
-    .time-slider-symbol-size{display:grid;flex:1 1 150px;grid-template-columns:minmax(0,1fr) auto;align-self:stretch;align-content:center;gap:4px 8px;min-width:130px;font-size:12px;color:CanvasText}
+    .time-slider-symbol-size{display:grid;flex:1 1 180px;grid-template-columns:minmax(0,1fr) auto;align-self:stretch;align-content:center;gap:4px 8px;min-width:180px;font-size:12px;color:CanvasText}
     .time-slider-symbol-size strong{min-width:30px;text-align:right;color:CanvasText}
     .time-slider-symbol-size input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     
     .time-slider-symbol-orientation-controls{display:flex;flex:1 1 220px;align-items:stretch;gap:8px;min-width:190px}
     .time-slider-symbol-orientation-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .time-slider-symbol-rotation{flex:1 1 150px;min-width:120px;width:auto;font-size:12px;color:CanvasText}
+    .time-slider-symbol-rotation{flex:1 1 180px;min-width:180px;width:auto;font-size:12px;color:CanvasText}
     .time-slider-symbol-rotation input{grid-column:1/-1;width:100%;min-width:0;accent-color:var(--color-accent,#2688e8)}
     .time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:CanvasText}
     .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
-    @media(max-width:900px){.time-slider-animate-options{grid-template-columns:repeat(2,minmax(0,1fr))}.time-slider-orientation-panel{grid-column:1/-1}}
+    @media(max-width:900px){.time-slider-animate-options{grid-template-columns:auto minmax(0,1fr)}.time-slider-symbol-panel{grid-column:1/-1}}
     @media(max-width:560px){.time-slider-animate-options{grid-template-columns:minmax(0,1fr)}.time-slider-orientation-panel{grid-column:auto}}
     .time-slider-symbol-preview-box{width:58px;height:58px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);overflow:hidden}
     .time-slider-symbol-preview-box>span{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI Emoji',sans-serif;font-size:34px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:center}.time-slider-symbol-preview-box svg{display:block;width:30px;height:38px;overflow:visible}
