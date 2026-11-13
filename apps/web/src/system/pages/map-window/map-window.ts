@@ -1421,9 +1421,9 @@ interface MapErrorEntry {
     @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-toolbar{width:100%}.routing-provider-label{flex:1 1 440px;min-width:280px}.routing-provider-select{width:100%;min-width:280px;max-width:100%}
+    .routing-toolbar{position:relative;width:100%;padding-top:22px}.routing-provider-label{flex:1 1 440px;min-width:280px}.routing-provider-select{width:100%;min-width:280px;max-width:100%}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:30px;font-size:23px;line-height:1}
-    .routing-pick-hint{display:flex;align-items:center;gap:6px;margin-left:auto;justify-content:flex-end;text-align:right}
+    .routing-pick-hint{position:absolute;right:0;top:0;display:flex;align-items:center;gap:6px;margin-left:auto;justify-content:flex-end;text-align:right}
     .routing-name-label{display:flex;align-items:center;gap:6px}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-key-row label{font-weight:600}
