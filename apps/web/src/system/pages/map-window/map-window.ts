@@ -3668,6 +3668,15 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       return map.enabled;
     };
+    // Prefer the user's explicitly selected preset when the currently enabled
+    // files still satisfy it. Presets can overlap (for example, an Austria-only
+    // local collection is also a valid subset of the Europe preset); choosing the
+    // first matching regex would silently downgrade Europe to Austria on reload.
+    const selectedPreset = this.offlineMapPreset();
+    if (selectedPreset !== 'custom' && candidates.includes(selectedPreset)
+      && presetMaps.every(map => map.enabled === matches(map, selectedPreset))) {
+      return selectedPreset;
+    }
     return candidates.find(preset =>
       presetMaps.every(map => map.enabled === matches(map, preset))
     ) ?? 'custom';
@@ -3938,7 +3947,13 @@ export class MapWindow implements OnInit, OnDestroy {
       : noneEnabled && candidates.includes('none') ? 'none'
       : candidates.find(preset => preset !== 'all' && preset !== 'none'
         && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, preset)));
-    const next = matching ?? 'custom';
+    // Keep the explicitly selected preset when it still describes the active
+    // databases. Region presets overlap when only a subset of files is installed.
+    const selectedPreset = this.hillshadePreset();
+    const selectedStillMatches = selectedPreset !== 'custom'
+      && candidates.includes(selectedPreset)
+      && available.every(database => database.enabled === this.hillshadeDatabaseMatchesPreset(database, selectedPreset));
+    const next = selectedStillMatches ? selectedPreset : matching ?? 'custom';
     this.hillshadePreset.set(next);
     this.saveSetting('hillshadePreset', next);
   }
