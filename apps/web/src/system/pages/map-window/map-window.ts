@@ -97,7 +97,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineMaps</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineFiles</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" (click)="selectSettingsTab('hillshade')">Hillshade</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
@@ -732,7 +732,7 @@ remove old path field    @if (routeProvider() === 'openrouteservice') {
         <span class="osmand-resources-path">{{ valhallaConfigurations().length }} configuration(s)</span>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
           <div class="valhalla-config-row">
-            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" (change)="setActiveValhallaConfig(configuration.path)" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
+            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
             <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" title="Remove from list; file is kept">Remove</button>
@@ -1939,8 +1939,17 @@ export class MapWindow implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.desktop) {
-      void this.desktop.Valhalla.getRuntimeStatus().then(status => {
+      void this.desktop.Valhalla.getRuntimeStatus().then(async status => {
         this.valhallaConfigurations.set(status.configurations ?? []);
+        const savedPath = this.routeValhallaConfigPath();
+        if (savedPath && !status.configurations?.some(configuration => configuration.path.toLowerCase() === savedPath.toLowerCase())) {
+          try {
+            status = await this.desktop!.Valhalla.setConfigPath(savedPath);
+            this.valhallaConfigurations.set(status.configurations ?? []);
+          } catch (error) {
+            console.warn('[Valhalla] Could not migrate the saved routing configuration:', error);
+          }
+        }
         if (!this.routeValhallaConfigPath() && status.configPath) this.routeValhallaConfigPath.set(status.configPath);
       }).catch(error => console.warn('[Valhalla] Could not load routing configurations:', error));
     }
