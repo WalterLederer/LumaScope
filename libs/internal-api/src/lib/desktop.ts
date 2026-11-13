@@ -259,7 +259,7 @@ export interface DesktopOfflineMap {
  readonly checkForUpdates:()=>Promise<OfflineMapUpdateCheckResult>;
  readonly removeFile:(id:string)=>Promise<OfflineMapStatus[]>;
  readonly setEnabled:(id:string,enabled:boolean)=>Promise<OfflineMapStatus[]>;
- readonly setEnabledBatch:(updates:Array<{id:string;enabled:boolean}>,preset?:string)=>Promise<OfflineMapStatus[]>;
+ readonly setEnabledBatch:(updates:Array<{id:string;enabled:boolean}>)=>Promise<OfflineMapStatus[]>;
  readonly setAllEnabled:(enabled:boolean)=>Promise<OfflineMapStatus[]>;
  readonly getStatus:()=>Promise<OfflineMapStatus>;
  readonly selectForCoordinates:(latitude:number,longitude:number)=>Promise<OfflineMapStatus|null>;
