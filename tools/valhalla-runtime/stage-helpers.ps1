@@ -27,17 +27,11 @@ if (Test-Path -LiteralPath $cmakeCache -PathType Leaf) {
     }
 }
 
+# Let CMake decide whether compilation/linking is necessary. Do not delete the
+# existing executable: an up-to-date target must remain untouched.
 $helper = Join-Path $buildRoot 'RelWithDebInfo\valhalla_route_helper.exe'
+$previousHelper = if (Test-Path -LiteralPath $helper -PathType Leaf) { Get-Item -LiteralPath $helper } else { $null }
 
-# Remove the previous executable before invoking CMake. This guarantees that
-# a successful run must link a fresh helper instead of leaving an old EXE in
-# place when the build target is accidentally skipped or its output is stale.
-if (Test-Path -LiteralPath $helper -PathType Leaf) {
-    Remove-Item -LiteralPath $helper -Force
-}
-
-$buildStarted = Get-Date
-Write-Host "Building Valhalla helper target in '$buildRoot'..." -ForegroundColor Cyan
 & cmake --build $buildRoot --config RelWithDebInfo --target valhalla_route_helper --parallel 8
 $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) {
@@ -49,10 +43,12 @@ if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
 }
 
 $builtHelper = Get-Item -LiteralPath $helper
-if ($builtHelper.LastWriteTime -lt $buildStarted) {
-    throw "Valhalla helper was not freshly generated. Existing build output timestamp: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff')); build started: $($buildStarted.ToString('yyyy-MM-dd HH:mm:ss.fff'))."
+if ($null -eq $previousHelper -or $builtHelper.LastWriteTimeUtc -gt $previousHelper.LastWriteTimeUtc) {
+    Write-Host "Valhalla helper was rebuilt: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff'))" -ForegroundColor Green
 }
-Write-Host "Fresh Valhalla helper generated: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff'))" -ForegroundColor Green
+else {
+    Write-Host "Valhalla helper is up to date; no rebuild was needed." -ForegroundColor DarkGray
+}
 
 $runtimeDirectories = @(
     (Join-Path $buildRoot 'RelWithDebInfo'),
