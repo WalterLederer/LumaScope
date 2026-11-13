@@ -105,6 +105,10 @@ export class ValhallaManager {
   private queue: Promise<void> = Promise.resolve();
 
   constructor() {
+    if (!this.configPath && this.configurations.length > 0) {
+      this.configPath = this.configurations[0].path;
+      void this.persistConfigurations();
+    }
     app.once('will-quit', () => { void this.stop(); });
   }
 
@@ -193,8 +197,9 @@ export class ValhallaManager {
     }
     if (!this.configurations.some(entry => entry.path.toLowerCase() === selectedPath.toLowerCase())) {
       this.configurations.push({ path: selectedPath, name: basename(dirname(selectedPath)), available: true });
-      await this.persistConfigurations();
     }
+    if (!this.configPath) this.configPath = selectedPath;
+    await this.persistConfigurations();
     return this.getRuntimeStatus();
   };
 
