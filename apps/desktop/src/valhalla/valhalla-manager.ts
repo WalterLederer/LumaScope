@@ -325,7 +325,13 @@ export class ValhallaManager {
         process.env.PATH || ''
       ].filter(Boolean).join(delimiter)
     };
+    // Valhalla resolves relative filesystem paths against the process working
+    // directory, not against the directory containing its configuration file.
+    // Run the helper from the selected JSON's directory so portable relative
+    // paths (for example ./tiles) work without rewriting or copying the JSON.
+    const configDirectory = dirname(this.configPath);
     const child = spawn(this.helperPath, [this.configPath], {
+      cwd: configDirectory,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
       env: environment
