@@ -1777,8 +1777,8 @@ export class MapWindow implements OnInit, OnDestroy {
     return maps;
   });
   protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
-  protected readonly offlineMapPreset = signal<string>(this.readSetting('offlineMapPreset', 'austria'));
-  protected readonly hillshadePreset = signal<string>(this.readSetting('hillshadePreset', 'austria'));
+  protected readonly offlineMapPreset = signal<string>('custom');
+  protected readonly hillshadePreset = signal<string>('custom');
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly osmAndTileCacheBusy = signal(false);
   protected readonly osmAndTileCacheStatus = signal('');
@@ -2203,15 +2203,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.offlineRenderer = null;
         void this.initialize(this.currentLatitude, this.currentLongitude);
       }
-      // The stored preset describes the last applied preset, not necessarily the
-      // current OBF selection. Manual changes from older versions are normalized
-      // to Custom during startup so the selector never claims a false preset.
-      const matchingPreset = this.getOfflineMapPresetForMaps(maps);
-      if (matchingPreset && matchingPreset !== this.offlineMapPreset()) {
-        this.offlineMapPreset.set(matchingPreset);
-        this.saveSetting('offlineMapPreset', matchingPreset);
-        await this.desktop?.OfflineMap.setEnabledBatch([], matchingPreset);
-      }
+      // Preset is always derived from the current enabled-file selection.
+      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
       // An offline source without any compatible loaded MBTiles cannot be used.
       // Restore the online source instead of leaving the selector on an empty map.
       if (!maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') this.changeMapSource('online');
@@ -3570,8 +3563,6 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
     if (!this.mapPresetOptions().some(preset => preset.id === value)) return;
-    this.offlineMapPreset.set(value);
-    this.saveSetting('offlineMapPreset', value);
     if (this.desktop) {
       // Apply all OBF states and the preset in one IPC call and one settings write.
       // Custom intentionally preserves the user's individual enabled states.
@@ -3597,7 +3588,11 @@ export class MapWindow implements OnInit, OnDestroy {
               ? value !== 'none'
               : this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps())
         }));
-      this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(updates, value));
+      const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
+      this.offlineMaps.set(updated);
+      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
+    } else {
+      this.offlineMapPreset.set(value);
     }
     this.refreshOfflineMapRendering();
   };
@@ -3717,15 +3712,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const map = currentMaps.find(item => item.id === id);
     const presetSelectionChanged = (map?.type === 'obf' || map?.type === 'mapsforge') && map.enabled !== enabled;
     const nextMaps = currentMaps.map(item => item.id === id ? { ...item, enabled } : item);
-    const matchingPreset = presetSelectionChanged ? this.getOfflineMapPresetForMaps(nextMaps) : null;
-    this.offlineMaps.set(await this.desktop.OfflineMap.setEnabledBatch(
-      [{ id, enabled }],
-      matchingPreset ?? undefined
-    ));
-    if (matchingPreset) {
-      this.offlineMapPreset.set(matchingPreset);
-      this.saveSetting('offlineMapPreset', matchingPreset);
-    }
+    const updated = await this.desktop.OfflineMap.setEnabledBatch([{ id, enabled }]);
+    this.offlineMaps.set(updated);
+    this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
@@ -3747,16 +3736,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const updatedSelection = this.offlineMaps().map(map =>
         updateById.has(map.id) ? { ...map, enabled: updateById.get(map.id)! } : map
       );
-      const matchingPreset = presetSelectionChanged ? this.getOfflineMapPresetForMaps(updatedSelection) : null;
-      const updated = await this.desktop.OfflineMap.setEnabledBatch(
-        updates,
-        matchingPreset ?? undefined
-      );
+      const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
       this.offlineMaps.set(updated);
-      if (matchingPreset) {
-        this.offlineMapPreset.set(matchingPreset);
-        this.saveSetting('offlineMapPreset', matchingPreset);
-      }
+      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
       this.refreshOfflineMapRendering();
     } catch (error) {
       console.error('[OfflineMap] Could not update Active state for visible maps:', error);
@@ -3812,7 +3794,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private persistDownloadSources(): void {
     const updateSources = this.downloadSources().map(source => ({ ...source }));
     void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', {
-      obfPreset: this.offlineMapPreset(),
       updateSources
     }).catch(error => {
       const message = error instanceof Error ? error.message : String(error);
@@ -3968,13 +3949,10 @@ export class MapWindow implements OnInit, OnDestroy {
       : noneEnabled && candidates.includes('none') ? 'none'
       : compatible[0]?.preset ?? 'custom';
     this.hillshadePreset.set(next);
-    this.saveSetting('hillshadePreset', next);
   }
   protected readonly changeHillshadePreset = async (value: string): Promise<void> => {
     if (!this.mapPresetOptions().some(preset => preset.id === value)) return;
     const preset = value;
-    this.hillshadePreset.set(preset);
-    this.saveSetting('hillshadePreset', preset);
     if (preset !== 'custom' && this.desktop) {
       let databases = this.hillshadeDatabases();
       for (const database of databases) {
@@ -3986,6 +3964,7 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       }
     }
+    this.updateHillshadePresetFromSelection(this.hillshadeDatabases());
     this.applyHillshadeSettingsIfReady(true);
   };
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
