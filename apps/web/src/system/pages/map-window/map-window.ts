@@ -1465,7 +1465,8 @@ interface MapErrorEntry {
     .routing-save-location{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
     .routing-calculate-button{background:color-mix(in srgb,#0a84ff 12%,Canvas)!important;border-color:color-mix(in srgb,#0a84ff 30%,var(--color-content-default-low,#666))}
     .routing-calculate-button:hover:not(:disabled){background:color-mix(in srgb,#0a84ff 18%,Canvas)!important}
-    .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
+    .routing-gpx-read-button{margin-left:auto}
+    .routing-remove-all-button{margin-left:0;background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
     .routing-remove-all-button:disabled{opacity:.45}
     @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
