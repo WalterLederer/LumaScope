@@ -257,7 +257,10 @@ interface MapErrorEntry {
           <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
         </span>
       </div>
-      <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
+      <div class="routing-save-location-card">
+        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
+        <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
+      </div>
       <div class="routing-provider-card">
         <label class="routing-provider-label">Routing provider
         <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
@@ -279,18 +282,15 @@ interface MapErrorEntry {
       </div>
     }
     <div class="routing-actions">
-      <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
-      <div class="routing-save-location-card">
-        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
-        <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
-      </div>
-      <span class="offline-map-status">{{ routeStatus() }}</span>
       <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
         <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
       </label>
+      <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      <span class="offline-map-status">{{ routeStatus() }}</span>
       @if (lastSavedRouteGpxPath()) {
         <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the last saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
       }
+      <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
       <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
     </div>
     @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
@@ -1463,8 +1463,8 @@ interface MapErrorEntry {
     .routing-actions .offline-map-status{flex:1;min-width:180px}
     .routing-save-location-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:190px;max-width:min(360px,35vw);padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-save-location{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
-    .routing-calculate-button{background:color-mix(in srgb,#0a84ff 14%,Canvas);border-color:color-mix(in srgb,#0a84ff 38%,var(--color-content-default-low,#666))}
-    .routing-calculate-button:hover:not(:disabled){background:color-mix(in srgb,#0a84ff 22%,Canvas)}
+    .routing-calculate-button{background:color-mix(in srgb,#0a84ff 12%,Canvas)!important;border-color:color-mix(in srgb,#0a84ff 30%,var(--color-content-default-low,#666))}
+    .routing-calculate-button:hover:not(:disabled){background:color-mix(in srgb,#0a84ff 18%,Canvas)!important}
     .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
     .routing-remove-all-button:disabled{opacity:.45}
