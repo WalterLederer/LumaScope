@@ -746,12 +746,13 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content">
-    <details class="map-cache-section download-section">
-      <summary class="map-cache-heading">Local sources</summary>
+    <details class="map-cache-section download-section local-source-section">
+      <summary class="map-cache-heading">Valhalla routing configurations</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
-        <strong>Valhalla routing configurations</strong>
-        <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
-        <span class="osmand-resources-path">{{ valhallaConfigurations().length }} configuration(s)</span>
+        <div class="local-source-heading">
+          <span>{{ valhallaConfigurations().length }} configuration(s)</span>
+          <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
+        </div>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
           <div class="valhalla-config-row">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
@@ -762,18 +763,28 @@ interface MapErrorEntry {
         }
         <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
       </div>
+    </details>
+    <details class="map-cache-section download-section local-source-section">
+      <summary class="map-cache-heading">OsmAnd resources folder</summary>
       <div class="osmand-resources-picker">
-        <strong>OsmAnd resources folder</strong>
-        <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
-        <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+        <div class="local-source-heading">
+          <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
+          <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
+        </div>
         @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
       </div>
+    </details>
+    <details class="map-cache-section download-section local-source-section">
+      <summary class="map-cache-heading">Mapsforge XML theme folder</summary>
       <div class="osmand-resources-picker">
-        <strong>Mapsforge XML theme folder</strong>
-        <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
-        <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
-        <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
+        <div class="local-source-heading">
+          <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
+          <div class="local-source-buttons">
+            <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
+            <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
+          </div>
+        </div>
         <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
         @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
         <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
@@ -1260,7 +1271,7 @@ interface MapErrorEntry {
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.valhalla-config-picker{align-items:flex-start}.valhalla-config-row{display:grid;grid-template-columns:24px minmax(90px,140px) minmax(180px,1fr) auto;align-items:center;gap:8px;flex:1 1 100%;min-width:0;padding:5px 0;border-top:1px solid var(--color-content-default-low,#454545)}.valhalla-config-name{font-weight:600}.valhalla-config-row .osmand-resources-path{flex:initial}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px;order:0}.offline-map-filter-actions .offline-map-bulk-button{order:1}.offline-map-filter-actions .offline-map-remove-visible-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}.offline-map-filter-actions .offline-map-remove-visible-button:hover:not(:disabled){background:#912018;border-color:#b42318}.offline-map-filter-actions .offline-map-remove-visible-button:disabled{opacity:.45}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.local-source-section{margin:0;}.local-source-heading{display:flex;align-items:center;gap:8px;width:100%;min-width:0;}.local-source-heading>span{flex:1 1 auto;min-width:0;}.local-source-buttons{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto;}.local-source-heading>button{margin-left:auto;}.valhalla-config-picker{align-items:flex-start}.valhalla-config-row{display:grid;grid-template-columns:24px minmax(90px,140px) minmax(180px,1fr) auto;align-items:center;gap:8px;flex:1 1 100%;min-width:0;padding:5px 0;border-top:1px solid var(--color-content-default-low,#454545)}.valhalla-config-name{font-weight:600}.valhalla-config-row .osmand-resources-path{flex:initial}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px;order:0}.offline-map-filter-actions .offline-map-bulk-button{order:1}.offline-map-filter-actions .offline-map-remove-visible-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}.offline-map-filter-actions .offline-map-remove-visible-button:hover:not(:disabled){background:#912018;border-color:#b42318}.offline-map-filter-actions .offline-map-remove-visible-button:disabled{opacity:.45}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-selection.offline-map-toolbar{flex-direction:row;align-items:center}
     .mbtiles-selection.mbtiles-download-controls{flex-direction:row;align-items:center;flex-wrap:nowrap}
