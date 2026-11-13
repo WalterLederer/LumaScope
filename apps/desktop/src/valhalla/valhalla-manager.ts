@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
@@ -229,10 +229,18 @@ export class ValhallaManager {
       throw new Error('Select a valid Valhalla configuration file first.');
     }
 
-    const runtimeDirectory = join(this.helperPath, '..');
+    const helperDirectory = dirname(this.helperPath);
+    const buildDirectory = dirname(dirname(helperDirectory));
     const environment = {
       ...process.env,
-      PATH: [runtimeDirectory, process.env.PATH || ''].filter(Boolean).join(delimiter)
+      PATH: [
+        helperDirectory,
+        join(buildDirectory, 'Release'),
+        join(buildDirectory, 'src', 'Release'),
+        join(buildDirectory, 'vcpkg_installed', 'x64-windows-release', 'bin'),
+        join(buildDirectory, 'vcpkg', 'installed', 'x64-windows-release', 'bin'),
+        process.env.PATH || ''
+      ].filter(Boolean).join(delimiter)
     };
     const child = spawn(this.helperPath, [this.configPath], {
       stdio: ['pipe', 'pipe', 'pipe'],
