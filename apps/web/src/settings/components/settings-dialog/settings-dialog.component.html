@@ -3,7 +3,7 @@
 
 <div class="settings-panel">
 
-  @if (mode() !== 'cache') {
+  @if (mode() !== 'cache' && mode() !== 'help') {
   <section>
     <div class="setting-row setting-config-path">
       <div class="cache-path-details">
@@ -185,7 +185,7 @@
   }
 
 
-  @if (mode() !== 'cache') {
+  @if (mode() === 'help') {
     <section class="format-details info-box">
       <details>
         <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
@@ -351,6 +351,9 @@
         </div>
       </details>
     </section>
+  }
+
+  @if (mode() === 'general') {
   <section class="debug-settings">
     <details>
       <summary>Debug</summary>
