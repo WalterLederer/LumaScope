@@ -961,7 +961,7 @@ interface MapErrorEntry {
                       @let inUse = isOfflineMapInUse(map);
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                         <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
@@ -4125,7 +4125,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly setAllOfflineFilesEnabled = async (enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
-    const visibleMaps = this.filteredOfflineFiles();
+    const visibleMaps = this.filteredOfflineFiles().filter(map => map.available);
     const visibleHillshade = this.filteredHillshadeDatabases();
     if (visibleMaps.length === 0 && visibleHillshade.length === 0) return;
     try {
