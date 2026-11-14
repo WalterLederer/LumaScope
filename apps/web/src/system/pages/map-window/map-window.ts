@@ -3721,7 +3721,7 @@ export class MapWindow implements OnInit, OnDestroy {
         scan.hillshadeFiles.length + ' hillshade',
         scan.valhallaConfigs.length + ' Valhalla configuration(s)',
         (scan.osmAndResourcesPath ? 'OsmAnd resources folder found' : 'no OsmAnd resources folder'),
-        themesFound + ' Mapsforge XML theme(s)'
+        themesFound + ' Mapsforge XML theme(s)' + (scan.mapsforgeThemeFolder ? ' in ' + scan.mapsforgeThemeFolder : '') + (themesFound > 0 ? ': ' + themes.map(theme => theme.relativePath).join(', ') : '')
       ];
       const changedParts = [
         mapsAdded + ' map file(s) added · ' + mapsRemoved + ' stale map entry(s) removed from the list',
