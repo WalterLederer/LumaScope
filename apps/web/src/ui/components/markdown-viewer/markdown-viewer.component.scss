@@ -187,9 +187,124 @@
 :host ::ng-deep .markdown-body code { font-size: .92em; }
 :host ::ng-deep .markdown-body table { font-size: .92em; }
 
-/* Width classes survive Angular's innerHTML sanitization, unlike inline style attributes. */
-@for $width from 1 through 100 {
-  :host ::ng-deep .markdown-body img.markdown-image-width-#{$width} {
-    width: #{$width}%;
-  }
+
+/* Consecutive image-only Markdown paragraphs are rendered as a responsive row. */
+:host ::ng-deep .markdown-body .markdown-image-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  margin: 12px 0 16px;
 }
+
+:host ::ng-deep .markdown-body .markdown-image-row img {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+/* Explicit width classes survive Angular's innerHTML sanitization. */
+:host ::ng-deep .markdown-body img.markdown-image-width-1 { width: 1% !important; flex: 0 1 1% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-2 { width: 2% !important; flex: 0 1 2% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-3 { width: 3% !important; flex: 0 1 3% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-4 { width: 4% !important; flex: 0 1 4% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-5 { width: 5% !important; flex: 0 1 5% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-6 { width: 6% !important; flex: 0 1 6% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-7 { width: 7% !important; flex: 0 1 7% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-8 { width: 8% !important; flex: 0 1 8% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-9 { width: 9% !important; flex: 0 1 9% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-10 { width: 10% !important; flex: 0 1 10% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-11 { width: 11% !important; flex: 0 1 11% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-12 { width: 12% !important; flex: 0 1 12% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-13 { width: 13% !important; flex: 0 1 13% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-14 { width: 14% !important; flex: 0 1 14% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-15 { width: 15% !important; flex: 0 1 15% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-16 { width: 16% !important; flex: 0 1 16% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-17 { width: 17% !important; flex: 0 1 17% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-18 { width: 18% !important; flex: 0 1 18% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-19 { width: 19% !important; flex: 0 1 19% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-20 { width: 20% !important; flex: 0 1 20% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-21 { width: 21% !important; flex: 0 1 21% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-22 { width: 22% !important; flex: 0 1 22% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-23 { width: 23% !important; flex: 0 1 23% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-24 { width: 24% !important; flex: 0 1 24% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-25 { width: 25% !important; flex: 0 1 25% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-26 { width: 26% !important; flex: 0 1 26% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-27 { width: 27% !important; flex: 0 1 27% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-28 { width: 28% !important; flex: 0 1 28% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-29 { width: 29% !important; flex: 0 1 29% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-30 { width: 30% !important; flex: 0 1 30% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-31 { width: 31% !important; flex: 0 1 31% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-32 { width: 32% !important; flex: 0 1 32% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-33 { width: 33% !important; flex: 0 1 33% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-34 { width: 34% !important; flex: 0 1 34% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-35 { width: 35% !important; flex: 0 1 35% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-36 { width: 36% !important; flex: 0 1 36% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-37 { width: 37% !important; flex: 0 1 37% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-38 { width: 38% !important; flex: 0 1 38% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-39 { width: 39% !important; flex: 0 1 39% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-40 { width: 40% !important; flex: 0 1 40% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-41 { width: 41% !important; flex: 0 1 41% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-42 { width: 42% !important; flex: 0 1 42% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-43 { width: 43% !important; flex: 0 1 43% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-44 { width: 44% !important; flex: 0 1 44% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-45 { width: 45% !important; flex: 0 1 45% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-46 { width: 46% !important; flex: 0 1 46% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-47 { width: 47% !important; flex: 0 1 47% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-48 { width: 48% !important; flex: 0 1 48% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-49 { width: 49% !important; flex: 0 1 49% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-50 { width: 50% !important; flex: 0 1 50% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-51 { width: 51% !important; flex: 0 1 51% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-52 { width: 52% !important; flex: 0 1 52% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-53 { width: 53% !important; flex: 0 1 53% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-54 { width: 54% !important; flex: 0 1 54% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-55 { width: 55% !important; flex: 0 1 55% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-56 { width: 56% !important; flex: 0 1 56% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-57 { width: 57% !important; flex: 0 1 57% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-58 { width: 58% !important; flex: 0 1 58% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-59 { width: 59% !important; flex: 0 1 59% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-60 { width: 60% !important; flex: 0 1 60% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-61 { width: 61% !important; flex: 0 1 61% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-62 { width: 62% !important; flex: 0 1 62% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-63 { width: 63% !important; flex: 0 1 63% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-64 { width: 64% !important; flex: 0 1 64% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-65 { width: 65% !important; flex: 0 1 65% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-66 { width: 66% !important; flex: 0 1 66% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-67 { width: 67% !important; flex: 0 1 67% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-68 { width: 68% !important; flex: 0 1 68% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-69 { width: 69% !important; flex: 0 1 69% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-70 { width: 70% !important; flex: 0 1 70% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-71 { width: 71% !important; flex: 0 1 71% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-72 { width: 72% !important; flex: 0 1 72% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-73 { width: 73% !important; flex: 0 1 73% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-74 { width: 74% !important; flex: 0 1 74% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-75 { width: 75% !important; flex: 0 1 75% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-76 { width: 76% !important; flex: 0 1 76% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-77 { width: 77% !important; flex: 0 1 77% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-78 { width: 78% !important; flex: 0 1 78% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-79 { width: 79% !important; flex: 0 1 79% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-80 { width: 80% !important; flex: 0 1 80% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-81 { width: 81% !important; flex: 0 1 81% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-82 { width: 82% !important; flex: 0 1 82% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-83 { width: 83% !important; flex: 0 1 83% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-84 { width: 84% !important; flex: 0 1 84% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-85 { width: 85% !important; flex: 0 1 85% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-86 { width: 86% !important; flex: 0 1 86% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-87 { width: 87% !important; flex: 0 1 87% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-88 { width: 88% !important; flex: 0 1 88% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-89 { width: 89% !important; flex: 0 1 89% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-90 { width: 90% !important; flex: 0 1 90% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-91 { width: 91% !important; flex: 0 1 91% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-92 { width: 92% !important; flex: 0 1 92% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-93 { width: 93% !important; flex: 0 1 93% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-94 { width: 94% !important; flex: 0 1 94% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-95 { width: 95% !important; flex: 0 1 95% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-96 { width: 96% !important; flex: 0 1 96% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-97 { width: 97% !important; flex: 0 1 97% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-98 { width: 98% !important; flex: 0 1 98% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-99 { width: 99% !important; flex: 0 1 99% !important; }
+:host ::ng-deep .markdown-body img.markdown-image-width-100 { width: 100% !important; flex: 0 1 100% !important; }
