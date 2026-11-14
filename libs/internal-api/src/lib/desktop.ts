@@ -474,6 +474,7 @@ export interface DesktopMapsforge {
 }
 
 export interface Desktop {
+  readonly onFilesOpened: (callback: (paths: string[]) => void) => () => void;
   readonly ProcessManager: DesktopProcessManager;
   readonly Profiling: {
     readonly getExternalProcessCalls: () => Promise<ExternalProcessCall[]>;
