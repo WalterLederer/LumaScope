@@ -97,12 +97,12 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineFiles@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" (click)="selectSettingsTab('hillshade')">Hillshade@if (hillshadeTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ hillshadeTabErrorCount() }}</span> } @else if (hillshadeHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">OfflineFiles@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" [class.has-errors]="hillshadeTabErrorCount() > 0" [class.has-warning]="hillshadeTabErrorCount() === 0 && hillshadeHasUnselectedFiles()" (click)="selectSettingsTab('hillshade')">Hillshade@if (hillshadeTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ hillshadeTabErrorCount() }}</span> } @else if (hillshadeHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [class.has-warning]="mapErrors().length === 0 && offlineMapTabErrorCount() === 0 && hillshadeTabErrorCount() === 0 && (offlineMapHasUnselectedFiles() || hillshadeHasUnselectedFiles())" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -715,7 +715,7 @@ interface MapErrorEntry {
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'hillshade'">
-  <div class="settings-tab-content offline-maps-tab-content">
+  <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="hillshadeHasUnselectedFiles() && hillshadeTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar">
       <label class="offline-map-preset-control">Preset:
         <select [value]="hillshadePreset()" (change)="changeHillshadePreset($any($event.target).value)">
@@ -744,7 +744,7 @@ interface MapErrorEntry {
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
-<div class="settings-tab-content offline-maps-tab-content">
+<div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
       <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Select the extracted package root folder to find maps, routing configurations and renderer resources automatically.' }}</span>
