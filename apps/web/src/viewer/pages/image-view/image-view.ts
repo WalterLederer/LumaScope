@@ -558,7 +558,7 @@ export class ImageView {
     view.addEventListener('pointercancel', onUp);
     this.sidebarResizeCleanup = onUp;
   };
-  protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"}];
+  protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"help","label":"Help"}];
   protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
     try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
