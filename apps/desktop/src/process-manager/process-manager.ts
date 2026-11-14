@@ -2,6 +2,7 @@ import { app, IpcMainInvokeEvent, shell } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { ProcessMemorySnapshot, SystemPathMapping } from 'internal-api';
+import * as fs from 'node:fs/promises';
 import { stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -69,7 +70,6 @@ export class ProcessManager {
         }
       } else if (process.platform === 'linux') {
         const entries = await fs.readdir('/proc', { withFileTypes: true });
-        const pageSize = 4096;
         for (const entry of entries) {
           if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) continue;
           const pid = Number(entry.name);
@@ -77,20 +77,27 @@ export class ProcessManager {
             const name = (await fs.readFile(`/proc/${entry.name}/comm`, 'utf8')).trim();
             const helper = knownHelpers.get(name.toLowerCase());
             if (!helper && !isAppProcess(name)) continue;
-            const statm = (await fs.readFile(`/proc/${entry.name}/statm`, 'utf8')).trim().split(/\s+/);
-            const residentPages = Number(statm[1]);
-            if (!Number.isFinite(residentPages)) continue;
+            let workingSetBytes: number | null = null;
             let privateBytes: number | null = null;
             try {
               const rollup = await fs.readFile(`/proc/${entry.name}/smaps_rollup`, 'utf8');
-              const privateKb = [...rollup.matchAll(/^Private_(?:Clean|Dirty|Hugetlb):\s+(\d+)\s+kB$/gm)]
+              const rssMatch = /^Rss:\\s+(\\d+)\\s+kB$/m.exec(rollup);
+              if (rssMatch) workingSetBytes = Number(rssMatch[1]) * 1024;
+              const privateKb = [...rollup.matchAll(/^Private_(?:Clean|Dirty|Hugetlb):\\s+(\\d+)\\s+kB$/gm)]
                 .reduce((total, match) => total + Number(match[1]), 0);
               privateBytes = privateKb * 1024;
             } catch {
-              // smaps_rollup may be restricted; resident memory is still available.
+              // smaps_rollup may be restricted; fall back to statm for resident memory.
+            }
+            if (workingSetBytes === null) {
+              const statm = (await fs.readFile(`/proc/${entry.name}/statm`, 'utf8')).trim().split(/\\s+/);
+              const residentPages = Number(statm[1]);
+              if (!Number.isFinite(residentPages)) continue;
+              // Linux systems commonly use 4 KiB pages; smaps_rollup is preferred above.
+              workingSetBytes = residentPages * 4096;
             }
             if (pid === process.pid) {
-              processes[0].workingSetBytes = residentPages * pageSize;
+              processes[0].workingSetBytes = workingSetBytes;
               processes[0].privateBytes = privateBytes;
               continue;
             }
@@ -98,7 +105,7 @@ export class ProcessManager {
               name: helper?.name ?? 'LumaScope (Process)',
               pid,
               kind: helper?.kind ?? 'app',
-              workingSetBytes: residentPages * pageSize,
+              workingSetBytes,
               privateBytes
             });
           } catch {
