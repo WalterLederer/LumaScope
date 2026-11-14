@@ -50,7 +50,7 @@ Install and make the following tools available on `PATH`, unless a script parame
 - Visual Studio 2022 C++ build tools and a Windows 10/11 SDK.
 - Qt 6 and the matching compiler toolchain for the OsmAnd helper.
 - A JDK 17+ and Apache Maven 3.9+ to build the Mapsforge renderer.
-- **Runtime on each target PC:** Java 17 or newer is also required to use Mapsforge. The desktop package currently includes the `mapsforge-renderer.jar`, but does **not** include a Java runtime. Install a Java 17+ runtime (a JRE is sufficient; a JDK also works) on every PC that will run Mapsforge, and make `java.exe` available through `JAVA_HOME` or `PATH`. LumaScope prefers `%JAVA_HOME%\\bin\\java.exe` when `JAVA_HOME` is set; otherwise it resolves `java.exe` from `PATH`.
+- **Mapsforge runtime staging:** a JDK 17 or newer is required on the build PC. The Windows production package contains a minimized Java runtime image generated from that JDK with `jlink`; end-user PCs do not need Java installed. The build script uses `JAVA_HOME` (or a JDK available through `PATH`) to locate `jlink.exe` and `jdeps.exe`.
 - Python is only required by the optional OsmAnd official-workspace build flow when its configured Python environment is used.
 
 Use the compiler/toolchain combination expected by each project. In particular, do not mix Qt's MinGW libraries with an MSVC-built helper or reuse a CMake build directory after changing compiler, generator, architecture or Qt installation.
@@ -213,11 +213,11 @@ Valhalla routing tiles/graph data and JSON configuration files are runtime input
 
 ## 5. Mapsforge Java renderer
 
-The Mapsforge renderer is a standalone Java application implemented in `tools/mapsforge-renderer/`. It uses Mapsforge 0.25.0 libraries and packages its Java library dependencies into one executable JAR. This JAR is included in the LumaScope desktop package; the Java Virtual Machine is not. Consequently, every target PC that uses Mapsforge must have Java 17 or newer installed and discoverable through `JAVA_HOME` or `PATH`. A JRE is sufficient at runtime; a JDK is needed for building.
+The Mapsforge renderer is a standalone Java application implemented in `tools/mapsforge-renderer/`. It uses Mapsforge 0.25.0 libraries and packages its Java library dependencies into one executable JAR. The Windows production packages include both this JAR and a minimized Java runtime image generated with `jlink`. The runtime is staged locally and is not committed to GitHub. Target PCs do not need a separate Java installation.
 
 ### Requirements
 
-- JDK 17 or newer.
+- JDK 17 or newer (used both to compile the renderer and to generate the bundled runtime).
 - Apache Maven 3.9 or newer.
 - Network access on the first build so Maven can download declared dependencies.
 
@@ -283,6 +283,7 @@ The renderer and desktop application are built through the Nx workspace. The roo
 
 - `npm run build:all` — Mapsforge renderer, Angular production build and Electron desktop production build.
 - `npm run build:mapsforge-renderer` — Maven build of the Mapsforge JAR.
+- `npm run stage:mapsforge-runtime` — creates the minimized Java runtime under `tools/mapsforge-renderer/stage/runtime/`.
 - `npm run build:jxr-wic-encoder` — CMake build of the WIC encoder.
 - `nx run desktop:make` — desktop packaging after the helper staging steps.
 - `npm run make:prod` — complete production sequence.
