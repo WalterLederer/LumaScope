@@ -39,6 +39,11 @@ export class ProcessManager {
 
     try {
       if (process.platform === 'win32') {
+        const mainMetric = app.getAppMetrics().find(metric => metric.pid === process.pid);
+        if (mainMetric) {
+          processes[0].workingSetBytes = mainMetric.memory.workingSetSize * 1024;
+          processes[0].privateBytes = mainMetric.memory.privateBytes * 1024;
+        }
         // tasklist is part of Windows; unlike the former implementation this
         // does not require PowerShell. It reports working-set memory only.
         const { stdout } = await execFileAsync('tasklist.exe', ['/FO', 'CSV', '/NH'], {
