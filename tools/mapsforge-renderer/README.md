@@ -4,8 +4,16 @@ This is an isolated Java desktop renderer for Mapsforge `.map` files. It does no
 
 ## Requirements
 
+**Build requirements**
+
 - JDK 17 or newer
 - Apache Maven 3.9+
+
+**Runtime requirements (including packaged LumaScope releases)**
+
+- Java 17 or newer must be installed on every PC that uses the Mapsforge renderer. A JRE is sufficient; a JDK also works.
+- The LumaScope desktop package bundles `mapsforge-renderer.jar` and its Java library dependencies, but it does **not** currently bundle a Java runtime/JRE.
+- LumaScope starts Java from `%JAVA_HOME%\\bin\\java.exe` when `JAVA_HOME` is set; otherwise `java.exe` must be available on `PATH`.
 - One valid Mapsforge `.map` file
 
 ## Build
