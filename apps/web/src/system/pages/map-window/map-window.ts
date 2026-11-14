@@ -1779,7 +1779,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineFilesChecked() ? this.offlineMapDuplicateIds().size : 0);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineFilesChecked() && (!map.filePath?.trim() || !map.available);
   protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
-  protected readonly offlineMapUnselectedCount = computed(() => this.offlineMapStats().unselectedCount + this.hillshadeStats().unselectedCount);
+  protected readonly offlineMapUnselectedCount = computed(() => this.offlineFilesChecked() ? this.offlineMapStats().unselectedCount + this.hillshadeStats().unselectedCount : 0);
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
@@ -1820,7 +1820,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
   protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount() + this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
   protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
-  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMapStats().availableCount + this.hillshadeStats().availableCount > 0 && this.offlineMapStats().activeCount + this.hillshadeStats().activeCount === 0);
+  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineFilesChecked() && this.offlineMapStats().availableCount + this.hillshadeStats().availableCount > 0 && this.offlineMapStats().activeCount + this.hillshadeStats().activeCount === 0);
   protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeStats().availableCount > 0 && this.hillshadeStats().activeCount === 0);
   protected readonly hillshadeUnselectedCount = computed(() => this.hillshadeStats().unselectedCount);
 
@@ -2201,8 +2201,12 @@ export class MapWindow implements OnInit, OnDestroy {
         this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
         this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
       }
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
-      else if (saved['activeSettingsTab'] === 'hillshade') this.activeSettingsTab.set('offlineMaps');
+      if (saved['activeSettingsTab'] === 'offlineMaps' || saved['activeSettingsTab'] === 'hillshade') {
+        this.activeSettingsTab.set('offlineMaps');
+        this.offlineMapListMounted.set(true);
+      } else if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) {
+        this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'cache' | 'memory' | 'download' | 'errors');
+      }
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
