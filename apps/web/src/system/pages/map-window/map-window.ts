@@ -749,6 +749,18 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
       <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Select the extracted package root folder to find maps, routing configurations and renderer resources automatically.' }}</span>
     </div>
+    @if (resourcePackageScanFound()) {
+      <div class="resource-package-scan-results" aria-live="polite">
+        <div class="resource-package-scan-result">
+          <strong>Found</strong>
+          <span>{{ resourcePackageScanFound() }}</span>
+        </div>
+        <div class="resource-package-scan-result">
+          <strong>Changed</strong>
+          <span>{{ resourcePackageScanChanged() }}</span>
+        </div>
+      </div>
+    }
     @if (resourcePackageScanError()) {
       <details class="map-cache-section offline-map-filter-section">
         <summary class="map-cache-heading">Scan details / warnings</summary>
@@ -1813,6 +1825,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapsforgeThemeError = signal('');
   protected readonly resourcePackageScanBusy = signal(false);
   protected readonly resourcePackageScanStatus = signal('');
+  protected readonly resourcePackageScanFound = signal('');
+  protected readonly resourcePackageScanChanged = signal('');
   protected readonly resourcePackageScanError = signal('');
 
   protected readonly hasActiveMapsforgeMaps = computed(() => this.offlineMaps().some(map => map.type === 'mapsforge' && map.enabled && map.available));
@@ -3427,6 +3441,8 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     this.resourcePackageScanBusy.set(true);
     this.resourcePackageScanError.set('');
+    this.resourcePackageScanFound.set('');
+    this.resourcePackageScanChanged.set('');
     this.resourcePackageScanStatus.set('Scanning extracted resource package…');
     try {
       const scan = await this.desktop.OfflineMap.scanResourcePackage(folder.data);
@@ -3443,13 +3459,19 @@ export class MapWindow implements OnInit, OnDestroy {
         'No: keep the existing folders and active routing configuration. Discovered maps, hillshade files and Valhalla configurations will still be added to their lists.'
       );
 
+      const previousMapPaths = new Set(this.offlineMaps().map(map => map.path));
+      const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => database.path));
+      const previousValhallaPaths = new Set((valhallaBefore.configurations ?? []).map(configuration => configuration.path));
       const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
       const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
+      const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.path)).length;
       this.offlineMaps.set(importResult.maps);
       this.offlineMapImportErrors.set(importResult.errors);
 
+      let hillshadeAdded = 0;
       if (scan.hillshadeFiles.length) {
         const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
+        hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(database.path)).length;
         this.hillshadeDatabases.set(databases);
         this.updateHillshadePresetFromSelection(databases);
         this.applyHillshadeSettingsIfReady(true);
@@ -3458,7 +3480,7 @@ export class MapWindow implements OnInit, OnDestroy {
       let valhallaAdded = 0;
       if (scan.valhallaConfigs.length) {
         const status = await this.desktop.Valhalla.addConfigsFromPaths(scan.valhallaConfigs);
-        valhallaAdded = scan.valhallaConfigs.length;
+        valhallaAdded = (status.configurations ?? []).filter(configuration => !previousValhallaPaths.has(configuration.path)).length;
         if (overwrite && scan.valhallaConfigs[0]) {
           const active = await this.desktop.Valhalla.setConfigPath(scan.valhallaConfigs[0]);
           this.valhallaConfigurations.set(active.configurations ?? []);
@@ -3497,18 +3519,27 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       }
 
-      const counts = [
+      const foundParts = [
         scan.obfFiles.length + ' OBF',
         scan.mbtilesFiles.length + ' MBTiles',
         scan.mapsforgeFiles.length + ' Mapsforge MAP',
         scan.hillshadeFiles.length + ' hillshade',
-        valhallaAdded + ' Valhalla configuration(s)',
-        resourcesApplied ? 'OsmAnd resources set' : 'OsmAnd resources unchanged',
-        themesFound + ' Mapsforge theme(s)'
+        scan.valhallaConfigs.length + ' Valhalla configuration(s)',
+        (scan.osmAndResourcesPath ? 'OsmAnd resources folder found' : 'no OsmAnd resources folder'),
+        themesFound + ' Mapsforge XML theme(s)'
+      ];
+      const changedParts = [
+        mapsAdded + ' new map file(s) added',
+        hillshadeAdded + ' new hillshade database(s) added',
+        valhallaAdded + ' new Valhalla configuration(s) added',
+        resourcesApplied ? 'OsmAnd resources folder selected' : 'OsmAnd resources folder not changed',
+        overwrite && themesFound > 0 ? 'Mapsforge theme folder and theme list updated' : 'Mapsforge theme folder not changed'
       ];
       const importErrors = importResult.errors.length ? ' · Import errors: ' + importResult.errors.length : '';
       const scanErrors = scan.errors.length ? ' · Scan warnings: ' + scan.errors.length : '';
-      this.resourcePackageScanStatus.set('Scan completed: ' + counts.join(' · ') + importErrors + scanErrors);
+      this.resourcePackageScanFound.set(foundParts.join(' · '));
+      this.resourcePackageScanChanged.set(changedParts.join(' · ') + importErrors + scanErrors);
+      this.resourcePackageScanStatus.set('Resource package scan completed.');
       if (scan.errors.length || importResult.errors.length) {
         this.resourcePackageScanError.set([...scan.errors, ...importResult.errors].join('\n'));
       }
@@ -3516,6 +3547,8 @@ export class MapWindow implements OnInit, OnDestroy {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.resourcePackageScanError.set(message);
+      this.resourcePackageScanFound.set('Scan did not complete.');
+      this.resourcePackageScanChanged.set('No changes can be confirmed.');
       this.resourcePackageScanStatus.set('Resource package scan failed.');
       this.recordMapError('Resource package scan', message);
     } finally {
