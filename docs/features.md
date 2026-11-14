@@ -108,6 +108,7 @@ The map workspace can combine online and offline sources.
 - External OsmAnd resources and rendering styles.
 - SQLite hillshade databases for shaded-relief overlays.
 - Offline map and hillshade file management through the Offline Files settings.
+- Automatic discovery of supported maps, hillshade databases, Valhalla JSON configurations, OsmAnd resources and Mapsforge themes from an extracted resource-package folder. Region folder names are not fixed; existing resource paths are confirmed before replacement.
 
 Renderer-specific resources and themes affect available labels, symbols and map appearance. The Offline Files settings organise local resources into dedicated groups, including **Valhalla routing configurations**, the **OsmAnd resources folder** and the **Mapsforge XML theme folder**. See [Supported map formats](map-formats.md).
 
