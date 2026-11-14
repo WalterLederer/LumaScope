@@ -1779,11 +1779,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
   protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
-  protected readonly offlineMapUnselectedCount = computed(() => this.offlineMapStats().unselectedCount);
+  protected readonly offlineMapUnselectedCount = computed(() => this.offlineMapStats().unselectedCount + this.hillshadeStats().unselectedCount);
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
-  protected readonly sortedHillshadeDatabases = computed(() => this.sortRows(this.filteredHillshadeDatabases(), this.hillshadeSort(), database => this.hillshadeSortValue(database, this.hillshadeSort().column)));
+  protected readonly sortedHillshadeDatabases = computed(() => this.sortRows(this.filteredHillshadeDatabases(), this.offlineMapSort(), database => this.hillshadeSortValue(database, this.offlineMapSort().column)));
   protected readonly hillshadeDuplicateIds = signal<ReadonlySet<string>>(new Set());
   private readonly hillshadeStats = computed(() => {
     let activeCount = 0;
@@ -1814,9 +1814,9 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapsforgeThemeDuplicatePaths = signal<ReadonlySet<string>>(new Set());
   protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemeDuplicatePaths().size);
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
-  protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount());
+  protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount() + this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
   protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
-  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMapStats().availableCount > 0 && this.offlineMapStats().activeCount === 0);
+  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMapStats().availableCount + this.hillshadeStats().availableCount > 0 && this.offlineMapStats().activeCount + this.hillshadeStats().activeCount === 0);
   protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeStats().availableCount > 0 && this.hillshadeStats().activeCount === 0);
   protected readonly hillshadeUnselectedCount = computed(() => this.hillshadeStats().unselectedCount);
 
