@@ -738,14 +738,14 @@ interface MapErrorEntry {
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
     }
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0" [class.resource-section-warning]="valhallaConfigurations().length > 0 && !valhallaHasSelectedConfig() && valhallaMissingCount() === 0 && valhallaDuplicateCount() === 0">
-      <summary class="map-cache-heading">Valhalla routing configurations @if (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0)" [class.resource-section-warning]="offlineFilesChecked() && valhallaConfigurations().length > 0 && !valhallaHasSelectedConfig() && valhallaMissingCount() === 0 && valhallaDuplicateCount() === 0">
+      <summary class="map-cache-heading">Valhalla routing configurations @if (offlineFilesChecked() && (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0)) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
         <div class="local-source-heading">
           <span>{{ valhallaConfigurations().length }} configuration(s)</span>
         </div>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
-          <div class="valhalla-config-row" [class.file-path-error]="!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path)">
+          <div class="valhalla-config-row" [class.file-path-error]="offlineFilesChecked() && (!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path))">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
@@ -754,8 +754,8 @@ interface MapErrorEntry {
         <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
       </div>
     </details>
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!osmAndResourcesPath().trim() || !!osmAndResourcesError()">
-      <summary class="map-cache-heading">OsmAnd resources folder @if (!osmAndResourcesPath().trim() || osmAndResourcesError()) { <span class="resource-section-error-label">FILES MISSING</span> }</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!osmAndResourcesPath().trim() || !!osmAndResourcesError())">
+      <summary class="map-cache-heading">OsmAnd resources folder @if (offlineFilesChecked() && (!osmAndResourcesPath().trim() || osmAndResourcesError())) { <span class="resource-section-error-label">FILES MISSING</span> }</summary>
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
@@ -764,8 +764,8 @@ interface MapErrorEntry {
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
       </div>
     </details>
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0" [class.resource-section-warning]="mapsforgeThemes().length > 0 && !mapsforgeThemePath()">
-      <summary class="map-cache-heading">Mapsforge XML theme folder @if (!mapsforgeThemeFolder().trim() || mapsforgeThemeError() || mapsforgeThemes().length === 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (mapsforgeThemeDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0)" [class.resource-section-warning]="offlineFilesChecked() && mapsforgeThemes().length > 0 && !mapsforgeThemePath()">
+      <summary class="map-cache-heading">Mapsforge XML theme folder @if (offlineFilesChecked() && (!mapsforgeThemeFolder().trim() || mapsforgeThemeError() || mapsforgeThemes().length === 0)) { <span class="resource-section-error-label">FILES MISSING</span> } @if (mapsforgeThemeDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
@@ -972,7 +972,7 @@ interface MapErrorEntry {
                       </tr>
                     }
                     @for (database of sortedHillshadeDatabases(); track database.id) {
-                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id)">
+                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
                         <td><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
@@ -2257,7 +2257,7 @@ export class MapWindow implements OnInit, OnDestroy {
             try {
               const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
               this.mapsforgeThemes.set(themes);
-      this.refreshMapsforgeThemeDuplicateIndex(themes);
+
               const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? null;
               const selectedPath = selectedTheme?.path ?? '';
               this.mapsforgeThemePath.set(selectedPath);
@@ -2315,7 +2315,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       this.offlineMaps.set(maps);
-      this.refreshOfflineMapDuplicateIndex(maps);
+
       if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.mapSourceGeneration++;
         this.mapInitialization = null;
@@ -3603,7 +3603,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
       const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.filePath)).length;
       this.offlineMaps.set(importResult.maps);
-      this.refreshOfflineMapDuplicateIndex(importResult.maps);
+
       this.offlineMapImportErrors.set(importResult.errors);
 
       let hillshadeAdded = 0;
@@ -3647,7 +3647,7 @@ export class MapWindow implements OnInit, OnDestroy {
         if (overwrite && themes.length) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
-      this.refreshMapsforgeThemeDuplicateIndex(themes);
+
           const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
           const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
           const selectedPath = selectedTheme?.path ?? '';
@@ -3700,7 +3700,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
-    this.refreshOfflineMapDuplicateIndex(result.maps);
+
     this.offlineMapImportErrors.set(result.errors);
     if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type))) this.changeMapSource('online');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
@@ -4130,7 +4130,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const remaining = await this.desktop.OfflineMap.removeFile(id);
     this.offlineMaps.set(remaining);
-    this.refreshOfflineMapDuplicateIndex(remaining);
+
     if (!this.offlineMaps().some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
       this.changeMapSource('online');
       return;
@@ -4183,7 +4183,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
       this.mapsforgeThemes.set(themes);
-      this.refreshMapsforgeThemeDuplicateIndex(themes);
+
       const selected = themes.find(theme => theme.path === this.mapsforgeThemePath()) ?? null;
       const selectedPath = selected?.path ?? '';
       this.mapsforgeThemePath.set(selectedPath);
@@ -4337,7 +4337,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabases();
       this.hillshadeDatabases.set(databases);
-      this.refreshHillshadeDuplicateIndex(databases);
+
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
@@ -4386,7 +4386,7 @@ export class MapWindow implements OnInit, OnDestroy {
         databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(database.id);
         this.hillshadeDatabases.set(databases);
       }
-      this.refreshHillshadeDuplicateIndex(databases);
+
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
       if (databases.length === 0) {
@@ -4402,7 +4402,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
       this.hillshadeDatabases.set(databases);
-      this.refreshHillshadeDuplicateIndex(databases);
+
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
       if (databases.length === 0) { this.hillshadeVisible.set(false); this.saveSetting('hillshadeVisible', false); }
