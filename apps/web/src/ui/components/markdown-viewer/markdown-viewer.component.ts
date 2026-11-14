@@ -18,11 +18,15 @@ const escapeHtml = (value: string): string => value
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-const renderInline = (source: string): string => {
+const renderInline = (source: string, imageSources: ReadonlyMap<string, string>): string => {
   let value = escapeHtml(source);
   value = value.replace(/`([^`]+)`/g, '<code>$1</code>');
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  value = value.replace(/!\\[([^\\]]*)\\]\\(([^ )]+)(?:\\s+"[^"]*")?\\)/g, (_match, alt: string, href: string) => {
+    const source = imageSources.get(href);
+    return source ? '<img src="' + source + '" alt="' + alt + '" loading="lazy">' : '<span>' + alt + '</span>';
+  });
   value = value.replace(/\[([^\]]+)\]\(([^ )]+)(?:\s+"[^"]*")?\)/g, (_match, label: string, href: string) => {
     const safeHref = href.replace(/&amp;/g, '&amp;').replace(/"/g, '&quot;');
     const external = /^https?:\/\//i.test(href);
@@ -36,7 +40,7 @@ const splitTableRow = (line: string): string[] => line.trim().replace(/^\|/, '')
 const isTableSeparator = (line: string | undefined): boolean =>
   !!line && /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
 
-const renderMarkdown = (markdown: string): string => {
+const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, string>): string => {
   const lines = markdown.replace(/\r/g, '').split('\n');
   const output: string[] = [];
   let index = 0;
@@ -63,7 +67,7 @@ const renderMarkdown = (markdown: string): string => {
     const heading = /^(#{1,6})\s+(.*)$/.exec(line.trim());
     if (heading) {
       const level = heading[1].length;
-      output.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
+      output.push('<h' + level + '>' + renderInline(heading[2], imageSources) + '</h' + level + '>');
       index++;
       continue;
     }
@@ -80,10 +84,10 @@ const renderMarkdown = (markdown: string): string => {
       const rows: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith('|')) {
         const cells = splitTableRow(lines[index]);
-        rows.push('<tr>' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '') + '</td>').join('') + '</tr>');
+        rows.push('<tr>' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources) + '</td>').join('') + '</tr>');
         index++;
       }
-      output.push('<div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
+      output.push('<div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
       continue;
     }
 
@@ -122,7 +126,7 @@ const renderMarkdown = (markdown: string): string => {
       paragraph.push(line.trim());
       index++;
     }
-    output.push('<p>' + paragraph.map(renderInline).join('<br>') + '</p>');
+    output.push('<p>' + paragraph.map(line => renderInline(line, imageSources)).join('<br>') + '</p>');
   }
 
   return output.join('\n');
@@ -139,9 +143,10 @@ export class MarkdownViewerComponent {
 
   protected readonly currentFile = signal('README.md');
   protected readonly markdown = signal('');
+  protected readonly imageSources = signal<ReadonlyMap<string, string>>(new Map());
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
-  protected readonly renderedHtml = computed(() => renderMarkdown(this.markdown()));
+  protected readonly renderedHtml = computed(() => renderMarkdown(this.markdown(), this.imageSources()));
   protected readonly documentTitle = computed(() =>
     this.currentFile() === 'README.md'
       ? 'LumaScope documentation'
@@ -159,7 +164,23 @@ export class MarkdownViewerComponent {
     try {
       const response = await this.fileSystem.readDocumentationFile(fileName);
       if (response.success) {
+        const imageSources = new Map<string, string>();
+        const imagePattern = /!\\[[^\\]]*\\]\\(([^ )]+)(?:\\s+"[^"]*")?\\)/g;
+        const imagePaths = new Set<string>();
+        for (const match of response.data.matchAll(imagePattern)) {
+          const href = match[1];
+          const allowedPath = fileName === 'README.md'
+            ? /^docs\\/images\\/([a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp|gif))$/i.exec(href)
+            : /^images\\/([a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp|gif))$/i.exec(href);
+          if (allowedPath) imagePaths.add(href);
+        }
+        await Promise.all([...imagePaths].map(async href => {
+          const imageName = href.split('/').pop()!;
+          const image = await this.fileSystem.readDocumentationImage(imageName);
+          if (image.success) imageSources.set(href, image.data);
+        }));
         this.currentFile.set(fileName);
+        this.imageSources.set(imageSources);
         this.markdown.set(response.data);
       } else {
         this.error.set(response.errorMessage);
