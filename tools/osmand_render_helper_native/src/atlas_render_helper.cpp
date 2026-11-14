@@ -167,9 +167,15 @@ void writeFrameHeader(
 
 void writeError(std::uint32_t requestId, const QString& message)
 {
+    const auto payload = message.toUtf8();
     std::cerr << "[atlas-helper] request " << requestId << ": "
               << message.toStdString() << std::endl;
-    writeFrameHeader(1, requestId, 0, 0, 0, 0, 0);
+    // Carry the native failure reason over the binary protocol as well.
+    // stderr is asynchronous relative to stdout in the Electron parent, so
+    // relying on log arrival can otherwise turn useful errors into a generic one.
+    writeFrameHeader(1, requestId, 0, 0, 0, 0, static_cast<std::uint64_t>(payload.size()));
+    if (!payload.isEmpty())
+        writeProtocolBytes(payload.constData(), static_cast<std::size_t>(payload.size()));
 }
 
 void writeRgbaFrame(
