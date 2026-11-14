@@ -10,6 +10,25 @@ export type AppSettings = Record<string, unknown>;
 const settingsPath = (): string => join(app.getPath('userData'), appConfigName);
 let writeQueue: Promise<void> = Promise.resolve();
 
+// Settings are persisted immediately by each update. This periodic checkpoint
+// also waits for the serialized queue, so shutdown/builds cannot interrupt a
+// write that was already accepted by the main process.
+let settingsCheckpointTimer: ReturnType<typeof setInterval> | null = null;
+
+export const flushAppSettingsWrites = async (): Promise<void> => {
+  await writeQueue;
+};
+
+export const startAppSettingsCheckpoint = (): void => {
+  if (settingsCheckpointTimer) return;
+  settingsCheckpointTimer = setInterval(() => {
+    void flushAppSettingsWrites().catch(error => {
+      console.error('[Settings] Periodic settings checkpoint failed:', error);
+    });
+  }, 30_000);
+  settingsCheckpointTimer.unref?.();
+};
+
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
