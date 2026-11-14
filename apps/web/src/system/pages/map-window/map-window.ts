@@ -3547,7 +3547,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.valhallaConfigurations.set(valhalla.configurations ?? []);
       if (valhalla.configPath) this.routeValhallaConfigPath.set(valhalla.configPath);
       this.osmAndResourcesPath.set(osmandStatus.resourcesPath || atlasStatus.resourcesPath || '');
-      this.osmAndResourcesError.set(osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? '' : 'The configured OsmAnd resources folder is missing or unavailable.');
+      this.osmAndResourcesError.set(osmandStatus.resourcesAvailable && atlasStatus.resourcesAvailable ? '' : 'The configured OsmAnd resources folder is missing or unavailable.');
       this.refreshOfflineMapDuplicateIndex(maps);
       this.refreshHillshadeDuplicateIndex(hillshade);
       this.refreshValhallaDuplicateIndex(valhalla.configurations ?? []);
@@ -3566,7 +3566,7 @@ export class MapWindow implements OnInit, OnDestroy {
         (this.offlineMapDuplicateCount() + this.hillshadeDuplicateCount()) + ' duplicates · ' +
         (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active · ' +
         this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.valhallaDuplicateCount() + ' duplicate Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' + (this.mapsforgeThemes().length === 0 ? 'Mapsforge themes missing · ' : 'Mapsforge themes OK · ') +
-        (osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? 'OsmAnd resources OK' : 'OsmAnd resources missing'));
+        (osmandStatus.resourcesAvailable && atlasStatus.resourcesAvailable ? 'OsmAnd resources OK' : 'OsmAnd resources missing'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.offlineFilesCheckStatus.set('Check failed: ' + message);
