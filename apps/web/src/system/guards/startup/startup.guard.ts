@@ -29,7 +29,7 @@ export const startupGuard: CanActivateFn = async () => {
 
     // Explorer-opened files are handled in the normal application window, not standalone mode.
 
-    console.warn('[StartupGuard] Navigating to standalone image');
+    console.warn('[StartupGuard] Opening Explorer image');
     return firstValueFrom(
       galleryState.navigateTo(dir)
         .pipe(
