@@ -25,41 +25,110 @@ export class ProcessManager {
       workingSetBytes: mainMemory.rss,
       privateBytes: null
     }];
+    const knownHelpers = new Map([
+      ['osmand_render_helper', { name: 'OsmAnd Helper', kind: 'helper' as const }],
+      ['osmand_render_helper.exe', { name: 'OsmAnd Helper', kind: 'helper' as const }],
+      ['osmand_atlas_render_helper', { name: 'OsmAnd Atlas Helper', kind: 'helper' as const }],
+      ['osmand_atlas_render_helper.exe', { name: 'OsmAnd Atlas Helper', kind: 'helper' as const }]
+    ]);
+    const appExecutable = process.platform === 'win32' ? `${app.getName()}.exe` : app.getName();
+    const isAppProcess = (name: string): boolean =>
+      name.toLowerCase() === appExecutable.toLowerCase()
+      || name.toLowerCase() === app.getName().toLowerCase();
+
     try {
       if (process.platform === 'win32') {
-        const appProcessName = app.getName().replace(/'/g, "''");
-        const script = "$names = @('" + appProcessName + "','osmand_render_helper','osmand_atlas_render_helper'); " +
-          "$items = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $names -contains $_.ProcessName } | " +
-          "ForEach-Object { [PSCustomObject]@{ name=$_.ProcessName; pid=$_.Id; workingSetBytes=$_.WorkingSet64; privateBytes=$_.PrivateMemorySize64 } }); " +
-          "if ($items.Count -eq 1) { ConvertTo-Json -InputObject $items[0] -Compress } " +
-          "elseif ($items.Count -gt 1) { ConvertTo-Json -InputObject $items -Compress }";
-        const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+        // tasklist is part of Windows; unlike the former implementation this
+        // does not require PowerShell. It reports working-set memory only.
+        const { stdout } = await execFileAsync('tasklist.exe', ['/FO', 'CSV', '/NH'], {
           windowsHide: true,
           timeout: 5000,
-          maxBuffer: 1024 * 1024
+          maxBuffer: 4 * 1024 * 1024
         });
-        const output = stdout.trim();
-        if (output) {
-          const parsed = JSON.parse(output) as Array<{ name: string; pid: number; workingSetBytes: number; privateBytes: number }> | { name: string; pid: number; workingSetBytes: number; privateBytes: number };
-          const helpers = Array.isArray(parsed) ? parsed : [parsed];
-          for (const helper of helpers) {
-            if (!Number.isFinite(helper.pid) || !Number.isFinite(helper.workingSetBytes)) continue;
-            if (helper.pid === process.pid) {
-              processes[0].workingSetBytes = helper.workingSetBytes;
-              processes[0].privateBytes = Number.isFinite(helper.privateBytes) ? helper.privateBytes : null;
+        for (const line of stdout.split(/\r?\n/)) {
+          const fields = [...line.matchAll(/"((?:[^"]|"")*)"/g)].map(match => match[1].replace(/""/g, '"'));
+          if (fields.length < 5) continue;
+          const imageName = fields[0];
+          const pid = Number(fields[1].replace(/,/g, ''));
+          const memoryText = fields[4];
+          const memoryKb = Number(memoryText.replace(/[^0-9]/g, ''));
+          if (!Number.isSafeInteger(pid) || pid <= 0 || !Number.isFinite(memoryKb)) continue;
+          const helper = knownHelpers.get(imageName.toLowerCase());
+          if (!helper && !isAppProcess(imageName)) continue;
+          if (pid === process.pid) {
+            processes[0].workingSetBytes = memoryKb * 1024;
+            continue;
+          }
+          processes.push({
+            name: helper?.name ?? 'LumaScope (Process)',
+            pid,
+            kind: helper?.kind ?? 'app',
+            workingSetBytes: memoryKb * 1024,
+            privateBytes: null
+          });
+        }
+      } else if (process.platform === 'linux') {
+        const entries = await fs.readdir('/proc', { withFileTypes: true });
+        const pageSize = 4096;
+        for (const entry of entries) {
+          if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) continue;
+          const pid = Number(entry.name);
+          try {
+            const name = (await fs.readFile(`/proc/${entry.name}/comm`, 'utf8')).trim();
+            const helper = knownHelpers.get(name.toLowerCase());
+            if (!helper && !isAppProcess(name)) continue;
+            const statm = (await fs.readFile(`/proc/${entry.name}/statm`, 'utf8')).trim().split(/\s+/);
+            const residentPages = Number(statm[1]);
+            if (!Number.isFinite(residentPages)) continue;
+            let privateBytes: number | null = null;
+            try {
+              const rollup = await fs.readFile(`/proc/${entry.name}/smaps_rollup`, 'utf8');
+              const privateKb = [...rollup.matchAll(/^Private_(?:Clean|Dirty|Hugetlb):\s+(\d+)\s+kB$/gm)]
+                .reduce((total, match) => total + Number(match[1]), 0);
+              privateBytes = privateKb * 1024;
+            } catch {
+              // smaps_rollup may be restricted; resident memory is still available.
+            }
+            if (pid === process.pid) {
+              processes[0].workingSetBytes = residentPages * pageSize;
+              processes[0].privateBytes = privateBytes;
               continue;
             }
-            const isAtlasHelper = helper.name === 'osmand_atlas_render_helper';
-            const isOsmAndHelper = helper.name === 'osmand_render_helper';
             processes.push({
-              name: isAtlasHelper ? 'OsmAnd Atlas Helper'
-                : isOsmAndHelper ? 'OsmAnd Helper' : 'LumaScope Renderer / Utility',
-              pid: helper.pid,
-              kind: isAtlasHelper || isOsmAndHelper ? 'helper' : 'app',
-              workingSetBytes: helper.workingSetBytes,
-              privateBytes: Number.isFinite(helper.privateBytes) ? helper.privateBytes : null
+              name: helper?.name ?? 'LumaScope (Process)',
+              pid,
+              kind: helper?.kind ?? 'app',
+              workingSetBytes: residentPages * pageSize,
+              privateBytes
             });
+          } catch {
+            // Processes may exit or become inaccessible while the snapshot is collected.
           }
+        }
+      } else if (process.platform === 'darwin') {
+        const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,rss=,comm='], {
+          timeout: 5000,
+          maxBuffer: 4 * 1024 * 1024
+        });
+        for (const line of stdout.split(/\r?\n/)) {
+          const match = /^\s*(\d+)\s+(\d+)\s+(.+?)\s*$/.exec(line);
+          if (!match) continue;
+          const pid = Number(match[1]);
+          const workingSetBytes = Number(match[2]) * 1024;
+          const executable = match[3].split('/').pop() ?? match[3];
+          const helper = knownHelpers.get(executable.toLowerCase());
+          if (!helper && !isAppProcess(executable)) continue;
+          if (pid === process.pid) {
+            processes[0].workingSetBytes = workingSetBytes;
+            continue;
+          }
+          processes.push({
+            name: helper?.name ?? 'LumaScope (Process)',
+            pid,
+            kind: helper?.kind ?? 'app',
+            workingSetBytes,
+            privateBytes: null
+          });
         }
       }
       return { processes, error: null };
