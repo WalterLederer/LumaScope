@@ -13,6 +13,8 @@ export class FileSystem implements DesktopFileSystem {
 
   readonly readDocumentationFile = (fileName: string) => window.desktop.FileSystem.readDocumentationFile(fileName);
 
+  readonly readDocumentationImage = (fileName: string) => window.desktop.FileSystem.readDocumentationImage(fileName);
+
   readonly writeText = (path: string, content: string) => window.desktop.FileSystem.writeText(path, content);
 
   readonly readJson = <T>(path: string): Promise<ApiResponse<T>> => window.desktop.FileSystem.readJson(path);
