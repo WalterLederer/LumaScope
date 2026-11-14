@@ -784,6 +784,11 @@ interface MapErrorEntry {
       <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMaps().length === 0 || offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
       <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || offlineMapCatalogueSummary() }}</span>
     </div>
+    <div class="map-cache-actions offline-map-update-actions">
+    <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOfflineFiles().length + filteredHillshadeDatabases().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
+    @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
+    </span>
+    </div>
   </details>
   <div class="mbtiles-selection offline-map-toolbar">
     <label class="offline-map-preset-control">Preset:
@@ -798,9 +803,6 @@ interface MapErrorEntry {
      </label>
      <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
      <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Deactivate visible files</button>
-    <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOfflineFiles().length + filteredHillshadeDatabases().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
-    @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
-    </span>
   </div>
 </div>
 </div>
