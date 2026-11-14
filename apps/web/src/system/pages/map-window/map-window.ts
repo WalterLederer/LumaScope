@@ -751,7 +751,7 @@ interface MapErrorEntry {
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
           </div>
         }
-        <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
+        <p>Valhalla configurations are discovered automatically when scanning the extracted resource package. Select the configuration to use in the Routing provider list.</p>
       </div>
     </details>
     <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!osmAndResourcesPath().trim() || !!osmAndResourcesError())">
@@ -761,7 +761,7 @@ interface MapErrorEntry {
           <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
         </div>
         @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
-        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
+        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a> and place the extracted resources folder containing <code>rendering_styles/default.render.xml</code> inside the package before scanning. Resources are not bundled with LumaScope.</p>
       </div>
     </details>
     <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0)" [class.resource-section-warning]="offlineFilesChecked() && mapsforgeThemes().length > 0 && !mapsforgeThemePath()">
@@ -3553,7 +3553,7 @@ export class MapWindow implements OnInit, OnDestroy {
         (this.offlineMapMissingCount() + this.hillshadeMissingCount()) + ' missing · ' +
         (this.offlineMapDuplicateCount() + this.hillshadeDuplicateCount()) + ' duplicates · ' +
         (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active · ' +
-        this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.valhallaDuplicateCount() + ' duplicate Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' +
+        this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.valhallaDuplicateCount() + ' duplicate Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' + (this.mapsforgeThemes().length === 0 ? 'Mapsforge themes missing · ' : 'Mapsforge themes OK · ') +
         (osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? 'OsmAnd resources OK' : 'OsmAnd resources missing'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
