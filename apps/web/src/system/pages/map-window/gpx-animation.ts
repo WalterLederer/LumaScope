@@ -28,7 +28,7 @@ export const GPX_VEHICLE_SYMBOLS: Readonly<Record<string, string>> = {
 };
 
 export const GPX_SYMBOLS: Readonly<Record<string, string>> = {
-  walker: '🚶',
+  walker: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 32" width="26" height="32" aria-hidden="true" focusable="false"><circle cx="13" cy="5" r="3.2" fill="#263238" stroke="#fff" stroke-width="1"/><path d="M11 9.2 8.2 15.5 5.1 19.2M14.8 9.2 17.5 14.4 21 16.1M11 9.2 15.2 10.4 16.2 17.8 11.4 19.4 9.2 14.8Z" fill="#263238" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="m11.4 19.4-2.8 5.2-3.5 4.1M16.2 17.8l1.2 6.1 3.8 3.2" fill="none" stroke="#263238" stroke-width="3.3" stroke-linecap="round"/><path d="m11.4 19.4-2.8 5.2-3.5 4.1M16.2 17.8l1.2 6.1 3.8 3.2" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round"/></svg>',
   ...GPX_VEHICLE_SYMBOLS
 };
 
