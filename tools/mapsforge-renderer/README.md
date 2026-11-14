@@ -9,12 +9,17 @@ This is an isolated Java desktop renderer for Mapsforge `.map` files. It does no
 - JDK 17 or newer
 - Apache Maven 3.9+
 
-**Runtime requirements (including packaged LumaScope releases)**
+**Build requirements**
 
-- Java 17 or newer must be installed on every PC that uses the Mapsforge renderer. A JRE is sufficient; a JDK also works.
-- The LumaScope desktop package bundles `mapsforge-renderer.jar` and its Java library dependencies, but it does **not** currently bundle a Java runtime/JRE.
-- LumaScope starts Java from `%JAVA_HOME%\\bin\\java.exe` when `JAVA_HOME` is set; otherwise `java.exe` must be available on `PATH`.
-- One valid Mapsforge `.map` file
+- JDK 17 or newer (also used to create the packaged runtime).
+- Apache Maven 3.9+.
+
+**Runtime requirements**
+
+- Windows production packages include `mapsforge-renderer.jar` and a minimized Java runtime generated with `jlink`.
+- Target PCs do not need a separately installed Java runtime.
+- In development, LumaScope uses the staged runtime if available, then falls back to `JAVA_HOME` or `PATH`.
+- One valid Mapsforge `.map` file.
 
 ## Build
 
@@ -95,4 +100,4 @@ The worker can open one or multiple explicitly supplied map files in a combined 
 2. Add Mapsforge map registration as its own map type in the offline map catalogue.
 3. Add multiple-map coverage selection and runtime theme switching.
 4. Add Mapsforge hillshading.
-5. Stage a dedicated Java runtime/helper beside the application package.
+5. Bundle a minimized Java runtime with Windows production packages (implemented by `stage-runtime.ps1`).
