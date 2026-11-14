@@ -3511,15 +3511,19 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineFilesCheckBusy.set(true);
     this.offlineFilesCheckStatus.set('Checking offline files and resource status…');
     try {
-      const [maps, hillshade, valhalla] = await Promise.all([
+      const [maps, hillshade, valhalla, osmandStatus, atlasStatus] = await Promise.all([
         this.desktop.OfflineMap.getMaps(),
         this.desktop.OsmAndAtlas.getHillshadeDatabases(),
-        this.desktop.Valhalla.getRuntimeStatus()
+        this.desktop.Valhalla.getRuntimeStatus(),
+        this.desktop.OsmAnd.getRuntimeStatus(),
+        this.desktop.OsmAndAtlas.getRuntimeStatus()
       ]);
       this.offlineMaps.set(maps);
       this.hillshadeDatabases.set(hillshade);
       this.valhallaConfigurations.set(valhalla.configurations ?? []);
       if (valhalla.configPath) this.routeValhallaConfigPath.set(valhalla.configPath);
+      this.osmAndResourcesPath.set(osmandStatus.resourcesPath || atlasStatus.resourcesPath || '');
+      this.osmAndResourcesError.set(osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? '' : 'The configured OsmAnd resources folder is missing or unavailable.');
       this.refreshOfflineMapDuplicateIndex(maps);
       this.refreshHillshadeDuplicateIndex(hillshade);
       this.updateHillshadePresetFromSelection(hillshade);
@@ -3533,7 +3537,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineFilesCheckStatus.set('Check completed · ' + maps.length + ' maps · ' + hillshade.length + ' Hillshade · ' +
         (this.offlineMapMissingCount() + this.hillshadeMissingCount()) + ' missing · ' +
         (this.offlineMapDuplicateCount() + this.hillshadeDuplicateCount()) + ' duplicates · ' +
-        (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active');
+        (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active · ' +
+        this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' +
+        (osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? 'OsmAnd resources OK' : 'OsmAnd resources missing'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.offlineFilesCheckStatus.set('Check failed: ' + message);
