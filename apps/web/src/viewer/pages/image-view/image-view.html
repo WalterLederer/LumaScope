@@ -6,7 +6,19 @@
 @let exif = exifState();
 @let isHdrImage = imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
 
-@if (selected !== null) {
+@if (activeImageSidebarTab() === 'gallery') {
+  <app-gallery class="gallery-tab-content"
+               [class.sidebar-hidden]="!controlsSidebarVisible()"
+               (imageSelected)="onGalleryImageSelected()" />
+  @if (controlsSidebarVisible()) {
+    <aside class="image-controls-sidebar gallery-shell-sidebar" aria-label="Image controls" [style.width.px]="sidebarWidth()">
+      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleSidebarVisibility()">×</button></nav>
+      <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
+    </aside>
+  } @else {
+    <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleSidebarVisibility()">⚙</button>
+  }
+} @else if (selected !== null) {
   <app-image-renderer [url]="selected.url"
                       [style.margin-right.px]="!fullScreen && controlsSidebarVisible() ? sidebarWidth() + 16 : 0"
                       [debugImageSwitching]="debugImageSwitching()"
@@ -536,5 +548,39 @@
         </div>
       </div>
     </footer>
+  }
+} @else {
+  <div class="image-empty-stage" aria-hidden="true"></div>
+  @if (controlsSidebarVisible()) {
+    <aside class="image-controls-sidebar" aria-label="Image controls" [style.width.px]="sidebarWidth()">
+      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleSidebarVisibility()">×</button></nav>
+      <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
+      @if (activeImageSidebarTab() === 'general') {
+        <section><div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div><app-settings-panel mode="general" /></section>
+      }
+      @if (activeImageSidebarTab() === 'capture') {
+        <section class="capture-window-launch" aria-label="Screen Capture"><p>Screen Capture is available in its own window.</p><button type="button" class="capture-window-open-button" (click)="openCaptureWindow()">Open Screen Capture window…</button></section>
+      }
+      @if (activeImageSidebarTab() === 'cache') {
+        <app-settings-panel mode="cache"
+                            [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
+                            [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
+                            [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
+                            [currentFolderPath]="galleryCacheBuild.currentFolderPath()"
+                            [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
+                            (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
+                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
+                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
+                            [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
+      }
+      @if (activeImageSidebarTab() === 'help') {
+        <section><app-settings-panel mode="help" /></section>
+      }
+      @if (activeImageSidebarTab() === 'image' || activeImageSidebarTab() === 'location') {
+        <section><p>Select an image in the Gallery tab to use these controls.</p></section>
+      }
+    </aside>
+  } @else {
+    <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleSidebarVisibility()">⚙</button>
   }
 }
