@@ -575,7 +575,7 @@
                             [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
       @if (activeImageSidebarTab() === 'help') {
-        <section><app-settings-panel mode="help" /></section>
+        <app-markdown-viewer />
       }
       @if (activeImageSidebarTab() === 'image') {
         <section><p>Select an image in Browse to use these controls.</p></section>
