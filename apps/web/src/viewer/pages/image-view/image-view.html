@@ -577,8 +577,15 @@
       @if (activeImageSidebarTab() === 'help') {
         <section><app-settings-panel mode="help" /></section>
       }
-      @if (activeImageSidebarTab() === 'image' || activeImageSidebarTab() === 'location') {
+      @if (activeImageSidebarTab() === 'image') {
         <section><p>Select an image in the Gallery tab to use these controls.</p></section>
+      }
+      @if (activeImageSidebarTab() === 'location') {
+        <section class="capture-window-launch" aria-label="Image location window">
+          <p>Location is available in its own window.</p>
+          <button type="button" class="capture-window-open-button" (click)="openLocationWindow()">Open Location window…</button>
+          <button type="button" class="capture-window-open-button" (click)="openOverlayWindow()">Open overlay window…</button>
+        </section>
       }
     </aside>
   } @else {
