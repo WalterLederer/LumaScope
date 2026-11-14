@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
+import { ProcessManager } from '../../../ipc/process-manager';
 
 const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\.md$/i.test(fileName);
 
@@ -132,6 +133,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
 })
 export class MarkdownViewerComponent {
   private readonly fileSystem = inject(FileSystem);
+  private readonly processManager = inject(ProcessManager);
 
   protected readonly currentFile = signal('README.md');
   protected readonly markdown = signal('');
@@ -148,7 +150,22 @@ export class MarkdownViewerComponent {
 
   constructor() {
     void this.loadDocument('README.md');
+    void this.loadSavedFontSize();
   }
+
+  private readonly loadSavedFontSize = async (): Promise<void> => {
+    try {
+      const settings = await this.processManager.getAppSettings();
+      const helpSettings = settings['help'];
+      if (!helpSettings || typeof helpSettings !== 'object' || Array.isArray(helpSettings)) return;
+      const savedSize = (helpSettings as Record<string, unknown>)['textSize'];
+      if (typeof savedSize === 'number' && Number.isFinite(savedSize)) {
+        this.fontSize.set(Math.min(20, Math.max(10, Math.round(savedSize))));
+      }
+    } catch (error) {
+      console.warn('[Help] Could not load text size setting:', error);
+    }
+  };
 
   protected readonly loadDocument = async (fileName: string): Promise<void> => {
     if (!isDocumentationFile(fileName)) return;
@@ -188,6 +205,14 @@ export class MarkdownViewerComponent {
   protected readonly onFontSizeChange = (event: Event): void => {
     const value = Number((event.target as HTMLInputElement).value);
     if (Number.isFinite(value)) this.fontSize.set(Math.min(20, Math.max(10, value)));
+  };
+
+  protected readonly saveFontSize = async (): Promise<void> => {
+    try {
+      await this.processManager.setAppSettingsSection('help', { textSize: this.fontSize() });
+    } catch (error) {
+      console.warn('[Help] Could not save text size setting:', error);
+    }
   };
 
   protected readonly showReadme = (): void => {
