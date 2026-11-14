@@ -1007,8 +1007,9 @@ interface MapErrorEntry {
                   <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">Map file {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th><th></th></tr></thead>
                   <tbody>
                     @for (map of sortedOfflineFiles(); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineMapHasMissingFile(map) || offlineMapHasDuplicateName(map)">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="inUse ? 'In use' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                         <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
@@ -1803,15 +1804,30 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
   protected readonly offlineMapCatalogueSummary = signal('No catalogue has been checked yet.');
-  protected readonly activeOfflineMapCount = computed(() => this.offlineMaps().filter(map => map.enabled).length);
-  protected readonly inUseOfflineMapCount = computed(() => this.offlineMapInUseIds().size);
+  private readonly offlineMapStats = computed(() => {
+    let activeCount = 0;
+    let availableCount = 0;
+    let missingCount = 0;
+    let unselectedCount = 0;
+    const inUseIds = new Set<string>();
+    for (const map of this.offlineMaps()) {
+      if (map.enabled) activeCount++;
+      if (map.available) availableCount++;
+      if (this.offlineMapHasMissingFile(map)) missingCount++;
+      if (map.available && !map.enabled) unselectedCount++;
+      if (this.calculateOfflineMapInUse(map)) inUseIds.add(map.id);
+    }
+    return { activeCount, availableCount, missingCount, unselectedCount, inUseIds };
+  });
+  protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
+  protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOfflineFiles = computed(() => {
     const maps = this.offlineMaps();
     const filter = this.offlineMapListFilter();
     if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
     if (filter === 'obf') return maps.filter(map => map.type === 'obf');
     if (filter === 'map') return maps.filter(map => map.type === 'mapsforge');
-    if (filter === 'inUse') { const inUse = this.offlineMapInUseIds(); return maps.filter(map => inUse.has(map.id)); }
+    if (filter === 'inUse') { const inUse = this.offlineMapStats().inUseIds; return maps.filter(map => inUse.has(map.id)); }
     if (filter === 'active') return maps.filter(map => map.enabled);
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
     if (filter === 'current') return maps.filter(map => map.updateChecked && map.updateAvailable === false);
@@ -1821,21 +1837,32 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
   private readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
-  protected readonly offlineMapMissingCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasMissingFile(map)).length);
+  protected readonly offlineMapMissingCount = computed(() => this.offlineMapStats().missingCount);
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
   protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
-  private readonly offlineMapInUseIds = computed(() => new Set(this.offlineMaps().filter(map => this.calculateOfflineMapInUse(map)).map(map => map.id)));
+  protected readonly offlineMapUnselectedCount = computed(() => this.offlineMapStats().unselectedCount);
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedHillshadeDatabases = computed(() => this.sortRows(this.filteredHillshadeDatabases(), this.hillshadeSort(), database => this.hillshadeSortValue(database, this.hillshadeSort().column)));
-  protected readonly hillshadeMissingCount = computed(() => this.hillshadeDatabases().filter(database => !database.path.trim() || !database.available).length);
-  protected readonly hillshadeDuplicateCount = computed(() => this.hillshadeDatabases().filter(database => this.hillshadeHasDuplicateName(database)).length);
-  protected readonly hillshadeHasDuplicateName = (database: OsmAndHillshadeDatabase): boolean => {
-    const name = this.fileNameFromPath(database.path);
-    return !!name && this.hillshadeDatabases().some(other => other.id !== database.id && this.fileNameFromPath(other.path) === name && other.path.toLocaleLowerCase() !== database.path.toLocaleLowerCase());
-  };
+  private readonly hillshadeDuplicateIds = signal<ReadonlySet<string>>(new Set());
+  private readonly hillshadeStats = computed(() => {
+    let activeCount = 0;
+    let availableCount = 0;
+    let missingCount = 0;
+    let unselectedCount = 0;
+    for (const database of this.hillshadeDatabases()) {
+      if (!database.path.trim() || !database.available) missingCount++;
+      if (database.available) availableCount++;
+      if (database.enabled && database.available) activeCount++;
+      if (database.available && !database.enabled) unselectedCount++;
+    }
+    return { activeCount, availableCount, missingCount, unselectedCount };
+  });
+  protected readonly hillshadeMissingCount = computed(() => this.hillshadeStats().missingCount);
+  protected readonly hillshadeDuplicateCount = computed(() => this.hillshadeDuplicateIds().size);
+  protected readonly hillshadeHasDuplicateName = (database: OsmAndHillshadeDatabase): boolean => this.hillshadeDuplicateIds().has(database.id);
   protected readonly hillshadeSortIndicator = (column: string): string => this.hillshadeSort().column === column ? (this.hillshadeSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortHillshadeDatabases = (column: string): void => this.hillshadeSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly valhallaMissingCount = computed(() => this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length);
@@ -1846,14 +1873,14 @@ export class MapWindow implements OnInit, OnDestroy {
       configuration.path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase() === normalizedPath
     ).length > 1;
   };
-  protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemes().filter(theme => this.hasDuplicatePathName(theme.path, this.mapsforgeThemes().map(item => item.path))).length);
+  private readonly mapsforgeThemeDuplicatePaths = signal<ReadonlySet<string>>(new Set());
+  protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemeDuplicatePaths().size);
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
   protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount());
   protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
-  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMaps().some(map => map.available) && this.activeOfflineMapCount() === 0);
-  protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeDatabases().some(database => database.available) && this.activeHillshadeDatabaseCount() === 0);
-  protected readonly offlineMapUnselectedCount = computed(() => this.offlineMaps().filter(map => map.available && !map.enabled).length);
-  protected readonly hillshadeUnselectedCount = computed(() => this.hillshadeDatabases().filter(database => database.available && !database.enabled).length);
+  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMapStats().availableCount > 0 && this.offlineMapStats().activeCount === 0);
+  protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeStats().availableCount > 0 && this.hillshadeStats().activeCount === 0);
+  protected readonly hillshadeUnselectedCount = computed(() => this.hillshadeStats().unselectedCount);
 
   protected readonly fileNameFromPath = (path: string): string => path.replace(/\\/g, '/').split('/').pop()?.toLocaleLowerCase() ?? '';
   protected readonly hasDuplicatePathName = (path: string, paths: string[]): boolean => {
@@ -1958,7 +1985,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return databases;
   });
   protected readonly hillshadeDatabaseCount = computed(() => this.hillshadeDatabases().length);
-  protected readonly activeHillshadeDatabaseCount = computed(() => this.hillshadeDatabases().filter(item => item.enabled && item.available).length);
+  protected readonly activeHillshadeDatabaseCount = computed(() => this.hillshadeStats().activeCount);
   protected readonly zoomLevel = signal(this.readNumber('zoom', 13, 1, 20));
   private readonly mapZoomRestore: Promise<void> = this.desktop?.MapWindow.getZoom().then(zoom => {
     if (Number.isFinite(zoom)) this.zoomLevel.set(this.validZoom(zoom));
@@ -2234,6 +2261,7 @@ export class MapWindow implements OnInit, OnDestroy {
       registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
       void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
         this.hillshadeDatabases.set(databases);
+        this.refreshHillshadeDuplicateIndex(databases);
         this.updateHillshadePresetFromSelection(databases);
         this.applyHillshadeSettingsIfReady(true);
       }).catch(error => this.recordMapError('Hillshade databases', error instanceof Error ? error.message : String(error)));
@@ -2267,6 +2295,7 @@ export class MapWindow implements OnInit, OnDestroy {
             try {
               const themes = await this.desktop!.Mapsforge.scanThemes(themeFolder);
               this.mapsforgeThemes.set(themes);
+      this.refreshMapsforgeThemeDuplicateIndex(themes);
               const selectedTheme = themes.find(theme => theme.path === savedThemePath) ?? null;
               const selectedPath = selectedTheme?.path ?? '';
               this.mapsforgeThemePath.set(selectedPath);
@@ -3573,6 +3602,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
         hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(database.path)).length;
         this.hillshadeDatabases.set(databases);
+        this.refreshHillshadeDuplicateIndex(databases);
         this.updateHillshadePresetFromSelection(databases);
         this.applyHillshadeSettingsIfReady(true);
       }
@@ -3609,6 +3639,7 @@ export class MapWindow implements OnInit, OnDestroy {
         if (overwrite && themes.length) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
+      this.refreshMapsforgeThemeDuplicateIndex(themes);
           const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
           const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
           const selectedPath = selectedTheme?.path ?? '';
@@ -3944,7 +3975,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return compatible[0]?.preset ?? 'custom';
   }
 
-  protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapInUseIds().has(map.id);
+  protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapStats().inUseIds.has(map.id);
 
   private calculateOfflineMapInUse(map: import('internal-api').OfflineMapStatus): boolean {
     if (!map.enabled) return false;
@@ -3957,19 +3988,56 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private refreshOfflineMapDuplicateIndex(maps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()): void {
-    const idsByName = new Map<string, string[]>();
+    const idsByName = new Map<string, Array<{ id: string; path: string }>>();
     for (const map of maps) {
       const name = this.fileNameFromPath(map.filePath);
       if (!name) continue;
-      const ids = idsByName.get(name) ?? [];
-      ids.push(map.id);
-      idsByName.set(name, ids);
+      const entries = idsByName.get(name) ?? [];
+      entries.push({ id: map.id, path: map.filePath.toLocaleLowerCase() });
+      idsByName.set(name, entries);
     }
     const duplicateIds = new Set<string>();
-    for (const ids of idsByName.values()) {
-      if (ids.length > 1) for (const id of ids) duplicateIds.add(id);
+    for (const entries of idsByName.values()) {
+      if (new Set(entries.map(entry => entry.path)).size > 1) {
+        for (const entry of entries) duplicateIds.add(entry.id);
+      }
     }
     this.offlineMapDuplicateIds.set(duplicateIds);
+  }
+
+  private refreshHillshadeDuplicateIndex(databases: OsmAndHillshadeDatabase[] = this.hillshadeDatabases()): void {
+    const idsByName = new Map<string, Array<{ id: string; path: string }>>();
+    for (const database of databases) {
+      const name = this.fileNameFromPath(database.path);
+      if (!name) continue;
+      const entries = idsByName.get(name) ?? [];
+      entries.push({ id: database.id, path: database.path.toLocaleLowerCase() });
+      idsByName.set(name, entries);
+    }
+    const duplicateIds = new Set<string>();
+    for (const entries of idsByName.values()) {
+      if (new Set(entries.map(entry => entry.path)).size > 1) {
+        for (const entry of entries) duplicateIds.add(entry.id);
+      }
+    }
+    this.hillshadeDuplicateIds.set(duplicateIds);
+  }
+
+  private refreshMapsforgeThemeDuplicateIndex(themes: import('internal-api').MapsforgeTheme[] = this.mapsforgeThemes()): void {
+    const pathsByName = new Map<string, Set<string>>();
+    for (const theme of themes) {
+      const name = this.fileNameFromPath(theme.path);
+      if (!name) continue;
+      const paths = pathsByName.get(name) ?? new Set<string>();
+      paths.add(theme.path.toLocaleLowerCase());
+      pathsByName.set(name, paths);
+    }
+    const duplicatePaths = new Set<string>();
+    for (const theme of themes) {
+      const name = this.fileNameFromPath(theme.path);
+      if (name && (pathsByName.get(name)?.size ?? 0) > 1) duplicatePaths.add(theme.path.toLocaleLowerCase());
+    }
+    this.mapsforgeThemeDuplicatePaths.set(duplicatePaths);
   }
 
   private refreshOfflineMapRendering(): void {
@@ -4097,6 +4165,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
       this.mapsforgeThemes.set(themes);
+      this.refreshMapsforgeThemeDuplicateIndex(themes);
       const selected = themes.find(theme => theme.path === this.mapsforgeThemePath()) ?? null;
       const selectedPath = selected?.path ?? '';
       this.mapsforgeThemePath.set(selectedPath);
@@ -4250,6 +4319,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabases();
       this.hillshadeDatabases.set(databases);
+      this.refreshHillshadeDuplicateIndex(databases);
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
     } catch (error) {
@@ -4298,6 +4368,7 @@ export class MapWindow implements OnInit, OnDestroy {
         databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(database.id);
         this.hillshadeDatabases.set(databases);
       }
+      this.refreshHillshadeDuplicateIndex(databases);
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
       if (databases.length === 0) {
@@ -4313,6 +4384,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const databases = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(id);
       this.hillshadeDatabases.set(databases);
+      this.refreshHillshadeDuplicateIndex(databases);
       this.updateHillshadePresetFromSelection(databases);
       this.applyHillshadeSettingsIfReady(true);
       if (databases.length === 0) { this.hillshadeVisible.set(false); this.saveSetting('hillshadeVisible', false); }
