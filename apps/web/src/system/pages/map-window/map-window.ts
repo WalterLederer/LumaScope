@@ -97,12 +97,12 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineFiles</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" (click)="selectSettingsTab('hillshade')">Hillshade</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" (click)="selectSettingsTab('offlineMaps')">OfflineFiles@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" (click)="selectSettingsTab('hillshade')">Hillshade@if (hillshadeTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ hillshadeTabErrorCount() }}</span> } @else if (hillshadeHasUnselectedFiles()) { <span class="settings-tab-warning-count">!</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [class.has-warning]="mapErrors().length === 0 && offlineMapTabErrorCount() === 0 && hillshadeTabErrorCount() === 0 && (offlineMapHasUnselectedFiles() || hillshadeHasUnselectedFiles())" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
 <div class="settings-tab-panels">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
@@ -767,7 +767,7 @@ interface MapErrorEntry {
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
     }
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0">
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0" [class.resource-section-warning]="valhallaConfigurations().length > 0 && !valhallaHasSelectedConfig() && valhallaMissingCount() === 0 && valhallaDuplicateCount() === 0">
       <summary class="map-cache-heading">Valhalla routing configurations @if (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
         <div class="local-source-heading">
@@ -796,7 +796,7 @@ interface MapErrorEntry {
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
       </div>
     </details>
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0">
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0" [class.resource-section-warning]="mapsforgeThemes().length > 0 && !mapsforgeThemePath()">
       <summary class="map-cache-heading">Mapsforge XML theme folder @if (!mapsforgeThemeFolder().trim() || mapsforgeThemeError() || mapsforgeThemes().length === 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (mapsforgeThemeDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
@@ -1109,9 +1109,12 @@ interface MapErrorEntry {
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
     .settings-tab.has-errors{color:#ff8a80}
-    .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,110,110,.18);color:#ff8a80;font-size:10px;font-weight:700}
-    .map-error-panel{display:flex;flex:1 1 auto;flex-direction:column;gap:10px;width:100%;min-width:0;min-height:0}
-    .map-error-list{display:flex;flex:1 1 auto;flex-direction:column;gap:8px;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain}
+    .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,75,75,.30);color:#ff8a80;font-size:10px;font-weight:800}
+    .settings-tab-warning-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(245,190,55,.28);color:#ffd36a;font-size:11px;font-weight:800}
+    .settings-tab.has-errors{background:rgba(180,35,35,.24);color:#ff8a80}
+    .settings-tab.has-warning{background:rgba(190,145,25,.22);color:#ffd36a}
+    .map-error-panel{display:flex;flex:1 1 auto;flex-direction:column;gap:10px;width:100%;min-width:0;min-height:0;height:calc(100vh - 220px);max-height:calc(100vh - 220px);overflow:hidden}
+    .map-error-list{display:flex;flex:1 1 auto;flex-direction:column;gap:8px;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px}
     .map-error-entry{min-width:0;padding:8px 10px;border:1px solid rgba(255,120,120,.3);border-radius:5px;background:rgba(120,40,40,.10)}
     .map-error-entry-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .map-error-entry-heading strong{color:#ff8a80}
@@ -1333,6 +1336,7 @@ interface MapErrorEntry {
     .hillshade-map-table .offline-map-path-cell{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
     .file-path-error{background:rgba(210,35,35,.30)!important}.file-path-error:hover{background:rgba(225,45,45,.42)!important}
     .resource-section-error{background:rgba(180,25,25,.18)!important;border:1px solid rgba(255,80,80,.55)!important;border-radius:5px}
+    .resource-section-warning{background:rgba(190,145,25,.18)!important;border:1px solid rgba(245,190,55,.55)!important;border-radius:5px}
     .resource-section-error-label{display:inline-block;margin-left:8px;padding:1px 5px;border-radius:3px;background:rgba(190,25,25,.38);color:#ffaaa5;font-size:10px;font-weight:800;letter-spacing:.04em}
     .valhalla-config-row.file-path-error{border-radius:3px;padding-left:4px;padding-right:4px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(5),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(5){width:320px}
@@ -1837,6 +1841,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly valhallaMissingCount = computed(() => this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length);
   protected readonly valhallaDuplicateCount = computed(() => this.valhallaConfigurations().filter(configuration => this.hasDuplicatePathName(configuration.path, this.valhallaConfigurations().map(item => item.path))).length);
   protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemes().filter(theme => this.hasDuplicatePathName(theme.path, this.mapsforgeThemes().map(item => item.path))).length);
+  protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
+  protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount());
+  protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
+  protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineMaps().some(map => map.available) && this.activeOfflineMapCount() === 0);
+  protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeDatabases().some(database => database.available) && this.activeHillshadeDatabaseCount() === 0);
+
   protected readonly fileNameFromPath = (path: string): string => path.replace(/\\/g, '/').split('/').pop()?.toLocaleLowerCase() ?? '';
   protected readonly hasDuplicatePathName = (path: string, paths: string[]): boolean => {
     const name = this.fileNameFromPath(path);
