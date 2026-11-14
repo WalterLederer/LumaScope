@@ -739,7 +739,7 @@ interface MapErrorEntry {
           <button type="button" class="offline-map-add-button offline-map-bulk-button hillshade-clear-visible-button" (click)="clearVisibleHillshadeDatabases()" [disabled]="filteredHillshadeDatabases().length === 0">× Visible</button>
         </div>
       </details>
-      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active · {{ filteredHillshadeDatabases().length }} filtered</span>
+      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active · {{ filteredHillshadeDatabases().length }} filtered@if (hillshadeMissingCount() > 0) { · {{ hillshadeMissingCount() }} missing - FILES MISSING }@if (hillshadeDuplicateCount() > 0) { · {{ hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }</span>
     </div>
   </div>
 </div>
@@ -767,15 +767,15 @@ interface MapErrorEntry {
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
     }
-    <details class="map-cache-section download-section local-source-section">
-      <summary class="map-cache-heading">Valhalla routing configurations</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0">
+      <summary class="map-cache-heading">Valhalla routing configurations @if (valhallaMissingCount() > 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
         <div class="local-source-heading">
           <span>{{ valhallaConfigurations().length }} configuration(s)</span>
           <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
         </div>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
-          <div class="valhalla-config-row">
+          <div class="valhalla-config-row" [class.file-path-error]="!configuration.path.trim() || !configuration.available || hasDuplicatePathName(configuration.path, valhallaConfigurations().map(item => item.path))">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
@@ -785,8 +785,8 @@ interface MapErrorEntry {
         <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
       </div>
     </details>
-    <details class="map-cache-section download-section local-source-section">
-      <summary class="map-cache-heading">OsmAnd resources folder</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!osmAndResourcesPath().trim() || !!osmAndResourcesError()">
+      <summary class="map-cache-heading">OsmAnd resources folder @if (!osmAndResourcesPath().trim() || osmAndResourcesError()) { <span class="resource-section-error-label">FILES MISSING</span> }</summary>
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
@@ -796,8 +796,8 @@ interface MapErrorEntry {
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
       </div>
     </details>
-    <details class="map-cache-section download-section local-source-section">
-      <summary class="map-cache-heading">Mapsforge XML theme folder</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0">
+      <summary class="map-cache-heading">Mapsforge XML theme folder @if (!mapsforgeThemeFolder().trim() || mapsforgeThemeError() || mapsforgeThemes().length === 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (mapsforgeThemeDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
@@ -846,7 +846,7 @@ interface MapErrorEntry {
         <button class="offline-map-add-button offline-map-bulk-button offline-map-remove-visible-button" type="button" (click)="removeVisibleOfflineFiles()" [disabled]="filteredOfflineFiles().length === 0">Remove visible maps</button>
       </div>
     </details>
-    <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · ' + filteredOfflineFiles().length + ' map(s) filtered' }}
+    <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · ' + filteredOfflineFiles().length + ' map(s) filtered' }}@if (offlineMapMissingCount() > 0) { · {{ offlineMapMissingCount() }} map(s) missing - FILES MISSING }@if (offlineMapDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() }} map(s) duplicate - FILES DUPLICATE }
     @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
     </span>
   </div>
@@ -1004,14 +1004,15 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column">InUse</th><th class="mbtiles-enabled-column">Active</th><th class="mbtiles-type-column">Type</th><th>Map file</th><th>File size</th><th>Last modified</th><th class="mbtiles-updates-column">Updates</th><th>Bounds</th><th>Zoom</th><th></th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">Map file {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th><th></th></tr></thead>
                   <tbody>
-                    @for (map of filteredOfflineFiles(); track map.id) {
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'">
+                    @for (map of sortedOfflineFiles(); track map.id) {
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineMapHasMissingFile(map) || offlineMapHasDuplicateName(map)">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="isOfflineMapInUse(map)" [attr.title]="isOfflineMapInUse(map) ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="isOfflineMapInUse(map) ? 'In use' : 'Not in use'">{{ isOfflineMapInUse(map) ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                         <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available · ' + (map.updateDate || 'newer version') + ' · ' + (map.updateSource || 'source') : map.updateAvailable === false ? 'No newer version listed · ' + (map.updateSource || 'source') : map.updateMatched === true ? (map.updateDate ? 'Matched catalogue file · ' + map.updateDate + ' · ' + (map.updateSource || 'source') : 'Matched catalogue file · no catalogue date available · ' + (map.updateSource || 'source')) : map.updateChecked ? 'No matching filename found in the available catalogues' : 'Not checked yet'" [attr.aria-label]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No update available' : map.updateMatched === true ? 'Catalogue file matched' : map.updateChecked ? 'No catalogue match' : 'Not checked'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : map.updateChecked && map.updateMatched === true && map.updateAvailable === null ? '✓' : '—' }}</span></td>
@@ -1034,12 +1035,13 @@ interface MapErrorEntry {
               @if (hillshadeDatabases().length > 0) {
                 @if (filteredHillshadeDatabases().length > 0) {
                   <table class="mbtiles-map-table hillshade-map-table">
-                    <thead><tr><th class="mbtiles-enabled-column">Active</th><th>Hillshade file</th><th>Last modified</th><th>File size</th><th>Status</th><th></th><th></th></tr></thead>
+                    <thead><tr><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('enabled')">Active {{ hillshadeSortIndicator('enabled') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('name')">Hillshade file {{ hillshadeSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('path')">Path {{ hillshadeSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('lastModified')">Last modified {{ hillshadeSortIndicator('lastModified') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('sizeBytes')">File size {{ hillshadeSortIndicator('sizeBytes') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('status')">Status {{ hillshadeSortIndicator('status') }}</button></th><th></th><th></th></tr></thead>
                     <tbody>
-                      @for (database of filteredHillshadeDatabases(); track database.id) {
-                        <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available">
+                      @for (database of sortedHillshadeDatabases(); track database.id) {
+                        <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="!database.path.trim() || !database.available || hillshadeHasDuplicateName(database)">
                           <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
                           <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
+                          <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
                           <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
                           <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                           <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
@@ -1324,7 +1326,13 @@ interface MapErrorEntry {
     .offline-catalogue-matched{background:rgba(46,160,67,.20)}
     .offline-catalogue-matched:hover{background:rgba(46,160,67,.28)}
     .download-source-url{min-width:0;width:auto}.download-source-url input{width:100%;min-width:0;box-sizing:border-box}.download-source-table select{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
-    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;max-width:100%;table-layout:fixed;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:auto;min-width:0}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:145px}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:85px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:90px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:65px}.hillshade-file-name{max-width:none;overflow:hidden;text-overflow:ellipsis;cursor:default}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;max-width:100%;table-layout:fixed;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:145px;min-width:0}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:34%}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:145px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:85px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:90px}.hillshade-map-table th:nth-child(7),.hillshade-map-table td:nth-child(7){width:65px}.hillshade-file-name{max-width:none;overflow:hidden;text-overflow:ellipsis;cursor:default}
+    .table-sort-button{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:600;text-align:left;white-space:nowrap}.table-sort-button:hover{background:transparent;color:#8ab4f8}
+    .offline-map-path-cell{min-width:0;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:11px/1.35 Consolas,monospace;color:var(--color-content-default-medium,#bbb)}
+    .file-path-error{background:rgba(210,35,35,.30)!important}.file-path-error:hover{background:rgba(225,45,45,.42)!important}
+    .resource-section-error{background:rgba(180,25,25,.18)!important;border:1px solid rgba(255,80,80,.55)!important;border-radius:5px}
+    .resource-section-error-label{display:inline-block;margin-left:8px;padding:1px 5px;border-radius:3px;background:rgba(190,25,25,.38);color:#ffaaa5;font-size:10px;font-weight:800;letter-spacing:.04em}
+    .valhalla-config-row.file-path-error{border-radius:3px;padding-left:4px;padding-right:4px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
@@ -1798,6 +1806,73 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
     return maps;
   });
+  protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
+  protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
+  protected readonly offlineMapMissingCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasMissingFile(map)).length);
+  protected readonly offlineMapDuplicateCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasDuplicateName(map)).length);
+  protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
+  protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => {
+    const name = this.fileNameFromPath(map.filePath);
+    return !!name && this.offlineMaps().some(other => other.id !== map.id && this.fileNameFromPath(other.filePath) === name && other.filePath.toLocaleLowerCase() !== map.filePath.toLocaleLowerCase());
+  };
+  protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
+  protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
+  protected readonly sortedHillshadeDatabases = computed(() => this.sortRows(this.filteredHillshadeDatabases(), this.hillshadeSort(), database => this.hillshadeSortValue(database, this.hillshadeSort().column)));
+  protected readonly hillshadeMissingCount = computed(() => this.hillshadeDatabases().filter(database => !database.path.trim() || !database.available).length);
+  protected readonly hillshadeDuplicateCount = computed(() => this.hillshadeDatabases().filter(database => this.hillshadeHasDuplicateName(database)).length);
+  protected readonly hillshadeHasDuplicateName = (database: OsmAndHillshadeDatabase): boolean => {
+    const name = this.fileNameFromPath(database.path);
+    return !!name && this.hillshadeDatabases().some(other => other.id !== database.id && this.fileNameFromPath(other.path) === name && other.path.toLocaleLowerCase() !== database.path.toLocaleLowerCase());
+  };
+  protected readonly hillshadeSortIndicator = (column: string): string => this.hillshadeSort().column === column ? (this.hillshadeSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly sortHillshadeDatabases = (column: string): void => this.hillshadeSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
+  protected readonly valhallaMissingCount = computed(() => this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length);
+  protected readonly valhallaDuplicateCount = computed(() => this.valhallaConfigurations().filter(configuration => this.hasDuplicatePathName(configuration.path, this.valhallaConfigurations().map(item => item.path))).length);
+  protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemes().filter(theme => this.hasDuplicatePathName(theme.path, this.mapsforgeThemes().map(item => item.path))).length);
+  protected readonly fileNameFromPath = (path: string): string => path.replace(/\\/g, '/').split('/').pop()?.toLocaleLowerCase() ?? '';
+  protected readonly hasDuplicatePathName = (path: string, paths: string[]): boolean => {
+    const name = this.fileNameFromPath(path);
+    return !!name && paths.some(other => other.toLocaleLowerCase() !== path.toLocaleLowerCase() && this.fileNameFromPath(other) === name);
+  };
+  protected readonly sortRows = <T>(rows: T[], state: { column: string; direction: 'asc' | 'desc' }, value: (row: T) => string | number | boolean | null): T[] => {
+    const direction = state.direction === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const left = value(a), right = value(b);
+      if (left === right) return 0;
+      if (left === null || left === undefined) return 1;
+      if (right === null || right === undefined) return -1;
+      if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction;
+      if (typeof left === 'boolean' && typeof right === 'boolean') return ((left ? 1 : 0) - (right ? 1 : 0)) * direction;
+      return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' }) * direction;
+    });
+  };
+  private offlineMapSortValue(map: import('internal-api').OfflineMapStatus, column: string): string | number | boolean | null {
+    switch (column) {
+      case 'inUse': return this.isOfflineMapInUse(map);
+      case 'enabled': return map.enabled;
+      case 'type': return map.type ?? 'mbtiles';
+      case 'name': return map.name;
+      case 'path': return map.filePath;
+      case 'fileSize': return map.fileSize;
+      case 'lastModified': return map.lastModified;
+      case 'updates': return map.updateAvailable === true ? 2 : map.updateAvailable === false ? 1 : 0;
+      case 'bounds': return map.bounds;
+      case 'zoom': return map.minZoom * 100 + map.maxZoom;
+      default: return map.name;
+    }
+  }
+  private hillshadeSortValue(database: OsmAndHillshadeDatabase, column: string): string | number | boolean | null {
+    switch (column) {
+      case 'enabled': return database.enabled;
+      case 'name': return this.fileNameFromPath(database.path);
+      case 'path': return database.path;
+      case 'lastModified': return database.lastModified;
+      case 'sizeBytes': return database.sizeBytes;
+      case 'status': return database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found';
+      default: return this.fileNameFromPath(database.path);
+    }
+  }
   protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
   protected readonly offlineMapPreset = signal<string>('custom');
   protected readonly hillshadePreset = signal<string>('custom');
