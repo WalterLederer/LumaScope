@@ -160,7 +160,7 @@ class OsmAndHillshadeWorker {
     this.reader = null;
     if (!child || child.exitCode !== null) return;
     try {
-      if (child.stdin.writable) child.stdin.write(JSON.stringify({ command: 'shutdown' }) + '\n');
+      if (child.stdin.writable) child.stdin.end(JSON.stringify({ type: 'quit' }) + '\n');
     } catch { /* Process may already be closing. */ }
     child.kill();
   }
@@ -169,12 +169,12 @@ class OsmAndHillshadeWorker {
     if (this.child && this.child.exitCode === null && this.reader) return;
     if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas helper not found: ' + this.helperPath);
 
-    // The native helper's stdin/stdout worker protocol starts only when no
-    // command-line arguments are supplied. Hillshade requests access SQLite
-    // directly and do not require Atlas OBF/resources/style initialization.
+    // Hillshade uses the dedicated worker mode of the Atlas helper executable.
+    // This keeps Atlas rendering and SQLite tile reads in separate processes,
+    // while sharing one native binary and its Qt SQL runtime.
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawn(this.helperPath, [], {
+      child = spawn(this.helperPath, ['--hillshade-worker'], {
         stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
       });
     } catch (error) {
@@ -210,7 +210,7 @@ class OsmAndHillshadeWorker {
     if (requestId === 0) requestId = 1;
     this.nextRequestId = (requestId + 1) >>> 0;
     if (this.nextRequestId === 0) this.nextRequestId = 1;
-    const request = { command: 'hillshade_tile', request_id: requestId, database_path: databasePath, z, x, y, s };
+    const request = { type: 'hillshade_tile', requestId, databasePath, z, x, y, s };
     await new Promise<void>((resolve, reject) => {
       child.stdin.write(JSON.stringify(request) + '\n', error => error ? reject(error) : resolve());
     });
@@ -522,7 +522,7 @@ export class OsmAndAtlasManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
-  private readonly hillshadeHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
+  private readonly hillshadeHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = this.readSavedStyleFileName();
   private stylePath = this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
