@@ -70,6 +70,19 @@ const readJsonObject = (path: string): AppSettings => {
 
 export const readUserAppSettings = (): AppSettings => readJsonObject(settingsPath());
 
+// Writes must never treat an unreadable existing configuration as an empty
+// object. Doing so would replace the user's complete settings with only the
+// section being saved (for example, window bounds during application shutdown).
+const readUserAppSettingsForUpdate = (): AppSettings => {
+  const path = settingsPath();
+  if (!existsSync(path)) return {};
+  const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
+  if (!isPlainObject(value)) {
+    throw new Error('The application configuration must contain a JSON object. No settings were changed: ' + path);
+  }
+  return value;
+};
+
 export const readAppSettings = (): AppSettings =>
   mergeSettings(readJsonObject(defaultSettingsPath()), readUserAppSettings());
 
@@ -80,7 +93,13 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
   const operation = writeQueue.then(async () => {
     // Read only after the previous write has completed so concurrent windows
     // cannot overwrite each other's settings with stale snapshots.
-    const settings = readUserAppSettings();
+    let settings: AppSettings;
+    try {
+      settings = readUserAppSettingsForUpdate();
+    } catch (error) {
+      console.error('[Settings] Refusing to overwrite an unreadable configuration file:', error);
+      throw error;
+    }
     if (section === 'root') {
       // Reserved section name for one-time cleanup of former top-level config keys.
       const updated = { ...settings, ...values };
