@@ -261,6 +261,7 @@ export interface DesktopOfflineMap {
  readonly importFiles:(paths:string[])=>Promise<OfflineMapImportResult>;
  readonly scanResourcePackage:(rootPath:string)=>Promise<ResourcePackageScanResult>;
  readonly getMaps:()=>Promise<OfflineMapStatus[]>;
+ readonly checkFiles:()=>Promise<OfflineMapStatus[]>;
  readonly checkForUpdates:()=>Promise<OfflineMapUpdateCheckResult>;
  readonly removeFile:(id:string)=>Promise<OfflineMapStatus[]>;
  readonly setEnabled:(id:string,enabled:boolean)=>Promise<OfflineMapStatus[]>;
