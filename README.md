@@ -1,6 +1,6 @@
 # LumaScope
 
-![LumaScope Image View](docs/images/lumaScope_icon.png){width=30%} 
+<img src="docs/images/lumaScope_icon.png" alt="LumaScope Image View" width="30%"> 
 ![LumaScope Image View](docs/images/Screenshot_2025-07-28_13-52-11_jpg_thumb.jpg) 
 
 
