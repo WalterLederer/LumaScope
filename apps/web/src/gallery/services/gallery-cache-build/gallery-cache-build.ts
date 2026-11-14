@@ -14,6 +14,7 @@ interface GalleryCacheBuildController {
   readonly start: () => void;
   readonly startRecursive: () => void;
   readonly cancel: () => void;
+  readonly refreshDetailCacheStatus: () => void;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +42,7 @@ export class GalleryCacheBuild {
   readonly startCacheBuild = (): void => this.controller()?.start();
   readonly startRecursiveCacheBuild = (): void => this.controller()?.startRecursive();
   readonly cancelCacheBuild = (): void => this.controller()?.cancel();
+  readonly refreshDetailCacheStatus = (): void => this.controller()?.refreshDetailCacheStatus();
 
   readonly register = (controller: GalleryCacheBuildController): (() => void) => {
     this.controller.set(controller);
