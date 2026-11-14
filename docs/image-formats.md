@@ -2,7 +2,7 @@
 
 [Back to README](../README.md)
 
-Bit depth is per channel unless stated otherwise. HDR capability is format- and file-dependent; the presence of a format in this table does not mean every file using that extension contains HDR data.
+The Help reference contains **14 format entries: 9 HDR-capable entries, 5 SDR entries and 5 decoder families**. Bit depth is per channel unless stated otherwise. HDR capability is format- and file-dependent; the presence of a format in this table does not mean every file using that extension contains HDR data.
 
 | Format | Extensions | HDR path | Full-size cache | Bit depth | Decoder / conversion path | Details |
 | --- | --- | --- | --- | --- | --- | --- |
