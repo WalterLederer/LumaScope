@@ -483,8 +483,14 @@ export interface DesktopMapsforge {
   readonly shutdown: () => Promise<void>;
 }
 
+export interface DesktopTheme {
+  readonly broadcast: (theme: 'dark' | 'light') => void;
+  readonly onChanged: (callback: (theme: 'dark' | 'light') => void) => () => void;
+}
+
 export interface Desktop {
   readonly onFilesOpened: (callback: (paths: string[]) => void) => () => void;
+  readonly Theme: DesktopTheme;
   readonly ProcessManager: DesktopProcessManager;
   readonly Profiling: {
     readonly getExternalProcessCalls: () => Promise<ExternalProcessCall[]>;
