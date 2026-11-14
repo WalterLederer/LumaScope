@@ -21,7 +21,7 @@ export class ThemeService {
       const stored = this.document.defaultView?.localStorage.getItem('theme');
       if (stored === 'light' || stored === 'dark') return stored;
     } catch { /* Fall back to the document theme when storage is unavailable. */ }
-    return this.document.documentElement.dataset['theme'] === 'light' ? 'light' : 'dark';
+    return this.document.documentElement.dataset['theme'] === 'light' ? 'light' : 'light';
   }
 
   constructor() {
@@ -35,7 +35,7 @@ export class ThemeService {
 
     this.configuration.config()
       .pipe(takeUntilDestroyed())
-      .subscribe(config => this.setTheme(config.system.theme ?? 'dark', false));
+      .subscribe(config => this.setTheme(config.system.theme ?? 'light', false));
   }
 
   readonly toggle = () => {
