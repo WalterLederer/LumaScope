@@ -143,7 +143,12 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       paragraph.push(line.trim());
       index++;
     }
-    output.push('<p>' + paragraph.map(line => renderInline(line, imageSources)).join('<br>') + '</p>');
+    const paragraphHtml = paragraph.map(line => renderInline(line, imageSources)).join('<br>');
+    if (/^(?:\s*<img\b[^>]*>\s*)+$/i.test(paragraphHtml)) {
+      output.push('<div class="markdown-image-row">' + paragraphHtml + '</div>');
+    } else {
+      output.push('<p>' + paragraphHtml + '</p>');
+    }
   }
 
   return output.join('\n');
