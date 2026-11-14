@@ -94,7 +94,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (/^\s*[-*+]\s+/.test(line)) {
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
-        items.push('<li>' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, '')) + '</li>');
+        items.push('<li>' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources) + '</li>');
         index++;
       }
       output.push('<ul>' + items.join('') + '</ul>');
@@ -113,7 +113,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
 
     if (/^\s*>/.test(line)) {
       const quote: string[] = [];
-      while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(renderInline(lines[index++].replace(/^\s*>\s?/, '')));
+      while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(renderInline(lines[index++].replace(/^\s*>\s?/, ''), imageSources));
       output.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
       continue;
     }
