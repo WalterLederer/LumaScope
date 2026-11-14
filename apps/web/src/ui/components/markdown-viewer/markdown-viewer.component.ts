@@ -16,7 +16,13 @@ const renderInline = (source: string, imageSources: ReadonlyMap<string, string>)
   value = value.replace(/`([^`]+)`/g, '<code>$1</code>');
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  value = value.replace(/!\[([^\]]*)\]\(([^ )]+)(?:\s+"[^"]*")?\)/g, (_match, alt: string, href: string) => {
+  value = value.replace(/!\[([^\]]*)\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=(\d{1,3}(?:\.\d+)?)%\})?/g, (_match, alt: string, target: string, widthText?: string) => {
+    const href = target.replace(/\s+"[^"]*"$/, '');
+    const source = imageSources.get(href);
+    const width = widthText ? Number(widthText) : NaN;
+    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100 ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"' : '';
+    return source ? '<img src="' + source + '" alt="' + alt + '" loading="lazy"' + widthStyle + '>' : '<span>' + alt + '</span>';
+  });
     const source = imageSources.get(href);
     return source ? '<img src="' + source + '" alt="' + alt + '" loading="lazy">' : '<span>' + alt + '</span>';
   });
@@ -175,13 +181,13 @@ export class MarkdownViewerComponent {
       const response = await this.fileSystem.readDocumentationFile(fileName);
       if (response.success) {
         const imageSources = new Map<string, string>();
-        const imagePattern = /!\[[^\]]*\]\(([^ )]+)(?:\s+"[^"]*")?\)/g;
+        const imagePattern = /!\[[^\]]*\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=\d{1,3}(?:\.\d+)?%\})?/g;
         const imagePaths = new Set<string>();
         for (const match of response.data.matchAll(imagePattern)) {
           const href = match[1];
           const allowedPath = fileName === 'README.md'
-            ? /^docs\/images\/([a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href)
-            : /^images\/([a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href);
+            ? /^docs\/images\/([a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href)
+            : /^images\/([a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href);
           if (allowedPath) imagePaths.add(href);
         }
         await Promise.all([...imagePaths].map(async href => {
