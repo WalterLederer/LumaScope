@@ -21,9 +21,9 @@ const escapeHtml = (value: string): string => value
 const renderInline = (source: string): string => {
   let value = escapeHtml(source);
   value = value.replace(/`([^`]+)`/g, '<code>$1</code>');
-  value = value.replace(/**([^*]+)**/g, '<strong>$1</strong>');
-  value = value.replace(/*([^*]+)*/g, '<em>$1</em>');
-  value = value.replace(/[([^]]+)](([^ )]+)(?:\s+"[^"]*")?)/g, (_match, label: string, href: string) => {
+  value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  value = value.replace(/\[([^\]]+)\]\(([^ )]+)(?:\s+"[^"]*")?\)/g, (_match, label: string, href: string) => {
     const safeHref = href.replace(/&amp;/g, '&amp;').replace(/"/g, '&quot;');
     const external = /^https?:\/\//i.test(href);
     return '<a href="' + safeHref + '"' + (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + label + '</a>';
