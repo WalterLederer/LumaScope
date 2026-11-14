@@ -213,7 +213,7 @@ Valhalla routing tiles/graph data and JSON configuration files are runtime input
 
 ## 5. Mapsforge Java renderer
 
-The Mapsforge renderer is a standalone Java application implemented in `tools/mapsforge-renderer/`. It uses Mapsforge 0.25.0 libraries and packages its dependencies into one executable JAR.
+The Mapsforge renderer is a standalone Java application implemented in `tools/mapsforge-renderer/`. It uses Mapsforge 0.25.0 libraries and packages its Java library dependencies into one executable JAR. This JAR is included in the LumaScope desktop package; the Java Virtual Machine is not. Consequently, every target PC that uses Mapsforge must have Java 17 or newer installed and discoverable through `JAVA_HOME` or `PATH`. A JRE is sufficient at runtime; a JDK is needed for building.
 
 ### Requirements
 
