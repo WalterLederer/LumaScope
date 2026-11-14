@@ -5,6 +5,9 @@ import ElectronEvents from './app/events/electron.events';
 import SquirrelEvents from './app/events/squirrel.events';
 import UpdateEvents from './app/events/update.events';
 
+const isImageFileArgument = (value: string): boolean =>
+  /\.(?:avif|bmp|gif|hdr|heic|heif|jpe?g|jxl|jxr|png|svg|tiff?|webp|exr)$/i.test(value);
+
 export default class Main {
   static initialize(): boolean {
     if (SquirrelEvents.handleEvents()) {
@@ -18,9 +21,24 @@ export default class Main {
       return false;
     }
 
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, commandLine, workingDirectory) => {
       const mainWindow = BrowserWindow.getAllWindows()[0];
       if (!mainWindow || mainWindow.isDestroyed()) return;
+
+      const pathModule = require('node:path') as typeof import('node:path');
+      const imagePaths = commandLine
+        .slice(1)
+        .filter(argument => !argument.startsWith('-') && isImageFileArgument(argument))
+        .map(argument => pathModule.isAbsolute(argument) ? argument : pathModule.resolve(workingDirectory, argument));
+
+      const sendOpenFiles = (): void => {
+        if (!mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed() && imagePaths.length > 0) {
+          mainWindow.webContents.send('App.openFiles', imagePaths);
+        }
+      };
+      if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', sendOpenFiles);
+      else sendOpenFiles();
+
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
       mainWindow.focus();
