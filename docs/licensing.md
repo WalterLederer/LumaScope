@@ -49,7 +49,9 @@ These are separate components and must not be treated as having one interchangea
 
 LumaScope's native OBF renderer and Atlas helper use the upstream OsmAnd Core C++ libraries. The current OsmAnd project license identifies the Core source as GPLv3, with exceptions for certain third-party components. Qt is separately identified as LGPL when dynamically linked.
 
-The helper executables are distributed as part of the LumaScope Windows package. Before publishing a release, verify the exact OsmAnd Core revision, the way its libraries are linked, the Qt DLLs included, and the corresponding source and notices that must accompany the distributed helper. Do not assume that the MIT license on LumaScope's own code overrides the licenses of these native components. Also do not assume, without a legal review of the combined distribution, that the presence of a separate helper process automatically changes the license of every other LumaScope component.
+The helper executables are distributed as part of the LumaScope Windows package. **The current `stage-helpers.ps1` copies the helper EXEs and runtime DLLs, but does not itself copy the GPL/Qt license notices or the corresponding OsmAnd Core source into the release package.** The presence of license texts in the repository (including `tools/osmand-runtime/licenses/GPL-3.0.txt`) is not the same as including the required materials with a binary distribution.
+
+Before publishing a release, verify the exact OsmAnd Core revision, the way its libraries are linked, the Qt DLLs included, and the corresponding source and notices that must accompany the distributed helper. Do not assume that the MIT license on LumaScope's own code overrides the licenses of these native components. Also do not assume, without a legal review of the combined distribution, that the presence of a separate helper process automatically changes the license of every other LumaScope component.
 
 ### OsmAnd resources
 
