@@ -156,14 +156,19 @@ export class MarkdownViewerComponent {
     if (!documentationFiles.has(fileName)) return;
     this.loading.set(true);
     this.error.set(null);
-    const response = await this.fileSystem.readDocumentationFile(fileName);
-    if (response.success) {
-      this.currentFile.set(fileName);
-      this.markdown.set(response.data);
-    } else {
-      this.error.set(response.errorMessage);
+    try {
+      const response = await this.fileSystem.readDocumentationFile(fileName);
+      if (response.success) {
+        this.currentFile.set(fileName);
+        this.markdown.set(response.data);
+      } else {
+        this.error.set(response.errorMessage);
+      }
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.loading.set(false);
     }
-    this.loading.set(false);
   };
 
   protected readonly showReadme = (): void => {
