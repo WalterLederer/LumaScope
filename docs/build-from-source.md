@@ -49,7 +49,8 @@ Install and make the following tools available on `PATH`, unless a script parame
 - CMake 3.24 or newer for the native helper projects.
 - Visual Studio 2022 C++ build tools and a Windows 10/11 SDK.
 - Qt 6 and the matching compiler toolchain for the OsmAnd helper.
-- A JDK 17+ and Apache Maven 3.9+ for Mapsforge.
+- A JDK 17+ and Apache Maven 3.9+ to build the Mapsforge renderer.
+- **Runtime on each target PC:** Java 17 or newer is also required to use Mapsforge. The desktop package currently includes the `mapsforge-renderer.jar`, but does **not** include a Java runtime. Install a Java 17+ runtime (a JRE is sufficient; a JDK also works) on every PC that will run Mapsforge, and make `java.exe` available through `JAVA_HOME` or `PATH`. LumaScope prefers `%JAVA_HOME%\\bin\\java.exe` when `JAVA_HOME` is set; otherwise it resolves `java.exe` from `PATH`.
 - Python is only required by the optional OsmAnd official-workspace build flow when its configured Python environment is used.
 
 Use the compiler/toolchain combination expected by each project. In particular, do not mix Qt's MinGW libraries with an MSVC-built helper or reuse a CMake build directory after changing compiler, generator, architecture or Qt installation.
