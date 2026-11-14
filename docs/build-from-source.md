@@ -164,7 +164,15 @@ The Valhalla source checkout is maintained separately from this repository. The 
 
 The helper staging script locates the build directory in this layout by default. To use another location, set `LUMASCOPE_VALHALLA_BUILD` to the absolute path of the Valhalla CMake build directory.
 
-Build and configure the upstream Valhalla project using its current Windows build instructions and the same Visual Studio/vcpkg toolchain used to create that build directory. The CMake cache must describe a valid Valhalla source tree and the required Valhalla libraries and runtime DLLs must be built. The LumaScope repository does not contain a second copy of the upstream Valhalla source and does not bootstrap its vcpkg dependencies.
+Build and configure the upstream Valhalla project using its current Windows build instructions and the same Visual Studio/vcpkg toolchain used to create that build directory. The CMake cache must describe a valid Valhalla source tree. The LumaScope repository does not contain a second copy of the upstream Valhalla source and does not bootstrap its vcpkg dependencies.
+
+Once the upstream CMake build directory has been configured, compile the Valhalla libraries from the repository root (adjust the path if your checkout is elsewhere):
+
+```powershell
+cmake --build .\..\Valhalla\build-release --config RelWithDebInfo --parallel 8
+```
+
+This builds the default targets enabled by that upstream CMake configuration. The required Valhalla libraries and runtime DLLs must be present before building/staging the LumaScope helper in the next step. The exact first-time CMake configuration and dependency options belong to the selected Valhalla revision; follow its current Windows/vcpkg instructions rather than reusing a stale cache or guessed options.
 
 Upstream project and build documentation: [Valhalla on GitHub](https://github.com/valhalla/valhalla).
 
