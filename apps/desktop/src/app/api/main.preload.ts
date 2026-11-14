@@ -1,7 +1,20 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { Desktop, ExternalProcessCall, SortDirection, SortType } from 'internal-api';
 
+const openFilesListeners = new Set<(paths: string[]) => void>();
+const pendingOpenFileBatches: string[][] = [];
+ipcRenderer.on('App.openFiles', (_event, paths: string[]) => {
+  if (!Array.isArray(paths) || paths.length === 0) return;
+  if (openFilesListeners.size === 0) pendingOpenFileBatches.push(paths);
+  else for (const listener of openFilesListeners) listener(paths);
+});
+
 const api: Desktop = {
+  onFilesOpened: callback => {
+    openFilesListeners.add(callback);
+    while (pendingOpenFileBatches.length > 0) callback(pendingOpenFileBatches.shift()!);
+    return () => openFilesListeners.delete(callback);
+  },
   ProcessManager: {
     getProcessMemoryUsage: () => ipcRenderer.invoke('ProcessManager.getProcessMemoryUsage'),
     getAppVersion: () => ipcRenderer.invoke('ProcessManager.getAppVersion'),
