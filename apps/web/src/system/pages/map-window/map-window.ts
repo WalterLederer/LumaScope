@@ -1819,7 +1819,13 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapsforgeThemeDuplicatePaths = signal<ReadonlySet<string>>(new Set());
   protected readonly mapsforgeThemeDuplicateCount = computed(() => this.offlineFilesChecked() ? this.mapsforgeThemeDuplicatePaths().size : 0);
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
-  protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount() + this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
+  protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount()
+    + this.hillshadeMissingCount() + this.hillshadeDuplicateCount()
+    + this.valhallaMissingCount() + this.valhallaDuplicateCount()
+    + (this.offlineFilesChecked() && this.valhallaConfigurations().length === 0 ? 1 : 0)
+    + this.mapsforgeThemeDuplicateCount()
+    + (this.offlineFilesChecked() && (!this.osmAndResourcesPath().trim() || !!this.osmAndResourcesError()) ? 1 : 0)
+    + (this.offlineFilesChecked() && (!this.mapsforgeThemeFolder().trim() || this.mapsforgeThemes().length === 0 || !!this.mapsforgeThemeError()) ? 1 : 0));
   protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
   protected readonly offlineMapHasUnselectedFiles = computed(() => this.offlineFilesChecked() && this.offlineMapStats().availableCount + this.hillshadeStats().availableCount > 0 && this.offlineMapStats().activeCount + this.hillshadeStats().activeCount === 0);
   protected readonly hillshadeHasUnselectedFiles = computed(() => this.hillshadeStats().availableCount > 0 && this.hillshadeStats().activeCount === 0);
