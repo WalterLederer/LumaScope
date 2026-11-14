@@ -13,6 +13,16 @@ LumaScope uses dedicated helper processes for selected native or third-party tas
 
 ## Dynamically profiled processes
 
+Other programs appear in the Help panel when LumaScope launches them through its external-process wrapper. The displayed list is session-specific and reflects the programs actually started during that session.
+
+Process memory information is collected without PowerShell:
+- **Windows:** the built-in `tasklist.exe` command reports working-set memory. Private bytes are not available from this source and are shown as unavailable.
+- **Linux:** process information is read from `/proc`; resident memory comes from `statm`, and private memory is read from `smaps_rollup` when permissions allow it.
+- **macOS:** the built-in `ps` command reports resident memory. Private bytes are not currently available.
+
+Processes can exit or become inaccessible while a snapshot is being collected, so the list is best-effort and may vary between refreshes.
+
+
 Other programs appear in the Help panel when LumaScope launches them through its external-process wrapper. The displayed list is session-specific and may include PowerShell scripts used for Windows integration, such as:
 
 | Process / script role | Function |
