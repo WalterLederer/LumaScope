@@ -441,6 +441,18 @@
         </section>
 
       }
+      @if (activeImageSidebarTab() === 'cache') {
+        <app-settings-panel mode="cache"
+                            [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
+                            [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
+                            [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
+                            [currentFolderPath]="galleryCacheBuild.currentFolderPath()"
+                            [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
+                            (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
+                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
+                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
+                            [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
+      }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
         <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
       }
