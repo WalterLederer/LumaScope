@@ -1576,8 +1576,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryPhotoTimestampMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
   private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
-  private readonly offlineMapListMounted = signal(false);
-  private readonly hillshadeListMounted = signal(false);
+  protected readonly offlineMapListMounted = signal(false);
+  protected readonly hillshadeListMounted = signal(false);
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
