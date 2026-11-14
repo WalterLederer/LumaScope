@@ -1891,17 +1891,28 @@ export class MapWindow implements OnInit, OnDestroy {
     const name = this.fileNameFromPath(path);
     return !!name && paths.some(other => other.toLocaleLowerCase() !== path.toLocaleLowerCase() && this.fileNameFromPath(other) === name);
   };
+  private readonly sortedRowOrderCache = new Map<string, string[]>();
   protected readonly sortRows = <T>(rows: T[], state: { column: string; direction: 'asc' | 'desc' }, value: (row: T) => string | number | boolean | null): T[] => {
-    const direction = state.direction === 'asc' ? 1 : -1;
-    return [...rows].sort((a, b) => {
-      const left = value(a), right = value(b);
-      if (left === right) return 0;
-      if (left === null || left === undefined) return 1;
-      if (right === null || right === undefined) return -1;
-      if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction;
-      if (typeof left === 'boolean' && typeof right === 'boolean') return ((left ? 1 : 0) - (right ? 1 : 0)) * direction;
-      return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' }) * direction;
-    });
+    const ids = rows.map(row => String((row as { id?: string | number }).id ?? ''));
+    const cacheKey = `${state.column}|${state.direction}|${ids.join('|')}`;
+    let sortedIds = this.sortedRowOrderCache.get(cacheKey);
+    if (!sortedIds) {
+      const direction = state.direction === 'asc' ? 1 : -1;
+      sortedIds = [...rows].sort((a, b) => {
+        const left = value(a), right = value(b);
+        if (left === right) return 0;
+        if (left === null || left === undefined) return 1;
+        if (right === null || right === undefined) return -1;
+        if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction;
+        if (typeof left === 'boolean' && typeof right === 'boolean') return ((left ? 1 : 0) - (right ? 1 : 0)) * direction;
+        return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' }) * direction;
+      }).map(row => String((row as { id?: string | number }).id ?? ''));
+      this.sortedRowOrderCache.set(cacheKey, sortedIds);
+      // Keep the cache bounded when lists are repeatedly added, removed or resorted.
+      if (this.sortedRowOrderCache.size > 12) this.sortedRowOrderCache.delete(this.sortedRowOrderCache.keys().next().value!);
+    }
+    const rowsById = new Map(rows.map(row => [String((row as { id?: string | number }).id ?? ''), row]));
+    return sortedIds.map(id => rowsById.get(id)).filter((row): row is T => row !== undefined);
   };
   private offlineMapSortValue(map: import('internal-api').OfflineMapStatus, column: string): string | number | boolean | null {
     switch (column) {
