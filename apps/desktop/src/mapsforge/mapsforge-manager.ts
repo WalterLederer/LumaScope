@@ -77,7 +77,7 @@ class MapsforgeWorkerClient {
       child.once('error', error => this.failPending(error));
       child.once('close', (code, signal) => {
         const details = this.stderrBuffer.trim();
-        const versionMismatch = details.match(/UnsupportedClassVersionError[\\s\\S]*?class file version (\\d+)[\\s\\S]*?recognizes class file versions up to (\\d+)/i);
+        const versionMismatch = details.match(/UnsupportedClassVersionError[\s\S]*?class file version (\d+)[\s\S]*?recognizes class file versions up to (\d+)/i);
         const javaRequirement = versionMismatch
           ? ' Mapsforge requires Java ' + (Number(versionMismatch[1]) - 44)
             + ' or later, but the selected Java runtime supports only up to Java '
