@@ -145,6 +145,7 @@ export class MarkdownViewerComponent {
   protected readonly markdown = signal('');
   protected readonly imageSources = signal<ReadonlyMap<string, string>>(new Map());
   protected readonly loading = signal(true);
+  protected readonly fontSize = signal(12);
   protected readonly error = signal<string | null>(null);
   protected readonly renderedHtml = computed(() => renderMarkdown(this.markdown(), this.imageSources()));
   protected readonly documentTitle = computed(() =>
@@ -190,6 +191,11 @@ export class MarkdownViewerComponent {
     } finally {
       this.loading.set(false);
     }
+  };
+
+  protected readonly onFontSizeChange = (event: Event): void => {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (Number.isFinite(value)) this.fontSize.set(Math.min(20, Math.max(10, value)));
   };
 
   protected readonly showReadme = (): void => {
