@@ -1,4 +1,4 @@
-import { IpcMainInvokeEvent } from 'electron';
+import { app, IpcMainInvokeEvent } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
 import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
@@ -29,6 +29,26 @@ export class FileSystem {
     }
   };
 
+  @IpcHandler({ name: 'FileSystem.readDocumentationFile' })
+  readonly readDocumentationFile = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
+    const allowedFiles = new Set([
+      'README.md', 'features.md', 'image-formats.md', 'map-formats.md',
+      'shortcuts.md', 'external-programs.md', 'windows-api.md'
+    ]);
+    if (!allowedFiles.has(fileName)) return { success: false, errorMessage: 'Unknown documentation file.' };
+    const documentationDirectory = app.isPackaged
+      ? join(process.resourcesPath, 'docs')
+      : join(process.cwd(), 'docs');
+    const sourcePath = fileName === 'README.md' && !app.isPackaged
+      ? join(process.cwd(), 'README.md')
+      : join(documentationDirectory, fileName);
+    try {
+      return { success: true, data: await readFile(sourcePath, 'utf-8') };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, errorMessage: 'Could not load ' + fileName + ': ' + message };
+    }
+  };
   @IpcHandler({ name: 'FileSystem.writeText' })
   readonly writeText = async (_: IpcMainInvokeEvent, path: string, content: string): Promise<ApiResponse<undefined>> => {
     try {
