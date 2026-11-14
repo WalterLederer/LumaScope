@@ -25,6 +25,7 @@ The root `package.json` also declares `MIT`; this is not a replacement for notic
 | LumaScope code inherited from Light Matter | MIT | Preserve the root `LICENSE.md` notice. |
 | Valhalla routing engine | MIT | Include the applicable MIT notice when redistributing Valhalla binaries or code. |
 | Mapsforge library used by the Java renderer | LGPL-3.0; upstream states that LGPLv3 sections 4(d) and 4(e) are waived | Include the LGPL license and preserve upstream notices. The shaded JAR contains Mapsforge and other Maven dependencies, each of which needs its own license review. |
+| Bundled OpenJDK runtime | Depends on the JDK distribution used on the build machine; the recommended Eclipse Temurin OpenJDK distribution is GPLv2 with the Classpath Exception | The minimized runtime is generated from the local JDK using `jlink` and shipped with Windows packages. Preserve the runtime's `legal/` notices in the staged/package contents and verify the exact vendor/version license before release. |
 | OsmAnd Core native libraries | GPL-3.0 according to the current OsmAnd project license, subject to listed third-party exceptions | The native OsmAnd helper executables are built against OsmAnd Core. Review GPLv3 source-code, notice and distribution requirements for the exact Core revision and build. |
 | Qt used by the OsmAnd helper | LGPL terms for Qt; OsmAnd describes its Qt integration as dynamic linking | Include the applicable Qt notices and verify the exact Qt modules and redistribution obligations for the shipped DLLs. |
 | OsmAnd resources | Mainly GPL-3.0, with resource-specific exceptions and third-party assets | The license is not changed by copying the resources into an application package. Check individual artwork, fonts and other assets before redistribution. |
@@ -91,6 +92,7 @@ Before publishing each release:
 4. For the OsmAnd Core helper, review GPLv3 obligations for the exact source revision and provide the corresponding source and build modifications where required.
 5. Include Qt's LGPL notices and satisfy the applicable dynamic-linking and redistribution conditions.
 6. For Mapsforge, include LGPLv3 notices and the licenses of all dependencies embedded in the shaded JAR.
+7. For the bundled Java runtime, retain its generated `legal/` directory and verify the JDK vendor's redistribution terms for the exact runtime staged in the release.
 7. Do not include OsmAnd artwork, icons, voices or other resources in a release unless their individual terms permit the intended distribution and use.
 8. If distributing OpenStreetMap-derived data, include the required attribution and ODbL information for the data source.
 9. Recheck the upstream license files whenever a dependency or source revision is updated.
