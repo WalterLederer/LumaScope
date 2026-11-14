@@ -48,21 +48,34 @@ foreach ($root in $jdkRoots) {
         ForEach-Object { $javaHomeCandidates.Add($_.FullName) }
 }
 
-$validJavaHomes = @(
-    $javaHomeCandidates |
-        Where-Object { $_ } |
-        Select-Object -Unique |
-        Where-Object {
-            (Test-Path -LiteralPath (Join-Path $_ 'bin\jlink.exe') -PathType Leaf) -and
-            (Test-Path -LiteralPath (Join-Path $_ 'bin\jdeps.exe') -PathType Leaf) -and
-            (Test-Path -LiteralPath (Join-Path $_ 'bin\javac.exe') -PathType Leaf) -and
-            (Test-Path -LiteralPath (Join-Path $_ 'jmods\java.base.jmod') -PathType Leaf)
+$validJavaHomes = @()
+foreach ($candidate in ($javaHomeCandidates | Where-Object { $_ } | Select-Object -Unique)) {
+    $candidateJavac = Join-Path $candidate 'bin\javac.exe'
+    $candidateTools = @(
+        (Join-Path $candidate 'bin\jlink.exe'),
+        (Join-Path $candidate 'bin\jdeps.exe'),
+        $candidateJavac,
+        (Join-Path $candidate 'jmods\java.base.jmod')
+    )
+    if (@($candidateTools | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) }).Count -gt 0) {
+        continue
+    }
+
+    $candidateVersion = (& $candidateJavac -version 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0 -and $candidateVersion -match 'javac\s+(\d+)') {
+        $candidateMajor = [int]$Matches[1]
+        if ($candidateMajor -ge 17) {
+            $validJavaHomes += $candidate
         }
-)
+        else {
+            Write-Host "Skipping unsupported JDK: $candidateVersion ($candidate)" -ForegroundColor DarkGray
+        }
+    }
+}
 
 if ($validJavaHomes.Count -eq 0) {
     $configuredHome = if ([string]::IsNullOrWhiteSpace($JavaHome)) { '<not set>' } else { $JavaHome }
-    throw "A full JDK 17 or newer with jlink.exe, jdeps.exe, javac.exe and jmods\java.base.jmod is required to create the bundled Mapsforge runtime. JAVA_HOME currently points to '$configuredHome', which may be a trimmed JDK. Install a full JDK (for example Temurin 25) and set JAVA_HOME to its installation directory."
+    throw "A full JDK 17 or newer with jlink.exe, jdeps.exe, javac.exe and jmods\java.base.jmod is required to create the bundled Mapsforge runtime. No suitable JDK was found. JAVA_HOME currently points to '$configuredHome'. Install a full JDK (for example Temurin 25) and set JAVA_HOME to its installation directory."
 }
 
 $preferredJavaHome = $validJavaHomes[0]
