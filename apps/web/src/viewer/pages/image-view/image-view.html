@@ -471,10 +471,8 @@
       }
 @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'actions') {
         <section class="image-actions-section">
-          <button class="section-heading" type="button" (click)="toggleSidebarSection('actions')"><span class="section-chevron">{{sidebarSectionExpanded('actions') ? 'v' : '>'}}</span>Actions</button>
-          @if (sidebarSectionExpanded('actions')) {
-            <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
-            <section class="copy-file-section">
+          <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
+          <section class="copy-file-section">
               <button class="section-heading" type="button" (click)="toggleSidebarSection('copy')"><span class="section-chevron">{{sidebarSectionExpanded('copy') ? 'v' : '>'}}</span>Copy file</button>
               @if (sidebarSectionExpanded('copy')) {
                 <div class="copy-folder-info-box">
@@ -495,13 +493,11 @@
                 </div>
                 @if (copyPhotoStatus()) { <div class="copy-photo-status" role="status">{{copyPhotoStatus()}}</div> }
                 <button class="danger-action copy-confirm-button" type="button" [disabled]="!copyDestinationFolder()" (click)="copyPhoto()">Copy (C, F8)</button>
-              }
-            </section>
-            <div class="image-path-copy-row">
+          </section>
+          <div class="image-path-copy-row">
               <div class="image-path-value" [title]="displayImagePath(selected.path)">{{displayImagePath(selected.path)}}</div>
               <button type="button" class="image-copy-path-button" (click)="copyImagePath()">{{copyPathStatus() || 'Copy path'}}</button>
-            </div>
-          }
+          </div>
         </section>
       }
 @if (activeImageSidebarTab() === 'general') {
