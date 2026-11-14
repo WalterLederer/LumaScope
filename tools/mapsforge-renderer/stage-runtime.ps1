@@ -1,10 +1,11 @@
+#requires -Version 7.0
+
 [CmdletBinding()]
 param(
     [string]$JavaHome = $env:JAVA_HOME
 )
 
 $ErrorActionPreference = 'Stop'
-$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $jarPath = Join-Path $PSScriptRoot 'target\mapsforge-renderer.jar'
 $stageRoot = Join-Path $PSScriptRoot 'stage'
 $runtimePath = Join-Path $stageRoot 'runtime'
