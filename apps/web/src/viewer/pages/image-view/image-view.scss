@@ -2030,3 +2030,14 @@
   min-width: 0;
   min-height: 0;
 }
+
+.image-controls-sidebar.help-tab-active {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.image-controls-sidebar.help-tab-active app-markdown-viewer {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
