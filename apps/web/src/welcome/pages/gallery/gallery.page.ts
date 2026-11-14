@@ -61,6 +61,8 @@ export class GalleryPage {
 
   private readonly galleryState = inject(GalleryState);
 
+  protected readonly galleryCacheBuild = inject(GalleryCacheBuild);
+
   private readonly dialogs = inject(Dialogs);
 
   private readonly dialog = inject(Dialog);
@@ -78,18 +80,7 @@ export class GalleryPage {
   protected readonly tree = viewChild.required(TreeComponent);
 
   protected readonly imageGrid = viewChild(ImageGridComponent);
-  private readonly readVerifyCacheFiles = (): boolean => {
-    try { return this.document.defaultView?.localStorage.getItem('verifyCacheFiles') === 'true'; }
-    catch { return false; }
-  };
-  protected readonly verifyCacheFiles = signal(this.readVerifyCacheFiles());
-  protected readonly setVerifyCacheFiles = (enabled: boolean): void => {
-    this.verifyCacheFiles.set(enabled);
-    try { this.document.defaultView?.localStorage.setItem('verifyCacheFiles', String(enabled)); } catch { /* Keep the session setting. */ }
-  };
-  protected readonly startGalleryCache = (): void => this.imageGrid()?.cacheAllImages();
-  protected readonly startRecursiveGalleryCache = (): void => this.imageGrid()?.cacheAllImagesRecursive();
-  protected readonly cancelGalleryCache = (): void => this.imageGrid()?.cancelCacheRun();
+  protected readonly setVerifyCacheFiles = (enabled: boolean): void => this.galleryCacheBuild.setVerifyCacheFiles(enabled);
 
   protected readonly defaultSortMode = defaultSortMode();
 
@@ -100,7 +91,7 @@ export class GalleryPage {
     catch { return false; }
   };
   protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
-  protected readonly gallerySidebarTabs = [{ id: 'general', label: 'General' }, { id: 'capture', label: 'Capture' }, { id: 'cache', label: 'Cache' }];
+  protected readonly gallerySidebarTabs = [{ id: 'general', label: 'General' }, { id: 'capture', label: 'Capture' }];
   private readonly readActiveGallerySidebarTab = (): string => {
     try {
       const saved = globalThis.localStorage.getItem('activeGallerySidebarTab');
@@ -111,11 +102,7 @@ export class GalleryPage {
   protected readonly setActiveGallerySidebarTab = (tab: string): void => {
     if (!this.gallerySidebarTabs.some(item => item.id === tab)) return;
     this.activeGallerySidebarTab.set(tab);
-    if (tab === 'cache') this.expandGalleryCache();
     try { globalThis.localStorage.setItem('activeGallerySidebarTab', tab); } catch { /* Keep the session selection. */ }
-  };
-  private readonly expandGalleryCache = (): void => {
-    // The cache panel's summary is opened by its mode input; changing tabs recreates the panel.
   };
   private readonly readStoredControlsSidebarWidth = (): number => {
     try {
