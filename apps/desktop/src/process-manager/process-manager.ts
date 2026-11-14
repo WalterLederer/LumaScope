@@ -81,9 +81,9 @@ export class ProcessManager {
             let privateBytes: number | null = null;
             try {
               const rollup = await fs.readFile(`/proc/${entry.name}/smaps_rollup`, 'utf8');
-              const rssMatch = /^Rss:\s+(\\d+)\s+kB$/m.exec(rollup);
+              const rssMatch = /^Rss:\s+(\d+)\s+kB$/m.exec(rollup);
               if (rssMatch) workingSetBytes = Number(rssMatch[1]) * 1024;
-              const privateKb = [...rollup.matchAll(/^Private_(?:Clean|Dirty|Hugetlb):\s+(\\d+)\s+kB$/gm)]
+              const privateKb = [...rollup.matchAll(/^Private_(?:Clean|Dirty|Hugetlb):\s+(\d+)\s+kB$/gm)]
                 .reduce((total, match) => total + Number(match[1]), 0);
               privateBytes = privateKb * 1024;
             } catch {
