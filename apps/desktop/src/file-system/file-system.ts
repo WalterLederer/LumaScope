@@ -31,11 +31,11 @@ export class FileSystem {
 
   @IpcHandler({ name: 'FileSystem.readDocumentationFile' })
   readonly readDocumentationFile = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
-    const allowedFiles = new Set([
-      'README.md', 'features.md', 'image-formats.md', 'map-formats.md',
-      'shortcuts.md', 'external-programs.md', 'windows-api.md'
-    ]);
-    if (!allowedFiles.has(fileName)) return { success: false, errorMessage: 'Unknown documentation file.' };
+    // Accept Markdown files by basename only. The file is always read from the
+    // documentation root below; directory traversal and nested paths are rejected.
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\\.md$/i.test(fileName)) {
+      return { success: false, errorMessage: 'Invalid documentation file name.' };
+    }
 
     const roots = app.isPackaged
       ? [ join(process.resourcesPath, 'docs') ]
