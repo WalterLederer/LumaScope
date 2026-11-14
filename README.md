@@ -1,6 +1,6 @@
 # LumaScope
 
-**LumaScope is a Windows desktop image viewer and visual workspace for SDR and HDR photography, screen capture, photo browsing, geographic image organisation, and offline map-based route planning.**
+**LumaScope is a desktop image viewer and visual workspace for SDR and HDR photography, screen capture, photo browsing, geographic image organisation, and offline map-based route planning.**
 
 It combines a high-bit-depth image pipeline with a folder-based photo browser, sidecar caching, image metadata and GPS tools, screen capture, and a multi-engine map view. It is designed to make HDR image data inspectable and useful rather than treating HDR files as ordinary SDR pictures.
 
