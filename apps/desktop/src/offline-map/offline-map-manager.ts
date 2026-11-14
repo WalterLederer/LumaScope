@@ -59,10 +59,16 @@ export class OfflineMapManager {
   if(!existsSync(root)||!statSync(root).isDirectory())throw new Error('Resource-package folder not found: '+root);
   const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,errors:[]};
   const seen=new Set<string>();
-  // The selected folder may itself be the extracted OsmAnd-resources repository
-  // (for example, .../resources/OsmAnd-resources-master), rather than a parent
-  // folder containing a child directory named "resources".
-  if(existsSync(join(root,'rendering_styles','default.render.xml')))result.osmAndResourcesPath=root;
+  // Accept either the extracted OsmAnd-resources root or its rendering_styles
+  // subfolder. Some resource packages do not contain default.render.xml, so
+  // identify the folder by the presence of any *.render.xml style file.
+  const hasRenderingStyles=(folder:string):boolean=>{
+   const styles=join(folder,'rendering_styles');
+   try{return statSync(styles).isDirectory()&&readdirSync(styles,{withFileTypes:true}).some(entry=>entry.isFile()&&entry.name.toLowerCase().endsWith('.render.xml'));}catch{return false;}
+  };
+  const selectedIsRenderingStyles=basename(root).toLowerCase()==='rendering_styles';
+  if(selectedIsRenderingStyles&&readdirSync(root,{withFileTypes:true}).some(entry=>entry.isFile()&&entry.name.toLowerCase().endsWith('.render.xml')))result.osmAndResourcesPath=dirname(root);
+  else if(hasRenderingStyles(root))result.osmAndResourcesPath=root;
   const add=(list:string[],path:string):void=>{const key=resolve(path).toLowerCase();if(!seen.has(key)){seen.add(key);list.push(resolve(path));}};
   const walk=(directory:string,depth=0):void=>{
    if(depth>24)return;
@@ -72,7 +78,7 @@ export class OfflineMapManager {
     if(entry.isDirectory()){
      const lower=entry.name.toLowerCase();
      if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge'))result.mapsforgeThemeFolder??=path;
-     if(existsSync(join(path,'rendering_styles','default.render.xml')))result.osmAndResourcesPath??=path;
+     if(hasRenderingStyles(path))result.osmAndResourcesPath??=path;
      walk(path,depth+1);
      continue;
     }
