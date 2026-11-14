@@ -12,6 +12,8 @@ This README describes the current LumaScope application, its present feature set
 
 > **Platform support:** LumaScope is currently supported on **Windows only**. See [Platform support](docs/platform-support.md) for the current status and the work required to support Linux or macOS.
 
+> **Licensing:** See [Licensing and third-party notices](docs/licensing.md) for the project license, third-party components and their respective license obligations.
+
 ## Main capabilities
 
 | Area | What LumaScope provides |
