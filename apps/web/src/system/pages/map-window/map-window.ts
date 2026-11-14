@@ -962,7 +962,7 @@ interface MapErrorEntry {
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
@@ -976,7 +976,7 @@ interface MapErrorEntry {
                       <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
                         <td class="mbtiles-map-file" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
                         <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
                         <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
@@ -1285,9 +1285,9 @@ interface MapErrorEntry {
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
     .memory-process-table th:not(:first-child),.memory-process-table td:not(:first-child){text-align:right}
     .mbtiles-map-table th,.mbtiles-map-table td{padding:5px 8px;border-bottom:1px solid var(--color-content-default-low,#454545);text-align:left;vertical-align:middle}
-    .mbtiles-map-table th{position:sticky;top:0;z-index:1;font-weight:600;color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943)}
+    .mbtiles-map-table th{position:sticky;top:0;z-index:1;font-size:12px;font-weight:600;color:var(--color-content-default-medium,#aaa);background-color:var(--color-surface-default-medium,#343943)!important}\n    .mbtiles-map-table th .table-sort-button{background-color:transparent!important;color:inherit!important;border:0!important;box-shadow:none!important}
     .mbtiles-map-table .mbtiles-enabled-column{width:42px;text-align:center}
-    .mbtiles-map-table .mbtiles-type-column{width:112px;min-width:112px;box-sizing:border-box}
+    .mbtiles-map-table .mbtiles-type-column{width:176px;min-width:176px;box-sizing:border-box}
     .mbtiles-enabled-column input{margin:0;accent-color:#8ab4f8;vertical-align:middle}
     .mbtiles-enabled-column input.obf-preset-locked{appearance:none;width:14px;height:14px;box-sizing:border-box;border:1px solid #777;border-radius:2px;background:#858585;opacity:.9;cursor:not-allowed}
     .mbtiles-enabled-column input.obf-preset-locked:checked::after{content:"";display:block;width:6px;height:3px;margin:3px 0 0 3px;border:solid #f2f2f2;border-width:0 0 2px 2px;transform:rotate(-45deg)}
