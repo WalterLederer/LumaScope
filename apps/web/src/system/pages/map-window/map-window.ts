@@ -1775,9 +1775,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
   protected readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
-  protected readonly offlineMapMissingCount = computed(() => this.offlineMapStats().missingCount);
-  protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
-  protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
+  protected readonly offlineMapMissingCount = computed(() => this.offlineFilesChecked() ? this.offlineMapStats().missingCount : 0);
+  protected readonly offlineMapDuplicateCount = computed(() => this.offlineFilesChecked() ? this.offlineMapDuplicateIds().size : 0);
+  protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineFilesChecked() && (!map.filePath?.trim() || !map.available);
   protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
   protected readonly offlineMapUnselectedCount = computed(() => this.offlineMapStats().unselectedCount + this.hillshadeStats().unselectedCount);
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
@@ -1798,21 +1798,25 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return { activeCount, availableCount, missingCount, unselectedCount };
   });
-  protected readonly hillshadeMissingCount = computed(() => this.hillshadeStats().missingCount);
-  protected readonly hillshadeDuplicateCount = computed(() => this.hillshadeDuplicateIds().size);
+  protected readonly hillshadeMissingCount = computed(() => this.offlineFilesChecked() ? this.hillshadeStats().missingCount : 0);
+  protected readonly hillshadeDuplicateCount = computed(() => this.offlineFilesChecked() ? this.hillshadeDuplicateIds().size : 0);
   protected readonly hillshadeHasDuplicateName = (database: OsmAndHillshadeDatabase): boolean => this.hillshadeDuplicateIds().has(database.id);
   protected readonly hillshadeSortIndicator = (column: string): string => this.hillshadeSort().column === column ? (this.hillshadeSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortHillshadeDatabases = (column: string): void => this.hillshadeSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
-  protected readonly valhallaMissingCount = computed(() => this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length);
-  protected readonly valhallaDuplicateCount = computed(() => this.valhallaConfigurations().filter(configuration => this.valhallaHasDuplicatePath(configuration.path)).length);
-  protected readonly valhallaHasDuplicatePath = (path: string): boolean => {
-    const normalizedPath = path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
-    return !!normalizedPath && this.valhallaConfigurations().filter(configuration =>
-      configuration.path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase() === normalizedPath
-    ).length > 1;
-  };
+  protected readonly valhallaMissingCount = computed(() => this.offlineFilesChecked() ? this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length : 0);
+  private readonly valhallaDuplicatePaths = signal<ReadonlySet<string>>(new Set());
+  protected readonly valhallaDuplicateCount = computed(() => this.offlineFilesChecked() ? this.valhallaDuplicatePaths().size : 0);
+  protected readonly valhallaHasDuplicatePath = (path: string): boolean => this.offlineFilesChecked() && this.valhallaDuplicatePaths().has(path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase());
+  private refreshValhallaDuplicateIndex(configurations: Array<{ path: string }>): void {
+    const counts = new Map<string, number>();
+    for (const configuration of configurations) {
+      const path = configuration.path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
+      if (path) counts.set(path, (counts.get(path) ?? 0) + 1);
+    }
+    this.valhallaDuplicatePaths.set(new Set([...counts].filter(([, count]) => count > 1).map(([path]) => path)));
+  }
   private readonly mapsforgeThemeDuplicatePaths = signal<ReadonlySet<string>>(new Set());
-  protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemeDuplicatePaths().size);
+  protected readonly mapsforgeThemeDuplicateCount = computed(() => this.offlineFilesChecked() ? this.mapsforgeThemeDuplicatePaths().size : 0);
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
   protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount() + this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
   protected readonly hillshadeTabErrorCount = computed(() => this.hillshadeMissingCount() + this.hillshadeDuplicateCount());
@@ -1907,6 +1911,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapsforgeThemeError = signal('');
   protected readonly resourcePackageScanBusy = signal(false);
   protected readonly offlineFilesCheckBusy = signal(false);
+  protected readonly offlineFilesChecked = signal(false);
   protected readonly offlineFilesCheckStatus = signal('');
   protected readonly resourcePackageScanStatus = signal('');
   protected readonly resourcePackageScanFound = signal('');
@@ -2219,8 +2224,7 @@ export class MapWindow implements OnInit, OnDestroy {
       registerOsmAndHillshadeTileProtocol(this.desktop, () => this.hillshadeDatabases());
       void this.desktop.OsmAndAtlas.getHillshadeDatabases().then(databases => {
         this.hillshadeDatabases.set(databases);
-        this.refreshHillshadeDuplicateIndex(databases);
-        this.updateHillshadePresetFromSelection(databases);
+         this.updateHillshadePresetFromSelection(databases);
         this.applyHillshadeSettingsIfReady(true);
       }).catch(error => this.recordMapError('Hillshade databases', error instanceof Error ? error.message : String(error)));
     }
@@ -3516,6 +3520,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly checkOfflineFiles = async (): Promise<void> => {
     if (!this.desktop || this.offlineFilesCheckBusy()) return;
     this.offlineFilesCheckBusy.set(true);
+    this.offlineFilesChecked.set(false);
     this.offlineFilesCheckStatus.set('Checking offline files and resource status…');
     try {
       const [maps, hillshade, valhalla, osmandStatus, atlasStatus] = await Promise.all([
@@ -3533,13 +3538,14 @@ export class MapWindow implements OnInit, OnDestroy {
       this.osmAndResourcesError.set(osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? '' : 'The configured OsmAnd resources folder is missing or unavailable.');
       this.refreshOfflineMapDuplicateIndex(maps);
       this.refreshHillshadeDuplicateIndex(hillshade);
+      this.refreshValhallaDuplicateIndex(valhalla.configurations ?? []);
       this.updateHillshadePresetFromSelection(hillshade);
       if (this.mapsforgeThemeFolder()) {
         const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
         this.mapsforgeThemes.set(themes);
-        this.refreshMapsforgeThemeDuplicateIndex(themes);
-      }
+       }
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
+      this.offlineFilesChecked.set(true);
       this.applyHillshadeSettingsIfReady(true);
       this.offlineFilesCheckStatus.set('Check completed · ' + maps.length + ' maps · ' + hillshade.length + ' Hillshade · ' +
         (this.offlineMapMissingCount() + this.hillshadeMissingCount()) + ' missing · ' +
@@ -3605,8 +3611,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
         hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(database.path)).length;
         this.hillshadeDatabases.set(databases);
-        this.refreshHillshadeDuplicateIndex(databases);
-        this.updateHillshadePresetFromSelection(databases);
+         this.updateHillshadePresetFromSelection(databases);
         this.applyHillshadeSettingsIfReady(true);
       }
 
@@ -4103,8 +4108,7 @@ export class MapWindow implements OnInit, OnDestroy {
         remaining = await this.desktop.OfflineMap.removeFile(map.id);
       }
       this.offlineMaps.set(remaining);
-      this.refreshOfflineMapDuplicateIndex(remaining);
-      this.offlineMapUpdateCheckStatus.set('');
+       this.offlineMapUpdateCheckStatus.set('');
       if (!remaining.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
         this.changeMapSource('online');
         return;
