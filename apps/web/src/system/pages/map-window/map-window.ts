@@ -1820,22 +1820,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
-  private readonly offlineMapDuplicateIds = computed(() => {
-    const maps = this.offlineMaps();
-    const idsByName = new Map<string, string[]>();
-    for (const map of maps) {
-      const name = this.fileNameFromPath(map.filePath);
-      if (!name) continue;
-      const ids = idsByName.get(name) ?? [];
-      ids.push(map.id);
-      idsByName.set(name, ids);
-    }
-    const duplicateIds = new Set<string>();
-    for (const ids of idsByName.values()) {
-      if (ids.length > 1) for (const id of ids) duplicateIds.add(id);
-    }
-    return duplicateIds;
-  });
+  private readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
   protected readonly offlineMapMissingCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasMissingFile(map)).length);
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
@@ -3969,6 +3954,22 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (map.type === 'mapsforge') return this.mapSource() === 'mapsforge';
     return this.mapSource() === 'offline' && map.id === this.activeOfflineMapId();
+  }
+
+  private refreshOfflineMapDuplicateIndex(maps: import('internal-api').OfflineMapStatus[] = this.offlineMaps()): void {
+    const idsByName = new Map<string, string[]>();
+    for (const map of maps) {
+      const name = this.fileNameFromPath(map.filePath);
+      if (!name) continue;
+      const ids = idsByName.get(name) ?? [];
+      ids.push(map.id);
+      idsByName.set(name, ids);
+    }
+    const duplicateIds = new Set<string>();
+    for (const ids of idsByName.values()) {
+      if (ids.length > 1) for (const id of ids) duplicateIds.add(id);
+    }
+    this.offlineMapDuplicateIds.set(duplicateIds);
   }
 
   private refreshOfflineMapRendering(): void {
