@@ -89,7 +89,7 @@ export class Exif {
       const altitudeM = altitudeValue === null ? null
         : altitudeRef === '1' || altitudeRef.includes('below') ? -Math.abs(altitudeValue)
           : altitudeRef === '0' || altitudeRef.includes('above') ? Math.abs(altitudeValue) : altitudeValue;
-      const toTimestamp = (value: unknown): number | null => {
+      const toTimestamp = (value: unknown, assumeUtc = false): number | null => {
         if (value instanceof Date) {
           return Number.isFinite(value.getTime()) ? Math.floor(value.getTime() / 1000) : null;
         }
@@ -108,21 +108,27 @@ export class Exif {
               + (exifDate[8].length === 5 && exifDate[8] !== 'Z'
                 ? exifDate[8].slice(0, 3) + ':' + exifDate[8].slice(3)
                 : exifDate[8]))
-            : new Date(
-                Number(exifDate[1]), Number(exifDate[2]) - 1, Number(exifDate[3]),
-                Number(exifDate[4]), Number(exifDate[5]), Number(exifDate[6]),
-                Number((exifDate[7] ?? '').padEnd(3, '0').slice(0, 3))
-              )
+            : assumeUtc
+              ? new Date(Date.UTC(
+                  Number(exifDate[1]), Number(exifDate[2]) - 1, Number(exifDate[3]),
+                  Number(exifDate[4]), Number(exifDate[5]), Number(exifDate[6]),
+                  Number((exifDate[7] ?? '').padEnd(3, '0').slice(0, 3))
+                ))
+              : new Date(
+                  Number(exifDate[1]), Number(exifDate[2]) - 1, Number(exifDate[3]),
+                  Number(exifDate[4]), Number(exifDate[5]), Number(exifDate[6]),
+                  Number((exifDate[7] ?? '').padEnd(3, '0').slice(0, 3))
+                )
           : new Date(text);
         return Number.isFinite(date.getTime()) ? Math.floor(date.getTime() / 1000) : null;
       };
       const gpsTimestamp = [
-        tags['GPSDateTime'],
-        tags['XMP:GPSDateTime'],
-        tags['DateTimeOriginal'],
-        tags['XMP:DateCreated'],
-        tags['CreateDate']
-      ].map(toTimestamp).find((timestamp): timestamp is number => timestamp !== null) ?? null;
+        toTimestamp(tags['GPSDateTime'], true),
+        toTimestamp(tags['XMP:GPSDateTime'], true),
+        toTimestamp(tags['DateTimeOriginal']),
+        toTimestamp(tags['XMP:DateCreated']),
+        toTimestamp(tags['CreateDate'])
+      ].find((timestamp): timestamp is number => timestamp !== null) ?? null;
       const directionDeg = numeric(first(tags['GPSImgDirection'], tags['XMP:GPSImgDirection']));
       return {
         latitude: latitude !== null && latitude >= -90 && latitude <= 90 ? latitude : null,
