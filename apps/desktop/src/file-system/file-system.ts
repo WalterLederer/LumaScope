@@ -57,7 +57,7 @@ export class FileSystem {
   };
   @IpcHandler({ name: 'FileSystem.readDocumentationImage' })
   readonly readDocumentationImage = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
-    if (!/^[a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|gif)$/i.test(fileName)) {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif)$/i.test(fileName)) {
       return { success: false, errorMessage: 'Invalid documentation image name.' };
     }
     const mimeTypes: Record<string, string> = {
