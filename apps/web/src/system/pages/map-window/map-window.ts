@@ -999,8 +999,8 @@ interface MapErrorEntry {
             <button type="button" (click)="settingsOpen.set(true); selectSettingsTab('offlineMaps')">Open OfflineFiles tab</button>
           </div>
         }
-        @if (settingsOpen() && activeSettingsTab() === 'offlineMaps') {
-          <div class="offline-map-list-view">
+        @if (settingsOpen() && offlineMapListMounted()) {
+          <div class="offline-map-list-view" [hidden]="activeSettingsTab() !== 'offlineMaps'">
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
                 <table class="mbtiles-map-table">
@@ -1030,8 +1030,8 @@ interface MapErrorEntry {
             </div>
           </div>
         }
-        @if (settingsOpen() && activeSettingsTab() === 'hillshade') {
-          <div class="offline-map-list-view">
+        @if (settingsOpen() && hillshadeListMounted()) {
+          <div class="offline-map-list-view" [hidden]="activeSettingsTab() !== 'hillshade'">
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
                 @if (filteredHillshadeDatabases().length > 0) {
@@ -1576,8 +1576,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryPhotoTimestampMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
   private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
+  private readonly offlineMapListMounted = signal(false);
+  private readonly hillshadeListMounted = signal(false);
   protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
+    if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
+    if (tab === 'hillshade') this.hillshadeListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
