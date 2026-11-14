@@ -3426,7 +3426,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const valhallaBefore = await this.desktop.Valhalla.getRuntimeStatus();
       const existingResources = typeof osmandSettings['resourcesPath'] === 'string' ? osmandSettings['resourcesPath'] : '';
       const existingThemeFolder = typeof mapsforgeSettings['themeFolder'] === 'string' ? mapsforgeSettings['themeFolder'] : '';
-      const hasExistingPaths = !!(existingResources || existingThemeFolder || valhallaBefore.configPath);
+      const hasExistingPaths = !!(existingResources || existingThemeFolder || valhallaBefore.configPath || valhallaBefore.configurations?.length);
       const overwrite = !hasExistingPaths || window.confirm(
         'Existing local resource paths are already configured.\n\n' +
         'Yes: replace the OsmAnd resources folder, Mapsforge theme folder and active Valhalla configuration when matching resources were found.\n' +
