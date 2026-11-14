@@ -66,7 +66,7 @@ Images containing GPS coordinates can be positioned on the location map. LumaSco
 
 Photo marker timestamps use this fallback order: EXIF `GPSDateTime`, XMP `GPSDateTime`, EXIF `DateTimeOriginal`, XMP `DateCreated`, EXIF `CreateDate`, and finally the source file's filesystem modification time. GPS timestamps are interpreted as UTC; the other embedded capture-date fields are interpreted as camera-local time when no timezone is stored. The timestamp is used for map time filtering and playback. Photos without valid GPS coordinates do not receive a map marker timestamp.
 
-The map workspace supports online XYZ tile sources and offline map data. Depending on the selected source and installed resources, map rendering is provided by MapLibre, the OsmAnd native renderers or Mapsforge. Hillshade databases can be used as shaded-relief overlays.
+The map workspace supports online XYZ tile sources and offline map data. Depending on the selected source and installed resources, map rendering is provided by MapLibre, the OsmAnd native renderers or Mapsforge. Hillshade databases can be used as shaded-relief overlays. **Mapsforge requires Java 17 or newer on the PC:** the application bundles its renderer JAR, but not the Java runtime. See [External programs](docs/external-programs.md) for runtime setup.
 
 ![LumaScope Image View](docs/images/2026_11_11_09_27_41__Zwischenablagebild_(1).Png) 
 
