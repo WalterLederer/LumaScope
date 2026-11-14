@@ -79,13 +79,27 @@ else {
     Write-Host "Valhalla helper is up to date; no rebuild was needed." -ForegroundColor DarkGray
 }
 
+# Use exactly one vcpkg runtime tree. When CMake has its own
+# vcpkg_installed tree, it is the dependency set configured for this build;
+# the sibling vcpkg checkout is only a fallback for older build layouts.
+$buildVcpkgRuntime = Join-Path $buildRoot 'vcpkg_installed\x64-windows-release\bin'
+$siblingVcpkgRuntime = Join-Path (Split-Path -Parent $buildRoot) 'vcpkg\installed\x64-windows-release\bin'
+$vcpkgRuntime = if (Test-Path -LiteralPath $buildVcpkgRuntime -PathType Container) {
+    $buildVcpkgRuntime
+}
+elseif (Test-Path -LiteralPath $siblingVcpkgRuntime -PathType Container) {
+    $siblingVcpkgRuntime
+}
+else {
+    $null
+}
+
 $runtimeDirectories = @(
     (Join-Path $buildRoot 'RelWithDebInfo'),
     (Join-Path $buildRoot 'Release'),
     (Join-Path $buildRoot 'src\Release'),
-    (Join-Path $buildRoot 'vcpkg_installed\x64-windows-release\bin'),
-    (Join-Path (Split-Path -Parent $buildRoot) 'vcpkg\installed\x64-windows-release\bin')
-) | Where-Object { Test-Path -LiteralPath $_ -PathType Container } | Select-Object -Unique
+    $vcpkgRuntime
+) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } | Select-Object -Unique
 
 if ($runtimeDirectories.Count -lt 2) {
     throw "Valhalla runtime DLL directories were not found under '$buildRoot'. Expected the build Release and vcpkg runtime directories."
