@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { appConfigName } from 'internal-api';
 import { existsSync, readFileSync } from 'node:fs';
+import { copyFile, readdir, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { writeJsonAtomically } from '../file-system/json-file';
 
@@ -83,6 +84,32 @@ const readUserAppSettingsForUpdate = (): AppSettings => {
   return value;
 };
 
+// Keep the immediately previous file plus one dated snapshot per day.
+// The caller validates the existing JSON before this runs, so backups are
+// always made from a readable configuration rather than preserving corruption.
+const backupUserAppSettings = async (): Promise<void> => {
+  const path = settingsPath();
+  if (!existsSync(path)) return;
+
+  const directory = dirname(path);
+  const backupPrefix = appConfigName + '.backup-';
+  const dailyBackupPath = join(directory, backupPrefix + new Date().toISOString().slice(0, 10));
+  await copyFile(path, path + '.bak');
+  if (!existsSync(dailyBackupPath)) {
+    await copyFile(path, dailyBackupPath);
+  }
+
+  try {
+    const backups = (await readdir(directory))
+      .filter(name => name.startsWith(backupPrefix))
+      .sort()
+      .reverse();
+    await Promise.all(backups.slice(30).map(name => unlink(join(directory, name)).catch(() => undefined)));
+  } catch (error) {
+    console.warn('[Settings] Could not rotate dated configuration backups:', error);
+  }
+};
+
 export const readAppSettings = (): AppSettings =>
   mergeSettings(readJsonObject(defaultSettingsPath()), readUserAppSettings());
 
@@ -98,6 +125,12 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       settings = readUserAppSettingsForUpdate();
     } catch (error) {
       console.error('[Settings] Refusing to overwrite an unreadable configuration file:', error);
+      throw error;
+    }
+    try {
+      await backupUserAppSettings();
+    } catch (error) {
+      console.error('[Settings] Could not create a configuration backup; refusing to save changes:', error);
       throw error;
     }
     if (section === 'root') {
