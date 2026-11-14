@@ -3530,7 +3530,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineFilesCheckStatus.set('Checking offline files and resource status…');
     try {
       const [maps, hillshade, valhalla, osmandStatus, atlasStatus] = await Promise.all([
-        desktop.OfflineMap.getMaps(),
+        desktop.OfflineMap.checkFiles(),
         desktop.OsmAndAtlas.getHillshadeDatabases(),
         desktop.Valhalla.getRuntimeStatus(),
         desktop.OsmAnd.getRuntimeStatus(),
