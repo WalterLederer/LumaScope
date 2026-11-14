@@ -286,7 +286,8 @@ export class ImageGridComponent {
         selectedLocation: this.selectedLocation,
         start: this.cacheAllImages,
         startRecursive: this.cacheAllImagesRecursive,
-        cancel: this.cancelCacheRun
+        cancel: this.cancelCacheRun,
+        refreshDetailCacheStatus: this.refreshDetailCacheStatus
       });
       onCleanup(unregister);
     });
