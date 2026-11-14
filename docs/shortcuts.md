@@ -2,7 +2,7 @@
 
 [Back to README](../README.md)
 
-Global shortcuts are registered through Electron and remain available when LumaScope is not focused. Local shortcuts work while the application is active.
+The Help reference lists **15 shortcuts**. Global shortcuts are registered through Electron and remain available when LumaScope is not focused. Local shortcuts work while the application is active.
 
 | Key shortcut | Function | Global |
 | --- | --- | --- |
