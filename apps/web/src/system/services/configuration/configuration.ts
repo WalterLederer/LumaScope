@@ -99,7 +99,7 @@ export class Configuration {
       },
       system: {
         minimiseOnStart: false,
-        theme: 'dark'
+        theme: 'light'
       }
     };
   };
