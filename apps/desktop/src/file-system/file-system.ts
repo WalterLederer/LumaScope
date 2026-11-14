@@ -33,7 +33,7 @@ export class FileSystem {
   readonly readDocumentationFile = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
     // Accept Markdown files by basename only. The file is always read from the
     // documentation root below; directory traversal and nested paths are rejected.
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\\.md$/i.test(fileName)) {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\.md$/i.test(fileName)) {
       return { success: false, errorMessage: 'Invalid documentation file name.' };
     }
 
