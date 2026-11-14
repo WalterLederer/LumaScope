@@ -29,6 +29,7 @@ import {
 import { ImagesComponent } from '../images/images.component';
 import { ExifService } from '../../../ipc/exif';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { GalleryViewMode } from '../images/images.component.types';
 
@@ -207,6 +208,8 @@ export class ImageGridComponent {
 
   private readonly imagesComponent = viewChild(ImagesComponent);
 
+  private readonly galleryCacheBuild = inject(GalleryCacheBuild);
+
   readonly cacheRunActive = computed(() => this.imagesComponent()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunProgress() ?? { completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = computed(() => this.imagesComponent()?.cacheRunCurrentOperation() ?? '');
@@ -273,6 +276,21 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    effect(onCleanup => {
+      const images = this.imagesComponent();
+      if (!images) return;
+      const unregister = this.galleryCacheBuild.register({
+        cacheRunActive: images.cacheRunActive,
+        cacheRunProgress: images.cacheRunProgress,
+        cacheRunCurrentOperation: images.cacheRunCurrentOperation,
+        selectedLocation: this.selectedLocation,
+        start: this.cacheAllImages,
+        startRecursive: this.cacheAllImagesRecursive,
+        cancel: this.cancelCacheRun
+      });
+      onCleanup(unregister);
+    });
+
     effect(() => {
       this.images();
       this.selectedLocation();
