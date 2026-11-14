@@ -61,7 +61,7 @@ export function cacheHillshadeTile(key: string, png: Uint8Array): void {
 }
 
 type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre' | 'mapsforge';
-type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
+type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rendering' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
   sourceId?: string;
@@ -192,6 +192,10 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       // One MapLibre 512px tile represents a 2x2 group of 256px Atlas XYZ tiles.
       // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
       let tile: Awaited<ReturnType<Desktop['OsmAndAtlas']['renderTile']>>;
+      // The native Atlas render happens inside the IPC call. Publish its
+      // progress state before awaiting it; a disk-cache hit below replaces
+      // this state with "Loading cached tile …" as soon as the lookup returns.
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
       try {
         tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
       } catch (error) {
@@ -1861,11 +1865,13 @@ export class OfflineMapRenderer {
         spinner.style.display = '';
         label.style.borderColor = 'rgba(255,255,255,.28)';
         label.style.background = 'rgba(20,27,34,.90)';
-        message.textContent = status.status === 'rerendering'
-          ? 'Rerendering tile …'
+        message.textContent = status.status === 'rendering'
+          ? 'Rendering tile …'
+          : status.status === 'rerendering' ? 'Rerendering tile …'
           : status.status === 'cache-loading' ? 'Loading cached tile …' : 'Loading tile …';
-        label.title = status.status === 'rerendering'
-          ? 'Forcing a fresh native render for this visible tile'
+        label.title = status.status === 'rendering'
+          ? 'Rendering this tile with the native OsmAnd Atlas renderer'
+          : status.status === 'rerendering' ? 'Forcing a fresh native render for this visible tile'
           : status.status === 'cache-loading' ? 'Loading cached OsmAnd tile' : 'Loading tile data';
       }
     }
