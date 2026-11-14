@@ -29,6 +29,29 @@
   font-size: 12px;
 }
 
+.markdown-font-size {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-content-default-medium);
+  white-space: nowrap;
+}
+
+.markdown-font-size input {
+  width: 110px;
+  margin: 0;
+  accent-color: var(--color-content-accent, #69aee8);
+  cursor: pointer;
+}
+
+.markdown-font-size output {
+  min-width: 34px;
+  color: var(--color-content-default-high);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .markdown-help-header button {
   flex: 0 0 auto;
   padding: 4px 9px;
@@ -142,3 +165,24 @@
   border-radius: 4px;
   object-fit: contain;
 }
+
+
+/* Markdown content is rendered with innerHTML, so its elements need deep selectors. */
+:host ::ng-deep .markdown-body ul {
+  display: block;
+  list-style: disc outside !important;
+  padding-left: 1.6em;
+}
+
+:host ::ng-deep .markdown-body ol {
+  display: block;
+  list-style: decimal outside !important;
+  padding-left: 1.6em;
+}
+
+:host ::ng-deep .markdown-body h1 { font-size: 1.67em; }
+:host ::ng-deep .markdown-body h2 { font-size: 1.33em; }
+:host ::ng-deep .markdown-body h3 { font-size: 1.17em; }
+:host ::ng-deep .markdown-body h4 { font-size: 1.08em; }
+:host ::ng-deep .markdown-body code { font-size: .92em; }
+:host ::ng-deep .markdown-body table { font-size: .92em; }
