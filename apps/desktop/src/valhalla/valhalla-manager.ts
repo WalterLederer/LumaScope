@@ -222,7 +222,6 @@ export class ValhallaManager {
         this.configurations.push({ path: selectedPath, name: basename(dirname(selectedPath)), available: true });
       }
     }
-    if (!this.configPath && valid.length) this.configPath = valid[0];
     await this.persistConfigurations();
     return this.getRuntimeStatus();
   };
