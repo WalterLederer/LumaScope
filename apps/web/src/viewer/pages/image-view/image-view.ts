@@ -558,12 +558,22 @@ export class ImageView {
     view.addEventListener('pointercancel', onUp);
     this.sidebarResizeCleanup = onUp;
   };
-  protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"cache","label":"Cache"},{"id":"view","label":"View"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"histogram","label":"Histogram"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"}];
+  protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"}];
+  protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
-    try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
+    try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
     catch { return 'general'; }
   }
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
+  private readActiveImageSubTab(): string {
+    try {
+      const stored = this.document.defaultView?.localStorage.getItem('activeImageSubTab');
+      if (this.imageSubTabs.some(tab => tab.id === stored)) return stored!;
+      const legacy = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab');
+      return this.imageSubTabs.some(tab => tab.id === legacy) ? legacy! : 'summary';
+    } catch { return 'summary'; }
+  }
+  protected readonly activeImageSubTab = signal(this.readActiveImageSubTab());
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
   protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
   protected readonly photoDatabaseRecordEntries = computed(() => {
@@ -657,19 +667,32 @@ export class ImageView {
   protected readonly setActiveImageSidebarTab = (tab: string): void => {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     this.activeImageSidebarTab.set(tab);
+    if (tab === 'image' && this.activeImageSubTab() === 'cache') {
+      this.refreshCurrentImageCache();
+      void this.loadPhotoDatabaseRecord();
+    }
+    if (tab === 'image' && this.activeImageSubTab() === 'summary') {
+      // The EXIF stream may have completed while the Image tab was inactive.
+      this.exifVisible.set(true);
+      this.exifState.set(this.imageTags() ?? false);
+    }
+    if (tab === 'image' && this.activeImageSubTab() === 'histogram' && !this.histogramVisible()) this.toggleHistogram();
+    try { this.document.defaultView?.localStorage.setItem('activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
+  };
+  protected readonly setActiveImageSubTab = (tab: string): void => {
+    if (!this.imageSubTabs.some(item => item.id === tab)) return;
+    this.activeImageSubTab.set(tab);
     if (tab === 'cache') {
       this.refreshCurrentImageCache();
       void this.loadPhotoDatabaseRecord();
     }
-    if (tab === 'image') {
-      // The EXIF stream may have completed while the Image tab was inactive.
-      // Expose its latest result immediately; the active request updates it
-      // when metadata is still being read.
+    if (tab === 'summary') {
+      // Keep the existing image metadata refresh behavior when Summary is opened.
       this.exifVisible.set(true);
       this.exifState.set(this.imageTags() ?? false);
     }
     if (tab === 'histogram' && !this.histogramVisible()) this.toggleHistogram();
-    try { this.document.defaultView?.localStorage.setItem('activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
+    try { this.document.defaultView?.localStorage.setItem('activeImageSubTab', tab); } catch { /* Ignore unavailable storage. */ }
   };
 
   protected readonly sidebarSections = signal<Record<string, boolean>>({ zoom: true, brightness: true, basic: true, rgb: true, rgbLevels: false, inverse: false, loupe: true, loupeRenderer: false, highlight: true, toneCurve: false, mode: true, histogram: false, info: true, database: false, general: true, actions: false, copy: false });
@@ -1789,7 +1812,7 @@ export class ImageView {
       .pipe(takeUntilDestroyed())
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
-        if (image && this.activeImageSidebarTab() === 'cache') void this.loadPhotoDatabaseRecord();
+        if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'cache') void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
         this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
