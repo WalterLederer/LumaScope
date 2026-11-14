@@ -189,7 +189,7 @@ The script performs the following operations:
 To specify a non-default build directory:
 
 ```powershell
-$env:LUMASCOPE_VALHALLA_BUILD = "D:\\Dev\\Valhalla\\build-release"
+$env:LUMASCOPE_VALHALLA_BUILD = "D:\Dev\Valhalla\build-release"
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\valhalla-runtime\stage-helpers.ps1
 Remove-Item Env:\LUMASCOPE_VALHALLA_BUILD
 ```
