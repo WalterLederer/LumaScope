@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 
-const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\\.md$/i.test(fileName);
+const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\.md$/i.test(fileName);
 
 const escapeHtml = (value: string): string => value
   .replace(/&/g, '&amp;')
