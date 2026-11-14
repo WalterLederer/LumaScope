@@ -1,6 +1,10 @@
 {
   "$schema": "../../../../../node_modules/nx-electron/src/validation/maker.schema.json",
   "electronDist": "./.electron-dist",
+  "extraResources": [
+    { "from": "README.md", "to": "docs/README.md" },
+    { "from": "docs", "to": "docs" }
+  ],
   "appId": "org.hexmode.light_matter",
   "productName": "Light Matter",
   "fileAssociations": [
