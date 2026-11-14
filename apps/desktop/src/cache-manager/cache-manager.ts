@@ -743,7 +743,12 @@ export class CacheManager {
         latitude: hasCoordinates ? gps.latitude : null,
         longitude: hasCoordinates ? gps.longitude : null,
         altitude: hasCoordinates ? gps.altitudeM : null,
-        gpsTimestamp: hasCoordinates ? gps.gpsTimestamp : null,
+        // The EXIF reader applies GPSDateTime -> XMP:GPSDateTime ->
+        // DateTimeOriginal -> XMP:DateCreated -> CreateDate.
+        // File modification time is the final fallback for mapped photos.
+        gpsTimestamp: hasCoordinates
+          ? gps.gpsTimestamp ?? Math.floor(Number(sourceStats.mtimeMs) / 1000)
+          : null,
         direction: hasCoordinates ? gps.directionDeg : null,
         sourceId: hasCoordinates ? gps.coordinateSourceId : null,
         id: row.id
