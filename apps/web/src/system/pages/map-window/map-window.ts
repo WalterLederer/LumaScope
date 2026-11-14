@@ -3723,6 +3723,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.resourcePackageScanFound.set(foundParts.join(' · '));
       this.resourcePackageScanChanged.set(changedParts.join(' · ') + importErrors + scanErrors);
       this.resourcePackageScanStatus.set('Resource package scan completed.');
+      this.offlineFilesCheckStatus.set('Package loaded · click Check to refresh file status, missing files, duplicates and active selections.');
       if (scan.errors.length || importResult.errors.length) {
         this.resourcePackageScanError.set([...scan.errors, ...importResult.errors].join('\n'));
       }
