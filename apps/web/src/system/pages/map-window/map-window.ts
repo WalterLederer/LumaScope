@@ -3477,7 +3477,7 @@ export class MapWindow implements OnInit, OnDestroy {
           this.mapsforgeThemes.set(themes);
           const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
           const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
-          const selectedPath = selectedTheme.path;
+          const selectedPath = selectedTheme?.path ?? '';
           this.mapsforgeThemePath.set(selectedPath);
           await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
             themeFolder: scan.mapsforgeThemeFolder, themePath: selectedPath
