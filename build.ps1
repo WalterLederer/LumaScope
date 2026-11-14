@@ -69,6 +69,42 @@ function StopProcesses {
         }
     )
 
+    # Close the main LumaScope window normally first. Electron then gets time
+    # to finish renderer IPC and drain the main-process settings write queue.
+    $lumaScopeProcesses = @($matchingNodes | Where-Object { $_.Name -ieq 'LumaScope.exe' })
+    foreach ($processInfo in $lumaScopeProcesses) {
+        try {
+            $process = Get-Process -Id ([int]$processInfo.ProcessId) -ErrorAction Stop
+            Write-Host "CLOSE LumaScope gracefully (PID $($process.Id))" -ForegroundColor Yellow
+            if ($process.CloseMainWindow()) {
+                if (-not $process.WaitForExit(20000)) {
+                    Write-Warning "LumaScope PID $($process.Id) did not exit within 20 seconds; remaining processes will be stopped."
+                }
+            }
+            else {
+                Write-Warning "LumaScope PID $($process.Id) has no closable main window; remaining processes will be stopped if necessary."
+            }
+        }
+        catch {
+            Write-Host "INFO LumaScope PID $($processInfo.ProcessId) already exited: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
+    }
+
+    # Refresh the process list after graceful shutdown. Only processes still
+    # alive are eligible for the forced cleanup below.
+    $nodes = Get-CimInstance Win32_Process
+    $matchingNodes = @(
+        $nodes | Where-Object {
+            $_.ProcessId -ne $PID -and
+            $_.Name -notin $excludedProcessNames -and
+            $_.CommandLine -and
+            $_.CommandLine.IndexOf(
+                $projectDir,
+                [StringComparison]::OrdinalIgnoreCase
+            ) -ge 0
+        }
+    )
+
     $processIds = @(
         $matchingNodes |
             ForEach-Object { [int]$_.ProcessId } |
