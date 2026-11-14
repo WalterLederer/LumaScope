@@ -42,6 +42,19 @@ Actual HDR presentation depends on the source file, decoder path, operating-syst
 - Linear and logarithmic histograms with luminance and RGB channels.
 - Histogram inspection at the pointer position.
 
+### Image control tabs
+
+The Image section is divided into focused sub-tabs:
+
+- **Summary** — image overview and metadata summary.
+- **Actions** — image-related actions and file operations.
+- **Histogram** — linear and logarithmic RGB/luminance histogram, including capture-preview analysis when enabled.
+- **View** — HDR/SDR comparison modes and split controls.
+- **Highlight** — image highlight and pixel-inspection controls.
+- **Zoom** — image zoom and fit controls.
+- **Corrections** — brightness, contrast, gamma, colour intensity, black/white point and RGB channel adjustments.
+- **Cache** — source/cache information and the SQLite photo record.
+
 ### Image information
 
 - Image dimensions and loading/conversion timing information.
@@ -77,6 +90,7 @@ The Location tab connects image metadata to geographic context.
 - Control GPX track visibility and presentation, including track colour.
 - Open the detached Location window.
 - Use map navigation and zoom controls; arrow-key behaviour is map-aware when the pointer is over the map.
+- Use the map time slider and playback controls where the selected map/track view supports time-based display, including animation speed, walking animation, rotation and symbol-size settings.
 
 Location data is associated with the image record in the local database. Coordinate sources include EXIF, XMP, GPX, manual and external sources.
 
@@ -93,7 +107,7 @@ The map workspace can combine online and offline sources.
 - SQLite hillshade databases for shaded-relief overlays.
 - Offline map and hillshade file management through the Offline Files settings.
 
-Renderer-specific resources and themes affect available labels, symbols and map appearance. See [Supported map formats](map-formats.md).
+Renderer-specific resources and themes affect available labels, symbols and map appearance. The Offline Files settings organise local resources into dedicated groups, including **Valhalla routing configurations**, the **OsmAnd resources folder** and the **Mapsforge XML theme folder**. See [Supported map formats](map-formats.md).
 
 ## Routing
 
@@ -105,6 +119,7 @@ LumaScope integrates Valhalla for route calculation using locally available rout
 - Read routing waypoints from GPX.
 - Calculate and display a route on the map.
 - Manage named routes and route points.
+- Select a travel mode and configure route display options.
 - Package routing configuration files for sharing where their referenced resources are also available.
 
 A configuration file alone does not contain the routing graph. Matching Valhalla tiles and required supporting data must be available on the target system.
