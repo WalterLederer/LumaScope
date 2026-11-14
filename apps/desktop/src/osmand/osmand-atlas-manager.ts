@@ -3,7 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
-import { delimiter, dirname, join } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
@@ -866,6 +866,29 @@ export class OsmAndAtlasManager {
       if (!byId.has(id)) byId.set(id, { id, path: selectedPath, enabled: true });
     }
     this.hillshadeDatabases = [...byId.values()];
+    await this.persistHillshadeDatabases();
+    return this.getHillshadeDatabases();
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.reconcileHillshadeDatabasePaths' })
+  readonly reconcileHillshadeDatabasePaths = async (_event: Electron.IpcMainInvokeEvent, paths: string[]): Promise<HillshadeDatabaseInfo[]> => {
+    if (!Array.isArray(paths)) throw new Error('Hillshade database paths must be an array.');
+    const existingByPath = new Map(this.hillshadeDatabases.map(item => [resolve(item.path).toLocaleLowerCase(), item]));
+    const next = new Map<string, HillshadeDatabaseInfo>();
+    for (const candidate of paths) {
+      if (typeof candidate !== 'string' || !candidate.trim() || !/\.(?:sqlitedb|sqlite|db)$/i.test(candidate)) continue;
+      const path = resolve(candidate.trim());
+      try {
+        const stats = statSync(path);
+        if (!stats.isFile()) continue;
+      } catch {
+        continue;
+      }
+      const key = path.toLocaleLowerCase();
+      const id = createHash('sha1').update(key).digest('hex').slice(0, 16);
+      next.set(id, { id, path, enabled: existingByPath.get(key)?.enabled ?? true });
+    }
+    this.hillshadeDatabases = [...next.values()];
     await this.persistHillshadeDatabases();
     return this.getHillshadeDatabases();
   };
