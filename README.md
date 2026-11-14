@@ -97,6 +97,7 @@ The Help tab in the application displays this README. The detailed reference tab
 - [Supported map formats](docs/map-formats.md) — map source, online/offline availability and renderer.
 - [Key shortcuts](docs/shortcuts.md) — local and global keyboard shortcuts.
 - [External programs](docs/external-programs.md) — helper processes and their responsibilities.
+- [Build from source](docs/build-from-source.md) — prerequisites and compilation steps for the native SDKs, routing engine, renderers and application.
 - [Windows API calls](docs/windows-api.md) — direct Win32 and Windows Imaging Component calls documented by the Help tab.
 
 ## Installation and running
@@ -119,6 +120,8 @@ npm run make:prod
 ```
 
 The production script builds the JPEG XR WIC encoder, the Mapsforge renderer, the Angular frontend and Electron backend, stages the OsmAnd and Valhalla helpers, and creates the desktop package.
+
+See **[Build from source](docs/build-from-source.md)** for detailed prerequisites and step-by-step compilation instructions for the OsmAnd Core SDK integration, Valhalla routing helper, Mapsforge renderer, JPEG XR WIC encoder and the main Angular/Electron application. The guide also explains which map and routing resources are external runtime data and are not compiled or bundled.
 
 Additional scripts and packaging targets are defined in the root `package.json`. Native build prerequisites and helper source projects are maintained under `tools/`.
 
