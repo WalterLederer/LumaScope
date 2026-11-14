@@ -4,6 +4,8 @@
 
 This guide describes how the buildable components in this repository are compiled, where their source code comes from, which tools are required, and how the resulting binaries are staged for the LumaScope application.
 
+For inherited and third-party license terms, including the Light Matter MIT notice and the licensing differences between OsmAnd Core and OsmAnd resources, see [Licensing and third-party notices](licensing.md).
+
 The instructions reflect the current Windows build setup. LumaScope is currently supported on Windows. Some OsmAnd helper projects contain experimental Linux/macOS build scripts, but those are not equivalent to a supported application build.
 
 ## 1. Build overview
