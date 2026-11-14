@@ -2368,6 +2368,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       this.offlineMaps.set(maps);
+      this.refreshOfflineMapDuplicateIndex(maps);
       if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.mapSourceGeneration++;
         this.mapInitialization = null;
@@ -3610,6 +3611,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
       const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.filePath)).length;
       this.offlineMaps.set(importResult.maps);
+      this.refreshOfflineMapDuplicateIndex(importResult.maps);
       this.offlineMapImportErrors.set(importResult.errors);
 
       let hillshadeAdded = 0;
@@ -3706,6 +3708,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(result.maps);
+    this.refreshOfflineMapDuplicateIndex(result.maps);
     this.offlineMapImportErrors.set(result.errors);
     if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type))) this.changeMapSource('online');
     else if (result.maps.length === 0 && this.mapSource() === 'offline') this.changeMapSource('online');
@@ -3946,10 +3949,11 @@ export class MapWindow implements OnInit, OnDestroy {
   private getOfflineMapPresetForMaps(
     maps: import('internal-api').OfflineMapStatus[]
   ): string | null {
-    // A preset describes the complete OBF + Mapsforge selection, not OBF alone.
-    // This prevents startup from showing Austria while unrelated .map files
-    // remain enabled from a previous or manually changed configuration.
-    const presetMaps = maps.filter(map => map.type === 'obf' || map.type === 'mapsforge');
+    // Presets describe the available OBF + Mapsforge files. Missing entries
+    // must not prevent an otherwise complete selection from being recognized.
+    const presetMaps = maps.filter(map =>
+      (map.type === 'obf' || map.type === 'mapsforge') && map.available
+    );
     if (presetMaps.length === 0) return null;
     const candidates = this.mapPresetOptions().map(item => item.id).filter(id => id !== 'custom');
     const allEnabled = presetMaps.every(map => map.enabled);
@@ -4007,13 +4011,15 @@ export class MapWindow implements OnInit, OnDestroy {
     for (const map of maps) {
       const name = this.fileNameFromPath(map.filePath);
       if (!name) continue;
-      const entries = idsByName.get(name) ?? [];
-      entries.push({ id: map.id, path: map.filePath.toLocaleLowerCase() });
-      idsByName.set(name, entries);
+      const entries = idsByName.get(name);
+      if (entries) entries.push({ id: map.id, path: map.filePath.toLocaleLowerCase() });
+      else idsByName.set(name, [{ id: map.id, path: map.filePath.toLocaleLowerCase() }]);
     }
     const duplicateIds = new Set<string>();
     for (const entries of idsByName.values()) {
-      if (new Set(entries.map(entry => entry.path)).size > 1) {
+      if (entries.length < 2) continue;
+      const firstPath = entries[0].path;
+      if (entries.some(entry => entry.path !== firstPath)) {
         for (const entry of entries) duplicateIds.add(entry.id);
       }
     }
@@ -4025,13 +4031,15 @@ export class MapWindow implements OnInit, OnDestroy {
     for (const database of databases) {
       const name = this.fileNameFromPath(database.path);
       if (!name) continue;
-      const entries = idsByName.get(name) ?? [];
-      entries.push({ id: database.id, path: database.path.toLocaleLowerCase() });
-      idsByName.set(name, entries);
+      const entries = idsByName.get(name);
+      if (entries) entries.push({ id: database.id, path: database.path.toLocaleLowerCase() });
+      else idsByName.set(name, [{ id: database.id, path: database.path.toLocaleLowerCase() }]);
     }
     const duplicateIds = new Set<string>();
     for (const entries of idsByName.values()) {
-      if (new Set(entries.map(entry => entry.path)).size > 1) {
+      if (entries.length < 2) continue;
+      const firstPath = entries[0].path;
+      if (entries.some(entry => entry.path !== firstPath)) {
         for (const entry of entries) duplicateIds.add(entry.id);
       }
     }
@@ -4107,6 +4115,7 @@ export class MapWindow implements OnInit, OnDestroy {
         remaining = await this.desktop.OfflineMap.removeFile(map.id);
       }
       this.offlineMaps.set(remaining);
+      this.refreshOfflineMapDuplicateIndex(remaining);
       this.offlineMapUpdateCheckStatus.set('');
       if (!remaining.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
         this.changeMapSource('online');
@@ -4127,7 +4136,9 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
     if (!this.desktop) return;
-    this.offlineMaps.set(await this.desktop.OfflineMap.removeFile(id));
+    const remaining = await this.desktop.OfflineMap.removeFile(id);
+    this.offlineMaps.set(remaining);
+    this.refreshOfflineMapDuplicateIndex(remaining);
     if (!this.offlineMaps().some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
       this.changeMapSource('online');
       return;
@@ -4294,7 +4305,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .filter(candidate => available.every(database =>
         database.enabled === this.hillshadeDatabaseMatchesPreset(database, candidate.preset)
       ))
-      .sort((a, b) => b.covered - a.covered || b.patternLength - a.patternLength);
+      .sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
     const next = allEnabled && candidates.includes('all') ? 'all'
       : noneEnabled && candidates.includes('none') ? 'none'
       : compatible[0]?.preset ?? 'custom';
