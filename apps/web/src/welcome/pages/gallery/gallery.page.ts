@@ -1,14 +1,12 @@
 import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
-import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ActionButtonComponent,
   ConfirmationDialogComponent,
   IconComponent,
-  OverlayService,
   PopupMenuComponent,
   SidePanelComponent,
   TextComponent,
@@ -19,7 +17,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, filter, map, pairwise, switchMap } from 'rxjs';
+import { map, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -29,7 +27,6 @@ import { defaultSortMode, treeNode } from '../../../gallery/services/gallery-sta
 import { Dialogs } from '../../../ipc/dialogs';
 import { SettingsPanelComponent } from '../../../settings/components/settings-dialog/settings-dialog.component';
 import { DefaultPipe } from '../../../system/pipes/default/default.pipe';
-import { ImageView } from '../../../viewer/pages/image-view/image-view';
 import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navigator';
 
 @Component({
@@ -76,7 +73,8 @@ export class GalleryPage {
 
   readonly viewNavigator = inject(ViewNavigator);
 
-  readonly overlayService = inject(OverlayService);
+  readonly imageSelected = output<FileInfo>();
+
 
   protected readonly tree = viewChild.required(TreeComponent);
 
@@ -98,7 +96,7 @@ export class GalleryPage {
     const target = event.target;
     if (target instanceof HTMLElement
       && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
-    // ImageView owns the shortcut while its overlay is active.
+    // The Image View owns the shortcut while it is active.
     if (this.document.querySelector('app-image-view')) return;
     event.preventDefault();
     void this.openCaptureWindow();
@@ -147,16 +145,7 @@ export class GalleryPage {
       if (location) void this.desktopApi?.CacheManager.getDirectoryPhotoLocations(location).catch(() => undefined);
     });
 
-    // Refresh cache details only when returning from the image viewer.
-    combineLatest([this.overlayService.isVisible(), this.overlayService.component()])
-      .pipe(
-        pairwise(),
-        filter(([[wasVisible], [isVisible, component]]) =>
-          wasVisible && !isVisible && component === ImageView
-        ),
-        takeUntilDestroyed()
-      )
-      .subscribe(() => this.galleryCacheBuild.refreshDetailCacheStatus());
+    afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
 
   }
 
@@ -226,5 +215,7 @@ export class GalleryPage {
   protected readonly onImageSelected = (file: FileInfo) =>
     this.viewNavigator
       .selectImage(file.path)
-      .subscribe(() => this.overlayService.show(ImageView));
+      .subscribe(selected => {
+        if (selected) this.imageSelected.emit(file);
+      });
 }
