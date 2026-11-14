@@ -2,6 +2,8 @@
 
 [Back to README](../README.md)
 
+The Help reference lists **5 map source types**.
+
 | Format / source | Extension / source | Online | Renderer | Details |
 | --- | --- | --- | --- | --- |
 | Online map (XYZ tiles) | URL / XYZ tile endpoint | Yes | MapLibre | Online raster or vector tiles loaded from a tile-server URL; requires an internet connection. |
