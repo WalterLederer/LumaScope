@@ -3413,8 +3413,18 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly scanResourcePackage = async (): Promise<void> => {
     if (!this.desktop || this.resourcePackageScanBusy()) return;
-    const folder = await this.desktop.Dialogs.openFolder();
+    const previousSettings = await this.desktop.ProcessManager.getAppSettings();
+    const offlineSettings = previousSettings['offlineMaps'] && typeof previousSettings['offlineMaps'] === 'object'
+      ? previousSettings['offlineMaps'] as Record<string, unknown>
+      : {};
+    const lastScanFolder = typeof offlineSettings['resourcePackageLastFolder'] === 'string'
+      ? offlineSettings['resourcePackageLastFolder']
+      : undefined;
+    const folder = await this.desktop.Dialogs.openFolder(lastScanFolder);
     if (!folder.success) return;
+    await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', {
+      resourcePackageLastFolder: folder.data
+    });
     this.resourcePackageScanBusy.set(true);
     this.resourcePackageScanError.set('');
     this.resourcePackageScanStatus.set('Scanning extracted resource package…');
@@ -3469,10 +3479,12 @@ export class MapWindow implements OnInit, OnDestroy {
       }
 
       let themesFound = 0;
-      if (overwrite && scan.mapsforgeThemeFolder) {
+      if (scan.mapsforgeThemeFolder) {
+        // Count XML files discovered even when the user chooses to keep the
+        // currently configured theme folder and does not apply the new folder.
         const themes = await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder);
         themesFound = themes.length;
-        if (themes.length) {
+        if (overwrite && themes.length) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
           const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
