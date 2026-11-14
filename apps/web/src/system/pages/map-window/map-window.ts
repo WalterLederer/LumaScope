@@ -3722,7 +3722,7 @@ export class MapWindow implements OnInit, OnDestroy {
         hillshadeAdded + ' Hillshade file(s) added · ' + hillshadeRemoved + ' stale Hillshade entry(s) removed from the list',
         valhallaAdded + ' Valhalla configuration(s) added · ' + valhallaRemoved + ' stale configuration(s) removed from the list',
         resourcesApplied ? 'OsmAnd resources folder selected' : 'OsmAnd resources folder not changed',
-        overwrite && themesFound > 0 ? 'Mapsforge theme folder and theme list updated' : 'Mapsforge theme folder not changed'
+        overwrite && scan.mapsforgeThemeFolder ? 'Mapsforge theme folder and theme list updated' : overwrite ? 'Mapsforge theme folder and theme list cleared' : 'Mapsforge theme folder not changed'
       ];
       const importErrors = importResult.errors.length ? ' · Import errors: ' + importResult.errors.length : '';
       const scanErrors = scan.errors.length ? ' · Scan warnings: ' + scan.errors.length : '';
