@@ -58,7 +58,7 @@ if ((Test-Path -LiteralPath (Join-Path $runtimePath 'bin\java.exe') -PathType Le
             $marker.JdkHome -eq $JavaHome -and
             $marker.JdkMajor -eq $jdkMajor) {
             Write-Host "Mapsforge Java runtime is up to date (JDK $jdkMajor)." -ForegroundColor Green
-            exit 0
+            return
         }
     }
     catch {
