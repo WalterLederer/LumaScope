@@ -487,9 +487,14 @@ class OsmAndAtlasWorker {
       + ' request_id=' + requestId);
     if (status !== 0) {
       const responseMessage = payload.toString('utf8').trim();
-      const timeoutMessages = this.stderrMessages.filter(message => /did not settle|timed?\s*out|timeout/i.test(message)).slice(-3);
-      const details = [responseMessage, ...timeoutMessages].filter(Boolean).join(' | ');
-      throw new Error(details || 'OsmAnd Atlas rendering failed.');
+      // Prefer the error text carried in the helper response. Keep stderr as
+      // a fallback for older helpers and failures that occur before a frame is
+      // written; exclude routine Qt/OpenGL diagnostics from the user-facing error.
+      const helperErrors = this.stderrMessages
+        .filter(message => !/^(INFO|DEBUG):/i.test(message) && !message.startsWith('ATLAS_INIT '))
+        .slice(-6);
+      const details = [responseMessage, ...helperErrors].filter(Boolean).join(' | ');
+      throw new Error(details || 'OsmAnd Atlas rendering failed (native helper returned status ' + status + ').');
     }
     if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
