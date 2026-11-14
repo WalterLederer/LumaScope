@@ -3518,17 +3518,18 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly checkOfflineFiles = async (): Promise<void> => {
-    if (!this.desktop || this.offlineFilesCheckBusy()) return;
+    const desktop = this.desktop;
+    if (!desktop || this.offlineFilesCheckBusy()) return;
     this.offlineFilesCheckBusy.set(true);
     this.offlineFilesChecked.set(false);
     this.offlineFilesCheckStatus.set('Checking offline files and resource status…');
     try {
       const [maps, hillshade, valhalla, osmandStatus, atlasStatus] = await Promise.all([
-        this.desktop.OfflineMap.getMaps(),
-        this.desktop.OsmAndAtlas.getHillshadeDatabases(),
-        this.desktop.Valhalla.getRuntimeStatus(),
-        this.desktop.OsmAnd.getRuntimeStatus(),
-        this.desktop.OsmAndAtlas.getRuntimeStatus()
+        desktop.OfflineMap.getMaps(),
+        desktop.OsmAndAtlas.getHillshadeDatabases(),
+        desktop.Valhalla.getRuntimeStatus(),
+        desktop.OsmAnd.getRuntimeStatus(),
+        desktop.OsmAndAtlas.getRuntimeStatus()
       ]);
       this.offlineMaps.set(maps);
       this.hillshadeDatabases.set(hillshade);
@@ -3542,7 +3543,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.updateHillshadePresetFromSelection(hillshade);
       this.mapsforgeThemeDuplicatePaths.set(new Set());
       if (this.mapsforgeThemeFolder()) {
-        const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
+        const themes = await desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
         this.mapsforgeThemes.set(themes);
         this.refreshMapsforgeThemeDuplicateIndex(themes);
       }
