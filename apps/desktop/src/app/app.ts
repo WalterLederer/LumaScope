@@ -6,6 +6,7 @@ import { format } from 'url';
 import { environment } from '../environments/environment';
 import { protocolHandler } from '../protocol-handler/protocol-handler';
 import { StartupConfig } from '../startup-config/startup-config';
+import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
 
 export default class App {
@@ -569,6 +570,20 @@ export default class App {
     ipcMain.handle('Capture.getGlobalShortcutStatus', () => App.getGlobalCaptureShortcutStatus());
 
     App.application = app;
+
+    startAppSettingsCheckpoint();
+
+    // Do not let Electron exit while an accepted settings write is still
+    // queued. The second quit call is allowed through after the queue drains.
+    let settingsFlushOnQuitStarted = false;
+    app.on('before-quit', event => {
+      if (settingsFlushOnQuitStarted) return;
+      event.preventDefault();
+      settingsFlushOnQuitStarted = true;
+      void flushAppSettingsWrites()
+        .catch(error => console.error('[Settings] Could not flush settings before quit:', error))
+        .finally(() => app.quit());
+    });
 
     if (process.platform === 'linux') {
       // Must match the AppImage's light-matter.desktop filename for KDE/Wayland icon lookup.
