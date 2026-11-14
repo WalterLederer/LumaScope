@@ -88,8 +88,9 @@
   @if (!fullScreen && controlsSidebarVisible()) {
     <aside class="image-controls-sidebar" [class.location-tab-active]="activeImageSidebarTab() === 'location'" aria-label="Image controls" [style.width.px]="sidebarWidth()">
       <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleControlsSidebar()">×</button></nav>
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') { <nav class="image-sidebar-tabs image-sidebar-subtabs" role="tablist" aria-label="Image detail tabs">@for (tab of imageSubTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSubTab() === tab.id" [attr.aria-selected]="activeImageSubTab() === tab.id" (click)="setActiveImageSubTab(tab.id)">{{tab.label}}</button> }</nav> }
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
-      @if (activeImageSidebarTab() === 'cache') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
         <section class="image-database-section">
           <button class="section-heading" type="button" (click)="toggleSidebarSection('database')">
@@ -128,7 +129,7 @@
           <button type="button" class="capture-window-open-button" (click)="openCaptureWindow()">Open Screen Capture window…</button>
         </section>
       }
-      @if (activeImageSidebarTab() === 'zoom') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
       <section>
         <button class="section-heading" (click)="toggleSidebarSection('zoom')"><span class="section-chevron">{{sidebarSectionExpanded('zoom') ? 'v' : '>'}}</span>Zoom</button>
         @if (sidebarSectionExpanded('zoom')) {
@@ -142,7 +143,7 @@
         }
       </section>
       }
-      @if (activeImageSidebarTab() === 'corrections') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'corrections') {
       <section>
         @if(sidebarSectionExpanded('corrections')) {
           <section class="correction-subsection basic-correction-section">
@@ -194,7 +195,7 @@
         }
       </section>
       }
-      @if (activeImageSidebarTab() === 'highlight') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'highlight') {
       <section><strong class="section-title">Highlight</strong>
         @if (sidebarSectionExpanded('highlight')) {
           <label class="hdr-highlight-toggle"><input type="checkbox" [checked]="highlightHdrPixels()" (change)="setHdrPixelHighlight($any($event.target).checked)"/> Highlight HDR pixels</label>
@@ -221,7 +222,7 @@
         }
       </section>
       }
-      @if (activeImageSidebarTab() === 'zoom') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
       <section><button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
         @if(sidebarSectionExpanded('loupe')) {
           <button class="section-heading" (click)="toggleSidebarSection('magnifierSettings')"><span class="section-chevron">{{sidebarSectionExpanded('magnifierSettings') ? 'v' : '>'}}</span>Magnifier Settings</button>
@@ -344,7 +345,7 @@
       }
       </section>
       }
-      @if (activeImageSidebarTab() === 'view') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'view') {
       <section><strong class="section-title">View mode (V)</strong>
         @if(sidebarSectionExpanded('mode')) { <div class="mode-row">
 <button class="mode-button" [class.active]="comparisonMode()==='hdr'" [disabled]="!isHdrImage" (click)="setComparisonMode('hdr')" aria-label="HDR view" title="HDR view"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></button>
@@ -356,7 +357,7 @@
 </div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><input type="range" min="1" max="99" [value]="comparisonSplit()" (input)="previewComparisonSplit($any($event.target).value)" (change)="setComparisonSplit($any($event.target).value)"/>} }
       </section>
       }
-      @if (activeImageSidebarTab() === 'histogram') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'histogram') {
         <section class="histogram-inline" aria-label="SDR and HDR image histogram">
           @if (histogramLoading()) {
               <p>Calculating histogram…</p>
