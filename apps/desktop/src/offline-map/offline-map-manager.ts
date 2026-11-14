@@ -48,9 +48,7 @@ export class OfflineMapManager {
     const path=join(directory,entry.name);
     if(entry.isDirectory()){
      const lower=entry.name.toLowerCase();
-     if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge')){
-      try{if(readdirSync(path).some(name=>/\.xml$/i.test(name)))result.mapsforgeThemeFolder??=path;}catch{/* inaccessible folder */}
-     }
+     if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge'))result.mapsforgeThemeFolder??=path;
      if(lower==='resources'&&existsSync(join(path,'rendering_styles','default.render.xml')))result.osmAndResourcesPath??=path;
      walk(path,depth+1);
      continue;
@@ -288,7 +286,7 @@ export class OfflineMapManager {
   const uniquePaths=[...new Set(filePaths.filter(path=>typeof path==='string'&&path.trim()).map(path=>path.trim()))];
   for(const filePath of uniquePaths){
    try{const ext=extname(filePath).toLowerCase();if(ext==='.obf')this.openObfFile(filePath);else if(ext==='.map')this.openMapsforgeFile(filePath);else if(ext==='.mbtiles')this.openFile(filePath);else errors.push(filePath+': unsupported offline map file type');}
-   catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error));}
+   catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}
   }
   if(uniquePaths.length){this.lastDirectory=dirname(resolve(uniquePaths[0]));await this.persistMaps();}
   if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
