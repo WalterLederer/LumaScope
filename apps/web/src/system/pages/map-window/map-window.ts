@@ -793,8 +793,8 @@ interface MapErrorEntry {
          <option value="all">All</option><option value="mbtiles">MBTiles</option><option value="obf">OsmAnd (.obf)</option><option value="map">Mapsforge (.map)</option><option value="hillshade">Hillshade</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="filteredOfflineFiles().length === 0">Activate visible maps</button>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="filteredOfflineFiles().length === 0">Deactivate visible maps</button>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="filteredOfflineFiles().length + filteredHillshadeDatabases().length === 0">Activate visible files</button>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="filteredOfflineFiles().length + filteredHillshadeDatabases().length === 0">Deactivate visible files</button>
     <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOfflineFiles().length + filteredHillshadeDatabases().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
     @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
     </span>
@@ -4126,15 +4126,19 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly setAllOfflineFilesEnabled = async (enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
     const visibleMaps = this.filteredOfflineFiles();
-    if (visibleMaps.length === 0) return;
+    const visibleHillshade = this.filteredHillshadeDatabases();
+    if (visibleMaps.length === 0 && visibleHillshade.length === 0) return;
     try {
-      const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
-      const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
-      this.offlineMaps.set(updated);
-      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
-      this.refreshOfflineMapRendering();
+      if (visibleMaps.length) {
+        const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
+        const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
+        this.offlineMaps.set(updated);
+        this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
+        this.refreshOfflineMapRendering();
+      }
+      if (visibleHillshade.length) await this.setAllHillshadeDatabasesEnabled(enabled, true);
     } catch (error) {
-      console.error('[OfflineMap] Could not update Active state for visible maps:', error);
+      console.error('[OfflineMap] Could not update Active state for visible files:', error);
     }
   };
   protected readonly removeVisibleOfflineFiles = async (): Promise<void> => {
