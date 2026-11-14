@@ -3553,10 +3553,13 @@ export class MapWindow implements OnInit, OnDestroy {
       this.refreshValhallaDuplicateIndex(valhalla.configurations ?? []);
       this.updateHillshadePresetFromSelection(hillshade);
       this.mapsforgeThemeDuplicatePaths.set(new Set());
+      this.mapsforgeThemeError.set('');
       if (this.mapsforgeThemeFolder()) {
         const themes = await desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
         this.mapsforgeThemes.set(themes);
         this.refreshMapsforgeThemeDuplicateIndex(themes);
+      } else {
+        this.mapsforgeThemes.set([]);
       }
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
       this.offlineFilesChecked.set(true);
