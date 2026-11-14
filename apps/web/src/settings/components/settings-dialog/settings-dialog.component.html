@@ -3,16 +3,6 @@
 
 <div class="settings-panel">
 
-  @if (mode() === 'general') {
-    <section class="appearance-settings">
-      <strong class="setting-section-title">Appearance</strong>
-      <button type="button" class="theme-toggle-button" (click)="themeService.toggle()">
-        <span class="theme-toggle-icon" aria-hidden="true">{{ themeService.current() === 'dark' ? '☀' : '☾' }}</span>
-        <span>Switch to {{ themeService.current() === 'dark' ? 'Light' : 'Dark' }} Mode</span>
-      </button>
-    </section>
-  }
-
   @if (mode() !== 'cache') {
   <section>
     <div class="setting-row setting-config-path">
