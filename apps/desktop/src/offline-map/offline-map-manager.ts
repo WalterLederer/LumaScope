@@ -93,7 +93,7 @@ export class OfflineMapManager {
   const refresh=(status:OfflineMapStatus):OfflineMapStatus=>{
    try{
     const stats=statSync(status.filePath);
-    if(!stats.isFile())throw new Error('Not a file');
+    if(!stats.isFile()||stats.size<=0)throw new Error('Not a valid non-empty file');
     return {...status,available:true,fileSize:stats.size,lastModified:stats.mtimeMs,error:null};
    }catch{
     return {...status,available:false,error:'File not found'};
