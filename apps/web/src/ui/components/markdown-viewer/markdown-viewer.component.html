@@ -1,6 +1,11 @@
 <div class="markdown-help">
   <header class="markdown-help-header">
     <strong>{{ documentTitle() }}</strong>
+    <label class="markdown-font-size">
+      <span>Text size</span>
+      <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" aria-label="Documentation text size">
+      <output>{{ fontSize() }} px</output>
+    </label>
     @if (currentFile() !== 'README.md') {
       <button type="button" (click)="showReadme()">Back to README</button>
     }
@@ -10,6 +15,6 @@
   } @else if (error()) {
     <p class="markdown-state markdown-error" role="alert">{{ error() }}</p>
   } @else {
-    <article class="markdown-body" [innerHTML]="renderedHtml()" (click)="onDocumentClick($event)"></article>
+    <article class="markdown-body" [style.font-size.px]="fontSize()" [innerHTML]="renderedHtml()" (click)="onDocumentClick($event)"></article>
   }
 </div>
