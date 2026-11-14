@@ -72,7 +72,7 @@ export class App {
     this.galleryLocations.addLocation(directory);
 
     await firstValueFrom(navigation);
-    const selected = await firstValueFrom(this.viewNavigator.selectImage(path));
+    await firstValueFrom(this.viewNavigator.selectImage(path));
 
     // ImageView is the persistent application view; selecting an image updates it directly.
   };
