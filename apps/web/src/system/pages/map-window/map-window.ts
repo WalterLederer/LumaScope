@@ -971,7 +971,7 @@ interface MapErrorEntry {
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
                       </tr>
                     }
-                    @for (database of filteredHillshadeDatabases(); track database.id) {
+                    @for (database of sortedHillshadeDatabases(); track database.id) {
                       <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id)">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
@@ -1865,11 +1865,17 @@ export class MapWindow implements OnInit, OnDestroy {
   }
   private hillshadeSortValue(database: OsmAndHillshadeDatabase, column: string): string | number | boolean | null {
     switch (column) {
+      case 'inUse': return false;
       case 'enabled': return database.enabled;
+      case 'type': return 'hillshade';
       case 'name': return this.fileNameFromPath(database.path);
       case 'path': return database.path;
-      case 'lastModified': return database.lastModified;
+      case 'fileSize':
       case 'sizeBytes': return database.sizeBytes;
+      case 'lastModified': return database.lastModified;
+      case 'updates':
+      case 'zoom': return 0;
+      case 'bounds': return '';
       case 'status': return database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found';
       default: return this.fileNameFromPath(database.path);
     }
@@ -2191,6 +2197,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
       }
       if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
+      else if (saved['activeSettingsTab'] === 'hillshade') this.activeSettingsTab.set('offlineMaps');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
