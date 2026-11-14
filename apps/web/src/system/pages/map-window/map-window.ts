@@ -3599,38 +3599,67 @@ export class MapWindow implements OnInit, OnDestroy {
         'No: keep the existing folders and active routing configuration. Discovered maps, hillshade files and Valhalla configurations will still be added to their lists.'
       );
 
-      const previousMapPaths = new Set(this.offlineMaps().map(map => map.filePath));
-      const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => database.path));
-      const previousValhallaPaths = new Set((valhallaBefore.configurations ?? []).map(configuration => configuration.path));
+      const normalizePath = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
       const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
+      const wantedMapPaths = new Set(mapPaths.map(normalizePath));
+      let currentMaps = this.offlineMaps();
+      let mapsRemoved = 0;
+      for (const map of currentMaps) {
+        if (!wantedMapPaths.has(normalizePath(map.filePath))) {
+          currentMaps = await this.desktop.OfflineMap.removeFile(map.id);
+          mapsRemoved++;
+        }
+      }
+      this.offlineMaps.set(currentMaps);
+      const previousMapPaths = new Set(currentMaps.map(map => normalizePath(map.filePath)));
       const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
-      const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.filePath)).length;
+      const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(normalizePath(map.filePath))).length;
       this.offlineMaps.set(importResult.maps);
-
       this.offlineMapImportErrors.set(importResult.errors);
 
+      const wantedHillshadePaths = new Set(scan.hillshadeFiles.map(normalizePath));
+      let currentHillshade = this.hillshadeDatabases();
+      let hillshadeRemoved = 0;
+      for (const database of currentHillshade) {
+        if (!wantedHillshadePaths.has(normalizePath(database.path))) {
+          currentHillshade = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(database.id);
+          hillshadeRemoved++;
+        }
+      }
+      this.hillshadeDatabases.set(currentHillshade);
+      const previousHillshadePaths = new Set(currentHillshade.map(database => normalizePath(database.path)));
       let hillshadeAdded = 0;
       if (scan.hillshadeFiles.length) {
         const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
-        hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(database.path)).length;
+        hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(normalizePath(database.path))).length;
         this.hillshadeDatabases.set(databases);
-         this.updateHillshadePresetFromSelection(databases);
+        this.updateHillshadePresetFromSelection(databases);
+        this.applyHillshadeSettingsIfReady(true);
+      } else {
+        this.updateHillshadePresetFromSelection(currentHillshade);
         this.applyHillshadeSettingsIfReady(true);
       }
 
-      let valhallaAdded = 0;
-      if (scan.valhallaConfigs.length) {
-        const status = await this.desktop.Valhalla.addConfigsFromPaths(scan.valhallaConfigs);
-        valhallaAdded = (status.configurations ?? []).filter(configuration => !previousValhallaPaths.has(configuration.path)).length;
-        if (overwrite && scan.valhallaConfigs[0]) {
-          const active = await this.desktop.Valhalla.setConfigPath(scan.valhallaConfigs[0]);
-          this.valhallaConfigurations.set(active.configurations ?? []);
-          this.routeValhallaConfigPath.set(active.configPath || '');
-        } else {
-          this.valhallaConfigurations.set(status.configurations ?? []);
-          if (!this.routeValhallaConfigPath() && status.configPath) this.routeValhallaConfigPath.set(status.configPath);
+      let valhallaStatus = valhallaBefore;
+      if (overwrite) {
+        const wantedValhallaPaths = new Set(scan.valhallaConfigs.map(normalizePath));
+        for (const configuration of valhallaStatus.configurations ?? []) {
+          if (!wantedValhallaPaths.has(normalizePath(configuration.path))) {
+            valhallaStatus = await this.desktop.Valhalla.removeConfig(configuration.path);
+          }
         }
       }
+      const previousValhallaPaths = new Set((valhallaStatus.configurations ?? []).map(configuration => normalizePath(configuration.path)));
+      let valhallaAdded = 0;
+      if (scan.valhallaConfigs.length) {
+        valhallaStatus = await this.desktop.Valhalla.addConfigsFromPaths(scan.valhallaConfigs);
+        valhallaAdded = (valhallaStatus.configurations ?? []).filter(configuration => !previousValhallaPaths.has(normalizePath(configuration.path))).length;
+      }
+      if (overwrite && scan.valhallaConfigs[0]) {
+        valhallaStatus = await this.desktop.Valhalla.setConfigPath(scan.valhallaConfigs[0]);
+      }
+      this.valhallaConfigurations.set(valhallaStatus.configurations ?? []);
+      this.routeValhallaConfigPath.set(valhallaStatus.configPath || '');
 
       let resourcesApplied = false;
       if (overwrite && scan.osmAndResourcesPath) {
@@ -3671,8 +3700,8 @@ export class MapWindow implements OnInit, OnDestroy {
         themesFound + ' Mapsforge XML theme(s)'
       ];
       const changedParts = [
-        mapsAdded + ' new map file(s) added',
-        hillshadeAdded + ' new hillshade database(s) added',
+        mapsAdded + ' map file(s) added · ' + mapsRemoved + ' stale map entry(s) removed from the list',
+        hillshadeAdded + ' Hillshade file(s) added · ' + hillshadeRemoved + ' stale Hillshade entry(s) removed from the list',
         valhallaAdded + ' new Valhalla configuration(s) added',
         resourcesApplied ? 'OsmAnd resources folder selected' : 'OsmAnd resources folder not changed',
         overwrite && themesFound > 0 ? 'Mapsforge theme folder and theme list updated' : 'Mapsforge theme folder not changed'
