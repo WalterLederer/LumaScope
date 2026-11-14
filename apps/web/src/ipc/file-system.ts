@@ -11,6 +11,8 @@ export class FileSystem implements DesktopFileSystem {
 
   readonly readText = (path: string) => window.desktop.FileSystem.readText(path);
 
+  readonly readDocumentationFile = (fileName: string) => window.desktop.FileSystem.readDocumentationFile(fileName);
+
   readonly writeText = (path: string, content: string) => window.desktop.FileSystem.writeText(path, content);
 
   readonly readJson = <T>(path: string): Promise<ApiResponse<T>> => window.desktop.FileSystem.readJson(path);
