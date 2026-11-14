@@ -11,6 +11,13 @@ const escapeHtml = (value: string): string => value
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
+const imageWidthClass = (widthText?: string): string => {
+  const width = widthText ? Number(widthText) : NaN;
+  return Number.isFinite(width) && width > 0 && width <= 100
+    ? ' class="markdown-image-width-' + width + '"'
+    : '';
+};
+
 const renderInline = (source: string, imageSources: ReadonlyMap<string, string>): string => {
   const htmlImages: string[] = [];
   const withImagePlaceholders = source.replace(/<img\b([^>]*)>/gi, (_match, attributes: string) => {
@@ -18,12 +25,8 @@ const renderInline = (source: string, imageSources: ReadonlyMap<string, string>)
     const alt = /\balt\s*=\s*["']([^"']*)["']/i.exec(attributes)?.[1] ?? '';
     const widthText = /\bwidth\s*=\s*["']?(\d{1,3}(?:\.\d+)?)%?["']?/i.exec(attributes)?.[1];
     const imageSource = src ? imageSources.get(src) : undefined;
-    const width = widthText ? Number(widthText) : NaN;
-    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100
-      ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"'
-      : ' style="max-width: 100%; height: auto;"';
     const rendered = imageSource
-      ? '<img src="' + imageSource + '" alt="' + escapeHtml(alt) + '" loading="lazy"' + widthStyle + '>'
+      ? '<img src="' + imageSource + '" alt="' + escapeHtml(alt) + '" loading="lazy"' + imageWidthClass(widthText) + '>'
       : '<span>' + escapeHtml(alt) + '</span>';
     const token = '__LUMASCOPE_HTML_IMAGE_' + htmlImages.length + '__';
     htmlImages.push(rendered);
@@ -36,11 +39,7 @@ const renderInline = (source: string, imageSources: ReadonlyMap<string, string>)
   value = value.replace(/!\[([^\]]*)\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=(\d{1,3}(?:\.\d+)?)%\})?/g, (_match, alt: string, target: string, widthText?: string) => {
     const href = target.replace(/\s+"[^"]*"$/, '');
     const imageSource = imageSources.get(href);
-    const width = widthText ? Number(widthText) : NaN;
-    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100
-      ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"'
-      : ' style="max-width: 100%; height: auto;"';
-    return imageSource ? '<img src="' + imageSource + '" alt="' + alt + '" loading="lazy"' + widthStyle + '>' : '<span>' + alt + '</span>';
+    return imageSource ? '<img src="' + imageSource + '" alt="' + alt + '" loading="lazy"' + imageWidthClass(widthText) + '>' : '<span>' + alt + '</span>';
   });
   value = value.replace(/\[([^\]]+)\]\(([^ )]+)(?:\s+"[^"]*")?\)/g, (_match, label: string, href: string) => {
     const safeHref = href.replace(/&amp;/g, '&amp;').replace(/"/g, '&quot;');
