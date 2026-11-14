@@ -252,6 +252,7 @@ Invoke-CheckedCommand "npm" @("run", "build:all")
 StopProcesses
 RemoveExecutableDirs
 
+& (Join-Path $projectDir "tools/mapsforge-renderer/stage-runtime.ps1")
 & (Join-Path $projectDir "tools/osmand-runtime/stage-helpers.ps1")
 & (Join-Path $projectDir "tools/valhalla-runtime/stage-helpers.ps1")
 
@@ -276,6 +277,13 @@ finally {
     }
 }
 
+
+# Verify the bundled Mapsforge Java runtime.
+$mapsforgeJava = Join-Path $projectDir "dist\executables\win-unpacked\resources\mapsforge\runtime\bin\java.exe"
+if (-not (Test-Path -LiteralPath $mapsforgeJava -PathType Leaf)) {
+    throw "Bundled Mapsforge Java runtime is missing from the packaged application: $mapsforgeJava"
+}
+Write-Host "Mapsforge Java runtime package copy verified" -ForegroundColor Green
 
 # Verify the native OsmAnd helper executable. OsmAnd resources are selected
 # from an external folder by the user and are intentionally not packaged.
