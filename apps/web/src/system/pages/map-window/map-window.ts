@@ -716,7 +716,7 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
-      <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
       <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
       <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || resourcePackageScanStatus() || 'Scan the extracted package, then use Check to refresh file status, missing files, duplicates and active selections.' }}</span>
     </div>
@@ -790,7 +790,7 @@ interface MapErrorEntry {
     </label>
     <label class="offline-map-list-filter">Filter:
        <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
-         <option value="all">All</option><option value="mbtiles">MBTiles</option><option value="obf">OsmAnd (.obf)</option><option value="map">Mapsforge (.map)</option><option value="hillshade">Hillshade</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
+         <option value="all">All</option><option value="mbtiles">MBTiles</option><option value="obf">OsmAnd (.obf)</option><option value="map">Mapsforge (.map)</option><option value="hillshade">Hillshade (.sqlitedb)</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
      <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
@@ -986,7 +986,7 @@ interface MapErrorEntry {
                     }
                   </tbody>
                 </table>
-              } @else { <span class="offline-map-status">No offline files loaded. Use “Scan resource package…” to discover files.</span> }
+              } @else { <span class="offline-map-status">No offline files loaded. Use “Open resource package…” to discover files.</span> }
               @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
             </div>
           </div>
