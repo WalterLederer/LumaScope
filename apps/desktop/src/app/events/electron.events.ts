@@ -1635,6 +1635,14 @@ const readFolder = async (folder: string): Promise<string[]> =>
     .filter(f => supportedFileExtensions.includes(path.extname(f).toLowerCase().replace('.', '')));
 
 
+ipcMain.on('Theme.changed', (event, theme: 'dark' | 'light') => {
+  if (theme !== 'dark' && theme !== 'light') return;
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (window.isDestroyed() || window.webContents.isDestroyed() || window.webContents === event.sender) continue;
+    window.webContents.send('Theme.changed', theme);
+  }
+});
+
 ipcMain.handle('MapOverlayWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean =>
   App.openMapOverlayWindow(latitude, longitude, bearing, imagePath)
 );
