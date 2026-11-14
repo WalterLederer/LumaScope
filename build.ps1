@@ -266,7 +266,31 @@ function RemoveExecutableDirs {
 # Branch �berpr�fen
 # Write-Host "`n=== Git Branch �berpr�fen ===" -ForegroundColor Yellow
 
-$currentBranch = (& git branch --show-current).Trim()
+# Resolve Git independently of the PowerShell profile. The build may be
+# relaunched with -NoProfile, where profile-only PATH additions are absent.
+$gitCommand = Get-Command "git.exe" -ErrorAction SilentlyContinue
+$gitExe = if ($gitCommand -and $gitCommand.Source) { $gitCommand.Source } else { $null }
+
+if (-not $gitExe) {
+    $gitCandidates = @(
+        (Join-Path $env:ProgramFiles "Git\cmd\git.exe"),
+        (Join-Path $env:ProgramFiles "Git\bin\git.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Git\cmd\git.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\Git\cmd\git.exe")
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) }
+
+    if ($gitCandidates.Count -gt 0) {
+        $gitExe = $gitCandidates[0]
+    }
+}
+
+if (-not $gitExe) {
+    throw "Git wurde nicht gefunden. Bitte Git for Windows installieren oder git.exe zum systemweiten PATH hinzufügen. Erwarteter Standardpfad: '$env:ProgramFiles\Git\cmd\git.exe'."
+}
+
+Write-Host "Git executable: $gitExe" -ForegroundColor DarkGray
+
+$currentBranch = (& $gitExe branch --show-current).Trim()
 
 if ($LASTEXITCODE -ne 0) {
     throw "Git Branch konnte nicht ermittelt werden."
@@ -278,7 +302,7 @@ if ($currentBranch -ne $workBranch) {
 
 # Git aktualisieren
 # Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
-Invoke-CheckedCommand "git" @("pull", "origin", $workBranch)
+Invoke-CheckedCommand $gitExe @("pull", "origin", $workBranch)
 
 Invoke-CheckedCommand "npx" @("nx", "reset")
 Invoke-CheckedCommand "npm" @("run", "build:all")
