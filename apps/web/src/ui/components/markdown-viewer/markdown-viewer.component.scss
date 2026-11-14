@@ -186,3 +186,10 @@
 :host ::ng-deep .markdown-body h4 { font-size: 1.08em; }
 :host ::ng-deep .markdown-body code { font-size: .92em; }
 :host ::ng-deep .markdown-body table { font-size: .92em; }
+
+/* Width classes survive Angular's innerHTML sanitization, unlike inline style attributes. */
+@for $width from 1 through 100 {
+  :host ::ng-deep .markdown-body img.markdown-image-width-#{$width} {
+    width: #{$width}%;
+  }
+}
