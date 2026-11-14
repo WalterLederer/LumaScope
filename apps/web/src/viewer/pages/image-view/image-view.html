@@ -441,7 +441,7 @@
         </section>
 
       }
-      @if (activeImageSidebarTab() === 'image') {
+      @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
       <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
         <section class="image-actions-section">
           <button class="section-heading" type="button" (click)="toggleSidebarSection('actions')"><span class="section-chevron">{{sidebarSectionExpanded('actions') ? 'v' : '>'}}</span>Actions</button>
