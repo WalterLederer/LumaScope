@@ -3580,6 +3580,8 @@ export class MapWindow implements OnInit, OnDestroy {
       resourcePackageLastFolder: folder.data
     });
     this.resourcePackageScanBusy.set(true);
+    this.offlineFilesChecked.set(false);
+    this.offlineFilesCheckStatus.set('');
     this.resourcePackageScanError.set('');
     this.resourcePackageScanFound.set('');
     this.resourcePackageScanChanged.set('');
@@ -3641,11 +3643,13 @@ export class MapWindow implements OnInit, OnDestroy {
       }
 
       let valhallaStatus = valhallaBefore;
+      let valhallaRemoved = 0;
       if (overwrite) {
         const wantedValhallaPaths = new Set(scan.valhallaConfigs.map(normalizePath));
         for (const configuration of valhallaStatus.configurations ?? []) {
           if (!wantedValhallaPaths.has(normalizePath(configuration.path))) {
             valhallaStatus = await this.desktop.Valhalla.removeConfig(configuration.path);
+            valhallaRemoved++;
           }
         }
       }
@@ -3672,14 +3676,11 @@ export class MapWindow implements OnInit, OnDestroy {
 
       let themesFound = 0;
       if (scan.mapsforgeThemeFolder) {
-        // Count XML files discovered even when the user chooses to keep the
-        // currently configured theme folder and does not apply the new folder.
         const themes = await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder);
         themesFound = themes.length;
-        if (overwrite && themes.length) {
+        if (overwrite) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
-
           const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
           const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
           const selectedPath = selectedTheme?.path ?? '';
@@ -3688,6 +3689,11 @@ export class MapWindow implements OnInit, OnDestroy {
             themeFolder: scan.mapsforgeThemeFolder, themePath: selectedPath
           });
         }
+      } else if (overwrite) {
+        this.mapsforgeThemeFolder.set('');
+        this.mapsforgeThemes.set([]);
+        this.mapsforgeThemePath.set('');
+        await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder: '', themePath: '' });
       }
 
       const foundParts = [
@@ -3702,7 +3708,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const changedParts = [
         mapsAdded + ' map file(s) added · ' + mapsRemoved + ' stale map entry(s) removed from the list',
         hillshadeAdded + ' Hillshade file(s) added · ' + hillshadeRemoved + ' stale Hillshade entry(s) removed from the list',
-        valhallaAdded + ' new Valhalla configuration(s) added',
+        valhallaAdded + ' Valhalla configuration(s) added · ' + valhallaRemoved + ' stale configuration(s) removed from the list',
         resourcesApplied ? 'OsmAnd resources folder selected' : 'OsmAnd resources folder not changed',
         overwrite && themesFound > 0 ? 'Mapsforge theme folder and theme list updated' : 'Mapsforge theme folder not changed'
       ];
@@ -3714,7 +3720,6 @@ export class MapWindow implements OnInit, OnDestroy {
       if (scan.errors.length || importResult.errors.length) {
         this.resourcePackageScanError.set([...scan.errors, ...importResult.errors].join('\n'));
       }
-      await this.checkOfflineFiles();
       if (this.currentLatitude !== null && this.currentLongitude !== null) this.refreshOfflineMapRendering();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
