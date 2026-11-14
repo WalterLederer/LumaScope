@@ -69,6 +69,22 @@ export class OfflineMapManager {
   for(const key of ['obfFiles','mbtilesFiles','mapsforgeFiles','hillshadeFiles','valhallaConfigs'] as const)result[key].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
   return result;
  };
+ @IpcHandler({name:'OfflineMap.checkFiles'})
+ readonly checkFiles=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>{
+  const refresh=(status:OfflineMapStatus):OfflineMapStatus=>{
+   try{
+    const stats=statSync(status.filePath);
+    if(!stats.isFile())throw new Error('Not a file');
+    return {...status,available:true,fileSize:stats.size,lastModified:stats.mtimeMs,error:null};
+   }catch{
+    return {...status,available:false,error:'File not found'};
+   }
+  };
+  for(const item of this.opened.values())item.status=refresh(item.status);
+  for(const [path,status] of this.obfFiles)this.obfFiles.set(path,refresh(status));
+  for(const [path,status] of this.mapsforgeFiles)this.mapsforgeFiles.set(path,refresh(status));
+  return this.getMaps();
+ };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})),[...this.mapsforgeFiles.values()].map(item=>({...item})));
  @IpcHandler({name:'OfflineMap.checkForUpdates'})
