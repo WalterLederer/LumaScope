@@ -2,7 +2,7 @@
 
 [Back to README](../README.md)
 
-This reference lists direct Windows API calls used by LumaScope. It does not include calls made internally by Electron, Qt, the Java runtime or third-party libraries.
+This reference lists **31 direct Windows API entries** used by LumaScope. It does not include calls made internally by Electron, Qt, the Java runtime or third-party libraries.
 
 | DLL / component | API call | Purpose |
 | --- | --- | --- |
