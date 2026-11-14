@@ -99,7 +99,7 @@ export class Exif {
         // ExifTool may return EXIF date strings without timezone information.
         // Interpret those camera-local values in the local timezone rather than
         // letting Date.parse reject the colon-separated date format.
-        const exifDate = text.match(/^(\\d{4}):(\\d{2}):(\\d{2})[ T](\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d+))?(Z|[+-]\\d{2}:?\\d{2})?$/i);
+        const exifDate = text.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:?\d{2})?$/i);
         const date = exifDate
           ? exifDate[8]
             ? new Date(exifDate[1] + '-' + exifDate[2] + '-' + exifDate[3] + 'T'
