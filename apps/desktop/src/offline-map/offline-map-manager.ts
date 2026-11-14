@@ -1,5 +1,5 @@
 import { app, dialog, type IpcMainInvokeEvent } from 'electron';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -9,6 +9,7 @@ export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbti
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'|'mapsforge'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
+export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
@@ -25,10 +26,50 @@ export class OfflineMapManager {
   const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'All offline maps (*.mbtiles, *.obf, *.map)',extensions:['mbtiles','obf','map']},{name:'Mapsforge maps (*.map)',extensions:['map']},{name:'MBTiles (*.mbtiles)',extensions:['mbtiles']},{name:'OsmAnd OBF (*.obf)',extensions:['obf']}]});
   if(result.canceled||!result.filePaths.length)return {maps:await this.getMaps(),errors:[]};
   this.lastDirectory=dirname(result.filePaths[0]);
-  const errors:string[]=[];
-  for(const filePath of result.filePaths){try{if(extname(filePath).toLowerCase()==='.obf')this.openObfFile(filePath);else if(extname(filePath).toLowerCase()==='.map')this.openMapsforgeFile(filePath);else this.openFile(filePath);}catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error)));}}
-  await this.persistMaps(); if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
-  return {maps:await this.getMaps(),errors};
+  return this.importFilePaths(result.filePaths);
+ };
+ @IpcHandler({name:'OfflineMap.importFiles'})
+ readonly importFiles=async(_event:IpcMainInvokeEvent,filePaths:string[]):Promise<OfflineMapImportResult>=>{
+  if(!Array.isArray(filePaths))throw new Error('Offline map paths must be an array.');
+  return this.importFilePaths(filePaths);
+ };
+ @IpcHandler({name:'OfflineMap.scanResourcePackage'})
+ readonly scanResourcePackage=async(_event:IpcMainInvokeEvent,rootPath:string):Promise<ResourcePackageScanResult>=>{
+  if(typeof rootPath!=='string'||!rootPath.trim())throw new Error('Select the extracted resource-package folder.');
+  const root=resolve(rootPath.trim());
+  if(!existsSync(root)||!statSync(root).isDirectory())throw new Error('Resource-package folder not found: '+root);
+  const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,errors:[]};
+  const seen=new Set<string>();
+  const add=(list:string[],path:string):void=>{const key=resolve(path).toLowerCase();if(!seen.has(key)){seen.add(key);list.push(resolve(path));}};
+  const walk=(directory:string,depth=0):void=>{
+   if(depth>24)return;
+   let entries;try{entries=readdirSync(directory,{withFileTypes:true});}catch(error){result.errors.push(directory+': '+(error instanceof Error?error.message:String(error)));return;}
+   for(const entry of entries){
+    const path=join(directory,entry.name);
+    if(entry.isDirectory()){
+     const lower=entry.name.toLowerCase();
+     if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge')){
+      try{if(readdirSync(path).some(name=>/\.xml$/i.test(name)))result.mapsforgeThemeFolder??=path;}catch{/* inaccessible folder */}
+     }
+     if(lower==='resources'&&existsSync(join(path,'rendering_styles','default.render.xml')))result.osmAndResourcesPath??=path;
+     walk(path,depth+1);
+     continue;
+    }
+    if(!entry.isFile())continue;
+    const ext=extname(entry.name).toLowerCase();
+    const segments=path.toLowerCase().split(/[\\/]/);
+    if(ext==='.mbtiles')add(result.mbtilesFiles,path);
+    if(ext==='.obf'&&segments.includes('osmand')&&segments.includes('files'))add(result.obfFiles,path);
+    if(ext==='.map'&&segments.includes('mapsforge'))add(result.mapsforgeFiles,path);
+    if(['.sqlitedb','.sqlite','.db'].includes(ext)&&segments.includes('osmand')&&segments.includes('tiles'))add(result.hillshadeFiles,path);
+    if(ext==='.json'&&segments.includes('openstreetmap')){
+     try{const parsed=JSON.parse(readFileSync(path,'utf8')) as Record<string,unknown>;if(parsed&&typeof parsed==='object'&&'mjolnir' in parsed)add(result.valhallaConfigs,path);}catch{/* Ignore unrelated or invalid JSON files. */}
+    }
+   }
+  };
+  walk(root);
+  for(const key of ['obfFiles','mbtilesFiles','mapsforgeFiles','hillshadeFiles','valhallaConfigs'] as const)result[key].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+  return result;
  };
  @IpcHandler({name:'OfflineMap.getMaps'})
  readonly getMaps=async(_event?:IpcMainInvokeEvent):Promise<OfflineMapStatus[]>=>[...this.opened.values()].map(item=>({...item.status})).concat([...this.obfFiles.values()].map(item=>({...item})),[...this.mapsforgeFiles.values()].map(item=>({...item})));
@@ -241,6 +282,17 @@ export class OfflineMapManager {
     void updateAppSettingsSection('offlineMaps',{filePaths:[...unifiedPaths].map(([path,enabled])=>({path,enabled}))}).catch(error=>console.error('[OfflineMap] Could not migrate offline map paths:',error));
    }
   }catch(error){console.error('[OfflineMap] Could not restore map list:',error);}
+ }
+ private async importFilePaths(filePaths:string[]):Promise<OfflineMapImportResult>{
+  const errors:string[]=[];
+  const uniquePaths=[...new Set(filePaths.filter(path=>typeof path==='string'&&path.trim()).map(path=>path.trim()))];
+  for(const filePath of uniquePaths){
+   try{const ext=extname(filePath).toLowerCase();if(ext==='.obf')this.openObfFile(filePath);else if(ext==='.map')this.openMapsforgeFile(filePath);else if(ext==='.mbtiles')this.openFile(filePath);else errors.push(filePath+': unsupported offline map file type');}
+   catch(error){errors.push(filePath+': '+(error instanceof Error?error.message:String(error));}
+  }
+  if(uniquePaths.length){this.lastDirectory=dirname(resolve(uniquePaths[0]));await this.persistMaps();}
+  if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
+  return {maps:await this.getMaps(),errors};
  }
  private persistMaps():Promise<void>{const paths=new Map<string,boolean>();for(const [path,item] of this.opened)paths.set(path,item.status.enabled);for(const [path,item] of this.obfFiles)paths.set(path,item.enabled);for(const [path,item] of this.mapsforgeFiles)paths.set(path,item.enabled);const filePaths=[...paths].map(([path,enabled])=>({path,enabled}));return updateAppSettingsSection('offlineMaps',{filePaths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
