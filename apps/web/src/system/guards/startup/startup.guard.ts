@@ -42,6 +42,6 @@ export const startupGuard: CanActivateFn = async () => {
     );
   }
 
-  console.warn('[StartupGuard] Redirecting to /welcome');
-  return router.createUrlTree([ '/welcome' ]);
+  console.warn('[StartupGuard] Opening the main Image View');
+  return router.createUrlTree([ '/view' ]);
 };
