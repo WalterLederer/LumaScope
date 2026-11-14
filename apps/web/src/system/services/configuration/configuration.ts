@@ -40,14 +40,7 @@ export class Configuration {
   private _configPath?: string;
 
   constructor() {
-    this.init()
-      .then(() => {
-        this.config$.subscribe(config => {
-          if (this._configPath !== undefined) {
-            this.fileSystem.writeJson(this._configPath, config).then();
-          }
-        });
-      });
+    this.init();
   }
 
   readonly config = () => this.config$.asObservable();
@@ -61,6 +54,12 @@ export class Configuration {
       return result;
     })
       .subscribe();
+
+    // Persist only the changed section through the main-process settings queue.
+    // Never write a stale renderer snapshot over settings saved by other windows.
+    this.processManager.setAppSettingsSection('gallery', options).catch(error => {
+      console.error('[Configuration] Failed to save gallery settings:', error);
+    });
   };
 
   readonly updateSystemConfig = (options: Partial<AppConfigV1System>) => {
@@ -70,6 +69,10 @@ export class Configuration {
       return result;
     })
       .subscribe();
+
+    this.processManager.setAppSettingsSection('system', options).catch(error => {
+      console.error('[Configuration] Failed to save system settings:', error);
+    });
   };
 
   private readonly init = async () => {
