@@ -1497,11 +1497,11 @@
 }
 
 
-/* Nested Copy file controls follow the indentation of other sidebar subsections. */
+/* Copy file controls align with the other Actions content. */
 .image-controls-sidebar .copy-file-section {
-  margin: 2px 0 6px 12px;
-  padding-left: 9px;
-  border-left: 2px solid var(--color-content-default-low);
+  margin: 2px 0 6px;
+  padding-left: 0;
+  border-left: 0;
 }
 .image-controls-sidebar .copy-file-section > .section-heading {
   width: 100%;
