@@ -30,6 +30,7 @@ import { ViewNavigator } from '../../services/view-navigator/view-navigator';
 import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { GalleryPage } from '../../../welcome/pages/gallery/gallery.page';
+import { MarkdownViewerComponent } from '../../../ui/components/markdown-viewer/markdown-viewer.component';
 
 const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 
@@ -125,7 +126,8 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
     SliderComponent,
     DecimalPipe,
       ExifInfoComponent,
-    GalleryPage
+    GalleryPage,
+    MarkdownViewerComponent
   ],
   templateUrl: './image-view.html',
   styleUrl: './image-view.scss',
