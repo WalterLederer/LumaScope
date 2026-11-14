@@ -1,0 +1,15 @@
+<div class="markdown-help">
+  <header class="markdown-help-header">
+    <strong>{{ documentTitle() }}</strong>
+    @if (currentFile() !== 'README.md') {
+      <button type="button" (click)="showReadme()">Back to README</button>
+    }
+  </header>
+  @if (loading()) {
+    <p class="markdown-state" role="status">Loading documentation…</p>
+  } @else if (error()) {
+    <p class="markdown-state markdown-error" role="alert">{{ error() }}</p>
+  } @else {
+    <article class="markdown-body" [innerHTML]="renderedHtml()" (click)="onDocumentClick($event)"></article>
+  }
+</div>
