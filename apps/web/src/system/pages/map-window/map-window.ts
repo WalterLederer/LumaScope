@@ -748,7 +748,7 @@ interface MapErrorEntry {
           <div class="valhalla-config-row" [class.file-path-error]="offlineFilesChecked() && (!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path))">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
-            <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
+            <span class="osmand-resources-path" [class.gpx-error]="offlineFilesChecked() && !configuration.available">{{ configuration.path }}</span>
           </div>
         }
         <p>Valhalla configurations are discovered automatically when scanning the extracted resource package. Select the configuration to use in the Routing provider list.</p>
@@ -760,7 +760,7 @@ interface MapErrorEntry {
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
         </div>
-        @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
+        @if (offlineFilesChecked() && osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a> and place the extracted resources folder containing <code>rendering_styles/default.render.xml</code> inside the package before scanning. Resources are not bundled with LumaScope.</p>
       </div>
     </details>
@@ -771,7 +771,7 @@ interface MapErrorEntry {
           <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
         </div>
         <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
-        @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
+        @if (offlineFilesChecked() && mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
         <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
       </div>
     </details>
@@ -3601,8 +3601,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const hasExistingPaths = !!(existingResources || existingThemeFolder || valhallaBefore.configPath || valhallaBefore.configurations?.length);
       const overwrite = !hasExistingPaths || window.confirm(
         'Existing local resource paths are already configured.\n\n' +
-        'Yes: replace the OsmAnd resources folder, Mapsforge theme folder and active Valhalla configuration when matching resources were found.\n' +
-        'No: keep the existing folders and active routing configuration. Discovered maps, hillshade files and Valhalla configurations will still be added to their lists.'
+        'Yes: replace the OsmAnd resources folder, Mapsforge theme folder and active Valhalla configuration with resources found in this package.\n' +
+        'No: keep the existing resource folders and active routing configuration; discovered Valhalla configurations are added.\n' +
+        'Offline map and Hillshade lists are synchronized to the scanned package in either case. Entries not found in the package are removed from LumaScope only; files on disk are never deleted.'
       );
 
       const normalizePath = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
