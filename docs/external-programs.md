@@ -21,16 +21,3 @@ Process memory information is collected without PowerShell:
 - **macOS:** the built-in `ps` command reports resident memory. Private bytes are not currently available.
 
 Processes can exit or become inaccessible while a snapshot is being collected, so the list is best-effort and may vary between refreshes.
-
-
-Other programs appear in the Help panel when LumaScope launches them through its external-process wrapper. The displayed list is session-specific and may include PowerShell scripts used for Windows integration, such as:
-
-| Process / script role | Function |
-| --- | --- |
-| PowerShell window enumerator | Enumerates visible application windows and reads their executable paths. |
-| PowerShell external-window lookup | Finds the topmost visible application window for capture. |
-| PowerShell capture-window state | Checks whether a selected window exists and is minimized. |
-| PowerShell window geometry | Reads window and monitor geometry for HDR capture. |
-| Other PowerShell calls | Runs a Windows PowerShell script for Windows integration. |
-
-The live Help panel can show additional processes launched in a particular session. The table above documents known helper roles; it is not a promise that every installation or session will show exactly the same process list.
