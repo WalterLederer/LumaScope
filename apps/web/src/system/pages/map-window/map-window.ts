@@ -3555,9 +3555,14 @@ export class MapWindow implements OnInit, OnDestroy {
       this.mapsforgeThemeDuplicatePaths.set(new Set());
       this.mapsforgeThemeError.set('');
       if (this.mapsforgeThemeFolder()) {
-        const themes = await desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
-        this.mapsforgeThemes.set(themes);
-        this.refreshMapsforgeThemeDuplicateIndex(themes);
+        try {
+          const themes = await desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
+          this.mapsforgeThemes.set(themes);
+          this.refreshMapsforgeThemeDuplicateIndex(themes);
+        } catch (error) {
+          this.mapsforgeThemes.set([]);
+          this.mapsforgeThemeError.set(error instanceof Error ? error.message : String(error));
+        }
       } else {
         this.mapsforgeThemes.set([]);
       }
