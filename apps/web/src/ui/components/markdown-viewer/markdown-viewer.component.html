@@ -3,7 +3,7 @@
     <strong>{{ documentTitle() }}</strong>
     <label class="markdown-font-size">
       <span>Text size</span>
-      <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" aria-label="Documentation text size">
+      <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" (change)="saveFontSize()" aria-label="Documentation text size">
       <output>{{ fontSize() }} px</output>
     </label>
     @if (currentFile() !== 'README.md') {
