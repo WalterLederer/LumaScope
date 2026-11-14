@@ -49,6 +49,14 @@
       {
         "from": "tools/valhalla-runtime/stage/helpers",
         "to": "valhalla/helpers"
+      },
+      {
+        "from": "README.md",
+        "to": "docs/README.md"
+      },
+      {
+        "from": "docs",
+        "to": "docs"
       }
     ]
   },
