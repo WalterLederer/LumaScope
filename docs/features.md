@@ -96,6 +96,19 @@ The Location tab connects image metadata to geographic context.
 
 Location data is associated with the image record in the local database. Coordinate sources include EXIF, XMP, GPX, manual and external sources.
 
+#### Photo marker timestamps
+
+The timestamp used for a photo marker and the map time slider is selected in this order:
+
+1. EXIF `GPSDateTime`.
+2. XMP `GPSDateTime`.
+3. EXIF `DateTimeOriginal`.
+4. XMP `DateCreated`.
+5. EXIF `CreateDate`.
+6. Source file's filesystem modification time as the final fallback.
+
+GPS date/time values are treated as UTC. Embedded capture dates without timezone information are interpreted in the computer's local timezone. The selected timestamp is stored with the photo's location record and is used for map time filtering and playback. A photo without valid latitude and longitude cannot be shown as a location marker and therefore has no marker timestamp.
+
 ## Maps and offline map data
 
 The map workspace can combine online and offline sources.
