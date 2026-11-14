@@ -745,6 +745,16 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content">
+    <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
+      <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
+      <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Select the extracted package root folder to find maps, routing configurations and renderer resources automatically.' }}</span>
+    </div>
+    @if (resourcePackageScanError()) {
+      <details class="map-cache-section offline-map-filter-section">
+        <summary class="map-cache-heading">Scan details / warnings</summary>
+        <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
+      </details>
+    }
     <details class="map-cache-section download-section local-source-section">
       <summary class="map-cache-heading">Valhalla routing configurations</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
@@ -1801,6 +1811,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapsforgeThemePath = signal('');
   protected readonly mapsforgeThemes = signal<import('internal-api').MapsforgeTheme[]>([]);
   protected readonly mapsforgeThemeError = signal('');
+  protected readonly resourcePackageScanBusy = signal(false);
+  protected readonly resourcePackageScanStatus = signal('');
+  protected readonly resourcePackageScanError = signal('');
+
   protected readonly hasActiveMapsforgeMaps = computed(() => this.offlineMaps().some(map => map.type === 'mapsforge' && map.enabled && map.available));
   protected readonly mapDisplayNotice = signal('');
   protected readonly openResourcesDownloadTab = (): void => { this.settingsOpen.set(true); this.selectSettingsTab('download'); };
@@ -3394,6 +3408,104 @@ export class MapWindow implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Could not change OsmAnd rendering style:', error);
       this.recordMapError('OsmAnd rendering style', error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  protected readonly scanResourcePackage = async (): Promise<void> => {
+    if (!this.desktop || this.resourcePackageScanBusy()) return;
+    const folder = await this.desktop.Dialogs.openFolder();
+    if (!folder.success) return;
+    this.resourcePackageScanBusy.set(true);
+    this.resourcePackageScanError.set('');
+    this.resourcePackageScanStatus.set('Scanning extracted resource package…');
+    try {
+      const scan = await this.desktop.OfflineMap.scanResourcePackage(folder.data);
+      const settings = await this.desktop.ProcessManager.getAppSettings();
+      const osmandSettings = (settings['osmand'] && typeof settings['osmand'] === 'object' ? settings['osmand'] : {}) as Record<string, unknown>;
+      const mapsforgeSettings = (settings['mapsforge'] && typeof settings['mapsforge'] === 'object' ? settings['mapsforge'] : {}) as Record<string, unknown>;
+      const valhallaBefore = await this.desktop.Valhalla.getRuntimeStatus();
+      const existingResources = typeof osmandSettings['resourcesPath'] === 'string' ? osmandSettings['resourcesPath'] : '';
+      const existingThemeFolder = typeof mapsforgeSettings['themeFolder'] === 'string' ? mapsforgeSettings['themeFolder'] : '';
+      const hasExistingPaths = !!(existingResources || existingThemeFolder || valhallaBefore.configPath);
+      const overwrite = !hasExistingPaths || window.confirm(
+        'Existing local resource paths are already configured.\n\n' +
+        'Yes: replace the OsmAnd resources folder, Mapsforge theme folder and active Valhalla configuration when matching resources were found.\n' +
+        'No: keep the existing paths. Newly discovered maps and hillshade files will still be added.'
+      );
+
+      const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
+      const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
+      this.offlineMaps.set(importResult.maps);
+      this.offlineMapImportErrors.set(importResult.errors);
+
+      if (scan.hillshadeFiles.length) {
+        const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
+        this.hillshadeDatabases.set(databases);
+        this.updateHillshadePresetFromSelection(databases);
+        this.applyHillshadeSettingsIfReady(true);
+      }
+
+      let valhallaAdded = 0;
+      if (scan.valhallaConfigs.length) {
+        const status = await this.desktop.Valhalla.addConfigsFromPaths(scan.valhallaConfigs);
+        valhallaAdded = scan.valhallaConfigs.length;
+        if (overwrite && scan.valhallaConfigs[0]) {
+          const active = await this.desktop.Valhalla.setConfigPath(scan.valhallaConfigs[0]);
+          this.valhallaConfigurations.set(active.configurations ?? []);
+          this.routeValhallaConfigPath.set(active.configPath || '');
+        } else {
+          this.valhallaConfigurations.set(status.configurations ?? []);
+          if (!this.routeValhallaConfigPath() && status.configPath) this.routeValhallaConfigPath.set(status.configPath);
+        }
+      }
+
+      let resourcesApplied = false;
+      if (overwrite && scan.osmAndResourcesPath) {
+        await this.desktop.OsmAndAtlas.setResourcesPath(scan.osmAndResourcesPath);
+        await this.desktop.OsmAnd.setResourcesPath(scan.osmAndResourcesPath);
+        this.osmAndResourcesPath.set(scan.osmAndResourcesPath);
+        this.osmAndStyles.set(await this.desktop.OsmAndAtlas.getRenderingStyles());
+        resourcesApplied = true;
+      }
+
+      let themesFound = 0;
+      if (overwrite && scan.mapsforgeThemeFolder) {
+        this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
+        const themes = await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder);
+        this.mapsforgeThemes.set(themes);
+        themesFound = themes.length;
+        const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
+        const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0] ?? null;
+        const selectedPath = selectedTheme?.path ?? '';
+        this.mapsforgeThemePath.set(selectedPath);
+        await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
+          themeFolder: scan.mapsforgeThemeFolder, themePath: selectedPath
+        });
+      }
+
+      const counts = [
+        scan.obfFiles.length + ' OBF',
+        scan.mbtilesFiles.length + ' MBTiles',
+        scan.mapsforgeFiles.length + ' Mapsforge MAP',
+        scan.hillshadeFiles.length + ' hillshade',
+        valhallaAdded + ' Valhalla configuration(s)',
+        resourcesApplied ? 'OsmAnd resources set' : 'OsmAnd resources unchanged',
+        themesFound + ' Mapsforge theme(s)'
+      ];
+      const importErrors = importResult.errors.length ? ' · Import errors: ' + importResult.errors.length : '';
+      const scanErrors = scan.errors.length ? ' · Scan warnings: ' + scan.errors.length : '';
+      this.resourcePackageScanStatus.set('Scan completed: ' + counts.join(' · ') + importErrors + scanErrors);
+      if (scan.errors.length || importResult.errors.length) {
+        this.resourcePackageScanError.set([...scan.errors, ...importResult.errors].join('\n'));
+      }
+      if (this.currentLatitude !== null && this.currentLongitude !== null) this.refreshOfflineMapRendering();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.resourcePackageScanError.set(message);
+      this.resourcePackageScanStatus.set('Resource package scan failed.');
+      this.recordMapError('Resource package scan', message);
+    } finally {
+      this.resourcePackageScanBusy.set(false);
     }
   };
 
