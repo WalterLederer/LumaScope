@@ -301,30 +301,14 @@ function inspectHillshadePng(png: Uint8Array): HillshadePngDiagnostics {
   return result;
 }
 
-async function validateHillshadePngForBrowser(png: Uint8Array, tile: string): Promise<void> {
+function validateHillshadePngHeader(png: Uint8Array, tile: string): HillshadePngDiagnostics {
   const diagnostics = inspectHillshadePng(png);
   const details = JSON.stringify(diagnostics);
-  if (diagnostics.width === null || diagnostics.height === null || !diagnostics.hasIend
-    || diagnostics.idatBytes === 0 || diagnostics.width <= 0 || diagnostics.height <= 0) {
-    throw new Error('Hillshade helper returned an incomplete or invalid PNG (' + tile + '; ' + details + ').');
+  if (diagnostics.width !== 256 || diagnostics.height !== 256
+    || !diagnostics.hasIend || diagnostics.idatBytes === 0) {
+    throw new Error('Hillshade helper returned an incomplete or invalid 256x256 PNG (' + tile + '; ' + details + ').');
   }
-  try {
-    // Decode with Chromium before handing the original encoded bytes to MapLibre.
-    // This isolates malformed PNG payloads from MapLibre source/tile handling.
-    const pngBuffer = new ArrayBuffer(png.byteLength);
-    new Uint8Array(pngBuffer).set(png);
-    const bitmap = await createImageBitmap(new Blob([pngBuffer], { type: 'image/png' }));
-    try {
-      if (bitmap.width !== diagnostics.width || bitmap.height !== diagnostics.height) {
-        throw new Error('Decoded dimensions do not match the PNG IHDR.');
-      }
-    } finally {
-      bitmap.close();
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error('Hillshade PNG could not be decoded by Chromium (' + tile + '; ' + details + '; decode=' + message + ').');
-  }
+  return diagnostics;
 }
 
 /** Hillshade databases are merged into one raster tile. Overlapping pixels are taken
@@ -379,18 +363,43 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       return { data: cachedPng.slice().buffer as ArrayBuffer };
     }
 
+    // A single database needs no canvas, pixel readback, merge loop or PNG re-encode.
+    // Validate the PNG structure and dimensions, then pass its original bytes to MapLibre.
+    if (databases.length === 1) {
+      const database = databases[0];
+      const renderStarted = performance.now();
+      const png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+      const databaseMs = performance.now() - renderStarted;
+      if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
+      const diagnostics = validateHillshadePngHeader(png, tile + '; database=' + database.id);
+      cacheHillshadeTile(cacheKey, png);
+      if (traceTile) console.info('[Hillshade][tile-timing]', {
+        request: diagnosticId, tile, databaseCount: 1, databaseMs,
+        decodeMs: 0, compositeMs: 0, encodeMs: 0, pngBytes: png.byteLength,
+        path: 'single-database-pass-through', png: diagnostics
+      });
+      emitHillshadeStatus('loaded');
+      return { data: png.slice().buffer as ArrayBuffer };
+    }
+
     const canvas = new OffscreenCanvas(256, 256);
     const context = canvas.getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('Unable to create the Hillshade tile composition canvas.');
     const merged = new Uint8ClampedArray(256 * 256 * 4);
     let hasPixels = false;
+    let databaseMs = 0;
+    let decodeMs = 0;
+    let compositeMs = 0;
 
     for (const database of databases) {
       if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
       let png: Uint8Array;
+      const databaseStarted = performance.now();
       try {
         png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+        databaseMs += performance.now() - databaseStarted;
       } catch (error) {
+        databaseMs += performance.now() - databaseStarted;
         const message = error instanceof Error ? error.message : String(error);
         if (/Hillshade tile not found/i.test(message)) {
           if (traceTile) console.info('[Hillshade][database-miss]', {
@@ -405,19 +414,22 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
         throw error;
       }
 
+      const diagnostics = validateHillshadePngHeader(png, tile + '; database=' + database.id);
       if (traceTile) console.info('[Hillshade][database-hit]', {
         request: diagnosticId, tile, databaseId: database.id,
         database: database.path.split(/[\\\\/]/).pop(),
-        pngBytes: png.byteLength, png: inspectHillshadePng(png)
+        pngBytes: png.byteLength, png: diagnostics
       });
-      await validateHillshadePngForBrowser(png, tile + '; database=' + database.id);
+      const decodeStarted = performance.now();
       const pngBuffer = new ArrayBuffer(png.byteLength);
       new Uint8Array(pngBuffer).set(png);
       const bitmap = await createImageBitmap(new Blob([pngBuffer], { type: 'image/png' }));
+      decodeMs += performance.now() - decodeStarted;
       try {
         if (bitmap.width !== 256 || bitmap.height !== 256) {
           throw new Error('Hillshade tile has unexpected dimensions (' + bitmap.width + 'x' + bitmap.height + ').');
         }
+        const compositeStarted = performance.now();
         context.clearRect(0, 0, 256, 256);
         context.drawImage(bitmap, 0, 0);
         const pixels = context.getImageData(0, 0, 256, 256).data;
@@ -431,6 +443,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
           merged[offset + 3] = pixels[offset + 3];
           hasPixels = true;
         }
+        compositeMs += performance.now() - compositeStarted;
       } finally {
         bitmap.close();
       }
@@ -449,10 +462,17 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     if (traceTile) console.info('[Hillshade][tile-result]', {
       request: diagnosticId, tile, result: 'composited', databasesQueried: databases.length
     });
+    const encodeStarted = performance.now();
     context.putImageData(new ImageData(merged, 256, 256), 0, 0);
     const blob = await canvas.convertToBlob({ type: 'image/png' });
     const data = await blob.arrayBuffer();
+    const encodeMs = performance.now() - encodeStarted;
     cacheHillshadeTile(cacheKey, new Uint8Array(data));
+    if (traceTile) console.info('[Hillshade][tile-timing]', {
+      request: diagnosticId, tile, databaseCount: databases.length,
+      databaseMs, decodeMs, compositeMs, encodeMs, pngBytes: data.byteLength,
+      path: 'multi-database-composition'
+    });
     emitHillshadeStatus('loaded');
     return { data };
     } catch (error) {
