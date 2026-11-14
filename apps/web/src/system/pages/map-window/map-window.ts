@@ -98,7 +98,6 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">OfflineFiles@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'hillshade'" [attr.aria-selected]="activeSettingsTab() === 'hillshade'" [class.has-errors]="hillshadeTabErrorCount() > 0" [class.has-warning]="hillshadeTabErrorCount() === 0 && hillshadeHasUnselectedFiles()" (click)="selectSettingsTab('hillshade')">Hillshade@if (hillshadeTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ hillshadeTabErrorCount() }}</span> } @else if (hillshadeHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ hillshadeUnselectedCount() }}</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
@@ -714,40 +713,12 @@ interface MapErrorEntry {
   </details>
 </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'hillshade'">
-  <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="hillshadeHasUnselectedFiles() && hillshadeTabErrorCount() === 0">
-    <div class="mbtiles-selection offline-map-toolbar">
-      <label class="offline-map-preset-control">Preset:
-        <select [value]="hillshadePreset()" (change)="changeHillshadePreset($any($event.target).value)">
-          @for (preset of mapPresetOptions(); track preset.id) { <option [value]="preset.id">{{ preset.name }}</option> }
-        </select>
-      </label>
-      <button type="button" class="offline-map-add-button" (click)="addHillshadeDatabases()">Add Hillshade files...</button>
-      <details class="map-cache-section offline-map-filter-section">
-        <summary class="map-cache-heading">Filter</summary>
-        <div class="map-cache-actions offline-map-filter-actions">
-          <label class="offline-map-list-filter">Filter:
-            <select [value]="hillshadeListFilter()" (change)="hillshadeListFilter.set($any($event.target).value)">
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="missing">Missing</option>
-            </select>
-          </label>
-          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(true, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && !database.enabled)">Activate visible maps</button>
-          <button type="button" class="offline-map-add-button offline-map-bulk-button" (click)="setAllHillshadeDatabasesEnabled(false, true)" [disabled]="!filteredHillshadeDatabases().some(database => database.available && database.enabled)">Deactivate visible maps</button>
-          <button type="button" class="offline-map-add-button offline-map-bulk-button hillshade-clear-visible-button" (click)="clearVisibleHillshadeDatabases()" [disabled]="filteredHillshadeDatabases().length === 0">× Visible</button>
-        </div>
-      </details>
-      <span class="offline-map-status" role="status">{{ hillshadeDatabaseCount() }} Hillshade database(s) loaded · {{ activeHillshadeDatabaseCount() }} active · {{ filteredHillshadeDatabases().length }} filtered@if (hillshadeMissingCount() > 0) { · {{ hillshadeMissingCount() }} missing - FILES MISSING }@if (hillshadeDuplicateCount() > 0) { · {{ hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }</span>
-    </div>
-  </div>
-</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
-      <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Select the extracted package root folder to find maps, routing configurations and renderer resources automatically.' }}</span>
+      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
+      <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || resourcePackageScanStatus() || 'Scan the extracted package, then use Check to refresh file status, missing files, duplicates and active selections.' }}</span>
     </div>
     @if (resourcePackageScanFound()) {
       <div class="resource-package-scan-results" aria-live="polite">
@@ -772,14 +743,12 @@ interface MapErrorEntry {
       <div class="osmand-resources-picker valhalla-config-picker">
         <div class="local-source-heading">
           <span>{{ valhallaConfigurations().length }} configuration(s)</span>
-          <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
         </div>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
           <div class="valhalla-config-row" [class.file-path-error]="!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path)">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
-            <button type="button" class="offline-map-remove-button" (click)="removeValhallaConfig(configuration.path)" aria-label="Remove configuration" title="Remove from list; file is kept">×</button>
           </div>
         }
         <p>The active configuration is preselected in the Routing provider list. Removing an entry does not delete the JSON file.</p>
@@ -790,7 +759,6 @@ interface MapErrorEntry {
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
-          <button type="button" (click)="chooseOsmAndResourcesFolder()">Select folder…</button>
         </div>
         @if (osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
         <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a>. Select the extracted resources root containing <code>rendering_styles/default.render.xml</code>. Resources are not bundled with LumaScope.</p>
@@ -801,10 +769,6 @@ interface MapErrorEntry {
       <div class="osmand-resources-picker">
         <div class="local-source-heading">
           <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
-          <div class="local-source-buttons">
-            <button type="button" (click)="chooseMapsforgeThemeFolder()">Select folder…</button>
-            <button type="button" (click)="refreshMapsforgeThemes()" [disabled]="!mapsforgeThemeFolder()">Rescan</button>
-          </div>
         </div>
         <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
         @if (mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
@@ -824,28 +788,13 @@ interface MapErrorEntry {
         @for (preset of mapPresetOptions(); track preset.id) { <option [value]="preset.id">{{ preset.name }}</option> }
       </select>
     </label>
-    <button class="offline-map-add-button" type="button" (click)="chooseOfflineMap()">Add offline maps...</button>
-    <details class="map-cache-section offline-map-filter-section">
-      <summary class="map-cache-heading">Filter</summary>
-      <div class="map-cache-actions offline-map-filter-actions">
-        <label class="offline-map-list-filter">Filter:
-          <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
-            <option value="all">All</option>
-            <option value="mbtiles">MBTiles</option>
-            <option value="obf">OsmAnd (.obf)</option>
-            <option value="map">Mapsforge (.map)</option>
-            <option value="inUse">InUse</option>
-            <option value="active">Active</option>
-            <option value="updates">Updates</option>
-            <option value="current">Current (no update needed)</option>
-            <option value="noMatch">No matching download</option>
-          </select>
-        </label>
-        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="filteredOfflineFiles().length === 0">Activate visible maps</button>
-        <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="filteredOfflineFiles().length === 0">Deactivate visible maps</button>
-        <button class="offline-map-add-button offline-map-bulk-button offline-map-remove-visible-button" type="button" (click)="removeVisibleOfflineFiles()" [disabled]="filteredOfflineFiles().length === 0">Remove visible maps</button>
-      </div>
-    </details>
+    <label class="offline-map-list-filter">Filter:
+       <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
+         <option value="all">All</option><option value="mbtiles">MBTiles</option><option value="obf">OsmAnd (.obf)</option><option value="map">Mapsforge (.map)</option><option value="hillshade">Hillshade</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
+       </select>
+     </label>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="filteredOfflineFiles().length === 0">Activate visible maps</button>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="filteredOfflineFiles().length === 0">Deactivate visible maps</button>
     <span class="offline-map-status" role="status">{{ offlineMaps().length + ' map(s) loaded · ' + activeOfflineMapCount() + ' map(s) active · ' + inUseOfflineMapCount() + ' map(s) in use · ' + filteredOfflineFiles().length + ' map(s) filtered' }}@if (offlineMapMissingCount() > 0) { · {{ offlineMapMissingCount() }} map(s) missing - FILES MISSING }@if (offlineMapDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() }} map(s) duplicate - FILES DUPLICATE }
     @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
     </span>
@@ -991,7 +940,7 @@ interface MapErrorEntry {
 </section>
       }
       <div class="map-content">
-        @if (mapDisplayNotice() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
+        @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-display-notice" role="alert">
             <button type="button" class="map-display-notice-close" (click)="mapDisplayNotice.set('')" title="Dismiss map notice" aria-label="Dismiss map notice">×</button>
             <strong>Map cannot be displayed</strong>
@@ -1002,68 +951,50 @@ interface MapErrorEntry {
         @if (settingsOpen() && offlineMapListMounted()) {
           <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
-              @if (offlineMaps().length > 0) {
+              @if (offlineMaps().length + filteredHillshadeDatabases().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">Map file {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th></tr></thead>
                   <tbody>
                     @let duplicateIds = offlineMapDuplicateIds();
+                    @let hillshadeDuplicateIds = hillshadeDuplicateIds();
                     @for (map of sortedOfflineFiles(); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineMapHasMissingFile(map) || duplicateIds.has(map.id)">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not used by the selected map source'" [attr.aria-label]="inUse ? 'In use' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                         <td><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available · ' + (map.updateDate || 'newer version') + ' · ' + (map.updateSource || 'source') : map.updateAvailable === false ? 'No newer version listed · ' + (map.updateSource || 'source') : map.updateMatched === true ? (map.updateDate ? 'Matched catalogue file · ' + map.updateDate + ' · ' + (map.updateSource || 'source') : 'Matched catalogue file · no catalogue date available · ' + (map.updateSource || 'source')) : map.updateChecked ? 'No matching filename found in the available catalogues' : 'Not checked yet'" [attr.aria-label]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No update available' : map.updateMatched === true ? 'Catalogue file matched' : map.updateChecked ? 'No catalogue match' : 'Not checked'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : map.updateChecked && map.updateMatched === true && map.updateAvailable === null ? '✓' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td>
-                        <td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
-                        <td><button type="button" class="mbtiles-remove-button" (click)="removeOfflineMap(map.id)" aria-label="Remove map" title="Remove map from LumaScope (file is not deleted)">×</button></td>
+                      </tr>
+                    }
+                    @for (database of filteredHillshadeDatabases(); track database.id) {
+                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="!database.path.trim() || !database.available || hillshadeDuplicateIds.has(database.id)">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                        <td><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
+                        <td class="mbtiles-map-file" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
+                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
                       </tr>
                     }
                   </tbody>
                 </table>
-              } @else { <span class="offline-map-status">No offline maps loaded.</span> }
+              } @else { <span class="offline-map-status">No offline files loaded. Use “Scan resource package…” to discover files.</span> }
               @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
             </div>
           </div>
         }
-        @if (settingsOpen() && hillshadeListMounted()) {
-          <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'hillshade' ? '' : 'none'">
-            <div class="mbtiles-map-list">
-              @if (hillshadeDatabases().length > 0) {
-                @if (filteredHillshadeDatabases().length > 0) {
-                  <table class="mbtiles-map-table hillshade-map-table">
-                    <thead><tr><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('enabled')">Active {{ hillshadeSortIndicator('enabled') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('name')">Hillshade file {{ hillshadeSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('path')">Path {{ hillshadeSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('lastModified')">Last modified {{ hillshadeSortIndicator('lastModified') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('sizeBytes')">File size {{ hillshadeSortIndicator('sizeBytes') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortHillshadeDatabases('status')">Status {{ hillshadeSortIndicator('status') }}</button></th><th></th><th></th></tr></thead>
-                    <tbody>
-                      @let duplicateIds = hillshadeDuplicateIds();
-                      @for (database of sortedHillshadeDatabases(); track database.id) {
-                        <tr [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="!database.path.trim() || !database.available || duplicateIds.has(database.id)">
-                          <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                          <td class="hillshade-file-name" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
-                          <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
-                          <td>{{ formatHillshadeLastModified(database.lastModified) }}</td>
-                          <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
-                          <td>{{ database.available ? (database.enabled ? 'Active' : 'Inactive') : 'File not found' }}</td>
-                          <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
-                          <td><button type="button" class="mbtiles-remove-button" (click)="removeHillshadeDatabase(database.id)" aria-label="Remove Hillshade database" title="Remove Hillshade database">×</button></td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                } @else { <span class="offline-map-status">No Hillshade databases match this filter.</span> }
-              } @else { <span class="offline-map-status">No Hillshade databases loaded. Use “Add Hillshade files...” above.</span> }
-            </div>
-          </div>
-        }
-        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && (activeSettingsTab() === 'offlineMaps' || activeSettingsTab() === 'hillshade'))" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-        @if (!coordinatesAvailable() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
+        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+        @if (!coordinatesAvailable() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
         }
-        @if (renderInitStatus() && (!settingsOpen() || (activeSettingsTab() !== 'offlineMaps' && activeSettingsTab() !== 'hillshade'))) {
+        @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
       </div>
@@ -1311,7 +1242,7 @@ interface MapErrorEntry {
     .mbtiles-selection.offline-map-toolbar{flex-direction:row;align-items:center}
     .mbtiles-selection.mbtiles-download-controls{flex-direction:row;align-items:center;flex-wrap:nowrap}
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
-    .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}
+    .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}.hillshade-format-tag{background:#514078;color:#e4d8ff}.hillshade-map-row{background:rgba(139,92,246,.09)}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}
     .download-source-table th{color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943);border-bottom:1px solid var(--color-content-default-low,#454545)}
@@ -1579,16 +1510,14 @@ export class MapWindow implements OnInit, OnDestroy {
   private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
   protected readonly offlineMapListMounted = signal(false);
-  protected readonly hillshadeListMounted = signal(false);
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
-    if (tab === 'hillshade') this.hillshadeListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly renderActiveCount = signal(0);
@@ -1805,7 +1734,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'inUse' | 'active' | 'updates' | 'current' | 'noMatch'>('all');
+  protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
@@ -1833,8 +1762,11 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
     if (filter === 'obf') return maps.filter(map => map.type === 'obf');
     if (filter === 'map') return maps.filter(map => map.type === 'mapsforge');
+    if (filter === 'hillshade' || filter === 'inactive' || filter === 'missing') return [];
     if (filter === 'inUse') { const inUse = this.offlineMapStats().inUseIds; return maps.filter(map => inUse.has(map.id)); }
-    if (filter === 'active') return maps.filter(map => map.enabled);
+    if (filter === 'active') return maps.filter(map => map.enabled && map.available);
+    if (filter === 'inactive') return maps.filter(map => map.available && !map.enabled);
+    if (filter === 'missing') return maps.filter(map => !map.available || !map.filePath?.trim());
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
     if (filter === 'current') return maps.filter(map => map.updateChecked && map.updateAvailable === false);
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
@@ -1968,6 +1900,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapsforgeThemes = signal<import('internal-api').MapsforgeTheme[]>([]);
   protected readonly mapsforgeThemeError = signal('');
   protected readonly resourcePackageScanBusy = signal(false);
+  protected readonly offlineFilesCheckBusy = signal(false);
+  protected readonly offlineFilesCheckStatus = signal('');
   protected readonly resourcePackageScanStatus = signal('');
   protected readonly resourcePackageScanFound = signal('');
   protected readonly resourcePackageScanChanged = signal('');
@@ -1992,14 +1926,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
   protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
   protected readonly hillshadeDatabases = signal<OsmAndHillshadeDatabase[]>([]);
-  protected readonly hillshadeListFilter = signal<'all' | 'active' | 'inactive' | 'missing'>('all');
   protected readonly filteredHillshadeDatabases = computed(() => {
     const databases = this.hillshadeDatabases();
-    const filter = this.hillshadeListFilter();
+    const filter = this.offlineMapListFilter();
+    if (filter === 'hillshade' || filter === 'all') return databases;
     if (filter === 'active') return databases.filter(database => database.available && database.enabled);
     if (filter === 'inactive') return databases.filter(database => database.available && !database.enabled);
-    if (filter === 'missing') return databases.filter(database => !database.available);
-    return databases;
+    if (filter === 'missing') return databases.filter(database => !database.available || !database.path.trim());
+    return [];
   });
   protected readonly hillshadeDatabaseCount = computed(() => this.hillshadeDatabases().length);
   protected readonly activeHillshadeDatabaseCount = computed(() => this.hillshadeStats().activeCount);
@@ -2256,7 +2190,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.timeSliderAnimationSectionOpen.set(saved['timeSliderAnimationSectionOpen']);
         this.saveSetting('timeSliderAnimationSectionOpen', saved['timeSliderAnimationSectionOpen']);
       }
-      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','offlineMaps','hillshade','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'hillshade' | 'cache' | 'memory' | 'download' | 'errors');
+      if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','offlineMaps','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors');
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
         window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: saved['renderVisualsEnabled'] } }));
@@ -3572,6 +3506,43 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  protected readonly checkOfflineFiles = async (): Promise<void> => {
+    if (!this.desktop || this.offlineFilesCheckBusy()) return;
+    this.offlineFilesCheckBusy.set(true);
+    this.offlineFilesCheckStatus.set('Checking offline files and resource status…');
+    try {
+      const [maps, hillshade, valhalla] = await Promise.all([
+        this.desktop.OfflineMap.getMaps(),
+        this.desktop.OsmAndAtlas.getHillshadeDatabases(),
+        this.desktop.Valhalla.getRuntimeStatus()
+      ]);
+      this.offlineMaps.set(maps);
+      this.hillshadeDatabases.set(hillshade);
+      this.valhallaConfigurations.set(valhalla.configurations ?? []);
+      if (valhalla.configPath) this.routeValhallaConfigPath.set(valhalla.configPath);
+      this.refreshOfflineMapDuplicateIndex(maps);
+      this.refreshHillshadeDuplicateIndex(hillshade);
+      this.updateHillshadePresetFromSelection(hillshade);
+      if (this.mapsforgeThemeFolder()) {
+        const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
+        this.mapsforgeThemes.set(themes);
+        this.refreshMapsforgeThemeDuplicateIndex(themes);
+      }
+      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
+      this.applyHillshadeSettingsIfReady(true);
+      this.offlineFilesCheckStatus.set('Check completed · ' + maps.length + ' maps · ' + hillshade.length + ' Hillshade · ' +
+        (this.offlineMapMissingCount() + this.hillshadeMissingCount()) + ' missing · ' +
+        (this.offlineMapDuplicateCount() + this.hillshadeDuplicateCount()) + ' duplicates · ' +
+        (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.offlineFilesCheckStatus.set('Check failed: ' + message);
+      this.recordMapError('Offline files check', message);
+    } finally {
+      this.offlineFilesCheckBusy.set(false);
+    }
+  };
+
   protected readonly scanResourcePackage = async (): Promise<void> => {
     if (!this.desktop || this.resourcePackageScanBusy()) return;
     const previousSettings = await this.desktop.ProcessManager.getAppSettings();
@@ -3693,6 +3664,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (scan.errors.length || importResult.errors.length) {
         this.resourcePackageScanError.set([...scan.errors, ...importResult.errors].join('\n'));
       }
+      await this.checkOfflineFiles();
       if (this.currentLatitude !== null && this.currentLongitude !== null) this.refreshOfflineMapRendering();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -3901,6 +3873,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
       this.offlineMaps.set(updated);
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
+      await this.changeHillshadePreset(value);
     } else {
       this.offlineMapPreset.set(value);
     }
