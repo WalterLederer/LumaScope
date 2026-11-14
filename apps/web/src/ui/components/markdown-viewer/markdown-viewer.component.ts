@@ -8,7 +8,8 @@ const documentationFiles = new Set([
   'map-formats.md',
   'shortcuts.md',
   'external-programs.md',
-  'windows-api.md'
+  'windows-api.md',
+  'platform-support.md'
 ]);
 
 const escapeHtml = (value: string): string => value
@@ -209,6 +210,10 @@ export class MarkdownViewerComponent {
     const href = anchor?.getAttribute('href');
     if (!anchor || !href || /^(?:https?:|mailto:|#)/i.test(href)) return;
 
+    // Never allow an unsupported relative Markdown link to navigate the Electron
+    // window away from the application. Only allowlisted documents are loaded here.
+    event.preventDefault();
+
     const base = this.currentFile() === 'README.md' ? [] : [ 'docs' ];
     const parts = [...base];
     for (const part of href.split(/[?#]/, 1)[0].split('/')) {
@@ -219,7 +224,6 @@ export class MarkdownViewerComponent {
     const normalized = parts.join('/');
     const fileName = normalized === 'README.md' ? 'README.md' : normalized.startsWith('docs/') ? normalized.slice(5) : '';
     if (!documentationFiles.has(fileName)) return;
-    event.preventDefault();
     void this.loadDocument(fileName);
   };
 }
