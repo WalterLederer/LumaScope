@@ -259,6 +259,7 @@ export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[];
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
  readonly importFiles:(paths:string[])=>Promise<OfflineMapImportResult>;
+ readonly reconcileFiles:(paths:string[])=>Promise<OfflineMapImportResult>;
  readonly scanResourcePackage:(rootPath:string)=>Promise<ResourcePackageScanResult>;
  readonly getMaps:()=>Promise<OfflineMapStatus[]>;
  readonly checkFiles:()=>Promise<OfflineMapStatus[]>;
@@ -436,6 +437,7 @@ export interface DesktopOsmAndAtlas {
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
+  readonly reconcileHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
   readonly setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => Promise<OsmAndHillshadeDatabase[]>;
   readonly removeHillshadeDatabase: (id: string) => Promise<OsmAndHillshadeDatabase[]>;
   readonly renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale?: number) => Promise<Uint8Array>;
