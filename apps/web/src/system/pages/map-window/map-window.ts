@@ -1804,14 +1804,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
   protected readonly offlineMapCatalogueSummary = signal('No catalogue has been checked yet.');
   protected readonly activeOfflineMapCount = computed(() => this.offlineMaps().filter(map => map.enabled).length);
-  protected readonly inUseOfflineMapCount = computed(() => this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).length);
+  protected readonly inUseOfflineMapCount = computed(() => this.offlineMapInUseIds().size);
   protected readonly filteredOfflineFiles = computed(() => {
     const maps = this.offlineMaps();
     const filter = this.offlineMapListFilter();
     if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
     if (filter === 'obf') return maps.filter(map => map.type === 'obf');
     if (filter === 'map') return maps.filter(map => map.type === 'mapsforge');
-    if (filter === 'inUse') return maps.filter(map => this.isOfflineMapInUse(map));
+    if (filter === 'inUse') { const inUse = this.offlineMapInUseIds(); return maps.filter(map => inUse.has(map.id)); }
     if (filter === 'active') return maps.filter(map => map.enabled);
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
     if (filter === 'current') return maps.filter(map => map.updateChecked && map.updateAvailable === false);
@@ -1820,13 +1820,27 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
+  private readonly offlineMapDuplicateIds = computed(() => {
+    const maps = this.offlineMaps();
+    const idsByName = new Map<string, string[]>();
+    for (const map of maps) {
+      const name = this.fileNameFromPath(map.filePath);
+      if (!name) continue;
+      const ids = idsByName.get(name) ?? [];
+      ids.push(map.id);
+      idsByName.set(name, ids);
+    }
+    const duplicateIds = new Set<string>();
+    for (const ids of idsByName.values()) {
+      if (ids.length > 1) for (const id of ids) duplicateIds.add(id);
+    }
+    return duplicateIds;
+  });
   protected readonly offlineMapMissingCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasMissingFile(map)).length);
-  protected readonly offlineMapDuplicateCount = computed(() => this.offlineMaps().filter(map => this.offlineMapHasDuplicateName(map)).length);
+  protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
-  protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => {
-    const name = this.fileNameFromPath(map.filePath);
-    return !!name && this.offlineMaps().some(other => other.id !== map.id && this.fileNameFromPath(other.filePath) === name && other.filePath.toLocaleLowerCase() !== map.filePath.toLocaleLowerCase());
-  };
+  protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
+  private readonly offlineMapInUseIds = computed(() => new Set(this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).map(map => map.id)));
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
