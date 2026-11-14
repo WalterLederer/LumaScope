@@ -721,14 +721,17 @@ interface MapErrorEntry {
     </div>
     @if (resourcePackageScanFound()) {
       <div class="resource-package-scan-results" aria-live="polite">
-        <div class="resource-package-scan-result">
-          <strong>Found</strong>
-          <span>{{ resourcePackageScanFound() }}</span>
-        </div>
-        <div class="resource-package-scan-result">
-          <strong>Changed</strong>
-          <span>{{ resourcePackageScanChanged() }}</span>
-        </div>
+        <table class="resource-package-scan-table">
+          <thead><tr><th scope="col">Section</th><th scope="col">Result</th></tr></thead>
+          <tbody>
+            @for (item of resourcePackageScanFound().split(' · '); track $index) {
+              <tr><th scope="row">Found</th><td>{{ item }}</td></tr>
+            }
+            @for (item of resourcePackageScanChanged().split(' · '); track $index) {
+              <tr><th scope="row">Changed</th><td>{{ item }}</td></tr>
+            }
+          </tbody>
+        </table>
       </div>
     }
     @if (resourcePackageScanError()) {
