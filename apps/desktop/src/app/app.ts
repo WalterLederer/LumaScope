@@ -38,7 +38,11 @@ export default class App {
       if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
       App.capturePreviewWindow.show();
       App.capturePreviewWindow.focus();
-      App.capturePreviewWindow.webContents.send(channel);
+      if (App.capturePreviewWindow.webContents.isLoading()) {
+        App.pendingCaptureHotkey = channel;
+      } else {
+        App.capturePreviewWindow.webContents.send(channel);
+      }
       return;
     }
 
