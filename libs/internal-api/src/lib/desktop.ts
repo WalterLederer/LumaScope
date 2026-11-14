@@ -255,8 +255,11 @@ export interface OfflineMapStatus { type?:'mbtiles'|'obf'|'mapsforge'; updateMat
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'|'mapsforge'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
+export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; errors:string[]; }
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
+ readonly importFiles:(paths:string[])=>Promise<OfflineMapImportResult>;
+ readonly scanResourcePackage:(rootPath:string)=>Promise<ResourcePackageScanResult>;
  readonly getMaps:()=>Promise<OfflineMapStatus[]>;
  readonly checkForUpdates:()=>Promise<OfflineMapUpdateCheckResult>;
  readonly removeFile:(id:string)=>Promise<OfflineMapStatus[]>;
@@ -383,6 +386,7 @@ export interface ValhallaRuntimeStatus {
 export interface DesktopValhalla {
   readonly getRuntimeStatus: () => Promise<ValhallaRuntimeStatus>;
   readonly addConfig: () => Promise<ValhallaRuntimeStatus>;
+  readonly addConfigsFromPaths: (paths: string[]) => Promise<ValhallaRuntimeStatus>;
   readonly removeConfig: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly setConfigPath: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly route: (request: ValhallaRouteRequest) => Promise<ValhallaRouteResult>;
@@ -430,6 +434,7 @@ export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: bo
 export interface DesktopOsmAndAtlas {
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
+  readonly addHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
   readonly setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => Promise<OsmAndHillshadeDatabase[]>;
   readonly removeHillshadeDatabase: (id: string) => Promise<OsmAndHillshadeDatabase[]>;
   readonly renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale?: number) => Promise<Uint8Array>;
