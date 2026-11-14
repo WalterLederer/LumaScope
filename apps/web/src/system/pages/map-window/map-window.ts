@@ -1840,7 +1840,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
   protected readonly offlineMapHasDuplicateName = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapDuplicateIds().has(map.id);
-  private readonly offlineMapInUseIds = computed(() => new Set(this.offlineMaps().filter(map => this.isOfflineMapInUse(map)).map(map => map.id)));
+  private readonly offlineMapInUseIds = computed(() => new Set(this.offlineMaps().filter(map => this.calculateOfflineMapInUse(map)).map(map => map.id)));
   protected readonly offlineMapSortIndicator = (column: string): string => this.offlineMapSort().column === column ? (this.offlineMapSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
@@ -3959,7 +3959,9 @@ export class MapWindow implements OnInit, OnDestroy {
     return compatible[0]?.preset ?? 'custom';
   }
 
-  protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => {
+  protected readonly isOfflineMapInUse = (map: import('internal-api').OfflineMapStatus): boolean => this.offlineMapInUseIds().has(map.id);
+
+  private calculateOfflineMapInUse(map: import('internal-api').OfflineMapStatus): boolean {
     if (!map.enabled) return false;
     if (map.type === 'obf') {
       return (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
