@@ -86,52 +86,6 @@ export class GalleryPage {
 
   protected readonly defaultThumbnailSize = defaultThumbnailSize;
 
-  private readonly readControlsSidebarVisible = (): boolean => {
-    try { return globalThis.localStorage.getItem('gallerySidebarVisible') === 'true'; }
-    catch { return false; }
-  };
-  protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
-  protected readonly gallerySidebarTabs = [{ id: 'general', label: 'General' }, { id: 'capture', label: 'Capture' }];
-  private readonly readActiveGallerySidebarTab = (): string => {
-    try {
-      const saved = globalThis.localStorage.getItem('activeGallerySidebarTab');
-      return this.gallerySidebarTabs.some(tab => tab.id === saved) ? saved! : 'general';
-    } catch { return 'general'; }
-  };
-  protected readonly activeGallerySidebarTab = signal(this.readActiveGallerySidebarTab());
-  protected readonly setActiveGallerySidebarTab = (tab: string): void => {
-    if (!this.gallerySidebarTabs.some(item => item.id === tab)) return;
-    this.activeGallerySidebarTab.set(tab);
-    try { globalThis.localStorage.setItem('activeGallerySidebarTab', tab); } catch { /* Keep the session selection. */ }
-  };
-  private readonly readStoredControlsSidebarWidth = (): number => {
-    try {
-      const stored = Number(globalThis.localStorage.getItem('gallerySidebarWidth'));
-      return Number.isFinite(stored) && stored >= 280 ? stored : 320;
-    } catch { return 320; }
-  };
-  protected readonly controlsSidebarWidth = signal(this.readStoredControlsSidebarWidth());
-  protected readonly startControlsSidebarResize = (event: PointerEvent): void => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const view = globalThis.window;
-    const startX = event.clientX;
-    const startWidth = this.controlsSidebarWidth();
-    const move = (moveEvent: PointerEvent) => this.controlsSidebarWidth.set(Math.max(280, Math.min(view.innerWidth * 0.7, startWidth + startX - moveEvent.clientX)));
-    const end = () => {
-      view.removeEventListener('pointermove', move);
-      view.removeEventListener('pointerup', end);
-      try { view.localStorage.setItem('gallerySidebarWidth', String(Math.round(this.controlsSidebarWidth()))); } catch { /* Keep session width. */ }
-    };
-    view.addEventListener('pointermove', move);
-    view.addEventListener('pointerup', end, { once: true });
-  };
-  protected readonly toggleControlsSidebar = (): void => {
-    const next = !this.controlsSidebarVisible();
-    this.controlsSidebarVisible.set(next);
-    try { globalThis.localStorage.setItem('gallerySidebarVisible', String(next)); } catch { /* Keep session state. */ }
-  };
-
   protected readonly openCaptureWindow = async (): Promise<void> => {
     await this.desktopApi?.CapturePreviewWindow.open();
   };
