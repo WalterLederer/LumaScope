@@ -77,8 +77,15 @@ class MapsforgeWorkerClient {
       child.once('error', error => this.failPending(error));
       child.once('close', (code, signal) => {
         const details = this.stderrBuffer.trim();
+        const versionMismatch = details.match(/UnsupportedClassVersionError[\\s\\S]*?class file version (\\d+)[\\s\\S]*?recognizes class file versions up to (\\d+)/i);
+        const javaRequirement = versionMismatch
+          ? ' Mapsforge requires Java ' + (Number(versionMismatch[1]) - 44)
+            + ' or later, but the selected Java runtime supports only up to Java '
+            + (Number(versionMismatch[2]) - 44) + '. Set JAVA_HOME to a Java '
+            + (Number(versionMismatch[1]) - 44) + ' installation or install a newer Java runtime.'
+          : '';
         this.failPending(new Error('Mapsforge worker exited (code ' + String(code) + ', signal ' + String(signal) + ').'
-          + (details ? ' ' + details : '')));
+          + javaRequirement + (details ? ' ' + details : '')));
         if (this.child === child) this.child = null;
       });
       await new Promise<void>((resolve, reject) => {
