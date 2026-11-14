@@ -29,7 +29,7 @@ A normal production package is created with:
 npm run make:prod
 ```
 
-This command builds the JPEG XR encoder, Mapsforge JAR, Angular/Electron application, stages the OsmAnd and Valhalla helpers, and packages the desktop application. It does **not** compile the upstream OsmAnd Core SDK or the complete upstream Valhalla source tree from scratch. Those source trees must already be present locally and their respective build prerequisites must be installed.
+This command builds the JPEG XR encoder, Mapsforge JAR, Angular/Electron application, stages the minimized Mapsforge Java runtime plus the OsmAnd and Valhalla helpers, and packages the desktop application. It does **not** compile the upstream OsmAnd Core SDK or the complete upstream Valhalla source tree from scratch. Those source trees must already be present locally and their respective build prerequisites must be installed.
 
 For a build that follows the repository's more defensive cleanup and verification sequence, use the root `build.ps1` script:
 
@@ -331,6 +331,7 @@ They are downloaded or prepared separately and selected in LumaScope's Offline F
 - **Valhalla build directory not found:** set `LUMASCOPE_VALHALLA_BUILD` to the directory containing the Valhalla `CMakeCache.txt`.
 - **Valhalla helper does not link:** ensure the selected build directory was configured from the intended Valhalla source tree and has completed the required Valhalla library build for `RelWithDebInfo`.
 - **Mapsforge JAR missing:** install JDK/Maven, run the Maven command from the repository root and check `tools/mapsforge-renderer/target/`.
+- **Mapsforge runtime staging fails:** set `JAVA_HOME` to a full JDK 17+ installation (not a JRE), then run `npm run stage:mapsforge-runtime`.
 - **WIC encoder missing:** use an x64 Visual Studio developer environment and rerun `npm run build:jxr-wic-encoder`.
 
 For component-specific implementation details, consult the README files next to each tool's source code. This document explains the repository build workflow; upstream projects remain authoritative for their own source acquisition, licensing and dependency setup.
