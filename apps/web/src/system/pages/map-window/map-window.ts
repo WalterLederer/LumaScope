@@ -716,8 +716,8 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
-      <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
-      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Scanning package…' : 'Scan resource package…' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
       <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || resourcePackageScanStatus() || 'Scan the extracted package, then use Check to refresh file status, missing files, duplicates and active selections.' }}</span>
     </div>
     @if (resourcePackageScanFound()) {
