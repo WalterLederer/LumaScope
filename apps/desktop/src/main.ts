@@ -1,5 +1,6 @@
 import './user-data-path';
 import { app, BrowserWindow } from 'electron';
+import * as path from 'node:path';
 import App from './app/app';
 import ElectronEvents from './app/events/electron.events';
 import SquirrelEvents from './app/events/squirrel.events';
@@ -25,11 +26,10 @@ export default class Main {
       const mainWindow = BrowserWindow.getAllWindows()[0];
       if (!mainWindow || mainWindow.isDestroyed()) return;
 
-      const pathModule = require('node:path') as typeof import('node:path');
       const imagePaths = commandLine
         .slice(1)
         .filter(argument => !argument.startsWith('-') && isImageFileArgument(argument))
-        .map(argument => pathModule.isAbsolute(argument) ? argument : pathModule.resolve(workingDirectory, argument));
+        .map(argument => path.isAbsolute(argument) ? argument : path.resolve(workingDirectory, argument));
 
       const sendOpenFiles = (): void => {
         if (!mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed() && imagePaths.length > 0) {
