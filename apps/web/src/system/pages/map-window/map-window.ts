@@ -3615,44 +3615,22 @@ export class MapWindow implements OnInit, OnDestroy {
 
       const normalizePath = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
       const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
+      const previousMapPaths = new Set(this.offlineMaps().map(map => normalizePath(map.filePath)));
       const wantedMapPaths = new Set(mapPaths.map(normalizePath));
-      let currentMaps = this.offlineMaps();
-      let mapsRemoved = 0;
-      for (const map of currentMaps) {
-        if (!wantedMapPaths.has(normalizePath(map.filePath))) {
-          currentMaps = await this.desktop.OfflineMap.removeFile(map.id);
-          mapsRemoved++;
-        }
-      }
-      this.offlineMaps.set(currentMaps);
-      const previousMapPaths = new Set(currentMaps.map(map => normalizePath(map.filePath)));
-      const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
+      const mapsRemoved = [...previousMapPaths].filter(path => !wantedMapPaths.has(path)).length;
+      const importResult = await this.desktop.OfflineMap.reconcileFiles(mapPaths);
       const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(normalizePath(map.filePath))).length;
       this.offlineMaps.set(importResult.maps);
       this.offlineMapImportErrors.set(importResult.errors);
 
+      const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => normalizePath(database.path)));
       const wantedHillshadePaths = new Set(scan.hillshadeFiles.map(normalizePath));
-      let currentHillshade = this.hillshadeDatabases();
-      let hillshadeRemoved = 0;
-      for (const database of currentHillshade) {
-        if (!wantedHillshadePaths.has(normalizePath(database.path))) {
-          currentHillshade = await this.desktop.OsmAndAtlas.removeHillshadeDatabase(database.id);
-          hillshadeRemoved++;
-        }
-      }
-      this.hillshadeDatabases.set(currentHillshade);
-      const previousHillshadePaths = new Set(currentHillshade.map(database => normalizePath(database.path)));
-      let hillshadeAdded = 0;
-      if (scan.hillshadeFiles.length) {
-        const databases = await this.desktop.OsmAndAtlas.addHillshadeDatabasePaths(scan.hillshadeFiles);
-        hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(normalizePath(database.path))).length;
-        this.hillshadeDatabases.set(databases);
-        this.updateHillshadePresetFromSelection(databases);
-        this.applyHillshadeSettingsIfReady(true);
-      } else {
-        this.updateHillshadePresetFromSelection(currentHillshade);
-        this.applyHillshadeSettingsIfReady(true);
-      }
+      const hillshadeRemoved = [...previousHillshadePaths].filter(path => !wantedHillshadePaths.has(path)).length;
+      const databases = await this.desktop.OsmAndAtlas.reconcileHillshadeDatabasePaths(scan.hillshadeFiles);
+      const hillshadeAdded = databases.filter(database => !previousHillshadePaths.has(normalizePath(database.path))).length;
+      this.hillshadeDatabases.set(databases);
+      this.updateHillshadePresetFromSelection(databases);
+      this.applyHillshadeSettingsIfReady(true);
 
       let valhallaStatus = valhallaBefore;
       let valhallaRemoved = 0;
