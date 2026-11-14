@@ -3459,12 +3459,12 @@ export class MapWindow implements OnInit, OnDestroy {
         'No: keep the existing folders and active routing configuration. Discovered maps, hillshade files and Valhalla configurations will still be added to their lists.'
       );
 
-      const previousMapPaths = new Set(this.offlineMaps().map(map => map.path));
+      const previousMapPaths = new Set(this.offlineMaps().map(map => map.filePath));
       const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => database.path));
       const previousValhallaPaths = new Set((valhallaBefore.configurations ?? []).map(configuration => configuration.path));
       const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
       const importResult = await this.desktop.OfflineMap.importFiles(mapPaths);
-      const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.path)).length;
+      const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(map.filePath)).length;
       this.offlineMaps.set(importResult.maps);
       this.offlineMapImportErrors.set(importResult.errors);
 
