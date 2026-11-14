@@ -1,16 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 
-const documentationFiles = new Set([
-  'README.md',
-  'features.md',
-  'image-formats.md',
-  'map-formats.md',
-  'shortcuts.md',
-  'external-programs.md',
-  'windows-api.md',
-  'platform-support.md'
-]);
+const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\\.md$/i.test(fileName);
 
 const escapeHtml = (value: string): string => value
   .replace(/&/g, '&amp;')
@@ -160,7 +151,7 @@ export class MarkdownViewerComponent {
   }
 
   protected readonly loadDocument = async (fileName: string): Promise<void> => {
-    if (!documentationFiles.has(fileName)) return;
+    if (!isDocumentationFile(fileName)) return;
     this.loading.set(true);
     this.error.set(null);
     try {
@@ -223,7 +214,7 @@ export class MarkdownViewerComponent {
     }
     const normalized = parts.join('/');
     const fileName = normalized === 'README.md' ? 'README.md' : normalized.startsWith('docs/') ? normalized.slice(5) : '';
-    if (!documentationFiles.has(fileName)) return;
+    if (!isDocumentationFile(fileName)) return;
     void this.loadDocument(fileName);
   };
 }
