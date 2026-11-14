@@ -855,6 +855,21 @@ export class OsmAndAtlasManager {
     return this.getHillshadeDatabases();
   };
 
+  @IpcHandler({ name: 'OsmAndAtlas.addHillshadeDatabasePaths' })
+  readonly addHillshadeDatabasePaths = async (_event: Electron.IpcMainInvokeEvent, paths: string[]): Promise<HillshadeDatabaseInfo[]> => {
+    if (!Array.isArray(paths)) throw new Error('Hillshade database paths must be an array.');
+    const byId = new Map(this.hillshadeDatabases.map(item => [item.id, item]));
+    for (const selectedPath of paths) {
+      if (typeof selectedPath !== 'string' || !existsSync(selectedPath) || !/\.(?:sqlitedb|sqlite|db)$/i.test(selectedPath)) continue;
+      if (!statSync(selectedPath).isFile()) continue;
+      const id = createHash('sha1').update(selectedPath.toLowerCase()).digest('hex').slice(0, 16);
+      if (!byId.has(id)) byId.set(id, { id, path: selectedPath, enabled: true });
+    }
+    this.hillshadeDatabases = [...byId.values()];
+    await this.persistHillshadeDatabases();
+    return this.getHillshadeDatabases();
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.setHillshadeDatabaseEnabled' })
   readonly setHillshadeDatabaseEnabled = async (_event: Electron.IpcMainInvokeEvent, id: string, enabled: boolean): Promise<HillshadeDatabaseInfo[]> => {
     this.hillshadeDatabases = this.hillshadeDatabases.map(item => item.id === id ? { ...item, enabled: !!enabled } : item);
