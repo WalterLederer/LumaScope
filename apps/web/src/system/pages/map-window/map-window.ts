@@ -1000,7 +1000,7 @@ interface MapErrorEntry {
           </div>
         }
         @if (settingsOpen() && offlineMapListMounted()) {
-          <div class="offline-map-list-view" [hidden]="activeSettingsTab() !== 'offlineMaps'">
+          <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
               @if (offlineMaps().length > 0) {
                 <table class="mbtiles-map-table">
@@ -1031,7 +1031,7 @@ interface MapErrorEntry {
           </div>
         }
         @if (settingsOpen() && hillshadeListMounted()) {
-          <div class="offline-map-list-view" [hidden]="activeSettingsTab() !== 'hillshade'">
+          <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'hillshade' ? '' : 'none'">
             <div class="mbtiles-map-list">
               @if (hillshadeDatabases().length > 0) {
                 @if (filteredHillshadeDatabases().length > 0) {
