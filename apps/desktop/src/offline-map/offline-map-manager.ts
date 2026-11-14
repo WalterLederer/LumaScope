@@ -63,11 +63,9 @@ export class OfflineMapManager {
   // subfolder. Some resource packages do not contain default.render.xml, so
   // identify the folder by the presence of any *.render.xml style file.
   const hasRenderingStyles=(folder:string):boolean=>{
-   const styles=join(folder,'rendering_styles');
-   try{return statSync(styles).isDirectory()&&readdirSync(styles,{withFileTypes:true}).some(entry=>entry.isFile()&&entry.name.toLowerCase().endsWith('.render.xml'));}catch{return false;}
+   try{return statSync(join(folder,'rendering_styles')).isDirectory();}catch{return false;}
   };
-  const selectedIsRenderingStyles=basename(root).toLowerCase()==='rendering_styles';
-  if(selectedIsRenderingStyles&&readdirSync(root,{withFileTypes:true}).some(entry=>entry.isFile()&&entry.name.toLowerCase().endsWith('.render.xml')))result.osmAndResourcesPath=dirname(root);
+  if(basename(root).toLowerCase()==='rendering_styles')result.osmAndResourcesPath=dirname(root);
   else if(hasRenderingStyles(root))result.osmAndResourcesPath=root;
   const add=(list:string[],path:string):void=>{const key=resolve(path).toLowerCase();if(!seen.has(key)){seen.add(key);list.push(resolve(path));}};
   const walk=(directory:string,depth=0):void=>{
@@ -78,7 +76,8 @@ export class OfflineMapManager {
     if(entry.isDirectory()){
      const lower=entry.name.toLowerCase();
      if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge'))result.mapsforgeThemeFolder??=path;
-     if(hasRenderingStyles(path))result.osmAndResourcesPath??=path;
+     if(lower==='rendering_styles')result.osmAndResourcesPath??=directory;
+     else if(hasRenderingStyles(path))result.osmAndResourcesPath??=path;
      walk(path,depth+1);
      continue;
     }
