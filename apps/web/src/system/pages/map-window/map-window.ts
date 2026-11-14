@@ -3540,10 +3540,12 @@ export class MapWindow implements OnInit, OnDestroy {
       this.refreshHillshadeDuplicateIndex(hillshade);
       this.refreshValhallaDuplicateIndex(valhalla.configurations ?? []);
       this.updateHillshadePresetFromSelection(hillshade);
+      this.mapsforgeThemeDuplicatePaths.set(new Set());
       if (this.mapsforgeThemeFolder()) {
         const themes = await this.desktop.Mapsforge.scanThemes(this.mapsforgeThemeFolder());
         this.mapsforgeThemes.set(themes);
-       }
+        this.refreshMapsforgeThemeDuplicateIndex(themes);
+      }
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
       this.offlineFilesChecked.set(true);
       this.applyHillshadeSettingsIfReady(true);
