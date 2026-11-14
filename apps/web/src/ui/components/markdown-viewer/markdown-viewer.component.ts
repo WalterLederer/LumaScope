@@ -104,7 +104,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (/^\s*\d+\.\s+/.test(line)) {
       const items: string[] = [];
       while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) {
-        items.push('<li>' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, '')) + '</li>');
+        items.push('<li>' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources) + '</li>');
         index++;
       }
       output.push('<ol>' + items.join('') + '</ol>');
