@@ -164,10 +164,13 @@ export class ValhallaManager {
 
   @IpcHandler({ name: 'Valhalla.setConfigPath' })
   readonly setConfigPath = async (_event: IpcMainInvokeEvent, configPath: string): Promise<ValhallaRuntimeStatus> => {
-    if (typeof configPath !== 'string' || !configPath.trim() || !existsSync(configPath.trim())) {
-      throw new Error('Select an existing Valhalla configuration file.');
+    const resolvedPath = typeof configPath === 'string' ? configPath.trim() : '';
+    if (!resolvedPath) {
+      throw new Error('No Valhalla configuration path was provided.');
     }
-    const resolvedPath = configPath.trim();
+    if (!existsSync(resolvedPath)) {
+      throw new Error('Valhalla configuration file does not exist: ' + resolvedPath);
+    }
     await this.stop();
     this.configPath = resolvedPath;
     if (!this.configurations.some(entry => entry.path.toLowerCase() === resolvedPath.toLowerCase())) {
