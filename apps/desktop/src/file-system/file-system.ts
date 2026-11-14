@@ -55,6 +55,31 @@ export class FileSystem {
     const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'File not found.');
     return { success: false, errorMessage: 'Could not load ' + fileName + ': ' + message };
   };
+  @IpcHandler({ name: 'FileSystem.readDocumentationImage' })
+  readonly readDocumentationImage = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
+    if (!/^[a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|gif)$/i.test(fileName)) {
+      return { success: false, errorMessage: 'Invalid documentation image name.' };
+    }
+    const mimeTypes: Record<string, string> = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.webp': 'image/webp', '.gif': 'image/gif'
+    };
+    const mimeType = mimeTypes[extname(fileName).toLowerCase()];
+    if (!mimeType) return { success: false, errorMessage: 'Unsupported documentation image format.' };
+    const roots = app.isPackaged
+      ? [ join(process.resourcesPath, 'docs', 'images') ]
+      : [ join(process.cwd(), 'docs', 'images'), join(app.getAppPath(), 'docs', 'images') ];
+    for (const root of roots) {
+      try {
+        const image = await readFile(join(root, fileName));
+        return { success: true, data: 'data:' + mimeType + ';base64,' + image.toString('base64') };
+      } catch (_) {
+        // Continue to the next development root.
+      }
+    }
+    return { success: false, errorMessage: 'Documentation image not found: ' + fileName };
+  };
+
   @IpcHandler({ name: 'FileSystem.writeText' })
   readonly writeText = async (_: IpcMainInvokeEvent, path: string, content: string): Promise<ApiResponse<undefined>> => {
     try {
