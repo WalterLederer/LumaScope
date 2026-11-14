@@ -72,7 +72,7 @@ export class OfflineMapManager {
     if(entry.isDirectory()){
      const lower=entry.name.toLowerCase();
      if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge'))result.mapsforgeThemeFolder??=path;
-     if(lower==='resources'&&existsSync(join(path,'rendering_styles','default.render.xml')))result.osmAndResourcesPath??=path;
+     if(existsSync(join(path,'rendering_styles','default.render.xml')))result.osmAndResourcesPath??=path;
      walk(path,depth+1);
      continue;
     }
