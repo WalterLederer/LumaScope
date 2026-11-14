@@ -874,7 +874,7 @@ export class OsmAndAtlasManager {
   readonly reconcileHillshadeDatabasePaths = async (_event: Electron.IpcMainInvokeEvent, paths: string[]): Promise<HillshadeDatabaseInfo[]> => {
     if (!Array.isArray(paths)) throw new Error('Hillshade database paths must be an array.');
     const existingByPath = new Map(this.hillshadeDatabases.map(item => [resolve(item.path).toLocaleLowerCase(), item]));
-    const next = new Map<string, HillshadeDatabaseInfo>();
+    const next = new Map<string, { id: string; path: string; enabled: boolean }>();
     for (const candidate of paths) {
       if (typeof candidate !== 'string' || !candidate.trim() || !/\.(?:sqlitedb|sqlite|db)$/i.test(candidate)) continue;
       const path = resolve(candidate.trim());
