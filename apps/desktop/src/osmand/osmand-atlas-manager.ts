@@ -16,7 +16,8 @@ const METATILE_SIZE = 512;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 1;
+const HELPER_WORKER_COUNT = 4;
+const HILLSHADE_WORKER_COUNT = 4;
 // Valid transparent PNG returned for XYZ cells outside a regional hillshade database.
 const EMPTY_HILLSHADE_TILE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=', 'base64');
 
@@ -518,7 +519,8 @@ class OsmAndAtlasWorker {
 
 export class OsmAndAtlasManager {
   private hillshadeDatabases = this.readSavedHillshadeDatabases();
-  private hillshadeWorker: OsmAndHillshadeWorker | null = null;
+  private hillshadeWorkers: OsmAndHillshadeWorker[] = [];
+  private nextHillshadeWorker = 0;
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
@@ -542,11 +544,17 @@ export class OsmAndAtlasManager {
   private temporaryFileId = 0;
 
   constructor() {
-    this.hillshadeWorker = new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment);
+    this.hillshadeWorkers = this.createHillshadeWorkers();
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
-      void this.hillshadeWorker?.shutdown();
+      for (const worker of this.hillshadeWorkers) void worker.shutdown();
     });
+  }
+
+  private createHillshadeWorkers(): OsmAndHillshadeWorker[] {
+    return Array.from({ length: HILLSHADE_WORKER_COUNT }, () =>
+      new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment)
+    );
   }
 
   private readSavedHillshadeDatabases(): Array<{ id: string; path: string; enabled: boolean }> {
@@ -923,11 +931,10 @@ export class OsmAndAtlasManager {
       throw new Error('[OsmAnd Hillshade] Invalid XYZ tile coordinates.');
     }
     if (!Number.isInteger(s) || s < 0 || s > 255) throw new Error('[OsmAnd Hillshade] Invalid tile scale.');
-    if (!this.hillshadeWorker) {
-      this.hillshadeWorker = new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment);
-    }
+    if (!this.hillshadeWorkers.length) this.hillshadeWorkers = this.createHillshadeWorkers();
+    const worker = this.hillshadeWorkers[this.nextHillshadeWorker++ % this.hillshadeWorkers.length];
     try {
-      return await this.hillshadeWorker.readTile(databasePath, z, x, y, s);
+      return await worker.readTile(databasePath, z, x, y, s);
     } catch (error) {
       // Regional hillshade databases naturally omit cells outside their coverage.
       // Resolve these at the IPC boundary so Electron does not log an expected
@@ -1053,7 +1060,7 @@ export class OsmAndAtlasManager {
     // Stop helper processes only after active/queued frames have completed.
     // Worker objects remain reusable; ensureStarted() lazily restarts them.
     await Promise.all(this.workers.map(worker => worker.stop()));
-    await this.hillshadeWorker?.shutdown();
+    await Promise.all(this.hillshadeWorkers.map(worker => worker.shutdown()));
   };
 
   private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
