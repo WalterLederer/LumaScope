@@ -135,6 +135,7 @@ const api: Desktop = {
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
     addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
     addHillshadeDatabasePaths: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabasePaths', paths),
+    reconcileHillshadeDatabasePaths: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.reconcileHillshadeDatabasePaths', paths),
     setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OsmAndAtlas.setHillshadeDatabaseEnabled', id, enabled),
     removeHillshadeDatabase: (id: string) => ipcRenderer.invoke('OsmAndAtlas.removeHillshadeDatabase', id),
     renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale = 0) => ipcRenderer.invoke('OsmAndAtlas.renderHillshadeTile', databasePath, z, x, y, scale),
@@ -160,6 +161,7 @@ const api: Desktop = {
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
     importFiles: (paths: string[]) => ipcRenderer.invoke('OfflineMap.importFiles', paths),
+    reconcileFiles: (paths: string[]) => ipcRenderer.invoke('OfflineMap.reconcileFiles', paths),
     scanResourcePackage: (rootPath: string) => ipcRenderer.invoke('OfflineMap.scanResourcePackage', rootPath),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
     checkFiles: () => ipcRenderer.invoke('OfflineMap.checkFiles'),
