@@ -36,18 +36,24 @@ export class FileSystem {
       'shortcuts.md', 'external-programs.md', 'windows-api.md'
     ]);
     if (!allowedFiles.has(fileName)) return { success: false, errorMessage: 'Unknown documentation file.' };
-    const documentationDirectory = app.isPackaged
-      ? join(process.resourcesPath, 'docs')
-      : join(process.cwd(), 'docs');
-    const sourcePath = fileName === 'README.md' && !app.isPackaged
-      ? join(process.cwd(), 'README.md')
-      : join(documentationDirectory, fileName);
-    try {
-      return { success: true, data: await readFile(sourcePath, 'utf-8') };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return { success: false, errorMessage: 'Could not load ' + fileName + ': ' + message };
+
+    const roots = app.isPackaged
+      ? [ join(process.resourcesPath, 'docs') ]
+      : [ join(process.cwd(), 'docs'), join(app.getAppPath(), 'docs') ];
+    const candidates = fileName === 'README.md' && !app.isPackaged
+      ? [ join(process.cwd(), fileName), join(app.getAppPath(), fileName) ]
+      : roots.map(root => join(root, fileName));
+
+    let lastError: unknown = null;
+    for (const sourcePath of candidates) {
+      try {
+        return { success: true, data: await readFile(sourcePath, 'utf-8') };
+      } catch (error) {
+        lastError = error;
+      }
     }
+    const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'File not found.');
+    return { success: false, errorMessage: 'Could not load ' + fileName + ': ' + message };
   };
   @IpcHandler({ name: 'FileSystem.writeText' })
   readonly writeText = async (_: IpcMainInvokeEvent, path: string, content: string): Promise<ApiResponse<undefined>> => {
