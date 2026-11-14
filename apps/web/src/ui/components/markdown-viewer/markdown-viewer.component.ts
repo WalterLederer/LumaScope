@@ -12,24 +12,43 @@ const escapeHtml = (value: string): string => value
   .replace(/'/g, '&#39;');
 
 const renderInline = (source: string, imageSources: ReadonlyMap<string, string>): string => {
-  let value = escapeHtml(source);
-  value = value.replace(/`([^`]+)`/g, '<code>$1</code>');
+  const htmlImages: string[] = [];
+  const withImagePlaceholders = source.replace(/<img\b([^>]*)>/gi, (_match, attributes: string) => {
+    const src = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(attributes)?.[1];
+    const alt = /\balt\s*=\s*["']([^"']*)["']/i.exec(attributes)?.[1] ?? '';
+    const widthText = /\bwidth\s*=\s*["']?(\d{1,3}(?:\.\d+)?)%?["']?/i.exec(attributes)?.[1];
+    const imageSource = src ? imageSources.get(src) : undefined;
+    const width = widthText ? Number(widthText) : NaN;
+    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100
+      ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"'
+      : ' style="max-width: 100%; height: auto;"';
+    const rendered = imageSource
+      ? '<img src="' + imageSource + '" alt="' + escapeHtml(alt) + '" loading="lazy"' + widthStyle + '>'
+      : '<span>' + escapeHtml(alt) + '</span>';
+    const token = '__LUMASCOPE_HTML_IMAGE_' + htmlImages.length + '__';
+    htmlImages.push(rendered);
+    return token;
+  });
+  let value = escapeHtml(withImagePlaceholders);
+  value = value.replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>');
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
   value = value.replace(/!\[([^\]]*)\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=(\d{1,3}(?:\.\d+)?)%\})?/g, (_match, alt: string, target: string, widthText?: string) => {
     const href = target.replace(/\s+"[^"]*"$/, '');
-    const source = imageSources.get(href);
+    const imageSource = imageSources.get(href);
     const width = widthText ? Number(widthText) : NaN;
-    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100 ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"' : '';
-    return source ? '<img src="' + source + '" alt="' + alt + '" loading="lazy"' + widthStyle + '>' : '<span>' + alt + '</span>';
-  });
-    const source = imageSources.get(href);
-    return source ? '<img src="' + source + '" alt="' + alt + '" loading="lazy">' : '<span>' + alt + '</span>';
+    const widthStyle = Number.isFinite(width) && width > 0 && width <= 100
+      ? ' style="width: ' + width + '%; max-width: 100%; height: auto;"'
+      : ' style="max-width: 100%; height: auto;"';
+    return imageSource ? '<img src="' + imageSource + '" alt="' + alt + '" loading="lazy"' + widthStyle + '>' : '<span>' + alt + '</span>';
   });
   value = value.replace(/\[([^\]]+)\]\(([^ )]+)(?:\s+"[^"]*")?\)/g, (_match, label: string, href: string) => {
     const safeHref = href.replace(/&amp;/g, '&amp;').replace(/"/g, '&quot;');
     const external = /^https?:\/\//i.test(href);
     return '<a href="' + safeHref + '"' + (external ? ' target="_blank" rel="noopener noreferrer"' : '') + '>' + label + '</a>';
+  });
+  htmlImages.forEach((html, index) => {
+    value = value.replace('__LUMASCOPE_HTML_IMAGE_' + index + '__', html);
   });
   return value;
 };
@@ -181,10 +200,10 @@ export class MarkdownViewerComponent {
       const response = await this.fileSystem.readDocumentationFile(fileName);
       if (response.success) {
         const imageSources = new Map<string, string>();
-        const imagePattern = /!\[[^\]]*\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=\d{1,3}(?:\.\d+)?%\})?/g;
+        const imagePattern = /!\[[^\]]*\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=\d{1,3}(?:\.\d+)?%\})?|<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
         const imagePaths = new Set<string>();
         for (const match of response.data.matchAll(imagePattern)) {
-          const href = match[1];
+          const href = match[1] ?? match[2];
           const allowedPath = fileName === 'README.md'
             ? /^docs\/images\/([a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href)
             : /^images\/([a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif))$/i.exec(href);
