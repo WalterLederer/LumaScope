@@ -177,9 +177,12 @@ export class MapsforgeManager {
     join(app.getAppPath(), 'tools', 'mapsforge-renderer', 'target', 'mapsforge-renderer.jar')
   ];
   private readonly jarPath = this.jarCandidates.find(path => existsSync(path)) ?? this.jarCandidates[1];
-  private readonly javaPath = process.env.JAVA_HOME
-    ? join(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java')
-    : 'java';
+  private readonly bundledJavaPath = join(process.resourcesPath, 'mapsforge', 'runtime', 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+  private readonly javaPath = existsSync(this.bundledJavaPath)
+    ? this.bundledJavaPath
+    : process.env.JAVA_HOME
+      ? join(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java')
+      : 'java';
   private readonly environment: NodeJS.ProcessEnv = {
     ...process.env,
     PATH: [dirname(this.javaPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
