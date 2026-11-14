@@ -368,7 +368,27 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
     if (databases.length === 1) {
       const database = databases[0];
       const renderStarted = performance.now();
-      const png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+      let png: Uint8Array;
+      try {
+        png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/Hillshade tile not found/i.test(message)) {
+          console.error('[Hillshade][database-error]', {
+            request: diagnosticId, tile, databaseId: database.id, database: database.path, error: message
+          });
+          throw error;
+        }
+        const databaseMs = performance.now() - renderStarted;
+        cacheHillshadeTile(cacheKey, EMPTY_HILLSHADE_PNG);
+        if (traceTile) console.info('[Hillshade][tile-timing]', {
+          request: diagnosticId, tile, databaseCount: 1, databaseMs,
+          decodeMs: 0, compositeMs: 0, encodeMs: 0, pngBytes: 0,
+          path: 'single-database-miss'
+        });
+        emitHillshadeStatus('loaded');
+        return { data: EMPTY_HILLSHADE_PNG.slice().buffer as ArrayBuffer };
+      }
       const databaseMs = performance.now() - renderStarted;
       if (abortController.signal.aborted) throw new Error('OsmAnd Hillshade tile request was cancelled.');
       const diagnostics = validateHillshadePngHeader(png, tile + '; database=' + database.id);
