@@ -49,6 +49,7 @@ export interface DesktopFileSystem {
   readonly readDir: (path: string) => Promise<FileInfo[]>;
   readonly readText: (path: string) => Promise<ApiResponse<string>>;
   readonly readDocumentationFile: (fileName: string) => Promise<ApiResponse<string>>;
+  readonly readDocumentationImage: (fileName: string) => Promise<ApiResponse<string>>;
   readonly writeText: (path: string, content: string) => Promise<ApiResponse<undefined>>;
   readonly readJson: <T>(path: string) => Promise<ApiResponse<T>>;
   readonly writeJson: <T>(path: string, data: T) => Promise<ApiResponse<undefined>>;
