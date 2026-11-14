@@ -132,7 +132,6 @@ Additional scripts and packaging targets are defined in the root `package.json`.
 
 ## Help reference tables
 
-The five reference areas previously shown in the in-app Help panel are maintained in Markdown:
 
 1. [Supported map formats](docs/map-formats.md)
 2. [Supported image formats](docs/image-formats.md)
