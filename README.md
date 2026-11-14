@@ -1,64 +1,127 @@
-# Light Matter
+# LumaScope
 
-A simple image viewer with HDR photo support for Windows and Linux (macOS
-support is coming soon).
+**LumaScope is a Windows desktop image viewer and visual workspace for SDR and HDR photography, screen capture, photo browsing, geographic image organisation, and offline map-based route planning.**
 
-[Light Matter Home Page](https://blog.hexmode.org/software/light-matter/).
+It combines a high-bit-depth image pipeline with a folder-based photo browser, sidecar caching, image metadata and GPS tools, screen capture, and a multi-engine map view. It is designed to make HDR image data inspectable and useful rather than treating HDR files as ordinary SDR pictures.
 
-<a href="https://apps.microsoft.com/detail/9P96SPR78HM8?cid=github"><img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/></a>
+> LumaScope is the current project name. This repository supersedes the former Light Matter project identity; current features, terminology and build instructions here take precedence over older project descriptions.
 
-<a href="https://github.com/Auxx/light-matter/releases"><img src="https://docs.appimage.org/_images/download-appimage-banner.svg" width="200" alt="Download Light Matter AppImage for Linux"/></a>
+## Main capabilities
 
-## Installation
+| Area | What LumaScope provides |
+| --- | --- |
+| **Browse** | Navigate folders, inspect image thumbnails, sort and select images, and open images from Windows Explorer or by drag and drop. |
+| **Image View** | Display SDR and HDR images, compare HDR and SDR renderings, inspect pixel values, view histograms and adjust image presentation. |
+| **Screen Capture** | Capture a monitor, selected rectangle or application window; preview captures and copy or save the result. |
+| **Location** | Read image GPS metadata, show image positions on a map, inspect location information, import GPX tracks and display them with photos. |
+| **Maps and routing** | Combine online maps and offline MBTiles, OsmAnd, Mapsforge and hillshade sources; calculate routes with Valhalla. |
+| **Cache and database** | Build local thumbnails and full-size conversions in sidecar cache folders, track image metadata in SQLite and inspect cache status. |
+| **Windows integration** | Open supported image files from Explorer, use global capture shortcuts, enumerate capture windows and detect display/HDR capabilities. |
 
-### Windows
+## Image viewing
 
-The preferred way to install Light Matter on Windows is from
-[Microsoft Store](https://apps.microsoft.com/detail/9P96SPR78HM8).
+LumaScope supports common raster and vector image formats as well as high-bit-depth and HDR-capable formats. The viewer distinguishes SDR and HDR-capable sources and uses format-specific decoding and conversion paths.
 
-You can alternatively download an unsigned EXE installer from
-[GitHub Release](https://github.com/Auxx/light-matter/releases) page.
+For HDR-capable images, the viewer provides:
 
-### Linux
+- HDR and SDR presentation modes;
+- split, stacked and full-size side-by-side comparison layouts where applicable;
+- image brightness, contrast, gamma, colour intensity, black/white point and RGB-channel adjustments;
+- a pixel magnifier (loupe) with SDR RGB and HDR/scRGB pixel readouts;
+- linear and logarithmic histograms with channel and luminance information;
+- image dimensions, metadata and source information;
+- capture-preview comparison when a compatible capture frame is available.
 
-Download the latest `LightMatter-*.AppImage` from the
-[GitHub Release](https://github.com/Auxx/light-matter/releases) page, make it
-executable, and run it:
+See [Supported image formats](docs/image-formats.md) for bit depth, decoder and cache behaviour.
 
-```bash
-chmod +x LightMatter-*.AppImage
-./LightMatter-*.AppImage
+## Browse and file handling
+
+The **Browse** area is the folder-oriented entry point to the image collection. It supports folder navigation, thumbnail browsing, image selection and cache-status inspection. Images can also be opened by:
+
+- using **Open with** from Windows Explorer after installing LumaScope and registering its file associations;
+- passing an image path to the application at startup;
+- dragging an image file into the application.
+
+When LumaScope is already running, a second launch with an image path is forwarded to the existing application window. The folder containing the image is opened and the image is selected in the viewer.
+
+## Screen Capture
+
+The separate **Screen Capture** window supports monitor, application-window and rectangle capture sources. The workflow includes source selection, preview, clipboard and file output, and HDR-capable capture paths where supported by the display and Windows capture APIs.
+
+Global shortcuts can be used while LumaScope is not focused. Their registration status is checked at runtime; see [Key shortcuts](docs/shortcuts.md).
+
+## Location, maps and routes
+
+Images containing GPS coordinates can be positioned on the location map. LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
+
+The map workspace supports online XYZ tile sources and offline map data. Depending on the selected source and installed resources, map rendering is provided by MapLibre, the OsmAnd native renderers or Mapsforge. Hillshade databases can be used as shaded-relief overlays.
+
+For route planning, LumaScope integrates the Valhalla routing engine. Routing configuration files can be selected locally and shared; the selected routing profile and available map data determine the routes that can be calculated. See [Supported map formats](docs/map-formats.md) and [Feature guide](docs/features.md).
+
+## Cache and image database
+
+LumaScope uses a local SQLite database for image-related metadata and cache status. Generated files are stored beside the source collection in a `.cache` sidecar folder, rather than relying on one central cache directory.
+
+The cache system distinguishes thumbnail files from full-size conversions and identifies whether a usable file is stored in a sidecar cache or a parallel folder. It also tracks image and location metadata used by Browse, Image and Location views.
+
+The cache is designed to be rebuildable: source images remain the originals, while thumbnails and converted display files are derived data. A writable sidecar location is required when adding a folder to the managed Browse collection.
+
+## Supported formats
+
+### Images
+
+LumaScope currently documents AVIF, BMP, GIF, HEIF/HEIC, JPEG, JPEG XL, JPEG XR, OpenEXR, PNG, Radiance HDR, SVG, TIFF, Ultra HDR JPEG and WebP. HDR capability is format- and file-dependent; not every file with an extension is necessarily HDR.
+
+See the complete table in [Supported image formats](docs/image-formats.md).
+
+### Maps
+
+Supported map sources include online XYZ tile endpoints, MBTiles, OsmAnd OBF maps, Mapsforge MAP files and SQLite hillshade databases.
+
+See [Supported map formats](docs/map-formats.md).
+
+## Documentation
+
+The Help tab in the application displays this README. The detailed reference tables are maintained as separate Markdown documents:
+
+- [Feature guide](docs/features.md) — Browse, Image View, capture, location, maps, routing, cache and Windows integration.
+- [Supported image formats](docs/image-formats.md) — decoder, HDR support, bit depth and full-size cache behaviour.
+- [Supported map formats](docs/map-formats.md) — map source, online/offline availability and renderer.
+- [Key shortcuts](docs/shortcuts.md) — local and global keyboard shortcuts.
+- [External programs](docs/external-programs.md) — helper processes and their responsibilities.
+- [Windows API calls](docs/windows-api.md) — direct Win32 and Windows Imaging Component calls documented by the Help tab.
+
+## Installation and running
+
+Use the current installer or release package published for this repository:
+
+- [LumaScope releases](https://github.com/WalterLederer/LumaScope/releases)
+- [LumaScope source repository](https://github.com/WalterLederer/LumaScope)
+
+On Windows, install the release package and launch LumaScope from the Start menu or its installed shortcut. The installer registers supported image file associations so LumaScope can be selected through Explorer's **Open with** workflow. Windows may still require the user to choose LumaScope as the preferred application for a particular extension.
+
+## Building from source
+
+The repository is an Nx workspace containing the Angular renderer and Electron desktop application. The production build also stages native and Java map/capture helpers.
+
+Typical production packaging command on a configured Windows development machine:
+
+```powershell
+npm run make:prod
 ```
 
-## Features
+The production script builds the JPEG XR WIC encoder, the Mapsforge renderer, the Angular frontend and Electron backend, stages the OsmAnd and Valhalla helpers, and creates the desktop package.
 
-- SDR image rendering;
-- HDR image rendering;
-- Wide gamut support;
-- Colour profile support;
-- Simple photo gallery browser with customisable locations.
+Additional scripts and packaging targets are defined in the root `package.json`. Native build prerequisites and helper source projects are maintained under `tools/`.
 
-## Supported image formats
+## Help reference tables
 
-| Format | Decoder used in the app |
-| --- | --- |
-| JPEG | Chromium / Electron native image decoder |
-| JPEG with gain maps (UltraHDR) | Chromium / Electron native image decoder |
-| JPEG XL | Chromium / Electron native image decoder (JXL enabled via Chromium flag) |
-| AVIF | `wasm-vips` / libvips HEIF loader; converted to JPEG for display |
-| PNG | Chromium / Electron native image decoder |
-| WebP | Chromium / Electron native image decoder |
-| SVG | Chromium / Electron native image decoder |
-| GIF | Chromium / Electron native image decoder |
-| BMP | Chromium / Electron native image decoder |
+The five reference areas previously shown in the in-app Help panel are maintained in Markdown:
 
-AVIF is decoded and converted by the app's thumbnail worker before it is displayed. The other formats in this list are passed to Chromium / Electron for image decoding.
+1. [Supported map formats](docs/map-formats.md)
+2. [Supported image formats](docs/image-formats.md)
+3. [Key shortcuts](docs/shortcuts.md)
+4. [External Programs](docs/external-programs.md)
+5. [Windows API calls](docs/windows-api.md)
 
-## Windows 11 ACM note
-
-When using ACM on Windows 11 in SDR display mode (HDR mode is NOT affected!) you
-will need to enable `Use legacy display ICC colour management` in Compatibility
-settings in Light Matter properties. To do so, right-click on an app icon in
-Windows Explorer, then click on Properties.
-
-Do NOT enable this legacy setting in HDR display mode!
+Runtime-only information is identified as such in the relevant document. Global shortcut registration and the list of processes launched during a session can change between runs.
