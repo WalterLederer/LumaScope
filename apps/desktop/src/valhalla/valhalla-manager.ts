@@ -203,6 +203,30 @@ export class ValhallaManager {
     return this.getRuntimeStatus();
   };
 
+  @IpcHandler({ name: 'Valhalla.addConfigsFromPaths' })
+  readonly addConfigsFromPaths = async (_event: IpcMainInvokeEvent, paths: string[]): Promise<ValhallaRuntimeStatus> => {
+    if (!Array.isArray(paths)) throw new Error('Valhalla configuration paths must be an array.');
+    const valid: string[] = [];
+    for (const value of paths) {
+      if (typeof value !== 'string' || !value.trim()) continue;
+      const selectedPath = resolve(value.trim());
+      if (!existsSync(selectedPath)) continue;
+      let parsed: unknown;
+      try { parsed = JSON.parse(readFileSync(selectedPath, 'utf8')); }
+      catch { continue; }
+      if (!parsed || typeof parsed !== 'object' || !('mjolnir' in parsed)) continue;
+      valid.push(selectedPath);
+    }
+    for (const selectedPath of valid) {
+      if (!this.configurations.some(entry => entry.path.toLowerCase() === selectedPath.toLowerCase())) {
+        this.configurations.push({ path: selectedPath, name: basename(dirname(selectedPath)), available: true });
+      }
+    }
+    if (!this.configPath && valid.length) this.configPath = valid[0];
+    await this.persistConfigurations();
+    return this.getRuntimeStatus();
+  };
+
   @IpcHandler({ name: 'Valhalla.removeConfig' })
   readonly removeConfig = async (_event: IpcMainInvokeEvent, configPath: string): Promise<ValhallaRuntimeStatus> => {
     const target = typeof configPath === 'string' ? configPath.trim() : '';
