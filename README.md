@@ -1,7 +1,7 @@
 # LumaScope
 
 <img src="docs/images/lumaScope_icon.png" alt="LumaScope Image View" width="30%"> 
-![LumaScope Image View](docs/images/Screenshot_2025-07-28_13-52-11_jpg_thumb.jpg) 
+<img src="docs/images/Screenshot_2025-07-28_13-52-11_jpg_thumb.jpg" alt="LumaScope Image View"> 
 
 
 **LumaScope is a desktop image viewer and visual workspace for SDR and HDR photography, screen capture, photo browsing, geographic image organisation, and offline map-based route planning.**
