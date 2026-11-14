@@ -35,13 +35,13 @@ export class ThemeService {
 
     this.configuration.config()
       .pipe(takeUntilDestroyed())
-      .subscribe(config => this.setTheme(config.system.theme ?? 'dark'));
+      .subscribe(config => this.setTheme(config.system.theme ?? 'dark', false));
   }
 
   readonly toggle = () => {
-    this.configuration.updateSystemConfig({
-      theme: this.current() === 'dark' ? 'light' : 'dark'
-    });
+    const theme: AppTheme = this.current() === 'dark' ? 'light' : 'dark';
+    this.setTheme(theme);
+    this.configuration.updateSystemConfig({ theme });
   };
 
   private readonly setTheme = (theme: AppTheme, broadcast = true) => {
