@@ -215,6 +215,10 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
   }
 };
 
+const isExistingSidecarThumbnail = (fileName: string): boolean =>
+  basename(dirname(fileName)).toLowerCase() === '.cache'
+  && /_thumb\\.jpe?g$/i.test(basename(fileName));
+
 const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<GlobalResponse> => {
   const fileName = params.get('image');
   const width = Number(params.get('width'));
@@ -222,6 +226,21 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
 
   if (fileName === null || signal?.aborted) {
     return notFound();
+  }
+
+  // A sidecar thumbnail is already the smallest cached representation.
+  // Reuse the exact file as-is and keep it outside the photo cache database.
+  if (isExistingSidecarThumbnail(fileName)) {
+    if (params.get('status') === '1') {
+      return new Response(JSON.stringify({ cached: existsSync(fileName) }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
+        }
+      });
+    }
+    return streamFile(fileName);
   }
 
   try {
