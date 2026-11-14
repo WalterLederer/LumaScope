@@ -8,6 +8,7 @@ import { GalleryLocations } from '../gallery/services/gallery-locations/gallery-
 import { GalleryState } from '../gallery/services/gallery-state/gallery-state';
 import { FileSystem } from '../ipc/file-system';
 import { ThemeService } from '../system/services/theme/theme.service';
+import { CaptureHotkeyService } from '../capture/capture-hotkey.service';
 import { ViewNavigator } from '../viewer/services/view-navigator/view-navigator';
 
 @Component({
@@ -33,6 +34,10 @@ export class App {
 
 
   private readonly themeService = inject(ThemeService);
+
+  // Register the desktop global-shortcut listeners as soon as the main renderer starts.
+  // The capture panel itself may not be mounted until its detached window is opened.
+  private readonly captureHotkeyService = inject(CaptureHotkeyService);
 
   constructor() {
     this.setAppTitle();
