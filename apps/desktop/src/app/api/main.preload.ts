@@ -10,6 +10,16 @@ ipcRenderer.on('App.openFiles', (_event, paths: string[]) => {
 });
 
 const api: Desktop = {
+  Theme: {
+    broadcast: (theme: 'dark' | 'light') => ipcRenderer.send('Theme.changed', theme),
+    onChanged: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, theme: 'dark' | 'light'): void => {
+        if (theme === 'dark' || theme === 'light') callback(theme);
+      };
+      ipcRenderer.on('Theme.changed', listener);
+      return () => ipcRenderer.removeListener('Theme.changed', listener);
+    }
+  },
   onFilesOpened: callback => {
     openFilesListeners.add(callback);
     while (pendingOpenFileBatches.length > 0) callback(pendingOpenFileBatches.shift()!);
