@@ -11,9 +11,25 @@ window.desktop
   .then(isPackaged => {
     console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
     setPackagedMode(isPackaged);
-    console.warn('[Startup] Loading application settings');
+    console.warn('[Startup] Loading startup theme and application settings');
 
-    return window.desktop.ProcessManager.getAppSettings().then(async settings => {
+    // Apply the saved theme before Angular starts rendering. The HTML already
+    // paints Light Mode immediately; this early read switches to Dark Mode
+    // before the first application window is shown when Dark Mode was saved.
+    const startupTheme = window.desktop.ProcessManager.getSystemPaths()
+      .then(paths => window.desktop.FileSystem.readJson<Record<string, unknown>>(paths.appConfig))
+      .then(result => {
+        const system = result.success && result.data && typeof result.data === 'object'
+          ? (result.data as Record<string, unknown>)['system'] : undefined;
+        const theme = system && typeof system === 'object'
+          ? (system as Record<string, unknown>)['theme'] : undefined;
+        const selectedTheme = theme === 'dark' ? 'dark' : 'light';
+        document.documentElement.dataset['theme'] = selectedTheme;
+        document.documentElement.style.colorScheme = selectedTheme;
+      })
+      .catch(error => console.warn('[Startup] Could not read saved startup theme; using Light Mode.', error));
+
+    return Promise.all([window.desktop.ProcessManager.getAppSettings(), startupTheme]).then(async ([settings]) => {
       const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
         ? { ...(settings['mapWindow'] as Record<string, unknown>) } : {};
       const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
