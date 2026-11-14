@@ -109,6 +109,16 @@ The map workspace can combine online and offline sources.
 
 Renderer-specific resources and themes affect available labels, symbols and map appearance. The Offline Files settings organise local resources into dedicated groups, including **Valhalla routing configurations**, the **OsmAnd resources folder** and the **Mapsforge XML theme folder**. See [Supported map formats](map-formats.md).
 
+## Offline Files and local resources
+
+The Offline Files settings separate local map resources by purpose so they can be selected and managed independently:
+
+- **Valhalla routing configurations** — local routing configuration files used by the Valhalla route engine.
+- **OsmAnd resources folder** — external resources used by the native OsmAnd map renderer, including rendering styles.
+- **Mapsforge XML theme folder** — external XML themes used to control Mapsforge map rendering.
+
+Map data files and their supporting resources remain user-managed local files. A configuration or theme file does not itself include the underlying map database.
+
 ## Routing
 
 LumaScope integrates Valhalla for route calculation using locally available routing tiles and configuration.
@@ -139,6 +149,19 @@ LumaScope maintains local cache metadata and image records in SQLite.
 - Clear selected cache categories and cancel supported cache operations.
 
 Cache files are derived data. Removing them does not remove original image files. A writable sidecar folder is required for managed folders.
+
+## General settings and diagnostics
+
+The General and Help areas provide application-level settings and technical information, including:
+
+- application configuration and appearance preferences;
+- cache maintenance and cache-build status;
+- optional image-switching diagnostics and Chromium Developer Tools controls;
+- runtime status for registered global shortcuts;
+- profiling of external helper processes launched during the current session;
+- a reference list of the direct Windows API calls used by LumaScope.
+
+The Help tab displays the repository README and links to the detailed Markdown reference documents.
 
 ## Windows integration
 
