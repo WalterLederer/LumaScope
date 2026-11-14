@@ -162,6 +162,7 @@ const api: Desktop = {
     importFiles: (paths: string[]) => ipcRenderer.invoke('OfflineMap.importFiles', paths),
     scanResourcePackage: (rootPath: string) => ipcRenderer.invoke('OfflineMap.scanResourcePackage', rootPath),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
+    checkFiles: () => ipcRenderer.invoke('OfflineMap.checkFiles'),
     checkForUpdates: () => ipcRenderer.invoke('OfflineMap.checkForUpdates'),
     removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
     setEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OfflineMap.setEnabled', id, enabled),
