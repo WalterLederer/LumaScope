@@ -16,16 +16,61 @@ if (-not (Test-Path -LiteralPath $jarPath -PathType Leaf)) {
     throw "Mapsforge renderer JAR not found: $jarPath. Run 'npm run build:mapsforge-renderer' first."
 }
 
-if ([string]::IsNullOrWhiteSpace($JavaHome)) {
-    $javaCommand = Get-Command 'java.exe' -ErrorAction SilentlyContinue
-    if ($javaCommand) {
-        $JavaHome = Split-Path (Split-Path $javaCommand.Source -Parent) -Parent
+# jlink needs the packaged JDK modules (jmods). Some IDE/tool installations
+# expose javac.exe but ship a trimmed JDK without these modules. Prefer JAVA_HOME
+# when it is complete, otherwise locate another full JDK on PATH or in common
+# Windows installation directories.
+$javaHomeCandidates = [System.Collections.Generic.List[string]]::new()
+if (-not [string]::IsNullOrWhiteSpace($JavaHome)) {
+    $javaHomeCandidates.Add($JavaHome)
+}
+
+foreach ($commandName in @('javac.exe', 'java.exe')) {
+    $javaCommand = Get-Command $commandName -ErrorAction SilentlyContinue
+    if ($javaCommand -and $javaCommand.Source) {
+        $binDirectory = Split-Path $javaCommand.Source -Parent
+        $javaHomeCandidates.Add((Split-Path $binDirectory -Parent))
     }
 }
 
-if ([string]::IsNullOrWhiteSpace($JavaHome)) {
-    throw 'A JDK 17 or newer is required to stage the bundled Mapsforge runtime. Set JAVA_HOME to a JDK installation.'
+$jdkRoots = @(
+    (Join-Path $env:ProgramFiles 'Java'),
+    (Join-Path $env:ProgramFiles 'Eclipse Adoptium'),
+    (Join-Path $env:ProgramFiles 'Microsoft'),
+    (Join-Path $env:ProgramFiles 'Amazon Corretto'),
+    (Join-Path $env:ProgramFiles 'BellSoft'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Eclipse Adoptium'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Microsoft')
+) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) }
+
+foreach ($root in $jdkRoots) {
+    Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { $javaHomeCandidates.Add($_.FullName) }
 }
+
+$validJavaHomes = @(
+    $javaHomeCandidates |
+        Where-Object { $_ } |
+        Select-Object -Unique |
+        Where-Object {
+            (Test-Path -LiteralPath (Join-Path $_ 'bin\jlink.exe') -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $_ 'bin\jdeps.exe') -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $_ 'bin\javac.exe') -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $_ 'jmods\java.base.jmod') -PathType Leaf)
+        }
+)
+
+if ($validJavaHomes.Count -eq 0) {
+    $configuredHome = if ([string]::IsNullOrWhiteSpace($JavaHome)) { '<not set>' } else { $JavaHome }
+    throw "A full JDK 17 or newer with jlink.exe, jdeps.exe, javac.exe and jmods\java.base.jmod is required to create the bundled Mapsforge runtime. JAVA_HOME currently points to '$configuredHome', which may be a trimmed JDK. Install a full JDK (for example Temurin 25) and set JAVA_HOME to its installation directory."
+}
+
+$preferredJavaHome = $validJavaHomes[0]
+if (-not [string]::IsNullOrWhiteSpace($JavaHome) -and $validJavaHomes -contains $JavaHome) {
+    $preferredJavaHome = $JavaHome
+}
+$JavaHome = (Resolve-Path -LiteralPath $preferredJavaHome).Path
+Write-Host "Using full JDK for Mapsforge runtime: $JavaHome" -ForegroundColor DarkGray
 
 $JavaHome = (Resolve-Path -LiteralPath $JavaHome).Path
 $jdkBin = Join-Path $JavaHome 'bin'
