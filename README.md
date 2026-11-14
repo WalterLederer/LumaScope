@@ -1,7 +1,7 @@
 # LumaScope
 
-![LumaScope Image View](docs/images/lumaScope icon.png) 
-PNG:![LumaScope Image View](docs/images/ComfyUI_01792_HDR.png)
+![LumaScope Image View](docs/images/lumaScope_icon.png) 
+![LumaScope Image View](docs/images/Screenshot_2025-07-28_13-52-11_jpg_thumb.jpg) 
 
 
 **LumaScope is a desktop image viewer and visual workspace for SDR and HDR photography, screen capture, photo browsing, geographic image organisation, and offline map-based route planning.**
@@ -63,6 +63,8 @@ Global shortcuts can be used while LumaScope is not focused. Their registration 
 Images containing GPS coordinates can be positioned on the location map. LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
 
 The map workspace supports online XYZ tile sources and offline map data. Depending on the selected source and installed resources, map rendering is provided by MapLibre, the OsmAnd native renderers or Mapsforge. Hillshade databases can be used as shaded-relief overlays.
+
+![LumaScope Image View](docs/images/2026_11_11_09_27_41__Zwischenablagebild_(1).Png) 
 
 For route planning, LumaScope integrates the Valhalla routing engine. Routing configuration files can be selected locally and shared; the selected routing profile and available map data determine the routes that can be calculated. See [Supported map formats](docs/map-formats.md) and [Feature guide](docs/features.md).
 
