@@ -2,6 +2,8 @@
 
 [Back to README](../README.md)
 
+> **Platform support:** LumaScope is currently supported on **Windows only**. Linux is not currently supported because parts of the application rely on external native dependencies, platform-specific helper components and operating-system API calls that are currently Windows-specific. The Linux packaging files in the repository do not mean that the application is functional or supported on Linux.
+
 ## Browse
 
 Browse is the folder-based image collection view embedded in the main Image View window.
