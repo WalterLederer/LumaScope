@@ -801,7 +801,7 @@ interface MapErrorEntry {
     </label>
     <label class="offline-map-list-filter">Filter:
        <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
-         <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">MBTiles</option><option value="obf" class="obf-filter-option">OsmAnd (.obf)</option><option value="map" class="mapsforge-filter-option">Mapsforge (.map)</option><option value="hillshade" class="hillshade-filter-option">Hillshade (.sqlitedb)</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
+         <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
      <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
@@ -970,7 +970,7 @@ interface MapErrorEntry {
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ map.type === 'obf' ? 'OsmAnd (.obf)' : map.type === 'mapsforge' ? 'MapsForge (.map)' : 'MBTiles (.mbtiles)' }}</i></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
@@ -1481,6 +1481,14 @@ interface MapErrorEntry {
 })
 export class MapWindow implements OnInit, OnDestroy {
   readonly locale = navigator.language;
+  protected readonly offlineMapTypeLabels = {
+    mbtiles: 'MBTiles (.mbtiles)',
+    obf: 'OsmAnd (.obf)',
+    mapsforge: 'MapsForge (.map)',
+    hillshade: 'Hillshade (.sqlitedb)'
+  } as const;
+  protected readonly offlineMapTypeLabel = (type?: string): string =>
+    this.offlineMapTypeLabels[type === 'obf' ? 'obf' : type === 'mapsforge' || type === 'map' ? 'mapsforge' : type === 'hillshade' ? 'hillshade' : 'mbtiles'];
 
   private readonly route = inject(ActivatedRoute);
   protected readonly overlayMode = this.route.snapshot.queryParamMap.get('overlay') === '1';
