@@ -1056,7 +1056,7 @@ interface MapErrorEntry {
     .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
     .settings-tabs-spacer{flex:1 0 12px}
-    .settings-tab.has-errors{color:#ff8a80}
+    
     .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,75,75,.30);color:#ff8a80;font-size:10px;font-weight:800}
     .settings-tab-warning-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(245,190,55,.28);color:#ffd36a;font-size:11px;font-weight:800}
     .settings-tab.has-errors{background:rgba(180,35,35,.24);color:#ff8a80}
@@ -1146,7 +1146,7 @@ interface MapErrorEntry {
     .time-slider-animate-section,.time-slider-minmax-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;margin-top:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}.time-slider-minmax-section{padding-top:0;border-top:0}
     .time-slider-animate-section>summary,.time-slider-minmax-section>summary{color:#000}
     .time-slider-minmax-content{display:flex;flex-direction:column;gap:7px;padding-top:7px}
-    .time-slider-range{user-select:none;-webkit-user-select:none}
+    
     .time-slider-animate-options{display:grid;grid-template-columns:auto minmax(400px,1.25fr) minmax(0,2.2fr);align-items:stretch;gap:10px;padding:8px 0 3px;min-width:0}
     .time-slider-animation-panel{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding:10px;border:1px solid color-mix(in srgb,CanvasText 28%,Canvas);border-radius:6px;background:Canvas;color:CanvasText}
     .time-slider-animation-panel h4{margin:0;padding:0 0 7px;border-bottom:1px solid color-mix(in srgb,CanvasText 24%,Canvas);font-size:13px;font-weight:600;color:CanvasText}
@@ -1187,9 +1187,8 @@ interface MapErrorEntry {
     .time-slider-control-card>strong{min-width:38px;text-align:right;color:var(--color-content-default,#fff)}
     .time-slider-symbol-heading{display:flex;align-items:center;min-height:20px}
     .time-slider-symbol-heading .time-slider-symbol-visibility{display:inline-flex;align-items:center;gap:7px}
-    .time-slider-symbol-rotation{font-size:12px;color:var(--color-content-default-medium,#aaa)}.time-slider-symbol-snap{align-self:flex-start;padding:5px 9px;border:1px solid var(--color-border-default,#777);border-radius:5px;background:var(--color-background-default,#333);color:var(--color-content-default,#fff);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+    .time-slider-symbol-rotation{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .time-slider-symbol-flip{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--color-content-default-medium,#aaa)}
-    .time-slider-symbol-flip input{accent-color:var(--color-accent,#2688e8);margin:0}
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
@@ -1315,8 +1314,7 @@ interface MapErrorEntry {
     
     .mbtiles-map-file .mbtiles-in-use{color:#8ab4f8;font-weight:600}
     .mbtiles-map-number{white-space:nowrap}
-    .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}
-    .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mbtiles-map-disabled{opacity:.48}
+    .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:0 6px;min-width:24px;height:24px;font-size:18px;line-height:1;border:0;background:transparent;color:var(--color-content-default-medium,#aaa);cursor:pointer}
     .offline-map-remove-button{min-width:24px;height:24px;padding:0;font-size:18px;line-height:1}
@@ -1361,7 +1359,7 @@ interface MapErrorEntry {
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-tab .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
-    .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address{min-width:0;overflow-wrap:anywhere}.location-address-error{color:#ff8a80}
+    .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
     .marker-appearance-settings{display:flex;align-items:flex-start;flex-direction:column;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:0;border-top:0;flex:0 0 100%;width:100%}
     .marker-appearance-settings>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -1442,7 +1440,7 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
     :host-context(html[data-theme='light']) .time-slider-control-card>strong{color:#000}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
-    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
+    @media(max-width:650px){.map-coordinates{display:none}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:#0a84ff;cursor:pointer}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -1454,7 +1452,7 @@ interface MapErrorEntry {
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
     .routing-name-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-name-label{display:block;font-size:12px;font-weight:600}.routing-name-input{width:min(220px,28vw);min-width:130px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:Canvas;color:CanvasText}
-    .routing-save-location{max-width:min(360px,35vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-secondary,#aaa);font-size:11px}
+    
     .routing-key-row label{font-weight:600}
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
