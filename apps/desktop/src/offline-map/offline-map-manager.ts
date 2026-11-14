@@ -59,6 +59,10 @@ export class OfflineMapManager {
   if(!existsSync(root)||!statSync(root).isDirectory())throw new Error('Resource-package folder not found: '+root);
   const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,errors:[]};
   const seen=new Set<string>();
+  // The selected folder may itself be the extracted OsmAnd-resources repository
+  // (for example, .../resources/OsmAnd-resources-master), rather than a parent
+  // folder containing a child directory named "resources".
+  if(existsSync(join(root,'rendering_styles','default.render.xml')))result.osmAndResourcesPath=root;
   const add=(list:string[],path:string):void=>{const key=resolve(path).toLowerCase();if(!seen.has(key)){seen.add(key);list.push(resolve(path));}};
   const walk=(directory:string,depth=0):void=>{
    if(depth>24)return;
