@@ -192,19 +192,22 @@
 :host ::ng-deep .markdown-body .markdown-image-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   width: 100%;
   margin: 12px 0 16px;
 }
 
 :host ::ng-deep .markdown-body .markdown-image-row img {
-  flex: 1 1 0;
-  width: 0;
+  /* Use one common display height so images with different aspect ratios
+     do not appear at noticeably different heights in the Help tab. */
+  flex: 0 1 auto;
+  width: auto;
   min-width: 0;
   max-width: 100%;
-  height: auto;
+  height: 210px;
   margin: 0;
+  object-fit: contain;
 }
 
 /* Explicit width classes survive Angular's innerHTML sanitization. */
