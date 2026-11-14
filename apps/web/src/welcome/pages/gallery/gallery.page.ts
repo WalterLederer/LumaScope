@@ -202,7 +202,7 @@ export class GalleryPage {
         ),
         takeUntilDestroyed()
       )
-      .subscribe(() => this.imageGrid()?.refreshDetailCacheStatus());
+      .subscribe(() => this.galleryCacheBuild.refreshDetailCacheStatus());
 
   }
 
