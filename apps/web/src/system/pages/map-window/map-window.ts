@@ -1338,6 +1338,7 @@ interface MapErrorEntry {
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(5),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(5){width:320px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(6),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(6){width:92px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(7),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(7){width:132px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(8),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(8){width:58px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(9),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(9){width:150px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
