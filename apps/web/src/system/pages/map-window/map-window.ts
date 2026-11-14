@@ -717,8 +717,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
-      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
-      <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || resourcePackageScanStatus() || 'Scan the extracted package, then use Check to refresh file status, missing files, duplicates and active selections.' }}</span>
+      <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Open the extracted resource package to discover offline maps and resources.' }}</span>
     </div>
     @if (resourcePackageScanFound()) {
       <div class="resource-package-scan-results" aria-live="polite">
@@ -776,7 +775,11 @@ interface MapErrorEntry {
       </div>
     </details>
   <details class="map-cache-section offline-map-updates-section">
-    <summary class="map-cache-heading">Updates</summary>
+    <summary class="map-cache-heading">Checks</summary>
+    <div class="map-cache-actions offline-map-update-actions">
+      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
+      <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || 'Check file availability, missing files, duplicates and active selections.' }}</span>
+    </div>
     <div class="map-cache-actions offline-map-update-actions">
       <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMaps().length === 0 || offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
       <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || offlineMapCatalogueSummary() }}</span>
