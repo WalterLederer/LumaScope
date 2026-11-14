@@ -21,13 +21,13 @@ export const startupGuard: CanActivateFn = async () => {
   const isPackaged = await processManager.isPackaged();
   console.warn('[StartupGuard] isPackaged resolved', isPackaged);
 
-  if (isPackaged && argv._.length === 1 && typeof argv._[0] === 'string') {
-    console.warn('[StartupGuard] Standalone image argument detected');
+  if (isPackaged && argv._.length >= 1 && typeof argv._[0] === 'string') {
+    console.warn('[StartupGuard] Explorer image argument detected');
     const image = argv._[0];
     const dir = await fileSystem.dirname(image);
     console.warn('[StartupGuard] Image directory resolved');
 
-    viewNavigator.standalone.set(true);
+    // Explorer-opened files are handled in the normal application window, not standalone mode.
 
     console.warn('[StartupGuard] Navigating to standalone image');
     return firstValueFrom(
