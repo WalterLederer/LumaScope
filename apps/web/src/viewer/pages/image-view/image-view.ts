@@ -1688,6 +1688,30 @@ export class ImageView {
   };
 
   constructor() {
+    // Restore the last image only after the persisted gallery folder has loaded.
+    // Do not write the initial null selection over the saved path before that.
+    const storage = this.document.defaultView?.localStorage;
+    let savedImagePath: string | null = null;
+    try { savedImagePath = storage?.getItem('lastDisplayedImagePath') ?? null; } catch { /* Storage may be unavailable. */ }
+    this.galleryState.images()
+      .pipe(filter(images => images.length > 0), take(1))
+      .subscribe(() => {
+        if (savedImagePath) {
+          this.viewNavigator.selectImage(savedImagePath).pipe(take(1)).subscribe(found => {
+            if (!found) {
+              try { storage?.removeItem('lastDisplayedImagePath'); } catch { /* Ignore unavailable storage. */ }
+            }
+          });
+        }
+        this.selectedImage$
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(image => {
+            try {
+              if (image?.path) storage?.setItem('lastDisplayedImagePath', image.path);
+              else storage?.removeItem('lastDisplayedImagePath');
+            } catch { /* Keep the current session usable if storage is unavailable. */ }
+          });
+      });
     const unsubscribeFilesOpened = this.desktopApi?.onFilesOpened(paths => {
       const firstImage = paths.find(path => typeof path === 'string' && path.length > 0);
       if (firstImage) this.openExternalImage(firstImage);
