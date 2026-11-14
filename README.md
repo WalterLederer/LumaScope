@@ -4,7 +4,7 @@
 
 It combines a high-bit-depth image pipeline with a folder-based photo browser, sidecar caching, image metadata and GPS tools, screen capture, and a multi-engine map view. It is designed to make HDR image data inspectable and useful rather than treating HDR files as ordinary SDR pictures.
 
-> LumaScope is the current project name. This repository supersedes the former Light Matter project identity; current features, terminology and build instructions here take precedence over older project descriptions.
+This README describes the current LumaScope application, its present feature set and the build configuration maintained in this repository.
 
 ## Main capabilities
 
