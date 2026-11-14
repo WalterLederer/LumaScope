@@ -1275,11 +1275,15 @@ interface MapErrorEntry {
     .resource-section-warning{background:rgba(190,145,25,.18)!important;border:1px solid rgba(245,190,55,.55)!important;border-radius:5px}
     .resource-section-error-label{display:inline-block;margin-left:8px;padding:1px 5px;border-radius:3px;background:rgba(190,25,25,.38);color:#ffaaa5;font-size:10px;font-weight:800;letter-spacing:.04em}
     .valhalla-config-row.file-path-error{border-radius:3px;padding-left:4px;padding-right:4px}
-    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(5),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(5){width:320px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(5),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(5){width:420px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(6),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(6){width:92px}
     .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(7),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(7){width:132px}
-    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(8),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(8){width:58px}
-    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(9),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(9){width:150px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(8),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(8){width:150px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(9),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(9){width:58px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(10),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(10){width:110px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(11),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(11){width:58px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(12),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(12){width:38px}
+    .mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
