@@ -1840,7 +1840,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
-  private readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
   protected readonly offlineMapMissingCount = computed(() => this.offlineMapStats().missingCount);
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineMapDuplicateIds().size);
   protected readonly offlineMapHasMissingFile = (map: import('internal-api').OfflineMapStatus): boolean => !map.filePath?.trim() || !map.available;
@@ -1850,7 +1850,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly sortOfflineMaps = (column: string): void => this.offlineMapSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly hillshadeSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
   protected readonly sortedHillshadeDatabases = computed(() => this.sortRows(this.filteredHillshadeDatabases(), this.hillshadeSort(), database => this.hillshadeSortValue(database, this.hillshadeSort().column)));
-  private readonly hillshadeDuplicateIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly hillshadeDuplicateIds = signal<ReadonlySet<string>>(new Set());
   private readonly hillshadeStats = computed(() => {
     let activeCount = 0;
     let availableCount = 0;
@@ -3990,7 +3990,7 @@ export class MapWindow implements OnInit, OnDestroy {
       };
     }).filter(candidate =>
       presetMaps.every(map => map.enabled === matches(map, candidate.preset))
-    ).sort((a, b) => b.covered - a.covered || b.patternLength - a.patternLength);
+    ).sort((a, b) => b.covered - a.covered || a.patternLength - b.patternLength);
     return compatible[0]?.preset ?? 'custom';
   }
 
