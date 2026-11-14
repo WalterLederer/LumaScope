@@ -28,6 +28,7 @@ import {
 } from '../../services/image-positioning/image-positioning.types';
 import { ViewNavigator } from '../../services/view-navigator/view-navigator';
 import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
+import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { GalleryPage } from '../../../welcome/pages/gallery/gallery.page';
 
 const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
@@ -136,6 +137,8 @@ export class ImageView {
   protected readonly viewNavigator = inject(ViewNavigator);
 
   protected readonly galleryCacheBuild = inject(GalleryCacheBuild);
+
+  private readonly galleryState = inject(GalleryState);
 
   private readonly keyboard = inject(Keyboard);
 
@@ -562,7 +565,7 @@ export class ImageView {
     view.addEventListener('pointercancel', onUp);
     this.sidebarResizeCleanup = onUp;
   };
-  protected readonly imageSidebarTabs = [{"id":"gallery","label":"Gallery"},{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
+  protected readonly imageSidebarTabs = [{"id":"gallery","label":"Browse"},{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
   protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
     try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'gallery'; }
@@ -1672,7 +1675,23 @@ export class ImageView {
   protected readonly zoomConfig = this.configuration.constants().imageZoom;
 
   /* Constructor */
+  private readonly openExternalImage = (path: string): void => {
+    void this.desktopApi?.FileSystem.dirname(path).then(directory => {
+      this.galleryState.navigateTo(directory)
+        .pipe(switchMap(() => this.viewNavigator.selectImage(path)))
+        .subscribe(found => {
+          if (!found) console.warn('[Explorer] Image is not present in the selected folder:', path);
+        });
+    }).catch(error => console.error('[Explorer] Could not open the selected image:', error));
+  };
+
   constructor() {
+    const unsubscribeFilesOpened = this.desktopApi?.onFilesOpened(paths => {
+      const firstImage = paths.find(path => typeof path === 'string' && path.length > 0);
+      if (firstImage) this.openExternalImage(firstImage);
+    });
+    if (unsubscribeFilesOpened) this.destroyRef.onDestroy(unsubscribeFilesOpened);
+
     const mapWindowApi = this.desktopApi?.MapWindow;
     if (mapWindowApi) {
       const unsubscribeImageSelected = mapWindowApi.onImageSelected(path => {
