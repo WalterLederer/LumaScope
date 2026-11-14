@@ -775,7 +775,7 @@ interface MapErrorEntry {
           <button type="button" (click)="addValhallaConfig()" [disabled]="routeConfigBusy()">Add valhalla.json…</button>
         </div>
         @for (configuration of valhallaConfigurations(); track configuration.path) {
-          <div class="valhalla-config-row" [class.file-path-error]="!configuration.path.trim() || !configuration.available || hasDuplicatePathName(configuration.path, valhallaConfigurations().map(item => item.path))">
+          <div class="valhalla-config-row" [class.file-path-error]="!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path)">
             <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
             <span class="valhalla-config-name">{{ configuration.name }}</span>
             <span class="osmand-resources-path" [class.gpx-error]="!configuration.available">{{ configuration.path }}</span>
@@ -1840,7 +1840,13 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hillshadeSortIndicator = (column: string): string => this.hillshadeSort().column === column ? (this.hillshadeSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly sortHillshadeDatabases = (column: string): void => this.hillshadeSort.update(current => ({ column, direction: current.column === column && current.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly valhallaMissingCount = computed(() => this.valhallaConfigurations().filter(configuration => !configuration.path.trim() || !configuration.available).length);
-  protected readonly valhallaDuplicateCount = computed(() => this.valhallaConfigurations().filter(configuration => this.hasDuplicatePathName(configuration.path, this.valhallaConfigurations().map(item => item.path))).length);
+  protected readonly valhallaDuplicateCount = computed(() => this.valhallaConfigurations().filter(configuration => this.valhallaHasDuplicatePath(configuration.path)).length);
+  protected readonly valhallaHasDuplicatePath = (path: string): boolean => {
+    const normalizedPath = path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase();
+    return !!normalizedPath && this.valhallaConfigurations().filter(configuration =>
+      configuration.path.replace(/\\/g, '/').replace(/\/+$/, '').toLocaleLowerCase() === normalizedPath
+    ).length > 1;
+  };
   protected readonly mapsforgeThemeDuplicateCount = computed(() => this.mapsforgeThemes().filter(theme => this.hasDuplicatePathName(theme.path, this.mapsforgeThemes().map(item => item.path))).length);
   protected readonly valhallaHasSelectedConfig = computed(() => !!this.routeValhallaConfigPath() && this.valhallaConfigurations().some(configuration => configuration.available && configuration.path.toLocaleLowerCase() === this.routeValhallaConfigPath().toLocaleLowerCase()));
   protected readonly offlineMapTabErrorCount = computed(() => this.offlineMapMissingCount() + this.offlineMapDuplicateCount());
