@@ -3,7 +3,7 @@ import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ConfirmationDialogComponent, OverlayService, SliderComponent } from '@light-matter/ui';
+import { ConfirmationDialogComponent, SliderComponent } from '@light-matter/ui';
 import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
@@ -28,6 +28,7 @@ import {
 } from '../../services/image-positioning/image-positioning.types';
 import { ViewNavigator } from '../../services/view-navigator/view-navigator';
 import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
+import { GalleryPage } from '../../../welcome/pages/gallery/gallery.page';
 
 const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 
@@ -122,7 +123,8 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
     ReactiveFormsModule,
     SliderComponent,
     DecimalPipe,
-      ExifInfoComponent
+      ExifInfoComponent,
+    GalleryPage
   ],
   templateUrl: './image-view.html',
   styleUrl: './image-view.scss',
@@ -224,7 +226,6 @@ export class ImageView {
 
   private readonly imagePositioningService = inject(ImagePositioningService);
 
-  private readonly overlayService = inject(OverlayService);
 
   private readonly dialog = inject(Dialog);
 
@@ -561,11 +562,11 @@ export class ImageView {
     view.addEventListener('pointercancel', onUp);
     this.sidebarResizeCleanup = onUp;
   };
-  protected readonly imageSidebarTabs = [{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
+  protected readonly imageSidebarTabs = [{"id":"gallery","label":"Gallery"},{"id":"general","label":"General"},{"id":"capture","label":"Capture"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
   protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
-    try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'general'; }
-    catch { return 'general'; }
+    try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'gallery'; }
+    catch { return 'gallery'; }
   }
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
   private readActiveImageSubTab(): string {
@@ -670,6 +671,7 @@ export class ImageView {
   protected readonly setActiveImageSidebarTab = (tab: string): void => {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     this.activeImageSidebarTab.set(tab);
+    if (tab === 'gallery') this.galleryCacheBuild.refreshDetailCacheStatus();
     if (tab === 'image' && this.activeImageSubTab() === 'cache') {
       this.refreshCurrentImageCache();
       void this.loadPhotoDatabaseRecord();
@@ -1815,6 +1817,7 @@ export class ImageView {
       .pipe(takeUntilDestroyed())
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
+        this.setActiveImageSidebarTab(image ? 'image' : 'gallery');
         if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'cache') void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
@@ -2306,12 +2309,13 @@ export class ImageView {
   };
 
   protected readonly goBack = () => {
-    this.processManager.setWindowTitle(this.makeWindowTitle()).catch(() => undefined);
-    if (this.viewNavigator.standalone()) {
-      this.processManager.quit(0).then();
-    } else {
-      this.overlayService.hide();
-    }
+    // Escape no longer switches to a separate Gallery mode. Only standalone file
+    // launches retain their previous close/quit behavior.
+    if (this.viewNavigator.standalone()) this.processManager.quit(0).then();
+  };
+
+  protected readonly onGalleryImageSelected = (): void => {
+    this.setActiveImageSidebarTab('image');
   };
 
   protected readonly toggleSidebarVisibility = (): void => {
