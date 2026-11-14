@@ -8,6 +8,8 @@ It combines a high-bit-depth image pipeline with a folder-based photo browser, s
 
 This README describes the current LumaScope application, its present feature set and the build configuration maintained in this repository.
 
+> **Downloads:** Ready-to-use LumaScope installers and release packages are available on the [GitHub Releases page](https://github.com/WalterLederer/LumaScope/releases).
+
 > **Project origin:** LumaScope is a fork of [Light Matter](https://github.com/Auxx/light-matter), originally created by [Auxx](https://github.com/Auxx). LumaScope has since been developed further as a separate project, with its own features, architecture and release history. The original project is acknowledged here as the starting point.
 
 > **Platform support:** LumaScope is currently supported on **Windows only**. See [Platform support](docs/platform-support.md) for the current status and the work required to support Linux or macOS.
