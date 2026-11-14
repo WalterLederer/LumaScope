@@ -239,19 +239,7 @@ export class SettingsPanelComponent {
     const command = call.commandLine.toLowerCase();
 
     if (program === 'powershell.exe' || program === 'powershell') {
-      if (command.includes('lightmatterwindowenumerator')) {
-        return 'Enumerate visible application windows and read their executable paths';
-      }
-      if (command.includes('lightmatterexternalwindow')) {
-        return 'Find the topmost visible application window for capture';
-      }
-      if (command.includes('lightmattercapturewindowstate')) {
-        return 'Check whether the selected window exists and is minimized';
-      }
-      if (command.includes('lightmatterwindowgeometry')) {
-        return 'Read window and monitor geometry for HDR capture';
-      }
-      return 'Run a Windows PowerShell script for Windows integration';
+      return 'PowerShell process launched by a Windows integration or development tool';
     }
 
     if (program === 'java.exe' || program === 'java') {
