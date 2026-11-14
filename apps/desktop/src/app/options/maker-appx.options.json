@@ -52,6 +52,10 @@
         "to": "mapsforge/mapsforge-renderer.jar"
       },
       {
+        "from": "tools/mapsforge-renderer/stage/runtime",
+        "to": "mapsforge/runtime"
+      },
+      {
         "from": "tools/valhalla-runtime/stage/helpers",
         "to": "valhalla/helpers"
       },
