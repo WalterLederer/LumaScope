@@ -1,4 +1,5 @@
-import { computed, DOCUMENT, inject, Injectable, Signal, signal } from '@angular/core';
+import { computed, inject, Injectable, Signal, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 
 interface CacheBuildProgress {
   completed: number;
