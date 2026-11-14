@@ -767,8 +767,8 @@ interface MapErrorEntry {
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
     }
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0">
-      <summary class="map-cache-heading">Valhalla routing configurations @if (valhallaMissingCount() > 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
+    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0">
+      <summary class="map-cache-heading">Valhalla routing configurations @if (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
       <div class="osmand-resources-picker valhalla-config-picker">
         <div class="local-source-heading">
           <span>{{ valhallaConfigurations().length }} configuration(s)</span>
@@ -1332,7 +1332,11 @@ interface MapErrorEntry {
     .file-path-error{background:rgba(210,35,35,.30)!important}.file-path-error:hover{background:rgba(225,45,45,.42)!important}
     .resource-section-error{background:rgba(180,25,25,.18)!important;border:1px solid rgba(255,80,80,.55)!important;border-radius:5px}
     .resource-section-error-label{display:inline-block;margin-left:8px;padding:1px 5px;border-radius:3px;background:rgba(190,25,25,.38);color:#ffaaa5;font-size:10px;font-weight:800;letter-spacing:.04em}
-    .valhalla-config-row.file-path-error{border-radius:3px;padding-left:4px;padding-right:4px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
+    .valhalla-config-row.file-path-error{border-radius:3px;padding-left:4px;padding-right:4px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(5),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(5){width:320px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(6),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(6){width:92px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(7),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(7){width:132px}
+    .mbtiles-map-table:not(.hillshade-map-table) th:nth-child(9),.mbtiles-map-table:not(.hillshade-map-table) td:nth-child(9){width:150px}.mbtiles-updates-column{width:58px;text-align:center!important}.mbtiles-update-symbol{display:inline-block;min-width:20px;font-size:19px;font-weight:900;line-height:1.2;color:var(--color-content-default-medium,#999)}.mbtiles-update-symbol.update-available{color:#4da3ff}.mbtiles-update-symbol.update-current{color:#55c878}.mbtiles-update-symbol.update-no-match{color:#ff6b6b}.mbtiles-update-symbol.update-unknown{color:#e5b85c}
     .memory-process-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
     .memory-process-table th,.memory-process-table td{box-sizing:border-box;padding:5px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .memory-process-table th:first-child,.memory-process-table td:first-child{text-align:left}
