@@ -951,7 +951,7 @@ interface MapErrorEntry {
         @if (settingsOpen() && offlineMapListMounted()) {
           <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
-              @if (offlineMaps().length + filteredHillshadeDatabases().length > 0) {
+              @if (filteredOfflineFiles().length + filteredHillshadeDatabases().length > 0) {
                 <table class="mbtiles-map-table">
                   <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th></tr></thead>
                   <tbody>
@@ -1746,7 +1746,7 @@ export class MapWindow implements OnInit, OnDestroy {
     let unselectedCount = 0;
     const inUseIds = new Set<string>();
     for (const map of this.offlineMaps()) {
-      if (map.enabled) activeCount++;
+      if (map.enabled && map.available) activeCount++;
       if (map.available) availableCount++;
       if (this.offlineMapHasMissingFile(map)) missingCount++;
       if (map.available && !map.enabled) unselectedCount++;
@@ -1762,7 +1762,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
     if (filter === 'obf') return maps.filter(map => map.type === 'obf');
     if (filter === 'map') return maps.filter(map => map.type === 'mapsforge');
-    if (filter === 'hillshade' || filter === 'inactive' || filter === 'missing') return [];
+    if (filter === 'hillshade') return [];
     if (filter === 'inUse') { const inUse = this.offlineMapStats().inUseIds; return maps.filter(map => inUse.has(map.id)); }
     if (filter === 'active') return maps.filter(map => map.enabled && map.available);
     if (filter === 'inactive') return maps.filter(map => map.available && !map.enabled);
@@ -3538,7 +3538,7 @@ export class MapWindow implements OnInit, OnDestroy {
         (this.offlineMapMissingCount() + this.hillshadeMissingCount()) + ' missing · ' +
         (this.offlineMapDuplicateCount() + this.hillshadeDuplicateCount()) + ' duplicates · ' +
         (this.activeOfflineMapCount() + this.activeHillshadeDatabaseCount()) + ' active · ' +
-        this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' +
+        this.valhallaMissingCount() + ' missing Valhalla config(s) · ' + this.valhallaDuplicateCount() + ' duplicate Valhalla config(s) · ' + this.mapsforgeThemeDuplicateCount() + ' duplicate theme(s) · ' +
         (osmandStatus.resourcesAvailable || atlasStatus.resourcesAvailable ? 'OsmAnd resources OK' : 'OsmAnd resources missing'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
