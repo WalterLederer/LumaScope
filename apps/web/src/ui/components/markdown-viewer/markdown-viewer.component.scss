@@ -134,3 +134,11 @@
   color: var(--color-content-default-high);
   font-weight: 650;
 }
+:host ::ng-deep .markdown-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0 16px;
+  border-radius: 4px;
+  object-fit: contain;
+}
