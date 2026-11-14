@@ -23,6 +23,7 @@ import { combineLatest, filter, map, pairwise, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
+import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { defaultSortMode, treeNode } from '../../../gallery/services/gallery-state/gallery-state.types';
 import { Dialogs } from '../../../ipc/dialogs';
@@ -79,8 +80,7 @@ export class GalleryPage {
 
   protected readonly tree = viewChild.required(TreeComponent);
 
-  protected readonly imageGrid = viewChild(ImageGridComponent);
-  protected readonly setVerifyCacheFiles = (enabled: boolean): void => this.galleryCacheBuild.setVerifyCacheFiles(enabled);
+  
 
   protected readonly defaultSortMode = defaultSortMode();
 
