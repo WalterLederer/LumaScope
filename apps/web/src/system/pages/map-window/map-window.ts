@@ -3430,7 +3430,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const overwrite = !hasExistingPaths || window.confirm(
         'Existing local resource paths are already configured.\n\n' +
         'Yes: replace the OsmAnd resources folder, Mapsforge theme folder and active Valhalla configuration when matching resources were found.\n' +
-        'No: keep the existing paths. Newly discovered maps and hillshade files will still be added.'
+        'No: keep the existing folders and active routing configuration. Discovered maps, hillshade files and Valhalla configurations will still be added to their lists.'
       );
 
       const mapPaths = [...scan.obfFiles, ...scan.mbtilesFiles, ...scan.mapsforgeFiles];
@@ -3470,17 +3470,19 @@ export class MapWindow implements OnInit, OnDestroy {
 
       let themesFound = 0;
       if (overwrite && scan.mapsforgeThemeFolder) {
-        this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
         const themes = await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder);
-        this.mapsforgeThemes.set(themes);
         themesFound = themes.length;
-        const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
-        const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0] ?? null;
-        const selectedPath = selectedTheme?.path ?? '';
-        this.mapsforgeThemePath.set(selectedPath);
-        await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
-          themeFolder: scan.mapsforgeThemeFolder, themePath: selectedPath
-        });
+        if (themes.length) {
+          this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
+          this.mapsforgeThemes.set(themes);
+          const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
+          const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
+          const selectedPath = selectedTheme.path;
+          this.mapsforgeThemePath.set(selectedPath);
+          await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', {
+            themeFolder: scan.mapsforgeThemeFolder, themePath: selectedPath
+          });
+        }
       }
 
       const counts = [
