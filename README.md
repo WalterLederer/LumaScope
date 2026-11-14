@@ -6,6 +6,8 @@ It combines a high-bit-depth image pipeline with a folder-based photo browser, s
 
 This README describes the current LumaScope application, its present feature set and the build configuration maintained in this repository.
 
+> **Platform support:** LumaScope is currently supported on **Windows only**. Linux is not currently supported. Although Linux packaging configuration is present in the repository, the application depends on external native components, platform-specific integrations and operating-system API calls that have not been adapted and validated for Linux. A Linux package configuration must therefore not be interpreted as a working or supported Linux release.
+
 ## Main capabilities
 
 | Area | What LumaScope provides |
