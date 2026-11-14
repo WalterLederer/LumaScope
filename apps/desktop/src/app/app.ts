@@ -18,6 +18,7 @@ export default class App {
   static capturePreviewWindow: Electron.BrowserWindow | null = null;
   private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
+  private static pendingCaptureHotkey: string | null = null;
   static application: Electron.App;
   static BrowserWindow;
 
@@ -30,6 +31,20 @@ export default class App {
 
   static getGlobalCaptureShortcutStatus(): GlobalShortcutStatus[] {
     return App.globalCaptureShortcutStatuses.map(status => ({ ...status }));
+  }
+
+  private static triggerCaptureHotkey(channel: string): void {
+    if (App.isCapturePreviewWindowOpen()) {
+      if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
+      App.capturePreviewWindow.show();
+      App.capturePreviewWindow.focus();
+      App.capturePreviewWindow.webContents.send(channel);
+      return;
+    }
+
+    // Preserve the action until the detached capture renderer has finished loading.
+    App.pendingCaptureHotkey = channel;
+    App.openCapturePreviewWindow();
   }
 
   private static publishGlobalCaptureShortcutStatus(): void {
@@ -102,13 +117,7 @@ export default class App {
         try {
           if (globalShortcut.isRegistered(accelerator)) globalShortcut.unregister(accelerator);
           const registered = globalShortcut.register(accelerator, () => {
-            // Capture UI can be hosted by any live renderer window. Broadcast the
-            // shortcut event instead of assuming the main window owns the panel.
-            for (const window of BrowserWindow.getAllWindows()) {
-              if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
-                window.webContents.send(channel);
-              }
-            }
+            App.triggerCaptureHotkey(channel);
           });
           active = registered && globalShortcut.isRegistered(accelerator);
           if (!active) {
@@ -313,6 +322,9 @@ export default class App {
     App.capturePreviewWindow.once('ready-to-show', () => {
       if (!App.isCapturePreviewWindowOpen()) return;
       if (App.startupConfig.devToolsOpen()) App.capturePreviewWindow.webContents.openDevTools();
+      const pendingHotkey = App.pendingCaptureHotkey;
+      App.pendingCaptureHotkey = null;
+      if (pendingHotkey) App.capturePreviewWindow.webContents.send(pendingHotkey);
       App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
