@@ -124,6 +124,7 @@ const api: Desktop = {
   Valhalla: {
     getRuntimeStatus: () => ipcRenderer.invoke('Valhalla.getRuntimeStatus'),
     addConfig: () => ipcRenderer.invoke('Valhalla.addConfig'),
+    addConfigsFromPaths: (paths: string[]) => ipcRenderer.invoke('Valhalla.addConfigsFromPaths', paths),
     removeConfig: (configPath: string) => ipcRenderer.invoke('Valhalla.removeConfig', configPath),
     setConfigPath: (configPath: string) => ipcRenderer.invoke('Valhalla.setConfigPath', configPath),
     route: (request: unknown) => ipcRenderer.invoke('Valhalla.route', request),
@@ -133,6 +134,7 @@ const api: Desktop = {
   OsmAndAtlas: {
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
     addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
+    addHillshadeDatabasePaths: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabasePaths', paths),
     setHillshadeDatabaseEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('OsmAndAtlas.setHillshadeDatabaseEnabled', id, enabled),
     removeHillshadeDatabase: (id: string) => ipcRenderer.invoke('OsmAndAtlas.removeHillshadeDatabase', id),
     renderHillshadeTile: (databasePath: string, z: number, x: number, y: number, scale = 0) => ipcRenderer.invoke('OsmAndAtlas.renderHillshadeTile', databasePath, z, x, y, scale),
@@ -157,6 +159,8 @@ const api: Desktop = {
 
   OfflineMap: {
     chooseFile: () => ipcRenderer.invoke('OfflineMap.chooseFile'),
+    importFiles: (paths: string[]) => ipcRenderer.invoke('OfflineMap.importFiles', paths),
+    scanResourcePackage: (rootPath: string) => ipcRenderer.invoke('OfflineMap.scanResourcePackage', rootPath),
     getMaps: () => ipcRenderer.invoke('OfflineMap.getMaps'),
     checkForUpdates: () => ipcRenderer.invoke('OfflineMap.checkForUpdates'),
     removeFile: (id: string) => ipcRenderer.invoke('OfflineMap.removeFile', id),
