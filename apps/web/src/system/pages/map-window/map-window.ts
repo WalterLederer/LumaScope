@@ -974,7 +974,7 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
                         <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath?.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
@@ -3693,9 +3693,11 @@ export class MapWindow implements OnInit, OnDestroy {
       }
 
       let themesFound = 0;
+      let themeNames: string[] = [];
       if (scan.mapsforgeThemeFolder) {
         const themes = await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder);
         themesFound = themes.length;
+        themeNames = themes.map(theme => theme.relativePath);
         if (overwrite) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
@@ -3721,7 +3723,7 @@ export class MapWindow implements OnInit, OnDestroy {
         scan.hillshadeFiles.length + ' hillshade',
         scan.valhallaConfigs.length + ' Valhalla configuration(s)',
         (scan.osmAndResourcesPath ? 'OsmAnd resources folder found' : 'no OsmAnd resources folder'),
-        themesFound + ' Mapsforge XML theme(s)' + (scan.mapsforgeThemeFolder ? ' in ' + scan.mapsforgeThemeFolder : '') + (themesFound > 0 ? ': ' + themes.map(theme => theme.relativePath).join(', ') : '')
+        themesFound + ' Mapsforge XML theme(s)' + (scan.mapsforgeThemeFolder ? ' in ' + scan.mapsforgeThemeFolder : '') + (themeNames.length > 0 ? ': ' + themeNames.join(', ') : '')
       ];
       const changedParts = [
         mapsAdded + ' map file(s) added · ' + mapsRemoved + ' stale map entry(s) removed from the list',
