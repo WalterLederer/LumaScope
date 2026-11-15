@@ -107,7 +107,7 @@ interface MapErrorEntry {
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
         <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
-                [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">{{ settingsOpen() ? 'v Settings' : '> Settings' }}</button>
+                [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">Settings</button>
         <div class="map-title"><span class="map-title-icon">⌖</span></div>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
@@ -139,22 +139,26 @@ interface MapErrorEntry {
             <div class="location-settings-content">
               <details class="fix-location-section" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location</summary>
-                <div class="fix-photo-preview">
-                  @if (currentImagePreview()) {
-                    <img [src]="currentImagePreview()" [alt]="currentImageName()" />
-                  } @else {
-                    <div class="fix-photo-preview-empty">Photo preview unavailable</div>
-                  }
-                  <div class="fix-photo-preview-info">
-                    <strong>{{ currentImageName() || 'No photo selected' }}</strong>
-                    <span>{{ coordinatesAvailable() ? 'GPS coordinates already available' : 'No GPS coordinates in this photo' }}</span>
+                <div class="fix-location-layout">
+                  <div class="fix-location-controls">
+                    <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
+                    <div class="offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                    <div class="location-actions">
+                      <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
+                      @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+                    </div>
                   </div>
-                </div>
-                <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
-                <div class="offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
-                <div class="location-actions">
-                  <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
-                  @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+                  <div class="fix-photo-preview">
+                    @if (currentImagePreview()) {
+                      <img [src]="currentImagePreview()" [alt]="currentImageName()" />
+                    } @else {
+                      <div class="fix-photo-preview-empty">Photo preview unavailable</div>
+                    }
+                    <div class="fix-photo-preview-info">
+                      <strong>{{ currentImageName() || 'No photo selected' }}</strong>
+                      <span>{{ coordinatesAvailable() ? 'GPS coordinates already available' : 'No GPS coordinates in this photo' }}</span>
+                    </div>
+                  </div>
                 </div>
               </details>
               <details class="offline-address-search">
@@ -1746,6 +1750,12 @@ interface MapErrorEntry {
     @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
 
 
+    .fix-location-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:start;gap:12px;margin-top:8px}
+    .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .fix-location-controls .fix-location-toggle{margin:0}
+    .fix-location-controls .location-actions{margin:0;align-items:flex-start}
+    .fix-location-layout .fix-photo-preview{margin:0;min-width:0}
+    @media(max-width:560px){.fix-location-layout{grid-template-columns:minmax(0,1fr)}.fix-location-layout .fix-photo-preview{max-width:100%}}
     .fix-photo-preview{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0 10px;padding:8px;border:1px solid var(--border-color,rgba(128,128,128,.35));border-radius:6px;background:var(--panel-background,rgba(128,128,128,.08))}
     .fix-photo-preview img{display:block;flex:0 0 auto;width:112px;height:72px;object-fit:contain;border-radius:4px;background:#171717}
     .fix-photo-preview-empty{display:grid;flex:0 0 auto;width:112px;height:72px;place-items:center;border-radius:4px;background:rgba(128,128,128,.18);color:var(--text-secondary,#888);font-size:11px;text-align:center}
