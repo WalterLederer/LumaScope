@@ -6,7 +6,7 @@ import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/pro
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
+import { getOfflineFileEntries, readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 interface HillshadeDatabaseInfo { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
@@ -558,18 +558,12 @@ export class OsmAndAtlasManager {
   }
 
   private readSavedHillshadeDatabases(): Array<{ id: string; path: string; enabled: boolean }> {
-    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    const saved = Array.isArray(osmand?.hillshadeDatabases)
-      ? osmand.hillshadeDatabases as Array<{ path?: unknown; enabled?: unknown }>
-      : typeof osmand?.hillshadeDatabasePath === 'string' && osmand.hillshadeDatabasePath
-        ? [{ path: osmand.hillshadeDatabasePath, enabled: true }]
-        : [];
     const seen = new Set<string>();
-    return saved.filter(item => typeof item.path === 'string' && item.path.length > 0)
+    return getOfflineFileEntries(readAppSettings())
+      .filter(item => item.type === 'hillshade')
       .map(item => {
-        const path = item.path as string;
-        const id = createHash('sha1').update(path.toLowerCase()).digest('hex').slice(0, 16);
-        return { id, path, enabled: item.enabled !== false };
+        const id = createHash('sha1').update(item.path.toLowerCase()).digest('hex').slice(0, 16);
+        return { id, path: item.path, enabled: item.enabled };
       })
       .filter(item => {
         if (seen.has(item.id)) return false;
@@ -580,14 +574,12 @@ export class OsmAndAtlasManager {
 
   private async persistHillshadeDatabases(): Promise<void> {
     await updateAppSettingsSection('osmand', {
-      hillshadeDatabases: this.hillshadeDatabases.map(({ path, enabled }) => ({ path, enabled })),
-      hillshadeDatabasePath: this.hillshadeDatabases[0]?.path ?? ''
+      hillshadeDatabases: this.hillshadeDatabases.map(({ path, enabled }) => ({ path, enabled }))
     });
   }
 
   private readSavedResourcesPath(): string {
-    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    return typeof osmand?.resourcesPath === 'string' ? osmand.resourcesPath : '';
+    return getOfflineFileEntries(readAppSettings()).find(entry => entry.type === 'osmand-resources')?.path ?? '';
   }
 
   private readSavedStyleFileName(): string {
