@@ -244,8 +244,23 @@ OSMAND_EXPORT void* osmand_create_search_service(
     wchar_t* errorBuffer,
     int errorBufferCapacity)
 {
+    const auto obfArgument = QString::fromWCharArray(obfPath ? obfPath : L"");
+    QStringList obfPaths;
+    const auto obfJson = QJsonDocument::fromJson(obfArgument.toUtf8());
+    if (obfJson.isArray())
+    {
+        for (const auto& value : obfJson.array())
+        {
+            if (value.isString() && !value.toString().trimmed().isEmpty())
+                obfPaths.append(value.toString());
+        }
+    }
+    else if (!obfArgument.trimmed().isEmpty())
+    {
+        obfPaths.append(obfArgument);
+    }
     auto service = std::make_unique<OsmAndSearchService>(OsmAndSearchService::Configuration{
-        QString::fromWCharArray(obfPath ? obfPath : L""),
+        obfPaths,
         QString::fromWCharArray(resourcesRoot ? resourcesRoot : L""),
     });
 
