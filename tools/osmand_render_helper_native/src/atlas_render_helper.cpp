@@ -73,10 +73,10 @@ LONG WINAPI atlasUnhandledExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
 constexpr int kFramePollIntervalMs = 100;
 constexpr int kFrameTimeoutMs = 30000;
 constexpr int kMaximumDimension = 8192;
-// Render beyond the requested metatile and crop the centre. A 192px base
-// margin remains generous for long labels while avoiding a multi-megapixel
-// framebuffer for every 512px metatile (especially on high-DPI displays).
-constexpr int kLabelOverscanPixels = 192;
+// Render beyond the requested 256px tile and crop the centre. A 128px
+// base margin retains label-placement context while reducing the high-DPI
+// framebuffer workload during rapid map navigation.
+constexpr int kLabelOverscanPixels = 128;
 constexpr std::uint16_t kProtocolVersion = 1;
 constexpr std::uint16_t kHeaderSize = 40;
 constexpr std::uint32_t kPixelFormatRgba8 = 1;
