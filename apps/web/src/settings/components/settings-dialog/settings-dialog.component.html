@@ -187,7 +187,7 @@
 
   @if (mode() === 'help') {
     <section class="format-details info-box">
-      <details>
+      <details class="app-disclosure">
         <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
         <div class="format-list">
           <table>
@@ -208,7 +208,7 @@
       </details>
     </section>
     <section class="format-details info-box">
-      <details>
+      <details class="app-disclosure">
       <summary>Supported image formats · {{ formatSummary.hdr }} HDR formats · {{ formatSummary.sdr }} SDR formats · {{ formatSummary.decoders }} decoders</summary>
       <p class="format-note">Bit depth is per channel unless noted. Support for optional features can vary by file.</p>
       <div class="format-list">
@@ -255,7 +255,7 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details>
+      <details class="app-disclosure">
         <summary>Key shortcuts · {{ keyShortcuts.length }} shortcuts</summary>
         <p class="format-note">Global shortcuts are registered by Windows through Electron and remain available when the application is not focused. Local shortcuts work while using the application. When the pointer is over the location map, the arrow keys pan the map instead of changing images.</p>
         @if (globalShortcutError()) {
@@ -297,7 +297,7 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details>
+      <details class="app-disclosure">
         <summary>External Programs · {{ externalPrograms().length }} programs</summary>
         <p class="format-note">Programs are listed when they are launched. Repeated calls to the same program for the same function are grouped together. The list updates during the current application session.</p>
         @if (profilingError()) {
@@ -326,7 +326,7 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details>
+      <details class="app-disclosure">
         <summary>Windows API calls · {{ windowsApiCalls.length }} calls</summary>
         <p class="format-note">Direct Win32 calls used by LumaScope for HDR display detection, window discovery and geometry, DPI awareness, and the native OsmAnd Atlas helper’s binary output channel. Calls made internally by Electron, Qt, the Java runtime or third-party libraries are not listed here.</p>
         <div class="shortcut-table-scroll">
@@ -355,7 +355,7 @@
 
   @if (mode() === 'general') {
   <section class="debug-settings">
-    <details>
+    <details class="app-disclosure">
       <summary>Debug</summary>
       <div class="debug-settings-content">
         <div class="setting-row">
