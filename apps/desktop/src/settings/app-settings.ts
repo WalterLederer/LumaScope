@@ -179,7 +179,7 @@ const offlineEntrySize = (type: OfflineFileType, path: string): number => {
 };
 
 const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEntry[] => {
-  const offline = isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {};
+  const offline = isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : isPlainObject(settings['Maps']) ? settings['Maps'] : {};
   const osmand = isPlainObject(settings['osmand']) ? settings['osmand'] : {};
   const valhalla = isPlainObject(settings['valhalla']) ? settings['valhalla'] : {};
   const mapsforge = isPlainObject(settings['mapsforge']) ? settings['mapsforge'] : {};
@@ -232,7 +232,7 @@ export const getOfflineFileEntries = (settings: AppSettings = readAppSettings())
 
 export const migrateOfflineFileSettings = async (): Promise<void> => {
   const userSettings = readUserAppSettings();
-  const offline = isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : {};
+  const offline = isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
   const legacySections = ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
     const section = isPlainObject(userSettings[sectionName]) ? userSettings[sectionName] : {};
     const keys = sectionName === 'osmand' ? ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']
