@@ -7,7 +7,7 @@
 @let isHdrImage = imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
 
 @if (activeImageSidebarTab() === 'gallery') {
-  <div class="browse-workspace">
+  <div class="browse-workspace" [style.--browse-sidebar-width.px]="controlsSidebarVisible() ? sidebarWidth() : 0">
     <app-gallery class="gallery-tab-content"
                  [style.display]="'grid'"
                  [style.margin-right.px]="0"
