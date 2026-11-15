@@ -141,7 +141,7 @@ interface MapErrorEntry {
                 <details class="fix-location-section">
                   <summary class="settings-row-title">Fix location</summary>
                   <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
-                  <div class="offline-map-status">An online basemap is used for fixing. Move it until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                  <div class="offline-map-status">The currently selected offline map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
                   <div class="location-actions">
                     <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
                     @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
@@ -2977,15 +2977,24 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private async initializeFixLocationMap(): Promise<void> {
-    if (!this.fixLocationEnabled() || this.map || !this.currentImagePath) return;
+    if (!this.fixLocationEnabled() || this.map || this.offlineRenderer || !this.currentImagePath) return;
+    const source = this.mapSource();
+    if (source === 'online') {
+      this.gpsSaveStatus.set('Select an offline map source before fixing a GPS position.');
+      return;
+    }
     const generation = ++this.mapSourceGeneration;
     this.mapInitialization = null;
-    this.renderInitStatus.set('Loading map for location fixing…');
+    this.renderInitStatus.set('Loading offline map for location fixing…');
     try {
-      await this.createMap(48.2082, 16.3738, generation, true);
+      await this.initialize(48.2082, 16.3738);
       if (generation === this.mapSourceGeneration && this.fixLocationEnabled()) {
         this.map?.invalidateSize();
+        this.offlineRenderer?.map.resize();
         this.renderInitStatus.set('');
+        if (!this.map && !this.offlineRenderer) {
+          this.gpsSaveStatus.set(this.mapDisplayNotice() || 'No configured offline map covers the initial location. Choose an offline map source with available coverage.');
+        }
       }
     } catch (error) {
       this.renderInitStatus.set('');
@@ -2993,11 +3002,13 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!this.map && !!this.desktop;
+  protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!(this.map || this.offlineRenderer) && !!this.desktop;
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
-    if (!this.fixLocationEnabled() || !this.currentImagePath || !this.map || !this.desktop || this.gpsSaveBusy()) return;
-    const center = this.map.getCenter();
+    if (!this.fixLocationEnabled() || !this.currentImagePath || (!this.map && !this.offlineRenderer) || !this.desktop || this.gpsSaveBusy()) return;
+    const center = this.offlineRenderer
+      ? this.offlineRenderer.map.getCenter()
+      : this.map!.getCenter();
     if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
     this.gpsSaveBusy.set(true);
     this.gpsSaveStatus.set('');
@@ -3984,10 +3995,10 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
-  private async createMap(latitude: number, longitude: number, generation: number, allowOfflineFallback = false): Promise<void> {
+  private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     const leaflet = await this.loadLeaflet();
-    if (generation !== this.mapSourceGeneration || (this.mapSource() !== 'online' && !allowOfflineFallback)) return;
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
     this.leaflet = leaflet;
     const center: [number, number] = [latitude, longitude];
     const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
