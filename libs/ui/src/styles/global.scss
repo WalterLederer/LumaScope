@@ -111,14 +111,13 @@ details.app-disclosure[open] > summary,
 .app-disclosure-heading::before {
   content: "";
   display: inline-block;
-  flex: 0 0 6px;
-  width: 6px;
-  height: 10px;
-  max-height: 10px;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 6px solid currentColor;
-  transform-origin: 2px 5px;
+  flex: 0 0 5px;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid currentColor;
+  transform-origin: 2px 4px;
 }
 .app-disclosure-heading.expanded::before {
   transform: rotate(90deg);
