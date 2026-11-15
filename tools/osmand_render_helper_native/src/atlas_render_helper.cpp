@@ -38,10 +38,10 @@ namespace
 constexpr int kFramePollIntervalMs = 100;
 constexpr int kFrameTimeoutMs = 30000;
 constexpr int kMaximumDimension = 8192;
-// Render beyond the requested metatile and crop the centre. Street-name
-// captions can be substantially wider than a tile; use a generous base margin
-// and scale it with display density so labels are fully placed before cropping.
-constexpr int kLabelOverscanPixels = 512;
+// Render beyond the requested metatile and crop the centre. A 192px base
+// margin remains generous for long labels while avoiding a multi-megapixel
+// framebuffer for every 512px metatile (especially on high-DPI displays).
+constexpr int kLabelOverscanPixels = 192;
 constexpr std::uint16_t kProtocolVersion = 1;
 constexpr std::uint16_t kHeaderSize = 40;
 constexpr std::uint32_t kPixelFormatRgba8 = 1;
@@ -668,6 +668,11 @@ int main(int argc, char* argv[])
                 activeOverscanY = std::min(requestedOverscan, safeVerticalOverscan);
                 const auto renderWidth = requestedWidth + activeOverscanX * 2;
                 const auto renderHeight = requestedHeight + activeOverscanY * 2;
+                std::cerr << "ATLAS_RENDER request=" << requestId
+                          << " requested=" << requestedWidth << "x" << requestedHeight
+                          << " framebuffer=" << renderWidth << "x" << renderHeight
+                          << " overscan=" << activeOverscanX << "x" << activeOverscanY
+                          << " zoom=" << compensatedZoom << std::endl;
                 widget->resize(renderWidth, renderHeight);
 
                 if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr)
