@@ -233,11 +233,12 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         bitmap.close();
         throw new Error('OsmAnd Atlas tile request was cancelled.');
       }
-      const renderDurationMs = tile.cacheHit ? undefined : performance.now() - renderStartedAt;
+      const totalDurationMs = tile.cacheHit ? undefined : performance.now() - renderStartedAt;
       const isBlankTile = zoom < 8 && isUniformBlankTile(pixels);
       emitOsmAndTileStatus({ ...tileCoordinates,
         status: isBlankTile ? 'warning' : 'loaded',
-        ...(renderDurationMs !== undefined ? { renderDurationMs } : {}),
+        ...(totalDurationMs !== undefined ? { totalDurationMs } : {}),
+        ...(typeof tile.queueWaitMs === 'number' ? { queueWaitMs: tile.queueWaitMs } : {}),
         ...(isBlankTile ? { error: 'World_basemap.obf needed' } : {})
       });
       return { data: bitmap };
