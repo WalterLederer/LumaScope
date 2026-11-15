@@ -409,7 +409,9 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
 
     // Every path-backed offline resource is stored exactly once in offline.paths.
     settings['offline'] = {
-      ...(isPlainObject(settings['offline']) ? settings['offline'] : isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
+      ...(isPlainObject(settings['Maps']) ? settings['Maps'] : {}),
+      ...(isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
+      ...(isPlainObject(settings['offline']) ? settings['offline'] : {}),
       paths: offlineEntries.sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }) || (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }))
     };
     removeLegacyOfflinePathSettings(settings);
