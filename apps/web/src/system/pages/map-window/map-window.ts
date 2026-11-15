@@ -704,12 +704,12 @@ interface MapErrorEntry {
             <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
           </tr>
           <tr>
-            <th scope="row" title="Elapsed time from Atlas IPC submission until the RGBA tile is ready; excludes disk-cache hits.">Avg. render time</th>
+            <th scope="row" title="End-to-end time from Atlas IPC submission until the RGBA tile is ready, including renderer queue wait.">Avg. total time</th>
             <td>{{ totalRenderTiming().count ? totalRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
             <td>{{ lastRenderTiming().count ? lastRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
           </tr>
           <tr>
-            <th scope="row">Median render time</th>
+            <th scope="row">Median total time</th>
             <td>{{ totalRenderTiming().count ? totalRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
             <td>{{ lastRenderTiming().count ? lastRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
           </tr>
@@ -722,6 +722,21 @@ interface MapErrorEntry {
             <th scope="row">Timing samples</th>
             <td>{{ totalRenderTiming().count.toLocaleString(locale) }}</td>
             <td>{{ lastRenderTiming().count.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row" title="Time spent waiting in the selected Atlas worker queue before native rendering can start.">Avg. queue wait</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Median queue wait</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Queue min / max</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().minMs.toFixed(1) + ' / ' + totalRenderQueueTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().minMs.toFixed(1) + ' / ' + lastRenderQueueTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
           </tr>
         </tbody>
       </table>
@@ -1653,8 +1668,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   private readonly totalRenderDurationSamples = signal<number[]>([]);
   private readonly lastRenderDurationSamples = signal<number[]>([]);
+  private readonly totalRenderQueueSamples = signal<number[]>([]);
+  private readonly lastRenderQueueSamples = signal<number[]>([]);
   protected readonly totalRenderTiming = computed(() => summarizeRenderDurations(this.totalRenderDurationSamples()));
   protected readonly lastRenderTiming = computed(() => summarizeRenderDurations(this.lastRenderDurationSamples()));
+  protected readonly totalRenderQueueTiming = computed(() => summarizeRenderDurations(this.totalRenderQueueSamples()));
+  protected readonly lastRenderQueueTiming = computed(() => summarizeRenderDurations(this.lastRenderQueueSamples()));
   protected readonly hillshadeActiveCount = signal(0);
   protected readonly hillshadeDisplayPending = signal(false);
   protected readonly hillshadeTotalCount = signal(0);
@@ -1722,6 +1741,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.currentTileRequestResults.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
     this.lastRenderDurationSamples.set([]);
+    this.lastRenderQueueSamples.set([]);
     this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
     this.hillshadeTotalCount.set(0);
     this.hillshadeCompletedCount.set(0);
@@ -1734,7 +1754,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private readonly onOsmAndTileStatus = (event: Event): void => {
-    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number; renderDurationMs?: number }>).detail;
+    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number; totalDurationMs?: number; queueWaitMs?: number }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : this.mapSource() === 'mapsforge' ? 'mapsforge' : null;
     if (detail?.status === 'diagnostic' && detail.protocol === 'osmand-atlas' && detail.error) {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
@@ -1759,10 +1779,15 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     } else if (detail.status === 'loaded') {
       if (this.currentTileRequestResults.get(key) !== 'cached') {
-        if (typeof detail.renderDurationMs === 'number' && Number.isFinite(detail.renderDurationMs) && detail.renderDurationMs >= 0) {
-          const duration = detail.renderDurationMs;
+        if (typeof detail.totalDurationMs === 'number' && Number.isFinite(detail.totalDurationMs) && detail.totalDurationMs >= 0) {
+          const duration = detail.totalDurationMs;
           this.totalRenderDurationSamples.update(samples => [...samples, duration]);
           this.lastRenderDurationSamples.update(samples => [...samples, duration].slice(-500));
+        }
+        if (typeof detail.queueWaitMs === 'number' && Number.isFinite(detail.queueWaitMs) && detail.queueWaitMs >= 0) {
+          const queueWait = detail.queueWaitMs;
+          this.totalRenderQueueSamples.update(samples => [...samples, queueWait]);
+          this.lastRenderQueueSamples.update(samples => [...samples, queueWait].slice(-500));
         }
         this.totalRenderTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
         this.lastRenderTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
