@@ -2162,7 +2162,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const lastResourcePackageFolder = typeof offlineSettings?.['resourcePackageLastFolder'] === 'string'
-        ? offlineSettings['resourcePackageLastFolder'] as string
+        ? String(offlineSettings?.['resourcePackageLastFolder'])
         : '';
       if (lastResourcePackageFolder) {
         void this.desktop?.OfflineMap.scanResourcePackage(lastResourcePackageFolder)
