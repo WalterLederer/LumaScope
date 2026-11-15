@@ -464,29 +464,62 @@ int runObfMetadataMode(int argc, char* argv[])
             double right = std::numeric_limits<double>::lowest();
             double bottom = std::numeric_limits<double>::lowest();
 
+            const auto longitude = [](double x) {
+                return x / 2147483648.0 * 360.0 - 180.0;
+            };
+            const auto latitude = [](double y) {
+                constexpr double scale = 2147483648.0;
+                constexpr double pi = 3.14159265358979323846;
+                const auto mercator = pi * (1.0 - 2.0 * y / scale);
+                return std::atan(std::sinh(mercator)) * 180.0 / pi;
+            };
+            const auto formatBounds = [&](const auto& area) {
+                return QStringLiteral("%1, %2 – %3, %4")
+                    .arg(longitude(static_cast<double>(area.left())), 0, 'f', 4)
+                    .arg(latitude(static_cast<double>(area.bottom())), 0, 'f', 4)
+                    .arg(longitude(static_cast<double>(area.right())), 0, 'f', 4)
+                    .arg(latitude(static_cast<double>(area.top())), 0, 'f', 4);
+            };
+
             QJsonArray sections;
             for (const auto& section : obfInfo->mapSections)
             {
                 if (!section)
                     continue;
                 ++sectionCount;
+                QJsonArray rootLevels;
+                int sectionMinZoom = std::numeric_limits<int>::max();
+                int sectionMaxZoom = std::numeric_limits<int>::min();
                 for (const auto& level : section->levels)
                 {
                     if (!level)
                         continue;
 
                     const auto& area = level->area31;
-                    minimumZoom = std::min(minimumZoom, static_cast<int>(level->minZoom));
-                    maximumZoom = std::max(maximumZoom, static_cast<int>(level->maxZoom));
+                    const auto minZoom = static_cast<int>(level->minZoom);
+                    const auto maxZoom = static_cast<int>(level->maxZoom);
+                    minimumZoom = std::min(minimumZoom, minZoom);
+                    maximumZoom = std::max(maximumZoom, maxZoom);
+                    sectionMinZoom = std::min(sectionMinZoom, minZoom);
+                    sectionMaxZoom = std::max(sectionMaxZoom, maxZoom);
                     left = std::min(left, static_cast<double>(area.left()));
                     top = std::min(top, static_cast<double>(area.top()));
                     right = std::max(right, static_cast<double>(area.right()));
                     bottom = std::max(bottom, static_cast<double>(area.bottom()));
 
+                    rootLevels.append(QJsonObject{
+                        {QStringLiteral("minZoom"), minZoom},
+                        {QStringLiteral("maxZoom"), maxZoom},
+                        {QStringLiteral("bounds"), formatBounds(area)}
+                    });
+                }
+                if (!rootLevels.isEmpty())
+                {
                     sections.append(QJsonObject{
                         {QStringLiteral("name"), section->name},
-                        {QStringLiteral("minZoom"), static_cast<int>(level->minZoom)},
-                        {QStringLiteral("maxZoom"), static_cast<int>(level->maxZoom)}
+                        {QStringLiteral("minZoom"), sectionMinZoom},
+                        {QStringLiteral("maxZoom"), sectionMaxZoom},
+                        {QStringLiteral("levels"), rootLevels}
                     });
                 }
             }
@@ -503,15 +536,6 @@ int runObfMetadataMode(int argc, char* argv[])
                 && maximumZoom != std::numeric_limits<int>::min()
                 && left <= right && top <= bottom)
             {
-                const auto longitude = [](double x) {
-                    return x / 2147483648.0 * 360.0 - 180.0;
-                };
-                const auto latitude = [](double y) {
-                    constexpr double scale = 2147483648.0;
-                    constexpr double pi = 3.14159265358979323846;
-                    const auto mercator = pi * (1.0 - 2.0 * y / scale);
-                    return std::atan(std::sinh(mercator)) * 180.0 / pi;
-                };
                 const auto west = longitude(left);
                 const auto east = longitude(right);
                 const auto north = latitude(top);
@@ -531,7 +555,6 @@ int runObfMetadataMode(int argc, char* argv[])
                 result.insert(QStringLiteral("maxZoom"), 0);
                 result.insert(QStringLiteral("bounds"), QJsonValue::Null);
             }
-
             metadataResults.append(result);
         }
     }
