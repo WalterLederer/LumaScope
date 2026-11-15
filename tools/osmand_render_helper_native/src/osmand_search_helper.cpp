@@ -63,10 +63,10 @@ int main(int argc, char* argv[])
     const auto query = decodeArgument(argv[4]);
     const auto locale = argc > 5 ? decodeArgument(argv[5]) : QString();
     bool limitOk = true;
-    const auto limit = argc > 6 ? QString::fromLatin1(argv[6]).toInt(&limitOk) : 5;
-    if (!limitOk || limit < 1 || limit > 5)
+    const auto limit = argc > 6 ? QString::fromLatin1(argv[6]).toInt(&limitOk) : 0;
+    if (!limitOk || limit < 0 || limit > 1000000)
     {
-        std::cerr << "Search result limit must be between 1 and 5." << std::endl;
+        std::cerr << "Search result limit must be zero (unlimited) or between 1 and 1000000." << std::endl;
         return 2;
     }
 
