@@ -4,38 +4,67 @@
 @let sorting = sortMode$ | async | default:defaultSortMode;
 @let thumbSize = thumbSize$ | async | default:defaultThumbnailSize;
 
-<ui-side-panel>
-
-  <aside>
-    <ui-vertical-stack>
-      <section>
-        @if (galleryRoot !== null) {
-          <ui-tree #tree
-                   [root]="galleryRoot"
-                   [menu]="galleryMenu"
-                   [enableLoading]="true"
-                   (loadRequested)="loadTreeNode($event)"
-                   (selected)="selectLocation($event)"
-                   (hovered)="onTreeNodeHovered($event)" />
-        }
-      </section>
-
-    </ui-vertical-stack>
-  </aside>
-
-  <app-image-grid [selectedLocation]="selectedLocation"
-                  [hoveredFolderPath]="hoveredFolderPath()"
-                  [images]="images"
-                  [sortBy]="sorting.sortBy"
-                  [sortDirection]="sorting.sortDir"
-                  [thumbSize]="thumbSize"
-                  [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
-                  (sortByChanged)="onSortByChange($event)"
-                  (sortDirChanged)="onSortDirChange($event)"
-                  (thumbSizeChanged)="onThumbSizeChange($event)"
-                  (selected)="onImageSelected($event)" />
-
-</ui-side-panel>
+@if (showFolderTree() && showImageGrid()) {
+  <ui-side-panel>
+    <aside>
+      <ui-vertical-stack>
+        <section>
+          @if (galleryRoot !== null) {
+            <ui-tree #tree
+                     [root]="galleryRoot"
+                     [menu]="galleryMenu"
+                     [enableLoading]="true"
+                     (loadRequested)="loadTreeNode($event)"
+                     (selected)="selectLocation($event)"
+                     (hovered)="onTreeNodeHovered($event)" />
+          }
+        </section>
+      </ui-vertical-stack>
+    </aside>
+    <app-image-grid [selectedLocation]="selectedLocation"
+                    [hoveredFolderPath]="hoveredFolderPath()"
+                    [images]="images"
+                    [sortBy]="sorting.sortBy"
+                    [sortDirection]="sorting.sortDir"
+                    [thumbSize]="thumbSize"
+                    [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
+                    (sortByChanged)="onSortByChange($event)"
+                    (sortDirChanged)="onSortDirChange($event)"
+                    (thumbSizeChanged)="onThumbSizeChange($event)"
+                    (selected)="onImageSelected($event)" />
+  </ui-side-panel>
+} @else {
+  @if (showFolderTree()) {
+    <aside class="gallery-folder-tree">
+      <ui-vertical-stack>
+        <section>
+          @if (galleryRoot !== null) {
+            <ui-tree #tree
+                     [root]="galleryRoot"
+                     [menu]="galleryMenu"
+                     [enableLoading]="true"
+                     (loadRequested)="loadTreeNode($event)"
+                     (selected)="selectLocation($event)"
+                     (hovered)="onTreeNodeHovered($event)" />
+          }
+        </section>
+      </ui-vertical-stack>
+    </aside>
+  }
+  @if (showImageGrid()) {
+    <app-image-grid [selectedLocation]="selectedLocation"
+                    [hoveredFolderPath]="hoveredFolderPath()"
+                    [images]="images"
+                    [sortBy]="sorting.sortBy"
+                    [sortDirection]="sorting.sortDir"
+                    [thumbSize]="thumbSize"
+                    [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
+                    (sortByChanged)="onSortByChange($event)"
+                    (sortDirChanged)="onSortDirChange($event)"
+                    (thumbSizeChanged)="onThumbSizeChange($event)"
+                    (selected)="onImageSelected($event)" />
+  }
+}
 
 @if (galleryLocationError()) {
   <p class="gallery-location-error" role="alert">{{ galleryLocationError() }}</p>
@@ -43,22 +72,16 @@
 
 <ng-template #galleryMenu let-data="data">
   <ui-popup-menu cdkMenu>
-
     @if (data.id === '') {
-      <ui-action-button cdkMenuItem
-                        (pressed)="onAddLocation()">
+      <ui-action-button cdkMenuItem (pressed)="onAddLocation()">
         <ui-icon icon="folderAdd" [inherit]="true" />
         <ui-text [inherit]="true">Add new location</ui-text>
       </ui-action-button>
     } @else {
-
-      <ui-action-button cdkMenuItem
-                        variant="warn"
-                        (pressed)="onRemoveLocation(data)">
+      <ui-action-button cdkMenuItem variant="warn" (pressed)="onRemoveLocation(data)">
         <ui-icon icon="folderProhibited" [inherit]="true" />
         <ui-text [inherit]="true">Remove</ui-text>
       </ui-action-button>
     }
-
   </ui-popup-menu>
 </ng-template>
