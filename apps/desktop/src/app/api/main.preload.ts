@@ -209,6 +209,14 @@ const api: Desktop = {
     focus: () => ipcRenderer.invoke('MapWindow.focus'),
     setAlwaysOnTop: (enabled: boolean) => ipcRenderer.invoke('MapWindow.setAlwaysOnTop', enabled),
     selectImage: (path: string) => ipcRenderer.invoke('MapWindow.selectImage', path),
+    openHelpDocument: (fileName: string) => ipcRenderer.invoke('MapWindow.openHelpDocument', fileName),
+    onHelpDocument: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, fileName: string): void => {
+        if (typeof fileName === 'string') callback(fileName);
+      };
+      ipcRenderer.on('MapWindow.openHelpDocument', listener);
+      return () => ipcRenderer.removeListener('MapWindow.openHelpDocument', listener);
+    },
     onImageSelected: (callback: (path: string) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, path: string): void => callback(path);
       ipcRenderer.on('MapWindow.imageSelected', listener);
