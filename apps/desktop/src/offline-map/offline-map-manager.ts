@@ -108,7 +108,7 @@ export class OfflineMapManager {
   walk(root);
   for(const key of ['obfFiles','mbtilesFiles','mapsforgeFiles','hillshadeFiles','valhallaConfigs'] as const)result[key].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
 
-  const directorySize=(folder:string):number=>directorySizes.get(resolve(folder).toLocaleLowerCase())??0;
+  const directorySize=(folder:string):number=>directorySizes.get(resolve(folder).toLocaleLowerCase())??(resolve(folder).toLocaleLowerCase()===resolve(dirname(root)).toLocaleLowerCase()?directorySizes.get(resolve(root).toLocaleLowerCase())??0:0);
   const seenResourceEntries=new Set<string>();
   const addResourceEntry=(type:ResourcePackageEntry['type'],fileName:string,folder:string):void=>{
    const key=type+'|'+resolve(folder).toLocaleLowerCase()+'|'+fileName.toLocaleLowerCase();
