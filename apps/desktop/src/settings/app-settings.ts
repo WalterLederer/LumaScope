@@ -179,7 +179,9 @@ const offlineEntrySize = (type: OfflineFileType, path: string): number => {
 };
 
 const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEntry[] => {
-  const offline = isPlainObject(settings['offline']) ? settings['offline'] : isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : isPlainObject(settings['Maps']) ? settings['Maps'] : {};
+  const offline = isPlainObject(settings['offline'])
+    ? { ...(isPlainObject(settings['Maps']) ? settings['Maps'] : {}), ...(isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}), ...settings['offline'] }
+    : isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : isPlainObject(settings['Maps']) ? settings['Maps'] : {};
   const osmand = isPlainObject(settings['osmand']) ? settings['osmand'] : {};
   const valhalla = isPlainObject(settings['valhalla']) ? settings['valhalla'] : {};
   const mapsforge = isPlainObject(settings['mapsforge']) ? settings['mapsforge'] : {};
@@ -233,7 +235,9 @@ export const getOfflineFileEntries = (settings: AppSettings = readAppSettings())
 
 export const migrateOfflineFileSettings = async (): Promise<void> => {
   const userSettings = readUserAppSettings();
-  const offline = isPlainObject(userSettings['offline']) ? userSettings['offline'] : isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
+  const offline = isPlainObject(userSettings['offline'])
+    ? { ...(isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {}), ...(isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : {}), ...userSettings['offline'] }
+    : isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
   const legacySections = userSettings['Maps'] != null || ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
     const section = isPlainObject(userSettings[sectionName]) ? userSettings[sectionName] : {};
     const keys = sectionName === 'osmand' ? ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']
