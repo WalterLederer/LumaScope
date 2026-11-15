@@ -39,8 +39,10 @@ ui-side-panel {
   .gallery-controls-sidebar app-settings-panel { display:block; min-width:0; }
   .gallery-controls-sidebar .sidebar-header-actions { display:flex; align-items:center; gap:6px; }
   .gallery-controls-sidebar button { cursor:pointer; color:inherit; background:rgb(255 255 255 / 7%); border:1px solid rgb(255 255 255 / 18%); border-radius:4px; padding:4px 8px; min-height:28px; }
-  .gallery-controls-sidebar section { border-top:1px solid rgb(255 255 255 / 15%); padding:8px 0; display:flex; flex-direction:column; gap:7px; }
-  .gallery-controls-sidebar .section-heading { width:100%; border:0; background:transparent; text-align:left; font-weight:650; display:flex; align-items:center; gap:7px; }
+  .gallery-controls-sidebar section:has(> .section-heading) { box-sizing:border-box; border:1px solid rgb(128 128 128 / 55%); border-radius:6px; padding:6px 10px; margin:0 0 6px; display:flex; flex-direction:column; gap:7px; }
+  .gallery-controls-sidebar .section-heading { box-sizing:border-box; width:100%; border:0; background:transparent; text-align:left; font-family:inherit; font-size:13px; font-weight:700; line-height:1.4; display:list-item; list-style:disclosure-closed; padding:0; cursor:pointer; }
+  .gallery-controls-sidebar .section-heading::marker { font-size:16px; }
+  .gallery-controls-sidebar .section-heading.expanded { list-style:disclosure-open; }
   .gallery-controls-sidebar .section-chevron { display:inline-block; flex:0 0 12px; width:12px; text-align:center; }
   .gallery-controls-sidebar label { display:flex; align-items:center; gap:8px; }
   .gallery-controls-sidebar .path { overflow-wrap:anywhere; font-size:11px; opacity:.75; }
