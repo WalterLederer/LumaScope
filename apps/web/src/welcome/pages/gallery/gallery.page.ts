@@ -165,14 +165,14 @@ export class GalleryPage {
   ): Promise<void> => {
     // Normalize both Windows and POSIX separators for path comparisons.
     const normalizePath = (value: string): string =>
-      value.replace(/\\\\/g, '/').replace(/\\/+$/, '').toLocaleLowerCase();
+      value.split('\\').join('/').replace(/\/+$/, '').toLocaleLowerCase();
 
     const normalizedSelection = normalizePath(selectedPath);
     const matchingRoots = (root.children ?? [])
       .filter(node => {
         const normalizedRoot = normalizePath(node.id);
         return normalizedSelection === normalizedRoot
-          || normalizedSelection.startsWith(`${normalizedRoot}/`);
+          || normalizedSelection.startsWith(normalizedRoot + '/');
       })
       .sort((a, b) => normalizePath(b.id).length - normalizePath(a.id).length);
 
@@ -183,7 +183,7 @@ export class GalleryPage {
     if (selectedRoot.isSelected) return;
 
     const normalizedRootPath = normalizePath(selectedRoot.id);
-    const relativePath = normalizedSelection.slice(normalizedRootPath.length).replace(/^\\//, '');
+    const relativePath = normalizedSelection.slice(normalizedRootPath.length).replace(/^\//, '');
     const segments = relativePath.split('/').filter(Boolean);
     let parent = selectedRoot;
     let currentPath = selectedRoot.id;
@@ -206,8 +206,8 @@ export class GalleryPage {
       parent.hasChildren = children.length > 0;
       parent.isOpen = true;
 
-      const nextPath = `${currentPath.replace(/[\\\\/]+$/, '')}/${segment}`;
-      const nextNode = children.find(node => normalizePath(node.id) === normalizePath(nextPath));
+      const nextPath = normalizePath(currentPath) + '/' + segment;
+      const nextNode = children.find(node => normalizePath(node.id) === nextPath);
       if (!nextNode) return;
 
       nextNode.isSelected = normalizePath(nextNode.id) === normalizedSelection;
