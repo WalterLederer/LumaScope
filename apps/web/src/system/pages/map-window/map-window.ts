@@ -3560,10 +3560,12 @@ export class MapWindow implements OnInit, OnDestroy {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       viewportRefreshTimer = window.setTimeout(() => {
         viewportRefreshTimer = null;
-        void this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas').then(() => {
+        void this.desktop?.OsmAndAtlas.cancelRendering().then(() =>
+          this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas')
+        ).then(() => {
           const source = renderer.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
           if (source?.setTiles) source.setTiles(['osmand-atlas://{z}/{x}/{y}?refresh=' + Date.now()]);
-        });
+        }).catch(error => console.warn('[OsmAnd Atlas] Could not refresh viewport OBF tiles:', error));
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
@@ -3775,10 +3777,12 @@ export class MapWindow implements OnInit, OnDestroy {
       if (obfViewportTimer !== null) window.clearTimeout(obfViewportTimer);
       obfViewportTimer = window.setTimeout(() => {
         obfViewportTimer = null;
-        void this.updateActiveObfMapsForViewport(renderer, 'osmand').then(() => {
+        void this.desktop?.OsmAnd.cancelRendering().then(() =>
+          this.updateActiveObfMapsForViewport(renderer, 'osmand')
+        ).then(() => {
           const source = renderer.map.getSource('osmand') as { setTiles?: (tiles: string[]) => unknown } | undefined;
           if (source?.setTiles) source.setTiles(['osmand://{z}/{x}/{y}?refresh=' + Date.now()]);
-        });
+        }).catch(error => console.warn('[OsmAnd] Could not refresh viewport OBF tiles:', error));
       }, 180);
     });
     renderer.map.on('contextmenu', event => {
