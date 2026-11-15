@@ -3772,7 +3772,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }));
       const refreshedEntries = latestEntries.filter(entry => {
         if (entry.type === 'valhalla-config') return false;
-        if (overwrite && entry.type === 'osmand-resources') return false;
+        if (overwrite && scan.osmAndResourcesPath && entry.type === 'osmand-resources') return false;
         if (overwrite && (entry.type === 'mapsforge-theme-folder' || entry.type === 'mapsforge-theme')) return false;
         return true;
       });
