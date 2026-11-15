@@ -175,8 +175,12 @@ export class MarkdownViewerComponent {
   protected readonly documentTitle = computed(() =>
     this.currentFile() === 'README.md'
       ? 'LumaScope documentation'
-      : this.currentFile().replace(/\.md$/i, '').replace(/-/g, ' ')
+      : this.currentFile().replace(/\\.md$/i, '').replace(/-/g, ' ')
   );
+  protected readonly documentationPath = computed(() =>
+    this.currentFile() === 'README.md' ? 'README.md' : 'docs/' + this.currentFile()
+  );
+  protected readonly openFileError = signal('');
 
   constructor() {
     void this.loadDocument('README.md');
@@ -205,6 +209,7 @@ export class MarkdownViewerComponent {
     if (!isDocumentationFile(fileName)) return;
     this.loading.set(true);
     this.error.set(null);
+    this.openFileError.set('');
     try {
       const response = await this.fileSystem.readDocumentationFile(fileName);
       if (response.success) {
@@ -246,6 +251,16 @@ export class MarkdownViewerComponent {
       await this.processManager.setAppSettingsSection('help', { textSize: this.fontSize() });
     } catch (error) {
       console.warn('[Help] Could not save text size setting:', error);
+    }
+  };
+
+  protected readonly openCurrentDocument = async (): Promise<void> => {
+    this.openFileError.set('');
+    try {
+      const result = await this.fileSystem.openDocumentationFile(this.currentFile());
+      if (result) this.openFileError.set(result);
+    } catch (error) {
+      this.openFileError.set(error instanceof Error ? error.message : String(error));
     }
   };
 
