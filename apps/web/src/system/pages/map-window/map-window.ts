@@ -1701,14 +1701,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
   protected readonly canShowMapBounds = computed(() => {
-    const source = this.mapSource();
-    const supportedMapType = source === 'offline'
-      ? 'mbtiles'
-      : source === 'osmand' || source === 'osmand-atlas'
-        ? 'obf'
-        : null;
+    const supportedMapType = this.mapSource() === 'offline' ? 'mbtiles'
+      : this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 'obf' : null;
     return supportedMapType !== null
-      && this.offlineMaps().some(map => map.type === supportedMapType && map.enabled && !!map.bounds);
+      && this.offlineMaps().some(map => map.type === supportedMapType && map.enabled && !!map.bounds
+        && !this.isWorldMapBounds(map));
   });
   protected readonly renderActiveCount = signal(0);
   protected readonly renderDisplayPending = signal(false);
@@ -1779,21 +1776,27 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ mapBoundsVisible: visible });
     this.applyMapBoundsVisibility();
   };
+  private isWorldMapBounds(map: import('internal-api').OfflineMapStatus): boolean {
+    const name = ((map.name || '') + ' ' + (map.fileName || '')).toLowerCase();
+    if (name.includes('world')) return true;
+    const values = map.bounds?.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return false;
+    const [west, south, east, north] = values;
+    const longitudeSpan = east >= west ? east - west : 360 - west + east;
+    return longitudeSpan >= 300 && north - south >= 140;
+  }
   private getActiveOfflineMapBounds(): Array<{ bounds: [number, number, number, number]; name: string }> {
+    const supportedMapType = this.mapSource() === 'offline' ? 'mbtiles'
+      : this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 'obf' : null;
+    if (!supportedMapType) return [];
     return this.offlineMaps().flatMap(map => {
-      if (!map.enabled || !map.bounds) return [];
+      if (map.type !== supportedMapType || !map.enabled || !map.bounds || this.isWorldMapBounds(map)) return [];
       const values = map.bounds.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return [];
       const [west, south, east, north] = values;
       if (west < -180 || west > 180 || east < -180 || east > 180
         || south < -90 || north > 90 || south > north) return [];
-      const name = map.name || map.fileName || 'Unnamed map';
-      const normalizedName = (name + ' ' + (map.fileName || '')).toLowerCase();
-      const longitudeSpan = east >= west ? east - west : 360 - west + east;
-      const latitudeSpan = north - south;
-      // Global overview/basemap files obscure regional coverage polygons.
-      if (normalizedName.includes('world') || (longitudeSpan >= 300 && latitudeSpan >= 140)) return [];
-      return [{ bounds: [west, south, east, north] as [number, number, number, number], name }];
+      return [{ bounds: [west, south, east, north] as [number, number, number, number], name: map.name || map.fileName || 'Unnamed map' }];
     });
   }
   private clearMapBoundsLayers(): void {
