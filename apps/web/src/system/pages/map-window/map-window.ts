@@ -635,7 +635,7 @@ interface MapErrorEntry {
           <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
             Refresh
           </button>
-          <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+          <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="!canRerenderVisibleTiles() || rerenderVisibleTilesBusy()">
             {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
           </button>
           <button type="button" class="danger" (click)="cancelMapRendering()" title="Cancels the active visible-tile rerender." [disabled]="!rerenderVisibleTilesBusy()">
@@ -3950,6 +3950,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('Refresh visible OsmAnd tiles', message);
     }
   };
+  protected readonly canRerenderVisibleTiles = (): boolean =>
+    !!this.offlineRenderer && (this.mapSource() === 'osmand-atlas' || this.mapSource() === 'osmand');
+
   protected readonly isMapRenderingActive = (): boolean =>
     this.renderActiveCount() > 0 || this.hillshadeActiveCount() > 0
     || this.rerenderVisibleTilesBusy() || this.renderDisplayPending();
