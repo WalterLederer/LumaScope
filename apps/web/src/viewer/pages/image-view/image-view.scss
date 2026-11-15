@@ -766,6 +766,12 @@
 :host {
  .show-controls-sidebar {position:fixed;z-index:41;right:24px;top:8px;padding:8px;border-radius:4px;background:#202124;color:#fff;border:1px solid rgb(255 255 255 / 25%);cursor:pointer}
  .image-controls-sidebar {position:fixed;z-index:40;top:0;right:16px;bottom:0;width:340px;min-width:280px;max-width:70vw;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:12px;color:#f5f5f5;background:#202124;border-left:1px solid rgb(255 255 255 / 16%);box-shadow:-4px 0 16px rgb(0 0 0 / 25%);font-size:13px}
+ .image-controls-sidebar.sidebar-left {left:16px;right:auto;border-left:0;border-right:1px solid rgb(255 255 255 / 16%);box-shadow:4px 0 16px rgb(0 0 0 / 25%)}
+ .image-controls-sidebar.sidebar-left .sidebar-resize-handle {left:auto;right:0}
+ .image-controls-sidebar.sidebar-left .sidebar-resize-handle::after {left:auto;right:3px}
+ .image-controls-sidebar .sidebar-side-toggle {font-size:17px;font-weight:700;line-height:1;padding:3px 6px;min-width:28px;color:#8fc7ff;background:linear-gradient(180deg,rgb(75 145 220 / 35%),rgb(35 80 130 / 45%));border:1px solid rgb(115 175 235 / 55%);text-shadow:0 1px 2px #000;box-shadow:inset 0 1px 0 rgb(255 255 255 / 22%),0 2px 4px rgb(0 0 0 / 25%)}
+ .image-controls-sidebar .sidebar-side-toggle:hover {color:#fff;background:linear-gradient(180deg,rgb(85 165 245 / 55%),rgb(35 100 170 / 65%))}
+
  .image-controls-sidebar.location-tab-active {display:flex;flex-direction:column;overflow:hidden}
  .image-controls-sidebar .sidebar-resize-handle {position:absolute;z-index:2;top:0;bottom:0;left:0;width:8px;cursor:ew-resize;touch-action:none}
  .image-controls-sidebar .sidebar-resize-handle::after {content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:transparent}
@@ -2051,6 +2057,12 @@
   box-sizing: border-box;
 }
 
+:host(.browse-layout) .gallery-shell-sidebar.sidebar-left {
+  grid-column: 1;
+}
+:host(.browse-layout) .gallery-shell-sidebar:not(.sidebar-left) {
+  grid-column: 2;
+}
 :host(.browse-layout) .gallery-shell-sidebar {
   position: relative !important;
   inset: auto !important;
