@@ -94,10 +94,11 @@ else {
     $null
 }
 
+# Stage DLLs from the same configuration as the helper. The generic
+# Release and src\Release folders can contain a second configuration's DLLs
+# and must not be mixed into a RelWithDebInfo runtime.
 $runtimeDirectories = @(
     (Join-Path $buildRoot 'RelWithDebInfo'),
-    (Join-Path $buildRoot 'Release'),
-    (Join-Path $buildRoot 'src\Release'),
     $vcpkgRuntime
 ) | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) } | Select-Object -Unique
 
@@ -121,13 +122,10 @@ foreach ($directory in $runtimeDirectories) {
             Copy-Item -LiteralPath $dll.FullName -Destination $target -Force
         }
         else {
-            # The first matching DLL wins. The build-local vcpkg directory is
-            # listed before the sibling vcpkg fallback, so its ABI-compatible
-            # runtime takes precedence over any older duplicate.
-            $existingLength = (Get-Item -LiteralPath $target).Length
-            if ($existingLength -ne $dll.Length) {
-                Write-Warning "Ignoring duplicate runtime DLL '$($dll.Name)' from '$directory' ($($dll.Length) bytes); keeping the first copy ($existingLength bytes)."
-            }
+            # A DLL already present beside the RelWithDebInfo helper is the
+            # selected runtime copy. The vcpkg directory is a fallback for
+            # missing DLL names, not a second source from which to overwrite
+            # or warn about expected duplicate names.
         }
     }
 }
