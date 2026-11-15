@@ -2063,6 +2063,12 @@
 :host(.browse-layout) .gallery-shell-sidebar:not(.sidebar-left) {
   grid-column: 2;
 }
+
+/* The gallery component's default column is important so it stays in column 1.
+   When the controls sidebar moves left, explicitly move the gallery to column 2. */
+:host(.browse-layout) .browse-workspace.sidebar-left app-gallery.gallery-tab-content {
+  grid-column: 2 !important;
+}
 :host(.browse-layout) .gallery-shell-sidebar {
   position: relative !important;
   inset: auto !important;
