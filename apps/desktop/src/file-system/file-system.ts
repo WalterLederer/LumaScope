@@ -40,8 +40,10 @@ export class FileSystem {
     const roots = app.isPackaged
       ? [ join(process.resourcesPath, 'docs') ]
       : [ join(process.cwd(), 'docs'), join(app.getAppPath(), 'docs') ];
-    const candidates = fileName === 'README.md' && !app.isPackaged
-      ? [ join(process.cwd(), fileName), join(app.getAppPath(), fileName) ]
+    const candidates = fileName === 'README.md'
+      ? app.isPackaged
+        ? [ join(process.resourcesPath, fileName), ...roots.map(root => join(root, fileName)) ]
+        : [ join(process.cwd(), fileName), join(app.getAppPath(), fileName), ...roots.map(root => join(root, fileName)) ]
       : roots.map(root => join(root, fileName));
 
     let lastError: unknown = null;
@@ -61,10 +63,12 @@ export class FileSystem {
       return 'Invalid documentation file name.';
     }
 
-    const candidates = app.isPackaged
-      ? [join(process.resourcesPath, 'docs', fileName)]
-      : fileName === 'README.md'
-        ? [join(process.cwd(), fileName), join(app.getAppPath(), fileName)]
+    const candidates = fileName === 'README.md'
+      ? app.isPackaged
+        ? [join(process.resourcesPath, fileName), join(process.resourcesPath, 'docs', fileName)]
+        : [join(process.cwd(), fileName), join(app.getAppPath(), fileName), join(process.cwd(), 'docs', fileName), join(app.getAppPath(), 'docs', fileName)]
+      : app.isPackaged
+        ? [join(process.resourcesPath, 'docs', fileName)]
         : [join(process.cwd(), 'docs', fileName), join(app.getAppPath(), 'docs', fileName)];
 
     for (const sourcePath of candidates) {
