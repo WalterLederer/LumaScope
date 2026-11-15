@@ -1101,6 +1101,33 @@ interface MapErrorEntry {
               } @else { <span class="offline-map-status">No offline files loaded. Use “Open resource package…” to discover files.</span> }
               @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
             </div>
+            @if (obfBoundsPreview(); as preview) {
+              <section class="obf-bounds-preview" aria-label="Activated OBF map bounds preview">
+                <div class="obf-bounds-preview-heading">
+                  <strong>Activated OBF bounds · {{ preview.name }}</strong>
+                  <span>{{ preview.bounds || preview.error || 'Bounds unavailable' }}@if (preview.zoom) { · Zoom {{ preview.zoom }} }</span>
+                </div>
+                <svg class="obf-bounds-world-map" viewBox="0 0 360 180" role="img" [attr.aria-label]="'World map showing bounds for ' + preview.name">
+                  <rect x="0" y="0" width="360" height="180" rx="4" fill="#142b3a"></rect>
+                  <g stroke="#668090" stroke-opacity=".35" stroke-width=".5" fill="none">
+                    <path d="M0 45H360 M0 90H360 M0 135H360 M90 0V180 M180 0V180 M270 0V180"></path>
+                  </g>
+                  <g fill="#9eabb0" fill-opacity=".72" stroke="#c1cbd0" stroke-opacity=".38" stroke-width=".6">
+                    <path d="M16 35 L27 23 47 18 61 24 76 22 89 31 105 34 113 45 104 52 95 52 89 63 79 66 75 78 66 83 62 99 53 103 46 91 39 86 34 73 25 66 20 54Z"></path>
+                    <path d="M86 104 L99 109 106 122 103 137 96 151 91 169 84 161 82 145 76 132 78 117Z"></path>
+                    <path d="M154 43 L163 34 177 31 187 36 198 34 208 41 222 39 232 45 245 43 260 48 275 47 290 56 304 58 316 69 310 78 296 76 286 84 273 79 263 87 251 82 242 91 232 84 220 88 210 80 197 83 190 74 180 75 171 66 160 63Z"></path>
+                    <path d="M165 79 L178 76 191 82 199 95 196 112 188 128 182 146 173 155 166 141 162 124 155 109 157 94Z"></path>
+                    <path d="M276 119 L290 114 305 119 314 129 307 139 294 142 281 135Z"></path>
+                    <path d="M42 12 L55 7 69 11 66 22 54 26 43 21Z"></path>
+                    <path d="M129 33 L138 27 148 30 145 40 136 43Z"></path>
+                  </g>
+                  @for (rectangle of preview.rectangles; track $index) {
+                    <rect [attr.x]="rectangle.x" [attr.y]="rectangle.y" [attr.width]="rectangle.width" [attr.height]="rectangle.height"
+                          fill="#ffad33" fill-opacity=".34" stroke="#ffad33" stroke-width="1.4"></rect>
+                  }
+                </svg>
+              </section>
+            }
           </div>
         }
         <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
@@ -1356,6 +1383,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}.hillshade-format-tag{background:#514078;color:#e4d8ff}.resource-package-format-tag{background:#3f5268;color:#e2f2ff}.resource-valhalla-tag{background:#665000;color:#fff0a6}.resource-osmand-tag{background:#174b78;color:#c8e5ff}.resource-mapsforge-tag{background:#65451f;color:#ffe0ad}.resource-valhalla-row{background:rgba(150,112,0,.20)}.resource-osmand-row{background:rgba(56,139,253,.10)}.resource-mapsforge-row{background:rgba(46,160,67,.07)}.offline-map-list-filter option.obf-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.mbtiles-filter-option{background:#245b35;color:#c9f7d2;font-weight:700}.offline-map-list-filter option.mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.offline-map-list-filter option.hillshade-filter-option{background:#514078;color:#e4d8ff;font-weight:700}.offline-map-list-filter option.resource-valhalla-filter-option{background:#713b83;color:#f1dcff;font-weight:700}.offline-map-list-filter option.resource-osmand-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.resource-mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.mbtiles-map-table tbody tr.resource-valhalla-row{background:rgba(150,112,0,.20)}.mbtiles-map-table tbody tr.resource-osmand-row{background:rgba(56,139,253,.10)}.mbtiles-map-table tbody tr.resource-mapsforge-row{background:rgba(46,160,67,.07)}.hillshade-map-row{background:rgba(139,92,246,.09)}.offline-file-status-cell{font-size:11px;white-space:nowrap}.offline-file-status-column{min-width:82px}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .obf-bounds-preview{display:flex;flex-direction:column;gap:6px;width:min(420px,100%);margin:12px 0 4px;padding:9px 11px;border:1px solid var(--color-content-default-low,#56616a);border-radius:6px;background:var(--color-surface-default-medium,#292f36)}.obf-bounds-preview-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:11px}.obf-bounds-preview-heading span{color:var(--color-content-default-medium,#b6c0c8);font-variant-numeric:tabular-nums}.obf-bounds-world-map{display:block;width:100%;max-width:360px;height:auto;border-radius:4px;border:1px solid rgba(180,200,210,.35)}
     .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}
     .download-source-table th{color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943);border-bottom:1px solid var(--color-content-default-low,#454545)}
     .download-source-table td{border-bottom:1px solid var(--color-content-default-low,#454545)}
@@ -1904,6 +1932,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly obfBoundsPreview = signal<{ name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }> } | null>(null);
   protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'valhalla' | 'osmandResources' | 'mapsforgeTheme' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly filteredResourcePackageEntries = computed(() => {
     const entries = this.resourcePackageEntries();
@@ -4463,10 +4492,42 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  private createObfBoundsPreview(map: import('internal-api').OfflineMapStatus): NonNullable<ReturnType<typeof this.obfBoundsPreview>> {
+    if (!map.obfMetadataAvailable || !map.bounds) {
+      return { name: map.name, bounds: map.bounds, zoom: '', error: map.obfMetadataError || 'OsmAnd Core did not provide bounds for this OBF file.', rectangles: [] };
+    }
+    const values = map.bounds.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    if (values.length !== 4 || values.some(value => !Number.isFinite(value))) {
+      return { name: map.name, bounds: map.bounds, zoom: '', error: 'The bounds value could not be parsed.', rectangles: [] };
+    }
+    const [west, south, east, north] = values;
+    if (west < -180 || west > 180 || east < -180 || east > 180 || south < -90 || north > 90 || south > north) {
+      return { name: map.name, bounds: map.bounds, zoom: '', error: 'The bounds are outside the valid geographic range.', rectangles: [] };
+    }
+    const y = 90 - north;
+    const height = north - south;
+    const zoom = map.minZoom > 0 && map.maxZoom > 0 ? map.minZoom + '–' + map.maxZoom : '';
+    const toX = (longitude: number): number => longitude + 180;
+    const rectangles = east >= west
+      ? [{ x: toX(west), y, width: east - west, height }]
+      : [
+          { x: toX(west), y, width: 180 - west, height },
+          { x: 0, y, width: east + 180, height }
+        ];
+    return { name: map.name, bounds: map.bounds, zoom, error: null, rectangles };
+  }
+
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
+    const previousMap = this.offlineMaps().find(map => map.id === id);
+    const showBoundsPreview = enabled && previousMap?.type === 'obf' && !previousMap.enabled;
+    this.obfBoundsPreview.set(null);
     const updated = await this.desktop.OfflineMap.setEnabledBatch([{ id, enabled }]);
     this.offlineMaps.set(this.mergeObfMetadata(updated));
+    if (showBoundsPreview) {
+      const activatedMap = this.offlineMaps().find(map => map.id === id);
+      if (activatedMap) this.obfBoundsPreview.set(this.createObfBoundsPreview(activatedMap));
+    }
     this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
@@ -4478,6 +4539,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly setAllOfflineEnabled = async (enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
+    this.obfBoundsPreview.set(null);
     const visibleMaps = this.filteredOffline().filter(map => map.available);
     const visibleHillshade = this.filteredHillshadeDatabases();
     if (visibleMaps.length === 0 && visibleHillshade.length === 0) return;
