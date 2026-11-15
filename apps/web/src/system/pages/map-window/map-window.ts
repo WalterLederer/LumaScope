@@ -2988,7 +2988,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.renderInitStatus.set('Loading offline map for location fixing…');
     try {
       await this.initialize(48.2082, 16.3738);
-      if (generation === this.mapSourceGeneration && this.fixLocationEnabled()) {
+      if (this.fixLocationEnabled()) {
         this.map?.invalidateSize();
         this.offlineRenderer?.map.resize();
         this.renderInitStatus.set('');
