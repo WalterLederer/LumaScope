@@ -1,5 +1,12 @@
 # Offline resource package format
 
+## Unified OfflineFiles configuration
+
+All configured offline paths are stored together in `offlineMaps.filePaths`. Each entry contains a `type`, `path`, `enabled` flag and cached `size` in bytes. Resource-folder entries store the recursive total for the folder; ordinary map, Hillshade and theme-file entries store the file size. The cached size is refreshed when files are added or when the resource package is scanned, rather than recursively recalculated whenever the Location window opens.
+
+The supported types are `mbtiles`, `obf`, `mapsforge-map`, `hillshade`, `valhalla-config`, `osmand-resources`, `mapsforge-theme-folder` and `mapsforge-theme`. Mapsforge theme entries additionally retain the theme name and XML source path so multiple themes in the same folder remain distinct. Existing configurations using the former `osmand`, `valhalla` and `mapsforge` path properties are migrated automatically when settings are loaded; non-path preferences such as the OsmAnd rendering style remain in their respective sections.
+
+
 [Back to README](../README.md)
 
 This page describes the **external map and routing data folder** selected with **Open resource package…** in the **OfflineFiles** tab. It is a data-layout guide for files that LumaScope discovers and uses at runtime. It is not a build guide: compiling LumaScope, its native helpers or the Mapsforge renderer is covered separately in [Build from source](build-from-source.md).
