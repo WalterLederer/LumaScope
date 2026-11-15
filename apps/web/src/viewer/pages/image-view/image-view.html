@@ -238,7 +238,9 @@
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section><button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
+      <section class="magnifier-section">
+        <button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
+        <label class="magnifier-enable-toggle"><input type="checkbox" [checked]="loupeEnabled()" (change)="toggleLoupe($any($event.target).checked)"/> Enable magnifier</label>
         @if(sidebarSectionExpanded('loupe')) {
           <button class="section-heading" (click)="toggleSidebarSection('magnifierSettings')"><span class="section-chevron">{{sidebarSectionExpanded('magnifierSettings') ? 'v' : '>'}}</span>Magnifier Settings</button>
           @if(sidebarSectionExpanded('magnifierSettings')) {
