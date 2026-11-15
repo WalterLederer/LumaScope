@@ -15,6 +15,7 @@ $source = (Resolve-Path -LiteralPath $Source).Path
 $requiredFiles = @(
     'osmand_render_helper.exe',
     'osmand_atlas_render_helper.exe',
+    'osmand_search_helper.exe',
     'Qt6Core.dll',
     'Qt6Gui.dll',
     'Qt6Widgets.dll',
@@ -47,6 +48,13 @@ $atlasMetadataUsage = (& $atlasHelper --obf-metadata 2>&1 | Out-String)
 $atlasMetadataExitCode = $LASTEXITCODE
 if ($atlasMetadataExitCode -ne 2 -or $atlasMetadataUsage -notmatch '--obf-metadata requires an OBF path JSON file and resources root') {
     throw "The Atlas helper in '$source' does not support OBF metadata mode. Rebuild osmand_atlas_render_helper from the current LumaScope tools source before packaging."
+}
+
+$searchHelper = Join-Path $source 'osmand_search_helper.exe'
+$searchUsage = (& $searchHelper 2>&1 | Out-String)
+$searchExitCode = $LASTEXITCODE
+if ($searchExitCode -ne 2 -or $searchUsage -notmatch '--search') {
+    throw "The OsmAnd search helper in '$source' is outdated. Rebuild osmand_search_helper from the current LumaScope tools source."
 }
 
 $destinationPath = [IO.Path]::GetFullPath($Destination)
