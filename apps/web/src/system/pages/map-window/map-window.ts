@@ -2168,7 +2168,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
       const savedOfflineFileEntries = Array.isArray(offlineSettings?.['filePaths'])
-        ? offlineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+        ? offlineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
         : [];
       const savedResourceEntries: import('internal-api').ResourcePackageEntry[] = savedOfflineFileEntries.flatMap(entry => {
         if (!entry.path || typeof entry.size !== 'number') return [];
@@ -2298,7 +2298,7 @@ export class MapWindow implements OnInit, OnDestroy {
           const settings = await this.desktop!.ProcessManager.getAppSettings();
           const osmand = settings['osmand'] as Record<string, unknown> | undefined;
           const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
-            ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+            ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
             : [];
           const resourcesPath = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
           this.osmAndResourcesPath.set(resourcesPath);
@@ -3657,7 +3657,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.resourcePackageEntries.set(scan.resourceEntries ?? []);
       const settings = await this.desktop.ProcessManager.getAppSettings();
       const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
-        ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+        ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
         : [];
       const valhallaBefore = await this.desktop.Valhalla.getRuntimeStatus();
       const existingResources = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
