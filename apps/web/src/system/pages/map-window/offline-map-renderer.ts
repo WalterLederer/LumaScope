@@ -149,7 +149,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
       return { data: bitmap };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const cancelled = abortController.signal.aborted || /\\b(cancelled|canceled|aborted)\\b/i.test(message);
+      const cancelled = abortController.signal.aborted || /\b(cancelled|canceled|aborted)\b/i.test(message);
       emitOsmAndTileStatus({ ...tileCoordinates, status: cancelled ? 'cancelled' : 'error', error: message });
       if (cancelled) {
         const empty = new Uint8ClampedArray(512 * 512 * 4);
