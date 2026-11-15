@@ -183,8 +183,8 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
     const column = ((requestedColumn % tileCount) + tileCount) % tileCount;
     const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column, row };
     if (row < 0 || row >= tileCount) {
-      const empty = new Uint8ClampedArray(512 * 512 * 4);
-      return { data: await createImageBitmap(new ImageData(empty, 512, 512)) };
+      const empty = new Uint8ClampedArray(256 * 256 * 4);
+      return { data: await createImageBitmap(new ImageData(empty, 256, 256)) };
     }
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
@@ -197,7 +197,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       // this state with "Loading cached tile …" as soon as the lookup returns.
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
       try {
-        tile = await desktop.OsmAndAtlas.renderTile(zoom + 1, column * 2, row * 2, displayScale);
+        tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message)) {
@@ -218,9 +218,9 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         emitOsmAndTileStatus({ ...tileCoordinates, status: 'diagnostic', error: diagnostic });
       }
       if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
-      // Atlas returns one 512px frame at the same geographic extent as this
-      // MapLibre tile, avoiding the previous 2x supersampled framebuffer.
-      if (tile.width !== 512
+      // Atlas returns one native 256px frame at the same geographic extent as this
+      // MapLibre tile, avoiding the previous 2x2 metatile framebuffer.
+      if (tile.width !== 256
         || tile.height !== tile.width
         || tile.stride !== tile.width * 4
         || tile.pixels.byteLength !== tile.width * tile.height * 4) {
@@ -2383,14 +2383,14 @@ export class OfflineMapRenderer {
     if (!visibleTiles.length) return 0;
 
     if (this.tileProtocol === 'osmand-atlas') {
-      // One MapLibre tile maps to one 512px Atlas metatile.
+      // One MapLibre tile maps directly to one 256px Atlas tile.
       onProgress?.(0, visibleTiles.length);
       let completed = 0;
       const forcedResults = await Promise.all(visibleTiles.map(async ({ x, y }) => {
         const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column: x, row: y };
         emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
         try {
-          const result = await renderAtlasTile(zoom + 1, x * 2, y * 2, displayScale, true);
+          const result = await renderAtlasTile(zoom, x, y, displayScale, true);
           emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
           onProgress?.(++completed, visibleTiles.length);
           return result;
