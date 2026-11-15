@@ -848,9 +848,9 @@ export class OsmAndAtlasManager {
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
     });
-    if (result.canceled || !result.paths.length) return this.getHillshadeDatabases();
+    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabases();
     const byId = new Map(this.hillshadeDatabases.map(item => [item.id, item]));
-    for (const selectedPath of result.paths) {
+    for (const selectedPath of result.filePaths) {
       if (!existsSync(selectedPath) || !/\.(?:sqlitedb|sqlite|db)$/i.test(selectedPath)) continue;
       const id = createHash('sha1').update(selectedPath.toLowerCase()).digest('hex').slice(0, 16);
       if (!byId.has(id)) byId.set(id, { id, path: selectedPath, enabled: true });
