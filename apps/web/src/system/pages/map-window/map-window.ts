@@ -137,17 +137,26 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              @if (!coordinatesAvailable()) {
-                <details class="fix-location-section">
-                  <summary class="settings-row-title">Fix location</summary>
-                  <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
-                  <div class="offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
-                  <div class="location-actions">
-                    <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
-                    @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+              <details class="fix-location-section" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
+                <summary class="settings-row-title">Fix location</summary>
+                <div class="fix-photo-preview">
+                  @if (currentImagePreview()) {
+                    <img [src]="currentImagePreview()" [alt]="currentImageName()" />
+                  } @else {
+                    <div class="fix-photo-preview-empty">Photo preview unavailable</div>
+                  }
+                  <div class="fix-photo-preview-info">
+                    <strong>{{ currentImageName() || 'No photo selected' }}</strong>
+                    <span>{{ coordinatesAvailable() ? 'GPS coordinates already available' : 'No GPS coordinates in this photo' }}</span>
                   </div>
-                </details>
-              }
+                </div>
+                <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
+                <div class="offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                <div class="location-actions">
+                  <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
+                  @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+                </div>
+              </details>
               <details class="offline-address-search">
                 <summary class="settings-row-title">Offline address search</summary>
                 <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
@@ -2476,6 +2485,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
   protected readonly fixLocationEnabled = signal(false);
+  protected readonly fixLocationSectionOpen = signal(true);
+  protected readonly currentImagePreview = signal<string | null>(null);
+  protected readonly currentImageName = signal('');
+  private imagePreviewGeneration = 0;
   protected readonly gpsSaveBusy = signal(false);
   protected readonly gpsSaveStatus = signal('');
   protected readonly locationAddress = signal('');
@@ -2844,6 +2857,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const previousImagePath = this.currentImagePath;
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
+      void this.loadCurrentImagePreview(this.currentImagePath);
       this.applyCurrentPhotoVisibility();
       if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
@@ -2999,6 +3013,23 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  private async loadCurrentImagePreview(imagePath: string | null): Promise<void> {
+    const generation = ++this.imagePreviewGeneration;
+    this.currentImagePreview.set(null);
+    this.currentImageName.set(imagePath ? imagePath.split(/[\\/]/).pop() ?? imagePath : '');
+    if (!imagePath || !this.desktop) return;
+    try {
+      const preview = await this.desktop.MapWindow.getImagePreview(imagePath);
+      if (generation === this.imagePreviewGeneration && imagePath === this.currentImagePath) {
+        this.currentImagePreview.set(preview);
+      }
+    } catch (error) {
+      if (generation === this.imagePreviewGeneration) {
+        console.warn('[Location] Could not load the current photo preview:', error);
+      }
+    }
+  }
+
   protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!(this.map || this.offlineRenderer) && !!this.desktop;
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
@@ -3020,7 +3051,7 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.lookupLocationAddress(center.lat, center.lng);
       this.marker?.setLatLng([center.lat, center.lng]);
       this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
-      this.fixLocationEnabled.set(false);
+
       this.gpsSaveStatus.set('GPS position saved to image file.');
     } catch (error) {
       this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
