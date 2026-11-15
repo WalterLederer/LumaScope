@@ -1790,8 +1790,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapBoundsLayers = [];
   }
   private applyMapBoundsVisibility(): void {
-    const zoom = this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? Number.POSITIVE_INFINITY;
-    const visible = this.mapBoundsVisible() && this.canShowMapBounds() && zoom < 10;
+    // MapLibre layer maxzoom keeps the OBF bounds visible only below zoom 10.
+    const visible = this.mapBoundsVisible() && this.canShowMapBounds();
     const bounds = this.getActiveOfflineMapBounds();
     this.offlineRenderer?.setMapBoundsOverlay(bounds, visible);
     this.clearMapBoundsLayers();
