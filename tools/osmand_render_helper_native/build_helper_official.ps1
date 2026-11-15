@@ -1,5 +1,6 @@
 param(
     [string]$OsmAndWorkspaceRoot = "",
+    [string]$ResourcesRoot = "",
     [string]$QtRoot = "C:\Qt\6.12.0\mingw_64",
     [string]$MinGWRoot = "C:\Qt\Tools\mingw1310_64",
     [string]$CMakeExe = "C:\Qt\Tools\CMake_64\bin\cmake.exe",
@@ -31,7 +32,16 @@ function Ensure-Junction {
         if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
             throw "Path already exists and is not a junction: $LinkPath"
         }
-        return
+
+        $existingTarget = $item.Target
+        if ($existingTarget -is [array]) {
+            $existingTarget = $existingTarget[0]
+        }
+        if ($existingTarget -and ([IO.Path]::GetFullPath($existingTarget) -ieq [IO.Path]::GetFullPath($TargetPath))) {
+            return
+        }
+
+        Remove-Item -LiteralPath $LinkPath -Force
     }
 
     New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
@@ -201,9 +211,13 @@ Assert-Exists (Join-Path $vendorRoot "core")
 Assert-Exists (Join-Path $vendorRoot "core-legacy")
 Assert-Exists (Join-Path $vendorRoot "resources")
 
-$resourcesRoot = Join-Path $vendorRoot "resources"
+if (-not $ResourcesRoot) {
+    $ResourcesRoot = Join-Path $vendorRoot "resources"
+}
+$resourcesRoot = [IO.Path]::GetFullPath($ResourcesRoot)
 $resourcesCMakeLists = Join-Path $resourcesRoot "CMakeLists.txt"
 $resourcesBundleCMake = Join-Path $resourcesRoot "resources-bundle.cmake"
+Assert-Exists $resourcesRoot
 Assert-Exists $resourcesCMakeLists
 
 if (-not (Test-Path -LiteralPath $resourcesBundleCMake -PathType Leaf)) {
@@ -238,7 +252,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $workspaceRoot "binaries") 
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "build") -TargetPath $officialBuildRoot
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "OsmAnd-core") -TargetPath (Join-Path $vendorRoot "core")
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "OsmAnd-core-legacy") -TargetPath (Join-Path $vendorRoot "core-legacy")
-Ensure-Junction -LinkPath (Join-Path $workspaceRoot "OsmAnd-resources") -TargetPath (Join-Path $vendorRoot "resources")
+Ensure-Junction -LinkPath (Join-Path $workspaceRoot "OsmAnd-resources") -TargetPath $resourcesRoot
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "core") -TargetPath (Join-Path $workspaceRoot "OsmAnd-core")
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "core-legacy") -TargetPath (Join-Path $workspaceRoot "OsmAnd-core-legacy")
 Ensure-Junction -LinkPath (Join-Path $workspaceRoot "resources") -TargetPath (Join-Path $workspaceRoot "OsmAnd-resources")
