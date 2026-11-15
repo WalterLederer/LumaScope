@@ -35,6 +35,41 @@
 
 namespace
 {
+#ifdef _WIN32
+volatile LONG g_diagnosticRequestId = 0;
+volatile LONG g_diagnosticStage = 0;
+char g_diagnosticRequestContext[512] = "no render request active";
+
+LONG WINAPI atlasUnhandledExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
+{
+    char message[1024]{};
+    const auto* record = exceptionInfo && exceptionInfo->ExceptionRecord
+        ? exceptionInfo->ExceptionRecord : nullptr;
+    const auto exceptionCode = record ? record->ExceptionCode : 0u;
+    const auto exceptionAddress = record ? record->ExceptionAddress : nullptr;
+    const auto stage = InterlockedCompareExchange(&g_diagnosticStage, 0, 0);
+    const auto requestId = InterlockedCompareExchange(&g_diagnosticRequestId, 0, 0);
+    const auto length = std::snprintf(
+        message, sizeof(message),
+        "[atlas-helper][FATAL] pid=%lu exception=0x%08lX address=%p request=%ld stage=%ld context=%s\\r\\n",
+        static_cast<unsigned long>(GetCurrentProcessId()),
+        static_cast<unsigned long>(exceptionCode),
+        exceptionAddress,
+        static_cast<long>(requestId),
+        static_cast<long>(stage),
+        g_diagnosticRequestContext);
+    const HANDLE errorHandle = GetStdHandle(STD_ERROR_HANDLE);
+    if (errorHandle != nullptr && errorHandle != INVALID_HANDLE_VALUE && length > 0)
+    {
+        DWORD written = 0;
+        WriteFile(errorHandle, message,
+            static_cast<DWORD>(std::min<int>(length, static_cast<int>(sizeof(message) - 1))),
+            &written, nullptr);
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 constexpr int kFramePollIntervalMs = 100;
 constexpr int kFrameTimeoutMs = 30000;
 constexpr int kMaximumDimension = 8192;
@@ -397,6 +432,15 @@ int main(int argc, char* argv[])
 
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
+#ifdef _WIN32
+    SetUnhandledExceptionFilter(atlasUnhandledExceptionFilter);
+    std::cerr << "[atlas-helper] process_started pid=" << GetCurrentProcessId()
+              << " obf_count=" << obfPaths.size()
+              << " display_scale=" << displayScale << std::endl;
+#else
+    std::cerr << "[atlas-helper] process_started obf_count=" << obfPaths.size()
+              << " display_scale=" << displayScale << std::endl;
+#endif
 
     const OsmAndNativeMapWidget::Configuration configuration{
         obfPaths,
@@ -418,6 +462,10 @@ int main(int argc, char* argv[])
         return 3;
     }
 
+#ifdef _WIN32
+    std::cerr << "ATLAS_INIT pid=" << GetCurrentProcessId()
+              << " obf_count=" << obfPaths.size() << std::endl;
+#endif
     std::cerr << "ATLAS_INIT display_scale=" << displayScale << std::endl;
     std::cerr << "ATLAS_INIT widget_create_ms=" << widgetCreationTimer.elapsed() << std::endl;
 
@@ -467,7 +515,9 @@ int main(int argc, char* argv[])
             bool rendererIdle = false;
             bool frameInvalidated = true;
             QString captureError;
-
+#ifdef _WIN32
+            InterlockedExchange(&g_diagnosticStage, 5);
+#endif
             const auto stateChecked = widget->isFrameReady(
                 rendererIdle, frameInvalidated, captureError);
 
@@ -484,9 +534,15 @@ int main(int argc, char* argv[])
                 int height = 0;
                 int stride = 0;
 
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticStage, 6);
+#endif
                 const auto captured = widget->grabFrameRgba(
                     rgba, width, height, stride,
                     rendererIdle, frameInvalidated, captureError);
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticStage, 7);
+#endif
 
                 if (captured && rendererIdle && !frameInvalidated)
                 {
@@ -519,12 +575,22 @@ int main(int argc, char* argv[])
                         std::memcpy(destination, source, static_cast<std::size_t>(croppedStride));
                     }
 
+                    std::cerr << "[atlas-helper] frame_captured request=" << activeRequestId
+                              << " source=" << width << "x" << height
+                              << " output=" << activeOutputWidth << "x" << activeOutputHeight
+                              << " elapsed_ms=" << requestTimer.elapsed() << std::endl;
                     writeRgbaFrame(
                         activeRequestId,
                         cropped,
                         activeOutputWidth,
                         activeOutputHeight,
                         croppedStride);
+#ifdef _WIN32
+                    InterlockedExchange(&g_diagnosticStage, 0);
+                    InterlockedExchange(&g_diagnosticRequestId, 0);
+                    std::snprintf(g_diagnosticRequestContext, sizeof(g_diagnosticRequestContext),
+                        "no render request active");
+#endif
                     return;
                 }
             }
@@ -661,6 +727,14 @@ int main(int argc, char* argv[])
                 requestActive = true;
                 activeRequestId = requestId;
                 requestTimer.restart();
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticRequestId, static_cast<LONG>(requestId));
+                InterlockedExchange(&g_diagnosticStage, 1);
+                std::snprintf(g_diagnosticRequestContext, sizeof(g_diagnosticRequestContext),
+                    "request=%u lon=%.9f lat=%.9f zoom=%.6f size=%dx%d obf_count=%d",
+                    requestId, longitude, latitude, zoom, requestedWidth, requestedHeight,
+                    static_cast<int>(obfPaths.size()));
+#endif
 
                 activeOutputWidth = requestedWidth;
                 activeOutputHeight = requestedHeight;
@@ -668,12 +742,22 @@ int main(int argc, char* argv[])
                 activeOverscanY = std::min(requestedOverscan, safeVerticalOverscan);
                 const auto renderWidth = requestedWidth + activeOverscanX * 2;
                 const auto renderHeight = requestedHeight + activeOverscanY * 2;
-                std::cerr << "ATLAS_RENDER request=" << requestId
+#ifdef _WIN32
+                std::cerr << "ATLAS_RENDER pid=" << GetCurrentProcessId();
+#endif
+                std::cerr << " request=" << requestId
+                          << " lon=" << longitude << " lat=" << latitude
                           << " requested=" << requestedWidth << "x" << requestedHeight
                           << " framebuffer=" << renderWidth << "x" << renderHeight
                           << " overscan=" << activeOverscanX << "x" << activeOverscanY
                           << " zoom=" << compensatedZoom << std::endl;
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticStage, 2);
+#endif
                 widget->resize(renderWidth, renderHeight);
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticStage, 3);
+#endif
 
                 if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr)
                 {
@@ -697,10 +781,16 @@ int main(int argc, char* argv[])
                         << std::endl;
                 }
 
+#ifdef _WIN32
+                InterlockedExchange(&g_diagnosticStage, 4);
+#endif
                 widget->setZoomLevel(compensatedZoom);
                 widget->setCenterLonLat(longitude, latitude);
                 widget->update();
                 captureTimer.start();
+                std::cerr << "[atlas-helper] render_submitted request=" << requestId
+                          << " framebuffer=" << renderWidth << "x" << renderHeight
+                          << std::endl;
             }, Qt::QueuedConnection);
             if (quitRequested)
                 break;
