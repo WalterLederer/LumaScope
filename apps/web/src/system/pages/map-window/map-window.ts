@@ -10,6 +10,8 @@ interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsF
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface ObfBoundsPreview { name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }>; }
+type BoundsMapKind = 'world' | 'europe';
+interface BoundsMapView { x: number; y: number; width: number; height: number; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpacity(opacity: number): LeafletGridLayer; redraw(): LeafletGridLayer; on(event: 'load', callback: () => void): LeafletGridLayer; remove(): void; }
 interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpacity(opacity: number): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
@@ -32,6 +34,7 @@ interface LeafletMapApi {
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): LeafletTileLayer;
   GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
   polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown } };
+  polygon(points: [number, number][], options: { color: string; weight: number; opacity: number; fillColor: string; fillOpacity: number }): { addTo(map: MapInstance): { remove(): void } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
   markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean; iconCreateFunction?: (cluster: MapMarkerCluster) => unknown }): MapMarkerGroup;
@@ -676,6 +679,7 @@ interface MapErrorEntry {
         </div>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
+        <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)"> Show map bounds</label>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
@@ -1103,7 +1107,9 @@ interface MapErrorEntry {
                 <div class="obf-bounds-map-grid">
                   <div class="obf-bounds-map-panel">
                     <strong>World</strong>
-                    <svg class="obf-bounds-world-map" viewBox="0 0 360 180" role="img" [attr.aria-label]="'World map showing bounds for ' + preview.name">
+                    <svg class="obf-bounds-world-map" [class.is-panning]="boundsMapIsPanning('world')" [attr.viewBox]="boundsMapViewBox('world')" role="img" [attr.aria-label]="'World map showing bounds for ' + preview.name"
+                         (wheel)="zoomBoundsMap($event, 'world')" (pointerdown)="startBoundsMapPan($event, 'world')"
+                         (pointermove)="moveBoundsMapPan($event)" (pointerup)="endBoundsMapPan($event)" (pointercancel)="endBoundsMapPan($event)">
                       <image href="world-map.svg" x="0" y="0" width="360" height="180" preserveAspectRatio="none"></image>
                       @for (rectangle of preview.rectangles; track $index) {
                         <rect [attr.x]="rectangle.x" [attr.y]="rectangle.y" [attr.width]="rectangle.width" [attr.height]="rectangle.height"
@@ -1113,7 +1119,9 @@ interface MapErrorEntry {
                   </div>
                   <div class="obf-bounds-map-panel">
                     <strong>Europe</strong>
-                    <svg class="obf-bounds-europe-map" viewBox="850 70 500 350" role="img" [attr.aria-label]="'Europe map showing bounds for ' + preview.name">
+                    <svg class="obf-bounds-europe-map" [class.is-panning]="boundsMapIsPanning('europe')" [attr.viewBox]="boundsMapViewBox('europe')" role="img" [attr.aria-label]="'Europe map showing bounds for ' + preview.name"
+                         (wheel)="zoomBoundsMap($event, 'europe')" (pointerdown)="startBoundsMapPan($event, 'europe')"
+                         (pointermove)="moveBoundsMapPan($event)" (pointerup)="endBoundsMapPan($event)" (pointercancel)="endBoundsMapPan($event)">
                       <image href="world-map.svg" x="0" y="0" width="2000" height="1001" preserveAspectRatio="none"></image>
                       @for (rectangle of preview.rectangles; track $index) {
                         <rect [attr.x]="rectangle.x * 5.5555556" [attr.y]="rectangle.y * 5.5611111"
@@ -1396,7 +1404,7 @@ interface MapErrorEntry {
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
     .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}.hillshade-format-tag{background:#514078;color:#e4d8ff}.resource-package-format-tag{background:#3f5268;color:#e2f2ff}.resource-valhalla-tag{background:#665000;color:#fff0a6}.resource-osmand-tag{background:#174b78;color:#c8e5ff}.resource-mapsforge-tag{background:#65451f;color:#ffe0ad}.resource-valhalla-row{background:rgba(150,112,0,.20)}.resource-osmand-row{background:rgba(56,139,253,.10)}.resource-mapsforge-row{background:rgba(46,160,67,.07)}.offline-map-list-filter option.obf-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.mbtiles-filter-option{background:#245b35;color:#c9f7d2;font-weight:700}.offline-map-list-filter option.mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.offline-map-list-filter option.hillshade-filter-option{background:#514078;color:#e4d8ff;font-weight:700}.offline-map-list-filter option.resource-valhalla-filter-option{background:#713b83;color:#f1dcff;font-weight:700}.offline-map-list-filter option.resource-osmand-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.resource-mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.mbtiles-map-table tbody tr.resource-valhalla-row{background:rgba(150,112,0,.20)}.mbtiles-map-table tbody tr.resource-osmand-row{background:rgba(56,139,253,.10)}.mbtiles-map-table tbody tr.resource-mapsforge-row{background:rgba(46,160,67,.07)}.hillshade-map-row{background:rgba(139,92,246,.09)}.offline-file-status-cell{font-size:11px;white-space:nowrap}.offline-file-status-column{min-width:82px}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .obf-bounds-preview{display:flex;flex-direction:column;gap:8px;width:min(1100px,100%);margin:12px 0 4px;padding:9px 11px;border:1px solid var(--color-content-default-low,#56616a);border-radius:6px;background:var(--color-surface-default-medium,#292f36);box-sizing:border-box}.obf-bounds-preview-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:11px}.obf-bounds-preview-heading span{color:var(--color-content-default-medium,#b6c0c8);font-variant-numeric:tabular-nums}.obf-bounds-map-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}.obf-bounds-map-panel{display:flex;flex-direction:column;gap:5px;min-width:0}.obf-bounds-map-panel>strong{font-size:11px;color:var(--color-content-default-medium,#c5cbd3)}.obf-bounds-world-map,.obf-bounds-europe-map{display:block;width:100%;height:auto;border-radius:4px;border:1px solid rgba(180,200,210,.35);background:#b9dff0}.obf-bounds-world-map{aspect-ratio:2/1}.obf-bounds-europe-map{aspect-ratio:10/7}@media(max-width:760px){.obf-bounds-map-grid{grid-template-columns:minmax(0,1fr)}}
+    .obf-bounds-preview{display:flex;flex-direction:column;gap:8px;width:min(1100px,100%);margin:12px 0 4px;padding:9px 11px;border:1px solid var(--color-content-default-low,#56616a);border-radius:6px;background:var(--color-surface-default-medium,#292f36);box-sizing:border-box}.obf-bounds-preview-heading{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:11px}.obf-bounds-preview-heading span{color:var(--color-content-default-medium,#b6c0c8);font-variant-numeric:tabular-nums}.obf-bounds-map-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start}.obf-bounds-map-panel{display:flex;flex-direction:column;gap:5px;min-width:0}.obf-bounds-map-panel>strong{font-size:11px;color:var(--color-content-default-medium,#c5cbd3)}.obf-bounds-world-map,.obf-bounds-europe-map{display:block;width:100%;height:auto;border-radius:4px;border:1px solid rgba(180,200,210,.35);background:#b9dff0;touch-action:none;user-select:none;cursor:grab}.obf-bounds-world-map.is-panning,.obf-bounds-europe-map.is-panning{cursor:grabbing}.obf-bounds-world-map{aspect-ratio:2/1}.obf-bounds-europe-map{aspect-ratio:10/7}@media(max-width:760px){.obf-bounds-map-grid{grid-template-columns:minmax(0,1fr)}}
     .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}
     .download-source-table th{color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943);border-bottom:1px solid var(--color-content-default-low,#454545)}
     .download-source-table td{border-bottom:1px solid var(--color-content-default-low,#454545)}
@@ -1670,6 +1678,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private osmAndStyleChangeGeneration = 0;
   private osmAndStyleRestore: Promise<void> = Promise.resolve();
   private tileLayer: LeafletTileLayer | null = null;
+  private mapBoundsLayers: Array<{ remove(): void }> = [];
   private trackLayers: Array<{ remove(): void }> = [];
   private gpxSegments: [number, number][][] = [];
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
@@ -1690,6 +1699,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
+  protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
   protected readonly renderActiveCount = signal(0);
   protected readonly renderDisplayPending = signal(false);
   protected readonly renderTotalCount = signal(0);
@@ -1750,6 +1760,51 @@ export class MapWindow implements OnInit, OnDestroy {
       leafletControls.style.pointerEvents = 'none';
       const control = leafletControls.querySelector<HTMLElement>('.leaflet-control');
       if (control) control.style.pointerEvents = 'auto';
+    }
+  }
+  protected readonly changeMapBoundsVisible = (visible: boolean): void => {
+    this.mapBoundsVisible.set(visible);
+    this.saveSetting('mapBoundsVisible', visible);
+    this.persistLocationUiState({ mapBoundsVisible: visible });
+    this.applyMapBoundsVisibility();
+  };
+  private getActiveOfflineMapBounds(): Array<[number, number, number, number]> {
+    return this.offlineMaps().flatMap(map => {
+      if (!map.enabled || !map.available || !map.bounds) return [];
+      const values = map.bounds.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return [];
+      const [west, south, east, north] = values;
+      if (west < -180 || west > 180 || east < -180 || east > 180
+        || south < -90 || north > 90 || south > north) return [];
+      return [[west, south, east, north] as [number, number, number, number]];
+    });
+  }
+  private clearMapBoundsLayers(): void {
+    for (const layer of this.mapBoundsLayers) {
+      try { layer.remove(); } catch { /* The previous Leaflet map may already be destroyed. */ }
+    }
+    this.mapBoundsLayers = [];
+  }
+  private applyMapBoundsVisibility(): void {
+    const visible = this.mapBoundsVisible();
+    const bounds = this.getActiveOfflineMapBounds();
+    this.offlineRenderer?.setMapBoundsOverlay(bounds, visible);
+    this.clearMapBoundsLayers();
+    if (!visible || !this.map || !this.leaflet) return;
+    for (const [west, south, east, north] of bounds) {
+      const segments: Array<[number, number]> = east >= west
+        ? [[west, east]]
+        : [[west, 180], [-180, east]];
+      for (const [segmentWest, segmentEast] of segments) {
+        const layer = this.leaflet.polygon([
+          [south, segmentWest], [south, segmentEast],
+          [north, segmentEast], [north, segmentWest]
+        ], {
+          color: '#ff9f1c', weight: 2, opacity: 0.95,
+          fillColor: '#ff9f1c', fillOpacity: 0.22
+        }).addTo(this.map);
+        this.mapBoundsLayers.push(layer);
+      }
     }
   }
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
@@ -1950,6 +2005,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
   protected readonly obfBoundsPreview = signal<ObfBoundsPreview | null>(null);
+  protected readonly boundsMapViews = signal<Record<BoundsMapKind, BoundsMapView>>({
+    world: { x: 0, y: 0, width: 360, height: 180 },
+    europe: { x: 850, y: 70, width: 500, height: 350 }
+  });
+  private boundsMapDrag: {
+    kind: BoundsMapKind; pointerId: number; startX: number; startY: number;
+    startView: BoundsMapView; rect: DOMRect;
+  } | null = null;
   protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'valhalla' | 'osmandResources' | 'mapsforgeTheme' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly filteredResourcePackageEntries = computed(() => {
     const entries = this.resourcePackageEntries();
@@ -2492,6 +2555,10 @@ export class MapWindow implements OnInit, OnDestroy {
         this.scaleVisible.set(saved['scaleVisible']);
         this.applyScaleVisibility();
       }
+      if (typeof saved['mapBoundsVisible'] === 'boolean') {
+        this.mapBoundsVisible.set(saved['mapBoundsVisible']);
+        this.applyMapBoundsVisibility();
+      }
       if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
       if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
@@ -2598,6 +2665,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       const mapsWithMetadata = await this.enrichObfMetadata(maps);
       this.offlineMaps.set(mapsWithMetadata);
+      this.applyMapBoundsVisibility();
 
       if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.mapSourceGeneration++;
@@ -3299,6 +3367,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
+    this.applyMapBoundsVisibility();
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
     renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
@@ -3392,6 +3461,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
+    this.applyMapBoundsVisibility();
 
     // Atlas tiles are rendered asynchronously through the native tile protocol.
     // Reapply the persisted opacity values once the first complete viewport is
@@ -3412,6 +3482,7 @@ export class MapWindow implements OnInit, OnDestroy {
       (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
     );
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    try { renderer.refreshVisibleTiles(); } catch (error) { console.warn('[OsmAnd Atlas] Initial visible-tile refresh failed:', error); }
     this.applyMapColor();
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
@@ -3506,6 +3577,7 @@ export class MapWindow implements OnInit, OnDestroy {
         await this.desktop.Mapsforge.close();
         return;
       }
+      this.applyMapBoundsVisibility();
       const latestLatitude = this.currentLatitude ?? latitude;
       const latestLongitude = this.currentLongitude ?? longitude;
       renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(),
@@ -3610,6 +3682,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
+    this.applyMapBoundsVisibility();
 
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
@@ -3618,6 +3691,7 @@ export class MapWindow implements OnInit, OnDestroy {
       (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
     );
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    try { renderer.refreshVisibleTiles(); } catch (error) { console.warn('[OsmAnd] Initial visible-tile refresh failed:', error); }
     this.applyMapColor();
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
@@ -3645,6 +3719,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
+    this.applyMapBoundsVisibility();
     map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
@@ -4509,6 +4584,71 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  protected readonly boundsMapViewBox = (kind: BoundsMapKind): string => {
+    const view = this.boundsMapViews()[kind];
+    return `${view.x} ${view.y} ${view.width} ${view.height}`;
+  };
+  protected readonly boundsMapIsPanning = (kind: BoundsMapKind): boolean =>
+    this.boundsMapDrag?.kind === kind;
+  private clampBoundsMapView(kind: BoundsMapKind, view: BoundsMapView): BoundsMapView {
+    const base = kind === 'world'
+      ? { width: 360, height: 180, maxX: 360, maxY: 180 }
+      : { width: 500, height: 350, maxX: 2000, maxY: 1001 };
+    const width = Math.max(base.width / 12, Math.min(base.width, view.width));
+    const height = width * base.height / base.width;
+    return {
+      x: Math.max(0, Math.min(base.maxX - width, view.x)),
+      y: Math.max(0, Math.min(base.maxY - height, view.y)),
+      width, height
+    };
+  }
+  protected readonly startBoundsMapPan = (event: PointerEvent, kind: BoundsMapKind): void => {
+    if (event.button !== 0) return;
+    const svg = event.currentTarget as SVGSVGElement;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    event.preventDefault();
+    svg.setPointerCapture(event.pointerId);
+    this.boundsMapDrag = {
+      kind, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
+      startView: { ...this.boundsMapViews()[kind] }, rect
+    };
+  };
+  protected readonly moveBoundsMapPan = (event: PointerEvent): void => {
+    const drag = this.boundsMapDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = (event.clientX - drag.startX) * drag.startView.width / drag.rect.width;
+    const dy = (event.clientY - drag.startY) * drag.startView.height / drag.rect.height;
+    const next = this.clampBoundsMapView(drag.kind, {
+      ...drag.startView, x: drag.startView.x - dx, y: drag.startView.y - dy
+    });
+    this.boundsMapViews.update(views => ({ ...views, [drag.kind]: next }));
+  };
+  protected readonly endBoundsMapPan = (event: PointerEvent): void => {
+    if (!this.boundsMapDrag || this.boundsMapDrag.pointerId !== event.pointerId) return;
+    const svg = event.currentTarget as SVGSVGElement;
+    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+    this.boundsMapDrag = null;
+  };
+  protected readonly zoomBoundsMap = (event: WheelEvent, kind: BoundsMapKind): void => {
+    event.preventDefault();
+    const svg = event.currentTarget as SVGSVGElement;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const current = this.boundsMapViews()[kind];
+    const baseWidth = kind === 'world' ? 360 : 500;
+    const factor = event.deltaY < 0 ? 0.82 : 1.22;
+    const width = Math.max(baseWidth / 12, Math.min(baseWidth, current.width * factor));
+    const height = current.height * width / current.width;
+    const anchorX = current.x + (event.clientX - rect.left) / rect.width * current.width;
+    const anchorY = current.y + (event.clientY - rect.top) / rect.height * current.height;
+    const next = this.clampBoundsMapView(kind, {
+      x: anchorX - (anchorX - current.x) * width / current.width,
+      y: anchorY - (anchorY - current.y) * height / current.height,
+      width, height
+    });
+    this.boundsMapViews.update(views => ({ ...views, [kind]: next }));
+  };
   private createObfBoundsPreview(map: import('internal-api').OfflineMapStatus): ObfBoundsPreview {
     if (!map.obfMetadataAvailable || !map.bounds) {
       return { name: map.name, bounds: map.bounds, zoom: '', error: map.obfMetadataError || 'OsmAnd Core did not provide bounds for this OBF file.', rectangles: [] };
@@ -4524,7 +4664,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // The world-map SVG uses a non-equirectangular projection. Convert latitude
     // to the SVG's vertical coordinate so bounds align with the drawn land areas.
     const toMapY = (latitude: number): number =>
-      500 - Math.sign(latitude) * 500 * Math.pow(Math.abs(latitude) / 90, 1.67);
+      500 - Math.sign(latitude) * 500 * Math.pow(Math.abs(latitude) / 90, 1.54);
     const y = toMapY(north) * 180 / 1001;
     const height = (toMapY(south) - toMapY(north)) * 180 / 1001;
     const zoom = map.minZoom > 0 && map.maxZoom > 0 ? map.minZoom + '–' + map.maxZoom : '';
@@ -4545,6 +4685,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.obfBoundsPreview.set(null);
     const updated = await this.desktop.OfflineMap.setEnabledBatch([{ id, enabled }]);
     this.offlineMaps.set(this.mergeObfMetadata(updated));
+    this.resetLastRenderCountsForViewport();
+    this.applyMapBoundsVisibility();
     if (showBoundsPreview) {
       const activatedMap = this.offlineMaps().find(map => map.id === id);
       if (activatedMap) this.obfBoundsPreview.set(this.createObfBoundsPreview(activatedMap));
