@@ -363,8 +363,15 @@ $qt5CoreShimCMake = To-CMakePath $qt5CoreShim
 $qt5NetworkShimCMake = To-CMakePath $qt5NetworkShim
 
 if (-not $BuildOnly) {
+    # Reconfigure the existing build tree in place. Removing the complete
+    # CMake build directory is unnecessary and can fail when Windows,
+    # antivirus, or another process briefly holds a CMakeScratch file open.
+    # CMake detects changed cache inputs and regenerates its build files.
     if (Test-Path $physicalBuildDir) {
-        Remove-Item -Recurse -Force $physicalBuildDir
+        Write-Host "Reusing existing CMake build directory; CMake will reconfigure it in place."
+    }
+    else {
+        Write-Host "Creating CMake build directory."
     }
 
     & $CMakeExe `
