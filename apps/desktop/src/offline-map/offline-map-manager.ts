@@ -4,7 +4,7 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { getOfflineFileEntries, readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
-export interface OfflineMapStatus { type?:'mbtiles'|'obf'|'mapsforge'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
+export interface OfflineMapStatus { obfMetadataAvailable?:boolean; obfSectionCount?:number; obfSections?:Array<{name:string;minZoom:number;maxZoom:number}>; obfIsBasemap?:boolean; obfMetadataError?:string; type?:'mbtiles'|'obf'|'mapsforge'; updateMatched?:boolean; id:string; available:boolean; enabled:boolean; filePath:string; fileName:string; fileSize:number; lastModified:number; name:string; format:string; minZoom:number; maxZoom:number; bounds:string|null; error:string|null; schema?:'shortbread'|'openmaptiles'; vectorLayers?:string[]; updateAvailable?:boolean|null; updateChecked?:boolean; updateDate?:string|null; updateSource?:string|null; }
 export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'|'mapsforge'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'|'mapsforge'; url:string; }
@@ -391,7 +391,7 @@ export class OfflineMapManager {
   const absolutePath=resolve(filePath);if(extname(absolutePath).toLowerCase()!=='.obf')throw new Error('The selected file must have the .obf extension.');
   if(!existsSync(absolutePath))throw new Error('The selected OBF file does not exist.');if(this.obfFiles.has(absolutePath))return;
   const fileStats=statSync(absolutePath);if(!fileStats.isFile()||fileStats.size<=0)throw new Error('The selected OBF file is empty or invalid.');
-  const fileName=basename(absolutePath);const status:OfflineMapStatus={type:'obf',id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName,fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:fileName.replace(/\\.obf$/i,''),format:'OBF',minZoom:0,maxZoom:22,bounds:null,error:null};
+  const fileName=basename(absolutePath);const status:OfflineMapStatus={type:'obf',id:absolutePath,available:true,enabled:this.enabledByPath.get(absolutePath)??true,filePath:absolutePath,fileName,fileSize:fileStats.size,lastModified:fileStats.mtimeMs,name:fileName.replace(/\\.obf$/i,''),format:'OBF',minZoom:0,maxZoom:0,bounds:null,error:null};
   this.obfFiles.set(absolutePath,status);
  }
  private openFile(filePath:string):void{
