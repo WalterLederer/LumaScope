@@ -184,6 +184,7 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
   const valhalla = isPlainObject(settings['valhalla']) ? settings['valhalla'] : {};
   const mapsforge = isPlainObject(settings['mapsforge']) ? settings['mapsforge'] : {};
   const entries = new Map<string, OfflineFileConfigEntry>();
+  const computedSizes = new Map<string, number>();
   const add = (raw: unknown, fallbackType?: OfflineFileType, active = true): void => {
     if (!isPlainObject(raw) || typeof raw['path'] !== 'string' || !raw['path'].trim()) return;
     const path = raw['path'].trim();
@@ -193,8 +194,10 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
     const name = typeof raw['name'] === 'string' ? raw['name'] : undefined;
     const key = type + '|' + resolve(path).toLocaleLowerCase() + '|' + (sourcePath ? resolve(sourcePath).toLocaleLowerCase() : name ?? '');
     const previous = entries.get(key);
+    const sizeKey = resolve(type === 'valhalla-config' ? dirname(path) : path).toLocaleLowerCase();
     const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
-      ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
+      ? raw['size'] : previous?.size ?? computedSizes.get(sizeKey) ?? offlineEntrySize(type, path);
+    computedSizes.set(sizeKey, size);
     entries.set(key, { type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : active, size, ...(name ? { name } : {}), ...(sourcePath ? { sourcePath } : {}) });
   };
   if (Array.isArray(offline['filePaths'])) {
@@ -317,7 +320,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     };
 
     if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths') && Array.isArray(values['filePaths'])) {
-      const incoming = values['filePaths'].flatMap((raw: unknown) => {
+      const incoming = (values['filePaths'] as unknown[]).flatMap((raw: unknown) => {
         if (typeof raw === 'string') return [{ path: raw, enabled: true }];
         return isPlainObject(raw) ? [raw] : [];
       });
@@ -342,7 +345,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     if (section === 'valhalla') {
       if (Array.isArray(values['configurations'])) {
         const activePath = typeof values['configPath'] === 'string' ? values['configPath'] : '';
-        addOrReplace('valhalla-config', values['configurations'].flatMap((raw: unknown) =>
+        addOrReplace('valhalla-config', (values['configurations'] as unknown[]).flatMap((raw: unknown) =>
           isPlainObject(raw) && typeof raw['path'] === 'string'
             ? [{ path: raw['path'], enabled: raw['path'].toLocaleLowerCase() === activePath.toLocaleLowerCase() }]
             : []
@@ -362,7 +365,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       if (typeof values['themeFolder'] === 'string') addOrReplace('mapsforge-theme-folder', values['themeFolder'] ? [{ path: values['themeFolder'], enabled: true }] : []);
       if (Array.isArray(values['themes'])) {
         const activePath = typeof values['themePath'] === 'string' ? values['themePath'].toLocaleLowerCase() : '';
-        addOrReplace('mapsforge-theme', values['themes'].flatMap((raw: unknown) =>
+        addOrReplace('mapsforge-theme', (values['themes'] as unknown[]).flatMap((raw: unknown) =>
           isPlainObject(raw) && typeof raw['path'] === 'string' && typeof raw['sourcePath'] === 'string'
             ? [{ path: raw['path'], name: typeof raw['name'] === 'string' ? raw['name'] : basename(raw['sourcePath'], extname(raw['sourcePath'])),
                 sourcePath: raw['sourcePath'], enabled: raw['sourcePath'].toLocaleLowerCase() === activePath }]
