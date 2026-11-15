@@ -1021,7 +1021,7 @@ section {
   user-select: none;
 }
 
-.settings-panel details.app-disclosure > summary::marker { font-size: 16px; }
+.settings-panel details.app-disclosure > summary::marker { font-size: 0.75em; }
 .settings-panel details.app-disclosure[open] > summary {
   list-style: disclosure-open;
   margin-bottom: 4px;
