@@ -129,6 +129,8 @@ const api: Desktop = {
     setRenderingStyle: (fileName: string) => ipcRenderer.invoke('OsmAnd.setRenderingStyle', fileName),
     setResourcesPath: (resourcesPath: string) => ipcRenderer.invoke('OsmAnd.setResourcesPath', resourcesPath),
     renderTile: (z: number, x: number, y: number) => ipcRenderer.invoke('OsmAnd.renderTile', z, x, y),
+    setActiveObfMaps: (paths: string[]) => ipcRenderer.invoke('OsmAnd.setActiveObfMaps', paths),
+    cancelRendering: () => ipcRenderer.invoke('OsmAnd.cancelRendering'),
     shutdown: () => ipcRenderer.invoke('OsmAnd.shutdown')
   },
 
@@ -156,6 +158,7 @@ const api: Desktop = {
     setRenderingStyle: (fileName: string) => ipcRenderer.invoke('OsmAndAtlas.setRenderingStyle', fileName),
     setResourcesPath: (resourcesPath: string) => ipcRenderer.invoke('OsmAndAtlas.setResourcesPath', resourcesPath),
     renderTile: (z: number, x: number, y: number, displayScale?: number, forceRender?: boolean) => ipcRenderer.invoke('OsmAndAtlas.renderTile', z, x, y, displayScale, forceRender),
+    setActiveObfMaps: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.setActiveObfMaps', paths),
     cancelRendering: () => ipcRenderer.invoke('OsmAndAtlas.cancelRendering'),
     shutdown: () => ipcRenderer.invoke('OsmAndAtlas.shutdown')
   },
