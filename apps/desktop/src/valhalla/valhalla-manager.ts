@@ -3,7 +3,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
+import { getOfflineFileEntries, readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 export type ValhallaRouteProfile = 'driving-car' | 'cycling-regular' | 'foot-walking';
 
@@ -124,25 +124,14 @@ export class ValhallaManager {
   }
 
   private readSavedConfigPath(): string {
-    const settings = readAppSettings().valhalla as Record<string, unknown> | undefined;
-    const configured = settings?.configPath;
-    return typeof configured === 'string' ? configured : (process.env.LUMASCOPE_VALHALLA_CONFIG || '');
+    const active = getOfflineFileEntries(readAppSettings()).find(entry => entry.type === 'valhalla-config' && entry.enabled);
+    return active?.path ?? (process.env.LUMASCOPE_VALHALLA_CONFIG || '');
   }
 
   private readSavedConfigurations(): ValhallaConfigEntry[] {
-    const settings = readAppSettings().valhalla as Record<string, unknown> | undefined;
-    const saved = Array.isArray(settings?.configurations) ? settings.configurations : [];
-    const entries = saved.flatMap((item: unknown) => {
-      if (!item || typeof item !== 'object') return [];
-      const value = item as Record<string, unknown>;
-      if (typeof value['path'] !== 'string' || !value['path'].trim()) return [];
-      const path = value['path'].trim();
-      return [{ path, name: typeof value['name'] === 'string' ? value['name'] : basename(dirname(path)), available: existsSync(path) }];
-    });
-    if (this.configPath && !entries.some(entry => entry.path.toLowerCase() === this.configPath.toLowerCase())) {
-      entries.unshift({ path: this.configPath, name: basename(dirname(this.configPath)), available: existsSync(this.configPath) });
-    }
-    return entries;
+    return getOfflineFileEntries(readAppSettings())
+      .filter(entry => entry.type === 'valhalla-config')
+      .map(entry => ({ path: entry.path, name: basename(dirname(entry.path)), available: existsSync(entry.path) }));
   }
 
   private async persistConfigurations(): Promise<void> {
