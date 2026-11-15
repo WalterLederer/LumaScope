@@ -191,6 +191,7 @@ $shortBuildDir = "${workspaceDriveRoot}baked\amd64-windows-gcc.qt6"
 $physicalBuildDir = Join-Path $workspaceRoot "baked\amd64-windows-gcc.qt6"
 $helperOutputDir = Join-Path $workspaceRoot "binaries\windows\gcc-amd64\$BuildType"
 $helperOutputPath = Join-Path $helperOutputDir "osmand_render_helper.exe"
+$searchHelperOutputPath = Join-Path $helperOutputDir "osmand_search_helper.exe"
 $nativeWidgetOutputPath = Join-Path $helperOutputDir "osmand_native_widget.dll"
 $localDistDir = Join-Path $projectRoot "dist"
 
@@ -300,12 +301,13 @@ elseif (-not (Test-Path $physicalBuildDir)) {
 }
 
 if (-not $ConfigureOnly) {
-    & $CMakeExe --build $shortBuildDir --target osmand_render_helper osmand_native_widget --config $BuildType --parallel $Jobs
+    & $CMakeExe --build $shortBuildDir --target osmand_render_helper osmand_search_helper osmand_native_widget --config $BuildType --parallel $Jobs
     if ($LASTEXITCODE -ne 0) {
         throw "Official OsmAnd helper build failed with exit code $LASTEXITCODE"
     }
 
     Assert-Exists $helperOutputPath
+    Assert-Exists $searchHelperOutputPath
     Copy-IfPresent -SourcePath (Join-Path $QtRoot "bin\Qt6Core.dll") -DestinationDir $helperOutputDir
     Copy-IfPresent -SourcePath (Join-Path $QtRoot "bin\Qt6Network.dll") -DestinationDir $helperOutputDir
     Copy-IfPresent -SourcePath (Join-Path $MinGWRoot "bin\libgcc_s_seh-1.dll") -DestinationDir $helperOutputDir
@@ -314,6 +316,7 @@ if (-not $ConfigureOnly) {
 
     New-Item -ItemType Directory -Force -Path $localDistDir | Out-Null
     Copy-Item -Path $helperOutputPath -Destination $localDistDir -Force
+    Copy-Item -Path $searchHelperOutputPath -Destination $localDistDir -Force
     if (Test-Path $nativeWidgetOutputPath) {
         Copy-Item -Path $nativeWidgetOutputPath -Destination $localDistDir -Force
     }
