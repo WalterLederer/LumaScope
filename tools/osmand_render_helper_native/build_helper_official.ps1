@@ -346,7 +346,8 @@ if (-not $SkipLegacyProtobuf) {
     $mingwBinBash = To-BashPath (Join-Path $MinGWRoot "bin")
 
     Assert-Exists $legacyProtobufScript
-    & $GitBashExe -lc 'export PATH="${pythonBinBash}:${mingwBinBash}:$PATH"; cd /${workspaceDriveLetter}/core-legacy/externals/protobuf && ./configure.sh'
+    $bashCommand = 'export PATH="' + $pythonBinBash + ':' + $mingwBinBash + ':$PATH"; cd /' + $workspaceDriveLetter + '/core-legacy/externals/protobuf && ./configure.sh'
+    & $GitBashExe -lc $bashCommand
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to prepare legacy protobuf."
     }
