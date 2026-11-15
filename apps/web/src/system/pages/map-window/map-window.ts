@@ -143,7 +143,7 @@ interface MapErrorEntry {
                   <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
                   <div class="offline-map-status">Enable the map, move it until the crosshair marks the photo location, then save the GPS position to the image file.</div>
                   <div class="location-actions">
-                    <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !currentImagePath || !map || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
+                    <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
                     @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
                   </div>
                 </details>
@@ -2992,6 +2992,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
     }
   }
+
+  protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!this.map && !!this.desktop;
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
     if (!this.fixLocationEnabled() || !this.currentImagePath || !this.map || !this.desktop || this.gpsSaveBusy()) return;
