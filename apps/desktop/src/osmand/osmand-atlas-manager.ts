@@ -461,7 +461,7 @@ class OsmAndAtlasWorker {
         }
         if (message.startsWith('[Atlas]')) {
           console.info(message);
-        } else if (message.startsWith('ERROR:') || /\\[FATAL\\]|\\b(error|failed|failure)\\b/i.test(message)) {
+        } else if (message.startsWith('ERROR:') || /\[FATAL\]|\b(error|failed|failure)\b/i.test(message)) {
           this.geometryMessages.push(message);
           if (this.geometryMessages.length > 32) this.geometryMessages.shift();
           console.warn('[Atlas helper]', message);
