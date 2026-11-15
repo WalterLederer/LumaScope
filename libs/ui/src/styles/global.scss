@@ -67,8 +67,7 @@ details.app-disclosure,
 
 details > summary,
 details.app-disclosure > summary,
-.app-disclosure > summary,
-.app-disclosure-heading {
+.app-disclosure > summary {
   display: list-item;
   margin: 0;
   padding: 0;
@@ -83,17 +82,37 @@ details.app-disclosure > summary,
 
 details > summary::marker,
 details.app-disclosure > summary::marker,
-.app-disclosure > summary::marker,
-.app-disclosure-heading::marker {
+.app-disclosure > summary::marker {
   font-size: 16px;
 }
 
 details[open] > summary,
 details.app-disclosure[open] > summary,
-.app-disclosure[open] > summary,
-.app-disclosure-heading.expanded {
+.app-disclosure[open] > summary {
   list-style: disclosure-open;
   margin-bottom: 4px;
+}
+
+/* Button-based disclosures use the same marker size and text gap as native summaries. */
+.app-disclosure-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+}
+.app-disclosure-heading::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 6px;
+  width: 6px;
+  height: 10px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid currentColor;
+  transform-origin: 2px 5px;
+}
+.app-disclosure-heading.expanded::before {
+  transform: rotate(90deg);
 }
 
 /* Disclosure sections are flush; nesting is indicated by indentation, not spacing. */
