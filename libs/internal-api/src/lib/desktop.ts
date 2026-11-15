@@ -444,8 +444,18 @@ export interface OsmAndAtlasRuntimeStatus {
 
 export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
+export interface OsmAndAddressSearchResult {
+  display_name: string;
+  secondary_text: string;
+  longitude: number;
+  latitude: number;
+  source_kind: string;
+  match_kind: string;
+}
+
 export interface DesktopOsmAndAtlas {
   readonly getObfMetadata: (paths: string[]) => Promise<OsmAndObfMetadata[]>;
+  readonly searchAddresses: (paths: string[], query: string, limit?: number) => Promise<OsmAndAddressSearchResult[]>;
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
