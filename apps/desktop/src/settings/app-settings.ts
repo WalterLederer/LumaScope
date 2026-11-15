@@ -403,7 +403,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     // Every path-backed offline resource is stored exactly once in offlineMaps.filePaths.
     settings['offlineMaps'] = {
       ...(isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
-      filePaths: offlineEntries
+      filePaths: offlineEntries.sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }) || (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }))
     };
     removeLegacyOfflinePathSettings(settings);
     if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) delete settings['Maps'];
