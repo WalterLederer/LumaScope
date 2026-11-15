@@ -1545,6 +1545,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderSectionOpen = signal(this.readSetting('renderSectionOpen', 'false') === 'true');
   private readonly activeRenderTiles = new Set<string>();
   private readonly seenRenderTiles = new Set<string>();
+  private renderDisplayFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly currentTileRequestResults = new Map<string, 'pending' | 'cached'>();
   protected readonly totalRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
@@ -1635,6 +1636,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas' && detail.protocol !== 'mapsforge')) return;
     const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loading' || detail.status === 'rerendering') {
+      this.clearRenderDisplayFallback();
       this.renderDisplayPending.set(false);
       this.activeRenderTiles.add(key);
       this.currentTileRequestResults.set(key, 'pending');
@@ -1673,6 +1675,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.renderActiveCount.set(this.activeRenderTiles.size);
     if (this.activeRenderTiles.size === 0 && ['loaded', 'error', 'cancelled', 'warning'].includes(detail.status ?? '')) {
       this.renderDisplayPending.set(true);
+      this.scheduleRenderDisplayFallback();
     }
     if (!expectedProtocol || detail.protocol !== expectedProtocol || !this.renderInitStatus()) return;
     if (detail.status === 'loading') this.renderInitStatus.set('Loading first tile …');
@@ -1683,6 +1686,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!detail || !detail.key) return;
     const key = detail.key;
     if (detail.status === 'loading') {
+      this.clearRenderDisplayFallback();
       this.renderDisplayPending.set(false);
       this.hillshadeDisplayPending.set(false);
       this.completedHillshadeTiles.delete(key);
@@ -1713,10 +1717,31 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.activeHillshadeTiles.size === 0 && ['loaded', 'error', 'cancelled'].includes(detail.status ?? '')) {
       this.hillshadeDisplayPending.set(true);
       this.renderDisplayPending.set(true);
+      this.scheduleRenderDisplayFallback();
     }
   };
+  private clearRenderDisplayFallback(): void {
+    if (this.renderDisplayFallbackTimer !== null) {
+      clearTimeout(this.renderDisplayFallbackTimer);
+      this.renderDisplayFallbackTimer = null;
+    }
+  }
+  private scheduleRenderDisplayFallback(): void {
+    this.clearRenderDisplayFallback();
+    // MapLibre normally emits an idle/display-ready event after uploading the
+    // final tile. Keep the status responsive if that event is skipped while
+    // the map is being resized or another source keeps the map non-idle.
+    this.renderDisplayFallbackTimer = setTimeout(() => {
+      this.renderDisplayFallbackTimer = null;
+      if (this.renderActiveCount() === 0 && this.hillshadeActiveCount() === 0 && !this.rerenderVisibleTilesBusy()) {
+        this.renderDisplayPending.set(false);
+        this.hillshadeDisplayPending.set(false);
+      }
+    }, 1000);
+  }
   private readonly onMapDisplayReady = (): void => {
     if (this.renderActiveCount() === 0 && this.hillshadeActiveCount() === 0 && !this.rerenderVisibleTilesBusy()) {
+      this.clearRenderDisplayFallback();
       this.renderDisplayPending.set(false);
       this.hillshadeDisplayPending.set(false);
     }
@@ -2490,6 +2515,7 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('lumascope-mapsforge-tile-error', this.onMapsforgeTileError);
     window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
+    this.clearRenderDisplayFallback();
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
