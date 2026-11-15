@@ -195,6 +195,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       // progress state before awaiting it; a disk-cache hit below replaces
       // this state with "Loading cached tile …" as soon as the lookup returns.
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
+      const renderStartedAt = performance.now();
       try {
         tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
       } catch (error) {
@@ -232,9 +233,12 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         bitmap.close();
         throw new Error('OsmAnd Atlas tile request was cancelled.');
       }
+      const renderDurationMs = tile.cacheHit ? undefined : performance.now() - renderStartedAt;
+      const isBlankTile = zoom < 8 && isUniformBlankTile(pixels);
       emitOsmAndTileStatus({ ...tileCoordinates,
-        status: zoom < 8 && isUniformBlankTile(pixels) ? 'warning' : 'loaded',
-        ...(zoom < 8 && isUniformBlankTile(pixels) ? { error: 'World_basemap.obf needed' } : {})
+        status: isBlankTile ? 'warning' : 'loaded',
+        ...(renderDurationMs !== undefined ? { renderDurationMs } : {}),
+        ...(isBlankTile ? { error: 'World_basemap.obf needed' } : {})
       });
       return { data: bitmap };
     } catch (error) {
