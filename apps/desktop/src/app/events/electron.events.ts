@@ -973,9 +973,28 @@ ipcMain.handle('Loupe.capture', async () => {
     const monitors = enumerateMonitors();
     const expectedWidth = Math.round(display.bounds.width * display.scaleFactor);
     const expectedHeight = Math.round(display.bounds.height * display.scaleFactor);
+    const monitorDiagnostics = monitors.map((monitor, position) => ({
+      captureIndex: position + 1,
+      reportedIndex: monitor.index,
+      name: monitor.name,
+      deviceName: monitor.deviceName,
+      width: monitor.width,
+      height: monitor.height,
+      handle: monitor.handle
+    }));
+    const displayDiagnostics = displays.map((candidate, position) => ({
+      position,
+      id: candidate.id,
+      bounds: candidate.bounds,
+      scaleFactor: candidate.scaleFactor,
+      physicalWidth: Math.round(candidate.bounds.width * candidate.scaleFactor),
+      physicalHeight: Math.round(candidate.bounds.height * candidate.scaleFactor)
+    }));
 
     // Electron and WGC normally enumerate displays in the same order. If the
     // dimensions show they do not, use the closest physical-size match instead.
+    // ScreenCapture expects the one-based EnumDisplayMonitors position, not
+    // MonitorInfo.index (which can be the Windows DISPLAYn suffix).
     let monitorIndex = displayPosition >= 0 ? displayPosition + 1 : 1;
     const indexedMonitor = monitors[monitorIndex - 1];
     if (
@@ -984,8 +1003,8 @@ ipcMain.handle('Loupe.capture', async () => {
       || Math.abs(indexedMonitor.height - expectedHeight) > 2
     ) {
       const closest = monitors
-        .map(monitor => ({
-          index: monitor.index,
+        .map((monitor, position) => ({
+          index: position + 1,
           score: Math.abs(monitor.width - expectedWidth) + Math.abs(monitor.height - expectedHeight)
         }))
         .sort((a, b) => a.score - b.score)[0];
@@ -993,6 +1012,24 @@ ipcMain.handle('Loupe.capture', async () => {
         monitorIndex = closest.index;
       }
     }
+
+    console.info('[HDR Loupe] Capture diagnostics:', JSON.stringify({
+      os: { version: os.version(), release: os.release(), arch: process.arch },
+      electron: process.versions.electron,
+      node: process.versions.node,
+      captureApiSupport: captureApiSupport(),
+      electronDisplays: displayDiagnostics,
+      wgcMonitors: monitorDiagnostics,
+      selectedDisplay: {
+        id: display.id,
+        position: displayPosition,
+        bounds: display.bounds,
+        scaleFactor: display.scaleFactor,
+        expectedPhysicalSize: { width: expectedWidth, height: expectedHeight }
+      },
+      selectedWgcCaptureIndex: monitorIndex,
+      selectedWgcMonitor: monitorDiagnostics[monitorIndex - 1] ?? null
+    }, null, 2));
 
     phase = 'capture FP16 monitor frame';
     const frame = await captureLoupeFrame(monitorIndex);
@@ -1023,7 +1060,7 @@ ipcMain.handle('Loupe.capture', async () => {
       ).join(' | ')
       : 'GPU/driver information unavailable from Electron';
     throw new Error(
-      `${message}\nDiagnostics: phase=${phase}; OS=${os.version()} [${os.release()}]; Electron=${process.versions.electron}; API=@screen-capture/node; requested format=rgba16F (FP16 / R16G16B16A16_FLOAT); GPU=${gpu}`
+      `${message}\nDiagnostics: phase=${phase}; OS=${os.version()} [${os.release()}]; arch=${process.arch}; Electron=${process.versions.electron}; Node=${process.versions.node}; API=@screen-capture/node; requested format=rgba16F (FP16 / R16G16B16A16_FLOAT); GPU=${gpu}`
     );
   }
 });
