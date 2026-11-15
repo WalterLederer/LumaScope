@@ -46,18 +46,42 @@ ul, li {
   display: block;
 }
 
-/* Consistent disclosure styling across the app. */
+/* Shared disclosure appearance, matching the Location tab sections. */
 details {
-  border-bottom: 1px solid var(--color-content-default-low);
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0 0 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-content-default-low);
+  border-radius: 6px;
+  background: var(--color-surface-default-low);
+  color: var(--color-content-default-high);
 }
 
 details > summary {
   display: list-item;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
   list-style: disclosure-closed;
   cursor: pointer;
+  user-select: none;
+}
+
+details > summary::marker {
+  font-size: 16px;
 }
 
 details[open] > summary {
   list-style: disclosure-open;
+  margin-bottom: 4px;
+}
+
+/* Nested disclosures keep the same title treatment and align to one grid. */
+details details {
+  margin-left: 12px;
 }
 
