@@ -589,6 +589,7 @@ export class OsmAndAtlasManager {
   private styleFileName = this.readSavedStyleFileName();
   private stylePath = this.resourcesPath ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths: string[] = this.getFallbackObfPaths();
+  private runtimeObfSelection = false;
   private obfRefresh: Promise<void> = Promise.resolve();
   private styleChange: Promise<void> = Promise.resolve();
   private readonly environment: NodeJS.ProcessEnv = {
@@ -722,6 +723,7 @@ export class OsmAndAtlasManager {
   }
 
   private async refreshSelectedObf(): Promise<void> {
+    if (this.runtimeObfSelection) return;
     const update = this.obfRefresh.then(async () => {
       let selectedPaths = this.getFallbackObfPaths();
       try {
@@ -916,6 +918,25 @@ export class OsmAndAtlasManager {
     } finally {
       rmSync(configurationDirectory, { recursive: true, force: true });
     }
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.setActiveObfMaps' })
+  readonly setActiveObfMaps = async (_event: Electron.IpcMainInvokeEvent, paths: string[]): Promise<string[]> => {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\\.obf$/i.test(path))) {
+      throw new Error('Active OBF selection must contain valid .obf file paths.');
+    }
+    const selectedPaths = [...new Set(paths.filter(path => existsSync(path)))];
+    this.runtimeObfSelection = true;
+    if (selectedPaths.length === this.obfPaths.length
+      && selectedPaths.every((path, index) => path === this.obfPaths[index])) return [...this.obfPaths];
+    await this.cancelRendering();
+    const previousWorkers = this.workers;
+    this.obfPaths = selectedPaths;
+    this.workers = this.createWorkers();
+    this.nextWorker = 0;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+    console.info('[OsmAnd Atlas] viewport_obf_selection', { count: selectedPaths.length, paths: selectedPaths });
+    return [...this.obfPaths];
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
