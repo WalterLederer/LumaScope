@@ -188,7 +188,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
       const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
-      // One MapLibre 512px tile represents a 2x2 group of 256px Atlas XYZ tiles.
+      // The Atlas source uses native 256px tiles.
       // Shift to the next Atlas zoom and address the NW tile of that 2x2 group.
       let tile: Awaited<ReturnType<Desktop['OsmAndAtlas']['renderTile']>>;
       // The native Atlas render happens inside the IPC call. Publish its
