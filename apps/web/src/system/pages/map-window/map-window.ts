@@ -242,6 +242,7 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
+    <div class="routing-tab-heading"><strong>Route planning</strong><button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">ⓘ</span></button></div>
     <div class="routing-toolbar">
       <div class="routing-name-card">
         <label class="routing-name-label" for="routing-name-input">Route name</label>
@@ -1042,8 +1043,8 @@ interface MapErrorEntry {
     .settings-tab-warning-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(245,190,55,.28);color:#ffd36a;font-size:11px;font-weight:800}
     .settings-tab.has-errors{background:rgba(180,35,35,.24);color:#ff8a80}
     .settings-tab.has-warning{background:rgba(190,145,25,.22);color:#ffd36a}
-    .map-error-panel{display:flex;flex:1 1 auto;flex-direction:column;gap:10px;width:100%;min-width:0;min-height:0;height:calc(100vh - 220px);max-height:calc(100vh - 220px);overflow:hidden}
-    .map-error-list{display:flex;flex:1 1 auto;flex-direction:column;gap:8px;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px}
+    .map-error-panel{display:flex;flex:0 0 auto;flex-direction:column;gap:10px;width:100%;min-width:0;min-height:0;height:auto;max-height:none;overflow:visible}
+    .map-error-list{display:flex;flex:0 1 auto;flex-direction:column;gap:8px;min-width:0;min-height:0;max-height:min(50vh,420px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-right:4px}
     .map-error-entry{min-width:0;padding:8px 10px;border:1px solid rgba(255,120,120,.3);border-radius:5px;background:rgba(120,40,40,.10)}
     .map-error-entry-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .map-error-entry-heading strong{color:#ff8a80}
@@ -1429,6 +1430,7 @@ interface MapErrorEntry {
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
+    .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.routing-help-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;padding:0;border:1px solid #4b9fe0;border-radius:8px;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%);color:#fff;font-size:23px;font-weight:800;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.55);box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22);cursor:pointer}.routing-help-button:hover{filter:brightness(1.18);transform:translateY(-1px)}.routing-help-button:active{transform:translateY(1px);box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d}
     .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-gpx-read-button{margin-left:0}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
@@ -3633,6 +3635,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openResourcePackageHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('resource-package-format.md');
+  };
+
+  protected readonly openRoutingHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('features.md');
   };
 
   protected readonly scanResourcePackage = async (): Promise<void> => {
