@@ -916,7 +916,7 @@ export class OfflineMapRenderer {
   private readonly onOsmAndTileStatus = (event: Event): void => {
     if (!this.tileProtocol) return;
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
-    if (!detail || detail.protocol !== this.tileProtocol) return;
+    if (!this.tileVisualsEnabled || !detail || detail.protocol !== this.tileProtocol) return;
     const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loaded' || detail.status === 'cancelled') {
       this.tileStatuses.delete(key);
