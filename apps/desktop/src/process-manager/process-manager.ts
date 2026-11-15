@@ -11,7 +11,7 @@ import { hideBin } from 'yargs/helpers';
 import App from '../app/app';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { environment } from '../environments/environment';
-import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
+import { migrateOfflineFileSettings, readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 const execFileAsync = promisify(execFile);
 
@@ -153,7 +153,10 @@ export class ProcessManager {
   };
 
   @IpcHandler({ name: 'ProcessManager.getAppSettings' })
-  readonly getAppSettings = async (): Promise<Record<string, unknown>> => readAppSettings();
+  readonly getAppSettings = async (): Promise<Record<string, unknown>> => {
+    await migrateOfflineFileSettings();
+    return readAppSettings();
+  };
 
   @IpcHandler({ name: 'ProcessManager.setAppSettingsSection' })
   readonly setAppSettingsSection = async (_: IpcMainInvokeEvent, section: string, values: Record<string, unknown>): Promise<void> => {
