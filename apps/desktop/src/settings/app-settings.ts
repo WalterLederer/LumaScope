@@ -233,7 +233,7 @@ export const getOfflineFileEntries = (settings: AppSettings = readAppSettings())
 export const migrateOfflineFileSettings = async (): Promise<void> => {
   const userSettings = readUserAppSettings();
   const offline = isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
-  const legacySections = ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
+  const legacySections = userSettings['Maps'] != null || ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
     const section = isPlainObject(userSettings[sectionName]) ? userSettings[sectionName] : {};
     const keys = sectionName === 'osmand' ? ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']
       : sectionName === 'valhalla' ? ['configurations', 'configPath'] : ['themeFolder', 'themePath'];
