@@ -2011,15 +2011,31 @@
 }
 
 
-/* Browse uses the same window area as the image stage, with its controls in a real adjacent column. */
+/* Browse and the controls sidebar share one explicit two-column workspace.
+   Keeping both elements inside this wrapper prevents the sidebar from becoming
+   a second row when Angular renders the conditional sidebar view. */
 :host(.browse-layout) {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   align-items: stretch;
   min-width: 0;
   min-height: 0;
 }
+
+:host(.browse-layout) .browse-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 :host(.browse-layout) app-gallery.gallery-tab-content {
   position: relative !important;
   inset: auto !important;
@@ -2033,6 +2049,7 @@
   min-height: 0;
   z-index: 0;
 }
+
 :host(.browse-layout) .gallery-shell-sidebar {
   position: relative !important;
   inset: auto !important;
@@ -2045,24 +2062,20 @@
   height: 100%;
   min-width: 280px;
   max-width: 70vw;
-  min-height: 0;
-  overflow-y: auto;
+  margin: 0;
   overflow-x: hidden;
   z-index: 1;
 }
+
 :host(.browse-layout) .gallery-shell-sidebar .image-sidebar-tabs {
   display: flex;
   flex-wrap: wrap;
   flex: 0 0 auto;
 }
+
 :host(.browse-layout) .image-status-bar {
   grid-column: 1 / -1;
   grid-row: 2;
-}
-:host .image-empty-stage {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
 }
 
 .image-controls-sidebar.help-tab-active {
