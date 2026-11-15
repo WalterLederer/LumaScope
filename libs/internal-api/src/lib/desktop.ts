@@ -256,7 +256,7 @@ export interface OfflineMapStatus { type?:'mbtiles'|'obf'|'mapsforge'; updateMat
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
 export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbtiles'|'mapsforge'; dateMs:number|null; source:string; url:string; matched:boolean; }
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
-export interface ResourcePackageEntry { type:'valhalla'|'osmand-resources'|'mapsforge-theme'; fileName:string; path:string; fileSize:number; }
+export interface ResourcePackageEntry { type:'valhalla'|'osmand-resources'|'mapsforge-theme'; fileName:string; path:string; sourcePath:string; fileSize:number; }
 export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; resourceEntries:ResourcePackageEntry[]; errors:string[]; }
 export interface DesktopOfflineMap {
  readonly chooseFile:()=>Promise<OfflineMapImportResult>;
