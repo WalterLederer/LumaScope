@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
+import { getOfflineFileEntries, readAppSettings, updateAppSettingsSection } from '../settings/app-settings';
 
 const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
@@ -253,8 +253,7 @@ export class OsmAndManager {
   }
 
   private readSavedResourcesPath(): string {
-    const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
-    return typeof osmand?.resourcesPath === 'string' ? osmand.resourcesPath : '';
+    return getOfflineFileEntries(readAppSettings()).find(entry => entry.type === 'osmand-resources')?.path ?? '';
   }
 
   private readSavedStyleFileName(): string {
