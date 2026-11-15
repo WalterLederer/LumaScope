@@ -13,6 +13,8 @@ export class FileSystem implements DesktopFileSystem {
 
   readonly readDocumentationFile = (fileName: string) => window.desktop.FileSystem.readDocumentationFile(fileName);
 
+  readonly openDocumentationFile = (fileName: string) => window.desktop.FileSystem.openDocumentationFile(fileName);
+
   readonly readDocumentationImage = (fileName: string) => window.desktop.FileSystem.readDocumentationImage(fileName);
 
   readonly writeText = (path: string, content: string) => window.desktop.FileSystem.writeText(path, content);
