@@ -1661,9 +1661,14 @@ ipcMain.handle('MapWindow.openHelpDocument', (_event, fileName: string): boolean
   if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\.md$/i.test(fileName)) return false;
   const mainWindow = App.mainWindow;
   if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return false;
-  mainWindow.webContents.send('MapWindow.openHelpDocument', fileName);
+
+  // The detached map window may be configured as always-on-top. Release that
+  // priority before activating the main window so it cannot cover the Help tab.
+  if (App.isMapWindowOpen()) App.mapWindow.setAlwaysOnTop(false);
+  if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
+  mainWindow.webContents.send('MapWindow.openHelpDocument', fileName);
   return true;
 });
 ipcMain.handle('MapWindow.selectImage', (_event, imagePath: string): boolean => {
