@@ -3546,19 +3546,27 @@ export class MapWindow implements OnInit, OnDestroy {
     // Once the camera settles, give MapLibre a fresh source identity so it
     // requests every tile for the final viewport again.
     let viewportRefreshTimer: number | null = null;
+    let previousViewportZoom = renderer.map.getZoom();
+    let viewportZoomChanged = false;
     renderer.map.on('movestart', () => {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       this.resetLastRenderCountsForViewport();
-      void this.desktop?.OsmAndAtlas.cancelRendering().catch(error =>
-        console.warn('[OsmAnd Atlas] Could not cancel obsolete queued tiles:', error));
     });
     renderer.map.on('moveend', () => {
+      const settledZoom = renderer.map.getZoom();
+      if (Math.abs(settledZoom - previousViewportZoom) > 0.001) {
+        previousViewportZoom = settledZoom;
+        viewportZoomChanged = true;
+      }
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       viewportRefreshTimer = window.setTimeout(() => {
         viewportRefreshTimer = null;
-        void this.desktop?.OsmAndAtlas.cancelRendering().then(() =>
-          this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas')
-        ).then(() => {
+        const cancelObsolete = viewportZoomChanged;
+        viewportZoomChanged = false;
+        const cancel = cancelObsolete
+          ? this.desktop?.OsmAndAtlas.cancelRendering() ?? Promise.resolve()
+          : Promise.resolve();
+        void cancel.then(() => this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas')).then(() => {
           const source = renderer.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
           if (source?.setTiles) source.setTiles(['osmand-atlas://{z}/{x}/{y}?refresh=' + Date.now()]);
         }).catch(error => console.warn('[OsmAnd Atlas] Could not refresh viewport OBF tiles:', error));
@@ -3763,19 +3771,27 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     let obfViewportTimer: number | null = null;
+    let previousObfZoom = renderer.map.getZoom();
+    let obfZoomChanged = false;
     renderer.map.on('movestart', () => {
       if (obfViewportTimer !== null) window.clearTimeout(obfViewportTimer);
       this.resetLastRenderCountsForViewport();
-      void this.desktop?.OsmAnd.cancelRendering().catch(error =>
-        console.warn('[OsmAnd] Could not cancel obsolete tile requests:', error));
     });
     renderer.map.on('moveend', () => {
+      const settledZoom = renderer.map.getZoom();
+      if (Math.abs(settledZoom - previousObfZoom) > 0.001) {
+        previousObfZoom = settledZoom;
+        obfZoomChanged = true;
+      }
       if (obfViewportTimer !== null) window.clearTimeout(obfViewportTimer);
       obfViewportTimer = window.setTimeout(() => {
         obfViewportTimer = null;
-        void this.desktop?.OsmAnd.cancelRendering().then(() =>
-          this.updateActiveObfMapsForViewport(renderer, 'osmand')
-        ).then(() => {
+        const cancelObsolete = obfZoomChanged;
+        obfZoomChanged = false;
+        const cancel = cancelObsolete
+          ? this.desktop?.OsmAnd.cancelRendering() ?? Promise.resolve()
+          : Promise.resolve();
+        void cancel.then(() => this.updateActiveObfMapsForViewport(renderer, 'osmand')).then(() => {
           const source = renderer.map.getSource('osmand') as { setTiles?: (tiles: string[]) => unknown } | undefined;
           if (source?.setTiles) source.setTiles(['osmand://{z}/{x}/{y}?refresh=' + Date.now()]);
         }).catch(error => console.warn('[OsmAnd] Could not refresh viewport OBF tiles:', error));
