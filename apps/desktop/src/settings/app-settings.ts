@@ -402,6 +402,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       filePaths: offlineEntries
     };
     removeLegacyOfflinePathSettings(settings);
+    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) delete settings['Maps'];
     await writeJsonAtomically(settingsPath(), settings);
   });
   writeQueue = operation.catch(() => undefined);
