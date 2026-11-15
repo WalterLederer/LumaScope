@@ -2181,7 +2181,7 @@ export class MapWindow implements OnInit, OnDestroy {
           return [{ type: 'osmand-resources' as const, fileName: '', path: entry.path, sourcePath: entry.path, fileSize: entry.size }];
         }
         if (entry.type === 'mapsforge-theme') {
-          return [{ type: 'mapsforge-theme' as const, fileName: entry.name ?? entry.sourcePath?.replace(/^.*[\\/]/, '').replace(/\\.xml$/i, '') ?? '',
+          return [{ type: 'mapsforge-theme' as const, fileName: entry.name ?? entry.sourcePath?.replace(/^.*[\\/]/, '').replace(/\.xml$/i, '') ?? '',
             path: entry.path, sourcePath: entry.sourcePath ?? entry.path, fileSize: entry.size }];
         }
         return [];
@@ -3739,7 +3739,7 @@ export class MapWindow implements OnInit, OnDestroy {
             themePath: selectedPath,
             themes: themes.map(theme => ({
               path: scan.mapsforgeThemeFolder!,
-              name: theme.fileName.replace(/\\.xml$/i, ''),
+              name: theme.fileName.replace(/\.xml$/i, ''),
               sourcePath: theme.path
             }))
           });
@@ -3789,7 +3789,7 @@ export class MapWindow implements OnInit, OnDestroy {
           refreshedEntries.push({
             type: 'mapsforge-theme',
             path: scan.mapsforgeThemeFolder,
-            name: theme.fileName.replace(/\\.xml$/i, ''),
+            name: theme.fileName.replace(/\.xml$/i, ''),
             sourcePath: theme.path,
             enabled: theme.path === this.mapsforgeThemePath(),
             size: folderSize
