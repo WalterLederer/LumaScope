@@ -55,3 +55,5 @@ Thumbs.db
 
 # Local Electron packaging cache
 /.electron-dist/
+/vendor/osmand
+/tools/mapsforge-renderer/stage/runtime
