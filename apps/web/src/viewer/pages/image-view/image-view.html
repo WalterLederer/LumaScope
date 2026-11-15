@@ -8,7 +8,7 @@
 
 <app-gallery class="gallery-tab-content"
              [style.display]="activeImageSidebarTab() === 'gallery' ? 'grid' : 'none'"
-             [style.margin-right.px]="activeImageSidebarTab() === 'gallery' && controlsSidebarVisible() ? sidebarWidth() + 16 : 0"
+             [style.margin-right.px]="0"
              (imageSelected)="onGalleryImageSelected()" />
 @if (activeImageSidebarTab() === 'gallery') {
   @if (controlsSidebarVisible()) {
