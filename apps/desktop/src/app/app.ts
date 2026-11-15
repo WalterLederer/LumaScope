@@ -37,8 +37,8 @@ export default class App {
   private static triggerCaptureHotkey(channel: string): void {
     if (App.isCapturePreviewWindowOpen()) {
       if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
-      App.capturePreviewWindow.show();
-      App.capturePreviewWindow.focus();
+      // Keep the previously active external window as the foreground capture target.
+      App.capturePreviewWindow.showInactive();
       if (App.capturePreviewWindow.webContents.isLoading()) {
         App.pendingCaptureHotkey = channel;
       } else {
@@ -330,7 +330,9 @@ export default class App {
       const pendingHotkey = App.pendingCaptureHotkey;
       App.pendingCaptureHotkey = null;
       if (pendingHotkey) App.capturePreviewWindow.webContents.send(pendingHotkey);
-      App.capturePreviewWindow.show();
+      // A hotkey-opened preview must not steal focus before Top Window is resolved.
+      if (pendingHotkey) App.capturePreviewWindow.showInactive();
+      else App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.capturePreviewWindow = null;
