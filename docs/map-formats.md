@@ -4,6 +4,10 @@
 
 The Help reference lists **5 map source types**.
 
+## Fixing missing photo GPS coordinates
+
+The Location tab's **Fix location** feature reuses whichever map source is currently selected, including online XYZ and all supported offline sources. It does not perform a separate source selection or fallback. Enable **Allow fixing**, pan the map so the fixed centre crosshair marks the desired position, and use **Save GPS position...** to write the selected coordinates into the image file's GPS EXIF metadata. The current map-source setting is left unchanged.
+
 | Format / source | Extension / source | Online | Renderer | Details |
 | --- | --- | --- | --- | --- |
 | Online map (XYZ tiles) | URL / XYZ tile endpoint | Yes | MapLibre | Online raster or vector tiles loaded from a tile-server URL; requires an internet connection. |
