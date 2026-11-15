@@ -2063,6 +2063,7 @@ export class OfflineMapRenderer {
         id: 'offline-map-bounds-fill',
         type: 'fill',
         source: 'offline-map-bounds',
+        maxzoom: 10,
         paint: {
           'fill-color': '#ff9f1c',
           'fill-opacity': 0.22,
@@ -2075,6 +2076,7 @@ export class OfflineMapRenderer {
         id: 'offline-map-bounds-outline',
         type: 'line',
         source: 'offline-map-bounds',
+        maxzoom: 10,
         paint: {
           'line-color': '#ff9f1c',
           'line-width': 2,
