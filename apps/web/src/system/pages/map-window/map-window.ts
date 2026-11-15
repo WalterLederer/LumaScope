@@ -186,27 +186,30 @@ interface MapErrorEntry {
                   <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
                 </form>
               </details>
-              <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
-              <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
-              <div class="address-settings">
-                <span class="settings-row-title">Address:</span>
-                <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
-              </div>
-              <div class="location-actions">
-                <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
-                <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
-                <label>Open location in
-                  <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
-                    <option value="">Select web app…</option>
-                    <option value="google-earth">Google Earth</option>
-                    <option value="google-maps">Google Maps</option>
-                    <option value="bing-maps">Bing Maps</option>
-                    <option value="openstreetmap">OpenStreetMap</option>
-                    <option value="apple-maps">Apple Maps</option>
-                  </select>
-                </label>
-              </div>
-              <div class="marker-current-appearance-settings">
+              <details class="location-tools-section">
+                <summary class="settings-row-title">Location tools</summary>
+                <div class="location-tools-content">
+                  <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+                  <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
+                  <div class="address-settings">
+                    <span class="settings-row-title">Address:</span>
+                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
+                  </div>
+                  <div class="location-actions">
+                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
+                    <label>Open location in
+                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                        <option value="">Select web app…</option>
+                        <option value="google-earth">Google Earth</option>
+                        <option value="google-maps">Google Maps</option>
+                        <option value="bing-maps">Bing Maps</option>
+                        <option value="openstreetmap">OpenStreetMap</option>
+                        <option value="apple-maps">Apple Maps</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="marker-current-appearance-settings">
                 <span>Location Icon:</span>
                 <label>Shape
                   <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
@@ -227,8 +230,9 @@ interface MapErrorEntry {
                       }
                     </div>
                   }
+                  </div>
                 </div>
-              </div>
+              </details>
             </div>
           </div>
 
@@ -1308,7 +1312,10 @@ interface MapErrorEntry {
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}
-    .zoom-settings-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .zoom-settings-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:none}
+    .zoom-settings-section>summary::before,.view-rerender-section>summary::before{content:"▸";display:inline-block;flex:0 0 14px;width:14px;text-align:center}
+    .zoom-settings-section[open]>summary::before,.view-rerender-section[open]>summary::before{content:"▾"}
+    .zoom-settings-section>summary::-webkit-details-marker,.view-rerender-section>summary::-webkit-details-marker{display:none}
     .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;margin-left:auto}
     .zoom-summary-control input[type="range"]{flex:1 1 auto;min-width:70px;accent-color:#8ab4f8}
     .zoom-settings-section[open]>summary{margin-bottom:2px}
@@ -1332,11 +1339,12 @@ interface MapErrorEntry {
     .render-progress-always{width:100%;box-sizing:border-box;min-height:24px;padding:4px 0}
     .render-progress-always.is-inactive{opacity:.42;filter:grayscale(1)}
     .hillshade-active-progress{display:inline-block;width:112px;height:10px;margin-left:7px;vertical-align:middle;accent-color:#65a9ff}
-    .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:7px 8px 8px;border:1px solid var(--color-content-default-low,#454545);border-radius:6px;background:transparent;transition:background-color 140ms ease,border-color 140ms ease}
+    .view-rerender-section{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:7px 0 8px;border-top:1px solid var(--color-content-default-low,#454545);border-radius:0;background:transparent;transition:background-color 140ms ease,border-color 140ms ease}
     .view-rerender-section.is-rendering{background:rgba(220,165,35,.14);border-color:rgba(220,165,35,.48)}
     .view-rerender-section.is-render-complete{background:rgba(45,150,75,.10);border-color:rgba(65,165,95,.32)}
     .view-rerender-section.has-render-errors{background:rgba(180,55,55,.14);border-color:rgba(205,75,75,.42)}
-    .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
+    .view-rerender-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:none}
+    .view-rerender-section>summary::-webkit-details-marker{display:none}
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
     .view-rerender-section[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0}
@@ -1590,7 +1598,7 @@ interface MapErrorEntry {
     .opacity-content .visibility-toggle input:disabled{accent-color:#8b739d}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-tab .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.offline-address-search{display:flex;flex:1 1 100%;flex-direction:column;align-items:stretch;gap:6px;min-width:0;padding:7px 0;border-bottom:1px solid var(--color-content-default-low,#454545)}.offline-address-search .location-actions{flex-wrap:nowrap}.offline-address-search input{flex:1 1 auto;width:100%;min-width:120px;max-width:560px;height:30px;box-sizing:border-box;padding:4px 8px;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#303238);border:1px solid var(--color-content-default-low,#626a75);border-radius:4px}.offline-address-results{display:flex;flex-direction:column;gap:4px;max-width:760px;max-height:min(50vh,420px);min-width:0;overflow-y:auto;overflow-x:hidden;padding-right:4px}.offline-address-result{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;height:auto;min-height:34px;white-space:normal;text-align:left;gap:1px}.offline-address-result strong{font-weight:700}.offline-address-result span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:normal}
+    .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-tab .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.offline-address-search{display:flex;flex:1 1 100%;flex-direction:column;align-items:stretch;gap:6px;min-width:0;padding:7px 0;border-bottom:1px solid var(--color-content-default-low,#454545)}.offline-address-search .location-actions{flex-wrap:nowrap}.offline-address-search input{flex:1 1 auto;width:100%;min-width:120px;max-width:560px;height:30px;box-sizing:border-box;padding:4px 8px;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#303238);border:1px solid var(--color-content-default-low,#626a75);border-radius:4px}.offline-address-results{display:flex;flex-direction:column;gap:4px;max-width:760px;max-height:min(50vh,420px);min-width:0;overflow-y:auto;overflow-x:hidden;padding-right:4px}.offline-address-result{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;height:auto;min-height:34px;white-space:normal;text-align:left;gap:1px}.offline-address-result strong{font-weight:700}.offline-address-result span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:normal}
     select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .settings-row-title{flex:0 0 auto;white-space:nowrap}.location-address-error{color:#ff8a80}
     .zoom-settings{flex:1;min-width:260px}
@@ -1632,13 +1640,20 @@ interface MapErrorEntry {
     .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
-    .location-tab .fix-location-section,.location-tab .offline-address-search{box-sizing:border-box;width:100%;padding:8px 10px;margin:0 0 8px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
-    .location-tab details>summary.settings-row-title,.location-tab .offline-address-search>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;color:inherit;font:600 13px/1.4 inherit;cursor:pointer;list-style:disclosure-closed}
-    .location-tab details[open]>summary.settings-row-title,.location-tab .offline-address-search[open]>summary{margin-bottom:2px}
+    .location-tab .fix-location-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0;border:1px solid #555;border-radius:0;background:#292a2d;color:#e8eaed}
+    .location-tab .fix-location-section{border-radius:6px 6px 0 0}
+    .location-tab .location-tools-section{border-radius:0 0 6px 6px}
+    .location-tab details>summary.settings-row-title{display:flex;align-items:center;gap:6px;box-sizing:border-box;margin:0;padding:0;color:inherit;font-family:inherit;font-size:13px;font-weight:600;line-height:1.4;cursor:pointer;list-style:none}
+    .location-tab details>summary.settings-row-title::before{content:"▸";display:inline-block;flex:0 0 14px;width:14px;text-align:center}
+    .location-tab details[open]>summary.settings-row-title::before{content:"▾"}
+    .location-tab details>summary.settings-row-title::-webkit-details-marker{display:none}
+    .location-tab details[open]>summary.settings-row-title{margin-bottom:4px}
+    .location-tab .offline-address-search{border-top:0;border-bottom:0}
+    .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
     .fix-location-toggle input{accent-color:#8ab4f8}
     .location-tab .fix-location-section .offline-map-status{color:#bdc1c6}
-    :host-context(html[data-theme='light']) .location-tab .fix-location-section,:host-context(html[data-theme='light']) .location-tab .offline-address-search{background:#fff;border-color:#c5c8ce;color:#202124}
+    :host-context(html[data-theme='light']) .location-tab .fix-location-section,:host-context(html[data-theme='light']) .location-tab .offline-address-search,:host-context(html[data-theme='light']) .location-tab .location-tools-section{background:#fff;border-color:#c5c8ce;color:#202124}
     :host-context(html[data-theme='light']) .location-tab .fix-location-section .offline-map-status{color:#555}
     .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
     .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
