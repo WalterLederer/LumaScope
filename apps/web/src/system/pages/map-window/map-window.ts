@@ -3751,6 +3751,55 @@ export class MapWindow implements OnInit, OnDestroy {
         await this.desktop.ProcessManager.setAppSettingsSection('mapsforge', { themeFolder: '', themePath: '' });
       }
 
+      // Refresh the cached sizes from this explicit package scan. Opening the
+      // Location window later restores these values without recursively walking folders.
+      const latestSettings = await this.desktop.ProcessManager.getAppSettings();
+      const latestOfflineSettings = latestSettings['offlineMaps'] as Record<string, unknown> | undefined;
+      const latestEntries = Array.isArray(latestOfflineSettings?.['filePaths'])
+        ? latestOfflineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
+        : [];
+      const normalizeConfigPath = (path: string): string => path.replace(/\\/g, '/').toLocaleLowerCase();
+      const scannedValhallaSizes = new Map((scan.resourceEntries ?? [])
+        .filter(entry => entry.type === 'valhalla')
+        .map(entry => [normalizeConfigPath(entry.sourcePath), entry.fileSize]));
+      const refreshedValhallaEntries = (valhallaStatus.configurations ?? []).map(configuration => ({
+        type: 'valhalla-config',
+        path: configuration.path,
+        enabled: normalizeConfigPath(configuration.path) === normalizeConfigPath(valhallaStatus.configPath || ''),
+        size: scannedValhallaSizes.get(normalizeConfigPath(configuration.path))
+          ?? latestEntries.find(entry => entry.type === 'valhalla-config' && entry.path && normalizeConfigPath(entry.path) === normalizeConfigPath(configuration.path))?.size
+          ?? 0
+      }));
+      const refreshedEntries = latestEntries.filter(entry => {
+        if (entry.type === 'valhalla-config') return false;
+        if (overwrite && entry.type === 'osmand-resources') return false;
+        if (overwrite && (entry.type === 'mapsforge-theme-folder' || entry.type === 'mapsforge-theme')) return false;
+        return true;
+      });
+      if (overwrite && scan.osmAndResourcesPath) {
+        const size = scan.resourceEntries.find(entry => entry.type === 'osmand-resources')?.fileSize ?? 0;
+        refreshedEntries.push({ type: 'osmand-resources', path: scan.osmAndResourcesPath, enabled: true, size });
+      }
+      if (overwrite && scan.mapsforgeThemeFolder) {
+        const folderSize = scan.resourceEntries.find(entry => entry.type === 'mapsforge-theme')?.fileSize
+          ?? latestEntries.find(entry => entry.type === 'mapsforge-theme-folder' && entry.path === scan.mapsforgeThemeFolder)?.size
+          ?? 0;
+        refreshedEntries.push({ type: 'mapsforge-theme-folder', path: scan.mapsforgeThemeFolder, enabled: true, size: folderSize });
+        for (const theme of await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder)) {
+          refreshedEntries.push({
+            type: 'mapsforge-theme',
+            path: scan.mapsforgeThemeFolder,
+            name: theme.fileName.replace(/\\.xml$/i, ''),
+            sourcePath: theme.path,
+            enabled: theme.path === this.mapsforgeThemePath(),
+            size: folderSize
+          });
+        }
+      }
+      await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', {
+        filePaths: [...refreshedEntries, ...refreshedValhallaEntries]
+      });
+
       const foundParts = [
         scan.obfFiles.length + ' OBF',
         scan.mbtilesFiles.length + ' MBTiles',
