@@ -530,6 +530,7 @@ export class ImageView {
   protected readonly blackPoint = signal(0);
   protected readonly whitePoint = signal(1);
   protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
+  protected readonly helpDocument = signal<string | null>(null);
   private readControlsSidebarVisible(): boolean {
     try { return this.document.defaultView?.localStorage.getItem('imageSidebarVisible') !== 'false'; }
     catch { return true; }
@@ -1726,6 +1727,12 @@ export class ImageView {
         });
       });
       this.destroyRef.onDestroy(unsubscribeImageSelected);
+      const unsubscribeHelpDocument = mapWindowApi.onHelpDocument(fileName => {
+        this.helpDocument.set(fileName);
+        this.controlsSidebarVisible.set(true);
+        this.setActiveImageSidebarTab('help');
+      });
+      this.destroyRef.onDestroy(unsubscribeHelpDocument);
       void mapWindowApi.isOpen().then(open => this.detachedMapWindowOpen.set(open));
       const unsubscribe = mapWindowApi.onStateChanged(open => this.detachedMapWindowOpen.set(open));
       this.destroyRef.onDestroy(unsubscribe);
