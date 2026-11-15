@@ -40,6 +40,15 @@ if ($atlasExitCode -ne 2 -or $atlasUsage -notmatch '<display-scale>') {
     throw "The Atlas helper in '$source' is outdated. Rebuild osmand_atlas_render_helper from the current LumaScope tools source; it must accept <map.obf> <resources-root> <style-file> <display-scale>."
 }
 
+# OBF bounds metadata uses a dedicated command-line mode in the current
+# LumaScope helper. Older binaries may still pass the render usage check but
+# treat --obf-metadata as an invalid render invocation and exit with code 2.
+$atlasMetadataUsage = (& $atlasHelper --obf-metadata 2>&1 | Out-String)
+$atlasMetadataExitCode = $LASTEXITCODE
+if ($atlasMetadataExitCode -ne 2 -or $atlasMetadataUsage -notmatch '--obf-metadata requires an OBF path JSON file and resources root') {
+    throw "The Atlas helper in '$source' does not support OBF metadata mode. Rebuild osmand_atlas_render_helper from the current LumaScope tools source before packaging."
+}
+
 $destinationPath = [IO.Path]::GetFullPath($Destination)
 New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
 
