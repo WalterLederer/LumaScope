@@ -44,7 +44,7 @@ export class Exif {
       try {
         const injector = Injector.getInstance();
         const cacheManager = injector.inject('CacheManager');
-        const existingRecord = await cacheManager.getPhotoDatabaseRecord(path);
+        const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
         const gps = await this.readPhotoMetadata(path);
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       } catch (cacheError) {
