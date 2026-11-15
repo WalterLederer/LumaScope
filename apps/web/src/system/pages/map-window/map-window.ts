@@ -1744,11 +1744,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly filteredResourcePackageEntries = computed(() => {
     const entries = this.resourcePackageEntries();
     const filter = this.offlineMapListFilter();
-    if (filter === 'all') return entries;
-    if (filter === 'valhalla') return entries.filter(entry => entry.type === 'valhalla');
-    if (filter === 'osmandResources') return entries.filter(entry => entry.type === 'osmand-resources');
-    if (filter === 'mapsforgeTheme') return entries.filter(entry => entry.type === 'mapsforge-theme');
-    return [];
+    const filtered = filter === 'all' ? entries
+      : filter === 'valhalla' ? entries.filter(entry => entry.type === 'valhalla')
+      : filter === 'osmandResources' ? entries.filter(entry => entry.type === 'osmand-resources')
+      : filter === 'mapsforgeTheme' ? entries.filter(entry => entry.type === 'mapsforge-theme')
+      : [];
+    return [...filtered].sort((a, b) => a.type.localeCompare(b.type) || a.fileName.localeCompare(b.fileName, undefined, { numeric: true, sensitivity: 'base' }));
   });
   protected readonly resourcePackageEntryTypeLabel = (type: import('internal-api').ResourcePackageEntry['type']): string =>
     type === 'valhalla' ? 'Valhalla (offline routing)'
@@ -3789,14 +3790,14 @@ export class MapWindow implements OnInit, OnDestroy {
           ?? latestEntries.find(entry => entry.type === 'mapsforge-theme-folder' && entry.path === scan.mapsforgeThemeFolder)?.size
           ?? 0;
         refreshedEntries.push({ type: 'mapsforge-theme-folder', path: scan.mapsforgeThemeFolder, enabled: true, size: folderSize });
-        for (const theme of await this.desktop.Mapsforge.scanThemes(scan.mapsforgeThemeFolder)) {
+        for (const theme of (scan.resourceEntries ?? []).filter(entry => entry.type === 'mapsforge-theme')) {
           refreshedEntries.push({
             type: 'mapsforge-theme',
-            path: scan.mapsforgeThemeFolder,
-            name: theme.fileName.replace(/\.xml$/i, ''),
-            sourcePath: theme.path,
-            enabled: theme.path === this.mapsforgeThemePath(),
-            size: folderSize
+            path: theme.path,
+            name: theme.fileName,
+            sourcePath: theme.sourcePath,
+            enabled: theme.sourcePath === this.mapsforgeThemePath(),
+            size: theme.fileSize
           });
         }
       }
