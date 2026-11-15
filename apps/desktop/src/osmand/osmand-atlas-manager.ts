@@ -381,8 +381,7 @@ class OsmAndAtlasWorker {
           await this.shutdown();
           throw error;
         }
-        console.warn('[OsmAnd Atlas] Initial render timeout; restarting helper and retrying',
-          { attempt: attempt + 1, maxRetries, message });
+        console.warn('[Atlas] retry=' + (attempt + 1) + '/' + maxRetries + ' reason=timeout');
         await this.shutdown();
         // Give Windows/OpenGL a short moment to release the old helper context.
         await new Promise<void>(resolve => setTimeout(resolve, 750));
@@ -400,13 +399,7 @@ class OsmAndAtlasWorker {
     if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an external OsmAnd resources folder first.');
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
-    console.info('[OsmAnd Atlas][style-trace] helper spawn', {
-      stylePath: this.stylePath,
-      resourcesPath: this.resourcesPath,
-      obfCount: this.obfPaths.length,
-      obfPaths: [...this.obfPaths]
-    });
-    const spawnStartedAt = Date.now();
+
     const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));
     const configurationPath = join(configurationDirectory, 'obf-paths.json');
     try {
@@ -466,14 +459,12 @@ class OsmAndAtlasWorker {
           this.geometryMessages.push(message);
           if (this.geometryMessages.length > 32) this.geometryMessages.shift();
         }
-        if (message.startsWith('ERROR:')) {
+        if (message.startsWith('[Atlas]')) {
+          console.info(message);
+        } else if (message.startsWith('ERROR:') || /\\[FATAL\\]|\\b(error|failed|failure)\\b/i.test(message)) {
           this.geometryMessages.push(message);
           if (this.geometryMessages.length > 32) this.geometryMessages.shift();
-          console.warn('[OsmAnd Atlas helper]', message);
-        } else if (message.startsWith('ATLAS_INIT ')) {
-          console.info('[OsmAnd Atlas helper]', message);
-        } else if (!/^(INFO|DEBUG):/i.test(message)) {
-          console.warn('[OsmAnd Atlas helper]', message);
+          console.warn('[Atlas helper]', message);
         }
       }
     });
@@ -481,7 +472,6 @@ class OsmAndAtlasWorker {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
-    console.info('[OsmAnd Atlas]', 'process_spawn_ms=' + (Date.now() - spawnStartedAt));
   }
 
   private async renderOnce(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
@@ -509,7 +499,6 @@ class OsmAndAtlasWorker {
     });
 
     const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 35000, 'OsmAnd Atlas frame header timed out');
-    console.info('[OsmAnd Atlas]', 'frame_header_ms=' + (Date.now() - requestStartedAt) + ' request_id=' + requestId);
     if (header.toString('ascii', 0, 4) !== 'OSMA'
       || header.readUInt16LE(4) !== 1
       || header.readUInt16LE(6) !== HEADER_BYTES) {
@@ -530,11 +519,6 @@ class OsmAndAtlasWorker {
 
     const payload = await this.withTimeout(reader.readBytes(payloadSize), 35000, 'OsmAnd Atlas frame payload timed out');
     const elapsedMs = Date.now() - requestStartedAt;
-    const megaPixels = (width * height) / 1_000_000;
-    console.info('[OsmAnd Atlas]', 'render_complete_ms=' + elapsedMs
-      + ' dimensions=' + width + 'x' + height
-      + ' ms_per_megapixel=' + (megaPixels > 0 ? (elapsedMs / megaPixels).toFixed(2) : 'n/a')
-      + ' request_id=' + requestId);
     if (status !== 0) {
       const responseMessage = payload.toString('utf8').trim();
       // Prefer the error text carried in the helper response. Keep stderr as
@@ -543,19 +527,19 @@ class OsmAndAtlasWorker {
       const helperErrors = [
         ...this.stderrMessages.filter(message => !/^(INFO|DEBUG):/i.test(message)),
         this.stderrBuffer.trim()
-      ].filter(Boolean).slice(-12);
+      ].filter(Boolean).slice(-4);
       const details = [responseMessage, ...helperErrors].filter(Boolean).join(' | ');
       const statusDescription = status === 1 ? 'native render failure' : 'native helper error';
-      console.error('[OsmAnd Atlas] native_render_failed', {
-        status, statusDescription, requestId, responseMessage: responseMessage || null,
-        stderr: helperErrors, renderElapsedMs: elapsedMs,
-        frameWidth: width, frameHeight: height, payloadBytes: payloadSize
-      });
+      console.error('[Atlas] req=' + requestId
+        + ' result=error status=' + status
+        + ' elapsed=' + elapsedMs + 'ms'
+        + ' frame=' + width + 'x' + height
+        + ' reason=' + (responseMessage || statusDescription));
       const requestDetails = 'OsmAnd Atlas ' + statusDescription + ' (status ' + status
         + ', request ' + requestId + ', frame ' + width + 'x' + height
         + ', payload ' + payloadSize + ' bytes, elapsed ' + elapsedMs + ' ms).';
       throw new Error(details ? requestDetails + ' ' + details
-        : requestDetails + ' The native helper did not provide an error message; check the preceding ATLAS_RENDER / ATLAS_INIT diagnostics.');
+        : requestDetails + ' The native helper did not provide an error message; check the helper diagnostics.');
     }
     if (width !== ATLAS_TILE_SIZE || height !== ATLAS_TILE_SIZE || stride !== ATLAS_TILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
