@@ -3951,6 +3951,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ]);
       const mapsWithMetadata = await this.enrichObfMetadata(maps, atlasStatus.resourcesAvailable);
       this.offlineMaps.set(mapsWithMetadata);
+      this.applyMapBoundsVisibility();
       this.hillshadeDatabases.set(hillshade);
       this.valhallaConfigurations.set(valhalla.configurations ?? []);
       if (valhalla.configPath) this.routeValhallaConfigPath.set(valhalla.configPath);
@@ -4048,6 +4049,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const importResult = await this.desktop.OfflineMap.reconcileFiles(mapPaths);
       const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(normalizePath(map.filePath))).length;
       this.offlineMaps.set(await this.enrichObfMetadata(importResult.maps));
+      this.applyMapBoundsVisibility();
       this.offlineMapImportErrors.set(importResult.errors);
 
       const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => normalizePath(database.path)));
@@ -4212,6 +4214,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const result = await this.desktop.OfflineMap.chooseFile();
     this.offlineMaps.set(await this.enrichObfMetadata(result.maps));
+    this.applyMapBoundsVisibility();
 
     this.offlineMapImportErrors.set(result.errors);
     if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type))) this.changeMapSource('online');
@@ -4408,6 +4411,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
       this.offlineMaps.set(this.mergeObfMetadata(updated));
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
+      this.applyMapBoundsVisibility();
       await this.changeHillshadePreset(value);
     } else {
       this.offlineMapPreset.set(value);
@@ -4712,6 +4716,8 @@ export class MapWindow implements OnInit, OnDestroy {
         const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
         this.offlineMaps.set(this.mergeObfMetadata(updated));
         this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
+        this.applyMapBoundsVisibility();
+        this.resetLastRenderCountsForViewport();
         this.refreshOfflineMapRendering();
       }
       if (visibleHillshade.length) await this.setAllHillshadeDatabasesEnabled(enabled, true);
@@ -4733,6 +4739,7 @@ export class MapWindow implements OnInit, OnDestroy {
         remaining = await this.desktop.OfflineMap.removeFile(map.id);
       }
       this.offlineMaps.set(this.mergeObfMetadata(remaining));
+      this.applyMapBoundsVisibility();
        this.offlineMapUpdateCheckStatus.set('');
       if (!remaining.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
         this.changeMapSource('online');
@@ -4755,6 +4762,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop) return;
     const remaining = await this.desktop.OfflineMap.removeFile(id);
     this.offlineMaps.set(this.mergeObfMetadata(remaining));
+    this.applyMapBoundsVisibility();
 
     if (!this.offlineMaps().some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
       this.changeMapSource('online');
