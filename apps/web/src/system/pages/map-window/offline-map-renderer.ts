@@ -842,42 +842,7 @@ export class OfflineMapRenderer {
   private readonly tileStatuses = new Map<string, OsmAndTileStatusEventDetail>();
   private tileVisualsEnabled = true;
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
-  private atlasZoomCheckTimer: number | null = null;
-  private readonly onMapZoomEnd = (): void => {
-    if (this.tileProtocol !== 'osmand-atlas') return;
-    if (this.atlasZoomCheckTimer !== null) window.clearTimeout(this.atlasZoomCheckTimer);
-    // Coalesce rapid wheel/key zoom steps. Re-registering the same tile template
-    // makes MapLibre rebuild the source's current viewport coverage and request
-    // any tiles it failed to request during the zoom sequence. Existing Atlas
-    // disk-cache entries are reused by the protocol.
-    this.atlasZoomCheckTimer = window.setTimeout(() => {
-      this.atlasZoomCheckTimer = null;
-      // Do not gate this on map.isStyleLoaded(): it can be false precisely
-      // while raster tiles are still pending, which is when the refresh is
-      // needed. The source object is available independently of tile completion.
-      const source = this.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-      if (!source?.setTiles) {
-        console.warn('[OsmAnd Atlas] Could not recheck tiles after zoom: raster source is unavailable.');
-        return;
-      }
-      // Use a fresh URL template after each settled zoom. Reapplying the
-      // identical template can leave MapLibre's in-memory raster tile cache
-      // attached to stale tile instances; a unique query forces a new source
-      // tile identity while the native Atlas disk cache remains reusable.
-      const refresh = Date.now();
-      source.setTiles([`osmand-atlas://{z}/{x}/{y}?refresh=${refresh}`]);
-      console.info('[OsmAnd Atlas] Rechecked visible tiles after zoom', {
-        zoom: this.map.getZoom(),
-        refresh,
-        sourceReloadRequested: true
-      });
-    }, 180);
-  };
   private readonly onMapMoveStart = (): void => {
-    if (this.atlasZoomCheckTimer !== null) {
-      window.clearTimeout(this.atlasZoomCheckTimer);
-      this.atlasZoomCheckTimer = null;
-    }
     // Progress overlays belong to the current viewport. Keep actual tile
     // errors and warnings so they remain visible when the user pans away and
     // returns; cancelled requests are never retained as failures.
@@ -1221,7 +1186,6 @@ export class OfflineMapRenderer {
     this.map.on('sourcedata', this.onMapLibreTileLoaded);
     this.map.on('error', this.onMapLibreTileError);
     this.map.on('movestart', this.onMapMoveStart);
-    this.map.on('zoomend', this.onMapZoomEnd);
     // Use a dedicated geographic overlay rather than MapLibre DOM Marker. The
     // overlay is positioned from MapLibre's current projection on every render,
     // avoiding marker CSS transforms that can drift relative to the tile canvas.
@@ -2598,9 +2562,6 @@ export class OfflineMapRenderer {
     this.map.off('sourcedata', this.onMapLibreTileLoaded);
     this.map.off('error', this.onMapLibreTileError);
     this.map.off('movestart', this.onMapMoveStart);
-    this.map.off('zoomend', this.onMapZoomEnd);
-    if (this.atlasZoomCheckTimer !== null) window.clearTimeout(this.atlasZoomCheckTimer);
-    this.atlasZoomCheckTimer = null;
     this.tileStatuses.clear();
     this.tileStatusElements.clear();
     this.tileStatusLayer.remove();
