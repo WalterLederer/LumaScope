@@ -1700,9 +1700,16 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
-  protected readonly canShowMapBounds = computed(() =>
-    (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
-    && this.offlineMaps().some(map => map.type === 'obf' && map.enabled && !!map.bounds));
+  protected readonly canShowMapBounds = computed(() => {
+    const source = this.mapSource();
+    const supportedMapType = source === 'offline'
+      ? 'mbtiles'
+      : source === 'osmand' || source === 'osmand-atlas'
+        ? 'obf'
+        : null;
+    return supportedMapType !== null
+      && this.offlineMaps().some(map => map.type === supportedMapType && map.enabled && !!map.bounds);
+  });
   protected readonly renderActiveCount = signal(0);
   protected readonly renderDisplayPending = signal(false);
   protected readonly renderTotalCount = signal(0);
