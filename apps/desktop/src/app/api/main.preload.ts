@@ -79,7 +79,8 @@ const api: Desktop = {
   },
 
   Exif: {
-    read: (path: string) => ipcRenderer.invoke('Exif.read', path)
+    read: (path: string) => ipcRenderer.invoke('Exif.read', path),
+    writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude)
   },
 
   CacheManager: {
