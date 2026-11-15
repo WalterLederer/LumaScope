@@ -59,6 +59,30 @@ interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; 
 
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
+interface RenderTimingSummary {
+  count: number;
+  averageMs: number;
+  medianMs: number;
+  minMs: number;
+  maxMs: number;
+}
+
+function summarizeRenderDurations(samples: number[]): RenderTimingSummary {
+  if (samples.length === 0) return { count: 0, averageMs: 0, medianMs: 0, minMs: 0, maxMs: 0 };
+  const sorted = [...samples].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const medianMs = sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+  return {
+    count: samples.length,
+    averageMs: samples.reduce((sum, value) => sum + value, 0) / samples.length,
+    medianMs,
+    minMs: sorted[0],
+    maxMs: sorted[sorted.length - 1]
+  };
+}
+
 interface MapErrorEntry {
   id: number;
   timestamp: string;
@@ -658,7 +682,7 @@ interface MapErrorEntry {
         </colgroup>
         <thead>
           <tr>
-            <th scope="col" class="render-counter-heading">Map tiles (#{{ activeOfflineMapCount() }})</th>
+            <th scope="col" class="render-counter-heading">Map tiles · Active OBF maps (#{{ activeOsmandMapCount() }})</th>
             <th scope="col">Total</th>
             <th scope="col">Last</th>
           </tr>
@@ -678,6 +702,26 @@ interface MapErrorEntry {
             <th scope="row">Errors</th>
             <td>{{ totalRenderTileCounts().failed.toLocaleString(locale) }}</td>
             <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row" title="Elapsed time from Atlas IPC submission until the RGBA tile is ready; excludes disk-cache hits.">Avg. render time</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Median render time</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Min / max</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().minMs.toFixed(1) + ' / ' + totalRenderTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().minMs.toFixed(1) + ' / ' + lastRenderTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Timing samples</th>
+            <td>{{ totalRenderTiming().count.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTiming().count.toLocaleString(locale) }}</td>
           </tr>
         </tbody>
       </table>
@@ -1607,6 +1651,10 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly currentTileRequestResults = new Map<string, 'pending' | 'cached'>();
   protected readonly totalRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
   protected readonly lastRenderTileCounts = signal({ rendered: 0, cached: 0, failed: 0 });
+  private readonly totalRenderDurationSamples = signal<number[]>([]);
+  private readonly lastRenderDurationSamples = signal<number[]>([]);
+  protected readonly totalRenderTiming = computed(() => summarizeRenderDurations(this.totalRenderDurationSamples()));
+  protected readonly lastRenderTiming = computed(() => summarizeRenderDurations(this.lastRenderDurationSamples()));
   protected readonly hillshadeActiveCount = signal(0);
   protected readonly hillshadeDisplayPending = signal(false);
   protected readonly hillshadeTotalCount = signal(0);
@@ -1673,6 +1721,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.seenRenderTiles.clear();
     this.currentTileRequestResults.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
+    this.lastRenderDurationSamples.set([]);
     this.lastHillshadeTileCounts.set({ rendered: 0, failed: 0 });
     this.hillshadeTotalCount.set(0);
     this.hillshadeCompletedCount.set(0);
@@ -1685,7 +1734,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private readonly onOsmAndTileStatus = (event: Event): void => {
-    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number }>).detail;
+    const detail = (event as CustomEvent<{ protocol?: string; status?: string; error?: string; zoom?: number; column?: number; row?: number; renderDurationMs?: number }>).detail;
     const expectedProtocol = this.mapSource() === 'osmand-atlas' ? 'osmand-atlas' : this.mapSource() === 'osmand' ? 'osmand' : this.mapSource() === 'mapsforge' ? 'mapsforge' : null;
     if (detail?.status === 'diagnostic' && detail.protocol === 'osmand-atlas' && detail.error) {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
@@ -1710,6 +1759,11 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     } else if (detail.status === 'loaded') {
       if (this.currentTileRequestResults.get(key) !== 'cached') {
+        if (typeof detail.renderDurationMs === 'number' && Number.isFinite(detail.renderDurationMs) && detail.renderDurationMs >= 0) {
+          const duration = detail.renderDurationMs;
+          this.totalRenderDurationSamples.update(samples => [...samples, duration].slice(-500));
+          this.lastRenderDurationSamples.update(samples => [...samples, duration].slice(-500));
+        }
         this.totalRenderTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
         this.lastRenderTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
       }
@@ -1873,6 +1927,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return { activeCount, availableCount, missingCount, unselectedCount, inUseIds };
   });
   protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
+  protected readonly activeOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
