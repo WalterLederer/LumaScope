@@ -29,6 +29,49 @@
   font-size: 12px;
 }
 
+.markdown-help-document {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.markdown-help-file-path {
+  color: var(--color-content-default-medium);
+  font: 10px/1.35 var(--font-family-monospace, Consolas, monospace);
+  overflow-wrap: anywhere;
+}
+
+.markdown-help-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.markdown-help-header .markdown-open-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, #2689d8 55%, var(--color-border-default, #777));
+  border-radius: 6px;
+  background: linear-gradient(135deg, #1677c8, #6855c8);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 22%);
+}
+
+.markdown-help-header .markdown-open-file-button:hover {
+  filter: brightness(1.14);
+  transform: translateY(-1px);
+}
+
 .markdown-font-size {
   display: inline-flex;
   flex: 0 1 auto;
