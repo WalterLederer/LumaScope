@@ -1306,7 +1306,6 @@ interface MapErrorEntry {
     /* Scoped shared disclosure component: keeps tab-specific rules from overriding the common card appearance. */
     .settings-tab-content .app-disclosure{box-sizing:border-box;min-width:0;margin:0;padding:6px 10px;border:1px solid var(--color-content-default-low);border-radius:6px;background:transparent;color:var(--color-content-default-high)}
     .settings-tab-content .app-disclosure>summary{display:list-item;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;list-style:disclosure-closed;cursor:pointer;user-select:none}
-    .settings-tab-content .app-disclosure>summary::marker{font-size:16px}
     .settings-tab-content .app-disclosure[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .settings-tab-content .app-disclosure .app-disclosure{margin:0}
     .settings-tab-content details,.settings-tab-content .app-disclosure{margin-bottom:0!important;background:transparent!important}
@@ -1325,7 +1324,6 @@ interface MapErrorEntry {
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .zoom-settings-section>summary,.view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed;white-space:nowrap}
-    .zoom-settings-section>summary::marker,.view-rerender-section>summary::marker{font-size:16px}
     .zoom-settings-section[open]>summary,.view-rerender-section[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;margin-left:auto}
     .zoom-summary-control input[type="range"]{flex:1 1 auto;min-width:70px;accent-color:#8ab4f8}
@@ -1355,7 +1353,6 @@ interface MapErrorEntry {
     .view-rerender-section.is-render-complete{background:rgba(45,150,75,.10);border-color:rgba(65,165,95,.32)}
     .view-rerender-section.has-render-errors{background:rgba(180,55,55,.14);border-color:rgba(205,75,75,.42)}
     .view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;white-space:nowrap;list-style:disclosure-closed}
-    .view-rerender-section>summary::marker{font-size:16px}
     .view-rerender-section[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .map-window.light-theme .zoom-settings-section,.map-window.light-theme .opacity-settings,.map-window.light-theme .view-rerender-section{background:#fff;color:#202124;border-color:#c5c8ce}
     .view-rerender-section>summary .render-progress-always{flex:1 1 auto;width:auto;max-width:520px;margin-left:auto;padding:0;min-height:20px}
@@ -1485,7 +1482,6 @@ interface MapErrorEntry {
     .address-settings{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px;flex:1 1 100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
 
     .map-source-settings>summary,.opacity-settings>summary{display:list-item;list-style-position:inside;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;white-space:nowrap;list-style:disclosure-closed}
-    .map-source-settings>summary::marker,.opacity-settings>summary::marker{font-size:16px}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .settings-tab-content .opacity-settings>summary{list-style-position:inside}
     .opacity-settings{box-sizing:border-box;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
@@ -1659,7 +1655,6 @@ interface MapErrorEntry {
     .location-tab .fix-location-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .location-tab details>summary.settings-row-title{display:list-item;box-sizing:border-box;margin:0;padding:0;color:inherit;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed}
     .location-tab details[open]>summary.settings-row-title{list-style:disclosure-open;margin-bottom:4px}
-    .location-tab details>summary.settings-row-title::marker{font-size:16px}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
     .fix-location-toggle input{accent-color:#8ab4f8}
