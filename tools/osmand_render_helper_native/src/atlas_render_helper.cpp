@@ -680,28 +680,14 @@ int main(int argc, char* argv[])
         return 3;
     }
 
-#ifdef _WIN32
-    std::cerr << "ATLAS_INIT pid=" << GetCurrentProcessId()
-              << " obf_count=" << obfPaths.size() << std::endl;
-#endif
-    std::cerr << "ATLAS_INIT display_scale=" << displayScale << std::endl;
-    std::cerr << "ATLAS_INIT widget_create_ms=" << widgetCreationTimer.elapsed() << std::endl;
-
-    std::cerr << "ATLAS_INIT stage=widget_setup_begin" << std::endl;
     widget->setAttribute(Qt::WA_DontShowOnScreen, true);
-    std::cerr << "ATLAS_INIT stage=widget_attribute_set" << std::endl;
     widget->setMinimumSize(1, 1);
     widget->resize(1280, 960);
-    std::cerr << "ATLAS_INIT stage=widget_resized size=" << widget->width() << "x" << widget->height() << std::endl;
     widget->setWindowTitle(QStringLiteral("OsmAnd Atlas Render Helper"));
     widget->move(100, 100);
-    std::cerr << "ATLAS_INIT stage=widget_window_properties_set" << std::endl;
     widget->setZoomLevel(13.0);
-    std::cerr << "ATLAS_INIT stage=initial_zoom_set" << std::endl;
     widget->setCenterLonLat(16.3738, 48.2082);
-    std::cerr << "ATLAS_INIT stage=initial_center_set" << std::endl;
     widget->show();
-    std::cerr << "ATLAS_INIT stage=widget_show_returned" << std::endl;
 
     QTimer captureTimer;
     captureTimer.setInterval(kFramePollIntervalMs);
@@ -709,8 +695,6 @@ int main(int argc, char* argv[])
     bool requestActive = false;
     std::uint32_t activeRequestId = 0;
     QElapsedTimer requestTimer;
-    bool openGlTimingReported = false;
-    bool firstFrameTimingReported = false;
     bool initializationReported = false;
     int activeOutputWidth = 0;
     int activeOutputHeight = 0;
@@ -719,18 +703,6 @@ int main(int argc, char* argv[])
 
     QObject::connect(&captureTimer, &QTimer::timeout, &app,
         [&]() {
-            if (!openGlTimingReported && widget->openGlInitializationMs() >= 0)
-            {
-                std::cerr << "ATLAS_INIT opengl_initialization_ms="
-                          << widget->openGlInitializationMs() << std::endl;
-                openGlTimingReported = true;
-            }
-            if (!firstFrameTimingReported && widget->firstFrameMs() >= 0)
-            {
-                std::cerr << "ATLAS_INIT first_frame_after_gl_init_ms="
-                          << widget->firstFrameMs() << std::endl;
-                firstFrameTimingReported = true;
-            }
             if (!requestActive)
             {
                 captureTimer.stop();
@@ -748,7 +720,17 @@ int main(int argc, char* argv[])
 
             if (stateChecked && !initializationReported)
             {
-                std::cerr << "ATLAS_INIT renderer_initialized=1" << std::endl;
+#ifdef _WIN32
+                const auto helperPid = GetCurrentProcessId();
+#else
+                const auto helperPid = QCoreApplication::applicationPid();
+#endif
+                std::cerr << "[Atlas] pid=" << helperPid
+                          << " init=ok obf=" << obfPaths.size()
+                          << " widget_ms=" << widgetCreationTimer.elapsed()
+                          << " gl_ms=" << widget->openGlInitializationMs()
+                          << " first_frame_ms=" << widget->firstFrameMs()
+                          << std::endl;
                 initializationReported = true;
             }
 
@@ -800,10 +782,16 @@ int main(int argc, char* argv[])
                         std::memcpy(destination, source, static_cast<std::size_t>(croppedStride));
                     }
 
-                    std::cerr << "[atlas-helper] frame_captured request=" << activeRequestId
-                              << " source=" << width << "x" << height
-                              << " output=" << activeOutputWidth << "x" << activeOutputHeight
-                              << " elapsed_ms=" << requestTimer.elapsed() << std::endl;
+#ifdef _WIN32
+                    const auto helperPid = GetCurrentProcessId();
+#else
+                    const auto helperPid = QCoreApplication::applicationPid();
+#endif
+                    std::cerr << "[Atlas] pid=" << helperPid
+                              << " req=" << activeRequestId
+                              << " result=ok elapsed=" << requestTimer.elapsed() << "ms"
+                              << " frame=" << activeOutputWidth << "x" << activeOutputHeight
+                              << std::endl;
                     writeRgbaFrame(
                         activeRequestId,
                         cropped,
@@ -824,6 +812,18 @@ int main(int argc, char* argv[])
             {
                 captureTimer.stop();
                 requestActive = false;
+#ifdef _WIN32
+                const auto helperPid = GetCurrentProcessId();
+#else
+                const auto helperPid = QCoreApplication::applicationPid();
+#endif
+                std::cerr << "[Atlas] pid=" << helperPid
+                          << " req=" << activeRequestId
+                          << " result=timeout elapsed=" << requestTimer.elapsed() << "ms"
+                          << " idle=" << (rendererIdle ? 1 : 0)
+                          << " invalidated=" << (frameInvalidated ? 1 : 0)
+                          << " frame=" << widget->width() << "x" << widget->height()
+                          << std::endl;
                 writeError(
                     activeRequestId,
                     captureError.isEmpty()
@@ -968,15 +968,6 @@ int main(int argc, char* argv[])
                 const auto renderWidth = requestedWidth + activeOverscanX * 2;
                 const auto renderHeight = requestedHeight + activeOverscanY * 2;
 #ifdef _WIN32
-                std::cerr << "ATLAS_RENDER pid=" << GetCurrentProcessId();
-#endif
-                std::cerr << " request=" << requestId
-                          << " lon=" << longitude << " lat=" << latitude
-                          << " requested=" << requestedWidth << "x" << requestedHeight
-                          << " framebuffer=" << renderWidth << "x" << renderHeight
-                          << " overscan=" << activeOverscanX << "x" << activeOverscanY
-                          << " zoom=" << compensatedZoom << std::endl;
-#ifdef _WIN32
                 InterlockedExchange(&g_diagnosticStage, 2);
 #endif
                 widget->resize(renderWidth, renderHeight);
@@ -1013,9 +1004,6 @@ int main(int argc, char* argv[])
                 widget->setCenterLonLat(longitude, latitude);
                 widget->update();
                 captureTimer.start();
-                std::cerr << "[atlas-helper] render_submitted request=" << requestId
-                          << " framebuffer=" << renderWidth << "x" << renderHeight
-                          << std::endl;
             }, Qt::QueuedConnection);
             if (quitRequested)
                 break;
