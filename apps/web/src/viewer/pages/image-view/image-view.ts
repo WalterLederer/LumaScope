@@ -712,9 +712,6 @@ export class ImageView {
     const sections = { ...this.sidebarSections(), [key]: !this.sidebarSectionExpanded(key) };
     this.sidebarSections.set(sections);
     this.configuration.updateSystemConfig({ imageSidebarSections: sections });
-    if (key === 'loupe') {
-      void this.toggleLoupe(sections['loupe']);
-    }
     if (key === 'database' && sections['database']) void this.loadPhotoDatabaseRecord();
     if (key === 'info') {
       this.exifVisible.set(sections['info']);
@@ -1846,7 +1843,6 @@ export class ImageView {
         if (savedSidebarSections['general'] === true) {
           this.configuration.updateSystemConfig({ imageSidebarSections: sidebarSections });
         }
-        if (this.sidebarSectionExpanded('loupe')) void this.toggleLoupe(true);
         this.histogramVisible.set(config.system.histogramVisible === true);
         const savedMode = config.system.comparisonMode ?? 'hdr';
         this.comparisonMode.set(savedMode);
