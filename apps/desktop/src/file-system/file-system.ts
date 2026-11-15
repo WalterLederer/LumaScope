@@ -1,4 +1,4 @@
-import { app, IpcMainInvokeEvent } from 'electron';
+import { app, IpcMainInvokeEvent, shell } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
 import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
@@ -55,6 +55,28 @@ export class FileSystem {
     const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'File not found.');
     return { success: false, errorMessage: 'Could not load ' + fileName + ': ' + message };
   };
+  @IpcHandler({ name: 'FileSystem.openDocumentationFile' })
+  readonly openDocumentationFile = async (_: IpcMainInvokeEvent, fileName: string): Promise<string> => {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\\.md$/i.test(fileName)) {
+      return 'Invalid documentation file name.';
+    }
+
+    const candidates = app.isPackaged
+      ? [join(process.resourcesPath, 'docs', fileName)]
+      : fileName === 'README.md'
+        ? [join(process.cwd(), fileName), join(app.getAppPath(), fileName)]
+        : [join(process.cwd(), 'docs', fileName), join(app.getAppPath(), 'docs', fileName)];
+
+    for (const sourcePath of candidates) {
+      try {
+        if (statSync(sourcePath).isFile()) return await shell.openPath(sourcePath);
+      } catch {
+        // Try the next known documentation root.
+      }
+    }
+    return 'Documentation file not found: ' + fileName;
+  };
+
   @IpcHandler({ name: 'FileSystem.readDocumentationImage' })
   readonly readDocumentationImage = async (_: IpcMainInvokeEvent, fileName: string): Promise<ApiResponse<string>> => {
     if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_().-]+\.(?:png|jpe?g|webp|gif)$/i.test(fileName)) {
