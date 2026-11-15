@@ -25,9 +25,9 @@ export class OfflineMapManager {
  @IpcHandler({name:'OfflineMap.chooseFile'})
  readonly chooseFile=async(_event:IpcMainInvokeEvent):Promise<OfflineMapImportResult>=>{
   const result=await dialog.showOpenDialog({title:'Add offline maps',defaultPath:this.lastDirectory,properties:['openFile','multiSelections'],filters:[{name:'All offline maps (*.mbtiles, *.obf, *.map)',extensions:['mbtiles','obf','map']},{name:'Mapsforge maps (*.map)',extensions:['map']},{name:'MBTiles (*.mbtiles)',extensions:['mbtiles']},{name:'OsmAnd OBF (*.obf)',extensions:['obf']}]});
-  if(result.canceled||!result.paths.length)return {maps:await this.getMaps(),errors:[]};
-  this.lastDirectory=dirname(result.paths[0]);
-  return this.importFilePaths(result.paths);
+  if(result.canceled||!result.filePaths.length)return {maps:await this.getMaps(),errors:[]};
+  this.lastDirectory=dirname(result.filePaths[0]);
+  return this.importFilePaths(result.filePaths);
  };
  @IpcHandler({name:'OfflineMap.importFiles'})
  readonly importFiles=async(_event:IpcMainInvokeEvent,paths:string[]):Promise<OfflineMapImportResult>=>{
@@ -367,7 +367,7 @@ export class OfflineMapManager {
   if(errors.length)console.error('[OfflineMap] Some offline maps could not be added:',errors);
   return {maps:await this.getMaps(),errors};
  }
- private persistMaps():Promise<void>{const paths=new Map<string,{path:string;enabled:boolean;type:'mbtiles'|'obf'|'mapsforge-map';size:number}>();for(const [path,item] of this.opened)paths.set(path,{path,enabled:item.status.enabled,type:'mbtiles',size:item.status.fileSize});for(const [path,item] of this.obfFiles)paths.set(path,{path,enabled:item.enabled,type:'obf',size:item.fileSize});for(const [path,item] of this.mapsforgeFiles)paths.set(path,{path,enabled:item.enabled,type:'mapsforge-map',size:item.fileSize});const paths=[...paths.values()];return updateAppSettingsSection('offline',{paths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
+ private persistMaps():Promise<void>{const entries=new Map<string,{path:string;enabled:boolean;type:'mbtiles'|'obf'|'mapsforge-map';size:number}>();for(const [path,item] of this.opened)entries.set(path,{path,enabled:item.status.enabled,type:'mbtiles',size:item.status.fileSize});for(const [path,item] of this.obfFiles)entries.set(path,{path,enabled:item.enabled,type:'obf',size:item.fileSize});for(const [path,item] of this.mapsforgeFiles)entries.set(path,{path,enabled:item.enabled,type:'mapsforge-map',size:item.fileSize});const paths=[...entries.values()];return updateAppSettingsSection('offline',{paths,lastDirectory:this.lastDirectory}).catch(error=>{console.error('[OfflineMap] Could not save map settings:',error);throw error;});}
  private openMapsforgeFile(filePath:string):void{
   const absolutePath=resolve(filePath);
   if(extname(absolutePath).toLowerCase()!=='.map')throw new Error('The selected file must have the .map extension.');
