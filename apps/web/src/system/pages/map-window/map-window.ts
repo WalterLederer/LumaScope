@@ -1625,9 +1625,13 @@ interface MapErrorEntry {
     .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
-    .fix-location-section{padding:8px 10px;margin:0 0 8px;border:1px solid var(--color-border-default,#555);border-radius:6px;background:var(--color-surface-default,#292a2d)}
-    .fix-location-section>summary{cursor:pointer;font-weight:600}
-    .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0}
+    .fix-location-section{padding:8px 10px;margin:0 0 8px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
+    .fix-location-section>summary{cursor:pointer;font-weight:600;color:inherit}
+    .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
+    .fix-location-toggle input{accent-color:#8ab4f8}
+    .fix-location-section .offline-map-status{color:#bdc1c6}
+    :host-context(html[data-theme='light']) .fix-location-section{background:#fff;border-color:#c5c8ce;color:#202124}
+    :host-context(html[data-theme='light']) .fix-location-section .offline-map-status{color:#555}
     .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
     .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
     .map-fix-crosshair:before{left:16px;top:0;width:2px;height:34px}
