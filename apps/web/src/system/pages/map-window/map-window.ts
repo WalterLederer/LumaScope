@@ -964,7 +964,7 @@ interface MapErrorEntry {
                     @for (entry of filteredResourcePackageEntries(); track entry.type + '|' + entry.path + '|' + entry.fileName) {
                       <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
-                        <td class="mbtiles-enabled-column">—</td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration"> } @else { — }</td>
                         <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
                         <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
                         <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
@@ -1750,6 +1750,11 @@ export class MapWindow implements OnInit, OnDestroy {
     type === 'valhalla' ? 'Valhalla (offline routing)'
       : type === 'osmand-resources' ? 'OsmAnd resources (rendering)'
       : 'Mapsforge XML theme';
+  protected readonly resourcePackageEntryActive = (entry: import('internal-api').ResourcePackageEntry): boolean =>
+    entry.type === 'valhalla' && entry.sourcePath.replace(/\\/g, '/').toLocaleLowerCase() === this.routeValhallaConfigPath().replace(/\\/g, '/').toLocaleLowerCase();
+  protected readonly resourcePackageEntryAvailable = (entry: import('internal-api').ResourcePackageEntry): boolean =>
+    entry.type !== 'valhalla' || this.valhallaConfigurations().some(configuration =>
+      configuration.available && configuration.path.replace(/\\/g, '/').toLocaleLowerCase() === entry.sourcePath.replace(/\\/g, '/').toLocaleLowerCase());
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
