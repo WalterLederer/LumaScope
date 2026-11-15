@@ -4466,7 +4466,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly setOfflineMapEnabled = async (id: string, enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
     const updated = await this.desktop.OfflineMap.setEnabledBatch([{ id, enabled }]);
-    this.offlineMaps.set(updated);
+    this.offlineMaps.set(this.mergeObfMetadata(updated));
     this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
@@ -4485,7 +4485,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (visibleMaps.length) {
         const updates = visibleMaps.map(map => ({ id: map.id, enabled }));
         const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
-        this.offlineMaps.set(updated);
+        this.offlineMaps.set(this.mergeObfMetadata(updated));
         this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
         this.refreshOfflineMapRendering();
       }
@@ -4529,7 +4529,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeOfflineMap = async (id: string): Promise<void> => {
     if (!this.desktop) return;
     const remaining = await this.desktop.OfflineMap.removeFile(id);
-    this.offlineMaps.set(remaining);
+    this.offlineMaps.set(this.mergeObfMetadata(remaining));
 
     if (!this.offlineMaps().some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
       this.changeMapSource('online');
