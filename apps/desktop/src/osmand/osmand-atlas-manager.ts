@@ -666,12 +666,12 @@ export class OsmAndAtlasManager {
       let selectedPaths = this.getFallbackObfPaths();
       try {
         const appSettings = readAppSettings();
-        const settings = (appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
-          filePaths?: unknown;
+        const settings = (appSettings.offline ?? appSettings.Maps ?? {}) as {
+          paths?: unknown;
         };
-        if (Array.isArray(settings.filePaths)) {
-          const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.filePaths)
-            ? settings.filePaths.flatMap(entry => {
+        if (Array.isArray(settings.paths)) {
+          const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.paths)
+            ? settings.paths.flatMap(entry => {
               if (typeof entry === 'string') return [{ path: entry, enabled: true }];
               if (entry && typeof entry === 'object'
                 && typeof (entry as { path?: unknown }).path === 'string'
@@ -680,12 +680,12 @@ export class OsmAndAtlasManager {
               }
               return [];
             })
-            : settings.filePaths && typeof settings.filePaths === 'object'
-              ? Object.entries(settings.filePaths as Record<string, unknown>)
+            : settings.paths && typeof settings.paths === 'object'
+              ? Object.entries(settings.paths as Record<string, unknown>)
                 .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
                 .map(([path, enabled]) => ({ path, enabled }))
               : [];
-          // The enabled flags in filePaths are the sole source of truth.
+          // The enabled flags in paths are the sole source of truth.
           // Do not apply a separately persisted regional preset here.
           selectedPaths = savedPaths
             .filter(entry => entry.enabled && /.obf$/i.test(entry.path))
@@ -848,9 +848,9 @@ export class OsmAndAtlasManager {
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: 'Hillshade SQLite databases', extensions: ['sqlitedb', 'sqlite', 'db'] }]
     });
-    if (result.canceled || !result.filePaths.length) return this.getHillshadeDatabases();
+    if (result.canceled || !result.paths.length) return this.getHillshadeDatabases();
     const byId = new Map(this.hillshadeDatabases.map(item => [item.id, item]));
-    for (const selectedPath of result.filePaths) {
+    for (const selectedPath of result.paths) {
       if (!existsSync(selectedPath) || !/\.(?:sqlitedb|sqlite|db)$/i.test(selectedPath)) continue;
       const id = createHash('sha1').update(selectedPath.toLowerCase()).digest('hex').slice(0, 16);
       if (!byId.has(id)) byId.set(id, { id, path: selectedPath, enabled: true });
