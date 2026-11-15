@@ -540,15 +540,21 @@ class OsmAndAtlasWorker {
       // a fallback for older helpers and failures that occur before a frame is
       // written; exclude routine Qt/OpenGL diagnostics from the user-facing error.
       const helperErrors = [
-        ...this.stderrMessages.filter(message => !/^(INFO|DEBUG):/i.test(message) && !message.startsWith('ATLAS_INIT ')),
+        ...this.stderrMessages.filter(message => !/^(INFO|DEBUG):/i.test(message)),
         this.stderrBuffer.trim()
-      ].filter(Boolean).slice(-6);
+      ].filter(Boolean).slice(-12);
       const details = [responseMessage, ...helperErrors].filter(Boolean).join(' | ');
+      const statusDescription = status === 1 ? 'native render failure' : 'native helper error';
       console.error('[OsmAnd Atlas] native_render_failed', {
-        status, requestId, responseMessage: responseMessage || null,
-        stderr: helperErrors, renderElapsedMs: elapsedMs
+        status, statusDescription, requestId, responseMessage: responseMessage || null,
+        stderr: helperErrors, renderElapsedMs: elapsedMs,
+        frameWidth: width, frameHeight: height, payloadBytes: payloadSize
       });
-      throw new Error(details || ('OsmAnd Atlas native rendering failed without a diagnostic message. Helper status: ' + status + '; request: ' + requestId + '; frame: ' + width + 'x' + height + '; payload bytes: ' + payloadSize + '; elapsed: ' + elapsedMs + ' ms.'));
+      const requestDetails = 'OsmAnd Atlas ' + statusDescription + ' (status ' + status
+        + ', request ' + requestId + ', frame ' + width + 'x' + height
+        + ', payload ' + payloadSize + ' bytes, elapsed ' + elapsedMs + ' ms).';
+      throw new Error(details ? requestDetails + ' ' + details
+        : requestDetails + ' The native helper did not provide an error message; check the preceding ATLAS_RENDER / ATLAS_INIT diagnostics.');
     }
     if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
