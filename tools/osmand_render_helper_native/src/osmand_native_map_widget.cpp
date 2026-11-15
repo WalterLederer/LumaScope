@@ -431,7 +431,6 @@ bool OsmAndNativeMapWidget::grabFrameRgba(
 
 void OsmAndNativeMapWidget::initializeGL()
 {
-    const bool debugRenderPhases = std::getenv("OSMAND_ATLAS_DEBUG_RENDER_PHASES") != nullptr;
 
     _openGlInitializationTimer.start();
     connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &OsmAndNativeMapWidget::cleanupRenderer, Qt::DirectConnection);
@@ -470,7 +469,6 @@ void OsmAndNativeMapWidget::showEvent(QShowEvent* event)
 
 void OsmAndNativeMapWidget::paintGL()
 {
-    const bool debugRenderPhases = std::getenv("OSMAND_ATLAS_DEBUG_RENDER_PHASES") != nullptr;
 
     if (auto* functions = context() ? context()->functions() : nullptr)
     {
