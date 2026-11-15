@@ -1770,7 +1770,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private getActiveOfflineMapBounds(): Array<[number, number, number, number]> {
     return this.offlineMaps().flatMap(map => {
-      if (!map.enabled || !map.available || !map.bounds) return [];
+      if (!map.enabled || !map.bounds) return [];
       const values = map.bounds.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       if (values.length !== 4 || values.some(value => !Number.isFinite(value))) return [];
       const [west, south, east, north] = values;
