@@ -9,6 +9,7 @@ import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
 interface MapBounds { isValid(): boolean; }
+interface ObfBoundsPreview { name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }>; }
 interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
 interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpacity(opacity: number): LeafletGridLayer; redraw(): LeafletGridLayer; on(event: 'load', callback: () => void): LeafletGridLayer; remove(): void; }
 interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpacity(opacity: number): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
@@ -1932,7 +1933,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly obfBoundsPreview = signal<{ name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }> } | null>(null);
+  protected readonly obfBoundsPreview = signal<ObfBoundsPreview | null>(null);
   protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'valhalla' | 'osmandResources' | 'mapsforgeTheme' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
   protected readonly filteredResourcePackageEntries = computed(() => {
     const entries = this.resourcePackageEntries();
@@ -4492,7 +4493,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private createObfBoundsPreview(map: import('internal-api').OfflineMapStatus): NonNullable<ReturnType<typeof this.obfBoundsPreview>> {
+  private createObfBoundsPreview(map: import('internal-api').OfflineMapStatus): ObfBoundsPreview {
     if (!map.obfMetadataAvailable || !map.bounds) {
       return { name: map.name, bounds: map.bounds, zoom: '', error: map.obfMetadataError || 'OsmAnd Core did not provide bounds for this OBF file.', rectangles: [] };
     }
