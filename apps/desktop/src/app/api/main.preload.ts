@@ -58,6 +58,7 @@ const api: Desktop = {
     readDir: (path: string) => ipcRenderer.invoke('FileSystem.readDir', path),
     readText: (path: string) => ipcRenderer.invoke('FileSystem.readText', path),
     readDocumentationFile: (fileName: string) => ipcRenderer.invoke('FileSystem.readDocumentationFile', fileName),
+    openDocumentationFile: (fileName: string) => ipcRenderer.invoke('FileSystem.openDocumentationFile', fileName),
     readDocumentationImage: (fileName: string) => ipcRenderer.invoke('FileSystem.readDocumentationImage', fileName),
     writeText: (path: string, content: string) => ipcRenderer.invoke('FileSystem.writeText', path, content),
     readJson: (path: string) => ipcRenderer.invoke('FileSystem.readJson', path),
