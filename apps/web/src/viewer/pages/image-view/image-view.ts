@@ -131,7 +131,7 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
   ],
   templateUrl: './image-view.html',
   styleUrl: './image-view.scss',
-  host: { '[class.decoding]': 'isDecoding()' },
+  host: { '[class.decoding]': 'isDecoding()', '[class.browse-layout]': "activeImageSidebarTab() === 'gallery'" },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ImageView {
