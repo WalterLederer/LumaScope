@@ -687,14 +687,21 @@ int main(int argc, char* argv[])
     std::cerr << "ATLAS_INIT display_scale=" << displayScale << std::endl;
     std::cerr << "ATLAS_INIT widget_create_ms=" << widgetCreationTimer.elapsed() << std::endl;
 
-    widget->setAttribute(Qt::WA_DontShowOnScreen, true); 
+    std::cerr << "ATLAS_INIT stage=widget_setup_begin" << std::endl;
+    widget->setAttribute(Qt::WA_DontShowOnScreen, true);
+    std::cerr << "ATLAS_INIT stage=widget_attribute_set" << std::endl;
     widget->setMinimumSize(1, 1);
     widget->resize(1280, 960);
+    std::cerr << "ATLAS_INIT stage=widget_resized size=" << widget->width() << "x" << widget->height() << std::endl;
     widget->setWindowTitle(QStringLiteral("OsmAnd Atlas Render Helper"));
     widget->move(100, 100);
+    std::cerr << "ATLAS_INIT stage=widget_window_properties_set" << std::endl;
     widget->setZoomLevel(13.0);
+    std::cerr << "ATLAS_INIT stage=initial_zoom_set" << std::endl;
     widget->setCenterLonLat(16.3738, 48.2082);
+    std::cerr << "ATLAS_INIT stage=initial_center_set" << std::endl;
     widget->show();
+    std::cerr << "ATLAS_INIT stage=widget_show_returned" << std::endl;
 
     QTimer captureTimer;
     captureTimer.setInterval(kFramePollIntervalMs);
