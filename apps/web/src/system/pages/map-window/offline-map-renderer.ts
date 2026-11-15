@@ -72,19 +72,6 @@ interface OsmAndTileStatusEventDetail {
   error?: string;
 }
 
-function isUniformBlankTile(pixels: ArrayLike<number>): boolean {
-  if (pixels.length < 4 || pixels.length % 4 !== 0) return false;
-  const red = pixels[0], green = pixels[1], blue = pixels[2], alpha = pixels[3];
-  if (alpha !== 255) return false;
-  // A truly empty OsmAnd tile is a flat opaque renderer background. Requiring
-  // every pixel to match avoids flagging ordinary low-detail coast/ocean tiles.
-  for (let offset = 4; offset < pixels.length; offset += 4) {
-    if (pixels[offset] !== red || pixels[offset + 1] !== green
-      || pixels[offset + 2] !== blue || pixels[offset + 3] !== alpha) return false;
-  }
-  return true;
-}
-
 function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
   window.dispatchEvent(new CustomEvent<OsmAndTileStatusEventDetail>('lumascope-osmand-tile-status', { detail }));
 }
@@ -142,10 +129,9 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
         bitmap.close();
         throw new Error('OsmAnd tile request was cancelled.');
       }
-      emitOsmAndTileStatus({ ...tileCoordinates,
-        status: zoom < 8 && isUniformBlankTile(pixels) ? 'warning' : 'loaded',
-        ...(zoom < 8 && isUniformBlankTile(pixels) ? { error: 'World_basemap.obf needed' } : {})
-      });
+      // Uniform low-zoom tiles are valid (for example, open ocean). Do not
+      // infer missing World_basemap data from pixel uniformity alone.
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
       return { data: bitmap };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -240,12 +226,13 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         throw new Error('OsmAnd Atlas tile request was cancelled.');
       }
       const totalDurationMs = tile.cacheHit ? undefined : performance.now() - renderStartedAt;
-      const isBlankTile = zoom < 8 && isUniformBlankTile(pixels);
+      // A uniform tile at low zoom can be a legitimate ocean tile. Keep
+      // pixel diagnostics in the Atlas manager log, but never treat this
+      // visual pattern alone as evidence that World_basemap.obf is missing.
       emitOsmAndTileStatus({ ...tileCoordinates,
-        status: isBlankTile ? 'warning' : 'loaded',
+        status: 'loaded',
         ...(totalDurationMs !== undefined ? { totalDurationMs } : {}),
-        ...(typeof tile.queueWaitMs === 'number' ? { queueWaitMs: tile.queueWaitMs } : {}),
-        ...(isBlankTile ? { error: 'World_basemap.obf needed' } : {})
+        ...(typeof tile.queueWaitMs === 'number' ? { queueWaitMs: tile.queueWaitMs } : {})
       });
       return { data: bitmap };
     } catch (error) {
