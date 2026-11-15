@@ -1694,6 +1694,16 @@ ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: nu
   App.openMapWindow(latitude, longitude, bearing, imagePath)
 );
 ipcMain.handle('MapWindow.getLocation', () => App.mapWindowLocation);
+ipcMain.handle('MapWindow.getImagePreview', (_event, imagePath: string): string | null => {
+  if (typeof imagePath !== 'string' || !path.isAbsolute(imagePath)) return null;
+  try {
+    const image = nativeImage.createFromPath(imagePath);
+    if (image.isEmpty()) return null;
+    return image.resize({ width: 320, height: 200, quality: 'good' }).toDataURL();
+  } catch {
+    return null;
+  }
+});
 ipcMain.handle('MapWindow.openHelpDocument', (_event, fileName: string): boolean => {
   if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\.md$/i.test(fileName)) return false;
   const mainWindow = App.mainWindow;
