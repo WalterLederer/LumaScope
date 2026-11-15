@@ -1,7 +1,7 @@
 import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
-import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, output, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   ActionButtonComponent,
@@ -71,8 +71,12 @@ export class GalleryPage {
 
   readonly imageSelected = output<FileInfo>();
 
+  readonly showFolderTree = input(true);
 
-  protected readonly tree = viewChild.required(TreeComponent);
+  readonly showImageGrid = input(true);
+
+
+  protected readonly tree = viewChild(TreeComponent);
 
   
 
@@ -142,14 +146,14 @@ export class GalleryPage {
     console.warn('[GalleryPage] CONSTRUCTOR START');
     afterNextRender(() => console.warn('[GalleryPage] AFTER NEXT RENDER'));
 
-    // Keep the native window title in sync with the active gallery directory.
-    this.selectedLocation$.subscribe(location => {
+    // Only the image-grid instance owns window title and cache refresh side effects.
+    if (this.showImageGrid()) this.selectedLocation$.subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
       // Selecting a gallery folder also selects its drive-local cache database.
       if (location) void this.desktopApi?.CacheManager.getDirectoryPhotoLocations(location).catch(() => undefined);
     });
 
-    afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
+    if (this.showImageGrid()) afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
 
   }
 
@@ -271,7 +275,7 @@ export class GalleryPage {
       node.hasChildren = node.children.length > 0;
     }
 
-    this.tree().updateNode(node);
+    this.tree()?.updateNode(node);
   };
 
   protected readonly selectLocation = (node: TreeNode<string>) =>
