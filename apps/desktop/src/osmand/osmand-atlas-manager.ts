@@ -312,7 +312,7 @@ class OsmAndAtlasWorker {
         // MapLibre routinely aborts obsolete tile requests during camera moves.
         // Resolve those queued requests with a transparent frame instead of
         // rejecting the IPC call (Electron logs rejected handlers as errors).
-        return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
+        return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [], queueWaitMs };
       }
       return this.renderQueued(longitude, latitude, zoom, generation).then(rendered => ({ ...rendered, queueWaitMs }));
     });
