@@ -1,15 +1,15 @@
 # Offline resource package format
 
-## Unified OfflineFiles configuration
+## Unified Offline configuration
 
-All configured offline paths are stored together in `offlineMaps.filePaths`. Each entry contains a `type`, `path`, `enabled` flag and cached `size` in bytes. Resource-folder entries store the recursive total for the folder; ordinary map, Hillshade and theme-file entries store the file size. The cached size is refreshed when files are added or when the resource package is scanned, rather than recursively recalculated whenever the Location window opens.
+All configured offline paths are stored together in `offline.paths`. Each entry contains a `type`, `path`, `enabled` flag and cached `size` in bytes. Resource-folder entries store the recursive total for the folder; ordinary map, Hillshade and theme-file entries store the file size. The cached size is refreshed when files are added or when the resource package is scanned, rather than recursively recalculated whenever the Location window opens.
 
 The supported types are `mbtiles`, `obf`, `mapsforge-map`, `hillshade`, `valhalla-config`, `osmand-resources`, `mapsforge-theme-folder` and `mapsforge-theme`. Mapsforge theme entries additionally retain the theme name and XML source path so multiple themes in the same folder remain distinct. Existing configurations using the former `osmand`, `valhalla` and `mapsforge` path properties are migrated automatically when settings are loaded; non-path preferences such as the OsmAnd rendering style remain in their respective sections.
 
 
 [Back to README](../README.md)
 
-This page describes the **external map and routing data folder** selected with **Open resource package…** in the **OfflineFiles** tab. It is a data-layout guide for files that LumaScope discovers and uses at runtime. It is not a build guide: compiling LumaScope, its native helpers or the Mapsforge renderer is covered separately in [Build from source](build-from-source.md).
+This page describes the **external map and routing data folder** selected with **Open resource package…** in the **Offline** tab. It is a data-layout guide for files that LumaScope discovers and uses at runtime. It is not a build guide: compiling LumaScope, its native helpers or the Mapsforge renderer is covered separately in [Build from source](build-from-source.md).
 
 ## 1. What the resource package is
 
@@ -66,7 +66,7 @@ This is an example, not a requirement to include every format. You can use diffe
 
 The scan is a discovery pass. Finding a file does not guarantee that its contents are valid, that its geographic coverage is useful, or that all runtime dependencies are present. The **Check** action and the renderer-specific validation report missing or unsupported resources.
 
-Folder-based resources are also listed directly in the OfflineFiles file table. Their **Path** is the containing resource folder, and **File size** is the recursive total of all files below that folder. Valhalla rows use the configuration's parent folder name (for example, **Austria** or **Europe**); the OsmAnd resources row has an empty **File** value; Mapsforge theme rows use each XML theme's filename without the extension (for example, **Elements** or **Elevate**). These rows do not have map coverage controls. Valhalla rows retain an **Active** checkbox for the routing configuration; the OsmAnd resources folder is selected for the renderer, and the Mapsforge theme is selected in the map **View** tab.
+Folder-based resources are also listed directly in the Offline file table. Their **Path** is the containing resource folder, and **File size** is the recursive total of all files below that folder. Valhalla rows use the configuration's parent folder name (for example, **Austria** or **Europe**); the OsmAnd resources row has an empty **File** value; Mapsforge theme rows use each XML theme's filename without the extension (for example, **Elements** or **Elevate**). These rows do not have map coverage controls. Valhalla rows retain an **Active** checkbox for the routing configuration; the OsmAnd resources folder is selected for the renderer, and the Mapsforge theme is selected in the map **View** tab.
 
 ## 3. OsmAnd vector maps — OBF
 
@@ -296,7 +296,7 @@ ResourcePackage/OpenStreetMap/Valhalla/Austria/valhalla.json
 ResourcePackage/OpenStreetMap/Valhalla/Europe/valhalla.json
 ```
 
-The JSON must parse successfully and contain a top-level `mjolnir` object. Valhalla configuration files are discovered automatically when you scan the extracted resource package. Select the configuration you want to use in the **Routing provider** list. The OfflineFiles table displays each configuration's parent folder (such as `Austria` or `Europe`) and the recursive size of that folder. The scanner does **not** build, download or validate the complete routing graph.
+The JSON must parse successfully and contain a top-level `mjolnir` object. Valhalla configuration files are discovered automatically when you scan the extracted resource package. Select the configuration you want to use in the **Routing provider** list. The Offline table displays each configuration's parent folder (such as `Austria` or `Europe`) and the recursive size of that folder. The scanner does **not** build, download or validate the complete routing graph.
 
 ### Configuration versus routing tiles
 
@@ -326,7 +326,7 @@ The exact configuration keys and auxiliary-data steps depend on the Valhalla ver
 2. Create the subfolders required by the formats you intend to use.
 3. Extract downloaded ZIP archives before scanning. Do not put ZIP files where the scanner expects the actual `.obf`, `.map`, `.xml` or SQLite file.
 4. Copy the files into the correct subfolders described above.
-5. In LumaScope, open **Location → OfflineFiles** and click **Open resource package…**.
+5. In LumaScope, open **Location → Offline** and click **Open resource package…**.
 6. Select the parent `ResourcePackage` directory, not an individual file.
 7. Review the **Found** and **Changed** scan results.
 8. Click **Check** to verify availability and identify missing or duplicate paths.
