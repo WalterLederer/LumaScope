@@ -1008,7 +1008,7 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds" [attr.title]="map.obfSections?.map(section => section.name + ' (' + section.minZoom + '–' + section.maxZoom + ')').join(' · ') || map.obfMetadataError || 'OBF metadata unavailable'">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
+                        <td class="mbtiles-map-bounds" [attr.title]="obfMetadataTooltip(map)">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
                       </tr>
                     }
@@ -3791,6 +3791,15 @@ export class MapWindow implements OnInit, OnDestroy {
             obfMetadataError: error instanceof Error ? error.message : String(error) }
         : map);
     }
+  }
+
+  private obfMetadataTooltip(map: import('internal-api').OfflineMapStatus): string {
+    if (!map.obfMetadataAvailable) return map.obfMetadataError || 'OBF metadata unavailable';
+    const sections = map.obfSections ?? [];
+    const details = sections.map(section =>
+      section.name + ' (' + section.minZoom + '–' + section.maxZoom + ')');
+    if (map.obfIsBasemap) details.unshift('Basemap');
+    return details.length ? details.join(' · ') : (map.obfSectionCount ?? 0) + ' map section(s)';
   }
 
   protected readonly checkOffline = async (): Promise<void> => {
