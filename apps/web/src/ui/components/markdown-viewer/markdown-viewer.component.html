@@ -1,15 +1,24 @@
 <div class="markdown-help">
   <header class="markdown-help-header">
-    <strong>{{ documentTitle() }}</strong>
-    <label class="markdown-font-size">
+    <div class="markdown-help-document">
+      <strong>{{ documentTitle() }}</strong>
+      <span class="markdown-help-file-path" [title]="documentationPath()">File: {{ documentationPath() }}</span>
+    </div>
+    <div class="markdown-help-header-actions">
+      <button type="button" class="markdown-open-file-button" (click)="openCurrentDocument()" title="Open this Markdown file with the Windows default app" aria-label="Open Markdown file with default app"><span aria-hidden="true">↗</span></button>
+      <label class="markdown-font-size">
       <span>Text size</span>
       <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" (change)="saveFontSize()" aria-label="Documentation text size">
       <output>{{ fontSize() }} px</output>
-    </label>
-    @if (currentFile() !== 'README.md') {
-      <button type="button" (click)="showReadme()">Back to README</button>
-    }
+      </label>
+      @if (currentFile() !== 'README.md') {
+        <button type="button" (click)="showReadme()">Back to README</button>
+      }
+    </div>
   </header>
+  @if (openFileError()) {
+    <p class="markdown-state markdown-error" role="alert">{{ openFileError() }}</p>
+  }
   @if (loading()) {
     <p class="markdown-state" role="status">Loading documentation…</p>
   } @else if (error()) {
