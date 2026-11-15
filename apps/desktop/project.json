@@ -86,7 +86,7 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": {
-        "command": "\"{env.LUMASCOPE_NODE_EXE ?? 'node'}\" tools/prepare-electron-dist.cjs"
+        "command": "\"%LUMASCOPE_NODE_EXE%\" tools/prepare-electron-dist.cjs"
       }
     }
   }
