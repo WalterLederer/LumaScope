@@ -85,6 +85,8 @@ The exact available output and HDR path depend on the selected source and Window
 The Location tab connects image metadata to geographic context.
 
 - Read GPS coordinates embedded in image metadata.
+- For photos without GPS coordinates, use **Fix location** in the Location tab: enable **Allow fixing**, pan the currently selected online or offline map beneath the fixed centre crosshair, and choose **Save GPS position...** to write the selected latitude and longitude into the image file's GPS EXIF metadata.
+- GPS fixing uses the existing map renderer and current map-source settings; it does not switch map sources or introduce a separate map service. The map source must be available and able to initialize normally.
 - Display the current image position on the map.
 - Inspect and copy coordinates.
 - Resolve or enrich location names where a geocoding provider is configured and available.
