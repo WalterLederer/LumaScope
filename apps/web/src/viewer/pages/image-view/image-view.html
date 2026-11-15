@@ -479,10 +479,10 @@
                             [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
-        <section class="sidebar-image-information app-disclosure">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
+        <app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />
       }
 @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'actions') {
-        <section class="image-actions-section app-disclosure">
+        <section class="image-actions-section">
           <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
           <section class="copy-file-section app-disclosure">
               <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('copy')" type="button" (click)="toggleSidebarSection('copy')">Copy file</button>
