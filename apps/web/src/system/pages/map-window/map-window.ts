@@ -136,6 +136,28 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
+              <form class="offline-address-search" (submit)="$event.preventDefault(); searchOfflineAddresses()">
+                <label class="settings-row-title" for="offline-address-query">Offline address search:</label>
+                <div class="location-actions">
+                  <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
+                         placeholder="Street, house number, city or postcode…" autocomplete="off">
+                  <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
+                    {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
+                  </button>
+                </div>
+                @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
+                @if (offlineAddressSearchResults().length > 0) {
+                  <div class="offline-address-results" role="list" aria-label="Offline address search results">
+                    @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
+                      <button type="button" class="map-toolbar-button offline-address-result" role="listitem" (click)="goToOfflineAddress(result)">
+                        <strong>{{ result.display_name }}</strong>
+                        @if (result.secondary_text) { <span>{{ result.secondary_text }}</span> }
+                      </button>
+                    }
+                  </div>
+                }
+                <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
+              </form>
               <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
               <div class="address-settings">
@@ -2395,6 +2417,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
   protected readonly locationAddress = signal('');
+  protected readonly offlineAddressQuery = signal('');
+  protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
+  protected readonly offlineAddressSearchBusy = signal(false);
+  protected readonly offlineAddressSearchError = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors = [
@@ -2882,6 +2908,34 @@ export class MapWindow implements OnInit, OnDestroy {
     if (latitude === null || longitude === null) return;
     try { await navigator.clipboard.writeText(latitude.toFixed(6) + ', ' + longitude.toFixed(6)); }
     catch (error) { console.error('Failed to copy GPS coordinates', error); }
+  };
+  protected readonly searchOfflineAddresses = async (): Promise<void> => {
+    const query = this.offlineAddressQuery().trim();
+    if (query.length < 2 || !this.desktop || this.offlineAddressSearchBusy()) return;
+    const activePaths = this.offlineMaps()
+      .filter(map => map.type === 'obf' && map.enabled && map.available && !!map.filePath)
+      .map(map => map.filePath);
+    this.offlineAddressSearchBusy.set(true);
+    this.offlineAddressSearchError.set('');
+    this.offlineAddressSearchResults.set([]);
+    try {
+      if (!activePaths.length) throw new Error('No enabled and available OsmAnd OBF files are configured in Offline Files.');
+      const results = await this.desktop.OsmAndAtlas.searchAddresses(activePaths, query, 5);
+      this.offlineAddressSearchResults.set(results);
+      if (!results.length) this.offlineAddressSearchError.set('No matching address was found in the enabled OBF files.');
+    } catch (error) {
+      this.offlineAddressSearchError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.offlineAddressSearchBusy.set(false);
+    }
+  };
+  protected readonly goToOfflineAddress = (result: import('internal-api').OsmAndAddressSearchResult): void => {
+    if (!Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return;
+    if (this.offlineRenderer) {
+      this.offlineRenderer.map.jumpTo({ center: [result.longitude, result.latitude], zoom: Math.max(15, this.offlineRenderer.map.getZoom()) });
+    } else if (this.map) {
+      this.map.setView([result.latitude, result.longitude], Math.max(15, this.map.getZoom()));
+    }
   };
   protected readonly centerMarker = (): void => {
     const marker = this.marker?.getLatLng();
@@ -4080,6 +4134,12 @@ export class MapWindow implements OnInit, OnDestroy {
     };
     const enabledMaps = this.offlineMaps().filter(map =>
       map.type === 'obf' && map.enabled && map.available && !!map.filePath);
+    if (!enabledMaps.length) {
+      // Offline Files may still be loading while the first map tiles are requested.
+      // Do not replace the manager's configured active OBF set with an empty list.
+      console.info('[OsmAnd] Viewport OBF selection deferred: no enabled OBF entries are loaded yet.');
+      return;
+    }
     const basemaps = enabledMaps.filter(map => map.obfIsBasemap
       || /world[_ -]?basemap|world[_ -]?map/i.test((map.fileName || '') + ' ' + map.name));
     const regionalMaps = enabledMaps.filter(map => !basemaps.includes(map) && (() => {
