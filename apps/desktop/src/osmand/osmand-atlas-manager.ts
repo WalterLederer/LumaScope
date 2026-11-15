@@ -12,8 +12,8 @@ interface HillshadeDatabaseInfo { id: string; path: string; enabled: boolean; av
 
 // Render one MapLibre 256px tile at native resolution. The helper derives
 // its zoom compensation from this width, preserving the same geographic extent.
-const METATILE_SIZE = 256;
-const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
+const ATLAS_TILE_SIZE = 256;
+const TILE_BYTES = ATLAS_TILE_SIZE * ATLAS_TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
 // Atlas workers each own a Qt/OpenGL context and load the selected OBF set.
@@ -40,7 +40,7 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
   const unique = new Set<number>();
   const uniqueRgba = new Set<number>();
   const topLeft: [number, number, number, number] = [pixels[0], pixels[1], pixels[2], pixels[3]];
-  const centerOffset = ((METATILE_SIZE >> 1) * METATILE_SIZE + (METATILE_SIZE >> 1)) * 4;
+  const centerOffset = ((ATLAS_TILE_SIZE >> 1) * ATLAS_TILE_SIZE + (ATLAS_TILE_SIZE >> 1)) * 4;
   const center: [number, number, number, number] = [
     pixels[centerOffset], pixels[centerOffset + 1], pixels[centerOffset + 2], pixels[centerOffset + 3]
   ];
@@ -49,7 +49,7 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
   let flatTopLeftPixels = 0;
   let transparentPixels = 0;
   let nonOpaquePixels = 0;
-  const pixelCount = METATILE_SIZE * METATILE_SIZE;
+  const pixelCount = ATLAS_TILE_SIZE * ATLAS_TILE_SIZE;
 
   for (let offset = 0; offset < pixels.length; offset += 4) {
     const red = pixels[offset];
@@ -496,8 +496,8 @@ class OsmAndAtlasWorker {
     const command = {
       type: 'render',
       requestId,
-      width: METATILE_SIZE,
-      height: METATILE_SIZE,
+      width: ATLAS_TILE_SIZE,
+      height: ATLAS_TILE_SIZE,
       longitude,
       latitude,
       zoom
@@ -556,7 +556,7 @@ class OsmAndAtlasWorker {
       throw new Error(details ? requestDetails + ' ' + details
         : requestDetails + ' The native helper did not provide an error message; check the preceding ATLAS_RENDER / ATLAS_INIT diagnostics.');
     }
-    if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
+    if (width !== ATLAS_TILE_SIZE || height !== ATLAS_TILE_SIZE || stride !== ATLAS_TILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd Atlas helper returned unexpected RGBA8 frame dimensions or format.');
     }
@@ -1021,8 +1021,8 @@ export class OsmAndAtlasManager {
       : windowsDisplayScale;
     await this.ensureDisplayScale(displayScale);
 
-    const metatileX = x & ~1;
-    const metatileY = y & ~1;
+    const tileX = x;
+    const tileY = y;
     if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
 
     const mapCacheKey = this.obfPaths.length
@@ -1034,64 +1034,64 @@ export class OsmAndAtlasManager {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     const cacheFile = join(
-      this.cachePath, mapCacheKey, densityCacheKey, styleCacheKey,
-      String(z), String(metatileX), metatileY + '.png'
+      this.cachePath, 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
+      String(z), String(tileX), tileY + '.png'
     );
 
-    let metatilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
+    let tilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
     let geometryMessages: string[] = [];
-    const cacheHit = metatilePixels !== null;
+    const cacheHit = tilePixels !== null;
     if (forceRender) {
-      // Wait for an older request for this metatile before replacing its cache
+      // Wait for an older request for this tile before replacing its cache
       // entry, otherwise an in-flight render could overwrite the forced result.
       const previousRender = this.pendingTiles.get(cacheFile);
       if (previousRender) await previousRender.catch(() => undefined);
-      const forcedRender = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+      const forcedRender = this.renderAndCacheTile(z, tileX, tileY, cacheFile);
       this.pendingTiles.set(cacheFile, forcedRender);
       try {
         const rendered = await forcedRender;
-        metatilePixels = rendered.pixels;
+        tilePixels = rendered.pixels;
         geometryMessages = rendered.geometryMessages;
       } finally {
         if (this.pendingTiles.get(cacheFile) === forcedRender) this.pendingTiles.delete(cacheFile);
       }
-    } else if (!metatilePixels) {
+    } else if (!tilePixels) {
       let pending = this.pendingTiles.get(cacheFile);
       if (!pending) {
-        pending = this.renderAndCacheTile(z, metatileX, metatileY, cacheFile);
+        pending = this.renderAndCacheTile(z, tileX, tileY, cacheFile);
         this.pendingTiles.set(cacheFile, pending);
         void pending.finally(() => {
           if (this.pendingTiles.get(cacheFile) === pending) this.pendingTiles.delete(cacheFile);
         }).catch(() => undefined);
       }
       const rendered = await pending;
-      metatilePixels = rendered.pixels;
+      tilePixels = rendered.pixels;
       geometryMessages = rendered.geometryMessages;
     }
 
-    const tilePixelDiagnostics = getAtlasPixelDiagnostics(metatilePixels);
+    const tilePixelDiagnostics = getAtlasPixelDiagnostics(tilePixels);
     if (tilePixelDiagnostics.uniqueRgbaColors === 1) {
       geometryMessages.push('Atlas returned a uniform tile: uniqueRgbColors=1, rgb=' + tilePixelDiagnostics.rgbMin.join(','));
     }
-    // Diagnose each metatile once per application session. This deliberately
+    // Diagnose each tile once per application session. This deliberately
     // examines the exact RGBA bytes returned to the renderer, whether they came
     // from the native helper or from the PNG disk cache.
     if (forceRender || !this.diagnosedTiles.has(cacheFile)) {
       this.diagnosedTiles.add(cacheFile);
-      console.info('[OsmAnd Atlas] metatile pixel diagnostics', {
+      console.info('[OsmAnd Atlas] tile pixel diagnostics', {
         source: cacheHit ? 'disk-cache' : 'native-renderer',
         zoom: z,
-        metatileX,
-        metatileY,
-        width: METATILE_SIZE,
-        height: METATILE_SIZE,
-        ...getAtlasPixelDiagnostics(metatilePixels)
+        tileX,
+        tileY,
+        width: ATLAS_TILE_SIZE,
+        height: ATLAS_TILE_SIZE,
+        ...getAtlasPixelDiagnostics(tilePixels)
       });
     }
 
     return {
-      width: METATILE_SIZE, height: METATILE_SIZE, stride: METATILE_SIZE * 4,
-      pixels: new Uint8Array(metatilePixels), cacheHit,
+      width: ATLAS_TILE_SIZE, height: ATLAS_TILE_SIZE, stride: ATLAS_TILE_SIZE * 4,
+      pixels: new Uint8Array(tilePixels), cacheHit,
       diagnostics: {
         helperPath: this.helperPath,
         geometryEnabled: this.environment.OSMAND_ATLAS_DEBUG_GEOMETRY !== undefined,
@@ -1116,20 +1116,20 @@ export class OsmAndAtlasManager {
     await Promise.all(this.hillshadeWorkers.map(worker => worker.shutdown()));
   };
 
-  private async renderAndCacheTile(z: number, metatileX: number, metatileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
-    // The 2x2 metatile centre is one XYZ tile east and south of its NW corner.
-    const longitude = (metatileX + 1) / (2 ** z) * 360 - 180;
-    const mercatorY = Math.PI * (1 - 2 * (metatileY + 1) / (2 ** z));
+  private async renderAndCacheTile(z: number, tileX: number, tileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
+    // Render the centre of this exact XYZ tile; no 2x2 grouping or zoom shift.
+    const longitude = (tileX + 0.5) / (2 ** z) * 360 - 180;
+    const mercatorY = Math.PI * (1 - 2 * (tileY + 0.5) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
     if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
     const worker = this.workers[this.nextWorker++ % this.workers.length];
-    // 512px at the compensated helper zoom yields one MapLibre 512px tile extent.
-    const rendered = await worker.render(longitude, latitude, z - 1);
+    // The native helper renders one 256px XYZ tile at the same zoom.
+    const rendered = await worker.render(longitude, latitude, z);
     const pixels = rendered.pixels;
     const pixelDiagnostics = getAtlasPixelDiagnostics(pixels);
     if (pixelDiagnostics.uniqueRgbaColors === 1) {
-      console.info('[OsmAnd Atlas] Uniform metatile not cached', {
-        zoom: z, metatileX, metatileY,
+      console.info('[OsmAnd Atlas] Uniform tile not cached', {
+        zoom: z, tileX, tileY,
         uniqueRgbColors: pixelDiagnostics.uniqueRgbColors,
         uniqueRgbaColors: pixelDiagnostics.uniqueRgbaColors,
         transparentPixels: pixelDiagnostics.transparentPixels,
@@ -1150,8 +1150,8 @@ export class OsmAndAtlasManager {
       bgra[i + 3] = pixels[i + 3];
     }
     const png = nativeImage.createFromBitmap(bgra, {
-      width: METATILE_SIZE,
-      height: METATILE_SIZE,
+      width: ATLAS_TILE_SIZE,
+      height: ATLAS_TILE_SIZE,
       scaleFactor: 1
     }).toPNG();
     const temporaryPath = cacheFile + '.' + process.pid + '.' + (++this.temporaryFileId) + '.tmp';
@@ -1170,11 +1170,11 @@ export class OsmAndAtlasManager {
     try {
       const image = nativeImage.createFromBuffer(await readFile(path));
       const size = image.getSize();
-      if (size.width !== METATILE_SIZE || size.height !== METATILE_SIZE) {
-        throw new Error('Cached OsmAnd Atlas metatile dimensions are invalid.');
+      if (size.width !== ATLAS_TILE_SIZE || size.height !== ATLAS_TILE_SIZE) {
+        throw new Error('Cached OsmAnd Atlas tile dimensions are invalid.');
       }
       const bgra = image.toBitmap();
-      if (bgra.length !== TILE_BYTES) throw new Error('Cached OsmAnd Atlas metatile pixel data is invalid.');
+      if (bgra.length !== TILE_BYTES) throw new Error('Cached OsmAnd Atlas tile pixel data is invalid.');
       const rgba = Buffer.allocUnsafe(TILE_BYTES);
       for (let i = 0; i < bgra.length; i += 4) {
         rgba[i] = bgra[i + 2];
@@ -1184,7 +1184,7 @@ export class OsmAndAtlasManager {
       }
       if (getAtlasPixelDiagnostics(rgba).uniqueRgbaColors === 1) {
         await unlink(path).catch(() => undefined);
-        console.info('[OsmAnd Atlas] Removed uniform metatile from disk cache:', path);
+        console.info('[OsmAnd Atlas] Removed uniform tile from disk cache:', path);
         return null;
       }
       return rgba;
