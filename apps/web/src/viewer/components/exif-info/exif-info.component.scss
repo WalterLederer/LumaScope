@@ -35,33 +35,40 @@
 
 
 .info-box {
+  > details,
+  .measurement-details {
+    border: 1px solid var(--color-content-default-low);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 0 0 6px;
+  }
+
   > details > summary,
   .measurement-details > summary {
+    display: list-item;
+    padding: 0;
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 700;
+    line-height: 1.4;
+    list-style: disclosure-closed;
     cursor: pointer;
     user-select: none;
   }
 
-  /* File, Color and Performance are peer sections, not nested sections. */
-  > details > summary {
-    padding-left: 0;
+  > details > summary::marker,
+  .measurement-details > summary::marker {
+    font-size: 16px;
   }
 
-  /* Measurement logic is genuinely nested inside Performance. */
-  .measurement-details > summary {
-    padding-left: 24px;
-  }
-
-  > details[open] > summary {
-    margin-bottom: var(--dim-small);
+  > details[open] > summary,
+  .measurement-details[open] > summary {
+    list-style: disclosure-open;
+    margin-bottom: 4px;
   }
 
   .measurement-details {
-    margin-top: var(--dim-medium);
-    padding-top: var(--dim-small);
-    border-top: 0;
-
-    summary { font-weight: 600; }
+    margin-top: 6px;
 
     p {
       margin: var(--dim-small) 0;
