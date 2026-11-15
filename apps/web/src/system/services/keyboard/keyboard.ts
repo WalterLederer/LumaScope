@@ -7,9 +7,16 @@ export class Keyboard {
   private readonly document = inject(DOCUMENT);
 
   private readonly isTextInputTarget = (event: KeyboardEvent): boolean => {
-    const target = event.target;
-    if (!(target instanceof Element)) return false;
-    return !!target.closest('input, textarea, select, [role="textbox"], [contenteditable="true"]');
+    // composedPath() also sees the actual control when the event crosses a
+    // Shadow DOM boundary and its target is retargeted to a custom element.
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
+    return path.some(item => {
+      if (!(item instanceof Element)) return false;
+      if (item instanceof HTMLInputElement || item instanceof HTMLTextAreaElement ||
+          item instanceof HTMLSelectElement) return true;
+      if (item instanceof HTMLElement && item.isContentEditable) return true;
+      return item.matches('input, textarea, select, [role="textbox"], [contenteditable]');
+    });
   };
 
   // Global shortcuts must not run while the user is entering text or choosing
