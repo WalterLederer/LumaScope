@@ -37,8 +37,8 @@ export class OfflineMapManager {
  @IpcHandler({name:'OfflineMap.reconcileFiles'})
  readonly reconcileFiles=async(_event:IpcMainInvokeEvent,paths:string[]):Promise<OfflineMapImportResult>=>{
   if(!Array.isArray(paths))throw new Error('Offline map paths must be an array.');
-  const paths=[...new Set(paths.filter(path=>typeof path==='string'&&path.trim()).map(path=>resolve(path.trim())))];
-  const wanted=new Set(paths.map(path=>path.toLocaleLowerCase()));
+  const normalizedPaths=[...new Set(paths.filter(path=>typeof path==='string'&&path.trim()).map(path=>resolve(path.trim())))];
+  const wanted=new Set(normalizedPaths.map(path=>path.toLocaleLowerCase()));
   let changed=false;
   for(const [path,item] of this.opened){
    if(wanted.has(path.toLocaleLowerCase()))continue;
@@ -49,8 +49,8 @@ export class OfflineMapManager {
   }
   for(const path of this.obfFiles.keys())if(!wanted.has(path.toLocaleLowerCase())){this.obfFiles.delete(path);changed=true;}
   for(const path of this.mapsforgeFiles.keys())if(!wanted.has(path.toLocaleLowerCase())){this.mapsforgeFiles.delete(path);changed=true;}
-  const result=await this.importFilePaths(paths);
-  if(!paths.length&&changed)await this.persistMaps();
+  const result=await this.importFilePaths(normalizedPaths);
+  if(!normalizedPaths.length&&changed)await this.persistMaps();
   return result;
  };
  @IpcHandler({name:'OfflineMap.scanResourcePackage'})
