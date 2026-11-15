@@ -1785,6 +1785,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (filter === 'updates') return maps.filter(map => map.updateAvailable === true);
     if (filter === 'current') return maps.filter(map => map.updateChecked && map.updateAvailable === false);
     if (filter === 'noMatch') return maps.filter(map => map.updateChecked && map.updateMatched === false);
+    if (filter === 'valhalla' || filter === 'osmandResources' || filter === 'mapsforgeTheme') return [];
     return maps;
   });
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
