@@ -219,6 +219,22 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
 export const getOfflineFileEntries = (settings: AppSettings = readAppSettings()): OfflineFileConfigEntry[] =>
   normalizeOfflineFileEntries(settings);
 
+export const migrateOfflineFileSettings = async (): Promise<void> => {
+  const userSettings = readUserAppSettings();
+  const offline = isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : {};
+  const legacySections = ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
+    const section = isPlainObject(userSettings[sectionName]) ? userSettings[sectionName] : {};
+    const keys = sectionName === 'osmand' ? ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']
+      : sectionName === 'valhalla' ? ['configurations', 'configPath'] : ['themeFolder', 'themePath'];
+    return keys.some(key => Object.prototype.hasOwnProperty.call(section, key));
+  });
+  const needsTypedEntries = !Array.isArray(offline['filePaths']) || offline['filePaths'].some((entry: unknown) =>
+    !isPlainObject(entry) || typeof entry['type'] !== 'string' || typeof entry['size'] !== 'number'
+  );
+  if (!legacySections && !needsTypedEntries) return;
+  await updateAppSettingsSection('offlineMaps', { filePaths: normalizeOfflineFileEntries(userSettings) });
+};
+
 const replaceOfflineFileTypes = (
   entries: OfflineFileConfigEntry[],
   types: OfflineFileType[],
@@ -292,9 +308,13 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       const types = [...new Set(incoming.map((raw: Record<string, unknown>) =>
         typeof raw['type'] === 'string' ? raw['type'] as OfflineFileType : inferOfflineFileType(String(raw['path'] ?? ''))
       ).filter((type): type is OfflineFileType => !!type))];
-      for (const type of types) addOrReplace(type, incoming.filter((raw: Record<string, unknown>) =>
-        (typeof raw['type'] === 'string' ? raw['type'] : inferOfflineFileType(String(raw['path'] ?? ''))) === type
-      ));
+      if (!incoming.length) {
+        offlineEntries = replaceOfflineFileTypes(offlineEntries, ['mbtiles', 'obf', 'mapsforge-map'], []);
+      } else {
+        for (const type of types) addOrReplace(type, incoming.filter((raw: Record<string, unknown>) =>
+          (typeof raw['type'] === 'string' ? raw['type'] : inferOfflineFileType(String(raw['path'] ?? ''))) === type
+        ));
+      }
       nextValues['filePaths'] = undefined;
     }
     if (section === 'osmand') {
