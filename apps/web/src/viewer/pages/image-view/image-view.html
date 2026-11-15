@@ -116,8 +116,8 @@
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
         <section class="image-database-section">
-          <button class="section-heading" type="button" (click)="toggleSidebarSection('database')">
-            <span class="section-chevron">{{sidebarSectionExpanded('database') ? 'v' : '>'}}</span>SQLite database record
+          <button class="section-heading" [class.expanded]="sidebarSectionExpanded('database')" type="button" (click)="toggleSidebarSection('database')">
+            SQLite database record
           </button>
           @if (sidebarSectionExpanded('database')) {
             @if (photoDatabaseRecordStatus()) {
@@ -154,7 +154,7 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
       <section>
-        <button class="section-heading" (click)="toggleSidebarSection('zoom')"><span class="section-chevron">{{sidebarSectionExpanded('zoom') ? 'v' : '>'}}</span>Zoom</button>
+        <button class="section-heading" [class.expanded]="sidebarSectionExpanded('zoom')" (click)="toggleSidebarSection('zoom')">Zoom</button>
         @if (sidebarSectionExpanded('zoom')) {
           <div class="viewer-zoom-controls" aria-label="Image zoom">
             <button type="button" class="status-icon-button" (click)="resetZoom()" title="Reset zoom / fit to window" aria-label="Reset zoom">⟲</button>
@@ -170,7 +170,7 @@
       <section>
         @if(sidebarSectionExpanded('corrections')) {
           <section class="correction-subsection basic-correction-section">
-            <button class="section-heading" (click)="toggleSidebarSection('basic')"><span class="section-chevron">{{sidebarSectionExpanded('basic') ? 'v' : '>'}}</span>Basic</button>
+            <button class="section-heading" [class.expanded]="sidebarSectionExpanded('basic')" (click)="toggleSidebarSection('basic')">Basic</button>
             @if (sidebarSectionExpanded('basic')) {
               <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
               <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="imageContrast()" (input)="setImageContrast($any($event.target).value)"/></label>
@@ -179,7 +179,7 @@
             }
           </section>
           <section class="correction-subsection rgb-correction-section">
-            <button class="section-heading" (click)="toggleSidebarSection('rgbLevels')"><span class="section-chevron">{{sidebarSectionExpanded('rgbLevels') ? 'v' : '>'}}</span>RGB</button>
+            <button class="section-heading" [class.expanded]="sidebarSectionExpanded('rgbLevels')" (click)="toggleSidebarSection('rgbLevels')">RGB</button>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
                 <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="redChannelLevel()" (input)="setRedChannelLevel($any($event.target).value)"/></label>
@@ -189,7 +189,7 @@
             }
           </section>
           <section class="correction-subsection inverse-section">
-            <button class="section-heading" (click)="toggleSidebarSection('inverse')"><span class="section-chevron">{{sidebarSectionExpanded('inverse') ? 'v' : '>'}}</span>Inverse</button>
+            <button class="section-heading" [class.expanded]="sidebarSectionExpanded('inverse')" (click)="toggleSidebarSection('inverse')">Inverse</button>
             @if (sidebarSectionExpanded('inverse')) {
               <div class="rgb-inversion-controls">
                 <div class="rgb-inversion-row">
@@ -202,7 +202,7 @@
             }
           </section>
           <section class="tone-curve-section">
-            <button class="section-heading" (click)="toggleSidebarSection('toneCurve')"><span class="section-chevron">{{sidebarSectionExpanded('toneCurve') ? 'v' : '>'}}</span>Tone curve</button>
+            <button class="section-heading" [class.expanded]="sidebarSectionExpanded('toneCurve')" (click)="toggleSidebarSection('toneCurve')">Tone curve</button>
             @if (sidebarSectionExpanded('toneCurve')) {
           <div class="tone-curve-controls">
             <svg class="tone-curve" viewBox="0 0 120 72" role="img" aria-label="Tone curve with adjustable black and white points">
@@ -247,16 +247,16 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
       <section class="magnifier-section">
-        <button class="section-heading" (click)="toggleSidebarSection('loupe')"><span class="section-chevron">{{sidebarSectionExpanded('loupe') ? 'v' : '>'}}</span>Magnifier (M)</button>
+        <button class="section-heading" [class.expanded]="sidebarSectionExpanded('loupe')" (click)="toggleSidebarSection('loupe')">Magnifier (M)</button>
         <label class="magnifier-enable-toggle"><input type="checkbox" [checked]="loupeEnabled()" (change)="toggleLoupe($any($event.target).checked)"/> Enable magnifier</label>
         @if(sidebarSectionExpanded('loupe')) {
-          <button class="section-heading" (click)="toggleSidebarSection('magnifierSettings')"><span class="section-chevron">{{sidebarSectionExpanded('magnifierSettings') ? 'v' : '>'}}</span>Magnifier Settings</button>
+          <button class="section-heading" [class.expanded]="sidebarSectionExpanded('magnifierSettings')" (click)="toggleSidebarSection('magnifierSettings')">Magnifier Settings</button>
           @if(sidebarSectionExpanded('magnifierSettings')) {
             <label class="channel-control"><span><b>Magnifier zoom (mouse wheel)</b><span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
             <label class="channel-control"><span><b>Magnifier size</b><span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
             <label class="channel-control"><span><b>Magnifier brightness</b><span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
             <div class="channel-control"><b>Magnifier Shape</b><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
-            <section><button class="section-heading" (click)="toggleSidebarSection('loupeRenderer')"><span class="section-chevron">{{sidebarSectionExpanded('loupeRenderer') ? 'v' : '>'}}</span>Magnifier renderer</button>@if(sidebarSectionExpanded('loupeRenderer')) {<button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>}</section>
+            <section><button class="section-heading" [class.expanded]="sidebarSectionExpanded('loupeRenderer')" (click)="toggleSidebarSection('loupeRenderer')">Magnifier renderer</button>@if(sidebarSectionExpanded('loupeRenderer')) {<button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>}</section>
           }
         }
       @if (sidebarSectionExpanded('loupe') && loupeEnabled()) {
@@ -485,7 +485,7 @@
         <section class="image-actions-section">
           <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
           <section class="copy-file-section">
-              <button class="section-heading" type="button" (click)="toggleSidebarSection('copy')"><span class="section-chevron">{{sidebarSectionExpanded('copy') ? 'v' : '>'}}</span>Copy file</button>
+              <button class="section-heading" [class.expanded]="sidebarSectionExpanded('copy')" type="button" (click)="toggleSidebarSection('copy')">Copy file</button>
               @if (sidebarSectionExpanded('copy')) {
                 <div class="copy-folder-info-box">
                   <div class="copy-folder-info-title">Source</div>
