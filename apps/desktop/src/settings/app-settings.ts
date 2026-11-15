@@ -1,8 +1,8 @@
 import { app } from 'electron';
 import { appConfigName } from 'internal-api';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { copyFile, readdir, unlink } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { writeJsonAtomically } from '../file-system/json-file';
 
 export type AppSettings = Record<string, unknown>;
@@ -129,6 +129,118 @@ const backupUserAppSettings = async (): Promise<void> => {
   }
 };
 
+
+export type OfflineFileType =
+  | 'mbtiles' | 'obf' | 'mapsforge-map' | 'hillshade'
+  | 'valhalla-config' | 'osmand-resources' | 'mapsforge-theme-folder' | 'mapsforge-theme';
+
+export interface OfflineFileConfigEntry {
+  type: OfflineFileType;
+  path: string;
+  enabled: boolean;
+  size: number;
+}
+
+const inferOfflineFileType = (path: string): OfflineFileType | null => {
+  const extension = extname(path).toLowerCase();
+  if (extension === '.mbtiles') return 'mbtiles';
+  if (extension === '.obf') return 'obf';
+  if (extension === '.map') return 'mapsforge-map';
+  if (['.sqlitedb', '.sqlite', '.db'].includes(extension)) return 'hillshade';
+  if (extension === '.json' && /valhalla/i.test(path)) return 'valhalla-config';
+  if (extension === '.xml') return 'mapsforge-theme';
+  return null;
+};
+
+const offlineEntrySize = (type: OfflineFileType, path: string): number => {
+  const target = type === 'valhalla-config' ? dirname(path) : path;
+  try {
+    const stats = statSync(target);
+    if (stats.isFile()) return stats.size;
+    if (!stats.isDirectory()) return 0;
+  } catch { return 0; }
+  let total = 0;
+  const visit = (directory: string, depth = 0): void => {
+    if (depth > 32) return;
+    let entries;
+    try { entries = readdirSync(directory, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const child = join(directory, entry.name);
+      try {
+        if (entry.isDirectory()) visit(child, depth + 1);
+        else if (entry.isFile()) total += statSync(child).size;
+      } catch { /* Keep the total of files that can be read. */ }
+    }
+  };
+  visit(target);
+  return total;
+};
+
+const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEntry[] => {
+  const offline = isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {};
+  const osmand = isPlainObject(settings['osmand']) ? settings['osmand'] : {};
+  const valhalla = isPlainObject(settings['valhalla']) ? settings['valhalla'] : {};
+  const mapsforge = isPlainObject(settings['mapsforge']) ? settings['mapsforge'] : {};
+  const entries = new Map<string, OfflineFileConfigEntry>();
+  const add = (raw: unknown, fallbackType?: OfflineFileType, active = true): void => {
+    if (!isPlainObject(raw) || typeof raw['path'] !== 'string' || !raw['path'].trim()) return;
+    const path = raw['path'].trim();
+    const type = (typeof raw['type'] === 'string' ? raw['type'] : fallbackType ?? inferOfflineFileType(path)) as OfflineFileType | null;
+    if (!type || !['mbtiles','obf','mapsforge-map','hillshade','valhalla-config','osmand-resources','mapsforge-theme-folder','mapsforge-theme'].includes(type)) return;
+    const key = type + '|' + resolve(path).toLocaleLowerCase();
+    const previous = entries.get(key);
+    const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
+      ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
+    entries.set(key, { type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : active, size });
+  };
+  if (Array.isArray(offline['filePaths'])) {
+    for (const entry of offline['filePaths']) {
+      if (typeof entry === 'string') add({ path: entry, enabled: true });
+      else add(entry);
+    }
+  } else if (isPlainObject(offline['filePaths'])) {
+    for (const [path, enabled] of Object.entries(offline['filePaths'])) if (typeof enabled === 'boolean') add({ path, enabled });
+  } else if (typeof offline['filePath'] === 'string' && offline['filePath']) add({ path: offline['filePath'], enabled: true });
+  if (Array.isArray(offline['obfPaths'])) for (const path of offline['obfPaths']) if (typeof path === 'string') add({ path, enabled: true }, 'obf');
+  if (Array.isArray(osmand['hillshadeDatabases'])) for (const entry of osmand['hillshadeDatabases']) add(entry, 'hillshade');
+  if (typeof osmand['hillshadeDatabasePath'] === 'string' && osmand['hillshadeDatabasePath']) add({ path: osmand['hillshadeDatabasePath'], enabled: true }, 'hillshade');
+  if (typeof osmand['resourcesPath'] === 'string' && osmand['resourcesPath']) add({ path: osmand['resourcesPath'], enabled: true }, 'osmand-resources');
+  if (Array.isArray(valhalla['configurations'])) {
+    for (const entry of valhalla['configurations']) {
+      if (isPlainObject(entry) && typeof entry['path'] === 'string') add({ path: entry['path'], enabled: entry['path'].toLocaleLowerCase() === String(valhalla['configPath'] ?? '').toLocaleLowerCase() }, 'valhalla-config');
+    }
+  }
+  if (typeof valhalla['configPath'] === 'string' && valhalla['configPath']) add({ path: valhalla['configPath'], enabled: true }, 'valhalla-config');
+  if (typeof mapsforge['themeFolder'] === 'string' && mapsforge['themeFolder']) add({ path: mapsforge['themeFolder'], enabled: true }, 'mapsforge-theme-folder');
+  if (typeof mapsforge['themePath'] === 'string' && mapsforge['themePath']) add({ path: mapsforge['themePath'], enabled: true }, 'mapsforge-theme');
+  return [...entries.values()].sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
+};
+
+export const getOfflineFileEntries = (settings: AppSettings = readAppSettings()): OfflineFileConfigEntry[] =>
+  normalizeOfflineFileEntries(settings);
+
+const replaceOfflineFileTypes = (
+  entries: OfflineFileConfigEntry[],
+  types: OfflineFileType[],
+  replacements: OfflineFileConfigEntry[]
+): OfflineFileConfigEntry[] => [
+  ...entries.filter(entry => !types.includes(entry.type)),
+  ...replacements
+];
+
+const removeLegacyOfflinePathSettings = (settings: AppSettings): void => {
+  for (const [sectionName, keys] of Object.entries({
+    osmand: ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath'],
+    valhalla: ['configurations', 'configPath'],
+    mapsforge: ['themeFolder', 'themePath']
+  })) {
+    const section = isPlainObject(settings[sectionName]) ? { ...settings[sectionName] as Record<string, unknown> } : null;
+    if (!section) continue;
+    for (const key of keys) delete section[key];
+    settings[sectionName] = section;
+  }
+};
+
 export const readAppSettings = (): AppSettings =>
   mergeSettings(readJsonObject(defaultSettingsPath()), readUserAppSettings());
 
@@ -137,8 +249,6 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     return Promise.reject(new Error('Invalid application settings section.'));
   }
   const operation = writeQueue.then(async () => {
-    // Read only after the previous write has completed so concurrent windows
-    // cannot overwrite each other's settings with stale snapshots.
     let settings: AppSettings;
     try {
       settings = readUserAppSettingsForUpdate();
@@ -153,33 +263,85 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       throw error;
     }
     if (section === 'root') {
-      // Reserved section name for one-time cleanup of former top-level config keys.
       const updated = { ...settings, ...values };
-      for (const [key, value] of Object.entries(values)) {
-        if (value === undefined) delete updated[key];
-      }
+      for (const [key, value] of Object.entries(values)) if (value === undefined) delete updated[key];
       await writeJsonAtomically(settingsPath(), updated);
       return;
     }
+
+    let offlineEntries = normalizeOfflineFileEntries(settings);
+    const nextValues = { ...values };
+    const addOrReplace = (type: OfflineFileType, rawEntries: unknown[]): void => {
+      const replacements: OfflineFileConfigEntry[] = [];
+      for (const raw of rawEntries) {
+        if (!isPlainObject(raw) || typeof raw['path'] !== 'string' || !raw['path'].trim()) continue;
+        const path = raw['path'].trim();
+        const previous = offlineEntries.find(entry => entry.type === type && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase());
+        const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
+          ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
+        replacements.push({ type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : true, size });
+      }
+      offlineEntries = replaceOfflineFileTypes(offlineEntries, [type], replacements);
+    };
+
+    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths') && Array.isArray(values['filePaths'])) {
+      const incoming = values['filePaths'].flatMap((raw: unknown) => {
+        if (typeof raw === 'string') return [{ path: raw, enabled: true }];
+        return isPlainObject(raw) ? [raw] : [];
+      });
+      const types = [...new Set(incoming.map((raw: Record<string, unknown>) =>
+        typeof raw['type'] === 'string' ? raw['type'] as OfflineFileType : inferOfflineFileType(String(raw['path'] ?? ''))
+      ).filter((type): type is OfflineFileType => !!type))];
+      for (const type of types) addOrReplace(type, incoming.filter((raw: Record<string, unknown>) =>
+        (typeof raw['type'] === 'string' ? raw['type'] : inferOfflineFileType(String(raw['path'] ?? ''))) === type
+      ));
+      nextValues['filePaths'] = undefined;
+    }
+    if (section === 'osmand') {
+      if (Array.isArray(values['hillshadeDatabases'])) addOrReplace('hillshade', values['hillshadeDatabases'] as unknown[]);
+      else if (typeof values['hillshadeDatabasePath'] === 'string') addOrReplace('hillshade', values['hillshadeDatabasePath'] ? [{ path: values['hillshadeDatabasePath'], enabled: true }] : []);
+      if (typeof values['resourcesPath'] === 'string') addOrReplace('osmand-resources', values['resourcesPath'] ? [{ path: values['resourcesPath'], enabled: true }] : []);
+      for (const key of ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']) nextValues[key] = undefined;
+    }
+    if (section === 'valhalla') {
+      if (Array.isArray(values['configurations'])) {
+        const activePath = typeof values['configPath'] === 'string' ? values['configPath'] : '';
+        addOrReplace('valhalla-config', values['configurations'].flatMap((raw: unknown) =>
+          isPlainObject(raw) && typeof raw['path'] === 'string'
+            ? [{ path: raw['path'], enabled: raw['path'].toLocaleLowerCase() === activePath.toLocaleLowerCase() }]
+            : []
+        ));
+      }
+      if (typeof values['configPath'] === 'string' && values['configPath']) {
+        const path = values['configPath'];
+        if (!offlineEntries.some(entry => entry.type === 'valhalla-config' && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase())) {
+          addOrReplace('valhalla-config', [...offlineEntries.filter(entry => entry.type === 'valhalla-config').map(entry => ({ path: entry.path, enabled: false })), { path, enabled: true }]);
+        } else {
+          offlineEntries = offlineEntries.map(entry => entry.type === 'valhalla-config' ? { ...entry, enabled: resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase() } : entry);
+        }
+      }
+      for (const key of ['configurations', 'configPath']) nextValues[key] = undefined;
+    }
+    if (section === 'mapsforge') {
+      if (typeof values['themeFolder'] === 'string') addOrReplace('mapsforge-theme-folder', values['themeFolder'] ? [{ path: values['themeFolder'], enabled: true }] : []);
+      if (typeof values['themePath'] === 'string') addOrReplace('mapsforge-theme', values['themePath'] ? [{ path: values['themePath'], enabled: true }] : []);
+      for (const key of ['themeFolder', 'themePath']) nextValues[key] = undefined;
+    }
+
     const previous = settings[section];
     const merged: Record<string, unknown> = {
-      ...(previous && typeof previous === 'object' && !Array.isArray(previous)
-        ? previous as Record<string, unknown> : {}),
-      ...values
+      ...(isPlainObject(previous) ? previous : {}),
+      ...nextValues
     };
-    // Undefined explicitly removes a setting instead of persisting a second,
-    // obsolete compatibility key in config.json.
-    for (const [key, value] of Object.entries(values)) {
-      if (value === undefined) delete merged[key];
-    }
-    // The unified offlineMaps.filePaths array replaces the former object and
-    // split path lists; do not leave stale compatibility keys behind.
-    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) {
-      delete merged.obfPaths;
-      delete merged.enabledByPath;
-      delete merged.filePath;
-    }
+    for (const [key, value] of Object.entries(nextValues)) if (value === undefined) delete merged[key];
     settings[section] = merged;
+
+    // Every path-backed offline resource is stored exactly once in offlineMaps.filePaths.
+    settings['offlineMaps'] = {
+      ...(isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
+      filePaths: offlineEntries
+    };
+    removeLegacyOfflinePathSettings(settings);
     await writeJsonAtomically(settingsPath(), settings);
   });
   writeQueue = operation.catch(() => undefined);
