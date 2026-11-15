@@ -16,7 +16,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { map, switchMap } from 'rxjs';
+import { combineLatest, map, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -99,8 +99,13 @@ export class GalleryPage {
   };
 
   /* State */
-  readonly galleryRoot$ = this.galleryState.galleryRoot().pipe(
-    switchMap(async root => {
+  readonly selectedLocation$ = this.galleryState.selectedLocation();
+
+  readonly galleryRoot$ = combineLatest([
+    this.galleryState.galleryRoot(),
+    this.selectedLocation$
+  ]).pipe(
+    switchMap(async ([root, selectedLocation]) => {
       const children = await Promise.all((root.children ?? []).map(async node => {
         const response = await this.galleryState.getDirContents(node.id);
         return {
@@ -110,7 +115,12 @@ export class GalleryPage {
           hasChildren: response.success ? response.data.length > 0 : undefined
         };
       }));
-      return { ...root, children };
+
+      const restoredRoot = { ...root, children };
+      if (selectedLocation) {
+        await this.restoreSelectedTreePath(restoredRoot, selectedLocation);
+      }
+      return restoredRoot;
     })
   );
 
@@ -121,8 +131,6 @@ export class GalleryPage {
   protected readonly onTreeNodeHovered = (node: TreeNode<string> | null): void => {
     this.hoveredFolderPath.set(node?.id || null);
   };
-
-  readonly selectedLocation$ = this.galleryState.selectedLocation();
 
   readonly images$ = this.galleryState.images();
 
@@ -145,6 +153,68 @@ export class GalleryPage {
 
   }
 
+
+  /**
+   * Rebuilds and expands the path from its favourite root to the last selected
+   * directory. The selected path itself is stored by GalleryState; the tree's
+   * expanded nodes are transient and must be reconstructed after startup.
+   */
+  private readonly restoreSelectedTreePath = async (
+    root: TreeNode<string>,
+    selectedPath: string
+  ): Promise<void> => {
+    const normalizePath = (value: string): string =>
+      value.replace(/[\\/]+/g, '\\\\').replace(/\\\\$/, '').toLocaleLowerCase();
+
+    const normalizedSelection = normalizePath(selectedPath);
+    const matchingRoots = (root.children ?? [])
+      .filter(node => {
+        const normalizedRoot = normalizePath(node.id);
+        return normalizedSelection === normalizedRoot
+          || normalizedSelection.startsWith(`${normalizedRoot}\\\\`);
+      })
+      .sort((a, b) => normalizePath(b.id).length - normalizePath(a.id).length);
+
+    const selectedRoot = matchingRoots[0];
+    if (!selectedRoot) return;
+
+    selectedRoot.isSelected = normalizePath(selectedRoot.id) === normalizedSelection;
+    if (selectedRoot.isSelected) return;
+
+    const normalizedRootPath = normalizePath(selectedRoot.id);
+    const relativePath = normalizedSelection.slice(normalizedRootPath.length).replace(/^\\\\/, '');
+    const segments = relativePath.split('\\\\').filter(Boolean);
+    let parent = selectedRoot;
+    let currentPath = selectedRoot.id;
+
+    for (const segment of segments) {
+      const response = await this.galleryState.getDirContents(currentPath);
+      if (!response.success) return;
+
+      const children = await Promise.all(response.data.map(async directory => {
+        const childContents = await this.galleryState.getDirContents(directory.path);
+        return {
+          ...treeNode(directory.path, true),
+          // Populate expandability for siblings too, so the restored branch behaves
+          // exactly like a branch opened manually by the user.
+          hasChildren: childContents.success ? childContents.data.length > 0 : undefined
+        };
+      }));
+
+      parent.children = children;
+      parent.hasChildren = children.length > 0;
+      parent.isOpen = true;
+
+      const nextPath = `${currentPath.replace(/[\\/]+$/, '')}\\\\${segment}`;
+      const nextNode = children.find(node => normalizePath(node.id) === normalizePath(nextPath));
+      if (!nextNode) return;
+
+      nextNode.isSelected = normalizePath(nextNode.id) === normalizedSelection;
+      parent = nextNode;
+      currentPath = nextNode.id;
+      if (nextNode.isSelected) return;
+    }
+  };
 
   /* Event handlers */
   protected readonly onSortByChange = (value: SortType) => this.galleryState.changeSorting({ sortBy: value });
