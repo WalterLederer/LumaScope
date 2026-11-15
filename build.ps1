@@ -18,24 +18,14 @@ $ErrorActionPreference = "Stop"
 $projectDir = $PSScriptRoot
 Set-Location $projectDir
 
-# Keep inherited PATH values compact before npm/Nx spawn their nested processes.
-# Repeated entries can otherwise make the PATH passed to command-shell executors
-# exceed Windows command-shell limits after npm and Nx append node_modules/.bin.
-$pathEntries = @(
-    $env:PATH -split ';' |
-        ForEach-Object { $_.Trim() } |
-        Where-Object { $_ }
-)
-$seenPathEntries = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-$uniquePathEntries = @(
-    foreach ($pathEntry in $pathEntries) {
-        if ($seenPathEntries.Add($pathEntry)) {
-            $pathEntry
-        }
-    }
-)
-$env:PATH = $uniquePathEntries -join ';'
-Write-Host "PATH normalized: $($pathEntries.Count) -> $($uniquePathEntries.Count) entries ($($env:PATH.Length) characters)" -ForegroundColor DarkGray
+# Resolve Node.js once and pass its absolute path to Nx run-commands.
+# This avoids relying on command-shell PATH lookup in nested Nx processes.
+$nodeCommand = Get-Command "node.exe" -ErrorAction SilentlyContinue
+if (-not $nodeCommand -or -not $nodeCommand.Source) {
+    throw "Node.js executable node.exe was not found. Ensure Node.js is installed and available in PATH."
+}
+$nodeExe = $nodeCommand.Source
+Write-Host "Node.js executable: $nodeExe" -ForegroundColor DarkGray
 
 Write-Host "`n=== LumaScope Build in $projectDir ===" -ForegroundColor Cyan
 # Write-Host "Projekt: $projectDir"
@@ -340,6 +330,10 @@ RemoveExecutableDirs
 # Nx-Daemon f�r das Packaging deaktivieren
 $env:NX_DAEMON = "false"
 
+# Preserve any caller-provided value and expose the resolved executable to Nx.
+$previousLumaScopeNodeExe = $env:LUMASCOPE_NODE_EXE
+$env:LUMASCOPE_NODE_EXE = $nodeExe
+
 try {
     Invoke-CheckedCommand "npx" @("nx", "run", "desktop:make")
     if ($LASTEXITCODE -ne 0) {
@@ -347,6 +341,12 @@ try {
     }
 }
 finally {
+    if ($null -eq $previousLumaScopeNodeExe) {
+        Remove-Item Env:\LUMASCOPE_NODE_EXE -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:LUMASCOPE_NODE_EXE = $previousLumaScopeNodeExe
+    }
     Remove-Item Env:\NX_DAEMON -ErrorAction SilentlyContinue
     if ($null -eq $previousCscIdentityAutoDiscovery) {
         Remove-Item Env:\CSC_IDENTITY_AUTO_DISCOVERY -ErrorAction SilentlyContinue
