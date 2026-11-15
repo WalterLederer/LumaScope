@@ -3535,6 +3535,7 @@ export class MapWindow implements OnInit, OnDestroy {
       (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
     );
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    await this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas');
     try { renderer.refreshVisibleTiles(); } catch (error) { console.warn('[OsmAnd Atlas] Initial visible-tile refresh failed:', error); }
     this.applyMapColor();
     this.applyMapOpacity();
@@ -3559,9 +3560,10 @@ export class MapWindow implements OnInit, OnDestroy {
       if (viewportRefreshTimer !== null) window.clearTimeout(viewportRefreshTimer);
       viewportRefreshTimer = window.setTimeout(() => {
         viewportRefreshTimer = null;
-        const source = renderer.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
-        if (!source?.setTiles) return;
-        source.setTiles(['osmand-atlas://{z}/{x}/{y}?refresh=' + Date.now()]);
+        void this.updateActiveObfMapsForViewport(renderer, 'osmand-atlas').then(() => {
+          const source = renderer.map.getSource('osmand-atlas') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+          if (source?.setTiles) source.setTiles(['osmand-atlas://{z}/{x}/{y}?refresh=' + Date.now()]);
+        });
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
@@ -3756,12 +3758,29 @@ export class MapWindow implements OnInit, OnDestroy {
       (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
     );
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
+    await this.updateActiveObfMapsForViewport(renderer, 'osmand');
     try { renderer.refreshVisibleTiles(); } catch (error) { console.warn('[OsmAnd] Initial visible-tile refresh failed:', error); }
     this.applyMapColor();
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
-    renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
+    let obfViewportTimer: number | null = null;
+    renderer.map.on('movestart', () => {
+      if (obfViewportTimer !== null) window.clearTimeout(obfViewportTimer);
+      this.resetLastRenderCountsForViewport();
+      void this.desktop?.OsmAnd.cancelRendering().catch(error =>
+        console.warn('[OsmAnd] Could not cancel obsolete tile requests:', error));
+    });
+    renderer.map.on('moveend', () => {
+      if (obfViewportTimer !== null) window.clearTimeout(obfViewportTimer);
+      obfViewportTimer = window.setTimeout(() => {
+        obfViewportTimer = null;
+        void this.updateActiveObfMapsForViewport(renderer, 'osmand').then(() => {
+          const source = renderer.map.getSource('osmand') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+          if (source?.setTiles) source.setTiles(['osmand://{z}/{x}/{y}?refresh=' + Date.now()]);
+        });
+      }, 180);
+    });
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
