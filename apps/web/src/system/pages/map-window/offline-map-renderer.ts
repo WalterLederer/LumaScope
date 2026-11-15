@@ -836,11 +836,9 @@ export class OfflineMapRenderer {
   private tileVisualsEnabled = true;
   private readonly tileStatusElements = new Map<string, HTMLDivElement>();
   private readonly onMapMoveStart = (): void => {
-    // Progress overlays belong to the current viewport. Keep actual tile
-    // errors and warnings so they remain visible when the user pans away and
-    // returns; cancelled requests are never retained as failures.
-    for (const [key, status] of this.tileStatuses) {
-      if (status.status === 'error' || status.status === 'warning') continue;
+    // Tile status overlays are viewport diagnostics only. Never retain an
+    // error tile as a permanent geographic dimming layer after the viewport moves.
+    for (const [key] of this.tileStatuses) {
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
       this.tileStatusElements.delete(key);
@@ -904,13 +902,14 @@ export class OfflineMapRenderer {
   private readonly onTileVisualsChanged = (event: Event): void => {
     const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
     this.tileVisualsEnabled = detail?.enabled !== false;
-    // The checkbox controls progress indicators only. Keep failed tiles and
-    // warnings visible regardless of the progress setting.
-    this.tileStatusLayer.style.display = '';
-    for (const [key, status] of this.tileStatuses) {
-      if (this.tileVisualsEnabled || status.status === 'error' || status.status === 'warning') continue;
-      this.tileStatusElements.get(key)?.remove();
-      this.tileStatusElements.delete(key);
+    this.tileStatusLayer.style.display = this.tileVisualsEnabled ? '' : 'none';
+    if (!this.tileVisualsEnabled) {
+      // The checkbox disables every tile overlay, including persistent error
+      // and warning boxes. Drop their state too so they cannot reappear later.
+      for (const element of this.tileStatusElements.values()) element.remove();
+      this.tileStatusElements.clear();
+      this.tileStatuses.clear();
+      return;
     }
     this.updateOsmAndTileStatusPositions();
   };
@@ -919,12 +918,6 @@ export class OfflineMapRenderer {
     const detail = (event as CustomEvent<OsmAndTileStatusEventDetail>).detail;
     if (!detail || detail.protocol !== this.tileProtocol) return;
     const key = `${detail.protocol}/${detail.sourceId ?? ''}/${detail.zoom}/${detail.column}/${detail.row}`;
-    const previous = this.tileStatuses.get(key);
-    // MapLibre may retry a failed tile repeatedly. Keep the first real failure
-    // visible throughout automatic loading/retry events. An explicit user-
-    // initiated rerender is different: clear the stale failure so its progress
-    // or a new error can be shown for this fresh render attempt.
-    if (previous?.status === 'error' && detail.status !== 'loaded' && detail.status !== 'rerendering') return;
     if (detail.status === 'loaded' || detail.status === 'cancelled') {
       this.tileStatuses.delete(key);
       this.tileStatusElements.get(key)?.remove();
@@ -1816,13 +1809,14 @@ export class OfflineMapRenderer {
 
   private updateOsmAndTileStatusPositions(): void {
     if (!this.tileProtocol || !this.tileStatusLayer) return;
+    if (!this.tileVisualsEnabled) {
+      this.tileStatusLayer.style.display = 'none';
+      for (const element of this.tileStatusElements.values()) element.remove();
+      this.tileStatusElements.clear();
+      return;
+    }
+    this.tileStatusLayer.style.display = '';
     for (const [key, status] of this.tileStatuses) {
-      const isPersistentStatus = status.status === 'error' || status.status === 'warning';
-      if (!this.tileVisualsEnabled && !isPersistentStatus) {
-        this.tileStatusElements.get(key)?.remove();
-        this.tileStatusElements.delete(key);
-        continue;
-      }
       let element = this.tileStatusElements.get(key);
       if (!element) {
         element = document.createElement('div');
