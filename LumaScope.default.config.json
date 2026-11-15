@@ -188,7 +188,7 @@
       }
     }
   },
-  "offlineMaps": {
+  "offline": {
     "updateSources": [
       {
         "url": "https://download.geofabrik.de/europe/austria.html",
