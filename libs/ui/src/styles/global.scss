@@ -83,7 +83,7 @@ details.app-disclosure > summary,
 details > summary::marker,
 details.app-disclosure > summary::marker,
 .app-disclosure > summary::marker {
-  font-size: 16px;
+  font-size: 0.75em;
 }
 
 details[open] > summary,
@@ -93,7 +93,7 @@ details.app-disclosure[open] > summary,
   margin-bottom: 4px;
 }
 
-/* Button-based disclosures use the same marker size and text gap as native summaries. */
+/* Button-based disclosure markers stay compact and align with native summary markers. */
 .app-disclosure-heading {
   display: flex;
   align-items: center;
@@ -114,6 +114,7 @@ details.app-disclosure[open] > summary,
   flex: 0 0 6px;
   width: 6px;
   height: 10px;
+  max-height: 10px;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
   border-left: 6px solid currentColor;
