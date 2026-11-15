@@ -424,6 +424,9 @@ export interface OsmAndAtlasTileResult {
   };
 }
 
+export interface OsmAndObfMapSectionMetadata { name: string; minZoom: number; maxZoom: number; }
+export interface OsmAndObfMetadata { filePath: string; metadataAvailable: boolean; sectionCount?: number; isBasemap?: boolean; sections?: OsmAndObfMapSectionMetadata[]; minZoom?: number; maxZoom?: number; bounds?: string | null; error?: string; }
+
 export interface OsmAndAtlasRuntimeStatus {
   helperPath: string;
   helperAvailable: boolean;
@@ -439,6 +442,7 @@ export interface OsmAndAtlasRuntimeStatus {
 export interface OsmAndHillshadeDatabase { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
 export interface DesktopOsmAndAtlas {
+  readonly getObfMetadata: (paths: string[]) => Promise<OsmAndObfMetadata[]>;
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
