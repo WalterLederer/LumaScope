@@ -1779,7 +1779,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ mapBoundsVisible: visible });
     this.applyMapBoundsVisibility();
   };
-  private getActiveOfflineMapBounds(): Array<[number, number, number, number]> {
+  private getActiveOfflineMapBounds(): Array<{ bounds: [number, number, number, number]; name: string }> {
     return this.offlineMaps().flatMap(map => {
       if (!map.enabled || !map.bounds) return [];
       const values = map.bounds.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
@@ -1787,7 +1787,13 @@ export class MapWindow implements OnInit, OnDestroy {
       const [west, south, east, north] = values;
       if (west < -180 || west > 180 || east < -180 || east > 180
         || south < -90 || north > 90 || south > north) return [];
-      return [[west, south, east, north] as [number, number, number, number]];
+      const name = map.name || map.fileName || 'Unnamed map';
+      const normalizedName = (name + ' ' + (map.fileName || '')).toLowerCase();
+      const longitudeSpan = east >= west ? east - west : 360 - west + east;
+      const latitudeSpan = north - south;
+      // Global overview/basemap files obscure regional coverage polygons.
+      if (normalizedName.includes('world') || (longitudeSpan >= 300 && latitudeSpan >= 140)) return [];
+      return [{ bounds: [west, south, east, north] as [number, number, number, number], name }];
     });
   }
   private clearMapBoundsLayers(): void {
@@ -1803,7 +1809,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.setMapBoundsOverlay(bounds, visible);
     this.clearMapBoundsLayers();
     if (!visible || !this.map || !this.leaflet) return;
-    for (const [west, south, east, north] of bounds) {
+    for (const { bounds: [west, south, east, north], name } of bounds) {
       const segments: Array<[number, number]> = east >= west
         ? [[west, east]]
         : [[west, 180], [-180, east]];
@@ -1816,9 +1822,17 @@ export class MapWindow implements OnInit, OnDestroy {
           fillColor: '#ff9f1c', fillOpacity: 0.22
         }).addTo(this.map);
         this.mapBoundsLayers.push(layer);
+        const label = this.leaflet.marker([(south + north) / 2, (segmentWest + segmentEast) / 2], {
+          icon: this.leaflet.divIcon({
+            className: 'map-bounds-label',
+            html: '<span>' + name.replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character] ?? character)) + '</span>',
+            iconSize: [180, 24],
+            iconAnchor: [90, 12]
+          })
+        }).addTo(this.map);
+        this.mapBoundsLayers.push(label);
       }
-    }
-  }
+    }  }
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
     this.saveSetting('renderVisualsEnabled', enabled);
