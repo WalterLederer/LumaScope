@@ -20,6 +20,17 @@ The OsmAnd Atlas renderer reads selected OBF map files, an external OsmAnd resou
 
 The separate OsmAnd hillshade renderer reads elevation data directly from selected SQLite hillshade databases and returns rendered raster tiles.
 
+### OBF search and renderer selection
+
+The Location controls provide an **Offline address search** across all enabled, available OsmAnd OBF files. Matching addresses are shown in a result list so the user can choose the intended match; selecting a result moves the map to its coordinates.
+
+The View control **Optimize OBF selection by bounds** determines which enabled OBF files are passed to the OsmAnd and OsmAnd Atlas renderers:
+
+- **Enabled:** select OBF files whose geographic bounds and zoom-level coverage intersect the current map viewport. Applicable world basemaps are retained.
+- **Disabled:** pass every enabled, available OBF file to the renderer, matching the previous behavior.
+
+This option is persisted across sessions. Disabling it is useful for compatibility or when testing map coverage, while the optimized mode avoids loading unrelated regional OBF files for each viewport.
+
 ## Map bounds overlay
 
 The **Show map bounds** option in the map View controls draws the geographic extents of enabled offline maps when valid bounds metadata is available. The overlay is available for:
