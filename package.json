@@ -14,7 +14,7 @@
     "test": "nx run-many --all --target=test --codeCoverage",
     "test:ci": "nx run-many --all --target=test --configuration=ci --parallel=3 --runInBand --ci --code-coverage --coverageReporters=lcov",
     "build:ci": "nx run-many --all --target=build",
-    "build:all": "npm run build:mapsforge-renderer && nx run web:build:production && nx run desktop:build:production",
+    "build:all": "mvn -f tools/mapsforge-renderer/pom.xml clean package && nx run web:build:production && nx run desktop:build:production",
     "make:prod": "npm run build:jxr-wic-encoder && npm run build:all && npm run stage:mapsforge-runtime && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/osmand-runtime/stage-helpers.ps1 && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/valhalla-runtime/stage-helpers.ps1 && nx run desktop:make",
     "make:prod-nsis": "npm run build:jxr-wic-encoder && npm run build:mapsforge-renderer && npm run stage:mapsforge-runtime && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/osmand-runtime/stage-helpers.ps1 && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/valhalla-runtime/stage-helpers.ps1 && nx run desktop:make",
     "make:prod-appx": "npm run build:jxr-wic-encoder && npm run build:mapsforge-renderer && npm run stage:mapsforge-runtime && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/osmand-runtime/stage-helpers.ps1 && pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tools/valhalla-runtime/stage-helpers.ps1 && nx run desktop:make --makerOptionsPath=apps/desktop/src/app/options/maker-appx.options.json",
