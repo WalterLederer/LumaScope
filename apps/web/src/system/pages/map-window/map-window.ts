@@ -1008,7 +1008,7 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td class="mbtiles-map-bounds" [attr.title]="map.obfSections?.map(section => section.name + ' (' + section.minZoom + '–' + section.maxZoom + ')').join(' · ') || map.obfMetadataError || 'OBF metadata unavailable'">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
                       </tr>
                     }
@@ -2550,7 +2550,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.downloadSources.set(valid);
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
-      this.offlineMaps.set(maps);
+      const mapsWithMetadata = await this.enrichObfMetadata(maps);
+      this.offlineMaps.set(mapsWithMetadata);
 
       if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
         this.mapSourceGeneration++;
@@ -3754,6 +3755,44 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  private async enrichObfMetadata(
+    maps: import('internal-api').OfflineMapStatus[],
+    resourcesAvailable?: boolean
+  ): Promise<import('internal-api').OfflineMapStatus[]> {
+    const obfMaps = maps.filter(map => map.type === 'obf' && map.available);
+    if (!obfMaps.length) return maps;
+    try {
+      const desktop = this.desktop;
+      if (!desktop) return maps;
+      const available = resourcesAvailable ?? (await desktop.OsmAndAtlas.getRuntimeStatus()).resourcesAvailable;
+      if (!available) return maps;
+      const metadata = await desktop.OsmAndAtlas.getObfMetadata(obfMaps.map(map => map.filePath));
+      const byPath = new Map(metadata.map(item => [item.filePath.toLocaleLowerCase(), item]));
+      return maps.map(map => {
+        if (map.type !== 'obf') return map;
+        const item = byPath.get(map.filePath.toLocaleLowerCase());
+        if (!item) return { ...map, minZoom: 0, maxZoom: 0, bounds: null, obfMetadataAvailable: false, obfMetadataError: 'OsmAnd Core returned no metadata for this file.' };
+        return {
+          ...map,
+          minZoom: item.metadataAvailable ? item.minZoom ?? 0 : 0,
+          maxZoom: item.metadataAvailable ? item.maxZoom ?? 0 : 0,
+          bounds: item.metadataAvailable ? item.bounds ?? null : null,
+          obfMetadataAvailable: item.metadataAvailable,
+          obfSectionCount: item.sectionCount,
+          obfSections: item.sections,
+          obfIsBasemap: item.isBasemap,
+          obfMetadataError: item.error
+        };
+      });
+    } catch (error) {
+      console.warn('[OfflineMap] Could not read OBF metadata from OsmAnd Core:', error);
+      return maps.map(map => map.type === 'obf'
+        ? { ...map, minZoom: 0, maxZoom: 0, bounds: null, obfMetadataAvailable: false,
+            obfMetadataError: error instanceof Error ? error.message : String(error) }
+        : map);
+    }
+  }
+
   protected readonly checkOffline = async (): Promise<void> => {
     const desktop = this.desktop;
     if (!desktop || this.offlineFilesCheckBusy()) return;
@@ -3768,7 +3807,8 @@ export class MapWindow implements OnInit, OnDestroy {
         desktop.OsmAnd.getRuntimeStatus(),
         desktop.OsmAndAtlas.getRuntimeStatus()
       ]);
-      this.offlineMaps.set(maps);
+      const mapsWithMetadata = await this.enrichObfMetadata(maps, atlasStatus.resourcesAvailable);
+      this.offlineMaps.set(mapsWithMetadata);
       this.hillshadeDatabases.set(hillshade);
       this.valhallaConfigurations.set(valhalla.configurations ?? []);
       if (valhalla.configPath) this.routeValhallaConfigPath.set(valhalla.configPath);
@@ -3792,7 +3832,7 @@ export class MapWindow implements OnInit, OnDestroy {
       } else {
         this.mapsforgeThemes.set([]);
       }
-      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(maps) ?? 'custom');
+      this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(mapsWithMetadata) ?? 'custom');
       this.offlineFilesChecked.set(true);
       this.applyHillshadeSettingsIfReady(true);
       this.offlineFilesCheckStatus.set('Check completed · ' + maps.length + ' maps · ' + hillshade.length + ' Hillshade · ' +
