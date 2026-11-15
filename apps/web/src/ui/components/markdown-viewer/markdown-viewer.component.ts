@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
@@ -161,6 +161,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MarkdownViewerComponent {
+  readonly initialDocument = input<string | null>(null);
   private readonly fileSystem = inject(FileSystem);
   private readonly processManager = inject(ProcessManager);
 
@@ -179,6 +180,10 @@ export class MarkdownViewerComponent {
 
   constructor() {
     void this.loadDocument('README.md');
+    effect(() => {
+      const fileName = this.initialDocument();
+      if (fileName && fileName !== this.currentFile()) void this.loadDocument(fileName);
+    });
     void this.loadSavedFontSize();
   }
 
