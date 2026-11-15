@@ -181,6 +181,7 @@ export class MarkdownViewerComponent {
     this.currentFile() === 'README.md' ? 'README.md' : 'docs/' + this.currentFile()
   );
   protected readonly openFileError = signal('');
+  private documentLoadRequest = 0;
 
   constructor() {
     void this.loadDocument('README.md');
@@ -207,11 +208,13 @@ export class MarkdownViewerComponent {
 
   protected readonly loadDocument = async (fileName: string): Promise<void> => {
     if (!isDocumentationFile(fileName)) return;
+    const request = ++this.documentLoadRequest;
     this.loading.set(true);
     this.error.set(null);
     this.openFileError.set('');
     try {
       const response = await this.fileSystem.readDocumentationFile(fileName);
+      if (request !== this.documentLoadRequest) return;
       if (response.success) {
         const imageSources = new Map<string, string>();
         const imagePattern = /!\[[^\]]*\]\(((?:[^()]|\([^()]*\))+(?:\s+"[^"]*")?)\)(?:\s*\{width=\d{1,3}(?:\.\d+)?%\})?|<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
@@ -228,6 +231,7 @@ export class MarkdownViewerComponent {
           const image = await this.fileSystem.readDocumentationImage(imageName);
           if (image.success) imageSources.set(href, image.data);
         }));
+        if (request !== this.documentLoadRequest) return;
         this.currentFile.set(fileName);
         this.imageSources.set(imageSources);
         this.markdown.set(response.data);
@@ -235,9 +239,9 @@ export class MarkdownViewerComponent {
         this.error.set(response.errorMessage);
       }
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : String(error));
+      if (request === this.documentLoadRequest) this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
-      this.loading.set(false);
+      if (request === this.documentLoadRequest) this.loading.set(false);
     }
   };
 
