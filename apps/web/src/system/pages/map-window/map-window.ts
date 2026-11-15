@@ -1301,15 +1301,15 @@ interface MapErrorEntry {
     .settings-tab-panel{min-width:0;min-height:max-content;height:max-content;overflow:visible}
     .settings-tab-panel:not([hidden]){display:block}
     .settings-tab-panel[hidden]{display:none}
-    .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
+    .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:0;min-width:0;width:100%;padding:2px 0}
     .settings-tab-content>summary{display:none}
     /* Scoped shared disclosure component: keeps tab-specific rules from overriding the common card appearance. */
-    .settings-tab-content .app-disclosure{box-sizing:border-box;min-width:0;margin:0 0 6px;padding:6px 10px;border:1px solid var(--color-content-default-low);border-radius:6px;background:var(--color-surface-default-low);color:var(--color-content-default-high)}
+    .settings-tab-content .app-disclosure{box-sizing:border-box;min-width:0;margin:0;padding:6px 10px;border:1px solid var(--color-content-default-low);border-radius:6px;background:transparent;color:var(--color-content-default-high)}
     .settings-tab-content .app-disclosure>summary{display:list-item;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;list-style:disclosure-closed;cursor:pointer;user-select:none}
     .settings-tab-content .app-disclosure>summary::marker{font-size:16px}
     .settings-tab-content .app-disclosure[open]>summary{list-style:disclosure-open;margin-bottom:4px}
-    .settings-tab-content .app-disclosure .app-disclosure{margin-left:12px}
-    .settings-tab-content.view-tab>.app-disclosure{margin-bottom:0}
+    .settings-tab-content .app-disclosure .app-disclosure{margin:0}
+    .settings-tab-content details,.settings-tab-content .app-disclosure{margin-bottom:0!important;background:transparent!important}
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
