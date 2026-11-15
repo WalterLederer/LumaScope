@@ -145,6 +145,7 @@ const api: Desktop = {
   },
 
   OsmAndAtlas: {
+    searchAddresses: (paths: string[], query: string, limit = 5) => ipcRenderer.invoke('OsmAndAtlas.searchAddresses', paths, query, limit),
     getObfMetadata: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.getObfMetadata', paths),
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
     addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
