@@ -57,7 +57,7 @@ export class FileSystem {
   };
   @IpcHandler({ name: 'FileSystem.openDocumentationFile' })
   readonly openDocumentationFile = async (_: IpcMainInvokeEvent, fileName: string): Promise<string> => {
-    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\\.md$/i.test(fileName)) {
+    if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\.md$/i.test(fileName)) {
       return 'Invalid documentation file name.';
     }
 
