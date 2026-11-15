@@ -1777,7 +1777,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.totalRenderTileCounts.update(counts => ({ ...counts, cached: counts.cached + 1 }));
         this.lastRenderTileCounts.update(counts => ({ ...counts, cached: counts.cached + 1 }));
       }
-    } else if (detail.status === 'loaded') {
+    } else if (detail.status === 'loaded' || detail.status === 'warning') {
       if (this.currentTileRequestResults.get(key) !== 'cached') {
         if (typeof detail.totalDurationMs === 'number' && Number.isFinite(detail.totalDurationMs) && detail.totalDurationMs >= 0) {
           const duration = detail.totalDurationMs;
@@ -1805,7 +1805,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.lastRenderTileCounts.update(counts => ({ ...counts, failed: counts.failed + 1 }));
       this.currentTileRequestResults.delete(key);
       this.activeRenderTiles.delete(key);
-    } else if (detail.status === 'cancelled' || detail.status === 'warning') {
+    } else if (detail.status === 'cancelled') {
       this.currentTileRequestResults.delete(key);
       this.activeRenderTiles.delete(key);
     }
@@ -4118,6 +4118,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!renderer || (source !== 'osmand-atlas' && source !== 'osmand') || this.rerenderVisibleTilesBusy()) return;
     this.currentTileRequestResults.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
+    this.lastRenderDurationSamples.set([]);
+    this.lastRenderQueueSamples.set([]);
     this.rerenderVisibleTilesStatus.set('');
     try {
       renderer.refreshVisibleTiles();
