@@ -1488,6 +1488,7 @@ interface MapErrorEntry {
     .map-source-settings>summary,.opacity-settings>summary{display:list-item;list-style-position:inside;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;white-space:nowrap;list-style:disclosure-closed}
     .map-source-settings>summary::marker,.opacity-settings>summary::marker{font-size:16px}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{list-style:disclosure-open;margin-bottom:4px}
+    .settings-tab-content .opacity-settings>summary{list-style-position:inside}
     .opacity-settings{box-sizing:border-box;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
