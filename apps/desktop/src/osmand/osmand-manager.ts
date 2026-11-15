@@ -499,7 +499,7 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.setActiveObfMaps' })
   readonly setActiveObfMaps = async (_event: IpcMainInvokeEvent, paths: string[]): Promise<string[]> => {
-    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\\.obf$/i.test(path))) {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\.obf$/i.test(path))) {
       throw new Error('Active OBF selection must contain valid .obf file paths.');
     }
     const selectedPaths = [...new Set(paths.filter(path => existsSync(path)))];
