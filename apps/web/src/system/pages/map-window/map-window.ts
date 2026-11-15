@@ -1643,10 +1643,8 @@ interface MapErrorEntry {
     .location-tab .fix-location-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0;border:1px solid #555;border-radius:0;background:#292a2d;color:#e8eaed}
     .location-tab .fix-location-section{border-radius:6px 6px 0 0}
     .location-tab .location-tools-section{border-radius:0 0 6px 6px}
-    .location-tab details>summary.settings-row-title{display:flex;align-items:center;gap:6px;box-sizing:border-box;margin:0;padding:0;color:inherit;font-family:inherit;font-size:13px;font-weight:600;line-height:1.4;cursor:pointer;list-style:none}
-    .location-tab details>summary.settings-row-title::before{content:"▸";display:inline-block;flex:0 0 14px;width:14px;text-align:center}
-    .location-tab details[open]>summary.settings-row-title::before{content:"▾"}
-    .location-tab details>summary.settings-row-title::-webkit-details-marker{display:none}
+    .location-tab details>summary.settings-row-title{display:list-item;box-sizing:border-box;margin:0;padding:0;color:inherit;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed}
+    .location-tab details[open]>summary.settings-row-title{list-style:disclosure-open}
     .location-tab details[open]>summary.settings-row-title{margin-bottom:4px}
     .location-tab .offline-address-search{border-top:0;border-bottom:0}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
