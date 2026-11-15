@@ -16,13 +16,16 @@ const METATILE_SIZE = 512;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 4;
+// Atlas workers each own a Qt/OpenGL context and load the selected OBF set.
+// Keep concurrency conservative to avoid competing native/GPU initialization.
+const HELPER_WORKER_COUNT = 2;
 const HILLSHADE_WORKER_COUNT = 4;
 // Valid transparent PNG returned for XYZ cells outside a regional hillshade database.
 const EMPTY_HILLSHADE_TILE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=', 'base64');
 
 function getAtlasPixelDiagnostics(pixels: Buffer): {
   uniqueRgbColors: number;
+  uniqueRgbaColors: number;
   uniqueCountCapped: boolean;
   flatTopLeftRatio: number;
   transparentPixels: number;
@@ -33,6 +36,7 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
   center: [number, number, number, number];
 } {
   const unique = new Set<number>();
+  const uniqueRgba = new Set<number>();
   const topLeft: [number, number, number, number] = [pixels[0], pixels[1], pixels[2], pixels[3]];
   const centerOffset = ((METATILE_SIZE >> 1) * METATILE_SIZE + (METATILE_SIZE >> 1)) * 4;
   const center: [number, number, number, number] = [
@@ -62,11 +66,13 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
     if (green > rgbMax[1]) rgbMax[1] = green;
     if (blue > rgbMax[2]) rgbMax[2] = blue;
     if (unique.size <= 4096) unique.add((red << 16) | (green << 8) | blue);
+    if (uniqueRgba.size <= 4096) uniqueRgba.add((red << 24) | (green << 16) | (blue << 8) | alpha);
   }
 
   return {
     uniqueRgbColors: unique.size,
-    uniqueCountCapped: unique.size > 4096,
+    uniqueRgbaColors: uniqueRgba.size,
+    uniqueCountCapped: unique.size > 4096 || uniqueRgba.size > 4096,
     flatTopLeftRatio: Number((flatTopLeftPixels / pixelCount).toFixed(4)),
     transparentPixels,
     nonOpaquePixels,
@@ -258,7 +264,10 @@ class OsmAndAtlasWorker {
   render(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
     const generation = this.renderGeneration;
+    const queuedAt = Date.now();
     const result = this.queue.then(() => {
+      const queueWaitMs = Date.now() - queuedAt;
+      if (queueWaitMs >= 100) console.info('[OsmAnd Atlas] worker_queue_wait_ms=' + queueWaitMs, { longitude, latitude, zoom });
       if (generation !== this.renderGeneration) {
         // MapLibre routinely aborts obsolete tile requests during camera moves.
         // Resolve those queued requests with a transparent frame instead of
@@ -495,6 +504,10 @@ class OsmAndAtlasWorker {
         .filter(message => !/^(INFO|DEBUG):/i.test(message) && !message.startsWith('ATLAS_INIT '))
         .slice(-6);
       const details = [responseMessage, ...helperErrors].filter(Boolean).join(' | ');
+      console.error('[OsmAnd Atlas] native_render_failed', {
+        status, requestId, responseMessage: responseMessage || null,
+        stderr: helperErrors, renderElapsedMs: elapsedMs
+      });
       throw new Error(details || 'OsmAnd Atlas rendering failed (native helper returned status ' + status + ').');
     }
     if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
@@ -1011,7 +1024,7 @@ export class OsmAndAtlasManager {
     }
 
     const tilePixelDiagnostics = getAtlasPixelDiagnostics(metatilePixels);
-    if (tilePixelDiagnostics.uniqueRgbColors === 1) {
+    if (tilePixelDiagnostics.uniqueRgbaColors === 1) {
       geometryMessages.push('Atlas returned a uniform tile: uniqueRgbColors=1, rgb=' + tilePixelDiagnostics.rgbMin.join(','));
     }
     // Diagnose each metatile once per application session. This deliberately
@@ -1068,9 +1081,15 @@ export class OsmAndAtlasManager {
     const rendered = await worker.render(longitude, latitude, z - 1);
     const pixels = rendered.pixels;
     const pixelDiagnostics = getAtlasPixelDiagnostics(pixels);
-    if (pixelDiagnostics.uniqueRgbColors === 1) {
+    if (pixelDiagnostics.uniqueRgbaColors === 1) {
       console.info('[OsmAnd Atlas] Uniform metatile not cached', {
-        zoom: z, metatileX, metatileY, uniqueRgbColors: pixelDiagnostics.uniqueRgbColors,
+        zoom: z, metatileX, metatileY,
+        uniqueRgbColors: pixelDiagnostics.uniqueRgbColors,
+        uniqueRgbaColors: pixelDiagnostics.uniqueRgbaColors,
+        transparentPixels: pixelDiagnostics.transparentPixels,
+        nonOpaquePixels: pixelDiagnostics.nonOpaquePixels,
+        topLeft: pixelDiagnostics.topLeft,
+        center: pixelDiagnostics.center,
         rgbMin: pixelDiagnostics.rgbMin, rgbMax: pixelDiagnostics.rgbMax
       });
       return rendered;
@@ -1117,7 +1136,7 @@ export class OsmAndAtlasManager {
         rgba[i + 2] = bgra[i];
         rgba[i + 3] = bgra[i + 3];
       }
-      if (getAtlasPixelDiagnostics(rgba).uniqueRgbColors === 1) {
+      if (getAtlasPixelDiagnostics(rgba).uniqueRgbaColors === 1) {
         await unlink(path).catch(() => undefined);
         console.info('[OsmAnd Atlas] Removed uniform metatile from disk cache:', path);
         return null;
