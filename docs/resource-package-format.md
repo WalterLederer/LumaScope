@@ -131,9 +131,7 @@ The resource package does not have to contain `default.render.xml` specifically 
 - [Rendering styles directory](https://github.com/osmandapp/OsmAnd-resources/tree/master/rendering_styles) — individual XML style files and their descriptions.
 - [Rendering styles README](https://github.com/osmandapp/OsmAnd-resources/blob/master/rendering_styles/readme.md) — describes the available styles and dependencies.
 
-Use **Code → Download ZIP** on GitHub or clone the repository, then extract it. If you download the full repository, the selected root is the extracted `OsmAnd-resources` directory; its `rendering_styles` child is what LumaScope checks for.
-
-Download OsmAnd resources separately from [OsmAnd-resources on GitHub](https://github.com/osmandapp/OsmAnd-resources). Place the extracted resources folder containing `rendering_styles/default.render.xml` inside your resource package before scanning. These resources are external and are **not bundled with LumaScope**.
+Download OsmAnd resources separately from [OsmAnd-resources on GitHub](https://github.com/osmandapp/OsmAnd-resources). Use **Code → Download ZIP** or clone the repository, then place the extracted resources folder containing `rendering_styles/default.render.xml` inside your resource package before scanning. If you download the full repository, select the extracted `OsmAnd-resources` directory; its `rendering_styles` child is what LumaScope checks for. You may also select the `rendering_styles` directory itself, in which case its parent is treated as the resource root. These resources are external and are **not bundled with LumaScope**.
 
 ### Add or modify a style yourself
 
@@ -247,9 +245,7 @@ The package scanner looks for a directory named `theme` whose parent path contai
 - [OpenAndroMaps Elevate theme](https://www.openandromaps.org/kartenlegende/elevation-hike-theme) — detailed hiking, cycling and general-purpose theme family, with downloads and legend.
 - [Mapsforge project](https://github.com/mapsforge/mapsforge) — renderer and theme-format project information.
 
-Download the theme archive from the provider, extract it, and place the XML file(s) and any accompanying assets in the theme folder. Preserve the archive's directory structure when the theme references images or other files by relative path. Select the desired theme in the map **View** tab after scanning.
-
-Place the extracted Mapsforge render-theme `.xml` files in this folder; subfolders are scanned too. For example, extract the OpenAndroMaps Elevate theme ZIP here. Choose the active theme in the **View** tab. The theme folder path is stored in application settings, while the theme files remain external to LumaScope.
+Place the extracted Mapsforge render-theme `.xml` files in this folder; subfolders are scanned too. For example, extract the OpenAndroMaps Elevate theme ZIP here. Preserve the archive's directory structure when the theme references images or other files by relative path. Choose the active theme in the map **View** tab after scanning. The theme folder path is stored in application settings, while the theme files remain external to LumaScope.
 
 ### Create or customise a theme
 
@@ -293,9 +289,7 @@ ResourcePackage/OpenStreetMap/Valhalla/Austria/valhalla.json
 ResourcePackage/OpenStreetMap/Valhalla/Europe/valhalla.json
 ```
 
-The JSON must parse successfully and contain a top-level `mjolnir` object. The scanner discovers the configuration file; it does **not** build, download or validate the complete routing graph.
-
-Valhalla configuration files are discovered automatically when you scan the extracted resource package. Select the configuration you want to use in the **Routing provider** list. The OfflineFiles table displays each configuration's parent folder (such as `Austria` or `Europe`) and the recursive size of that folder.
+The JSON must parse successfully and contain a top-level `mjolnir` object. Valhalla configuration files are discovered automatically when you scan the extracted resource package. Select the configuration you want to use in the **Routing provider** list. The OfflineFiles table displays each configuration's parent folder (such as `Austria` or `Europe`) and the recursive size of that folder. The scanner does **not** build, download or validate the complete routing graph.
 
 ### Configuration versus routing tiles
 
