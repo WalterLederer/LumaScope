@@ -679,7 +679,7 @@ interface MapErrorEntry {
         </div>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
-        <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)"> Show map bounds</label>
+        <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()"><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
@@ -1700,6 +1700,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
+  protected readonly canShowMapBounds = computed(() =>
+    (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas')
+    && this.offlineMaps().some(map => map.type === 'obf' && map.enabled && !!map.bounds));
   protected readonly renderActiveCount = signal(0);
   protected readonly renderDisplayPending = signal(false);
   protected readonly renderTotalCount = signal(0);
@@ -1763,6 +1766,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
   protected readonly changeMapBoundsVisible = (visible: boolean): void => {
+    if (visible && !this.canShowMapBounds()) return;
     this.mapBoundsVisible.set(visible);
     this.saveSetting('mapBoundsVisible', visible);
     this.persistLocationUiState({ mapBoundsVisible: visible });
@@ -1786,7 +1790,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapBoundsLayers = [];
   }
   private applyMapBoundsVisibility(): void {
-    const visible = this.mapBoundsVisible();
+    const zoom = this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? Number.POSITIVE_INFINITY;
+    const visible = this.mapBoundsVisible() && this.canShowMapBounds() && zoom < 10;
     const bounds = this.getActiveOfflineMapBounds();
     this.offlineRenderer?.setMapBoundsOverlay(bounds, visible);
     this.clearMapBoundsLayers();
@@ -3578,6 +3583,12 @@ export class MapWindow implements OnInit, OnDestroy {
         await this.desktop.Mapsforge.close();
         return;
       }
+      renderer.map.on('style.load', () => {
+        if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyMapOpacity();
+      });
+      renderer.map.once('idle', () => {
+        if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyOpacitySettings();
+      });
       this.applyMapBoundsVisibility();
       const latestLatitude = this.currentLatitude ?? latitude;
       const latestLongitude = this.currentLongitude ?? longitude;
@@ -3683,6 +3694,12 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
+    renderer.map.on('style.load', () => {
+      if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyMapOpacity();
+    });
+    renderer.map.once('idle', () => {
+      if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyOpacitySettings();
+    });
     this.applyMapBoundsVisibility();
 
     const latestLatitude = this.currentLatitude ?? latitude;
