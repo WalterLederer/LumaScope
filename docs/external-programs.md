@@ -6,7 +6,7 @@ LumaScope uses dedicated helper processes for selected native or third-party tas
 
 | Program | Function |
 | --- | --- |
-| `osmand_atlas_render_helper.exe` | Native C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt). Loads selected OBF map files, external OsmAnd resources and the selected rendering-style XML; renders native 256×256 XYZ tiles as RGBA pixels, applies display-density scaling and caches rendered metatiles on disk. |
+| `osmand_atlas_render_helper.exe` | Native C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt). Loads selected OBF map files, external OsmAnd resources and the selected rendering-style XML; renders native 256×256 XYZ tiles as RGBA pixels, applies display-density scaling and caches rendered tiles on disk. |
 | `osmand_render_helper.exe` | Native C++ OsmAnd hillshade renderer. Reads elevation data directly from selected SQLite hillshade databases and returns rendered raster tiles. It runs independently of the Atlas OBF renderer. |
 | Bundled Java runtime (`mapsforge/runtime/bin/java.exe`) | Minimal Java runtime image generated from the build machine's JDK with `jlink` and shipped inside both Windows package formats. Mapsforge prefers this runtime; `JAVA_HOME` and `PATH` are only fallbacks for development or packages created without the staged runtime. The persistent worker reads selected MAP files and renders 256×256 vector-map tiles using an external XML theme or the built-in default theme. Windows display density is applied to text and symbols. |
 | `jxr-wic-encoder.exe` | Encodes an FP16 HDR capture as JPEG XR using the native Windows Imaging Component encoder. |
