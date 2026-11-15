@@ -377,7 +377,8 @@ int runObfMetadataMode(int argc, char* argv[])
         return 2;
     }
 
-    QCoreApplication app(argc, argv);
+    QApplication app(argc, argv);
+    app.setQuitOnLastWindowClosed(false);
     QFile configurationFile(configurationPath);
     if (!configurationFile.open(QIODevice::ReadOnly))
     {
