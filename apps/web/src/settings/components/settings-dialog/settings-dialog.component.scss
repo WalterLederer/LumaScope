@@ -376,10 +376,17 @@ section {
 }
 
 .reverse-geocoding-status-box > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--dim-medium);
+  display: list-item;
+  list-style: disclosure-closed;
+  cursor: pointer;
+}
+
+.reverse-geocoding-status-box[open] > summary {
+  list-style: disclosure-open;
+}
+
+.reverse-geocoding-status-box > summary .reverse-geocoding-state {
+  float: right;
 }
 
 .reverse-geocoding-state {
