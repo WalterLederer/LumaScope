@@ -1731,6 +1731,13 @@ interface MapErrorEntry {
     .routing-remove-all-button:disabled{opacity:.45}
     @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
 
+
+    .fix-photo-preview{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0 10px;padding:8px;border:1px solid var(--border-color,rgba(128,128,128,.35));border-radius:6px;background:var(--panel-background,rgba(128,128,128,.08))}
+    .fix-photo-preview img{display:block;flex:0 0 auto;width:112px;height:72px;object-fit:contain;border-radius:4px;background:#171717}
+    .fix-photo-preview-empty{display:grid;flex:0 0 auto;width:112px;height:72px;place-items:center;border-radius:4px;background:rgba(128,128,128,.18);color:var(--text-secondary,#888);font-size:11px;text-align:center}
+    .fix-photo-preview-info{display:flex;flex:1 1 auto;flex-direction:column;gap:5px;min-width:0;font-size:12px}
+    .fix-photo-preview-info strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .fix-photo-preview-info span{color:var(--text-secondary,#888)}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
