@@ -59,6 +59,8 @@ This is an example, not a requirement to include every format. You can use diffe
 
 The scan is a discovery pass. Finding a file does not guarantee that its contents are valid, that its geographic coverage is useful, or that all runtime dependencies are present. The **Check** action and the renderer-specific validation report missing or unsupported resources.
 
+Folder-based resources are also listed directly in the OfflineFiles file table. Their **Path** is the containing resource folder, and **File size** is the recursive total of all files below that folder. Valhalla rows use the configuration's parent folder name (for example, **Austria** or **Europe**); the OsmAnd resources row has an empty **File** value; Mapsforge theme rows use each XML theme's filename without the extension (for example, **Elements** or **Elevate**). These rows are informational resource entries and do not have map activation or coverage controls.
+
 ## 3. OsmAnd vector maps — OBF
 
 ### Folder and filenames
@@ -130,6 +132,8 @@ The resource package does not have to contain `default.render.xml` specifically 
 - [Rendering styles README](https://github.com/osmandapp/OsmAnd-resources/blob/master/rendering_styles/readme.md) — describes the available styles and dependencies.
 
 Use **Code → Download ZIP** on GitHub or clone the repository, then extract it. If you download the full repository, the selected root is the extracted `OsmAnd-resources` directory; its `rendering_styles` child is what LumaScope checks for.
+
+Download OsmAnd resources separately from [OsmAnd-resources on GitHub](https://github.com/osmandapp/OsmAnd-resources). Place the extracted resources folder containing `rendering_styles/default.render.xml` inside your resource package before scanning. These resources are external and are **not bundled with LumaScope**.
 
 ### Add or modify a style yourself
 
@@ -245,6 +249,8 @@ The package scanner looks for a directory named `theme` whose parent path contai
 
 Download the theme archive from the provider, extract it, and place the XML file(s) and any accompanying assets in the theme folder. Preserve the archive's directory structure when the theme references images or other files by relative path. Select the desired theme in the map **View** tab after scanning.
 
+Place the extracted Mapsforge render-theme `.xml` files in this folder; subfolders are scanned too. For example, extract the OpenAndroMaps Elevate theme ZIP here. Choose the active theme in the **View** tab. The theme folder path is stored in application settings, while the theme files remain external to LumaScope.
+
 ### Create or customise a theme
 
 A Mapsforge render theme is XML. The theme defines how the tags stored in a `.map` file are drawn: line styles, fills, symbols, text and zoom-dependent rules. You can copy an existing theme and edit its XML, but the rules must match the Mapsforge render-theme schema and the tags available in your map data.
@@ -288,6 +294,8 @@ ResourcePackage/OpenStreetMap/Valhalla/Europe/valhalla.json
 ```
 
 The JSON must parse successfully and contain a top-level `mjolnir` object. The scanner discovers the configuration file; it does **not** build, download or validate the complete routing graph.
+
+Valhalla configuration files are discovered automatically when you scan the extracted resource package. Select the configuration you want to use in the **Routing provider** list. The OfflineFiles table displays each configuration's parent folder (such as `Austria` or `Europe`) and the recursive size of that folder.
 
 ### Configuration versus routing tiles
 
