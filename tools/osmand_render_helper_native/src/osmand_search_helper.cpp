@@ -6,6 +6,8 @@
 #include <QCoreApplication>
 #include <QString>
 #include <QStringList>
+
+#include <OsmAndCore/Logging.h>
 #include <QJsonArray>
 #include <QJsonDocument>
 
@@ -35,6 +37,7 @@ void printUsage()
 int main(int argc, char* argv[])
 {
     QCoreApplication application(argc, argv);
+    OsmAnd::Logger::get()->setSeverityLevelThreshold(static_cast<OsmAnd::LogSeverityLevel>(999));
     if (argc < 5 || QString::fromLatin1(argv[1]) != QStringLiteral("--search"))
     {
         printUsage();
