@@ -17,6 +17,7 @@ interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpaci
 interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpacity(opacity: number): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
 interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
+  getCenter(): { lat: number; lng: number };
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
   getZoom(): number;
@@ -136,6 +137,17 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
+              @if (!coordinatesAvailable()) {
+                <details class="fix-location-section">
+                  <summary class="settings-row-title">Fix location</summary>
+                  <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
+                  <div class="offline-map-status">Enable the map, move it until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                  <div class="location-actions">
+                    <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !currentImagePath || !map || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
+                    @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+                  </div>
+                </details>
+              }
               <details class="offline-address-search">
                 <summary class="settings-row-title">Offline address search</summary>
                 <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
@@ -1198,8 +1210,9 @@ interface MapErrorEntry {
               </details>
           </div>
         }
-        <div #map class="map" [class.map-hidden]="!coordinatesAvailable() || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-        @if (!coordinatesAvailable() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+        <div #map class="map" [class.map-hidden]="(!coordinatesAvailable() && !fixLocationEnabled()) || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+        @if (fixLocationEnabled() && !coordinatesAvailable()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+        @if (!coordinatesAvailable() && !fixLocationEnabled() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
         }
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
@@ -1612,6 +1625,14 @@ interface MapErrorEntry {
     .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
+    .fix-location-section{padding:8px 10px;margin:0 0 8px;border:1px solid var(--color-border-default,#555);border-radius:6px;background:var(--color-surface-default,#292a2d)}
+    .fix-location-section>summary{cursor:pointer;font-weight:600}
+    .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0}
+    .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
+    .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
+    .map-fix-crosshair:before{left:16px;top:0;width:2px;height:34px}
+    .map-fix-crosshair:after{left:0;top:16px;width:34px;height:2px}
+    .map-fix-crosshair span{position:absolute;z-index:1;left:11px;top:11px;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff3030}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
@@ -2451,6 +2472,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoCoordinateLabel = signal('Photo: GPS coordinates unavailable');
   protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
+  protected readonly fixLocationEnabled = signal(false);
+  protected readonly gpsSaveBusy = signal(false);
+  protected readonly gpsSaveStatus = signal('');
   protected readonly locationAddress = signal('');
   protected readonly offlineAddressQuery = signal('');
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
@@ -2830,6 +2854,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
         this.locationAddress.set('This image does not contain GPS coordinates.');
+        if (this.fixLocationEnabled()) { void this.initializeFixLocationMap(); return; }
         this.map?.remove();
         this.map = null;
         this.leafletHillshadeLayer = null;
@@ -2937,7 +2962,64 @@ export class MapWindow implements OnInit, OnDestroy {
     catch (error) { console.error('Failed to copy file path', error); }
   };
 
-  protected readonly copyCoordinates = async (): Promise<void> => {
+  protected readonly setFixLocationEnabled = (enabled: boolean): void => {
+    this.fixLocationEnabled.set(enabled);
+    this.gpsSaveStatus.set('');
+    if (!enabled) {
+      if (!this.coordinatesAvailable()) {
+        this.mapSourceGeneration++;
+        this.map?.remove(); this.map = null;
+        this.offlineRenderer?.remove(); this.offlineRenderer = null;
+      }
+      return;
+    }
+    if (!this.coordinatesAvailable()) void this.initializeFixLocationMap();
+  };
+
+  private async initializeFixLocationMap(): Promise<void> {
+    if (!this.fixLocationEnabled() || this.map || !this.currentImagePath) return;
+    const generation = ++this.mapSourceGeneration;
+    this.mapInitialization = null;
+    this.renderInitStatus.set('Loading map for location fixing…');
+    try {
+      await this.createMap(48.2082, 16.3738, generation, true);
+      if (generation === this.mapSourceGeneration && this.fixLocationEnabled()) {
+        this.map?.invalidateSize();
+        this.renderInitStatus.set('');
+      }
+    } catch (error) {
+      this.renderInitStatus.set('');
+      this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  protected readonly saveGpsPosition = async (): Promise<void> => {
+    if (!this.fixLocationEnabled() || !this.currentImagePath || !this.map || !this.desktop || this.gpsSaveBusy()) return;
+    const center = this.map.getCenter();
+    if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
+    this.gpsSaveBusy.set(true);
+    this.gpsSaveStatus.set('');
+    try {
+      const result = await this.desktop.Exif.writeGpsPosition(this.currentImagePath, center.lat, center.lng);
+      if (!result.success) throw new Error(result.errorMessage || 'Could not write GPS metadata to the image file.');
+      this.currentLatitude = center.lat; this.currentLongitude = center.lng;
+      this.coordinatesAvailable.set(true);
+      this.coordinateLabel.set(this.formatCoordinates(center.lat, center.lng));
+      this.photoCoordinateLabel.set(this.formatCoordinates(center.lat, center.lng).replace(/^Coordinates: /, 'Photo: '));
+      this.locationAddress.set('Looking up address…');
+      void this.lookupLocationAddress(center.lat, center.lng);
+      this.marker?.setLatLng([center.lat, center.lng]);
+      this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
+      this.fixLocationEnabled.set(false);
+      this.gpsSaveStatus.set('GPS position saved to image file.');
+    } catch (error) {
+      this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.gpsSaveBusy.set(false);
+    }
+  };
+
+  protected readonly copyCoordinates = async (): Promise<void> {
     const marker = this.marker?.getLatLng();
     const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
     if (latitude === null || longitude === null) return;
@@ -3933,7 +4015,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
     this.updateRouteWaypointMarkers();
-    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.locationVisible() ? this.locationOpacity() / 100 : 0));
+    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.fixLocationEnabled() && !this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
