@@ -2285,13 +2285,14 @@ export class MapWindow implements OnInit, OnDestroy {
           // let a stale mapWindow/localStorage copy overwrite the resources path.
           const settings = await this.desktop!.ProcessManager.getAppSettings();
           const osmand = settings['osmand'] as Record<string, unknown> | undefined;
-          const resourcesPath = typeof osmand?.['resourcesPath'] === 'string'
-            ? osmand['resourcesPath'] : '';
+          const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
+            ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+            : [];
+          const resourcesPath = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
           this.osmAndResourcesPath.set(resourcesPath);
 
-          const mapsforge = settings['mapsforge'] as Record<string, unknown> | undefined;
-          const themeFolder = typeof mapsforge?.['themeFolder'] === 'string' ? mapsforge['themeFolder'] : '';
-          const savedThemePath = typeof mapsforge?.['themePath'] === 'string' ? mapsforge['themePath'] : '';
+          const themeFolder = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme-folder')?.path ?? '';
+          const savedThemePath = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme' && entry.enabled !== false)?.path ?? '';
           this.mapsforgeThemeFolder.set(themeFolder);
           if (themeFolder) {
             try {
@@ -3643,11 +3644,12 @@ export class MapWindow implements OnInit, OnDestroy {
       const scan = await this.desktop.OfflineMap.scanResourcePackage(folder.data);
       this.resourcePackageEntries.set(scan.resourceEntries ?? []);
       const settings = await this.desktop.ProcessManager.getAppSettings();
-      const osmandSettings = (settings['osmand'] && typeof settings['osmand'] === 'object' ? settings['osmand'] : {}) as Record<string, unknown>;
-      const mapsforgeSettings = (settings['mapsforge'] && typeof settings['mapsforge'] === 'object' ? settings['mapsforge'] : {}) as Record<string, unknown>;
+      const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
+        ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+        : [];
       const valhallaBefore = await this.desktop.Valhalla.getRuntimeStatus();
-      const existingResources = typeof osmandSettings['resourcesPath'] === 'string' ? osmandSettings['resourcesPath'] : '';
-      const existingThemeFolder = typeof mapsforgeSettings['themeFolder'] === 'string' ? mapsforgeSettings['themeFolder'] : '';
+      const existingResources = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
+      const existingThemeFolder = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme-folder')?.path ?? '';
       const hasExistingPaths = !!(existingResources || existingThemeFolder || valhallaBefore.configPath || valhallaBefore.configurations?.length);
       const overwrite = !hasExistingPaths || window.confirm(
         'Existing local resource paths are already configured.\n\n' +
@@ -3716,7 +3718,7 @@ export class MapWindow implements OnInit, OnDestroy {
         if (overwrite) {
           this.mapsforgeThemeFolder.set(scan.mapsforgeThemeFolder);
           this.mapsforgeThemes.set(themes);
-          const previousTheme = typeof mapsforgeSettings['themePath'] === 'string' ? mapsforgeSettings['themePath'] : '';
+          const previousTheme = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme' && entry.enabled !== false)?.path ?? '';
           const selectedTheme = themes.find(theme => theme.path === previousTheme) ?? themes[0];
           const selectedPath = selectedTheme?.path ?? '';
           this.mapsforgeThemePath.set(selectedPath);
