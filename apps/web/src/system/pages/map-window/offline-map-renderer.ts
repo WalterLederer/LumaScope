@@ -831,7 +831,7 @@ export class OfflineMapRenderer {
   private mapBoundsFeatures: Array<{
     type: 'Feature';
     geometry: { type: 'Polygon'; coordinates: [number, number][][] };
-    properties: { mapIndex: number; segment: number };
+    properties: { mapIndex: number; segment: number; name: string };
   }> = [];
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
@@ -2023,9 +2023,9 @@ export class OfflineMapRenderer {
     if (scale) scale.style.display = visible ? '' : 'none';
   }
 
-  setMapBoundsOverlay(bounds: Array<[number, number, number, number]>, visible: boolean): void {
+  setMapBoundsOverlay(bounds: Array<{ bounds: [number, number, number, number]; name: string }>, visible: boolean): void {
     this.mapBoundsVisible = visible;
-    this.mapBoundsFeatures = bounds.flatMap(([west, south, east, north], mapIndex) => {
+    this.mapBoundsFeatures = bounds.flatMap(({ bounds: [west, south, east, north], name }, mapIndex) => {
       const segments: Array<[number, number, number, number]> = east >= west
         ? [[west, south, east, north]]
         : [[west, south, 180, north], [-180, south, east, north]];
@@ -2040,7 +2040,7 @@ export class OfflineMapRenderer {
         return {
           type: 'Feature' as const,
           geometry: { type: 'Polygon' as const, coordinates: [ring] },
-          properties: { mapIndex, segment }
+          properties: { mapIndex, segment, name }
         };
       });
     });
@@ -2084,9 +2084,32 @@ export class OfflineMapRenderer {
         }
       }, firstSymbolLayer);
     }
+    if (!this.map.getLayer('offline-map-bounds-labels')) {
+      this.map.addLayer({
+        id: 'offline-map-bounds-labels',
+        type: 'symbol',
+        source: 'offline-map-bounds',
+        maxzoom: 10,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 12,
+          'text-max-width': 14,
+          'text-anchor': 'center',
+          'text-allow-overlap': false,
+          'text-ignore-placement': false
+        },
+        paint: {
+          'text-color': '#ff9f1c',
+          'text-halo-color': '#202020',
+          'text-halo-width': 1.5,
+          'text-halo-blur': 0.5
+        }
+      });
+    }
     const visibility = this.mapBoundsVisible ? 'visible' : 'none';
     this.map.setLayoutProperty('offline-map-bounds-fill', 'visibility', visibility);
     this.map.setLayoutProperty('offline-map-bounds-outline', 'visibility', visibility);
+    this.map.setLayoutProperty('offline-map-bounds-labels', 'visibility', visibility);
   }
 
   setTextLabelOpacity(opacity: number): void {
