@@ -414,6 +414,7 @@ export interface OsmAndAtlasTileResult {
   stride: number;
   pixels: Uint8Array;
   cacheHit: boolean;
+  queueWaitMs?: number;
   diagnostics?: {
     helperPath: string;
     geometryEnabled: boolean;
