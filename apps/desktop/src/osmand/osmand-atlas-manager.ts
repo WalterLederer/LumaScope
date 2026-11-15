@@ -19,7 +19,9 @@ const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
 // Atlas workers each own a Qt/OpenGL context and load the selected OBF set.
 // Keep concurrency conservative to avoid competing native/GPU initialization.
 const HELPER_WORKER_COUNT = 2;
-const HILLSHADE_WORKER_COUNT = 4;
+// SQLite tile reads are independent, but each helper owns a database connection.
+// Limit concurrent readers to avoid saturating the same drive during map movement.
+const HILLSHADE_WORKER_COUNT = 2;
 // Valid transparent PNG returned for XYZ cells outside a regional hillshade database.
 const EMPTY_HILLSHADE_TILE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=', 'base64');
 
@@ -155,9 +157,25 @@ class OsmAndHillshadeWorker {
   ) {}
 
   readTile(databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> {
-    const result = this.queue.then(() => this.readTileQueued(databasePath, z, x, y, s));
+    const queuedAt = Date.now();
+    const result = this.queue.then(() => {
+      const queueWaitMs = Date.now() - queuedAt;
+      if (queueWaitMs >= 100) console.info('[OsmAnd Hillshade] worker_queue_wait_ms=' + queueWaitMs, { z, x, y });
+      return this.readTileQueued(databasePath, z, x, y, s);
+    });
     this.queue = result.then(() => undefined, () => undefined);
-    return result;
+    return result.catch(error => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/timed out/i.test(message)) {
+        // A timed-out binary response may still be in flight. Retire the helper
+        // so a late response cannot desynchronize the next request's framing.
+        const child = this.child;
+        this.child = null;
+        this.reader = null;
+        child?.kill();
+      }
+      throw error;
+    });
   }
 
   async shutdown(): Promise<void> {
@@ -180,6 +198,7 @@ class OsmAndHillshadeWorker {
     // This keeps Atlas rendering and SQLite tile reads in separate processes,
     // while sharing one native binary and its Qt SQL runtime.
     let child: ChildProcessWithoutNullStreams;
+    const startupStartedAt = Date.now();
     try {
       child = spawn(this.helperPath, ['--hillshade-worker'], {
         stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment
@@ -204,6 +223,7 @@ class OsmAndHillshadeWorker {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
+    console.info('[OsmAnd Hillshade] helper_ready', { startupMs: Date.now() - startupStartedAt });
   }
 
   private async readTileQueued(databasePath: string, z: number, x: number, y: number, s: number): Promise<Uint8Array> {
@@ -213,6 +233,7 @@ class OsmAndHillshadeWorker {
     if (!child || !child.stdin.writable || child.stdin.destroyed || child.stdin.writableEnded || !reader) {
       throw new Error('OsmAnd Hillshade helper streams are unavailable.');
     }
+    const readStartedAt = Date.now();
     let requestId = this.nextRequestId >>> 0;
     if (requestId === 0) requestId = 1;
     this.nextRequestId = (requestId + 1) >>> 0;
@@ -221,7 +242,7 @@ class OsmAndHillshadeWorker {
     await new Promise<void>((resolve, reject) => {
       child.stdin.write(JSON.stringify(request) + '\n', error => error ? reject(error) : resolve());
     });
-    const header = await reader.readBytes(24);
+    const header = await this.withTimeout(reader.readBytes(24), 30000, 'OsmAnd Hillshade response header timed out');
     if (header.toString('ascii', 0, 4) !== 'OSMH' || header.readUInt16LE(4) !== 1 || header.readUInt16LE(6) !== 24) {
       throw new Error('OsmAnd Hillshade helper returned an unsupported OSMH response header.');
     }
@@ -232,12 +253,30 @@ class OsmAndHillshadeWorker {
     if (!Number.isSafeInteger(payloadLength) || payloadLength < 0 || payloadLength > 32 * 1024 * 1024) {
       throw new Error('OsmAnd Hillshade PNG exceeds the 32 MB safety limit.');
     }
-    const payload = await reader.readBytes(payloadLength);
+    const payload = await this.withTimeout(reader.readBytes(payloadLength), 30000, 'OsmAnd Hillshade PNG payload timed out');
     if (status !== 0) throw new Error('[OsmAnd Hillshade] ' + payload.toString('utf8').trim());
     if (payload.length < 8 || payload.toString('hex', 0, 8) !== '89504e470d0a1a0a') {
       throw new Error('OsmAnd Hillshade helper returned invalid PNG data.');
     }
+    console.info('[OsmAnd Hillshade] tile_read_complete', {
+      z, x, y, database: databasePath.split(/[\\\\/]/).pop(),
+      totalMs: Date.now() - readStartedAt, pngBytes: payload.length
+    });
     return new Uint8Array(payload);
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error(message + ' (' + milliseconds + ' ms).')), milliseconds);
+        })
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   }
 }
 
