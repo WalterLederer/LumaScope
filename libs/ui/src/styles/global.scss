@@ -46,8 +46,14 @@ ul, li {
   display: block;
 }
 
-/* Shared disclosure appearance, matching the Location tab sections. */
-details {
+/*
+ * Reusable disclosure component.
+ * Add class="app-disclosure" to every new <details> section.
+ * For custom button-based disclosure headings, use app-disclosure-heading
+ * and toggle the expanded class together with the section state.
+ */
+details,
+.app-disclosure {
   box-sizing: border-box;
   min-width: 0;
   margin: 0 0 6px;
@@ -58,7 +64,9 @@ details {
   color: var(--color-content-default-high);
 }
 
-details > summary {
+details > summary,
+.app-disclosure > summary,
+.app-disclosure-heading {
   display: list-item;
   margin: 0;
   padding: 0;
@@ -71,17 +79,22 @@ details > summary {
   user-select: none;
 }
 
-details > summary::marker {
+details > summary::marker,
+.app-disclosure > summary::marker,
+.app-disclosure-heading::marker {
   font-size: 16px;
 }
 
-details[open] > summary {
+details[open] > summary,
+.app-disclosure[open] > summary,
+.app-disclosure-heading.expanded {
   list-style: disclosure-open;
   margin-bottom: 4px;
 }
 
-/* Nested disclosures keep the same title treatment and align to one grid. */
-details details {
+/* Nested disclosures retain the same marker and title alignment. */
+details details,
+.app-disclosure .app-disclosure {
   margin-left: 12px;
 }
 
