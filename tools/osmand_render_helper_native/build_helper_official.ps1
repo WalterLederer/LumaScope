@@ -240,29 +240,67 @@ bash --login "%~dp0build.sh" %*
 
 Ensure-SubstDrive -DriveName $WorkspaceDrive -TargetPath $workspaceRoot
 
-$pythonCommand = Get-Command "python3.exe" -ErrorAction SilentlyContinue
-if (-not $pythonCommand) {
-    $pythonCommand = Get-Command "python.exe" -ErrorAction SilentlyContinue
+# Python is only needed to prepare the legacy protobuf sources. Ignore the
+# Microsoft Store execution aliases in WindowsApps: they are not Python installs.
+$pythonExe = $null
+$pythonBin = $null
+if (-not $SkipLegacyProtobuf) {
+    $pythonCandidates = @()
+    foreach ($commandName in @("python3.exe", "python.exe")) {
+        $commands = @(Get-Command $commandName -All -ErrorAction SilentlyContinue)
+        foreach ($command in $commands) {
+            if ($command.Source -and
+                $command.Source -notmatch "[\\/]Microsoft[\\/]WindowsApps[\\/]" -and
+                (Test-Path -LiteralPath $command.Source -PathType Leaf)) {
+                $pythonCandidates += $command.Source
+            }
+        }
+    }
+
+    foreach ($candidate in ($pythonCandidates | Select-Object -Unique)) {
+        $versionOutput = & $candidate --version 2>&1
+        if ($LASTEXITCODE -eq 0 -and ($versionOutput -match "Python 3\\.")) {
+            $pythonExe = $candidate
+            $pythonVersion = ($versionOutput | Out-String).Trim()
+            break
+        }
+    }
+
+    # Also support installations that expose only the Python Launcher (py.exe).
+    if (-not $pythonExe) {
+        $pyCommand = Get-Command "py.exe" -ErrorAction SilentlyContinue
+        if ($pyCommand -and $pyCommand.Source -and
+            $pyCommand.Source -notmatch "[\\/]Microsoft[\\/]WindowsApps[\\/]") {
+            $resolvedPython = & $pyCommand.Source -3 -c "import sys; print(sys.executable)" 2>$null
+            if ($LASTEXITCODE -eq 0 -and $resolvedPython) {
+                $candidate = ($resolvedPython | Select-Object -Last 1).Trim()
+                if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                    $versionOutput = & $candidate --version 2>&1
+                    if ($LASTEXITCODE -eq 0 -and ($versionOutput -match "Python 3\\.")) {
+                        $pythonExe = $candidate
+                        $pythonVersion = ($versionOutput | Out-String).Trim()
+                    }
+                }
+            }
+        }
+    }
+
+    if (-not $pythonExe) {
+        throw "A working Python 3 installation is required for legacy protobuf preparation. The Microsoft Store WindowsApps alias is not a Python installation. Install Python 3 and add it to PATH, or rerun with -SkipLegacyProtobuf if legacy protobuf preparation is not required."
+    }
+
+    $pythonBin = Split-Path -Parent $pythonExe
+    Write-Host "Using Python: $pythonExe ($pythonVersion)"
 }
-if (-not $pythonCommand -or -not $pythonCommand.Source) {
-    throw "Python 3 was not found. Install Python 3 and add python.exe or python3.exe to PATH, or use -SkipLegacyProtobuf if the legacy protobuf preparation is not required."
-}
-$pythonExe = $pythonCommand.Source
-$pythonVersion = & $pythonExe --version 2>&1
-if ($LASTEXITCODE -ne 0 -or ($pythonVersion -notmatch "Python 3\.")) {
-    throw "A working Python 3 installation is required for legacy protobuf preparation. Resolved executable: $pythonExe; version output: $pythonVersion"
-}
-$pythonBin = Split-Path -Parent $pythonExe
-Write-Host "Using Python: $pythonExe ($pythonVersion)"
 
 $env:PATH = @(
-    $pythonBin,
+    $(if ($pythonBin) { $pythonBin }),
     (Join-Path $MinGWRoot "bin"),
     "C:\Program Files\Git\bin",
     "C:\Program Files\Git\usr\bin",
     "C:\Program Files\Git\mingw64\bin",
     $env:PATH
-) -join ";"
+) | Where-Object { $_ } | Select-Object -Unique | Join-String -Separator ";"
 
 if (-not $SkipLegacyProtobuf) {
     $legacyProtobufScript = Join-Path $workspaceRoot "core-legacy\externals\protobuf\configure.sh"
