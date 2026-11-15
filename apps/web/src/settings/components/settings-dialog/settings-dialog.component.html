@@ -26,7 +26,7 @@
 
   @if (mode() === 'cache') {
     <section class="cache-summary-section">
-      <details class="app-disclosure" class="cache-summary-box">
+      <details class="cache-summary-box app-disclosure">
         <summary>Summary</summary>
         <div class="cache-summary-content">
           @if (cacheSummaryLoading()) {
@@ -88,7 +88,7 @@
       <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Current gallery folder" />
     </div>
     <section class="build-cache-section">
-      <details class="app-disclosure" class="build-cache-box" open>
+      <details class="build-cache-box app-disclosure" open>
         <summary>Build cache</summary>
         <div class="cache-box-content">
         <p>Build cache processes files in the selected folder. Enable <strong>Recursive build</strong> to include all subfolders. No other registered folders are affected.</p>
@@ -147,7 +147,7 @@
         </div>
         </div>
       </details>
-      <details class="app-disclosure" class="build-cache-box reverse-geocoding-status-box" open>
+      <details class="build-cache-box reverse-geocoding-status-box app-disclosure" open>
         <summary>
           <span>Background Reverse Geocoding</span>
           <span class="reverse-geocoding-state" [class.running]="reverseGeocodingStatus().status === 'running'"
@@ -388,7 +388,7 @@
     } @else if (devToolsError() !== null) {
       <p class="cache-status error" role="alert">Could not update DevTools setting: {{ devToolsError() }}</p>
     }
-        <details class="app-disclosure" class="profiling-section">
+        <details class="profiling-section app-disclosure">
           <summary>Profiling · {{ externalProcessCalls().length }} external calls</summary>
           @if (profilingError() !== null) {
             <p class="cache-status error" role="alert">Could not load profiling data: {{ profilingError() }}</p>
@@ -427,7 +427,7 @@
 
   @if (mode() !== 'general' && mode() !== 'help') {
   <section class="delete-cache-section">
-    <details class="app-disclosure" class="delete-cache-box" open>
+    <details class="delete-cache-box app-disclosure" open>
       <summary>Delete cache</summary>
       <div class="cache-box-content">
       <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
