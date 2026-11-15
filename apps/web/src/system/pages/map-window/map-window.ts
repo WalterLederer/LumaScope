@@ -485,7 +485,7 @@ interface MapErrorEntry {
           </div>
         </details>
       } @else {
-        <span class="time-slider-help">Load GPX files or enable photo markers with timestamps to define the time range.</span>
+        <span class="time-slider-help">{{ gpxTracks().some(track => !track.missing && !track.readError) ? 'The loaded GPX files contain no usable point timestamps. Track points need time values to define the time range.' : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.' }}</span>
       }
     </div>
   </div>
@@ -5970,9 +5970,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private isTimeSliderTimestampVisible(timestamp: number | null | undefined): boolean {
-    if (!this.timeSliderActive()) return true;
-    return timestamp != null && Number.isFinite(timestamp)
-      && timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd();
+    if (!this.timeSliderActive() || timestamp == null || !Number.isFinite(timestamp)) return true;
+    return timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd();
   }
 
   protected readonly timeSliderBoundarySource = (timestamp: number): string => {
@@ -5981,7 +5980,7 @@ export class MapWindow implements OnInit, OnDestroy {
       && this.timeSliderMaximum() === this.timeSliderMinimum() + 1
       ? this.timeSliderMinimum() : timestamp;
     const sources: string[] = [];
-    for (const track of this.gpxTracks().filter(item => item.active !== false)) {
+    for (const track of this.gpxTracks().filter(item => !item.missing && !item.readError)) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
       if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
         && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
@@ -6001,7 +6000,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private updateTimeSliderBounds(): void {
     const timestamps = [
-      ...this.gpxTracks().filter(track => track.active !== false)
+      // Loaded GPX tracks define the available time range even when their
+      // map visibility is switched off. Track visibility must not hide the
+      // time controls or make photo GPS timestamps a prerequisite.
+      ...this.gpxTracks().filter(track => !track.missing && !track.readError)
         .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
       ...(this.directoryMarkersEnabled()
@@ -6058,12 +6060,15 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly timeSliderHelpText = (): string => {
-    const hasActiveTracks = this.gpxTracks().some(track => track.active !== false);
-    const hasPhotoMarkers = this.directoryMarkersEnabled();
-    if (hasActiveTracks && hasPhotoMarkers) return 'Only GPX track points and photos within this time range are shown.';
-    if (hasActiveTracks) return 'Only GPX tracks within this time range are shown.';
-    if (hasPhotoMarkers) return 'Only photos within this time range are shown.';
-    return 'No active GPX tracks or photo markers.';
+    const hasTracks = this.gpxTracks().some(track => !track.missing && !track.readError
+      && (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
+        .some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))));
+    const hasTimedPhotoMarkers = this.directoryMarkersEnabled()
+      && this.directoryPhotoTimestampMarkers.some(marker => marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp));
+    if (hasTracks && hasTimedPhotoMarkers) return 'Only timestamped GPX track points and photos within this time range are filtered. Items without timestamps remain visible.';
+    if (hasTracks) return 'Timestamped GPX track points are filtered by this time range. Items without timestamps remain visible.';
+    if (hasTimedPhotoMarkers) return 'Timestamped photos are filtered by this time range. Photos without timestamps remain visible.';
+    return 'No timestamped GPX track points or photo markers are available.';
   };
 
   protected readonly formatTimeSliderDate = (timestamp: number): string =>
