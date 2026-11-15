@@ -2029,20 +2029,20 @@ export class OfflineMapRenderer {
       const segments: Array<[number, number, number, number]> = east >= west
         ? [[west, south, east, north]]
         : [[west, south, 180, north], [-180, south, east, north]];
-      return segments.map(([segmentWest, segmentSouth, segmentEast, segmentNorth], segment) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Polygon' as const,
-          coordinates: [[
-            [segmentWest, segmentSouth],
-            [segmentEast, segmentSouth],
-            [segmentEast, segmentNorth],
-            [segmentWest, segmentNorth],
-            [segmentWest, segmentSouth]
-          ]]
-        },
-        properties: { mapIndex, segment }
-      }));
+      return segments.map(([segmentWest, segmentSouth, segmentEast, segmentNorth], segment) => {
+        const ring: [number, number][] = [
+          [segmentWest, segmentSouth],
+          [segmentEast, segmentSouth],
+          [segmentEast, segmentNorth],
+          [segmentWest, segmentNorth],
+          [segmentWest, segmentSouth]
+        ];
+        return {
+          type: 'Feature' as const,
+          geometry: { type: 'Polygon' as const, coordinates: [ring] },
+          properties: { mapIndex, segment }
+        };
+      });
     });
     this.applyMapBoundsOverlay();
   }
