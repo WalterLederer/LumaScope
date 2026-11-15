@@ -380,8 +380,10 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
           addOrReplace('mapsforge-theme', [{ path: typeof values['themeFolder'] === 'string' && values['themeFolder'] ? values['themeFolder'] : dirname(activePath),
             name: basename(activePath, extname(activePath)), sourcePath: activePath, enabled: true }]);
         }
-      } else if (values['themePath'] === '') {
+      } else if (values['themePath'] === '' && values['themeFolder'] === '') {
         offlineEntries = offlineEntries.filter(entry => entry.type !== 'mapsforge-theme');
+      } else if (values['themePath'] === '') {
+        offlineEntries = offlineEntries.map(entry => entry.type === 'mapsforge-theme' ? { ...entry, enabled: false } : entry);
       }
       for (const key of ['themeFolder', 'themePath', 'themes']) nextValues[key] = undefined;
     }
