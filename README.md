@@ -101,6 +101,7 @@ The Help tab in the application displays this README. The detailed reference tab
 - [Feature guide](docs/features.md) — Browse, Image View, capture, location, maps, routing, cache and Windows integration.
 - [Supported image formats](docs/image-formats.md) — decoder, HDR support, bit depth and full-size cache behaviour.
 - [Supported map formats](docs/map-formats.md) — map source, online/offline availability and renderer.
+- [Offline resource package format](docs/resource-package-format.md) — exact folder layout, file discovery rules, downloads and data creation for OfflineFiles.
 - [Key shortcuts](docs/shortcuts.md) — local and global keyboard shortcuts.
 - [External programs](docs/external-programs.md) — helper processes and their responsibilities.
 - [Build from source](docs/build-from-source.md) — prerequisites and compilation steps for the native SDKs, routing engine, renderers and application.
