@@ -42,6 +42,10 @@ add_executable(osmand_search_helper
 
 add_library(osmand_native_widget SHARED
     ${_helper_common_sources}
+    "${_helper_src_dir}/osmand_core_runtime.cpp"
+    "${_helper_src_dir}/osmand_core_runtime.h"
+    "${_helper_src_dir}/osmand_search_service.cpp"
+    "${_helper_src_dir}/osmand_search_service.h"
     "${_helper_src_dir}/osmand_native_map_widget.cpp"
     "${_helper_src_dir}/osmand_native_map_widget.h"
     "${_helper_src_dir}/osmand_native_widget_bridge.cpp"
@@ -81,11 +85,14 @@ target_link_libraries(osmand_search_helper
 target_link_libraries(osmand_native_widget
     PRIVATE
         OsmAndCoreTools_shared
+        Qt5::Core
+        Qt5::Network
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
         Qt6::OpenGL
         Qt6::OpenGLWidgets
+        Qt6::Sql
 )
 
 set_target_properties(osmand_render_helper PROPERTIES
