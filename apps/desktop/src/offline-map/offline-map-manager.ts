@@ -61,6 +61,7 @@ export class OfflineMapManager {
   const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,resourceEntries:[],errors:[]};
   const seen=new Set<string>();
   const directorySizes=new Map<string,number>();
+  const mapsforgeThemeFolders=new Map<string,string>();
   // Accept either the extracted OsmAnd-resources root or its rendering_styles
   // subfolder. Some resource packages do not contain default.render.xml, so
   // identify the folder by the presence of any *.render.xml style file.
@@ -77,7 +78,11 @@ export class OfflineMapManager {
     const path=join(directory,entry.name);
     if(entry.isDirectory()){
      const lower=entry.name.toLowerCase();
-     if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge'))result.mapsforgeThemeFolder??=path;
+     if(lower==='theme'&&directory.toLowerCase().split(/[\\/]/).includes('mapsforge')){
+      const key=resolve(path).toLocaleLowerCase();
+      mapsforgeThemeFolders.set(key,resolve(path));
+      result.mapsforgeThemeFolder??=resolve(path);
+     }
      if(lower==='rendering_styles')result.osmAndResourcesPath??=directory;
      else if(hasRenderingStyles(path))result.osmAndResourcesPath??=path;
      walk(path,depth+1);
@@ -125,18 +130,19 @@ export class OfflineMapManager {
   for(const {folder,configPath} of valhallaFolders.values())addResourceEntry('valhalla',basename(folder),folder,configPath);
   if(result.osmAndResourcesPath)addResourceEntry('osmand-resources','',result.osmAndResourcesPath);
   if(result.mapsforgeThemeFolder){
-   const collectThemes=(directory:string,depth=0):void=>{
+   const collectThemes=(directory:string,themeRoot:string,depth=0):void=>{
     if(depth>24)return;
     let entries;try{entries=readdirSync(directory,{withFileTypes:true});}catch{return;}
     for(const entry of entries){
      const path=join(directory,entry.name);
-     if(entry.isDirectory())collectThemes(path,depth+1);
+     if(entry.isDirectory())collectThemes(path,themeRoot,depth+1);
      else if(entry.isFile()&&extname(entry.name).toLowerCase()==='.xml'){
-      addResourceEntry('mapsforge-theme',basename(entry.name,extname(entry.name)),result.mapsforgeThemeFolder!,path);
+      addResourceEntry('mapsforge-theme',basename(entry.name,extname(entry.name)),themeRoot,path);
      }
     }
    };
-   collectThemes(result.mapsforgeThemeFolder);
+   const themeFolders=mapsforgeThemeFolders.size>0?[...mapsforgeThemeFolders.values()]:[result.mapsforgeThemeFolder];
+   for(const themeFolder of themeFolders)collectThemes(themeFolder,themeFolder);
   }
   result.resourceEntries.sort((a,b)=>a.type.localeCompare(b.type)||a.fileName.localeCompare(b.fileName,undefined,{numeric:true,sensitivity:'base'}));
   return result;
