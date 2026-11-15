@@ -424,7 +424,8 @@ export interface OsmAndAtlasTileResult {
   };
 }
 
-export interface OsmAndObfMapSectionMetadata { name: string; minZoom: number; maxZoom: number; }
+export interface OsmAndObfMapRootLevelMetadata { minZoom: number; maxZoom: number; bounds: string; }
+export interface OsmAndObfMapSectionMetadata { name: string; minZoom: number; maxZoom: number; levels?: OsmAndObfMapRootLevelMetadata[]; }
 export interface OsmAndObfMetadata { filePath: string; metadataAvailable: boolean; sectionCount?: number; isBasemap?: boolean; sections?: OsmAndObfMapSectionMetadata[]; minZoom?: number; maxZoom?: number; bounds?: string | null; error?: string; }
 
 export interface OsmAndAtlasRuntimeStatus {
