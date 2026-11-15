@@ -2920,7 +2920,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineAddressSearchResults.set([]);
     try {
       if (!activePaths.length) throw new Error('No enabled and available OsmAnd OBF files are configured in Offline Files.');
-      const results = await this.desktop.OsmAndAtlas.searchAddresses(activePaths, query, 5);
+      const results = await this.desktop.OsmAndAtlas.searchAddresses(activePaths, query, 0);
       this.offlineAddressSearchResults.set(results);
       if (!results.length) this.offlineAddressSearchError.set('No matching address was found in the enabled OBF files.');
     } catch (error) {
