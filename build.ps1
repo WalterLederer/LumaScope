@@ -78,24 +78,48 @@ function StopProcesses {
         }
     )
 
-    # Close the main LumaScope window normally first. Electron then gets time
-    # to finish renderer IPC and drain the main-process settings write queue.
-    $lumaScopeProcesses = @($matchingNodes | Where-Object { $_.Name -ieq 'LumaScope.exe' })
-    foreach ($processInfo in $lumaScopeProcesses) {
+    # Close only the actual application window gracefully. Electron starts
+    # several LumaScope.exe child processes (GPU/renderer); they must not each
+    # receive an independent 20-second window-close attempt.
+    $lumaScopeMainProcesses = @(
+        $matchingNodes |
+            Where-Object { $_.Name -ieq 'LumaScope.exe' } |
+            ForEach-Object {
+                try {
+                    $process = Get-Process -Id ([int]$_.ProcessId) -ErrorAction Stop
+                    if ($process.MainWindowHandle -ne 0) {
+                        $process
+                    }
+                }
+                catch {
+                    Write-Host "INFO LumaScope PID $($_.ProcessId) already exited: $($_.Exception.Message)" -ForegroundColor DarkGray
+                }
+            }
+    )
+
+    foreach ($process in $lumaScopeMainProcesses) {
+        $processId = [int]$process.Id
         try {
-            $process = Get-Process -Id ([int]$processInfo.ProcessId) -ErrorAction Stop
-            Write-Host "CLOSE LumaScope gracefully (PID $($process.Id))" -ForegroundColor Yellow
+            Write-Host "CLOSE LumaScope main window gracefully (PID $processId)" -ForegroundColor Yellow
             if ($process.CloseMainWindow()) {
                 if (-not $process.WaitForExit(20000)) {
-                    Write-Warning "LumaScope PID $($process.Id) did not exit within 20 seconds; remaining processes will be stopped."
+                    Write-Warning "LumaScope PID $processId did not exit within 20 seconds; force-stopping its process tree now."
+                    & taskkill.exe /PID $processId /T /F 1>$null 2>$null
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "INFO LumaScope PID $processId was already stopped or could not be reached (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
+                    }
                 }
             }
             else {
-                Write-Warning "LumaScope PID $($process.Id) has no closable main window; remaining processes will be stopped if necessary."
+                Write-Warning "LumaScope PID $processId did not accept a graceful window close; force-stopping its process tree now."
+                & taskkill.exe /PID $processId /T /F 1>$null 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "INFO LumaScope PID $processId was already stopped or could not be reached (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
+                }
             }
         }
         catch {
-            Write-Host "INFO LumaScope PID $($processInfo.ProcessId) already exited: $($_.Exception.Message)" -ForegroundColor DarkGray
+            Write-Host "INFO LumaScope PID $processId already exited: $($_.Exception.Message)" -ForegroundColor DarkGray
         }
     }
 
