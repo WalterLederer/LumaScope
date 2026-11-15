@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include <QString>
+#include <QStringList>
 
 namespace OsmAnd
 {
@@ -19,7 +20,7 @@ class OsmAndSearchService
 public:
     struct Configuration
     {
-        QString obfPath;
+        QStringList obfPaths;
         QString resourcesRoot;
     };
 
