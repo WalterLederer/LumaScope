@@ -334,9 +334,9 @@ interface MapErrorEntry {
     <div class="routing-clear-row">
       <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
     </div>
+    @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     <details class="routing-advanced">
       <summary>Advanced</summary>
-      @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
       <div class="routing-provider-card">
         <label class="routing-provider-label">Routing provider
         <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
