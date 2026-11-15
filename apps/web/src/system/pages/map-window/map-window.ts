@@ -2180,25 +2180,13 @@ export class MapWindow implements OnInit, OnDestroy {
         if (entry.type === 'osmand-resources') {
           return [{ type: 'osmand-resources' as const, fileName: '', path: entry.path, sourcePath: entry.path, fileSize: entry.size }];
         }
+        if (entry.type === 'mapsforge-theme') {
+          return [{ type: 'mapsforge-theme' as const, fileName: entry.name ?? entry.sourcePath?.replace(/^.*[\\/]/, '').replace(/\\.xml$/i, '') ?? '',
+            path: entry.path, sourcePath: entry.sourcePath ?? entry.path, fileSize: entry.size }];
+        }
         return [];
       });
-      const savedThemeFolder = savedOfflineFileEntries.find(entry => entry.type === 'mapsforge-theme-folder') ;
-      if (savedThemeFolder?.path) {
-        void this.desktop?.Mapsforge.scanThemes(savedThemeFolder.path).then(themes => {
-          this.resourcePackageEntries.set([...savedResourceEntries, ...themes.map(theme => ({
-            type: 'mapsforge-theme' as const,
-            fileName: theme.fileName.replace(/\\.xml$/i, ''),
-            path: savedThemeFolder.path!,
-            sourcePath: theme.path,
-            fileSize: savedThemeFolder.size ?? 0
-          }))]);
-        }).catch(error => {
-          this.resourcePackageEntries.set(savedResourceEntries);
-          console.warn('[OfflineFiles] Could not restore Mapsforge theme entries:', error);
-        });
-      } else {
-        this.resourcePackageEntries.set(savedResourceEntries);
-      }
+      this.resourcePackageEntries.set(savedResourceEntries);
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
         const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
