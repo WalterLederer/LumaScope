@@ -139,6 +139,8 @@ export interface OfflineFileConfigEntry {
   path: string;
   enabled: boolean;
   size: number;
+  name?: string;
+  sourcePath?: string;
 }
 
 const inferOfflineFileType = (path: string): OfflineFileType | null => {
@@ -187,11 +189,13 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
     const path = raw['path'].trim();
     const type = (typeof raw['type'] === 'string' ? raw['type'] : fallbackType ?? inferOfflineFileType(path)) as OfflineFileType | null;
     if (!type || !['mbtiles','obf','mapsforge-map','hillshade','valhalla-config','osmand-resources','mapsforge-theme-folder','mapsforge-theme'].includes(type)) return;
-    const key = type + '|' + resolve(path).toLocaleLowerCase();
+    const sourcePath = typeof raw['sourcePath'] === 'string' ? raw['sourcePath'] : undefined;
+    const name = typeof raw['name'] === 'string' ? raw['name'] : undefined;
+    const key = type + '|' + resolve(path).toLocaleLowerCase() + '|' + (sourcePath ? resolve(sourcePath).toLocaleLowerCase() : name ?? '');
     const previous = entries.get(key);
     const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
       ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
-    entries.set(key, { type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : active, size });
+    entries.set(key, { type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : active, size, ...(name ? { name } : {}), ...(sourcePath ? { sourcePath } : {}) });
   };
   if (Array.isArray(offline['filePaths'])) {
     for (const entry of offline['filePaths']) {
@@ -212,7 +216,11 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
   }
   if (typeof valhalla['configPath'] === 'string' && valhalla['configPath']) add({ path: valhalla['configPath'], enabled: true }, 'valhalla-config');
   if (typeof mapsforge['themeFolder'] === 'string' && mapsforge['themeFolder']) add({ path: mapsforge['themeFolder'], enabled: true }, 'mapsforge-theme-folder');
-  if (typeof mapsforge['themePath'] === 'string' && mapsforge['themePath']) add({ path: mapsforge['themePath'], enabled: true }, 'mapsforge-theme');
+  if (typeof mapsforge['themePath'] === 'string' && mapsforge['themePath']) {
+    const themePath = mapsforge['themePath'];
+    const themeFolder = typeof mapsforge['themeFolder'] === 'string' && mapsforge['themeFolder'] ? mapsforge['themeFolder'] : dirname(themePath);
+    add({ path: themeFolder, name: basename(themePath, extname(themePath)), sourcePath: themePath, enabled: true }, 'mapsforge-theme');
+  }
   return [...entries.values()].sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }));
 };
 
@@ -292,10 +300,14 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       for (const raw of rawEntries) {
         if (!isPlainObject(raw) || typeof raw['path'] !== 'string' || !raw['path'].trim()) continue;
         const path = raw['path'].trim();
-        const previous = offlineEntries.find(entry => entry.type === type && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase());
+        const sourcePath = typeof raw['sourcePath'] === 'string' ? raw['sourcePath'] : undefined;
+        const name = typeof raw['name'] === 'string' ? raw['name'] : undefined;
+        const previous = offlineEntries.find(entry => entry.type === type
+          && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase()
+          && (sourcePath ? entry.sourcePath && resolve(entry.sourcePath).toLocaleLowerCase() === resolve(sourcePath).toLocaleLowerCase() : name ? entry.name === name : !entry.sourcePath && !entry.name));
         const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
           ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
-        replacements.push({ type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : true, size });
+        replacements.push({ type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : true, size, ...(name ? { name } : {}), ...(sourcePath ? { sourcePath } : {}) });
       }
       offlineEntries = replaceOfflineFileTypes(offlineEntries, [type], replacements);
     };
@@ -344,8 +356,27 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     }
     if (section === 'mapsforge') {
       if (typeof values['themeFolder'] === 'string') addOrReplace('mapsforge-theme-folder', values['themeFolder'] ? [{ path: values['themeFolder'], enabled: true }] : []);
-      if (typeof values['themePath'] === 'string') addOrReplace('mapsforge-theme', values['themePath'] ? [{ path: values['themePath'], enabled: true }] : []);
-      for (const key of ['themeFolder', 'themePath']) nextValues[key] = undefined;
+      if (Array.isArray(values['themes'])) {
+        const activePath = typeof values['themePath'] === 'string' ? values['themePath'].toLocaleLowerCase() : '';
+        addOrReplace('mapsforge-theme', values['themes'].flatMap((raw: unknown) =>
+          isPlainObject(raw) && typeof raw['path'] === 'string' && typeof raw['sourcePath'] === 'string'
+            ? [{ path: raw['path'], name: typeof raw['name'] === 'string' ? raw['name'] : basename(raw['sourcePath'], extname(raw['sourcePath'])),
+                sourcePath: raw['sourcePath'], enabled: raw['sourcePath'].toLocaleLowerCase() === activePath }]
+            : []
+        ));
+      } else if (typeof values['themePath'] === 'string' && values['themePath']) {
+        const activePath = values['themePath'];
+        offlineEntries = offlineEntries.map(entry => entry.type === 'mapsforge-theme'
+          ? { ...entry, enabled: (entry.sourcePath ?? entry.path).toLocaleLowerCase() === activePath.toLocaleLowerCase() }
+          : entry);
+        if (!offlineEntries.some(entry => entry.type === 'mapsforge-theme' && (entry.sourcePath ?? entry.path).toLocaleLowerCase() === activePath.toLocaleLowerCase())) {
+          addOrReplace('mapsforge-theme', [{ path: typeof values['themeFolder'] === 'string' && values['themeFolder'] ? values['themeFolder'] : dirname(activePath),
+            name: basename(activePath, extname(activePath)), sourcePath: activePath, enabled: true }]);
+        }
+      } else if (values['themePath'] === '') {
+        offlineEntries = offlineEntries.filter(entry => entry.type !== 'mapsforge-theme');
+      }
+      for (const key of ['themeFolder', 'themePath', 'themes']) nextValues[key] = undefined;
     }
 
     const previous = settings[section];
