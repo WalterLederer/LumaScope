@@ -872,6 +872,52 @@ export class OsmAndAtlasManager {
     return this.getRuntimeStatus();
   };
 
+  @IpcHandler({ name: 'OsmAndAtlas.getObfMetadata' })
+  readonly getObfMetadata = async (_event: Electron.IpcMainInvokeEvent, paths: string[]) => {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !path.trim() || !/\.obf$/i.test(path))) {
+      throw new Error('OBF metadata requires an array of valid .obf file paths.');
+    }
+    if (!paths.length) return [];
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) {
+      throw new Error('Select an available OsmAnd resources folder before reading OBF metadata.');
+    }
+    if (!existsSync(this.helperPath)) throw new Error('OsmAnd Atlas metadata helper not found: ' + this.helperPath);
+
+    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-obf-metadata-'));
+    const configurationPath = join(configurationDirectory, 'obf-paths.json');
+    try {
+      writeFileSync(configurationPath, JSON.stringify(paths), 'utf8');
+      const encodePathArgument = (value: string): string =>
+        'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+      const output = await new Promise<string>((resolveOutput, rejectOutput) => {
+        const child = spawn(this.helperPath, [
+          '--obf-metadata', encodePathArgument(configurationPath), encodePathArgument(this.resourcesPath)
+        ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.setEncoding('utf8');
+        child.stderr.setEncoding('utf8');
+        child.stdout.on('data', chunk => { stdout += String(chunk); });
+        child.stderr.on('data', chunk => { stderr += String(chunk); });
+        child.once('error', rejectOutput);
+        child.once('close', code => {
+          if (code !== 0) {
+            rejectOutput(new Error('OBF metadata helper failed (exit ' + String(code) + '). ' + stderr.trim()));
+            return;
+          }
+          resolveOutput(stdout);
+        });
+      });
+      const line = output.split(/\r?\n/).find(value => value.startsWith('OBF_METADATA '));
+      if (!line) throw new Error('OBF metadata helper returned no metadata payload.');
+      const parsed: unknown = JSON.parse(line.slice('OBF_METADATA '.length));
+      if (!Array.isArray(parsed)) throw new Error('OBF metadata helper returned an invalid payload.');
+      return parsed;
+    } finally {
+      rmSync(configurationDirectory, { recursive: true, force: true });
+    }
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
   readonly getRuntimeStatus = async () => {
     await this.refreshSelectedObf();
