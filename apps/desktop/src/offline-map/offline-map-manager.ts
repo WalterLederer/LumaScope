@@ -9,7 +9,8 @@ export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbti
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'|'mapsforge'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
-export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; errors:string[]; }
+export interface ResourcePackageEntry { type:'valhalla'|'osmand-resources'|'mapsforge-theme'; fileName:string; path:string; fileSize:number; }
+export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; resourceEntries:ResourcePackageEntry[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
 export class OfflineMapManager {
@@ -57,7 +58,7 @@ export class OfflineMapManager {
   if(typeof rootPath!=='string'||!rootPath.trim())throw new Error('Select the extracted resource-package folder.');
   const root=resolve(rootPath.trim());
   if(!existsSync(root)||!statSync(root).isDirectory())throw new Error('Resource-package folder not found: '+root);
-  const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,errors:[]};
+  const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,resourceEntries:[],errors:[]};
   const seen=new Set<string>();
   // Accept either the extracted OsmAnd-resources root or its rendering_styles
   // subfolder. Some resource packages do not contain default.render.xml, so
@@ -95,6 +96,48 @@ export class OfflineMapManager {
   };
   walk(root);
   for(const key of ['obfFiles','mbtilesFiles','mapsforgeFiles','hillshadeFiles','valhallaConfigs'] as const)result[key].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+
+  const directorySize=(folder:string):number=>{
+   let total=0;
+   const visit=(directory:string,depth=0):void=>{
+    if(depth>32)return;
+    let entries;try{entries=readdirSync(directory,{withFileTypes:true});}catch{return;}
+    for(const entry of entries){
+     const path=join(directory,entry.name);
+     try{
+      if(entry.isDirectory())visit(path,depth+1);
+      else if(entry.isFile())total+=statSync(path).size;
+     }catch{/* Skip inaccessible entries while retaining the readable folder size. */}
+    }
+   };
+   visit(folder);
+   return total;
+  };
+  const seenResourceEntries=new Set<string>();
+  const addResourceEntry=(type:ResourcePackageEntry['type'],fileName:string,folder:string):void=>{
+   const key=type+'|'+resolve(folder).toLocaleLowerCase()+'|'+fileName.toLocaleLowerCase();
+   if(seenResourceEntries.has(key))return;
+   seenResourceEntries.add(key);
+   result.resourceEntries.push({type,fileName,path:resolve(folder),fileSize:directorySize(folder)});
+  };
+  const valhallaFolders=[...new Set(result.valhallaConfigs.map(path=>dirname(path)))];
+  for(const folder of valhallaFolders)addResourceEntry('valhalla',basename(folder),folder);
+  if(result.osmAndResourcesPath)addResourceEntry('osmand-resources','',result.osmAndResourcesPath);
+  if(result.mapsforgeThemeFolder){
+   const collectThemes=(directory:string,depth=0):void=>{
+    if(depth>24)return;
+    let entries;try{entries=readdirSync(directory,{withFileTypes:true});}catch{return;}
+    for(const entry of entries){
+     const path=join(directory,entry.name);
+     if(entry.isDirectory())collectThemes(path,depth+1);
+     else if(entry.isFile()&&extname(entry.name).toLowerCase()==='.xml'){
+      addResourceEntry('mapsforge-theme',basename(entry.name,extname(entry.name)),result.mapsforgeThemeFolder!);
+     }
+    }
+   };
+   collectThemes(result.mapsforgeThemeFolder);
+  }
+  result.resourceEntries.sort((a,b)=>a.type.localeCompare(b.type)||a.fileName.localeCompare(b.fileName,undefined,{numeric:true,sensitivity:'base'}));
   return result;
  };
  @IpcHandler({name:'OfflineMap.checkFiles'})
