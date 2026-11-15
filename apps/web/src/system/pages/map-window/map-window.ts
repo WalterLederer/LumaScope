@@ -938,7 +938,65 @@ interface MapErrorEntry {
                   <tbody>
                     @let duplicateIds = offlineMapDuplicateIds();
                     @let hillshadeDuplicateSet = hillshadeDuplicateIds();
-                    @for (map of sortedOffline(); track map.id) {
+                    @for (map of sortedOffline().filter(map => map.type === 'obf'); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'osmand-resources'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
+                      </tr>
+                    }
+                    @for (map of sortedOffline().filter(map => map.type === 'mapsforge'); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'mapsforge-theme'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
+                      </tr>
+                    }
+                    @for (map of sortedOffline().filter(map => map.type !== 'obf' && map.type !== 'mapsforge'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
@@ -965,7 +1023,7 @@ interface MapErrorEntry {
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
                       </tr>
                     }
-                    @for (entry of filteredResourcePackageEntries(); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'valhalla'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
                       <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
                         <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
