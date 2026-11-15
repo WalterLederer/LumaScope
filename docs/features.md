@@ -123,17 +123,17 @@ The map workspace can combine online and offline sources.
 - Offline map and hillshade file management through the Offline Files settings.
 - Automatic discovery of supported maps, hillshade databases, Valhalla JSON configurations, OsmAnd resources and Mapsforge themes from an extracted resource-package folder. Region folder names are not fixed; existing resource paths are confirmed before replacement.
 
-Renderer-specific resources and themes affect available labels, symbols and map appearance. The Offline Files settings organise local resources into dedicated groups, including **Valhalla routing configurations**, the **OsmAnd resources folder** and the **Mapsforge XML theme folder**. See [Supported map formats](map-formats.md).
+Renderer-specific resources and themes affect available labels, symbols and map appearance. The OfflineFiles list combines offline map files, hillshade databases and the supporting resource folders in one table. Resource rows use dedicated types for **Valhalla (offline routing)**, **OsmAnd resources (rendering)** and **Mapsforge XML theme**. Their folder paths and recursive file sizes are shown alongside the map files. See [Supported map formats](map-formats.md) and the [Offline resource package format](resource-package-format.md).
 
-## Offline Files and local resources
+## OfflineFiles and local resources
 
-The Offline Files settings separate local map resources by purpose so they can be selected and managed independently:
+The unified OfflineFiles table includes:
 
-- **Valhalla routing configurations** — local routing configuration files used by the Valhalla route engine.
-- **OsmAnd resources folder** — external resources used by the native OsmAnd map renderer, including rendering styles.
-- **Mapsforge XML theme folder** — external XML themes used to control Mapsforge map rendering.
+- **Valhalla (offline routing)** — one row per configuration folder, named after its region. Select the active configuration in the **Routing provider** list.
+- **OsmAnd resources (rendering)** — one row for the external resources root; its File column is intentionally empty.
+- **Mapsforge XML theme** — one row per discovered XML theme, using the theme filename without its extension.
 
-Map data files and their supporting resources remain user-managed local files. A configuration or theme file does not itself include the underlying map database.
+Folder resource sizes include all files in the folder and its subfolders. Map data, rendering resources, themes and routing graph data remain external user-managed files; a configuration or theme file does not itself include the underlying map database.
 
 ## Routing
 
