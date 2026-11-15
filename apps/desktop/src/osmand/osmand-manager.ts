@@ -318,12 +318,14 @@ export class OsmAndManager {
     let selectedPaths = this.getFallbackObfPaths();
     try {
       const appSettings = readAppSettings();
-      const settings = (appSettings.offline ?? appSettings.Maps ?? {}) as {
+      const settings = (appSettings.offline ?? appSettings.offlineMaps ?? appSettings.Maps ?? {}) as {
         paths?: unknown;
+        filePaths?: unknown;
       };
-      if (Array.isArray(settings.paths)) {
-        const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(settings.paths)
-          ? settings.paths.flatMap(entry => {
+      const configuredPaths = Array.isArray(settings.paths) ? settings.paths : settings.filePaths;
+      if (Array.isArray(configuredPaths)) {
+        const savedPaths: Array<{ path: string; enabled: boolean }> = Array.isArray(configuredPaths)
+          ? configuredPaths.flatMap(entry => {
             if (typeof entry === 'string') return [{ path: entry, enabled: true }];
             if (entry && typeof entry === 'object'
               && typeof (entry as { path?: unknown }).path === 'string'
@@ -332,8 +334,8 @@ export class OsmAndManager {
             }
             return [];
           })
-          : settings.paths && typeof settings.paths === 'object'
-            ? Object.entries(settings.paths as Record<string, unknown>)
+          : configuredPaths && typeof configuredPaths === 'object'
+            ? Object.entries(configuredPaths as Record<string, unknown>)
               .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
               .map(([path, enabled]) => ({ path, enabled }))
             : [];
