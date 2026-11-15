@@ -64,7 +64,7 @@ Global shortcuts can be used while LumaScope is not focused. Their registration 
 
 ## Location, maps and routes
 
-Images containing GPS coordinates can be positioned on the location map. LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
+Images containing GPS coordinates can be positioned on the location map. For photos without GPS data, the Location tab provides **Fix location**: enable **Allow fixing**, move the currently selected map source until the fixed centre crosshair marks the photo location, then choose **Save GPS position...** to write the coordinates into the image file's GPS EXIF metadata. This works with the currently selected online or offline map source and does not change map-source settings. LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
 
 Photo marker timestamps use this fallback order: EXIF `GPSDateTime`, XMP `GPSDateTime`, EXIF `DateTimeOriginal`, XMP `DateCreated`, EXIF `CreateDate`, and finally the source file's filesystem modification time. GPS timestamps are interpreted as UTC; the other embedded capture-date fields are interpreted as camera-local time when no timezone is stored. The timestamp is used for map time filtering and playback. Photos without valid GPS coordinates do not receive a map marker timestamp.
 
