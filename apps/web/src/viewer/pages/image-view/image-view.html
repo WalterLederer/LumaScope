@@ -115,7 +115,7 @@
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
-        <section class="image-database-section">
+        <section class="image-database-section app-disclosure">
           <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('database')" type="button" (click)="toggleSidebarSection('database')">
             SQLite database record
           </button>
@@ -153,7 +153,7 @@
         </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section>
+      <section class="app-disclosure">
         <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('zoom')" (click)="toggleSidebarSection('zoom')">Zoom</button>
         @if (sidebarSectionExpanded('zoom')) {
           <div class="viewer-zoom-controls" aria-label="Image zoom">
@@ -167,9 +167,9 @@
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'corrections') {
-      <section>
+      <section class="app-disclosure">
         @if(sidebarSectionExpanded('corrections')) {
-          <section class="correction-subsection basic-correction-section">
+          <section class="correction-subsection basic-correction-section app-disclosure">
             <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('basic')" (click)="toggleSidebarSection('basic')">Basic</button>
             @if (sidebarSectionExpanded('basic')) {
               <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
@@ -178,7 +178,7 @@
               <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
             }
           </section>
-          <section class="correction-subsection rgb-correction-section">
+          <section class="correction-subsection rgb-correction-section app-disclosure">
             <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('rgbLevels')" (click)="toggleSidebarSection('rgbLevels')">RGB</button>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
@@ -188,7 +188,7 @@
               </div>
             }
           </section>
-          <section class="correction-subsection inverse-section">
+          <section class="correction-subsection inverse-section app-disclosure">
             <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('inverse')" (click)="toggleSidebarSection('inverse')">Inverse</button>
             @if (sidebarSectionExpanded('inverse')) {
               <div class="rgb-inversion-controls">
@@ -201,7 +201,7 @@
               </div>
             }
           </section>
-          <section class="tone-curve-section">
+          <section class="tone-curve-section app-disclosure">
             <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('toneCurve')" (click)="toggleSidebarSection('toneCurve')">Tone curve</button>
             @if (sidebarSectionExpanded('toneCurve')) {
           <div class="tone-curve-controls">
@@ -246,7 +246,7 @@
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section class="magnifier-section">
+      <section class="magnifier-section app-disclosure">
         <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('loupe')" (click)="toggleSidebarSection('loupe')">Magnifier (M)</button>
         <label class="magnifier-enable-toggle"><input type="checkbox" [checked]="loupeEnabled()" (change)="toggleLoupe($any($event.target).checked)"/> Enable magnifier</label>
         @if(sidebarSectionExpanded('loupe')) {
@@ -479,12 +479,12 @@
                             [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
-        <section class="sidebar-image-information">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
+        <section class="sidebar-image-information app-disclosure">@if(sidebarSectionExpanded('info')){<app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />}</section>
       }
 @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'actions') {
-        <section class="image-actions-section">
+        <section class="image-actions-section app-disclosure">
           <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
-          <section class="copy-file-section">
+          <section class="copy-file-section app-disclosure">
               <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('copy')" type="button" (click)="toggleSidebarSection('copy')">Copy file</button>
               @if (sidebarSectionExpanded('copy')) {
                 <div class="copy-folder-info-box">
