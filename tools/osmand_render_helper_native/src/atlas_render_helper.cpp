@@ -1,9 +1,11 @@
 #include "osmand_native_map_widget.h"
+#include "file_system_core_resources_provider.h"
 
 #include <QApplication>
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
+#include <QDir>
 #include <QJsonArray>
 #include <QElapsedTimer>
 #include <QJsonDocument>
@@ -13,6 +15,12 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QHash>
+
+#include <OsmAndCore/ObfsCollection.h>
+#include <OsmAndCore/Data/ObfFile.h>
+#include <OsmAndCore/Data/ObfInfo.h>
+#include <OsmAndCore/Data/ObfMapSectionInfo.h>
 
 #include <algorithm>
 #include <array>
@@ -351,10 +359,196 @@ int runHillshadeWorker()
     return 0;
 }
 
+
+
+int runObfMetadataMode(int argc, char* argv[])
+{
+    if (argc != 4)
+    {
+        std::cerr << "[atlas-helper] --obf-metadata requires an OBF path JSON file and resources root" << std::endl;
+        return 2;
+    }
+
+    const auto configurationPath = decodePathArgument(argv[2]);
+    const auto resourcesRoot = decodePathArgument(argv[3]);
+    if (configurationPath.isEmpty() || resourcesRoot.isEmpty())
+    {
+        std::cerr << "[atlas-helper] invalid OBF metadata path argument" << std::endl;
+        return 2;
+    }
+
+    QCoreApplication app(argc, argv);
+    QFile configurationFile(configurationPath);
+    if (!configurationFile.open(QIODevice::ReadOnly))
+    {
+        std::cerr << "[atlas-helper] unable to read OBF metadata configuration: "
+                  << configurationFile.errorString().toStdString() << std::endl;
+        return 2;
+    }
+
+    const auto configurationDocument = QJsonDocument::fromJson(configurationFile.readAll());
+    if (!configurationDocument.isArray() || configurationDocument.array().isEmpty())
+    {
+        std::cerr << "[atlas-helper] OBF metadata configuration must contain a non-empty path array" << std::endl;
+        return 2;
+    }
+
+    QStringList obfPaths;
+    for (const auto& value : configurationDocument.array())
+    {
+        if (!value.isString() || value.toString().trimmed().isEmpty())
+        {
+            std::cerr << "[atlas-helper] OBF metadata configuration contains an invalid path" << std::endl;
+            return 2;
+        }
+        obfPaths.append(value.toString());
+    }
+
+    const auto provider = std::make_shared<FileSystemCoreResourcesProvider>(resourcesRoot);
+    if (!provider->containsResource(QStringLiteral("map/styles/default.render.xml")))
+    {
+        std::cerr << "[atlas-helper] default.render.xml was not found in the configured OsmAnd resources" << std::endl;
+        return 3;
+    }
+
+    const auto fontsRoot = QDir(resourcesRoot).filePath(QStringLiteral("rendering_styles/fonts"));
+    const auto fontsRootUtf8 = QFile::encodeName(QDir::toNativeSeparators(fontsRoot));
+    if (OsmAnd::InitializeCore(provider, fontsRootUtf8.constData()) == 0)
+    {
+        std::cerr << "[atlas-helper] OsmAnd::InitializeCore failed while reading OBF metadata" << std::endl;
+        return 3;
+    }
+
+    QJsonArray metadataResults;
+    {
+        const auto collection = std::make_shared<OsmAnd::ObfsCollection>();
+        for (const auto& obfPath : obfPaths)
+            collection->addFile(obfPath);
+
+        const auto obfFiles = collection->getObfFiles();
+        QHash<QString, std::shared_ptr<const OsmAnd::ObfFile>> filesByPath;
+        for (const auto& obfFile : obfFiles)
+        {
+            if (!obfFile)
+                continue;
+            const QFileInfo fileInfo(obfFile->filePath);
+            const auto canonicalPath = fileInfo.canonicalFilePath().isEmpty()
+                ? fileInfo.absoluteFilePath() : fileInfo.canonicalFilePath();
+            filesByPath.insert(QDir::cleanPath(canonicalPath).toCaseFolded(), obfFile);
+        }
+
+        for (const auto& obfPath : obfPaths)
+        {
+            const QFileInfo requestedInfo(obfPath);
+            const auto canonicalPath = requestedInfo.canonicalFilePath().isEmpty()
+                ? requestedInfo.absoluteFilePath() : requestedInfo.canonicalFilePath();
+            const auto key = QDir::cleanPath(canonicalPath).toCaseFolded();
+            const auto found = filesByPath.constFind(key);
+            if (found == filesByPath.cend() || !found.value()->obfInfo)
+            {
+                metadataResults.append(QJsonObject{
+                    {QStringLiteral("filePath"), obfPath},
+                    {QStringLiteral("metadataAvailable"), false},
+                    {QStringLiteral("error"), QStringLiteral("OsmAnd Core could not read the OBF metadata")}
+                });
+                continue;
+            }
+
+            const auto& obfInfo = found.value()->obfInfo;
+            int minimumZoom = std::numeric_limits<int>::max();
+            int maximumZoom = std::numeric_limits<int>::min();
+            int sectionCount = 0;
+            double left = std::numeric_limits<double>::max();
+            double top = std::numeric_limits<double>::max();
+            double right = std::numeric_limits<double>::lowest();
+            double bottom = std::numeric_limits<double>::lowest();
+
+            QJsonArray sections;
+            for (const auto& section : obfInfo->mapSections)
+            {
+                if (!section)
+                    continue;
+                ++sectionCount;
+                for (const auto& level : section->levels)
+                {
+                    if (!level)
+                        continue;
+
+                    const auto& area = level->area31;
+                    minimumZoom = std::min(minimumZoom, static_cast<int>(level->minZoom));
+                    maximumZoom = std::max(maximumZoom, static_cast<int>(level->maxZoom));
+                    left = std::min(left, static_cast<double>(area.left()));
+                    top = std::min(top, static_cast<double>(area.top()));
+                    right = std::max(right, static_cast<double>(area.right()));
+                    bottom = std::max(bottom, static_cast<double>(area.bottom()));
+
+                    sections.append(QJsonObject{
+                        {QStringLiteral("name"), section->name},
+                        {QStringLiteral("minZoom"), static_cast<int>(level->minZoom)},
+                        {QStringLiteral("maxZoom"), static_cast<int>(level->maxZoom)}
+                    });
+                }
+            }
+
+            QJsonObject result{
+                {QStringLiteral("filePath"), obfPath},
+                {QStringLiteral("metadataAvailable"), true},
+                {QStringLiteral("sectionCount"), sectionCount},
+                {QStringLiteral("isBasemap"), obfInfo->isBasemap || obfInfo->isBasemapWithCoastlines},
+                {QStringLiteral("sections"), sections}
+            };
+
+            if (minimumZoom != std::numeric_limits<int>::max()
+                && maximumZoom != std::numeric_limits<int>::min()
+                && left <= right && top <= bottom)
+            {
+                const auto longitude = [](double x) {
+                    return x / 2147483648.0 * 360.0 - 180.0;
+                };
+                const auto latitude = [](double y) {
+                    constexpr double scale = 2147483648.0;
+                    constexpr double pi = 3.14159265358979323846;
+                    const auto mercator = pi * (1.0 - 2.0 * y / scale);
+                    return std::atan(std::sinh(mercator)) * 180.0 / pi;
+                };
+                const auto west = longitude(left);
+                const auto east = longitude(right);
+                const auto north = latitude(top);
+                const auto south = latitude(bottom);
+                const auto bounds = QStringLiteral("%1, %2 – %3, %4")
+                    .arg(west, 0, 'f', 4)
+                    .arg(south, 0, 'f', 4)
+                    .arg(east, 0, 'f', 4)
+                    .arg(north, 0, 'f', 4);
+                result.insert(QStringLiteral("minZoom"), minimumZoom);
+                result.insert(QStringLiteral("maxZoom"), maximumZoom);
+                result.insert(QStringLiteral("bounds"), bounds);
+            }
+            else
+            {
+                result.insert(QStringLiteral("minZoom"), 0);
+                result.insert(QStringLiteral("maxZoom"), 0);
+                result.insert(QStringLiteral("bounds"), QJsonValue::Null);
+            }
+
+            metadataResults.append(result);
+        }
+    }
+
+    OsmAnd::ReleaseCore();
+    std::cout << "OBF_METADATA "
+              << QJsonDocument(metadataResults).toJson(QJsonDocument::Compact).constData()
+              << std::endl;
+    return 0;
+}
+
 }
 
 int main(int argc, char* argv[])
 {
+    if (argc >= 2 && std::string(argv[1]) == "--obf-metadata")
+        return runObfMetadataMode(argc, argv);
+
     if (!initializeOutputChannels())
     {
         std::cerr << "[atlas-helper] failed to separate protocol output from log output" << std::endl;
