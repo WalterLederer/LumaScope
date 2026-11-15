@@ -211,6 +211,7 @@ const api: Desktop = {
     setZoom: (zoom: number) => ipcRenderer.invoke('MapWindow.setZoom', zoom) as Promise<void>,
     open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath),
     getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>,
+    getImagePreview: (imagePath: string) => ipcRenderer.invoke('MapWindow.getImagePreview', imagePath) as Promise<string | null>,
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
     focus: () => ipcRenderer.invoke('MapWindow.focus'),
