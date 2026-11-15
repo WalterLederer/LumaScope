@@ -2984,8 +2984,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       await this.initialize(48.2082, 16.3738);
       if (this.fixLocationEnabled()) {
-        this.map?.invalidateSize();
-        this.offlineRenderer?.map.resize();
+        this.onResize();
         this.renderInitStatus.set('');
         if (!this.map && !this.offlineRenderer) {
           this.gpsSaveStatus.set(this.mapDisplayNotice() || 'The selected map source could not be initialized for location fixing.');
@@ -3027,7 +3026,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly copyCoordinates = async (): Promise<void> {
+  protected readonly copyCoordinates = async (): Promise<void> => {
     const marker = this.marker?.getLatLng();
     const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
     if (latitude === null || longitude === null) return;
