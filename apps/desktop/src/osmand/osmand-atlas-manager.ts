@@ -10,9 +10,9 @@ import { getOfflineFileEntries, readAppSettings, updateAppSettingsSection } from
 
 interface HillshadeDatabaseInfo { id: string; path: string; enabled: boolean; available: boolean; lastModified: number | null; sizeBytes: number | null; }
 
-// Render one MapLibre 512px tile at native resolution. The helper derives
+// Render one MapLibre 256px tile at native resolution. The helper derives
 // its zoom compensation from this width, preserving the same geographic extent.
-const METATILE_SIZE = 512;
+const METATILE_SIZE = 256;
 const TILE_BYTES = METATILE_SIZE * METATILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
