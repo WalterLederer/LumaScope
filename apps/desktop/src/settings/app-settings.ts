@@ -379,8 +379,9 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
         if (!offlineEntries.some(entry => entry.type === 'mapsforge-theme' && (entry.sourcePath ?? entry.path).toLocaleLowerCase() === activePath.toLocaleLowerCase())) {
           const existingThemes = offlineEntries.filter(entry => entry.type === 'mapsforge-theme')
             .map(entry => ({ path: entry.path, name: entry.name, sourcePath: entry.sourcePath, enabled: entry.enabled, size: entry.size }));
-          existingThemes.push({ path: typeof values['themeFolder'] === 'string' && values['themeFolder'] ? values['themeFolder'] : dirname(activePath),
-            name: basename(activePath, extname(activePath)), sourcePath: activePath, enabled: true });
+          const themeFolder = typeof values['themeFolder'] === 'string' && values['themeFolder'] ? values['themeFolder'] : dirname(activePath);
+          existingThemes.push({ path: themeFolder, name: basename(activePath, extname(activePath)), sourcePath: activePath,
+            enabled: true, size: offlineEntrySize('mapsforge-theme', themeFolder) });
           addOrReplace('mapsforge-theme', existingThemes);
         }
       } else if (values['themePath'] === '' && values['themeFolder'] === '') {
