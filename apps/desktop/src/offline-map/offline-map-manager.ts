@@ -9,7 +9,7 @@ export interface OfflineMapCatalogueFile { fileName:string; fileType:'obf'|'mbti
 export interface OfflineMapUpdateCheckResult { maps:OfflineMapStatus[]; checkedAt:string; filesFound:number; matchedMaps:number; unmatchedMaps:number; catalogueFiles:OfflineMapCatalogueFile[]; sourceErrors:string[]; }
 interface RemoteMapFile { fileName:string; dateMs:number|null; source:string; fileType:'obf'|'mbtiles'|'mapsforge'; url:string; }
 export interface OfflineMapImportResult { maps:OfflineMapStatus[]; errors:string[]; }
-export interface ResourcePackageEntry { type:'valhalla'|'osmand-resources'|'mapsforge-theme'; fileName:string; path:string; fileSize:number; }
+export interface ResourcePackageEntry { type:'valhalla'|'osmand-resources'|'mapsforge-theme'; fileName:string; path:string; sourcePath:string; fileSize:number; }
 export interface ResourcePackageScanResult { rootPath:string; obfFiles:string[]; mbtilesFiles:string[]; mapsforgeFiles:string[]; hillshadeFiles:string[]; valhallaConfigs:string[]; osmAndResourcesPath:string|null; mapsforgeThemeFolder:string|null; resourceEntries:ResourcePackageEntry[]; errors:string[]; }
 interface OpenOfflineMap { database:DatabaseSync; tileStatement:ReturnType<DatabaseSync['prepare']>; status:OfflineMapStatus; bounds:[number,number,number,number]; area:number; }
 const EMPTY_STATUS:OfflineMapStatus={id:'',available:false,enabled:false,filePath:'',fileName:'',fileSize:0,lastModified:0,name:'',format:'',minZoom:0,maxZoom:0,bounds:null,error:null};
@@ -110,14 +110,19 @@ export class OfflineMapManager {
 
   const directorySize=(folder:string):number=>directorySizes.get(resolve(folder).toLocaleLowerCase())??(resolve(folder).toLocaleLowerCase()===resolve(dirname(root)).toLocaleLowerCase()?directorySizes.get(resolve(root).toLocaleLowerCase())??0:0);
   const seenResourceEntries=new Set<string>();
-  const addResourceEntry=(type:ResourcePackageEntry['type'],fileName:string,folder:string):void=>{
-   const key=type+'|'+resolve(folder).toLocaleLowerCase()+'|'+fileName.toLocaleLowerCase();
+  const addResourceEntry=(type:ResourcePackageEntry['type'],fileName:string,folder:string,sourcePath=folder):void=>{
+   const key=type+'|'+resolve(folder).toLocaleLowerCase()+'|'+fileName.toLocaleLowerCase()+'|'+resolve(sourcePath).toLocaleLowerCase();
    if(seenResourceEntries.has(key))return;
    seenResourceEntries.add(key);
-   result.resourceEntries.push({type,fileName,path:resolve(folder),fileSize:directorySize(folder)});
+   result.resourceEntries.push({type,fileName,path:resolve(folder),sourcePath:resolve(sourcePath),fileSize:directorySize(folder)});
   };
-  const valhallaFolders=[...new Set(result.valhallaConfigs.map(path=>dirname(path)))];
-  for(const folder of valhallaFolders)addResourceEntry('valhalla',basename(folder),folder);
+  const valhallaFolders=new Map<string,{folder:string;configPath:string}>();
+  for(const configPath of result.valhallaConfigs){
+   const folder=dirname(configPath);
+   const key=resolve(folder).toLocaleLowerCase();
+   if(!valhallaFolders.has(key))valhallaFolders.set(key,{folder,configPath});
+  }
+  for(const {folder,configPath} of valhallaFolders.values())addResourceEntry('valhalla',basename(folder),folder,configPath);
   if(result.osmAndResourcesPath)addResourceEntry('osmand-resources','',result.osmAndResourcesPath);
   if(result.mapsforgeThemeFolder){
    const collectThemes=(directory:string,depth=0):void=>{
@@ -127,7 +132,7 @@ export class OfflineMapManager {
      const path=join(directory,entry.name);
      if(entry.isDirectory())collectThemes(path,depth+1);
      else if(entry.isFile()&&extname(entry.name).toLowerCase()==='.xml'){
-      addResourceEntry('mapsforge-theme',basename(entry.name,extname(entry.name)),result.mapsforgeThemeFolder!);
+      addResourceEntry('mapsforge-theme',basename(entry.name,extname(entry.name)),result.mapsforgeThemeFolder!,path);
      }
     }
    };
