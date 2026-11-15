@@ -680,8 +680,8 @@ export class OsmAndAtlasManager {
               }
               return [];
             })
-            : settings.paths && typeof settings.paths === 'object'
-              ? Object.entries(settings.paths as Record<string, unknown>)
+            : configuredPaths && typeof configuredPaths === 'object'
+              ? Object.entries(configuredPaths as Record<string, unknown>)
                 .filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean')
                 .map(([path, enabled]) => ({ path, enabled }))
               : [];
