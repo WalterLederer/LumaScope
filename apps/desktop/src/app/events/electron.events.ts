@@ -1657,6 +1657,15 @@ ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: nu
   App.openMapWindow(latitude, longitude, bearing, imagePath)
 );
 ipcMain.handle('MapWindow.getLocation', () => App.mapWindowLocation);
+ipcMain.handle('MapWindow.openHelpDocument', (_event, fileName: string): boolean => {
+  if (typeof fileName !== 'string' || !/^[a-zA-Z0-9_-]+\.md$/i.test(fileName)) return false;
+  const mainWindow = App.mainWindow;
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return false;
+  mainWindow.webContents.send('MapWindow.openHelpDocument', fileName);
+  mainWindow.show();
+  mainWindow.focus();
+  return true;
+});
 ipcMain.handle('MapWindow.selectImage', (_event, imagePath: string): boolean => {
   if (!imagePath || !App.mainWindow || App.mainWindow.isDestroyed()) return false;
   App.mainWindow.webContents.send('MapWindow.imageSelected', imagePath);
