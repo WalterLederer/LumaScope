@@ -827,6 +827,12 @@ export class OfflineMapRenderer {
   private hillshadeSettingsPending = false;
   private hillshadeOpacity = 0.65;
   private hillshadeVisible = false;
+  private mapBoundsVisible = false;
+  private mapBoundsFeatures: Array<{
+    type: 'Feature';
+    geometry: { type: 'Polygon'; coordinates: [number, number][][] };
+    properties: { mapIndex: number; segment: number };
+  }> = [];
   private currentLocation: [number, number] | null = null;
   private readonly overlayElement: HTMLDivElement;
   private walkingFigureElement: HTMLDivElement | null = null;
@@ -1311,6 +1317,7 @@ export class OfflineMapRenderer {
       this.setBasemapOpacity(this.basemapOpacity);
       this.setHillshadeOpacity(this.hillshadeOpacity);
       this.setTextLabelOpacity(this.textLabelOpacity);
+      this.applyMapBoundsOverlay();
     });
     this.map.on('load', () => { console.info('[OfflineMap] MapLibre style loaded.'); this.syncHillshadeLayers(); });
     this.ready = new Promise((resolve, reject) => {
@@ -2014,6 +2021,70 @@ export class OfflineMapRenderer {
   setScaleVisible(visible: boolean): void {
     const scale = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-scale');
     if (scale) scale.style.display = visible ? '' : 'none';
+  }
+
+  setMapBoundsOverlay(bounds: Array<[number, number, number, number]>, visible: boolean): void {
+    this.mapBoundsVisible = visible;
+    this.mapBoundsFeatures = bounds.flatMap(([west, south, east, north], mapIndex) => {
+      const segments: Array<[number, number, number, number]> = east >= west
+        ? [[west, south, east, north]]
+        : [[west, south, 180, north], [-180, south, east, north]];
+      return segments.map(([segmentWest, segmentSouth, segmentEast, segmentNorth], segment) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Polygon' as const,
+          coordinates: [[
+            [segmentWest, segmentSouth],
+            [segmentEast, segmentSouth],
+            [segmentEast, segmentNorth],
+            [segmentWest, segmentNorth],
+            [segmentWest, segmentSouth]
+          ]]
+        },
+        properties: { mapIndex, segment }
+      }));
+    });
+    this.applyMapBoundsOverlay();
+  }
+
+  private applyMapBoundsOverlay(): void {
+    if (!this.map.isStyleLoaded()) return;
+    const data = { type: 'FeatureCollection' as const, features: this.mapBoundsFeatures };
+    const source = this.map.getSource('offline-map-bounds') as import('maplibre-gl').GeoJSONSource | undefined;
+    if (source) {
+      source.setData(data);
+    } else {
+      this.map.addSource('offline-map-bounds', { type: 'geojson', data });
+    }
+
+    const firstSymbolLayer = this.map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
+    if (!this.map.getLayer('offline-map-bounds-fill')) {
+      this.map.addLayer({
+        id: 'offline-map-bounds-fill',
+        type: 'fill',
+        source: 'offline-map-bounds',
+        paint: {
+          'fill-color': '#ff9f1c',
+          'fill-opacity': 0.22,
+          'fill-outline-color': '#ff9f1c'
+        }
+      }, firstSymbolLayer);
+    }
+    if (!this.map.getLayer('offline-map-bounds-outline')) {
+      this.map.addLayer({
+        id: 'offline-map-bounds-outline',
+        type: 'line',
+        source: 'offline-map-bounds',
+        paint: {
+          'line-color': '#ff9f1c',
+          'line-width': 2,
+          'line-opacity': 0.95
+        }
+      }, firstSymbolLayer);
+    }
+    const visibility = this.mapBoundsVisible ? 'visible' : 'none';
+    this.map.setLayoutProperty('offline-map-bounds-fill', 'visibility', visibility);
+    this.map.setLayoutProperty('offline-map-bounds-outline', 'visibility', visibility);
   }
 
   setTextLabelOpacity(opacity: number): void {
