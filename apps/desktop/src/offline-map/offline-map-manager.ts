@@ -60,6 +60,7 @@ export class OfflineMapManager {
   if(!existsSync(root)||!statSync(root).isDirectory())throw new Error('Resource-package folder not found: '+root);
   const result:ResourcePackageScanResult={rootPath:root,obfFiles:[],mbtilesFiles:[],mapsforgeFiles:[],hillshadeFiles:[],valhallaConfigs:[],osmAndResourcesPath:null,mapsforgeThemeFolder:null,resourceEntries:[],errors:[]};
   const seen=new Set<string>();
+  const directorySizes=new Map<string,number>();
   // Accept either the extracted OsmAnd-resources root or its rendering_styles
   // subfolder. Some resource packages do not contain default.render.xml, so
   // identify the folder by the presence of any *.render.xml style file.
@@ -83,6 +84,16 @@ export class OfflineMapManager {
      continue;
     }
     if(!entry.isFile())continue;
+    try{
+     const size=statSync(path).size;
+     let parent=directory;
+     while(true){
+      const key=resolve(parent).toLocaleLowerCase();
+      directorySizes.set(key,(directorySizes.get(key)??0)+size);
+      if(key===resolve(root).toLocaleLowerCase())break;
+      const next=dirname(parent);if(next===parent)break;parent=next;
+     }
+    }catch{/* Skip files whose size cannot be read. */}
     const ext=extname(entry.name).toLowerCase();
     const segments=path.toLowerCase().split(/[\\/]/);
     if(ext==='.mbtiles')add(result.mbtilesFiles,path);
@@ -97,22 +108,7 @@ export class OfflineMapManager {
   walk(root);
   for(const key of ['obfFiles','mbtilesFiles','mapsforgeFiles','hillshadeFiles','valhallaConfigs'] as const)result[key].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
 
-  const directorySize=(folder:string):number=>{
-   let total=0;
-   const visit=(directory:string,depth=0):void=>{
-    if(depth>32)return;
-    let entries;try{entries=readdirSync(directory,{withFileTypes:true});}catch{return;}
-    for(const entry of entries){
-     const path=join(directory,entry.name);
-     try{
-      if(entry.isDirectory())visit(path,depth+1);
-      else if(entry.isFile())total+=statSync(path).size;
-     }catch{/* Skip inaccessible entries while retaining the readable folder size. */}
-    }
-   };
-   visit(folder);
-   return total;
-  };
+  const directorySize=(folder:string):number=>directorySizes.get(resolve(folder).toLocaleLowerCase())??0;
   const seenResourceEntries=new Set<string>();
   const addResourceEntry=(type:ResourcePackageEntry['type'],fileName:string,folder:string):void=>{
    const key=type+'|'+resolve(folder).toLocaleLowerCase()+'|'+fileName.toLocaleLowerCase();
