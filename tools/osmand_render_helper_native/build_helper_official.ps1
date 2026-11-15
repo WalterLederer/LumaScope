@@ -1,6 +1,6 @@
 param(
     [string]$OsmAndWorkspaceRoot = "",
-    [string]$QtRoot = "C:\Qt\6.10.1\mingw_64",
+    [string]$QtRoot = "C:\Qt\6.12.0\mingw_64",
     [string]$MinGWRoot = "C:\Qt\Tools\mingw1310_64",
     [string]$CMakeExe = "C:\Qt\Tools\CMake_64\bin\cmake.exe",
     [string]$GitBashExe = "C:\Program Files\Git\bin\bash.exe",

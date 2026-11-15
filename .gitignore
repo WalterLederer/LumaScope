@@ -57,3 +57,4 @@ Thumbs.db
 /.electron-dist/
 /vendor/osmand
 /tools/mapsforge-renderer/stage/runtime
+/build/official-workspace
