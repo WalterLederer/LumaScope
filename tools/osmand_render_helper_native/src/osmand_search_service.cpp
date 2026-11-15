@@ -427,7 +427,7 @@ QString OsmAndSearchService::search(
     sortCandidates(candidates);
 
     std::vector<SearchCandidate> merged;
-    merged.reserve(static_cast<std::size_t>(effectiveLimit));
+    merged.reserve(candidates.size());
     QStringList seenKeys;
     for (const auto& candidate : candidates)
     {
