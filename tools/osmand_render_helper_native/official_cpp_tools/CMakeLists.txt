@@ -31,6 +31,15 @@ add_executable(osmand_render_helper
     "${_helper_src_dir}/main.cpp"
 )
 
+add_executable(osmand_search_helper
+    ${_helper_common_sources}
+    "${_helper_src_dir}/osmand_core_runtime.cpp"
+    "${_helper_src_dir}/osmand_core_runtime.h"
+    "${_helper_src_dir}/osmand_search_service.cpp"
+    "${_helper_src_dir}/osmand_search_service.h"
+    "${_helper_src_dir}/osmand_search_helper.cpp"
+)
+
 add_library(osmand_native_widget SHARED
     ${_helper_common_sources}
     "${_helper_src_dir}/osmand_native_map_widget.cpp"
@@ -48,7 +57,20 @@ target_include_directories(osmand_native_widget
         "${_helper_src_dir}"
 )
 
+target_include_directories(osmand_search_helper
+    PRIVATE
+        "${_helper_src_dir}"
+)
+
 target_link_libraries(osmand_render_helper
+    PRIVATE
+        OsmAndCoreTools_shared
+        Qt5::Core
+        Qt5::Network
+        Qt6::Sql
+)
+
+target_link_libraries(osmand_search_helper
     PRIVATE
         OsmAndCoreTools_shared
         Qt5::Core
@@ -68,6 +90,10 @@ target_link_libraries(osmand_native_widget
 
 set_target_properties(osmand_render_helper PROPERTIES
     OUTPUT_NAME "osmand_render_helper"
+)
+
+set_target_properties(osmand_search_helper PROPERTIES
+    OUTPUT_NAME "osmand_search_helper"
 )
 
 set_target_properties(osmand_native_widget PROPERTIES
@@ -108,4 +134,5 @@ function(_copy_common_runtime_dlls target_name)
 endfunction()
 
 _copy_common_runtime_dlls(osmand_render_helper)
+_copy_common_runtime_dlls(osmand_search_helper)
 _copy_common_runtime_dlls(osmand_native_widget)
