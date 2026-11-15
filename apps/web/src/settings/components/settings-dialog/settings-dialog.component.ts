@@ -172,7 +172,7 @@ export class SettingsPanelComponent {
     const knownPrograms: Array<[string, string]> = [
       [
         'osmand_atlas_render_helper.exe',
-        'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt). Loads the selected .obf map files, the external OsmAnd resources and the selected rendering-style XML; renders 2×2 XYZ metatiles as RGBA pixels, applies the display-density scale and caches rendered metatiles on disk.'
+        'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt). Loads the selected .obf map files, the external OsmAnd resources and the selected rendering-style XML; renders native 256×256 XYZ tiles as RGBA pixels, applies the display-density scale and caches rendered tiles on disk.'
       ],
       [
         'osmand_render_helper.exe',
@@ -250,7 +250,7 @@ export class SettingsPanelComponent {
     }
 
     if (program === 'osmand_atlas_render_helper.exe') {
-      return 'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt): reads .obf maps, OsmAnd resources and rendering-style XML; produces RGBA 2×2 metatiles with display-density scaling and disk caching';
+      return 'C++ OsmAnd Atlas vector-map renderer (OsmAnd Core / Qt): reads .obf maps, OsmAnd resources and rendering-style XML; produces native 256×256 RGBA XYZ tiles with display-density scaling and disk caching';
     }
 
     if (program === 'osmand_render_helper.exe') {
