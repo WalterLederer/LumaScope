@@ -267,7 +267,6 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
-    <div class="routing-tab-heading"><strong>Route planning</strong><button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button></div>
     <div class="routing-toolbar">
       <div class="routing-name-card">
         <label class="routing-name-label" for="routing-name-input">Route name</label>
@@ -286,19 +285,22 @@ interface MapErrorEntry {
         <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
-      <div class="routing-provider-card">
-        <label class="routing-provider-label">Routing provider
-        <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
-          @for (configuration of valhallaConfigurations(); track configuration.path) {
-            <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
-          }
-          @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
-          <option value="openrouteservice">openrouteservice</option>
-        </select>
-        </label>
+      <div class="routing-provider-stack">
+        @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
+        <div class="routing-provider-card">
+          <label class="routing-provider-label">Routing provider
+          <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
+            @for (configuration of valhallaConfigurations(); track configuration.path) {
+              <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
+            }
+            @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
+            <option value="openrouteservice">openrouteservice</option>
+          </select>
+          </label>
+        </div>
+        <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
       </div>
     </div>
-    @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
         <label for="ors-api-key">openrouteservice API key</label>
@@ -334,7 +336,6 @@ interface MapErrorEntry {
           <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
         </div>
       }
-      @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
     </div>
     <details class="routing-advanced">
       <summary>Advanced</summary>
@@ -1573,7 +1574,7 @@ interface MapErrorEntry {
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:#0a84ff;cursor:pointer}
     .routing-toolbar,.routing-key-row,.routing-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-toolbar{width:100%;justify-content:flex-start}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 230px;margin-left:auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
+    .routing-toolbar{width:100%;justify-content:flex-start}.routing-provider-stack{display:flex;flex:0 0 230px;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;box-sizing:border-box;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
