@@ -512,7 +512,7 @@ export function createOsmAndAtlasMapStyle(): StyleSpecification {
       'osmand-atlas': {
         type: 'raster',
         tiles: ['osmand-atlas://{z}/{x}/{y}'],
-        tileSize: 512,
+        tileSize: 256,
         minzoom: 2,
         maxzoom: 21,
         attribution: '© OpenStreetMap contributors'
