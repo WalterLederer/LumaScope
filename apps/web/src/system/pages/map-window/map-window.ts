@@ -1761,7 +1761,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.currentTileRequestResults.get(key) !== 'cached') {
         if (typeof detail.renderDurationMs === 'number' && Number.isFinite(detail.renderDurationMs) && detail.renderDurationMs >= 0) {
           const duration = detail.renderDurationMs;
-          this.totalRenderDurationSamples.update(samples => [...samples, duration].slice(-500));
+          this.totalRenderDurationSamples.update(samples => [...samples, duration]);
           this.lastRenderDurationSamples.update(samples => [...samples, duration].slice(-500));
         }
         this.totalRenderTileCounts.update(counts => ({ ...counts, rendered: counts.rendered + 1 }));
