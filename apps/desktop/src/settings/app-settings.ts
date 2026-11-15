@@ -310,7 +310,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
         const previous = offlineEntries.find(entry => entry.type === type
           && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase()
           && (sourcePath ? entry.sourcePath && resolve(entry.sourcePath).toLocaleLowerCase() === resolve(sourcePath).toLocaleLowerCase() : name ? entry.name === name : !entry.sourcePath && !entry.name));
-        const sizeKey = type + '|' + resolve(type === 'valhalla-config' ? dirname(path) : path).toLocaleLowerCase();
+        const sizeKey = resolve(type === 'valhalla-config' ? dirname(path) : path).toLocaleLowerCase();
         const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
           ? raw['size'] : previous?.size ?? calculatedOfflineSizes.get(sizeKey) ?? offlineEntrySize(type, path);
         calculatedOfflineSizes.set(sizeKey, size);
