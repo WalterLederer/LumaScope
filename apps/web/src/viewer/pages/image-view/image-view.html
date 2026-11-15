@@ -513,7 +513,7 @@
   @if (!fullScreen) {
     @let imagePosition = imagePosition$ | async;
     <footer class="image-status-bar" aria-label="Image status"
-            [style.margin-right.px]="controlsSidebarVisible() ? sidebarWidth() + 16 : 0">
+            [style.margin-right.px]="activeImageSidebarTab() !== 'gallery' && controlsSidebarVisible() ? sidebarWidth() + 16 : 0">
       <div class="status-control-groups">
         <div class="status-control-group status-left">
           @if (viewNavigator.standalone()) { <button type="button" class="status-icon-button" (click)="goBack()" title="Close image" aria-label="Close image">✕</button> }
