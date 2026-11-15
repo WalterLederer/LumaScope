@@ -91,6 +91,7 @@ export interface OsmAndAtlasTileResult {
   stride: number;
   pixels: Uint8Array;
   cacheHit: boolean;
+  queueWaitMs?: number;
   diagnostics?: { helperPath: string; geometryEnabled: boolean; nativeRender: boolean; forceRender: boolean; geometryMessages: string[] };
 }
 
@@ -300,7 +301,7 @@ class OsmAndAtlasWorker {
     private readonly displayScale: number
   ) {}
 
-  render(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
+  render(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }> {
     if (this.retired) return Promise.reject(new Error('OsmAnd Atlas helper worker has been replaced.'));
     const generation = this.renderGeneration;
     const queuedAt = Date.now();
@@ -313,7 +314,7 @@ class OsmAndAtlasWorker {
         // rejecting the IPC call (Electron logs rejected handlers as errors).
         return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
       }
-      return this.renderQueued(longitude, latitude, zoom, generation);
+      return this.renderQueued(longitude, latitude, zoom, generation).then(rendered => ({ ...rendered, queueWaitMs }));
     });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
@@ -598,7 +599,7 @@ export class OsmAndAtlasManager {
   private scaleChange: Promise<void> = Promise.resolve();
   private workers = this.createWorkers();
   private nextWorker = 0;
-  private readonly pendingTiles = new Map<string, Promise<{ pixels: Buffer; geometryMessages: string[] }>>();
+  private readonly pendingTiles = new Map<string, Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }>>();
   private readonly diagnosedTiles = new Set<string>();
   private temporaryFileId = 0;
 
@@ -1040,6 +1041,7 @@ export class OsmAndAtlasManager {
 
     let tilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
     let geometryMessages: string[] = [];
+    let queueWaitMs: number | undefined;
     const cacheHit = tilePixels !== null;
     if (forceRender) {
       // Wait for an older request for this tile before replacing its cache
@@ -1052,6 +1054,7 @@ export class OsmAndAtlasManager {
         const rendered = await forcedRender;
         tilePixels = rendered.pixels;
         geometryMessages = rendered.geometryMessages;
+        queueWaitMs = rendered.queueWaitMs;
       } finally {
         if (this.pendingTiles.get(cacheFile) === forcedRender) this.pendingTiles.delete(cacheFile);
       }
@@ -1067,6 +1070,7 @@ export class OsmAndAtlasManager {
       const rendered = await pending;
       tilePixels = rendered.pixels;
       geometryMessages = rendered.geometryMessages;
+      queueWaitMs = rendered.queueWaitMs;
     }
 
     const tilePixelDiagnostics = getAtlasPixelDiagnostics(tilePixels);
@@ -1092,6 +1096,7 @@ export class OsmAndAtlasManager {
     return {
       width: ATLAS_TILE_SIZE, height: ATLAS_TILE_SIZE, stride: ATLAS_TILE_SIZE * 4,
       pixels: new Uint8Array(tilePixels), cacheHit,
+      ...(queueWaitMs !== undefined ? { queueWaitMs } : {}),
       diagnostics: {
         helperPath: this.helperPath,
         geometryEnabled: this.environment.OSMAND_ATLAS_DEBUG_GEOMETRY !== undefined,
@@ -1116,7 +1121,7 @@ export class OsmAndAtlasManager {
     await Promise.all(this.hillshadeWorkers.map(worker => worker.shutdown()));
   };
 
-  private async renderAndCacheTile(z: number, tileX: number, tileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
+  private async renderAndCacheTile(z: number, tileX: number, tileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }> {
     // Render the centre of this exact XYZ tile; no 2x2 grouping or zoom shift.
     const longitude = (tileX + 0.5) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (tileY + 0.5) / (2 ** z));
