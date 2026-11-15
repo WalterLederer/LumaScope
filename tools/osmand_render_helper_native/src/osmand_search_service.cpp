@@ -324,10 +324,18 @@ OsmAndSearchService::~OsmAndSearchService()
 
 bool OsmAndSearchService::initialize(QString& errorMessage)
 {
-    if (!QFileInfo::exists(_configuration.obfPath))
+    if (_configuration.obfPaths.isEmpty())
     {
-        errorMessage = QStringLiteral("OBF file does not exist: %1").arg(_configuration.obfPath);
+        errorMessage = QStringLiteral("No active OBF files were supplied to the address search.");
         return false;
+    }
+    for (const auto& obfPath : _configuration.obfPaths)
+    {
+        if (obfPath.trimmed().isEmpty() || !QFileInfo::exists(obfPath))
+        {
+            errorMessage = QStringLiteral("OBF file does not exist: %1").arg(obfPath);
+            return false;
+        }
     }
     if (!QFileInfo(_configuration.resourcesRoot).isDir())
     {
@@ -338,7 +346,8 @@ bool OsmAndSearchService::initialize(QString& errorMessage)
         return false;
 
     _obfsCollection = std::make_shared<OsmAnd::ObfsCollection>();
-    _obfsCollection->addFile(_configuration.obfPath);
+    for (const auto& obfPath : _configuration.obfPaths)
+        _obfsCollection->addFile(obfPath);
     _dataInterface = _obfsCollection->obtainDataInterface();
     if (!_dataInterface)
     {
