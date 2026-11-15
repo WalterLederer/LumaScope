@@ -18,6 +18,25 @@ $ErrorActionPreference = "Stop"
 $projectDir = $PSScriptRoot
 Set-Location $projectDir
 
+# Keep inherited PATH values compact before npm/Nx spawn their nested processes.
+# Repeated entries can otherwise make the PATH passed to command-shell executors
+# exceed Windows command-shell limits after npm and Nx append node_modules/.bin.
+$pathEntries = @(
+    $env:PATH -split ';' |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ }
+)
+$seenPathEntries = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+$uniquePathEntries = @(
+    foreach ($pathEntry in $pathEntries) {
+        if ($seenPathEntries.Add($pathEntry)) {
+            $pathEntry
+        }
+    }
+)
+$env:PATH = $uniquePathEntries -join ';'
+Write-Host "PATH normalized: $($pathEntries.Count) -> $($uniquePathEntries.Count) entries ($($env:PATH.Length) characters)" -ForegroundColor DarkGray
+
 Write-Host "`n=== LumaScope Build in $projectDir ===" -ForegroundColor Cyan
 # Write-Host "Projekt: $projectDir"
 
