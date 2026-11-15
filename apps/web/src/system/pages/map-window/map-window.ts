@@ -3793,6 +3793,18 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  private mergeObfMetadata(maps: import('internal-api').OfflineMapStatus[]): import('internal-api').OfflineMapStatus[] {
+    const previous = new Map(this.offlineMaps().map(map => [map.id, map]));
+    return maps.map(map => {
+      const old = previous.get(map.id);
+      return map.type === 'obf' && old?.obfMetadataAvailable !== undefined
+        ? { ...map, minZoom: old.minZoom, maxZoom: old.maxZoom, bounds: old.bounds,
+            obfMetadataAvailable: old.obfMetadataAvailable, obfSectionCount: old.obfSectionCount,
+            obfSections: old.obfSections, obfIsBasemap: old.obfIsBasemap, obfMetadataError: old.obfMetadataError }
+        : map;
+    });
+  }
+
   private obfMetadataTooltip(map: import('internal-api').OfflineMapStatus): string {
     if (!map.obfMetadataAvailable) return map.obfMetadataError || 'OBF metadata unavailable';
     const sections = map.obfSections ?? [];
@@ -3914,7 +3926,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const mapsRemoved = [...previousMapPaths].filter(path => !wantedMapPaths.has(path)).length;
       const importResult = await this.desktop.OfflineMap.reconcileFiles(mapPaths);
       const mapsAdded = importResult.maps.filter(map => !previousMapPaths.has(normalizePath(map.filePath))).length;
-      this.offlineMaps.set(importResult.maps);
+      this.offlineMaps.set(await this.enrichObfMetadata(importResult.maps));
       this.offlineMapImportErrors.set(importResult.errors);
 
       const previousHillshadePaths = new Set(this.hillshadeDatabases().map(database => normalizePath(database.path)));
@@ -4078,7 +4090,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly chooseOfflineMap = async (): Promise<void> => {
     if (!this.desktop) return;
     const result = await this.desktop.OfflineMap.chooseFile();
-    this.offlineMaps.set(result.maps);
+    this.offlineMaps.set(await this.enrichObfMetadata(result.maps));
 
     this.offlineMapImportErrors.set(result.errors);
     if (this.mapSource() === 'offline' && !result.maps.some(map => map.enabled && (map.type === 'mbtiles' || !map.type))) this.changeMapSource('online');
@@ -4096,7 +4108,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMapUpdateCheckStatus.set('Downloading update catalogues…');
     try {
       const result = await this.desktop.OfflineMap.checkForUpdates();
-      this.offlineMaps.set(result.maps);
+      this.offlineMaps.set(this.mergeObfMetadata(result.maps));
       const updates = result.maps.filter(map => map.updateAvailable === true).length;
       this.offlineMapCatalogueFiles.set(result.catalogueFiles);
       const checkedAt = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(result.checkedAt));
@@ -4273,7 +4285,7 @@ export class MapWindow implements OnInit, OnDestroy {
               : this.mapsforgeMapMatchesPreset(map, value, this.offlineMaps())
         }));
       const updated = await this.desktop.OfflineMap.setEnabledBatch(updates);
-      this.offlineMaps.set(updated);
+      this.offlineMaps.set(this.mergeObfMetadata(updated));
       this.offlineMapPreset.set(this.getOfflineMapPresetForMaps(updated) ?? 'custom');
       await this.changeHillshadePreset(value);
     } else {
@@ -4495,7 +4507,7 @@ export class MapWindow implements OnInit, OnDestroy {
       for (const map of maps) {
         remaining = await this.desktop.OfflineMap.removeFile(map.id);
       }
-      this.offlineMaps.set(remaining);
+      this.offlineMaps.set(this.mergeObfMetadata(remaining));
        this.offlineMapUpdateCheckStatus.set('');
       if (!remaining.some(map => map.enabled && (map.type === 'mbtiles' || !map.type)) && this.mapSource() === 'offline') {
         this.changeMapSource('online');
