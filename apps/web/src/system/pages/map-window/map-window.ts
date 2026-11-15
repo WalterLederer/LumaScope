@@ -1323,7 +1323,6 @@ interface MapErrorEntry {
     @media(max-width:620px){.offline-address-result{grid-template-columns:minmax(0,1fr)}.offline-address-result-coordinates{padding-top:2px}}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
-    .settings-tab-content.view-tab>.app-disclosure{margin-bottom:0}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .zoom-settings-section>summary,.view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed;white-space:nowrap}
     .zoom-settings-section>summary::marker,.view-rerender-section>summary::marker{font-size:16px}
