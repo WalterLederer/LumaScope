@@ -232,6 +232,7 @@ interface MapErrorEntry {
                   }
                   </div>
                 </div>
+                </div>
               </details>
             </div>
           </div>
