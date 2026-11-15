@@ -280,6 +280,7 @@ export interface DesktopMapWindow {
   readonly setZoom: (zoom: number) => Promise<void>;
   readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => Promise<boolean>;
   readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>;
+  readonly getImagePreview: (imagePath: string) => Promise<string | null>;
   readonly close: () => Promise<void>;
   readonly isOpen: () => Promise<boolean>;
   readonly focus: () => Promise<boolean>;
