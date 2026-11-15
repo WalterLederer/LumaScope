@@ -179,7 +179,7 @@ const offlineEntrySize = (type: OfflineFileType, path: string): number => {
 };
 
 const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEntry[] => {
-  const offline = isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : isPlainObject(settings['Maps']) ? settings['Maps'] : {};
+  const offline = isPlainObject(settings['offline']) ? settings['offline'] : isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : isPlainObject(settings['Maps']) ? settings['Maps'] : {};
   const osmand = isPlainObject(settings['osmand']) ? settings['osmand'] : {};
   const valhalla = isPlainObject(settings['valhalla']) ? settings['valhalla'] : {};
   const mapsforge = isPlainObject(settings['mapsforge']) ? settings['mapsforge'] : {};
@@ -200,13 +200,14 @@ const normalizeOfflineFileEntries = (settings: AppSettings): OfflineFileConfigEn
     computedSizes.set(sizeKey, size);
     entries.set(key, { type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : active, size, ...(name ? { name } : {}), ...(sourcePath ? { sourcePath } : {}) });
   };
-  if (Array.isArray(offline['filePaths'])) {
-    for (const entry of offline['filePaths']) {
+  const storedPaths = Array.isArray(offline['paths']) ? offline['paths'] : offline['filePaths'];
+  if (Array.isArray(storedPaths)) {
+    for (const entry of storedPaths) {
       if (typeof entry === 'string') add({ path: entry, enabled: true });
       else add(entry);
     }
-  } else if (isPlainObject(offline['filePaths'])) {
-    for (const [path, enabled] of Object.entries(offline['filePaths'])) if (typeof enabled === 'boolean') add({ path, enabled });
+  } else if (isPlainObject(storedPaths)) {
+    for (const [path, enabled] of Object.entries(storedPaths)) if (typeof enabled === 'boolean') add({ path, enabled });
   } else if (typeof offline['filePath'] === 'string' && offline['filePath']) add({ path: offline['filePath'], enabled: true });
   if (Array.isArray(offline['obfPaths'])) for (const path of offline['obfPaths']) if (typeof path === 'string') add({ path, enabled: true }, 'obf');
   if (Array.isArray(osmand['hillshadeDatabases'])) for (const entry of osmand['hillshadeDatabases']) add(entry, 'hillshade');
@@ -232,18 +233,20 @@ export const getOfflineFileEntries = (settings: AppSettings = readAppSettings())
 
 export const migrateOfflineFileSettings = async (): Promise<void> => {
   const userSettings = readUserAppSettings();
-  const offline = isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
+  const offline = isPlainObject(userSettings['offline']) ? userSettings['offline'] : isPlainObject(userSettings['offlineMaps']) ? userSettings['offlineMaps'] : isPlainObject(userSettings['Maps']) ? userSettings['Maps'] : {};
   const legacySections = userSettings['Maps'] != null || ['osmand', 'valhalla', 'mapsforge'].some(sectionName => {
     const section = isPlainObject(userSettings[sectionName]) ? userSettings[sectionName] : {};
     const keys = sectionName === 'osmand' ? ['hillshadeDatabases', 'hillshadeDatabasePath', 'resourcesPath']
       : sectionName === 'valhalla' ? ['configurations', 'configPath'] : ['themeFolder', 'themePath'];
     return keys.some(key => Object.prototype.hasOwnProperty.call(section, key));
   });
-  const needsTypedEntries = !Array.isArray(offline['filePaths']) || offline['filePaths'].some((entry: unknown) =>
+  const legacyRoot = userSettings['offlineMaps'] != null || userSettings['Maps'] != null;
+  const storedPaths = Array.isArray(offline['paths']) ? offline['paths'] : offline['filePaths'];
+  const needsTypedEntries = legacyRoot || !Array.isArray(storedPaths) || storedPaths.some((entry: unknown) =>
     !isPlainObject(entry) || typeof entry['type'] !== 'string' || typeof entry['size'] !== 'number'
   );
   if (!legacySections && !needsTypedEntries) return;
-  await updateAppSettingsSection('offlineMaps', { filePaths: normalizeOfflineFileEntries(userSettings) });
+  await updateAppSettingsSection('offline', { paths: normalizeOfflineFileEntries(userSettings) });
 };
 
 const replaceOfflineFileTypes = (
@@ -319,8 +322,8 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
       offlineEntries = replaceOfflineFileTypes(offlineEntries, [type], replacements);
     };
 
-    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths') && Array.isArray(values['filePaths'])) {
-      const incoming = (values['filePaths'] as unknown[]).flatMap((raw: unknown) => {
+    if (section === 'offline' && Object.prototype.hasOwnProperty.call(values, 'paths') && Array.isArray(values['paths'])) {
+      const incoming = (values['paths'] as unknown[]).flatMap((raw: unknown) => {
         if (typeof raw === 'string') return [{ path: raw, enabled: true }];
         return isPlainObject(raw) ? [raw] : [];
       });
@@ -334,7 +337,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
           (typeof raw['type'] === 'string' ? raw['type'] : inferOfflineFileType(String(raw['path'] ?? ''))) === type
         ));
       }
-      nextValues['filePaths'] = undefined;
+      nextValues['paths'] = undefined;
     }
     if (section === 'osmand') {
       if (Array.isArray(values['hillshadeDatabases'])) addOrReplace('hillshade', values['hillshadeDatabases'] as unknown[]);
@@ -400,13 +403,14 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     for (const [key, value] of Object.entries(nextValues)) if (value === undefined) delete merged[key];
     settings[section] = merged;
 
-    // Every path-backed offline resource is stored exactly once in offlineMaps.filePaths.
-    settings['offlineMaps'] = {
-      ...(isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
-      filePaths: offlineEntries.sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }) || (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }))
+    // Every path-backed offline resource is stored exactly once in offline.paths.
+    settings['offline'] = {
+      ...(isPlainObject(settings['offline']) ? settings['offline'] : isPlainObject(settings['offlineMaps']) ? settings['offlineMaps'] : {}),
+      paths: offlineEntries.sort((a, b) => a.type.localeCompare(b.type) || a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }) || (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }))
     };
     removeLegacyOfflinePathSettings(settings);
-    if (section === 'offlineMaps' && Object.prototype.hasOwnProperty.call(values, 'filePaths')) delete settings['Maps'];
+    delete settings['offlineMaps'];
+    delete settings['Maps'];
     await writeJsonAtomically(settingsPath(), settings);
   });
   writeQueue = operation.catch(() => undefined);
