@@ -638,7 +638,7 @@ interface MapErrorEntry {
           <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
             {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
           </button>
-          <button type="button" class="danger" (click)="cancelMapRendering()" title="Stops the current OsmAnd Atlas rendering and clears the active render progress." [disabled]="!isMapRenderingActive()">
+          <button type="button" class="danger" (click)="cancelMapRendering()" title="Cancels the active visible-tile rerender." [disabled]="!rerenderVisibleTilesBusy()">
             Cancel
           </button>
         </div>
