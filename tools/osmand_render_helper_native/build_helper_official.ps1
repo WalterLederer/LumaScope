@@ -1,6 +1,5 @@
 param(
     [string]$OsmAndWorkspaceRoot = "",
-    [string]$PythonVenv = "D:\python_code\iPhoto\.venv",
     [string]$QtRoot = "C:\Qt\6.10.1\mingw_64",
     [string]$MinGWRoot = "C:\Qt\Tools\mingw1310_64",
     [string]$CMakeExe = "C:\Qt\Tools\CMake_64\bin\cmake.exe",
@@ -206,7 +205,6 @@ Assert-Exists $officialCppToolsRoot
 Assert-Exists $qt5CoreShim
 Assert-Exists $qt5NetworkShim
 Assert-Exists $toolchainFile
-Assert-Exists $PythonVenv
 Assert-Exists $QtRoot
 Assert-Exists $MinGWRoot
 Assert-Exists $CMakeExe
@@ -242,8 +240,23 @@ bash --login "%~dp0build.sh" %*
 
 Ensure-SubstDrive -DriveName $WorkspaceDrive -TargetPath $workspaceRoot
 
+$pythonCommand = Get-Command "python3.exe" -ErrorAction SilentlyContinue
+if (-not $pythonCommand) {
+    $pythonCommand = Get-Command "python.exe" -ErrorAction SilentlyContinue
+}
+if (-not $pythonCommand -or -not $pythonCommand.Source) {
+    throw "Python 3 was not found. Install Python 3 and add python.exe or python3.exe to PATH, or use -SkipLegacyProtobuf if the legacy protobuf preparation is not required."
+}
+$pythonExe = $pythonCommand.Source
+$pythonVersion = & $pythonExe --version 2>&1
+if ($LASTEXITCODE -ne 0 -or ($pythonVersion -notmatch "Python 3\.")) {
+    throw "A working Python 3 installation is required for legacy protobuf preparation. Resolved executable: $pythonExe; version output: $pythonVersion"
+}
+$pythonBin = Split-Path -Parent $pythonExe
+Write-Host "Using Python: $pythonExe ($pythonVersion)"
+
 $env:PATH = @(
-    (Join-Path $PythonVenv "Scripts"),
+    $pythonBin,
     (Join-Path $MinGWRoot "bin"),
     "C:\Program Files\Git\bin",
     "C:\Program Files\Git\usr\bin",
@@ -253,11 +266,11 @@ $env:PATH = @(
 
 if (-not $SkipLegacyProtobuf) {
     $legacyProtobufScript = Join-Path $workspaceRoot "core-legacy\externals\protobuf\configure.sh"
-    $pythonVenvScriptsBash = To-BashPath (Join-Path $PythonVenv "Scripts")
+    $pythonBinBash = To-BashPath $pythonBin
     $mingwBinBash = To-BashPath (Join-Path $MinGWRoot "bin")
 
     Assert-Exists $legacyProtobufScript
-    & $GitBashExe -lc "export PATH=${pythonVenvScriptsBash}:${mingwBinBash}:`$PATH; cd /${workspaceDriveLetter}/core-legacy/externals/protobuf && ./configure.sh"
+    & $GitBashExe -lc "export PATH=${pythonBinBash}:${mingwBinBash}:`$PATH; cd /${workspaceDriveLetter}/core-legacy/externals/protobuf && ./configure.sh"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to prepare legacy protobuf."
     }
