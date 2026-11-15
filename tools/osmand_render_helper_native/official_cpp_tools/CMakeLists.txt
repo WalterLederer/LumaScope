@@ -12,7 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt5Core REQUIRED CONFIG)
 find_package(Qt5Network REQUIRED CONFIG)
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Sql)
 
 set(OSMAND_RENDER_HELPER_SOURCE_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." CACHE PATH "Absolute path to the osmand_render_helper_native workspace root")
 set(_helper_source_root "${OSMAND_RENDER_HELPER_SOURCE_ROOT}")
@@ -53,6 +53,7 @@ target_link_libraries(osmand_render_helper
         OsmAndCoreTools_shared
         Qt5::Core
         Qt5::Network
+        Qt6::Sql
 )
 
 target_link_libraries(osmand_native_widget
@@ -83,7 +84,7 @@ function(_copy_target_runtime_dll target_name source_path)
 endfunction()
 
 function(_copy_common_runtime_dlls target_name)
-    foreach(_qt_target IN ITEMS Qt6::Core Qt6::Network Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
+    foreach(_qt_target IN ITEMS Qt6::Core Qt6::Network Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Sql)
         if(TARGET ${_qt_target})
             _copy_target_runtime_dll(${target_name} "$<TARGET_FILE:${_qt_target}>")
         endif()
