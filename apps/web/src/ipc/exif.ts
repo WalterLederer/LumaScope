@@ -4,4 +4,5 @@ import { ApiResponse, DesktopExif, ExifTags } from 'internal-api';
 @Injectable({ providedIn: 'root' })
 export class ExifService implements DesktopExif {
   readonly read = (path: string): Promise<ApiResponse<ExifTags>> => window.desktop.Exif.read(path);
+  readonly writeGpsPosition = (path: string, latitude: number, longitude: number): Promise<ApiResponse<undefined>> => window.desktop.Exif.writeGpsPosition(path, latitude, longitude);
 }
