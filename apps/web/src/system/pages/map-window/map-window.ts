@@ -267,16 +267,13 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
-    <div class="routing-top-row">
-      <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
-    </div>
-    <div class="routing-calculate-row">
-      <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
-        <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
-      </label>
-      <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
-    </div>
     <div class="routing-toolbar">
+      <div class="routing-calculate-row">
+        <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
+          <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
+        </label>
+        <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      </div>
       <div class="routing-name-card">
         <label class="routing-name-label" for="routing-name-input">Route name</label>
         <input id="routing-name-input" class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
@@ -294,7 +291,10 @@ interface MapErrorEntry {
         <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
-
+      <div class="routing-toolbar-actions">
+        <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
+        <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
+      </div>
     </div>
     @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
@@ -331,9 +331,6 @@ interface MapErrorEntry {
     } @else {
       <div class="routing-empty-message">No route points. Right-click the map while the Routing tab is active to add locations.</div>
     }
-    <div class="routing-clear-row">
-      <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
-    </div>
     @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     <details class="routing-advanced">
       <summary>Advanced</summary>
@@ -1582,12 +1579,12 @@ interface MapErrorEntry {
     @media(max-width:650px){.map-coordinates{display:none}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:#0a84ff;cursor:pointer}
-    .routing-toolbar,.routing-key-row,.routing-actions,.routing-calculate-row,.routing-top-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-    .routing-toolbar{width:100%;justify-content:flex-start}
-    .routing-top-row{width:100%;justify-content:flex-end;min-height:30px}
-    .routing-calculate-row{min-height:32px}
+    .routing-toolbar,.routing-key-row,.routing-actions,.routing-calculate-row,.routing-toolbar-actions{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+    .routing-toolbar{width:100%;justify-content:flex-start;min-width:0;overflow-x:auto}
+    .routing-calculate-row{min-height:32px;flex:0 0 auto}
+    .routing-toolbar-actions{align-items:center;gap:12px;margin-left:auto;flex:0 0 auto}
     .routing-empty-message{padding:7px 6px;color:var(--color-content-default-medium,#aaa);font-size:12px}
-    .routing-clear-row{display:flex;justify-content:flex-end;padding-right:6px}.routing-provider-stack{display:flex;flex:0 0 230px;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;box-sizing:border-box;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
+    .routing-provider-stack{display:flex;flex:0 0 230px;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;box-sizing:border-box;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
@@ -1619,7 +1616,7 @@ interface MapErrorEntry {
     .routing-calculate-button{background:color-mix(in srgb,#0a84ff 12%,Canvas)!important;border-color:color-mix(in srgb,#0a84ff 30%,var(--color-content-default-low,#666))}
     .routing-calculate-button:hover:not(:disabled){background:color-mix(in srgb,#0a84ff 18%,Canvas)!important}
     .routing-gpx-read-button{margin-left:auto}
-    .routing-remove-all-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}
+    .routing-remove-all-button{background:#b42318;color:#fff;border-color:#d92d20}
     .routing-remove-all-button:hover:not(:disabled){background:#912018;border-color:#b42318}
     .routing-remove-all-button:disabled{opacity:.45}
     @media(max-width:700px){.routing-key-row{align-items:flex-start;flex-direction:column;gap:5px}.routing-key-row input{width:100%}}
