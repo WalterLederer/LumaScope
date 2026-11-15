@@ -267,6 +267,9 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
+    <div class="routing-top-row">
+      <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
+    </div>
     <div class="routing-calculate-row">
       <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
         <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
@@ -291,21 +294,7 @@ interface MapErrorEntry {
         <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
-      <div class="routing-provider-stack">
-        @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
-        <div class="routing-provider-card">
-          <label class="routing-provider-label">Routing provider
-          <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
-            @for (configuration of valhallaConfigurations(); track configuration.path) {
-              <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
-            }
-            @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
-            <option value="openrouteservice">openrouteservice</option>
-          </select>
-          </label>
-        </div>
-        <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
-      </div>
+
     </div>
     @if (routeProvider() === 'openrouteservice') {
       <div class="routing-key-row">
@@ -347,6 +336,18 @@ interface MapErrorEntry {
     </div>
     <details class="routing-advanced">
       <summary>Advanced</summary>
+      @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
+      <div class="routing-provider-card">
+        <label class="routing-provider-label">Routing provider
+        <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
+          @for (configuration of valhallaConfigurations(); track configuration.path) {
+            <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
+          }
+          @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
+          <option value="openrouteservice">openrouteservice</option>
+        </select>
+        </label>
+      </div>
       <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
     </details>
   </div>
@@ -1581,8 +1582,9 @@ interface MapErrorEntry {
     @media(max-width:650px){.map-coordinates{display:none}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:#0a84ff;cursor:pointer}
-    .routing-toolbar,.routing-key-row,.routing-actions,.routing-calculate-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .routing-toolbar,.routing-key-row,.routing-actions,.routing-calculate-row,.routing-top-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .routing-toolbar{width:100%;justify-content:flex-start}
+    .routing-top-row{width:100%;justify-content:flex-end;min-height:30px}
     .routing-calculate-row{min-height:32px}
     .routing-empty-message{padding:7px 6px;color:var(--color-content-default-medium,#aaa);font-size:12px}
     .routing-clear-row{display:flex;justify-content:flex-end;padding-right:6px}.routing-provider-stack{display:flex;flex:0 0 230px;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}.routing-provider-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;box-sizing:border-box;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}.routing-provider-label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}.routing-provider-select{width:100%;min-width:0;max-width:100%}
@@ -1590,7 +1592,7 @@ interface MapErrorEntry {
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
     .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.routing-help-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:23px!important;font-weight:800!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.routing-help-button:hover{filter:brightness(1.18)!important;transform:translateY(-1px)!important}.routing-help-button:active{transform:translateY(1px)!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d!important}.routing-help-button span{display:block!important;line-height:1!important}
-    .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-gpx-read-button{margin-left:0}
+    .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-gpx-read-button{margin:8px 0 0}.routing-advanced .routing-provider-card{width:min(280px,100%);margin-top:6px}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
