@@ -269,6 +269,9 @@ export class MarkdownViewerComponent {
   };
 
   protected readonly showReadme = (): void => {
+    // Switch the visible document immediately so a pending initial-document
+    // input cannot keep the old page selected while the README is loading.
+    this.currentFile.set('README.md');
     void this.loadDocument('README.md');
   };
 
