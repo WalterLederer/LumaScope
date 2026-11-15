@@ -11,7 +11,8 @@ const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-const HELPER_WORKER_COUNT = 4;
+// Each worker loads the selected OBF set and owns native renderer state; keep concurrency conservative.
+const HELPER_WORKER_COUNT = 2;
 
 export interface OsmAndTileResult {
   width: number;
@@ -114,7 +115,12 @@ class OsmAndHelperWorker {
   ) {}
 
   render(z: number, x: number, y: number): Promise<Buffer> {
-    const result = this.queue.then(() => this.renderQueued(z, x, y));
+    const queuedAt = Date.now();
+    const result = this.queue.then(() => {
+      const queueWaitMs = Date.now() - queuedAt;
+      if (queueWaitMs >= 100) console.info('[OsmAnd] worker_queue_wait_ms=' + queueWaitMs, { z, x, y });
+      return this.renderQueued(z, x, y);
+    });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
   }
@@ -142,6 +148,8 @@ class OsmAndHelperWorker {
         await this.ensureStarted();
         return await this.renderOnce(z, x, y);
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('[OsmAnd] render attempt failed', { attempt: attempt + 1, maxAttempts: 2, z, x, y, message });
         await this.shutdown();
         if (attempt === 1) throw error;
       }
@@ -157,6 +165,7 @@ class OsmAndHelperWorker {
     if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an external OsmAnd resources folder first.');
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
+    const startupStartedAt = Date.now();
     const child = spawn(this.helperPath, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
     this.child = child;
     const reader = new ProcessOutputReader(child.stdout, child);
@@ -164,22 +173,32 @@ class OsmAndHelperWorker {
     let stderr = '';
     child.stderr.on('data', chunk => { stderr = (stderr + String(chunk)).slice(-4000); });
 
+    const spawnStartedAt = Date.now();
     await new Promise<void>((resolve, reject) => {
       child.once('spawn', resolve);
       child.once('error', reject);
     });
+    const processSpawnMs = Date.now() - spawnStartedAt;
 
+    const initStartedAt = Date.now();
     await this.writeJson({ command: 'init', obf_paths: this.obfPaths, resources_root: this.resourcesPath, style_path: this.stylePath, night_mode: false });
     const response = JSON.parse(await this.withTimeout(reader.readLine(), 30000, 'OsmAnd helper initialization timed out')) as { status?: string; message?: string };
     if (response.status !== 'ok') {
       throw new Error(response.message || ('OsmAnd helper initialization failed. ' + stderr));
     }
+    console.info('[OsmAnd] helper_ready', {
+      processSpawnMs,
+      nativeInitializationMs: Date.now() - initStartedAt,
+      startupTotalMs: Date.now() - startupStartedAt,
+      obfCount: this.obfPaths.length
+    });
   }
 
   private async renderOnce(z: number, x: number, y: number): Promise<Buffer> {
     const requestId = this.nextRequestId;
     this.nextRequestId = (this.nextRequestId + 1) >>> 0;
     if (this.nextRequestId === 0) this.nextRequestId = 1;
+    const renderStartedAt = Date.now();
     await this.writeJson({ command: 'render', request_id: requestId, z, x, y, device_scale: 1.0 });
 
     const reader = this.reader;
@@ -187,6 +206,7 @@ class OsmAndHelperWorker {
     // The native helper writes the binary header only after synchronous OBF lookup and rasterization finish.
     // Large or cold OBF tiles can legitimately take longer than the old 30-second IPC timeout.
     const header = await this.withTimeout(reader.readBytes(HEADER_BYTES), 120000, 'OsmAnd tile render timed out while waiting for the native renderer');
+    const renderToHeaderMs = Date.now() - renderStartedAt;
     if (header.toString('ascii', 0, 4) !== 'OSMR'
       || header.readUInt16LE(4) !== 1
       || header.readUInt16LE(6) !== HEADER_BYTES) {
@@ -204,10 +224,16 @@ class OsmAndHelperWorker {
     if (!Number.isSafeInteger(payloadSize) || payloadSize > MAX_RESPONSE_BYTES) throw new Error('OsmAnd tile response exceeds the safety limit.');
 
     const payload = await this.withTimeout(reader.readBytes(payloadSize), 30000, 'OsmAnd tile payload timed out');
-    if (status !== 0) throw new Error(payload.toString('utf8') || 'OsmAnd tile rendering failed.');
+    if (status !== 0) throw new Error('OsmAnd native render returned status ' + status + ': ' + (payload.toString('utf8').trim() || 'no native error details'));
     if (width !== TILE_SIZE || height !== TILE_SIZE || stride !== TILE_SIZE * 4 || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd helper returned unexpected RGBA8 tile dimensions or format.');
     }
+    console.info('[OsmAnd] tile_render_timing', {
+      z, x, y, renderToHeaderMs,
+      payloadReadMs: Date.now() - renderStartedAt - renderToHeaderMs,
+      totalMs: Date.now() - renderStartedAt,
+      payloadBytes: payloadSize
+    });
     return payload;
   }
 
@@ -472,8 +498,11 @@ export class OsmAndManager {
       : 'default';
     const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
     const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
+    const cacheReadStartedAt = Date.now();
     let pixels = forceRender ? null : await this.readCachedTile(cacheFile);
+    const cacheReadMs = Date.now() - cacheReadStartedAt;
     const cacheHit = pixels !== null;
+    console.info('[OsmAnd] tile_cache_lookup', { z, x, y, cacheHit, cacheReadMs });
     if (forceRender) {
       // Replace the cached tile only after any earlier render for this tile ends.
       const previousRender = this.pendingTiles.get(key);
@@ -494,6 +523,7 @@ export class OsmAndManager {
       }
       pixels = await pending;
     }
+    console.info('[OsmAnd] tile_pipeline_complete', { z, x, y, cacheHit, totalMs: Date.now() - cacheReadStartedAt });
     return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels), cacheHit };
   };
 
@@ -505,7 +535,9 @@ export class OsmAndManager {
   private async renderAndCacheTile(z: number, x: number, y: number, cacheFile: string): Promise<Buffer> {
     await mkdir(dirname(cacheFile), { recursive: true });
     const worker = this.workers[this.nextWorker++ % this.workers.length];
+    const renderStartedAt = Date.now();
     const pixels = await worker.render(z, x, y);
+    const renderMs = Date.now() - renderStartedAt;
     const bgra = Buffer.allocUnsafe(pixels.length);
     for (let i = 0; i < pixels.length; i += 4) {
       bgra[i] = pixels[i + 2];
@@ -518,6 +550,7 @@ export class OsmAndManager {
     try {
       await writeFile(temporaryPath, png);
       await rename(temporaryPath, cacheFile);
+      console.info('[OsmAnd] tile_cache_write', { z, x, y, renderMs, cacheWriteMs: Date.now() - renderStartedAt - renderMs, totalMs: Date.now() - renderStartedAt });
     } catch (error) {
       await unlink(temporaryPath).catch(() => undefined);
       throw error;
