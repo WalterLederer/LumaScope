@@ -22,6 +22,27 @@ export class Exif {
     }
   };
 
+  @IpcHandler({ name: 'Exif.writeGpsPosition' })
+  readonly writeGpsPosition = async (
+    _: IpcMainInvokeEvent, path: string, latitude: number, longitude: number
+  ): Promise<ApiResponse<undefined>> => {
+    try {
+      if (!path || !Number.isFinite(latitude) || latitude < -90 || latitude > 90
+        || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        throw new Error('A valid image path and GPS coordinate pair are required.');
+      }
+      await this.exifTool.write(path, {
+        GPSLatitude: Math.abs(latitude),
+        GPSLatitudeRef: latitude < 0 ? 'South' : 'North',
+        GPSLongitude: Math.abs(longitude),
+        GPSLongitudeRef: longitude < 0 ? 'West' : 'East'
+      });
+      return { success: true, data: undefined };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
   private readonly hasUltraHdrGainMap = async (path: string): Promise<boolean> => {
     const file = await open(path, 'r');
 
