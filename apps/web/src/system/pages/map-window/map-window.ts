@@ -242,7 +242,7 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
-    <div class="routing-tab-heading"><strong>Route planning</strong><button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">ⓘ</span></button></div>
+    <div class="routing-tab-heading"><strong>Route planning</strong><button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button></div>
     <div class="routing-toolbar">
       <div class="routing-name-card">
         <label class="routing-name-label" for="routing-name-input">Route name</label>
