@@ -261,7 +261,8 @@ const removeLegacyOfflinePathSettings = (settings: AppSettings): void => {
     const section = isPlainObject(settings[sectionName]) ? { ...settings[sectionName] as Record<string, unknown> } : null;
     if (!section) continue;
     for (const key of keys) delete section[key];
-    settings[sectionName] = section;
+    if (Object.keys(section).length) settings[sectionName] = section;
+    else delete settings[sectionName];
   }
 };
 
@@ -295,6 +296,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
 
     let offlineEntries = normalizeOfflineFileEntries(settings);
     const nextValues = { ...values };
+    const calculatedOfflineSizes = new Map<string, number>();
     const addOrReplace = (type: OfflineFileType, rawEntries: unknown[]): void => {
       const replacements: OfflineFileConfigEntry[] = [];
       for (const raw of rawEntries) {
@@ -305,8 +307,10 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
         const previous = offlineEntries.find(entry => entry.type === type
           && resolve(entry.path).toLocaleLowerCase() === resolve(path).toLocaleLowerCase()
           && (sourcePath ? entry.sourcePath && resolve(entry.sourcePath).toLocaleLowerCase() === resolve(sourcePath).toLocaleLowerCase() : name ? entry.name === name : !entry.sourcePath && !entry.name));
+        const sizeKey = type + '|' + resolve(type === 'valhalla-config' ? dirname(path) : path).toLocaleLowerCase();
         const size = typeof raw['size'] === 'number' && Number.isFinite(raw['size']) && raw['size'] >= 0
-          ? raw['size'] : previous?.size ?? offlineEntrySize(type, path);
+          ? raw['size'] : previous?.size ?? calculatedOfflineSizes.get(sizeKey) ?? offlineEntrySize(type, path);
+        calculatedOfflineSizes.set(sizeKey, size);
         replacements.push({ type, path, enabled: typeof raw['enabled'] === 'boolean' ? raw['enabled'] : true, size, ...(name ? { name } : {}), ...(sourcePath ? { sourcePath } : {}) });
       }
       offlineEntries = replaceOfflineFileTypes(offlineEntries, [type], replacements);
