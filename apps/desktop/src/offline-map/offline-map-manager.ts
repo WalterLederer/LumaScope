@@ -318,13 +318,16 @@ export class OfflineMapManager {
   try{
    const storedSettings=readAppSettings();
    let sourceSettings=storedSettings;
-   let offlineSettings=(storedSettings.offline ?? storedSettings.Maps ?? {}) as Record<string,unknown>;
-   if(storedSettings.offline==null&&storedSettings.Maps!=null)sourceSettings={...storedSettings,offlineMaps:offlineSettings};
-   if(!Object.keys(offlineSettings).length){
+   let offlineSettings={
+    ...(storedSettings.Maps && typeof storedSettings.Maps==='object' ? storedSettings.Maps as Record<string,unknown> : {}),
+    ...(storedSettings.offlineMaps && typeof storedSettings.offlineMaps==='object' ? storedSettings.offlineMaps as Record<string,unknown> : {}),
+    ...(storedSettings.offline && typeof storedSettings.offline==='object' ? storedSettings.offline as Record<string,unknown> : {})
+   };
+   if(!Array.isArray(offlineSettings.paths)&&!Array.isArray(offlineSettings.filePaths)){
     const legacyPath=join(app.getPath('userData'),'offline-map.json');
     if(existsSync(legacyPath)){
-     offlineSettings=JSON.parse(readFileSync(legacyPath,'utf8')) as Record<string,unknown>;
-     sourceSettings={...storedSettings,offlineMaps:offlineSettings};
+     offlineSettings={...offlineSettings,...JSON.parse(readFileSync(legacyPath,'utf8')) as Record<string,unknown>};
+     sourceSettings={...storedSettings,offline:offlineSettings};
     }
    }
    if(typeof offlineSettings.lastDirectory==='string'&&existsSync(offlineSettings.lastDirectory))this.lastDirectory=offlineSettings.lastDirectory;
