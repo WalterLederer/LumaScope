@@ -137,7 +137,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              <details class="fix-location-section" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
+              <details class="app-disclosure" class="fix-location-section" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
@@ -161,7 +161,7 @@ interface MapErrorEntry {
                   </div>
                 </div>
               </details>
-              <details class="offline-address-search">
+              <details class="app-disclosure" class="offline-address-search">
                 <summary class="settings-row-title">Offline address search</summary>
                 <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
                   <div class="location-actions">
@@ -190,7 +190,7 @@ interface MapErrorEntry {
                   <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
                 </form>
               </details>
-              <details class="location-tools-section">
+              <details class="app-disclosure" class="location-tools-section">
                 <summary class="settings-row-title">Location tools</summary>
                 <div class="location-tools-content">
                   <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
@@ -394,7 +394,7 @@ interface MapErrorEntry {
       <div class="routing-empty-message">No route points. Right-click the map while the Routing tab is active to add locations.</div>
     }
     @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
-    <details class="routing-advanced">
+    <details class="app-disclosure" class="routing-advanced">
       <summary>Advanced</summary>
       <div class="routing-provider-card">
         <label class="routing-provider-label">Routing provider
@@ -433,7 +433,7 @@ interface MapErrorEntry {
             [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
           </div>
         </div>
-        <details class="time-slider-animate-section" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
+        <details class="app-disclosure" class="time-slider-animate-section" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
           <summary>Animate</summary>
           <div class="time-slider-animate-options">
             <button type="button" class="time-slider-animate-button time-slider-play-button" [class.is-playing]="timeSliderAnimating()" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
@@ -465,7 +465,7 @@ interface MapErrorEntry {
             </section>
           </div>
         </details>
-        <details class="time-slider-minmax-section">
+        <details class="app-disclosure" class="time-slider-minmax-section">
           <summary>MinMax</summary>
           <div class="time-slider-minmax-content">
             <div class="time-slider-boundary-box">
@@ -527,7 +527,7 @@ interface MapErrorEntry {
                 </div>
               </div>
               @if (directoryMarkersEnabled()) {
-                <details class="marker-summary-section">
+                <details class="app-disclosure" class="marker-summary-section">
                   <summary>Summary</summary>
                   <div class="marker-summary-content">
                     <div class="marker-progress-row">
@@ -622,7 +622,7 @@ interface MapErrorEntry {
     </select>
   </label>
   </div>
-  <details class="zoom-settings-section">
+  <details class="app-disclosure" class="zoom-settings-section">
     <summary>
       <span>Zoom</span>
       <span class="zoom-summary-control">
@@ -648,7 +648,7 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
-  <details class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
+  <details class="app-disclosure" class="opacity-settings" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
     <summary>
       <span>Opacity</span>
     </summary>
@@ -694,7 +694,7 @@ interface MapErrorEntry {
       </div>
     </div>
   </details>
-  <details class="view-rerender-section"
+  <details class="app-disclosure" class="view-rerender-section"
     [open]="renderSectionOpen()"
     (toggle)="onLocationDetailsToggle($event)"
     [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()"
@@ -893,7 +893,7 @@ interface MapErrorEntry {
       </div>
     }
     @if (resourcePackageScanError()) {
-      <details class="map-cache-section offline-map-filter-section">
+      <details class="app-disclosure" class="map-cache-section offline-map-filter-section">
         <summary class="map-cache-heading">Scan details / warnings</summary>
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
@@ -970,7 +970,7 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
   <div class="settings-tab-content download-tab">
-    <details class="map-cache-section download-section">
+    <details class="app-disclosure" class="map-cache-section download-section">
       <summary class="map-cache-heading">Download sources</summary>
       <div class="map-cache-actions">
         <span class="offline-map-status">Configure the catalogue URLs used to discover offline maps.</span>
@@ -994,7 +994,7 @@ interface MapErrorEntry {
       <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the Offline update checker.</p>
     </details>
 
-    <details class="map-cache-section download-section">
+    <details class="app-disclosure" class="map-cache-section download-section">
       <summary class="map-cache-heading">Updates</summary>
       <div class="map-cache-actions offline-catalogue-toolbar">
         <span class="offline-map-status">Check configured catalogues for available offline-map updates.</span>
@@ -1210,7 +1210,7 @@ interface MapErrorEntry {
                 </div>
               </section>
             }
-              <details class="map-cache-section offline-map-updates-section">
+              <details class="app-disclosure" class="map-cache-section offline-map-updates-section">
                 <summary class="map-cache-heading">Checks</summary>
                 <div class="map-cache-actions offline-map-update-actions">
                   <button type="button" class="offline-map-add-button" (click)="checkOffline()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
@@ -1316,6 +1316,7 @@ interface MapErrorEntry {
     @media(max-width:620px){.offline-address-result{grid-template-columns:minmax(0,1fr)}.offline-address-result-coordinates{padding-top:2px}}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
+    .settings-tab-content.view-tab>.app-disclosure{margin-bottom:0}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .zoom-settings-section>summary,.view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed;white-space:nowrap}
     .zoom-settings-section>summary::marker,.view-rerender-section>summary::marker{font-size:16px}
@@ -1477,7 +1478,7 @@ interface MapErrorEntry {
     .opacity-content .zoom-control{grid-column:1/-1;width:100%}
     .address-settings{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px;flex:1 1 100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
 
-    .map-source-settings>summary,.opacity-settings>summary{display:list-item;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;white-space:nowrap;list-style:disclosure-closed}
+    .map-source-settings>summary,.opacity-settings>summary{display:list-item;list-style-position:inside;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;white-space:nowrap;list-style:disclosure-closed}
     .map-source-settings>summary::marker,.opacity-settings>summary::marker{font-size:16px}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .opacity-settings{box-sizing:border-box;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
