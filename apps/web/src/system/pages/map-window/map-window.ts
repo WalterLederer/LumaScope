@@ -1475,7 +1475,7 @@ interface MapErrorEntry {
     .mbtiles-enabled-column input{margin:0;accent-color:#8ab4f8;vertical-align:middle}
     .mbtiles-enabled-column input.obf-preset-locked{appearance:none;width:14px;height:14px;box-sizing:border-box;border:1px solid #777;border-radius:2px;background:#858585;opacity:.9;cursor:not-allowed}
     .mbtiles-enabled-column input.obf-preset-locked:checked::after{content:"";display:block;width:6px;height:3px;margin:3px 0 0 3px;border:solid #f2f2f2;border-width:0 0 2px 2px;transform:rotate(-45deg)}
-    .mbtiles-map-table th:nth-child(4),.mbtiles-map-table td:nth-child(4){width:360px}.mbtiles-map-table th:nth-child(5),.mbtiles-map-table td:nth-child(5){width:92px}.mbtiles-map-table th:nth-child(6),.mbtiles-map-table td:nth-child(6){width:132px}.mbtiles-map-table th:nth-child(8),.mbtiles-map-table td:nth-child(8){width:150px}
+    .mbtiles-map-table th:nth-child(4),.mbtiles-map-table td:nth-child(4){width:360px}.mbtiles-map-table th:nth-child(5),.mbtiles-map-table td:nth-child(5){width:92px}.mbtiles-map-table th:nth-child(6),.mbtiles-map-table td:nth-child(6){width:132px}.mbtiles-map-table th:nth-child(8),.mbtiles-map-table td:nth-child(8){width:150px}.mbtiles-map-table th:nth-child(10),.mbtiles-map-table td:nth-child(10){width:440px;min-width:360px;max-width:440px}
      .mbtiles-map-file{min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.4;font-size:13px;background:#e8ebef;color:#000}
     .mbtiles-map-file strong,.mbtiles-map-file span{display:inline;vertical-align:baseline;margin-right:8px;max-width:none;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;color:#000;font-weight:700}
     
