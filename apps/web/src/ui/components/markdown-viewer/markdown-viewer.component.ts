@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
@@ -187,7 +187,7 @@ export class MarkdownViewerComponent {
     void this.loadDocument('README.md');
     effect(() => {
       const fileName = this.initialDocument();
-      if (fileName && fileName !== this.currentFile()) void this.loadDocument(fileName);
+      if (fileName && fileName !== untracked(() => this.currentFile())) void this.loadDocument(fileName);
     });
     void this.loadSavedFontSize();
   }
