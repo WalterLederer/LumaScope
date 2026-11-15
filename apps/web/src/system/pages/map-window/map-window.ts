@@ -97,7 +97,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <span class="settings-tabs-spacer" aria-hidden="true"></span>
-  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">OfflineFiles@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">Offline@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
@@ -289,7 +289,6 @@ interface MapErrorEntry {
       @if (lastSavedRouteGpxPath()) {
         <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the last saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
       }
-      <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
       <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
     </div>
     @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
@@ -311,6 +310,10 @@ interface MapErrorEntry {
       }
       @if (routeWaypoints().length === 0) { <span class="offline-map-status">No route points. Right-click the map while the Routing tab is active to add locations.</span> }
     </div>
+    <details class="routing-advanced">
+      <summary>Advanced</summary>
+      <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
+    </details>
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
@@ -749,7 +752,7 @@ interface MapErrorEntry {
   <details class="map-cache-section offline-map-updates-section">
     <summary class="map-cache-heading">Checks</summary>
     <div class="map-cache-actions offline-map-update-actions">
-      <button type="button" class="offline-map-add-button" (click)="checkOfflineFiles()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
+      <button type="button" class="offline-map-add-button" (click)="checkOffline()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
       <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || 'Check file availability, missing files, duplicates and active selections.' }}</span>
     </div>
     <div class="map-cache-actions offline-map-update-actions">
@@ -757,7 +760,7 @@ interface MapErrorEntry {
       <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || offlineMapCatalogueSummary() }}</span>
     </div>
     <div class="map-cache-actions offline-map-update-actions">
-    <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + resourcePackageEntries().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOfflineFiles().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
+    <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + resourcePackageEntries().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
     @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
     </span>
     </div>
@@ -773,8 +776,8 @@ interface MapErrorEntry {
          <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="valhalla" class="resource-valhalla-filter-option">Valhalla (offline routing)</option><option value="osmandResources" class="resource-osmand-filter-option">OsmAnd resources (rendering)</option><option value="mapsforgeTheme" class="resource-mapsforge-filter-option">Mapsforge XML theme</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(false)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Deactivate visible files</button>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineEnabled(true)" [disabled]="!filteredOffline().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
+     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineEnabled(false)" [disabled]="!filteredOffline().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Deactivate visible files</button>
   </div>
 </div>
 </div>
@@ -854,7 +857,7 @@ interface MapErrorEntry {
           </tbody>
         </table>
       </div>
-      <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the OfflineFiles update checker.</p>
+      <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the Offline update checker.</p>
     </details>
 
     <details class="map-cache-section download-section">
@@ -922,19 +925,19 @@ interface MapErrorEntry {
             <button type="button" class="map-display-notice-close" (click)="mapDisplayNotice.set('')" title="Dismiss map notice" aria-label="Dismiss map notice">×</button>
             <strong>Map cannot be displayed</strong>
             <span>{{ mapDisplayNotice() }}</span>
-            <button type="button" (click)="settingsOpen.set(true); selectSettingsTab('offlineMaps')">Open OfflineFiles tab</button>
+            <button type="button" (click)="settingsOpen.set(true); selectSettingsTab('offlineMaps')">Open Offline tab</button>
           </div>
         }
         @if (settingsOpen() && offlineMapListMounted()) {
           <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
-              @if (filteredOfflineFiles().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
+              @if (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
                 <table class="mbtiles-map-table">
                   <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="offline-file-status-column">Status</th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th></tr></thead>
                   <tbody>
                     @let duplicateIds = offlineMapDuplicateIds();
                     @let hillshadeDuplicateSet = hillshadeDuplicateIds();
-                    @for (map of sortedOfflineFiles(); track map.id) {
+                    @for (map of sortedOffline(); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
                       <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
@@ -1426,6 +1429,7 @@ interface MapErrorEntry {
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
+    .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-gpx-read-button{margin-left:0}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
     .routing-pick-hint{display:flex;align-items:center;justify-content:flex-end;text-align:right}.routing-pick-hint-bottom{width:100%;padding-top:6px}
@@ -1776,7 +1780,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
-  protected readonly filteredOfflineFiles = computed(() => {
+  protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
     const filter = this.offlineMapListFilter();
     if (filter === 'mbtiles') return maps.filter(map => map.type === 'mbtiles' || !map.type);
@@ -1794,7 +1798,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return maps;
   });
   protected readonly offlineMapSort = signal<{ column: string; direction: 'asc' | 'desc' }>({ column: 'name', direction: 'asc' });
-  protected readonly sortedOfflineFiles = computed(() => this.sortRows(this.filteredOfflineFiles(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
+  protected readonly sortedOffline = computed(() => this.sortRows(this.filteredOffline(), this.offlineMapSort(), map => this.offlineMapSortValue(map, this.offlineMapSort().column)));
   protected readonly offlineMapDuplicateIds = signal<ReadonlySet<string>>(new Set());
   protected readonly offlineMapMissingCount = computed(() => this.offlineFilesChecked() ? this.offlineMapStats().missingCount : 0);
   protected readonly offlineMapDuplicateCount = computed(() => this.offlineFilesChecked() ? this.offlineMapDuplicateIds().size : 0);
@@ -2166,9 +2170,9 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.mapWindowConfigRestore = this.desktop
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
-      const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
-      const savedOfflineFileEntries = Array.isArray(offlineSettings?.['filePaths'])
-        ? offlineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
+      const offlineSettings = settings['offline'] as Record<string, unknown> | undefined;
+      const savedOfflineFileEntries = Array.isArray(offlineSettings?.['paths'])
+        ? offlineSettings['paths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
         : [];
       const savedResourceEntries: import('internal-api').ResourcePackageEntry[] = savedOfflineFileEntries.flatMap(entry => {
         if (!entry.path || typeof entry.size !== 'number') return [];
@@ -2297,8 +2301,8 @@ export class MapWindow implements OnInit, OnDestroy {
           // let a stale mapWindow/localStorage copy overwrite the resources path.
           const settings = await this.desktop!.ProcessManager.getAppSettings();
           const osmand = settings['osmand'] as Record<string, unknown> | undefined;
-          const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
-            ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
+          const offlineFileEntries = Array.isArray((settings['offline'] as Record<string, unknown> | undefined)?.['paths'])
+            ? (settings['offline'] as Record<string, unknown>)['paths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
             : [];
           const resourcesPath = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
           this.osmAndResourcesPath.set(resourcesPath);
@@ -2356,7 +2360,7 @@ export class MapWindow implements OnInit, OnDestroy {
       })();
     }
     void this.desktop?.ProcessManager.getAppSettings().then(settings => {
-      const offline = settings['offlineMaps'] as Record<string, unknown> | undefined;
+      const offline = settings['offline'] as Record<string, unknown> | undefined;
       const saved = offline?.['updateSources'];
       const valid = Array.isArray(saved) ? saved.filter((entry): entry is { url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean } =>
         !!entry && typeof entry === 'object'
@@ -2976,8 +2980,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.offlineMapStatus.set(null);
         const hasActiveMbtiles = this.offlineMaps().some(map => map.enabled && (!map.type || map.type === 'mbtiles'));
         this.mapDisplayNotice.set(hasActiveMbtiles
-          ? 'No active .mbtiles map covers the current location. Check the map bounds in OfflineFiles.'
-          : 'No .mbtiles active. Activate an MBTiles map in OfflineFiles.');
+          ? 'No active .mbtiles map covers the current location. Check the map bounds in Offline.'
+          : 'No .mbtiles active. Activate an MBTiles map in Offline.');
         // Do not silently substitute the online basemap: that makes switching
         // to MBTiles appear to work while showing exactly the same online map.
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
@@ -3234,7 +3238,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const maps = this.offlineMaps().filter(map => map.type === 'mapsforge' && map.enabled && map.available);
     if (maps.length === 0) {
       this.renderInitStatus.set('');
-      this.mapDisplayNotice.set('No active Mapsforge .map files. Add and activate Mapsforge maps in OfflineFiles.');
+      this.mapDisplayNotice.set('No active Mapsforge .map files. Add and activate Mapsforge maps in Offline.');
       this.recordMapError('Mapsforge', 'No active Mapsforge .map files are loaded.');
       return;
     }
@@ -3570,7 +3574,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly checkOfflineFiles = async (): Promise<void> => {
+  protected readonly checkOffline = async (): Promise<void> => {
     const desktop = this.desktop;
     if (!desktop || this.offlineFilesCheckBusy()) return;
     this.offlineFilesCheckBusy.set(true);
@@ -3633,15 +3637,15 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly scanResourcePackage = async (): Promise<void> => {
     if (!this.desktop || this.resourcePackageScanBusy()) return;
     const previousSettings = await this.desktop.ProcessManager.getAppSettings();
-    const offlineSettings = previousSettings['offlineMaps'] && typeof previousSettings['offlineMaps'] === 'object'
-      ? previousSettings['offlineMaps'] as Record<string, unknown>
+    const offlineSettings = previousSettings['offline'] && typeof previousSettings['offline'] === 'object'
+      ? previousSettings['offline'] as Record<string, unknown>
       : {};
     const lastScanFolder = typeof offlineSettings['resourcePackageLastFolder'] === 'string'
       ? offlineSettings['resourcePackageLastFolder']
       : undefined;
     const folder = await this.desktop.Dialogs.openFolder(lastScanFolder);
     if (!folder.success) return;
-    await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', {
+    await this.desktop.ProcessManager.setAppSettingsSection('offline', {
       resourcePackageLastFolder: folder.data
     });
     this.resourcePackageScanBusy.set(true);
@@ -3656,8 +3660,8 @@ export class MapWindow implements OnInit, OnDestroy {
       const scan = await this.desktop.OfflineMap.scanResourcePackage(folder.data);
       this.resourcePackageEntries.set(scan.resourceEntries ?? []);
       const settings = await this.desktop.ProcessManager.getAppSettings();
-      const offlineFileEntries = Array.isArray((settings['offlineMaps'] as Record<string, unknown> | undefined)?.['filePaths'])
-        ? (settings['offlineMaps'] as Record<string, unknown>)['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
+      const offlineFileEntries = Array.isArray((settings['offline'] as Record<string, unknown> | undefined)?.['paths'])
+        ? (settings['offline'] as Record<string, unknown>)['paths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
         : [];
       const valhallaBefore = await this.desktop.Valhalla.getRuntimeStatus();
       const existingResources = offlineFileEntries.find(entry => entry.type === 'osmand-resources')?.path ?? '';
@@ -3754,9 +3758,9 @@ export class MapWindow implements OnInit, OnDestroy {
       // Refresh the cached sizes from this explicit package scan. Opening the
       // Location window later restores these values without recursively walking folders.
       const latestSettings = await this.desktop.ProcessManager.getAppSettings();
-      const latestOfflineSettings = latestSettings['offlineMaps'] as Record<string, unknown> | undefined;
-      const latestEntries = Array.isArray(latestOfflineSettings?.['filePaths'])
-        ? latestOfflineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
+      const latestOfflineSettings = latestSettings['offline'] as Record<string, unknown> | undefined;
+      const latestEntries = Array.isArray(latestOfflineSettings?.['paths'])
+        ? latestOfflineSettings['paths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number; name?: string; sourcePath?: string }>
         : [];
       const normalizeConfigPath = (path: string): string => path.replace(/\\/g, '/').toLocaleLowerCase();
       const scannedValhallaSizes = new Map((scan.resourceEntries ?? [])
@@ -3796,8 +3800,8 @@ export class MapWindow implements OnInit, OnDestroy {
           });
         }
       }
-      await this.desktop.ProcessManager.setAppSettingsSection('offlineMaps', {
-        filePaths: [...refreshedEntries, ...refreshedValhallaEntries]
+      await this.desktop.ProcessManager.setAppSettingsSection('offline', {
+        paths: [...refreshedEntries, ...refreshedValhallaEntries]
       });
 
       const foundParts = [
@@ -4222,9 +4226,9 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
-  protected readonly setAllOfflineFilesEnabled = async (enabled: boolean): Promise<void> => {
+  protected readonly setAllOfflineEnabled = async (enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
-    const visibleMaps = this.filteredOfflineFiles().filter(map => map.available);
+    const visibleMaps = this.filteredOffline().filter(map => map.available);
     const visibleHillshade = this.filteredHillshadeDatabases();
     if (visibleMaps.length === 0 && visibleHillshade.length === 0) return;
     try {
@@ -4240,9 +4244,9 @@ export class MapWindow implements OnInit, OnDestroy {
       console.error('[OfflineMap] Could not update Active state for visible files:', error);
     }
   };
-  protected readonly removeVisibleOfflineFiles = async (): Promise<void> => {
+  protected readonly removeVisibleOffline = async (): Promise<void> => {
     if (!this.desktop) return;
-    const maps = this.filteredOfflineFiles();
+    const maps = this.filteredOffline();
     if (maps.length === 0) return;
     const confirmed = window.confirm(
       `Remove all ${maps.length} visible map(s) from the LumaScope list? The map files on disk will not be deleted.`
@@ -4291,7 +4295,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private persistDownloadSources(): void {
     const updateSources = this.downloadSources().map(source => ({ ...source }));
-    void this.desktop?.ProcessManager.setAppSettingsSection('offlineMaps', {
+    void this.desktop?.ProcessManager.setAppSettingsSection('offline', {
       updateSources
     }).catch(error => {
       const message = error instanceof Error ? error.message : String(error);
@@ -5811,7 +5815,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const desktop = this.desktop;
         if (!desktop) throw new Error('The desktop Valhalla service is unavailable.');
         const selectedConfig = this.routeValhallaConfigPath().trim();
-        if (!selectedConfig) throw new Error('Add and select a Valhalla configuration in OfflineFiles first.');
+        if (!selectedConfig) throw new Error('Add and select a Valhalla configuration in Offline first.');
         await desktop.Valhalla.setConfigPath(selectedConfig);
         const result = await desktop.Valhalla.route({
           points: request.points,
