@@ -57,11 +57,11 @@ details.app-disclosure,
 .app-disclosure {
   box-sizing: border-box;
   min-width: 0;
-  margin: 0 0 6px;
+  margin: 0;
   padding: 6px 10px;
   border: 1px solid var(--color-content-default-low);
   border-radius: 6px;
-  background: var(--color-surface-default-low);
+  background: transparent;
   color: var(--color-content-default-high);
 }
 
@@ -96,9 +96,9 @@ details.app-disclosure[open] > summary,
   margin-bottom: 4px;
 }
 
-/* Nested disclosures retain the same marker and title alignment. */
+/* Disclosure sections are flush; nesting is indicated by indentation, not spacing. */
 details details,
 .app-disclosure .app-disclosure {
-  margin-left: 12px;
+  margin: 0;
 }
 
