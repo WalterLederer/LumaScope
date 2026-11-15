@@ -684,18 +684,20 @@ interface MapErrorEntry {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
-      <div class="active-obf-list-box">
-        <table class="active-obf-list" aria-live="polite">
-          <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
-          <tbody>
-            @for (map of viewportObfMaps(); track map.id) {
-              <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
-            } @empty {
-              <tr><td colspan="2">No matching OBF maps</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+        <div class="active-obf-list-box">
+          <table class="active-obf-list" aria-live="polite">
+            <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
+            <tbody>
+              @for (map of viewportObfMaps(); track map.id) {
+                <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
+              } @empty {
+                <tr><td colspan="2">No matching OBF maps</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
         
@@ -1362,7 +1364,7 @@ interface MapErrorEntry {
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
     @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 58px 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
-    .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;gap:12px;min-width:0}
+    .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:12px;min-width:0}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
@@ -4044,11 +4046,13 @@ export class MapWindow implements OnInit, OnDestroy {
     };
     const longitudeIntersects = (mapWest: number, mapEast: number): boolean => {
       const mapSegments = mapWest <= mapEast ? [[mapWest, mapEast]] : [[mapWest, 180], [-180, mapEast]];
-      const viewSegments = paddedWest < -180
-        ? [[paddedWest + 360, 180], [-180, paddedEast]]
-        : paddedEast > 180
-          ? [[paddedWest, 180], [-180, paddedEast - 360]]
-          : [[paddedWest, paddedEast]];
+      const viewSegments = paddedEast - paddedWest >= 360
+        ? [[-180, 180]]
+        : paddedWest < -180
+          ? [[paddedWest + 360, 180], [-180, paddedEast]]
+          : paddedEast > 180
+            ? [[paddedWest, 180], [-180, paddedEast - 360]]
+            : [[paddedWest, paddedEast]];
       return mapSegments.some(([a, b]) => viewSegments.some(([c, d]) => a <= d && b >= c));
     };
     const intersects = (value: string | null | undefined): boolean => {
