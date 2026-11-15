@@ -114,12 +114,16 @@ class OsmAndHelperWorker {
     private readonly environment: NodeJS.ProcessEnv
   ) {}
 
+  private renderGeneration = 0;
+
   render(z: number, x: number, y: number): Promise<Buffer> {
+    const generation = this.renderGeneration;
     const queuedAt = Date.now();
     const result = this.queue.then(() => {
       const queueWaitMs = Date.now() - queuedAt;
       if (queueWaitMs >= 100) console.info('[OsmAnd] worker_queue_wait_ms=' + queueWaitMs, { z, x, y });
-      return this.renderQueued(z, x, y);
+      if (generation !== this.renderGeneration) throw new Error('OsmAnd tile request was cancelled.');
+      return this.renderQueued(z, x, y, generation);
     });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
@@ -127,6 +131,11 @@ class OsmAndHelperWorker {
 
   async retire(): Promise<void> {
     await this.queue;
+    await this.shutdown();
+  }
+
+  async abort(): Promise<void> {
+    this.renderGeneration++;
     await this.shutdown();
   }
 
@@ -142,12 +151,16 @@ class OsmAndHelperWorker {
     if (child && child.exitCode === null) child.kill();
   }
 
-  private async renderQueued(z: number, x: number, y: number): Promise<Buffer> {
+  private async renderQueued(z: number, x: number, y: number, generation: number): Promise<Buffer> {
     for (let attempt = 0; attempt < 2; attempt++) {
+      if (generation !== this.renderGeneration) throw new Error('OsmAnd tile request was cancelled.');
       try {
         await this.ensureStarted();
-        return await this.renderOnce(z, x, y);
+        const pixels = await this.renderOnce(z, x, y);
+        if (generation !== this.renderGeneration) throw new Error('OsmAnd tile request was cancelled.');
+        return pixels;
       } catch (error) {
+        if (generation !== this.renderGeneration) throw new Error('OsmAnd tile request was cancelled.');
         const message = error instanceof Error ? error.message : String(error);
         console.warn('[OsmAnd] render attempt failed', { attempt: attempt + 1, maxAttempts: 2, z, x, y, message });
         await this.shutdown();
@@ -266,6 +279,7 @@ export class OsmAndManager {
   private stylePath = this.resourcesPath
     ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths = this.getFallbackObfPaths();
+  private runtimeObfSelection = false;
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
   private styleChange: Promise<void> = Promise.resolve();
@@ -341,6 +355,7 @@ export class OsmAndManager {
   }
 
   private async refreshSelectedObf(): Promise<void> {
+    if (this.runtimeObfSelection) return;
     let selectedPaths = this.getFallbackObfPaths();
     try {
       const appSettings = readAppSettings();
@@ -480,6 +495,32 @@ export class OsmAndManager {
     styleAvailable: existsSync(this.stylePath),
     cachePath: this.cachePath
     });
+  };
+
+  @IpcHandler({ name: 'OsmAnd.setActiveObfMaps' })
+  readonly setActiveObfMaps = async (_event: IpcMainInvokeEvent, paths: string[]): Promise<string[]> => {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\\.obf$/i.test(path))) {
+      throw new Error('Active OBF selection must contain valid .obf file paths.');
+    }
+    const selectedPaths = [...new Set(paths.filter(path => existsSync(path)))];
+    this.runtimeObfSelection = true;
+    if (selectedPaths.length === this.obfPaths.length
+      && selectedPaths.every((path, index) => path === this.obfPaths[index])) return [...this.obfPaths];
+    await this.cancelRendering();
+    const previousWorkers = this.workers;
+    this.obfPaths = selectedPaths;
+    this.workers = this.createWorkers(this.createEnvironment());
+    this.pendingTiles.clear();
+    this.nextWorker = 0;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+    console.info('[OsmAnd] viewport_obf_selection', { count: selectedPaths.length, paths: selectedPaths });
+    return [...this.obfPaths];
+  };
+
+  @IpcHandler({ name: 'OsmAnd.cancelRendering' })
+  readonly cancelRendering = async (): Promise<void> => {
+    this.pendingTiles.clear();
+    await Promise.all(this.workers.map(worker => worker.abort()));
   };
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
