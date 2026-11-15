@@ -67,7 +67,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "CMake configure failed with exit code $LASTEXITCODE"
 }
 
-& $CMakeExe --build $buildRoot --config $BuildType --target osmand_render_helper osmand_native_widget osmand_atlas_frame_poc osmand_atlas_render_helper
+& $CMakeExe --build $buildRoot --config $BuildType --target osmand_render_helper osmand_search_helper osmand_native_widget osmand_atlas_frame_poc osmand_atlas_render_helper
 if ($LASTEXITCODE -ne 0) {
     throw "CMake build failed with exit code $LASTEXITCODE"
 }
