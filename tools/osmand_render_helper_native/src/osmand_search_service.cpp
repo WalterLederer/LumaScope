@@ -3,6 +3,7 @@
 #include "osmand_core_runtime.h"
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -24,9 +25,6 @@
 
 namespace
 {
-constexpr int kDefaultLimit = 5;
-constexpr int kAddressCandidateTarget = 8;
-constexpr int kPoiCandidateTarget = 6;
 
 OsmAnd::ObfAddressStreetGroupTypesMask placeAddressStreetGroupTypesMask()
 {
@@ -302,9 +300,9 @@ bool appendCandidateWithAbort(
     if (candidate.displayName.isEmpty())
         return true;
 
+    // Return every matching record from all selected OBF files. Do not
+    // abort the OsmAnd scan after an arbitrary small candidate count.
     results.push_back(std::forward<Candidate>(candidate));
-    if (queryController && static_cast<int>(results.size()) >= targetCount)
-        queryController->abort();
     return true;
 }
 }
@@ -388,7 +386,7 @@ QString OsmAndSearchService::search(
     if (trimmedQuery.isEmpty())
         return QStringLiteral("[]");
 
-    const auto effectiveLimit = std::max(1, std::min(limit, kDefaultLimit));
+    const auto effectiveLimit = limit <= 0 ? std::numeric_limits<int>::max() : limit;
     const auto effectiveLocale = locale.trimmed().isEmpty() ? _defaultLocale : locale.trimmed().toLower();
     const auto queryController = std::make_shared<OsmAnd::SimpleQueryController>();
     {
@@ -397,16 +395,14 @@ QString OsmAndSearchService::search(
     }
 
     std::vector<SearchCandidate> candidates;
-    candidates.reserve(static_cast<std::size_t>(kAddressCandidateTarget));
-    const auto addressTarget = std::max(kAddressCandidateTarget, effectiveLimit * 3);
     const auto addressVisitor =
-        [&, effectiveLocale, trimmedQuery, addressTarget](const std::shared_ptr<const OsmAnd::Address>& address) -> bool
+        [&, effectiveLocale, trimmedQuery](const std::shared_ptr<const OsmAnd::Address>& address) -> bool
         {
             return appendCandidateWithAbort(
                 candidates,
                 makeAddressCandidate(address, trimmedQuery, effectiveLocale),
                 queryController,
-                addressTarget);
+                std::numeric_limits<int>::max());
         };
 
     const auto addressesCompleted = _dataInterface->scanAddressesByName(
@@ -446,16 +442,14 @@ QString OsmAndSearchService::search(
     if (includePoiFallback && static_cast<int>(merged.size()) < effectiveLimit && !addressSearchAborted)
     {
         std::vector<SearchCandidate> poiCandidates;
-        const auto poiTarget = std::max(kPoiCandidateTarget, effectiveLimit * 3);
-        poiCandidates.reserve(static_cast<std::size_t>(poiTarget));
         const auto amenityVisitor =
-            [&, effectiveLocale, trimmedQuery, poiTarget](const std::shared_ptr<const OsmAnd::Amenity>& amenity) -> bool
+            [&, effectiveLocale, trimmedQuery](const std::shared_ptr<const OsmAnd::Amenity>& amenity) -> bool
             {
                 return appendCandidateWithAbort(
                     poiCandidates,
                     makeAmenityCandidate(amenity, trimmedQuery, effectiveLocale),
                     queryController,
-                    poiTarget);
+                    std::numeric_limits<int>::max());
             };
 
         const auto amenitiesCompleted = _dataInterface->scanAmenitiesByName(
