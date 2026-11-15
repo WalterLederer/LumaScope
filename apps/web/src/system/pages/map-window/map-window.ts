@@ -717,7 +717,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
-      <button type="button" class="resource-package-help-button" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation">?</button>
+      <button type="button" class="resource-package-help-button" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">ⓘ</span></button>
       <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Open the extracted resource package to discover offline maps and resources.' }}</span>
     </div>
     @if (resourcePackageScanFound()) {
@@ -746,43 +746,6 @@ interface MapErrorEntry {
         <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
       </details>
     }
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0 || valhallaDuplicateCount() > 0)" [class.resource-section-warning]="offlineFilesChecked() && valhallaConfigurations().length > 0 && !valhallaHasSelectedConfig() && valhallaMissingCount() === 0 && valhallaDuplicateCount() === 0">
-      <summary class="map-cache-heading">Valhalla routing configurations @if (offlineFilesChecked() && (valhallaConfigurations().length === 0 || valhallaMissingCount() > 0)) { <span class="resource-section-error-label">FILES MISSING</span> } @if (valhallaDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
-      <div class="osmand-resources-picker valhalla-config-picker">
-        <div class="local-source-heading">
-          <span>{{ valhallaConfigurations().length }} configuration(s)</span>
-        </div>
-        @for (configuration of valhallaConfigurations(); track configuration.path) {
-          <div class="valhalla-config-row" [class.file-path-error]="offlineFilesChecked() && (!configuration.path.trim() || !configuration.available || valhallaHasDuplicatePath(configuration.path))">
-            <input type="checkbox" [checked]="configuration.path === routeValhallaConfigPath()" [disabled]="!configuration.available || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(configuration.path) : null" [attr.aria-label]="'Use ' + configuration.name + ' as active routing configuration'">
-            <span class="valhalla-config-name">{{ configuration.name }}</span>
-            <span class="osmand-resources-path" [class.gpx-error]="offlineFilesChecked() && !configuration.available">{{ configuration.path }}</span>
-          </div>
-        }
-        <p>Valhalla configurations are discovered automatically when scanning the extracted resource package. Select the configuration to use in the Routing provider list.</p>
-      </div>
-    </details>
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!osmAndResourcesPath().trim() || !!osmAndResourcesError())">
-      <summary class="map-cache-heading">OsmAnd resources folder @if (offlineFilesChecked() && (!osmAndResourcesPath().trim() || osmAndResourcesError())) { <span class="resource-section-error-label">FILES MISSING</span> }</summary>
-      <div class="osmand-resources-picker">
-        <div class="local-source-heading">
-          <span class="osmand-resources-path">{{ osmAndResourcesPath() || 'No external resources folder selected' }}</span>
-        </div>
-        @if (offlineFilesChecked() && osmAndResourcesError()) { <p class="gpx-error" role="alert">{{ osmAndResourcesError() }}</p> }
-        <p>Download separately from <a href="https://github.com/osmandapp/OsmAnd-resources" target="_blank" rel="noopener">OsmAnd-resources on GitHub</a> and place the extracted resources folder containing <code>rendering_styles/default.render.xml</code> inside the package before scanning. Resources are not bundled with LumaScope.</p>
-      </div>
-    </details>
-    <details class="map-cache-section download-section local-source-section" [class.resource-section-error]="offlineFilesChecked() && (!mapsforgeThemeFolder().trim() || !!mapsforgeThemeError() || mapsforgeThemes().length === 0 || mapsforgeThemeDuplicateCount() > 0)" [class.resource-section-warning]="offlineFilesChecked() && mapsforgeThemes().length > 0 && !mapsforgeThemePath()">
-      <summary class="map-cache-heading">Mapsforge XML theme folder @if (offlineFilesChecked() && (!mapsforgeThemeFolder().trim() || mapsforgeThemeError() || mapsforgeThemes().length === 0)) { <span class="resource-section-error-label">FILES MISSING</span> } @if (mapsforgeThemeDuplicateCount() > 0) { <span class="resource-section-error-label">FILES DUPLICATE</span> }</summary>
-      <div class="osmand-resources-picker">
-        <div class="local-source-heading">
-          <span class="osmand-resources-path">{{ mapsforgeThemeFolder() || 'No external theme folder selected' }}</span>
-        </div>
-        <span class="osmand-resources-path">{{ mapsforgeThemes().length }} XML theme(s) found</span>
-        @if (offlineFilesChecked() && mapsforgeThemeError()) { <p class="gpx-error" role="alert">{{ mapsforgeThemeError() }}</p> }
-        <p>Place extracted Mapsforge render-theme <code>.xml</code> files in this folder; subfolders are scanned too. For example, extract the <a href="https://www.openandromaps.org/en/legend/elevate-mountain-hike-theme" target="_blank" rel="noopener">OpenAndroMaps Elevate theme</a> ZIP here. Choose the active theme in the View tab. The folder is stored in application settings; theme files remain external.</p>
-      </div>
-    </details>
   <details class="map-cache-section offline-map-updates-section">
     <summary class="map-cache-heading">Checks</summary>
     <div class="map-cache-actions offline-map-update-actions">
@@ -807,7 +770,7 @@ interface MapErrorEntry {
     </label>
     <label class="offline-map-list-filter">Filter:
        <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
-         <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
+         <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="valhalla" class="resource-valhalla-filter-option">Valhalla (offline routing)</option><option value="osmandResources" class="resource-osmand-filter-option">OsmAnd resources (rendering)</option><option value="mapsforgeTheme" class="resource-mapsforge-filter-option">Mapsforge XML theme</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
      <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineFilesEnabled(true)" [disabled]="!filteredOfflineFiles().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
@@ -965,7 +928,7 @@ interface MapErrorEntry {
         @if (settingsOpen() && offlineMapListMounted()) {
           <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
-              @if (filteredOfflineFiles().length + filteredHillshadeDatabases().length > 0) {
+              @if (filteredOfflineFiles().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
                 <table class="mbtiles-map-table">
                   <thead><tr><th class="mbtiles-inuse-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</button></th><th class="mbtiles-enabled-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</button></th><th class="mbtiles-type-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('fileSize')">File size {{ offlineMapSortIndicator('fileSize') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</button></th><th class="offline-file-status-column">Status</th><th class="mbtiles-updates-column"><button type="button" class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</button></th><th><button type="button" class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</button></th><th></th></tr></thead>
                   <tbody>
@@ -996,6 +959,20 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                         <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!database.available || !database.path.trim() ? 'Missing' : database.enabled ? 'Active' : 'Inactive') + (hillshadeDuplicateSet.has(database.id) ? ' · Duplicate' : '') }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
                         <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries(); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">—</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
                       </tr>
                     }
                   </tbody>
@@ -1251,12 +1228,12 @@ interface MapErrorEntry {
     .map-source-picker-table td button{width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;cursor:pointer}
     .map-source-picker-table tbody tr:hover{background:var(--color-surface-default-medium,#343943)}
     .mbtiles-selection{display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(0,2fr);align-items:center;gap:5px 8px;flex:1 1 100%;min-width:0}.offline-style-control{display:flex;align-items:center;gap:6px;grid-column:1/-1}
-    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.local-source-section{margin:0;}.local-source-heading{display:flex;align-items:center;gap:8px;width:100%;min-width:0;}.local-source-heading>span{flex:1 1 auto;min-width:0;}.local-source-buttons{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto;}.local-source-heading>button{margin-left:auto;}.valhalla-config-picker{align-items:flex-start}.valhalla-config-row{display:grid;grid-template-columns:24px minmax(90px,140px) minmax(180px,1fr) auto;align-items:center;gap:8px;flex:1 1 100%;min-width:0;padding:5px 0;border-top:1px solid var(--color-content-default-low,#454545)}.valhalla-config-name{font-weight:600}.valhalla-config-row .osmand-resources-path{flex:initial}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar:not(.resource-package-scan-toolbar){flex-wrap:nowrap;overflow-x:auto}.offline-map-toolbar:not(.resource-package-scan-toolbar)>.offline-map-status{flex:1 1 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-package-scan-toolbar{flex-wrap:nowrap}.resource-package-help-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;padding:0;border:1px solid var(--color-border-default,#777);border-radius:50%;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default,#fff);font-weight:700;font-size:15px;line-height:1;cursor:pointer}.resource-package-help-button:hover{filter:brightness(1.15)}.resource-package-scan-toolbar>.offline-map-status{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px;order:0}.offline-map-filter-actions .offline-map-bulk-button{order:1}.offline-map-filter-actions .offline-map-remove-visible-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}.offline-map-filter-actions .offline-map-remove-visible-button:hover:not(:disabled){background:#912018;border-color:#b42318}.offline-map-filter-actions .offline-map-remove-visible-button:disabled{opacity:.45}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
+    .mbtiles-download-source{min-width:0;max-width:100%;}.mbtiles-download-controls{display:flex;flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap;}.mbtiles-download-controls .mbtiles-download-source{flex:0 0 280px;min-width:260px;}.mbtiles-download-url{display:block;box-sizing:border-box;height:28px;line-height:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 240px;width:0;min-width:0;max-width:100%;}.osmand-resources-picker{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;}.local-source-section{margin:0;}.local-source-heading{display:flex;align-items:center;gap:8px;width:100%;min-width:0;}.local-source-heading>span{flex:1 1 auto;min-width:0;}.local-source-buttons{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto;}.local-source-heading>button{margin-left:auto;}.valhalla-config-picker{align-items:flex-start}.valhalla-config-row{display:grid;grid-template-columns:24px minmax(90px,140px) minmax(180px,1fr) auto;align-items:center;gap:8px;flex:1 1 100%;min-width:0;padding:5px 0;border-top:1px solid var(--color-content-default-low,#454545)}.valhalla-config-name{font-weight:600}.valhalla-config-row .osmand-resources-path{flex:initial}.osmand-resources-path{flex:1 1 360px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.osmand-resources-picker p{flex-basis:100%;margin:0;color:var(--color-text-secondary);font-size:11px;}.offline-map-clear-button{background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-map-bulk-button{font-size:10px;padding:4px 8px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-medium,#c5cbd3);border-color:var(--color-content-default-low,#626a75)}.offline-maps-tab-content{display:flex;flex-direction:column;gap:8px;min-width:0}.offline-map-updates-section{margin:0}.offline-map-update-actions{align-items:center;flex-wrap:wrap}.offline-map-update-actions .offline-map-status{flex:1 1 300px;min-width:0}.offline-map-toolbar{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}.offline-map-toolbar:not(.resource-package-scan-toolbar){flex-wrap:nowrap;overflow-x:auto}.offline-map-toolbar:not(.resource-package-scan-toolbar)>.offline-map-status{flex:1 1 auto;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-package-scan-toolbar{flex-wrap:nowrap}.resource-package-help-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px;height:30px;padding:0;border:1px solid #4e9de0;border-radius:9px;background:linear-gradient(135deg,#1677c8 0%,#456bd0 52%,#7854c8 100%);color:#fff;font-weight:800;font-size:19px;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(16,82,150,.32);transition:filter .15s ease,transform .15s ease}.resource-package-help-button:hover{filter:brightness(1.18);transform:translateY(-1px)}.resource-package-help-button span{display:block;line-height:1}.resource-package-scan-toolbar>.offline-map-status{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.offline-map-toolbar .offline-map-preset-control{display:flex;align-items:center;gap:6px;flex:0 0 auto;}.offline-map-toolbar .offline-map-add-button{align-self:center}.offline-map-filter-section{flex:0 0 100%;max-width:none;padding:2px 0}.offline-map-filter-actions{justify-content:flex-start;flex-wrap:wrap;gap:8px}.offline-map-filter-actions .offline-map-list-filter{display:flex;align-items:center;gap:6px;order:0}.offline-map-filter-actions .offline-map-bulk-button{order:1}.offline-map-filter-actions .offline-map-remove-visible-button{margin-left:auto;background:#b42318;color:#fff;border-color:#d92d20}.offline-map-filter-actions .offline-map-remove-visible-button:hover:not(:disabled){background:#912018;border-color:#b42318}.offline-map-filter-actions .offline-map-remove-visible-button:disabled{opacity:.45}.offline-map-add-button{width:auto;min-width:0;flex:0 0 auto;padding:6px 10px;white-space:nowrap;}
     .mbtiles-selection{display:flex;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:8px;min-width:0;min-height:0}
     .mbtiles-selection.offline-map-toolbar{flex-direction:row;align-items:center}
     .mbtiles-selection.mbtiles-download-controls{flex-direction:row;align-items:center;flex-wrap:nowrap}
     .mbtiles-map-list{flex:0 0 auto;grid-column:1/-1;width:100%;min-width:0;max-width:100%;height:auto;max-height:none;overflow:visible;overscroll-behavior:contain}
-    .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}.hillshade-format-tag{background:#514078;color:#e4d8ff}.offline-map-list-filter option.obf-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.mbtiles-filter-option{background:#245b35;color:#c9f7d2;font-weight:700}.offline-map-list-filter option.mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.offline-map-list-filter option.hillshade-filter-option{background:#514078;color:#e4d8ff;font-weight:700}.hillshade-map-row{background:rgba(139,92,246,.09)}.offline-file-status-cell{font-size:11px;white-space:nowrap}.offline-file-status-column{min-width:82px}
+    .obf-map-row{background:rgba(56,139,253,.10)}.mbtiles-map-row{background:rgba(46,160,67,.07)}.offline-map-format-tag{display:inline-block;margin-right:5px;padding:1px 5px;border-radius:3px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em}.obf-format-tag{background:#174b78;color:#c8e5ff}.mbtiles-format-tag{background:#245b35;color:#c9f7d2}.mapsforge-format-tag{background:#65451f;color:#ffe0ad}.hillshade-format-tag{background:#514078;color:#e4d8ff}.resource-package-format-tag{background:#3f5268;color:#e2f2ff}.resource-valhalla-row{background:rgba(23,119,200,.09)}.resource-osmand-row{background:rgba(46,160,67,.07)}.resource-mapsforge-row{background:rgba(120,84,200,.09)}.offline-map-list-filter option.obf-filter-option{background:#174b78;color:#c8e5ff;font-weight:700}.offline-map-list-filter option.mbtiles-filter-option{background:#245b35;color:#c9f7d2;font-weight:700}.offline-map-list-filter option.mapsforge-filter-option{background:#65451f;color:#ffe0ad;font-weight:700}.offline-map-list-filter option.hillshade-filter-option{background:#514078;color:#e4d8ff;font-weight:700}.hillshade-map-row{background:rgba(139,92,246,.09)}.offline-file-status-cell{font-size:11px;white-space:nowrap}.offline-file-status-column{min-width:82px}
     .mbtiles-map-table{width:100%;min-width:780px;border-collapse:collapse;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums}
     .download-source-table{min-width:0!important;width:100%!important;max-width:none;table-layout:fixed}
     .download-source-table th{color:var(--color-content-default-medium,#aaa);background:var(--color-surface-default-medium,#343943);border-bottom:1px solid var(--color-content-default-low,#454545)}
@@ -1759,7 +1736,20 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
-  protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
+  protected readonly offlineMapListFilter = signal<'all' | 'mbtiles' | 'obf' | 'map' | 'hillshade' | 'valhalla' | 'osmandResources' | 'mapsforgeTheme' | 'inUse' | 'active' | 'inactive' | 'missing' | 'updates' | 'current' | 'noMatch'>('all');
+  protected readonly filteredResourcePackageEntries = computed(() => {
+    const entries = this.resourcePackageEntries();
+    const filter = this.offlineMapListFilter();
+    if (filter === 'all') return entries;
+    if (filter === 'valhalla') return entries.filter(entry => entry.type === 'valhalla');
+    if (filter === 'osmandResources') return entries.filter(entry => entry.type === 'osmand-resources');
+    if (filter === 'mapsforgeTheme') return entries.filter(entry => entry.type === 'mapsforge-theme');
+    return [];
+  });
+  protected readonly resourcePackageEntryTypeLabel = (type: import('internal-api').ResourcePackageEntry['type']): string =>
+    type === 'valhalla' ? 'Valhalla (offline routing)'
+      : type === 'osmand-resources' ? 'OsmAnd resources (rendering)'
+      : 'Mapsforge XML theme';
   protected readonly offlineMapUpdateCheckBusy = signal(false);
   protected readonly offlineMapUpdateCheckStatus = signal('');
   protected readonly offlineMapCatalogueFiles = signal<import('internal-api').OfflineMapCatalogueFile[]>([]);
@@ -1934,6 +1924,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly clearMapErrors = (): void => this.mapErrors.set([]);
   protected readonly activeOfflineMapId = signal<string | null>(null);
   protected readonly downloadSources = signal<Array<{ url: string; fileType: 'obf' | 'mbtiles' | 'mapsforge' | 'android' | 'others'; useForUpdates: boolean }>>([]);
+  protected readonly resourcePackageEntries = signal<import('internal-api').ResourcePackageEntry[]>([]);
   protected readonly osmAndResourcesPath = signal('');
   protected readonly osmAndResourcesError = signal('');
   protected readonly mapsforgeThemeFolder = signal('');
@@ -3632,9 +3623,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.resourcePackageScanError.set('');
     this.resourcePackageScanFound.set('');
     this.resourcePackageScanChanged.set('');
+    this.resourcePackageEntries.set([]);
     this.resourcePackageScanStatus.set('Scanning extracted resource package…');
     try {
       const scan = await this.desktop.OfflineMap.scanResourcePackage(folder.data);
+      this.resourcePackageEntries.set(scan.resourceEntries ?? []);
       const settings = await this.desktop.ProcessManager.getAppSettings();
       const osmandSettings = (settings['osmand'] && typeof settings['osmand'] === 'object' ? settings['osmand'] : {}) as Record<string, unknown>;
       const mapsforgeSettings = (settings['mapsforge'] && typeof settings['mapsforge'] === 'object' ? settings['mapsforge'] : {}) as Record<string, unknown>;
