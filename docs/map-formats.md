@@ -16,7 +16,7 @@ The Help reference lists **5 map source types**.
 
 ### OsmAnd
 
-The OsmAnd Atlas renderer reads selected OBF map files, an external OsmAnd resources folder and the selected rendering-style XML. It renders native 256×256 XYZ tiles as RGBA pixels, applies display-density scaling and caches rendered metatiles on disk.
+The OsmAnd Atlas renderer reads selected OBF map files, an external OsmAnd resources folder and the selected rendering-style XML. It renders native 256×256 XYZ tiles as RGBA pixels, applies display-density scaling and caches rendered tiles on disk.
 
 The separate OsmAnd hillshade renderer reads elevation data directly from selected SQLite hillshade databases and returns rendered raster tiles.
 
