@@ -201,13 +201,13 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
         const message = error instanceof Error ? error.message : String(error);
         if (abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message)) {
           emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: message });
-          return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
+          return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
         }
         throw error;
       }
       if (abortController.signal.aborted) {
         emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled', error: 'Atlas tile request aborted after rendering.' });
-        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(512 * 512 * 4), 512, 512)) };
+        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
       }
       // Only explicit helper warnings/errors belong in the Error tab.
       // Geometry traces and ordinary helper lifecycle messages are diagnostics,
