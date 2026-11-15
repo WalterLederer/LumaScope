@@ -2,6 +2,7 @@ import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open } from 'node:fs/promises';
 import { ApiResponse, ExifTags } from 'internal-api';
+import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
 export class Exif {
@@ -37,6 +38,19 @@ export class Exif {
         GPSLongitude: Math.abs(longitude),
         GPSLongitudeRef: longitude < 0 ? 'West' : 'East'
       });
+
+      // Keep the Browse tab's database-backed GPS data in sync immediately.
+      // Thumbnail generation is not guaranteed to run again after the EXIF write.
+      try {
+        const injector = Injector.getInstance();
+        const cacheManager = injector.inject('CacheManager');
+        const existingRecord = await cacheManager.getPhotoDatabaseRecord(path);
+        const gps = await this.readPhotoMetadata(path);
+        await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
+      } catch (cacheError) {
+        console.warn('[Exif] GPS was written, but the photo database could not be synchronized:', path, cacheError);
+      }
+
       return { success: true, data: undefined };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
