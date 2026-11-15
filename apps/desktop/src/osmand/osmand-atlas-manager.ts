@@ -954,7 +954,7 @@ export class OsmAndAtlasManager {
     query: string,
     limit = 5
   ): Promise<Array<{ display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string }>> => {
-    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\\.obf$/i.test(path))) {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\.obf$/i.test(path))) {
       throw new Error('Address search requires a valid list of active OBF files.');
     }
     const activePaths = [...new Set(paths.filter(path => existsSync(path)))];
