@@ -157,8 +157,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
 
 
 /**
- * Atlas renders a viewport-sized frame rather than an XYZ tile. LumaScope
- * requests a 512px frame centered on each XYZ tile's geographic midpoint.
+ * Atlas returns one native 256×256 RGBA tile for the requested XYZ coordinate.
  */
 export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
   // The protocol is global, but the map window component can be recreated.
