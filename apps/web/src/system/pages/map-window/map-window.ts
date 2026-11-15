@@ -4044,7 +4044,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const paddedNorth = Math.min(85.0511, north + latitudeSpan * 0.2);
     const renderZoom = Math.floor(renderer.map.getZoom()) + (source === 'osmand' ? 1 : 0);
     const parseBounds = (value: string | null | undefined): [number, number, number, number] | null => {
-      const numbers = value?.match(/-?\\d+(?:\\.\\d+)?/g)?.map(Number) ?? [];
+      const numbers = value?.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       return numbers.length === 4 && numbers.every(Number.isFinite)
         ? [numbers[0], numbers[1], numbers[2], numbers[3]] : null;
     };
@@ -6208,8 +6208,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private parseMarkerFileNameTimestamp(fileName: string): number | null {
-    const separated = fileName.match(/(?:^|[^0-9])(\\d{4})[_-](\\d{2})[_-](\\d{2})[ T_-](\\d{2})[_:-](\\d{2})[_:-](\\d{2})(?:[^0-9]|$)/);
-    const compact = separated ? null : fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_ T-](\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/);
+    const separated = fileName.match(/(?:^|[^0-9])(\d{4})[_-](\d{2})[_-](\d{2})[ T_-](\d{2})[_:-](\d{2})[_:-](\d{2})(?:[^0-9]|$)/);
+    const compact = separated ? null : fileName.match(/(?:^|[^0-9])(\d{4})(\d{2})(\d{2})[_ T-](\d{2})(\d{2})(\d{2})(?:[^0-9]|$)/);
     const match = separated ?? compact;
     if (!match) return null;
     const [, yearText, monthText, dayText, hourText, minuteText, secondText] = match;
