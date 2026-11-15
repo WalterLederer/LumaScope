@@ -143,6 +143,7 @@ const api: Desktop = {
   },
 
   OsmAndAtlas: {
+    getObfMetadata: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.getObfMetadata', paths),
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
     addHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabases'),
     addHillshadeDatabasePaths: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.addHillshadeDatabasePaths', paths),
