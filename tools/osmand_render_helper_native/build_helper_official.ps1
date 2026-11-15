@@ -259,7 +259,7 @@ if (-not $SkipLegacyProtobuf) {
 
     foreach ($candidate in ($pythonCandidates | Select-Object -Unique)) {
         $versionOutput = & $candidate --version 2>&1
-        if ($LASTEXITCODE -eq 0 -and ($versionOutput -match "Python 3\\.")) {
+        if ($LASTEXITCODE -eq 0 -and ($versionOutput -match 'Python 3\.')) {
             $pythonExe = $candidate
             $pythonVersion = ($versionOutput | Out-String).Trim()
             break
@@ -276,7 +276,7 @@ if (-not $SkipLegacyProtobuf) {
                 $candidate = ($resolvedPython | Select-Object -Last 1).Trim()
                 if (Test-Path -LiteralPath $candidate -PathType Leaf) {
                     $versionOutput = & $candidate --version 2>&1
-                    if ($LASTEXITCODE -eq 0 -and ($versionOutput -match "Python 3\\.")) {
+                    if ($LASTEXITCODE -eq 0 -and ($versionOutput -match 'Python 3\.')) {
                         $pythonExe = $candidate
                         $pythonVersion = ($versionOutput | Out-String).Trim()
                     }
@@ -293,14 +293,18 @@ if (-not $SkipLegacyProtobuf) {
     Write-Host "Using Python: $pythonExe ($pythonVersion)"
 }
 
-$env:PATH = @(
-    $(if ($pythonBin) { $pythonBin }),
+$pathEntries = @()
+if ($pythonBin) {
+    $pathEntries += $pythonBin
+}
+$pathEntries += @(
     (Join-Path $MinGWRoot "bin"),
     "C:\Program Files\Git\bin",
     "C:\Program Files\Git\usr\bin",
     "C:\Program Files\Git\mingw64\bin",
     $env:PATH
-) | Where-Object { $_ } | Select-Object -Unique | Join-String -Separator ";"
+)
+$env:PATH = ($pathEntries | Where-Object { $_ } | Select-Object -Unique) -join ";"
 
 if (-not $SkipLegacyProtobuf) {
     $legacyProtobufScript = Join-Path $workspaceRoot "core-legacy\externals\protobuf\configure.sh"
