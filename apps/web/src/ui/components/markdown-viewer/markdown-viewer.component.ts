@@ -175,7 +175,7 @@ export class MarkdownViewerComponent {
   protected readonly documentTitle = computed(() =>
     this.currentFile() === 'README.md'
       ? 'LumaScope documentation'
-      : this.currentFile().replace(/\\.md$/i, '').replace(/-/g, ' ')
+      : this.currentFile().replace(/\.md$/i, '').replace(/-/g, ' ')
   );
   protected readonly documentationPath = computed(() =>
     this.currentFile() === 'README.md' ? 'README.md' : 'docs/' + this.currentFile()
