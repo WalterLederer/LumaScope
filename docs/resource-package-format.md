@@ -59,7 +59,7 @@ This is an example, not a requirement to include every format. You can use diffe
 
 The scan is a discovery pass. Finding a file does not guarantee that its contents are valid, that its geographic coverage is useful, or that all runtime dependencies are present. The **Check** action and the renderer-specific validation report missing or unsupported resources.
 
-Folder-based resources are also listed directly in the OfflineFiles file table. Their **Path** is the containing resource folder, and **File size** is the recursive total of all files below that folder. Valhalla rows use the configuration's parent folder name (for example, **Austria** or **Europe**); the OsmAnd resources row has an empty **File** value; Mapsforge theme rows use each XML theme's filename without the extension (for example, **Elements** or **Elevate**). These rows are informational resource entries and do not have map activation or coverage controls.
+Folder-based resources are also listed directly in the OfflineFiles file table. Their **Path** is the containing resource folder, and **File size** is the recursive total of all files below that folder. Valhalla rows use the configuration's parent folder name (for example, **Austria** or **Europe**); the OsmAnd resources row has an empty **File** value; Mapsforge theme rows use each XML theme's filename without the extension (for example, **Elements** or **Elevate**). These rows do not have map coverage controls. Valhalla rows retain an **Active** checkbox for the routing configuration; the OsmAnd resources folder is selected for the renderer, and the Mapsforge theme is selected in the map **View** tab.
 
 ## 3. OsmAnd vector maps — OBF
 
