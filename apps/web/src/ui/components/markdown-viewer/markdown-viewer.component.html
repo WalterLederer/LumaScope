@@ -12,7 +12,7 @@
       <output>{{ fontSize() }} px</output>
       </label>
       @if (currentFile() !== 'README.md') {
-        <button type="button" (click)="showReadme()">Back to README</button>
+        <button type="button" class="markdown-home-button" (click)="showReadme()" title="Home" aria-label="Home"><span aria-hidden="true">⌂</span></button>
       }
     </div>
   </header>
