@@ -363,7 +363,7 @@ class OsmAndAtlasWorker {
 
   private async renderQueued(longitude: number, latitude: number, zoom: number, generation: number): Promise<{ pixels: Buffer; geometryMessages: string[] }> {
     if (this.retired) throw new Error('OsmAnd Atlas helper worker has been replaced.');
-    if (generation !== this.renderGeneration) throw new Error('OsmAnd Atlas render was cancelled by a renderer switch.');
+    if (generation !== this.renderGeneration) return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
     const maxRetries = 2;
     for (let attempt = 0; ; attempt++) {
       try {
@@ -373,7 +373,7 @@ class OsmAndAtlasWorker {
         const message = error instanceof Error ? error.message : String(error);
         if (generation !== this.renderGeneration) {
           await this.shutdown();
-          throw new Error('OsmAnd Atlas render was cancelled by a renderer switch.');
+          return { pixels: Buffer.alloc(TILE_BYTES), geometryMessages: [] };
         }
         const isTimeout = /timed?\s*out|timeout|did not settle/i.test(message);
         if (!isTimeout || attempt >= maxRetries || this.retired) {
@@ -539,15 +539,16 @@ class OsmAndAtlasWorker {
       // Prefer the error text carried in the helper response. Keep stderr as
       // a fallback for older helpers and failures that occur before a frame is
       // written; exclude routine Qt/OpenGL diagnostics from the user-facing error.
-      const helperErrors = this.stderrMessages
-        .filter(message => !/^(INFO|DEBUG):/i.test(message) && !message.startsWith('ATLAS_INIT '))
-        .slice(-6);
+      const helperErrors = [
+        ...this.stderrMessages.filter(message => !/^(INFO|DEBUG):/i.test(message) && !message.startsWith('ATLAS_INIT ')),
+        this.stderrBuffer.trim()
+      ].filter(Boolean).slice(-6);
       const details = [responseMessage, ...helperErrors].filter(Boolean).join(' | ');
       console.error('[OsmAnd Atlas] native_render_failed', {
         status, requestId, responseMessage: responseMessage || null,
         stderr: helperErrors, renderElapsedMs: elapsedMs
       });
-      throw new Error(details || 'OsmAnd Atlas rendering failed (native helper returned status ' + status + ').');
+      throw new Error(details || ('OsmAnd Atlas native rendering failed without a diagnostic message. Helper status: ' + status + '; request: ' + requestId + '; frame: ' + width + 'x' + height + '; payload bytes: ' + payloadSize + '; elapsed: ' + elapsedMs + ' ms.'));
     }
     if (width !== METATILE_SIZE || height !== METATILE_SIZE || stride !== METATILE_SIZE * 4
       || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
