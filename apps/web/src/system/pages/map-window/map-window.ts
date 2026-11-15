@@ -141,7 +141,7 @@ interface MapErrorEntry {
                 <details class="fix-location-section">
                   <summary class="settings-row-title">Fix location</summary>
                   <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
-                  <div class="offline-map-status">Enable the map, move it until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                  <div class="offline-map-status">An online basemap is used for fixing. Move it until the crosshair marks the photo location, then save the GPS position to the image file.</div>
                   <div class="location-actions">
                     <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
                     @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
