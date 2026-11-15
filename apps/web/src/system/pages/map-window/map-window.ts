@@ -2161,6 +2161,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapWindowConfigRestore = this.desktop
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
+      const lastResourcePackageFolder = typeof offlineSettings?.['resourcePackageLastFolder'] === 'string'
+        ? offlineSettings['resourcePackageLastFolder'] as string
+        : '';
+      if (lastResourcePackageFolder) {
+        void this.desktop?.OfflineMap.scanResourcePackage(lastResourcePackageFolder)
+          .then(scan => this.resourcePackageEntries.set(scan.resourceEntries ?? []))
+          .catch(error => console.warn('[OfflineFiles] Could not restore resource folder entries:', error));
+      }
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
         const options = Object.entries(configuredPresets as Record<string, unknown>).flatMap(([id, value]) => {
