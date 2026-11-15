@@ -319,6 +319,7 @@ export class OfflineMapManager {
    const storedSettings=readAppSettings();
    let sourceSettings=storedSettings;
    let offlineSettings=(storedSettings.offlineMaps ?? storedSettings.Maps ?? {}) as Record<string,unknown>;
+   if(storedSettings.offlineMaps==null&&storedSettings.Maps!=null)sourceSettings={...storedSettings,offlineMaps:offlineSettings};
    if(!Object.keys(offlineSettings).length){
     const legacyPath=join(app.getPath('userData'),'offline-map.json');
     if(existsSync(legacyPath)){
