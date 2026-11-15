@@ -584,6 +584,7 @@ export class OsmAndAtlasManager {
   private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
+  private readonly searchHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_search_helper.exe');
   private readonly hillshadeHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = this.readSavedStyleFileName();
@@ -926,6 +927,13 @@ export class OsmAndAtlasManager {
       throw new Error('Active OBF selection must contain valid .obf file paths.');
     }
     const selectedPaths = [...new Set(paths.filter(path => existsSync(path)))];
+    if (!selectedPaths.length) {
+      // A transient empty viewport result must not replace the configured
+      // active OBF set (for example before Offline Files metadata has loaded).
+      this.runtimeObfSelection = false;
+      await this.refreshSelectedObf();
+      return [...this.obfPaths];
+    }
     this.runtimeObfSelection = true;
     if (selectedPaths.length === this.obfPaths.length
       && selectedPaths.every((path, index) => path === this.obfPaths[index])) return [...this.obfPaths];
@@ -937,6 +945,58 @@ export class OsmAndAtlasManager {
     await Promise.all(previousWorkers.map(worker => worker.retire()));
     console.info('[OsmAnd Atlas] viewport_obf_selection', { count: selectedPaths.length, paths: selectedPaths });
     return [...this.obfPaths];
+  };
+
+  @IpcHandler({ name: 'OsmAndAtlas.searchAddresses' })
+  readonly searchAddresses = async (
+    _event: Electron.IpcMainInvokeEvent,
+    paths: string[],
+    query: string,
+    limit = 5
+  ): Promise<Array<{ display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string }>> => {
+    if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\\.obf$/i.test(path))) {
+      throw new Error('Address search requires a valid list of active OBF files.');
+    }
+    const activePaths = [...new Set(paths.filter(path => existsSync(path)))];
+    if (!activePaths.length) throw new Error('Enable at least one available OsmAnd OBF map in Offline Files.');
+    const trimmedQuery = typeof query === 'string' ? query.trim() : '';
+    if (trimmedQuery.length < 2) throw new Error('Enter at least two characters to search addresses.');
+    if (!Number.isInteger(limit) || limit < 1 || limit > 5) throw new Error('Address search result limit must be between 1 and 5.');
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an available OsmAnd resources folder first.');
+    if (!existsSync(this.searchHelperPath)) throw new Error('OsmAnd address search helper not found: ' + this.searchHelperPath);
+
+    const encodeArgument = (value: string): string => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+    const output = await new Promise<string>((resolveOutput, rejectOutput) => {
+      const child = spawn(this.searchHelperPath, [
+        '--search',
+        encodeArgument(JSON.stringify(activePaths)),
+        encodeArgument(this.resourcesPath),
+        encodeArgument(trimmedQuery),
+        encodeArgument(''),
+        String(limit)
+      ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', chunk => { stdout += String(chunk); });
+      child.stderr.on('data', chunk => { stderr += String(chunk); });
+      child.once('error', rejectOutput);
+      child.once('close', code => {
+        if (code !== 0) {
+          rejectOutput(new Error('Offline address search failed (exit ' + String(code) + '). ' + stderr.trim()));
+          return;
+        }
+        resolveOutput(stdout);
+      });
+    });
+    const parsed: unknown = JSON.parse(output.trim());
+    if (!Array.isArray(parsed)) throw new Error('Offline address search returned an invalid result.');
+    return parsed.filter((item): item is { display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string } =>
+      !!item && typeof item === 'object'
+      && typeof (item as { display_name?: unknown }).display_name === 'string'
+      && typeof (item as { latitude?: unknown }).latitude === 'number'
+      && typeof (item as { longitude?: unknown }).longitude === 'number');
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
@@ -1091,6 +1151,13 @@ export class OsmAndAtlasManager {
 
     const tileX = x;
     const tileY = y;
+    if (!this.obfPaths.length) {
+      // No enabled OBF maps means an empty map layer, not a failed tile request.
+      return {
+        width: ATLAS_TILE_SIZE, height: ATLAS_TILE_SIZE, stride: ATLAS_TILE_SIZE * 4,
+        pixels: new Uint8Array(TILE_BYTES), cacheHit: false
+      };
+    }
     if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
 
     const mapCacheKey = this.obfPaths.length
