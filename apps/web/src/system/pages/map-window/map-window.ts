@@ -2167,13 +2167,37 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapWindowConfigRestore = this.desktop
       ? this.desktop.ProcessManager.getAppSettings().then(settings => {
       const offlineSettings = settings['offlineMaps'] as Record<string, unknown> | undefined;
-      const lastResourcePackageFolder = typeof offlineSettings?.['resourcePackageLastFolder'] === 'string'
-        ? String(offlineSettings?.['resourcePackageLastFolder'])
-        : '';
-      if (lastResourcePackageFolder) {
-        void this.desktop?.OfflineMap.scanResourcePackage(lastResourcePackageFolder)
-          .then(scan => this.resourcePackageEntries.set(scan.resourceEntries ?? []))
-          .catch(error => console.warn('[OfflineFiles] Could not restore resource folder entries:', error));
+      const savedOfflineFileEntries = Array.isArray(offlineSettings?.['filePaths'])
+        ? offlineSettings['filePaths'] as Array<{ type?: string; path?: string; enabled?: boolean; size?: number }>
+        : [];
+      const savedResourceEntries: import('internal-api').ResourcePackageEntry[] = savedOfflineFileEntries.flatMap(entry => {
+        if (!entry.path || typeof entry.size !== 'number') return [];
+        if (entry.type === 'valhalla-config') {
+          const folder = entry.path.replace(/[\\/][^\\/]+$/, '');
+          const name = folder.replace(/^.*[\\/]/, '');
+          return [{ type: 'valhalla' as const, fileName: name, path: folder, sourcePath: entry.path, fileSize: entry.size }];
+        }
+        if (entry.type === 'osmand-resources') {
+          return [{ type: 'osmand-resources' as const, fileName: '', path: entry.path, sourcePath: entry.path, fileSize: entry.size }];
+        }
+        return [];
+      });
+      const savedThemeFolder = savedOfflineFileEntries.find(entry => entry.type === 'mapsforge-theme-folder') ;
+      if (savedThemeFolder?.path) {
+        void this.desktop?.Mapsforge.scanThemes(savedThemeFolder.path).then(themes => {
+          this.resourcePackageEntries.set([...savedResourceEntries, ...themes.map(theme => ({
+            type: 'mapsforge-theme' as const,
+            fileName: theme.fileName.replace(/\\.xml$/i, ''),
+            path: savedThemeFolder.path!,
+            sourcePath: theme.path,
+            fileSize: savedThemeFolder.size ?? 0
+          }))]);
+        }).catch(error => {
+          this.resourcePackageEntries.set(savedResourceEntries);
+          console.warn('[OfflineFiles] Could not restore Mapsforge theme entries:', error);
+        });
+      } else {
+        this.resourcePackageEntries.set(savedResourceEntries);
       }
       const configuredPresets = offlineSettings?.['presets'];
       if (configuredPresets && typeof configuredPresets === 'object' && !Array.isArray(configuredPresets)) {
