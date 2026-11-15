@@ -609,7 +609,7 @@ int main(int argc, char* argv[])
             }
         });
 
-    std::thread inputThread([&app, widget, displayScale, &captureTimer, &requestActive, &activeRequestId, &requestTimer, &activeOutputWidth, &activeOutputHeight, &activeOverscanX, &activeOverscanY]() {
+    std::thread inputThread([&app, widget, displayScale, obfPaths, &captureTimer, &requestActive, &activeRequestId, &requestTimer, &activeOutputWidth, &activeOutputHeight, &activeOverscanX, &activeOverscanY]() {
         std::string line;
         while (std::getline(std::cin, line))
         {
@@ -617,7 +617,7 @@ int main(int argc, char* argv[])
             const auto parsedLine = QJsonDocument::fromJson(commandLine.toUtf8());
             const bool quitRequested = parsedLine.isObject()
                 && parsedLine.object().value(QStringLiteral("type")).toString() == QStringLiteral("quit");
-            QMetaObject::invokeMethod(&app, [&, commandLine]() {
+            QMetaObject::invokeMethod(&app, [&, commandLine, obfPaths]() {
                 QJsonParseError parseError;
                 const auto document = QJsonDocument::fromJson(commandLine.toUtf8(), &parseError);
                 if (parseError.error != QJsonParseError::NoError || !document.isObject())
