@@ -200,6 +200,26 @@ Assert-Exists $officialBuildRoot
 Assert-Exists (Join-Path $vendorRoot "core")
 Assert-Exists (Join-Path $vendorRoot "core-legacy")
 Assert-Exists (Join-Path $vendorRoot "resources")
+
+$resourcesRoot = Join-Path $vendorRoot "resources"
+$resourcesCMakeLists = Join-Path $resourcesRoot "CMakeLists.txt"
+$resourcesBundleCMake = Join-Path $resourcesRoot "resources-bundle.cmake"
+Assert-Exists $resourcesCMakeLists
+
+if (-not (Test-Path -LiteralPath $resourcesBundleCMake -PathType Leaf)) {
+    Write-Warning "OsmAnd resources checkout is missing resources-bundle.cmake. Attempting to restore the tracked file from its current Git revision."
+    $isGitRepository = & git -C $resourcesRoot rev-parse --is-inside-work-tree 2>$null
+    if ($LASTEXITCODE -eq 0 -and $isGitRepository -eq "true") {
+        & git -C $resourcesRoot restore --source=HEAD -- resources-bundle.cmake
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Could not restore resources-bundle.cmake from the current checkout."
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $resourcesBundleCMake -PathType Leaf)) {
+        throw "The OsmAnd resources checkout is incomplete: '$resourcesBundleCMake' is missing. The upstream OsmAnd-resources repository contains this file beside CMakeLists.txt. Update or re-clone vendor\osmand\resources, then rerun this script. CMake configuration was stopped before it could fail later."
+    }
+}
 Assert-Exists $projectRoot
 Assert-Exists $officialCppToolsRoot
 Assert-Exists $qt5CoreShim
