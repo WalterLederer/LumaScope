@@ -684,6 +684,18 @@ interface MapErrorEntry {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
+      <div class="active-obf-list-box">
+        <table class="active-obf-list" aria-live="polite">
+          <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
+          <tbody>
+            @for (map of viewportObfMaps(); track map.id) {
+              <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
+            } @empty {
+              <tr><td colspan="2">No matching OBF maps</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
         
@@ -1355,7 +1367,13 @@ interface MapErrorEntry {
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
-    .render-tile-statistics-box{display:flex;flex-direction:row;align-items:flex-start;gap:14px;width:max-content;max-width:100%;margin-left:auto;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
+    .active-obf-list-box{flex:0 1 280px;min-width:190px;max-width:320px;max-height:300px;overflow:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
+    .active-obf-list{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+    .active-obf-list th,.active-obf-list td{padding:4px 6px;text-align:left;vertical-align:top;border-bottom:1px solid var(--color-content-default-low,#454545)}
+    .active-obf-list th{font-weight:700;white-space:nowrap}
+    .active-obf-list td:first-child{overflow-wrap:anywhere}
+    .active-obf-list td:last-child{white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
+    .render-tile-statistics-box{display:flex;flex-direction:row;align-items:flex-start;gap:14px;width:max-content;max-width:100%;margin-left:0;overflow-x:auto;border:1px solid var(--color-content-default-low,#666);border-radius:6px;padding:6px 8px;background:var(--color-surface-default-low,#202124)}
     .render-tile-statistics-box>.render-tile-statistics{flex:0 0 auto}
     .render-tile-statistics-box>.hillshade-render-statistics{border-left:1px solid var(--color-content-default-low,#666)}
     .render-tile-statistics-title{font-weight:700;font-size:13px;margin:0 0 3px 2px}
@@ -1462,7 +1480,7 @@ interface MapErrorEntry {
     
     .mbtiles-map-file .mbtiles-in-use{color:#8ab4f8;font-weight:600}
     .mbtiles-map-number{white-space:nowrap}
-    .mbtiles-map-bounds{max-width:210px;overflow:hidden;text-overflow:ellipsis}.mbtiles-map-disabled{opacity:.48}
+    .mbtiles-map-bounds{width:440px;min-width:360px;max-width:440px;white-space:normal;overflow-wrap:anywhere}.mbtiles-map-disabled{opacity:.48}
     .offline-map-import-error{grid-column:1/-1;color:var(--color-status-danger,#ff7777);font-size:11px;overflow-wrap:anywhere}
     .mbtiles-remove-button{padding:0 6px;min-width:24px;height:24px;font-size:18px;line-height:1;border:0;background:transparent;color:var(--color-content-default-medium,#aaa);cursor:pointer}
     .offline-map-remove-button{min-width:24px;height:24px;padding:0;font-size:18px;line-height:1}
@@ -2033,6 +2051,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  protected readonly viewportObfMapIds = signal<string[]>([]);
+  protected readonly viewportObfMaps = computed(() => {
+    const ids = new Set(this.viewportObfMapIds());
+    return this.offlineMaps().filter(map => map.type === 'obf' && ids.has(map.id));
+  });
   protected readonly obfBoundsPreview = signal<ObfBoundsPreview | null>(null);
   protected readonly boundsMapViews = signal<Record<BoundsMapKind, BoundsMapView>>({
     world: { x: 0, y: 0, width: 360, height: 180 },
@@ -2090,7 +2113,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return { activeCount, availableCount, missingCount, unselectedCount, inUseIds };
   });
   protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
-  protected readonly activeOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
+  protected readonly activeOsmandMapCount = computed(() => this.viewportObfMapIds().length);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
@@ -3975,6 +3998,77 @@ export class MapWindow implements OnInit, OnDestroy {
       section.name + ' (' + section.minZoom + '–' + section.maxZoom + ')');
     if (map.obfIsBasemap) details.unshift('Basemap');
     return details.length ? details.join(' · ') : (map.obfSectionCount ?? 0) + ' map section(s)';
+  }
+
+  private async updateActiveObfMapsForViewport(
+    renderer: OfflineMapRenderer,
+    source: 'osmand' | 'osmand-atlas'
+  ): Promise<void> {
+    const desktop = this.desktop;
+    if (!desktop || this.offlineRenderer !== renderer || this.mapSource() !== source) return;
+    const viewport = renderer.map.getBounds();
+    const west = viewport.getWest();
+    const east = viewport.getEast();
+    const south = viewport.getSouth();
+    const north = viewport.getNorth();
+    const longitudeSpan = Math.min(360, Math.max(0.1, east - west));
+    const latitudeSpan = Math.max(0.1, north - south);
+    // Keep a 20% geographic overscan so adjacent regional files are ready
+    // before the user pans across their border.
+    const paddedWest = west - longitudeSpan * 0.2;
+    const paddedEast = east + longitudeSpan * 0.2;
+    const paddedSouth = Math.max(-85.0511, south - latitudeSpan * 0.2);
+    const paddedNorth = Math.min(85.0511, north + latitudeSpan * 0.2);
+    const renderZoom = Math.floor(renderer.map.getZoom()) + (source === 'osmand' ? 1 : 0);
+    const parseBounds = (value: string | null | undefined): [number, number, number, number] | null => {
+      const numbers = value?.match(/-?\\d+(?:\\.\\d+)?/g)?.map(Number) ?? [];
+      return numbers.length === 4 && numbers.every(Number.isFinite)
+        ? [numbers[0], numbers[1], numbers[2], numbers[3]] : null;
+    };
+    const longitudeIntersects = (mapWest: number, mapEast: number): boolean => {
+      const mapSegments = mapWest <= mapEast ? [[mapWest, mapEast]] : [[mapWest, 180], [-180, mapEast]];
+      const viewSegments = paddedWest < -180
+        ? [[paddedWest + 360, 180], [-180, paddedEast]]
+        : paddedEast > 180
+          ? [[paddedWest, 180], [-180, paddedEast - 360]]
+          : [[paddedWest, paddedEast]];
+      return mapSegments.some(([a, b]) => viewSegments.some(([c, d]) => a <= d && b >= c));
+    };
+    const intersects = (value: string | null | undefined): boolean => {
+      const bounds = parseBounds(value);
+      if (!bounds) return false;
+      const [mapWest, mapSouth, mapEast, mapNorth] = bounds;
+      return mapSouth <= paddedNorth && mapNorth >= paddedSouth
+        && longitudeIntersects(mapWest, mapEast);
+    };
+    const enabledMaps = this.offlineMaps().filter(map =>
+      map.type === 'obf' && map.enabled && map.available && !!map.filePath);
+    const basemaps = enabledMaps.filter(map => map.obfIsBasemap
+      || /world[_ -]?basemap|world[_ -]?map/i.test((map.fileName || '') + ' ' + map.name));
+    const regionalMaps = enabledMaps.filter(map => !basemaps.includes(map) && (() => {
+      const levels = (map.obfSections ?? []).flatMap(section => section.levels ?? []);
+      if (levels.length) {
+        return levels.some(level => renderZoom >= level.minZoom && renderZoom <= level.maxZoom
+          && intersects(level.bounds));
+      }
+      return renderZoom >= (map.minZoom || 0) && renderZoom <= (map.maxZoom || 30)
+        && intersects(map.bounds);
+    })());
+    let selected = [...regionalMaps, ...basemaps];
+    if (!regionalMaps.length && !basemaps.length) {
+      // Older/partially indexed OBF files remain usable as a conservative fallback.
+      selected = enabledMaps.filter(map => !map.obfMetadataAvailable || intersects(map.bounds));
+    }
+    if (!selected.length && enabledMaps.length) selected = enabledMaps;
+    const selectedIds = selected.map(map => map.id);
+    this.viewportObfMapIds.set(selectedIds);
+    const paths = selected.map(map => map.filePath);
+    try {
+      if (source === 'osmand-atlas') await desktop.OsmAndAtlas.setActiveObfMaps(paths);
+      else await desktop.OsmAnd.setActiveObfMaps(paths);
+    } catch (error) {
+      console.warn('[OsmAnd] Could not update viewport OBF selection:', error);
+    }
   }
 
   protected readonly checkOffline = async (): Promise<void> => {
