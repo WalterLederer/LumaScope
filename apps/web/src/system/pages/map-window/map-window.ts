@@ -2793,6 +2793,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerScanGeneration++;
     this.clearDirectoryMarkers();
     window.removeEventListener('resize', this.onResize);
+    this.clearMapBoundsLayers();
     this.map?.remove();
     this.map = null;
     this.leafletHillshadeLayer = null;
