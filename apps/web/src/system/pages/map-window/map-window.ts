@@ -136,28 +136,35 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              <form class="offline-address-search" (submit)="$event.preventDefault(); searchOfflineAddresses()">
-                <label class="settings-row-title" for="offline-address-query">Offline address search:</label>
-                <div class="location-actions">
-                  <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
-                         placeholder="Street, house number, city or postcode…" autocomplete="off">
-                  <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
-                    {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
-                  </button>
-                </div>
-                @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
-                @if (offlineAddressSearchResults().length > 0) {
-                  <div class="offline-address-results" role="list" aria-label="Offline address search results">
-                    @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
-                      <button type="button" class="map-toolbar-button offline-address-result" role="listitem" (click)="goToOfflineAddress(result)">
-                        <strong>{{ result.display_name }}</strong>
-                        @if (result.secondary_text) { <span>{{ result.secondary_text }}</span> }
-                      </button>
-                    }
+              <details class="offline-address-search">
+                <summary class="settings-row-title">Offline address search</summary>
+                <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
+                  <div class="location-actions">
+                    <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
+                           placeholder="Street, house number, city or postcode…" autocomplete="off">
+                    <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
+                      {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
+                    </button>
                   </div>
-                }
-                <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
-              </form>
+                  @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
+                  @if (offlineAddressSearchResults().length > 0) {
+                    <div class="offline-address-results" role="table" aria-label="Offline address search results">
+                      <div class="offline-address-result offline-address-result-header" role="row">
+                        <strong role="columnheader">Address</strong><strong role="columnheader">Coordinates</strong>
+                      </div>
+                      @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
+                        <button type="button" class="map-toolbar-button offline-address-result" role="row" (click)="goToOfflineAddress(result)">
+                          <span class="offline-address-result-name"><strong>{{ result.display_name }}</strong>
+                            @if (result.secondary_text) { <span>{{ result.secondary_text }}</span> }
+                          </span>
+                          <span class="offline-address-result-coordinates" role="cell">{{ result.latitude.toFixed(6) }}, {{ result.longitude.toFixed(6) }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                  <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
+                </form>
+              </details>
               <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
               <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
               <div class="address-settings">
@@ -1266,6 +1273,18 @@ interface MapErrorEntry {
     .settings-tab-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0;width:100%;padding:2px 0}
     .settings-tab-content>summary{display:none}
     .settings-tab-content.location-tab{width:100%}
+    .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0;padding:6px 8px;border:1px solid var(--color-content-default-low,#555);border-radius:5px}
+    .offline-address-search>summary{cursor:pointer;font-weight:700;list-style:disclosure-closed}
+    .offline-address-search[open]>summary{margin-bottom:2px}
+    .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
+    .offline-address-results{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0;max-height:260px;overflow:auto}
+    .offline-address-result{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,auto);align-items:center;gap:12px;width:100%;text-align:left}
+    .offline-address-result-header{position:sticky;top:0;z-index:1;padding:5px 9px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px}
+    .offline-address-result-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .offline-address-result-name strong{overflow-wrap:anywhere}
+    .offline-address-result-name>span{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:normal}
+    .offline-address-result-coordinates{font:11px/1.4 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
+    @media(max-width:620px){.offline-address-result{grid-template-columns:minmax(0,1fr)}.offline-address-result-coordinates{padding-top:2px}}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}
@@ -1750,7 +1769,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly canShowMapBounds = computed(() => {
     const supportedMapType = this.mapSource() === 'offline' ? 'mbtiles'
       : this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 'obf' : null;
-    return supportedMapType !== null
+    return this.zoomLevel() <= 10 && supportedMapType !== null
       && this.offlineMaps().some(map => map.type === supportedMapType && map.enabled && !!map.bounds
         && !this.isWorldMapBounds(map));
   });
@@ -3193,6 +3212,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(value)) return;
     const zoom = this.validZoom(value);
     this.zoomLevel.set(zoom);
+    if (value > 10 && this.mapBoundsVisible()) this.changeMapBoundsVisible(false);
     this.saveSetting('zoom', zoom);
     void this.desktop?.MapWindow.setZoom(zoom).catch(error => console.error('Could not save map zoom:', error));
   }
