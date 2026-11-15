@@ -485,7 +485,7 @@ interface MapErrorEntry {
           </div>
         </details>
       } @else {
-        <span class="time-slider-help">{{ gpxTracks().some(track => !track.missing && !track.readError) ? 'The loaded GPX files contain no usable point timestamps. Track points need time values to define the time range.' : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.' }}</span>
+        <span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span>
       }
     </div>
   </div>
@@ -6058,6 +6058,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const span = this.timeSliderMaximum() - this.timeSliderMinimum();
     return span > 0 ? Math.max(0, Math.min(100, (this.timeSliderEnd() - this.timeSliderStart()) / span * 100)) : 100;
   };
+
+  protected readonly timeSliderNoDataHelpText = (): string =>
+    this.gpxTracks().some(track => !track.missing && !track.readError)
+      ? 'The loaded GPX files contain no usable point timestamps. Track points need time values to define the time range.'
+      : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.';
 
   protected readonly timeSliderHelpText = (): string => {
     const hasTracks = this.gpxTracks().some(track => !track.missing && !track.readError
