@@ -702,6 +702,10 @@ interface MapErrorEntry {
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
         <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()"><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
+        <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+          <input type="checkbox" [checked]="optimizedObfSelectionEnabled()" (change)="changeOptimizedObfSelectionEnabled($any($event.target).checked)" [disabled]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+          Optimize OBF selection by bounds
+        </label>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
@@ -1742,6 +1746,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
+  protected readonly optimizedObfSelectionEnabled = signal(this.readSetting('optimizedObfSelectionEnabled', 'true') === 'true');
   protected readonly canShowMapBounds = computed(() => {
     const supportedMapType = this.mapSource() === 'offline' ? 'mbtiles'
       : this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 'obf' : null;
@@ -1817,6 +1822,17 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('mapBoundsVisible', visible);
     this.persistLocationUiState({ mapBoundsVisible: visible });
     this.applyMapBoundsVisibility();
+  };
+  protected readonly changeOptimizedObfSelectionEnabled = (enabled: boolean): void => {
+    this.optimizedObfSelectionEnabled.set(enabled);
+    this.saveSetting('optimizedObfSelectionEnabled', enabled);
+    this.persistLocationUiState({ optimizedObfSelectionEnabled: enabled });
+    const renderer = this.offlineRenderer;
+    const source = this.mapSource();
+    if (!renderer || (source !== 'osmand' && source !== 'osmand-atlas')) return;
+    void this.updateActiveObfMapsForViewport(renderer, source).then(() => {
+      renderer.refreshVisibleTiles();
+    }).catch(error => console.warn('[OsmAnd] Could not apply OBF selection mode:', error));
   };
   private isWorldMapBounds(map: import('internal-api').OfflineMapStatus): boolean {
     const name = ((map.name || '') + ' ' + (map.fileName || '')).toLowerCase();
@@ -4140,23 +4156,30 @@ export class MapWindow implements OnInit, OnDestroy {
       console.info('[OsmAnd] Viewport OBF selection deferred: no enabled OBF entries are loaded yet.');
       return;
     }
-    const basemaps = enabledMaps.filter(map => map.obfIsBasemap
-      || /world[_ -]?basemap|world[_ -]?map/i.test((map.fileName || '') + ' ' + map.name));
-    const regionalMaps = enabledMaps.filter(map => !basemaps.includes(map) && (() => {
-      const levels = (map.obfSections ?? []).flatMap(section => section.levels ?? []);
-      if (levels.length) {
-        return levels.some(level => renderZoom >= level.minZoom && renderZoom <= level.maxZoom
-          && intersects(level.bounds));
+    let selected: typeof enabledMaps;
+    if (!this.optimizedObfSelectionEnabled()) {
+      // Compatibility mode: pass every enabled OBF file to the renderer,
+      // matching the pre-viewport-selection behavior.
+      selected = enabledMaps;
+    } else {
+      const basemaps = enabledMaps.filter(map => map.obfIsBasemap
+        || /world[_ -]?basemap|world[_ -]?map/i.test((map.fileName || '') + ' ' + map.name));
+      const regionalMaps = enabledMaps.filter(map => !basemaps.includes(map) && (() => {
+        const levels = (map.obfSections ?? []).flatMap(section => section.levels ?? []);
+        if (levels.length) {
+          return levels.some(level => renderZoom >= level.minZoom && renderZoom <= level.maxZoom
+            && intersects(level.bounds));
+        }
+        return renderZoom >= (map.minZoom || 0) && renderZoom <= (map.maxZoom || 30)
+          && intersects(map.bounds);
+      })());
+      selected = [...regionalMaps, ...basemaps];
+      if (!regionalMaps.length && !basemaps.length) {
+        // Older/partially indexed OBF files remain usable as a conservative fallback.
+        selected = enabledMaps.filter(map => !map.obfMetadataAvailable || intersects(map.bounds));
       }
-      return renderZoom >= (map.minZoom || 0) && renderZoom <= (map.maxZoom || 30)
-        && intersects(map.bounds);
-    })());
-    let selected = [...regionalMaps, ...basemaps];
-    if (!regionalMaps.length && !basemaps.length) {
-      // Older/partially indexed OBF files remain usable as a conservative fallback.
-      selected = enabledMaps.filter(map => !map.obfMetadataAvailable || intersects(map.bounds));
+      if (!selected.length && enabledMaps.length) selected = enabledMaps;
     }
-    if (!selected.length && enabledMaps.length) selected = enabledMaps;
     const selectedIds = selected.map(map => map.id);
     this.viewportObfMapIds.set(selectedIds);
     const paths = selected.map(map => map.filePath);
