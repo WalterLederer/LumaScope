@@ -2304,7 +2304,7 @@ export class MapWindow implements OnInit, OnDestroy {
           this.osmAndResourcesPath.set(resourcesPath);
 
           const themeFolder = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme-folder')?.path ?? '';
-          const savedThemePath = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme' && entry.enabled !== false)?.path ?? '';
+          const savedThemePath = offlineFileEntries.find(entry => entry.type === 'mapsforge-theme' && entry.enabled !== false)?.sourcePath ?? '';
           this.mapsforgeThemeFolder.set(themeFolder);
           if (themeFolder) {
             try {
