@@ -530,6 +530,11 @@ export class ImageView {
   protected readonly blackPoint = signal(0);
   protected readonly whitePoint = signal(1);
   protected readonly controlsSidebarVisible = signal(this.readControlsSidebarVisible());
+  protected readonly sidebarOnLeft = signal(this.readSidebarOnLeft());
+  private readSidebarOnLeft(): boolean {
+    try { return this.document.defaultView?.localStorage.getItem('imageSidebarSide') === 'left'; }
+    catch { return false; }
+  }
   protected readonly helpDocument = signal<string | null>(null);
   private readControlsSidebarVisible(): boolean {
     try { return this.document.defaultView?.localStorage.getItem('imageSidebarVisible') !== 'false'; }
@@ -553,8 +558,9 @@ export class ImageView {
     if (!view) return;
     const startX = event.clientX;
     const startWidth = this.sidebarWidth();
+    const resizeDirection = this.sidebarOnLeft() ? 1 : -1;
     const onMove = (moveEvent: PointerEvent): void => {
-      this.sidebarWidth.set(Math.max(280, Math.min(view.innerWidth * 0.7, startWidth + startX - moveEvent.clientX)));
+      this.sidebarWidth.set(Math.max(280, Math.min(view.innerWidth * 0.7, startWidth + (moveEvent.clientX - startX) * resizeDirection)));
     };
     const onUp = (): void => {
       view.removeEventListener('pointermove', onMove);
@@ -2364,6 +2370,12 @@ export class ImageView {
 
   protected readonly onGalleryImageSelected = (): void => {
     this.setActiveImageSidebarTab('image');
+  };
+
+  protected readonly toggleSidebarSide = (): void => {
+    const nextOnLeft = !this.sidebarOnLeft();
+    this.sidebarOnLeft.set(nextOnLeft);
+    try { this.document.defaultView?.localStorage.setItem('imageSidebarSide', nextOnLeft ? 'left' : 'right'); } catch { /* Keep the current session position. */ }
   };
 
   protected readonly toggleSidebarVisibility = (): void => {
