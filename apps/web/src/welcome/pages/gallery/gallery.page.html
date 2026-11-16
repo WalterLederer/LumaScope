@@ -73,7 +73,7 @@
 <ng-template #galleryMenu let-data="data">
   <ui-popup-menu cdkMenu>
     @if (data.id === '') {
-      <ui-action-button cdkMenuItem (pressed)="onAddLocation()">
+      <ui-action-button class="add-location-menu-button" cdkMenuItem (pressed)="onAddLocation()">
         <ui-icon icon="folderAdd" [inherit]="true" />
         <ui-text [inherit]="true">Add new location</ui-text>
       </ui-action-button>
