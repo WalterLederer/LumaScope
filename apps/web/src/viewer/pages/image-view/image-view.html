@@ -250,14 +250,21 @@
         <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('loupe')" (click)="toggleSidebarSection('loupe')">Magnifier (M)</button>
         <label class="magnifier-enable-toggle"><input type="checkbox" [checked]="loupeEnabled()" (change)="toggleLoupe($any($event.target).checked)"/> Enable magnifier</label>
         @if(sidebarSectionExpanded('loupe')) {
-          <button class="section-heading app-disclosure-heading is-nested" [class.expanded]="sidebarSectionExpanded('magnifierSettings')" (click)="toggleSidebarSection('magnifierSettings')">Magnifier Settings</button>
-          @if(sidebarSectionExpanded('magnifierSettings')) {
+          <section class="app-disclosure">
+            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('magnifierSettings')" (click)="toggleSidebarSection('magnifierSettings')">Magnifier Settings</button>
+            @if(sidebarSectionExpanded('magnifierSettings')) {
             <label class="channel-control"><span>Magnifier zoom (mouse wheel)<span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
             <label class="channel-control"><span>Magnifier size<span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
             <label class="channel-control"><span>Magnifier brightness<span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
             <div class="channel-control"><span>Magnifier Shape</span><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
-            <section><button class="section-heading app-disclosure-heading is-nested" [class.expanded]="sidebarSectionExpanded('loupeRenderer')" (click)="toggleSidebarSection('loupeRenderer')">Magnifier renderer</button>@if(sidebarSectionExpanded('loupeRenderer')) {<button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>}</section>
-          }
+              <section class="app-disclosure">
+                <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('loupeRenderer')" (click)="toggleSidebarSection('loupeRenderer')">Magnifier renderer</button>
+                @if(sidebarSectionExpanded('loupeRenderer')) {
+                  <button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>
+                }
+              </section>
+            }
+          </section>
         }
       @if (sidebarSectionExpanded('loupe') && loupeEnabled()) {
         <section class="loupe-info-box location-info-box" aria-label="Location pixel information">
