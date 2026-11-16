@@ -148,6 +148,17 @@ interface MapErrorEntry {
                   <div class="time-slider-animation-panel fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
+                @if (autoFixReport().length) {
+                  <div class="fix-location-report-wrap">
+                    <table class="fix-location-report">
+                      <tbody>
+                        @for (item of autoFixReport(); track item.label) {
+                          <tr><th scope="row">{{ item.label }}</th><td>{{ item.value }}</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
                 <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
               </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
@@ -1835,6 +1846,13 @@ interface MapErrorEntry {
     .fix-location-crosshair-row{align-items:center}
     .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
     .fix-location-automatic-status{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+    .fix-location-report-wrap{max-width:100%;overflow-x:auto;margin-top:10px}
+    .fix-location-report{width:100%;border-collapse:collapse;font-size:14px;line-height:1.45}
+    .fix-location-report th,.fix-location-report td{padding:7px 10px;border:1px solid #555;text-align:left;vertical-align:top}
+    .fix-location-report th{width:42%;font-weight:600;color:inherit;background:rgba(127,127,127,.12)}
+    .fix-location-report td{overflow-wrap:anywhere}
+    :host-context(html[data-theme='light']) .fix-location-report th,:host-context(html[data-theme='light']) .fix-location-report td{border-color:#c5c8ce}
+
     :host-context(html[data-theme='light']) .fix-location-max-difference input{background:#fff;border-color:#aeb4bd;color:#202124}
     .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
     .fix-location-toggle input{accent-color:#8ab4f8}
@@ -2746,6 +2764,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixMaxDifferenceMinutes = signal(2);
   protected readonly autoFixBusy = signal(false);
   protected readonly autoFixStatus = signal('');
+  protected readonly autoFixReport = signal<Array<{ label: string; value: string }>>([]);
   protected readonly currentImagePreview = signal<string | null>(null);
   protected readonly currentImageName = signal('');
   private imagePreviewGeneration = 0;
@@ -3314,6 +3333,7 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       const checkOnly = this.autoFixCheckOnly();
+      this.autoFixReport.set([]);
       this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
       const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
       if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
@@ -3322,31 +3342,30 @@ export class MapWindow implements OnInit, OnDestroy {
       const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
       if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
-      const gpsCounts = 'GPS available: ' + result.withGps.toLocaleString()
-        + ' · GPS missing: ' + result.withoutGps.toLocaleString();
-      const deviationStats = result.minDeviationSeconds === null
-        ? 'GPX candidate deviation min/mean/max: n/a'
-        : 'GPX candidate deviation min/mean/max: ' + result.minDeviationSeconds.toFixed(1) + ' / '
-          + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
       const elapsedSeconds = result.elapsedMilliseconds / 1000;
       const elapsedText = elapsedSeconds < 60
         ? elapsedSeconds.toFixed(1) + ' s'
         : Math.floor(elapsedSeconds / 60).toString() + ' min ' + (elapsedSeconds % 60).toFixed(0) + ' s';
-      this.autoFixStatus.set(
-        'Start folder: ' + result.rootFolder +
-        ' · Folders processed: ' + result.totalFoldersProcessed.toLocaleString() +
-        ' · Files processed: ' + result.totalFilesProcessed.toLocaleString() +
-        ' · Photo files checked: ' + result.scanned.toLocaleString() +
-        ' · Runtime: ' + elapsedText +
-        ' · ' + (checkOnly ? 'Check only — no files changed' : 'GPS correction completed') +
-        ' · ' + gpsCounts +
-        ' · GPX matches within limit: ' + result.matched.toLocaleString() +
-        ' · No GPX match: ' + result.unmatched.toLocaleString() +
-        ' · Ignored (time difference too high): ' + result.ignoredTooFar.toLocaleString() +
-        ' · ' + deviationStats +
-        (checkOnly ? '' : ' · Updated: ' + result.updated.toLocaleString()) +
-        (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
-      );
+      const deviationStats = result.minDeviationSeconds === null
+        ? 'n/a'
+        : result.minDeviationSeconds.toFixed(1) + ' / ' + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
+      this.autoFixStatus.set('');
+      this.autoFixReport.set([
+        { label: 'Start folder', value: result.rootFolder },
+        { label: 'Folders processed', value: result.totalFoldersProcessed.toLocaleString() },
+        { label: 'Files processed', value: result.totalFilesProcessed.toLocaleString() },
+        { label: 'Photo files checked', value: result.scanned.toLocaleString() },
+        { label: 'Runtime', value: elapsedText },
+        { label: 'Result', value: checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
+        { label: 'GPS available', value: result.withGps.toLocaleString() },
+        { label: 'GPS missing', value: result.withoutGps.toLocaleString() },
+        { label: 'GPX matches within limit', value: result.matched.toLocaleString() },
+        { label: 'No GPX match', value: result.unmatched.toLocaleString() },
+        { label: 'Ignored (time difference too high)', value: result.ignoredTooFar.toLocaleString() },
+        { label: 'GPX candidate deviation min / mean / max', value: deviationStats },
+        ...(!checkOnly ? [{ label: 'Updated', value: result.updated.toLocaleString() }] : []),
+        ...(result.errors ? [{ label: 'Errors', value: result.errors.toLocaleString() }] : [])
+      ]);
     } catch (error) {
       this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
