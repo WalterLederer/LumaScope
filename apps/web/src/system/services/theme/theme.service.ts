@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
+import { ButtonColor, ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -18,6 +18,8 @@ export class ThemeService {
 
   readonly buttonStyle = signal<ButtonStyle>('blue');
 
+  readonly buttonColor = signal<ButtonColor>('blue');
+
   readonly disclosureStyle = signal<DisclosureStyle>('classic');
 
   readonly tabBarStyle = signal<TabBarStyle>('classic');
@@ -32,6 +34,13 @@ export class ThemeService {
 
   constructor() {
     this.desktop?.Theme.onChanged(theme => this.setTheme(theme, false));
+    this.desktop?.ProcessManager.onAppSettingsChanged((section, values) => {
+      if (section !== 'preferences') return;
+      if (typeof values['buttonStyle'] === 'string') this.applyButtonStyle(values['buttonStyle'] as ButtonStyle);
+      if (typeof values['buttonColor'] === 'string') this.applyButtonColor(values['buttonColor'] as ButtonColor);
+      if (typeof values['disclosureStyle'] === 'string') this.applyDisclosureStyle(values['disclosureStyle'] as DisclosureStyle);
+      if (typeof values['tabBarStyle'] === 'string') this.applyTabBarStyle(values['tabBarStyle'] as TabBarStyle);
+    });
 
     this.document.defaultView?.addEventListener('storage', event => {
       if (event.key === 'theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
@@ -45,6 +54,7 @@ export class ThemeService {
         this.setTheme(config.system.theme ?? 'light', false);
         const style = config.preferences?.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
         this.applyButtonStyle(style);
+        this.applyButtonColor(config.preferences?.buttonColor ?? 'blue');
         this.applyDisclosureStyle(config.preferences?.disclosureStyle ?? 'classic');
         this.applyTabBarStyle(config.preferences?.tabBarStyle ?? 'classic');
       });
@@ -61,6 +71,11 @@ export class ThemeService {
     this.configuration.updatePreferencesConfig({ buttonStyle: style });
   };
 
+  readonly setButtonColor = (color: ButtonColor) => {
+    this.applyButtonColor(color);
+    this.configuration.updatePreferencesConfig({ buttonColor: color });
+  };
+
   readonly setDisclosureStyle = (style: DisclosureStyle) => {
     this.applyDisclosureStyle(style);
     this.configuration.updatePreferencesConfig({ disclosureStyle: style });
@@ -70,6 +85,11 @@ export class ThemeService {
     this.applyTabBarStyle(style);
     this.configuration.updatePreferencesConfig({ tabBarStyle: style });
   };
+
+  private applyButtonColor(color: ButtonColor): void {
+    this.buttonColor.set(color);
+    this.document.documentElement.dataset['buttonColor'] = color;
+  }
 
   private applyTabBarStyle(style: TabBarStyle): void {
     this.tabBarStyle.set(style);
