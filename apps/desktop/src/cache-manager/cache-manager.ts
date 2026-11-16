@@ -628,14 +628,12 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getInterpolatedGpxPosition' })
   readonly getInterpolatedGpxPosition = async (
-    _event: IpcMainInvokeEvent, folder: string, timestampMs: number
-  ): Promise<{ latitude: number; longitude: number } | null> => {
-    if (!folder || !Number.isFinite(timestampMs)) return null;
+    _event: IpcMainInvokeEvent, folder: string, timestampMs: number, maxDifferenceSeconds = 120
+  ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
+    if (!folder || !Number.isFinite(timestampMs) || !Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0) return null;
     const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(folder);
     this.activeDatabaseKey = databaseKey;
-    // Find a complete before/after pair inside one segment. This avoids
-    // interpolating between unrelated tracks that happen to overlap in time.
     const pair = db.prepare(`SELECT segment_id,
         MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) AS before_timestamp,
         MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) AS after_timestamp
@@ -647,8 +645,8 @@ export class CacheManager {
       ORDER BY (after_timestamp - before_timestamp), segment_id
       LIMIT 1`).get({
         timestamp: timestampMs,
-        minimum: timestampMs - 150_000,
-        maximum: timestampMs + 150_000
+        minimum: timestampMs - maxDifferenceSeconds * 1000,
+        maximum: timestampMs + maxDifferenceSeconds * 1000
       }) as { segment_id: number; before_timestamp: number; after_timestamp: number } | undefined;
     if (!pair) return null;
     const getPoint = db.prepare(`SELECT latitude, longitude FROM gpx_track_points
@@ -659,13 +657,17 @@ export class CacheManager {
     const after = getPoint.get({ segmentId: pair.segment_id, timestamp: pair.after_timestamp }) as
       { latitude: number; longitude: number } | undefined;
     if (!before || !after) return null;
+    const beforeDelta = Math.abs(timestampMs - pair.before_timestamp) / 1000;
+    const afterDelta = Math.abs(pair.after_timestamp - timestampMs) / 1000;
+    const deviationSeconds = Math.min(beforeDelta, afterDelta);
     const span = pair.after_timestamp - pair.before_timestamp;
-    if (span < 0 || span > 300_000) return null;
-    if (span === 0) return { latitude: before.latitude, longitude: before.longitude };
+    if (span < 0 || span > maxDifferenceSeconds * 2000) return null;
+    if (span === 0) return { latitude: before.latitude, longitude: before.longitude, deviationSeconds };
     const ratio = (timestampMs - pair.before_timestamp) / span;
     return {
       latitude: before.latitude + (after.latitude - before.latitude) * ratio,
-      longitude: before.longitude + (after.longitude - before.longitude) * ratio
+      longitude: before.longitude + (after.longitude - before.longitude) * ratio,
+      deviationSeconds
     };
   };
 
