@@ -7209,13 +7209,13 @@ export class MapWindow implements OnInit, OnDestroy {
     const widths = this.gpxDatabaseColumnWidths();
     const columns = this.gpxDatabaseColumns();
     return [
-      widths.active + 'px', widths.name + 'px',
-      ...(columns.points ? [widths.points + 'px'] : []),
-      ...(columns.time ? [widths.time + 'px'] : []),
-      ...(columns.size ? [widths.size + 'px'] : []),
-      ...(columns.modified ? [widths.modified + 'px'] : []),
-      ...(columns.path ? [widths.path + 'px'] : []),
-      widths.color + 'px', widths.line + 'px', widths.width + 'px', widths.arrows + 'px'
+      widths['active'] + 'px', widths['name'] + 'px',
+      ...(columns.points ? [widths['points'] + 'px'] : []),
+      ...(columns.time ? [widths['time'] + 'px'] : []),
+      ...(columns.size ? [widths['size'] + 'px'] : []),
+      ...(columns.modified ? [widths['modified'] + 'px'] : []),
+      ...(columns.path ? [widths['path'] + 'px'] : []),
+      widths['color'] + 'px', widths['line'] + 'px', widths['width'] + 'px', widths['arrows'] + 'px'
     ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
