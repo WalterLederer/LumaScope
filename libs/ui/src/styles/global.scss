@@ -55,6 +55,93 @@ ui-action-button {
   box-shadow: 0 1px 2px rgb(0 0 0 / 14%), 0 1px 1px rgb(0 0 0 / 7%), inset 0 1px 0 rgb(255 255 255 / 3%) !important;
 }
 
+/* Shared blue appearance for compact symbol-only action buttons. Keep each
+ * component's own dimensions and layout; only unify the visual treatment.
+ */
+button:is(
+  .routing-help-button,
+  .overlay-close-button,
+  .copy-path-button,
+  .image-copy-path-button,
+  .status-icon-button,
+  .panel-close-button,
+  .settings-close-button,
+  .sidebar-close-tab,
+  .sidebar-side-toggle
+) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: 1px solid #4b9fe0 !important;
+  border-radius: 8px !important;
+  background: linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 55%) !important;
+  box-shadow: inset 0 2px 2px rgb(255 255 255 / 55%), inset 0 -2px 3px rgb(0 0 0 / 28%), 0 2px 0 #174b7d, 0 4px 8px rgb(0 0 0 / 22%) !important;
+  cursor: pointer !important;
+  transition: filter 100ms ease, transform 100ms ease, box-shadow 100ms ease;
+}
+
+button:is(
+  .routing-help-button,
+  .overlay-close-button,
+  .copy-path-button,
+  .image-copy-path-button,
+  .status-icon-button,
+  .panel-close-button,
+  .settings-close-button,
+  .sidebar-close-tab,
+  .sidebar-side-toggle
+):hover:not(:disabled) {
+  filter: brightness(1.18) !important;
+  transform: translateY(-1px) !important;
+}
+
+button:is(
+  .routing-help-button,
+  .overlay-close-button,
+  .copy-path-button,
+  .image-copy-path-button,
+  .status-icon-button,
+  .panel-close-button,
+  .settings-close-button,
+  .sidebar-close-tab,
+  .sidebar-side-toggle
+):active:not(:disabled) {
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 2px 3px rgb(0 0 0 / 25%), 0 1px 0 #174b7d !important;
+}
+
+button:is(
+  .routing-help-button,
+  .overlay-close-button,
+  .copy-path-button,
+  .image-copy-path-button,
+  .status-icon-button,
+  .panel-close-button,
+  .settings-close-button,
+  .sidebar-close-tab,
+  .sidebar-side-toggle
+):disabled {
+  cursor: not-allowed !important;
+  filter: grayscale(.55) brightness(.72) !important;
+  opacity: .6;
+}
+
+button:is(
+  .routing-help-button,
+  .overlay-close-button,
+  .copy-path-button,
+  .image-copy-path-button,
+  .status-icon-button,
+  .panel-close-button,
+  .settings-close-button,
+  .sidebar-close-tab,
+  .sidebar-side-toggle
+):focus-visible {
+  outline: 2px solid #75c5ff !important;
+  outline-offset: 2px !important;
+}
+
 /* Native dropdowns share consistent breathing room and restrained elevation. */
 select {
   margin: 3px 4px !important;
