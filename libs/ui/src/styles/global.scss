@@ -65,43 +65,69 @@ details.app-disclosure,
   color: var(--color-content-default-high);
 }
 
+/* Use one CSS-drawn disclosure marker for consistent size across browsers. */
 details > summary,
 details.app-disclosure > summary,
 .app-disclosure > summary {
-  display: list-item;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 0;
   padding: 0;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 400 !important;
   line-height: 1.4;
-  list-style: disclosure-closed;
+  list-style: none;
   cursor: pointer;
   user-select: none;
+}
+
+details > summary::-webkit-details-marker,
+details.app-disclosure > summary::-webkit-details-marker,
+.app-disclosure > summary::-webkit-details-marker {
+  display: none;
 }
 
 details > summary::marker,
 details.app-disclosure > summary::marker,
 .app-disclosure > summary::marker {
-  font-size: 0.75em;
-  color: rgb(190 105 105 / 78%);
+  content: "";
+  font-size: 0;
+}
+
+details > summary::before,
+details.app-disclosure > summary::before,
+.app-disclosure > summary::before,
+.app-disclosure-heading::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 7px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 7px solid rgb(190 105 105 / 78%);
+  transform-origin: 3px 6px;
 }
 
 details[open] > summary,
 details.app-disclosure[open] > summary,
-.app-disclosure[open] > summary {
-  list-style: disclosure-open;
+.app-disclosure[open] > summary,
+.app-disclosure-heading.expanded {
   margin-bottom: 4px;
-  font-weight: 700;
+  font-weight: 700 !important;
 }
 
-details[open] > summary::marker,
-details.app-disclosure[open] > summary::marker,
-.app-disclosure[open] > summary::marker {
-  color: rgb(105 170 125 / 78%);
+details[open] > summary::before,
+details.app-disclosure[open] > summary::before,
+.app-disclosure[open] > summary::before,
+.app-disclosure-heading.expanded::before {
+  border-left-color: rgb(105 170 125 / 78%);
+  transform: rotate(90deg);
 }
 
-/* Button-based disclosure markers stay compact and align with native summary markers. */
+/* Button-based disclosure headings share the native summary typography and marker. */
 .app-disclosure-heading {
   display: flex;
   align-items: center;
@@ -110,30 +136,17 @@ details.app-disclosure[open] > summary::marker,
   padding: 0;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 400 !important;
   line-height: 1.4;
   list-style: none;
   cursor: pointer;
   user-select: none;
 }
-.app-disclosure-heading::before {
-  content: "";
-  display: inline-block;
-  flex: 0 0 5px;
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid currentColor;
-  transform-origin: 2px 4px;
-  border-left-color: rgb(190 105 105 / 78%);
+.app-disclosure-heading:not(.expanded) {
+  font-weight: 400 !important;
 }
 .app-disclosure-heading.expanded {
-  font-weight: 700;
-}
-.app-disclosure-heading.expanded::before {
-  border-left-color: rgb(105 170 125 / 78%);
-  transform: rotate(90deg);
+  font-weight: 700 !important;
 }
 
 /* Disclosure sections are flush; nesting is indicated by indentation, not spacing. */
