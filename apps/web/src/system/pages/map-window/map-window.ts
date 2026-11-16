@@ -1318,6 +1318,7 @@ interface MapErrorEntry {
     .offline-address-result-name span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:nowrap}
     .offline-address-result-coordinates{text-align:right;font:11px/1.3 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
+    .view-tab .view-primary-controls + .zoom-settings-section{margin-top:10px}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;margin-left:auto}
