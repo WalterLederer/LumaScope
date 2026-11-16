@@ -58,6 +58,22 @@
 }
 
 .detail-header {
+  /* Sortable column headings are text controls, not global action buttons. */
+  > button {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    transform: none !important;
+  }
+
   position: sticky;
   top: 0;
   z-index: 5;
