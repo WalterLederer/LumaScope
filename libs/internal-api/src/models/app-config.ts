@@ -98,7 +98,8 @@ export interface CacheConfigV1 {
 export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io0 = (input: any): boolean =>
     1 === input.version && ('object' === typeof input.gallery && null !== input.gallery && _io1(input.gallery))
-    && ('object' === typeof input.system && null !== input.system && _io2(input.system));
+    && ('object' === typeof input.system && null !== input.system && _io2(input.system))
+    && (undefined === input.preferences || 'object' === typeof input.preferences && null !== input.preferences && _io4(input.preferences));
   const _io1 = (input: any): boolean =>
     Array.isArray(input.locations) && input.locations.every((elem: any) => 'string' === typeof elem)
     && (undefined === input.thumbWidth || 'number' === typeof input.thumbWidth)
