@@ -437,7 +437,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       let png: Uint8Array;
       const databaseStarted = performance.now();
       try {
-        png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0));
         databaseMs += performance.now() - databaseStarted;
       } catch (error) {
         databaseMs += performance.now() - databaseStarted;
