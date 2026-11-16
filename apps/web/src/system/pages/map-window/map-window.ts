@@ -106,7 +106,7 @@ interface MapErrorEntry {
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
-        <button type="button" class="settings-toggle" [class.active]="settingsOpen()" (click)="toggleSettings()"
+        <button type="button" class="settings-toggle app-disclosure-heading" [class.active]="settingsOpen()" [class.expanded]="settingsOpen()" (click)="toggleSettings()"
                 [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">Settings</button>
         <div class="map-title"><span class="map-title-icon">⌖</span></div>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
