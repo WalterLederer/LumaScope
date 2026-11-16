@@ -102,7 +102,8 @@ export class Configuration {
       },
       system: {
         minimiseOnStart: false,
-        theme: 'light'
+        theme: 'light',
+        flatStandardButtons: false
       }
     };
   };
