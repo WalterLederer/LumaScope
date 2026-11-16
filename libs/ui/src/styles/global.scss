@@ -589,12 +589,12 @@ html[data-button-style='outlined'] ui-action-button:active:not(:disabled) {
 }
 html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='outlined'] ui-action-button {
-  color: #9bcfff !important;
-  border-color: #579bd5 !important;
+  color: color-mix(in srgb, var(--button-text) 65%, white) !important;
+  border-color: var(--button-border-strong) !important;
 }
 html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='outlined'] ui-action-button:hover:not(:disabled) {
-  background: rgb(95 170 232 / 15%) !important;
+  background: color-mix(in srgb, var(--button-text) 15%, transparent) !important;
 }
 
 html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
@@ -617,13 +617,13 @@ html[data-button-style='soft'] ui-action-button:active:not(:disabled) {
 }
 html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='soft'] ui-action-button {
-  background: #293d50 !important;
-  color: #d7eaff !important;
-  border-color: #456783 !important;
+  background: color-mix(in srgb, var(--button-rounded-bg) 22%, #202a34) !important;
+  color: color-mix(in srgb, var(--button-text) 30%, white) !important;
+  border-color: var(--button-border-strong) !important;
 }
 html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='soft'] ui-action-button:hover:not(:disabled) {
-  background: #344d64 !important;
+  background: color-mix(in srgb, var(--button-rounded-bg) 30%, #202a34) !important;
 }
 
 html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
