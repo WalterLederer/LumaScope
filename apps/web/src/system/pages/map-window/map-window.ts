@@ -109,7 +109,8 @@ interface MapErrorEntry {
         <button type="button" class="settings-toggle app-disclosure-heading" [class.active]="settingsOpen()" [class.expanded]="settingsOpen()" (click)="toggleSettings()"
                 [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">Settings</button>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
-          <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
+          <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)">
+          <span>Always on top</span>
         </label>
         <div class="map-title"><span class="map-title-icon">⌖</span></div>
         @if (overlayMode) {
@@ -1300,8 +1301,9 @@ interface MapErrorEntry {
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
     .map-titlebar{position:relative;z-index:2147483001;display:flex!important;flex:0 0 36px;align-items:center;gap:10px;width:100%;min-width:0;height:36px;box-sizing:border-box;padding:4px 10px;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-low,#444);overflow:visible}
-    .titlebar-always-on-top{display:flex!important;flex:0 0 auto;align-items:center;gap:5px;margin-left:0;white-space:nowrap;font-size:12px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important}
-    .titlebar-always-on-top input{display:inline-block!important;flex:0 0 auto;width:14px;height:14px;margin:0;accent-color:#8ab4f8;visibility:visible!important;opacity:1!important}
+    .titlebar-always-on-top{position:relative;z-index:2147483002;display:flex!important;flex:0 0 auto!important;align-self:center;align-items:center;justify-content:flex-start;gap:6px;min-width:max-content;min-height:24px;margin:0 0 0 4px;padding:0 4px;white-space:nowrap;font-size:12px;line-height:18px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+    .titlebar-always-on-top input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;display:inline-block!important;position:static!important;flex:0 0 14px!important;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;margin:0!important;padding:0!important;accent-color:#8ab4f8;visibility:visible!important;opacity:1!important}
+    .titlebar-always-on-top span{display:inline-block!important;flex:0 0 auto!important;white-space:nowrap!important;visibility:visible!important;opacity:1!important}
     :host(.overlay-mode) .map-window{background:transparent;border:1px solid rgba(255,255,255,.48);border-radius:8px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.28)}
     :host(.overlay-mode) .map-titlebar{background:rgba(32,33,36,.88);border-bottom-color:rgba(255,255,255,.22)}
     :host(.overlay-mode) .map-settings{background:rgba(32,33,36,.96)}
@@ -1322,8 +1324,9 @@ interface MapErrorEntry {
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
-    .titlebar-always-on-top{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
-    .titlebar-always-on-top input{accent-color:#8ab4f8}
+    .titlebar-always-on-top{position:relative;z-index:2147483002;display:flex!important;flex:0 0 auto!important;align-self:center;align-items:center;justify-content:flex-start;gap:6px;min-width:max-content;min-height:24px;margin:0 0 0 4px;padding:0 4px;white-space:nowrap;font-size:12px;line-height:18px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+    .titlebar-always-on-top input[type="checkbox"]{appearance:auto!important;-webkit-appearance:checkbox!important;display:inline-block!important;position:static!important;flex:0 0 14px!important;width:14px!important;height:14px!important;min-width:14px!important;min-height:14px!important;margin:0!important;padding:0!important;accent-color:#8ab4f8;visibility:visible!important;opacity:1!important}
+    .titlebar-always-on-top span{display:inline-block!important;flex:0 0 auto!important;white-space:nowrap!important;visibility:visible!important;opacity:1!important}
     .map-coordinates{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
