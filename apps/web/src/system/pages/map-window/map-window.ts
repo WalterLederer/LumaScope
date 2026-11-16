@@ -6301,7 +6301,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const sources: string[] = [];
     for (const track of [...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(item => !item.missing && !item.readError)) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
-      if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
+      if (points.some(point => point.inViewport !== false && point.timestamp && Number.isFinite(Date.parse(point.timestamp))
         && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
         sources.push('GPX: ' + track.name);
       }
@@ -6324,6 +6324,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // time controls or make photo GPS timestamps a prerequisite.
       ...[...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(track => !track.missing && !track.readError)
         .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
+        .filter(point => point.inViewport !== false)
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
       ...(this.directoryMarkersEnabled()
         ? this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
