@@ -1,6 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
-import { open, readdir } from 'node:fs/promises';
+import { open, readdir, stat } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { ApiResponse, ExifTags, FixPhotoLocationsResult } from 'internal-api';
 import { Injector } from '../injector/injector';
@@ -65,6 +65,8 @@ export class Exif {
     try {
       if (!folder || typeof folder !== 'string') throw new Error('Select a valid photo folder first.');
       const root = resolve(folder);
+      const rootInfo = await stat(root);
+      if (!rootInfo.isDirectory()) throw new Error('The selected path is not a folder.');
       const imageExtensions = new Set([
         '.jpg', '.jpeg', '.tif', '.tiff', '.heic', '.heif', '.png', '.webp',
         '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf'
