@@ -1451,6 +1451,10 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs{background:#f7f7f7!important}
     :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active){background:#dedede!important;border-color:#bdbdbd!important}
     :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):hover{background:#d3d3d3!important}
+    .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active){background:#d8e0e8!important;color:#34495a!important}
+    .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):hover{background:#cbd7e2!important}
+    :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active){background:#343d48!important;color:#c4d0dc!important}
+    :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):hover{background:#3d4956!important}
     .settings-tabs-spacer{flex:1 0 12px}
     
     .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,75,75,.30);color:#ff8a80;font-size:10px;font-weight:800}
