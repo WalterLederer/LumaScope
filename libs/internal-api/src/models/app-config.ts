@@ -65,6 +65,9 @@ export interface AppConfigV1Gallery {
 export type ButtonStyle = 'blue' | 'flat' | 'outlined' | 'soft' | 'rounded';
 export const allButtonStyles: readonly ButtonStyle[] = ['blue', 'flat', 'outlined', 'soft', 'rounded'];
 
+export type ButtonColor = 'blue' | 'cyan' | 'green' | 'teal' | 'orange' | 'red' | 'purple' | 'gray';
+export const allButtonColors: readonly ButtonColor[] = ['blue', 'cyan', 'green', 'teal', 'orange', 'red', 'purple', 'gray'];
+
 export type DisclosureStyle = 'classic' | 'plain-triangle' | 'chevron' | 'plus-minus' | 'square' | 'circle' | 'arrow' | 'caret' | 'bracket' | 'none';
 export const allDisclosureStyles: readonly DisclosureStyle[] = ['classic', 'plain-triangle', 'chevron', 'plus-minus', 'square', 'circle', 'arrow', 'caret', 'bracket', 'none'];
 
@@ -79,6 +82,8 @@ export interface AppConfigV1Preferences {
   tabBarStyle?: TabBarStyle;
   /** Global action-button appearance. Defaults to the original blue style. */
   buttonStyle?: ButtonStyle;
+  /** Accent color used by all action-button styles. Defaults to blue. */
+  buttonColor?: ButtonColor;
 }
 
 export interface AppConfigV1System {
@@ -135,6 +140,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io4 = (input: any): boolean =>
     (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
     && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle)
+    && (undefined === input.buttonColor || 'blue' === input.buttonColor || 'cyan' === input.buttonColor || 'green' === input.buttonColor || 'teal' === input.buttonColor || 'orange' === input.buttonColor || 'red' === input.buttonColor || 'purple' === input.buttonColor || 'gray' === input.buttonColor)
     && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle)
     && (undefined === input.tabBarStyle || 'classic' === input.tabBarStyle || 'underline' === input.tabBarStyle || 'pills' === input.tabBarStyle || 'segmented' === input.tabBarStyle || 'boxed' === input.tabBarStyle || 'minimal' === input.tabBarStyle || 'flat' === input.tabBarStyle || 'contrast' === input.tabBarStyle || 'soft' === input.tabBarStyle || 'rounded' === input.tabBarStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
