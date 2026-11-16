@@ -749,20 +749,20 @@ interface MapErrorEntry {
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
         <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
-        <div class="range-setting render-worker-setting">
-          <label for="render-worker-count">Parallel render processes</label>
-          <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
-            [value]="renderWorkerCount()" (input)="changeRenderWorkerCount($any($event.target).value)"
-            aria-label="Number of parallel render processes">
-          <span class="range-value">{{ renderWorkerCount() }}</span>
-        </div>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
       <details class="render-helper-activity-section app-disclosure">
-        <summary>Render helper activity</summary>
+        <summary>Render helper</summary>
         <div class="render-statistics-content">
+          <div class="range-setting render-worker-setting">
+            <label for="render-worker-count">Parallel render helper processes</label>
+            <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
+              [value]="renderWorkerCount()" (input)="changeRenderWorkerCount($any($event.target).value)"
+              aria-label="Number of parallel render helper processes">
+            <span class="range-value">{{ renderWorkerCount() }}</span>
+          </div>
           <section class="render-helper-activity" aria-label="Active render helpers">
             <div class="render-helper-activity-heading">
               <span>{{ offlineRenderTasks().filter(task => task.state === 'Running').length }} active · {{ offlineRenderTasks().filter(task => task.state === 'Queued').length }} queued</span>
