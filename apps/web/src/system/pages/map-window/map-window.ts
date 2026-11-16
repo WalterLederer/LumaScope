@@ -18,6 +18,7 @@ interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpaci
 interface MapMarkerCluster { getChildCount(): number; }
 interface MapInstance {
   getCenter(): { lat: number; lng: number };
+  getBounds(): { getWest(): number; getSouth(): number; getEast(): number; getNorth(): number };
   setView(center: [number, number], zoom: number): MapInstance;
   invalidateSize(): MapInstance;
   getZoom(): number;
@@ -62,7 +63,7 @@ interface RouteCalculationResult {
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface RenderTimingSummary {
   count: number;
@@ -2587,6 +2588,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
+  protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
+  protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
+  protected readonly gpxDatabaseQueryBusy = signal(false);
+  protected readonly gpxDatabaseQueryStatus = signal('');
   protected readonly gpxDatabaseStats = signal({ files: 0, segments: 0, points: 0 });
   protected readonly gpxDatabaseImportBusy = signal(false);
   protected readonly gpxDatabaseImportStatus = signal('');
