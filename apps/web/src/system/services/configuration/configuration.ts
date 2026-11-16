@@ -62,6 +62,18 @@ export class Configuration {
     });
   };
 
+  readonly updatePreferencesConfig = (options: Partial<NonNullable<AppConfigV1['preferences']>>) => {
+    updateSubject(this.config$, config => {
+      const result = structuredClone(config);
+      result.preferences = { ...result.preferences, ...options };
+      return result;
+    }).subscribe();
+
+    this.processManager.setAppSettingsSection('preferences', options).catch(error => {
+      console.error('[Configuration] Failed to save preferences:', error);
+    });
+  };
+
   readonly updateSystemConfig = (options: Partial<AppConfigV1System>) => {
     updateSubject(this.config$, config => {
       const result = structuredClone(config);
@@ -102,7 +114,9 @@ export class Configuration {
       },
       system: {
         minimiseOnStart: false,
-        theme: 'light',
+        theme: 'light'
+      },
+      preferences: {
         buttonStyle: 'blue'
       }
     };
