@@ -144,7 +144,7 @@ interface MapErrorEntry {
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
-                  <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
+                  <div class="time-slider-animation-panel fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
                   <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
@@ -1699,6 +1699,8 @@ interface MapErrorEntry {
     .download-source-table td:last-child{white-space:nowrap}.download-source-table td:last-child button+button{margin-left:6px}
     .mbtiles-map-table{min-width:850px;table-layout:fixed}.hillshade-map-table{min-width:0;width:100%;max-width:100%;table-layout:fixed;font-size:12px}.hillshade-map-table th,.hillshade-map-table td{padding:3px 5px;white-space:nowrap}.hillshade-map-table th:nth-child(1),.hillshade-map-table td:nth-child(1){width:42px}.hillshade-map-table th:nth-child(2),.hillshade-map-table td:nth-child(2){width:145px;min-width:0}.hillshade-map-table th:nth-child(3),.hillshade-map-table td:nth-child(3){width:34%}.hillshade-map-table th:nth-child(4),.hillshade-map-table td:nth-child(4){width:145px}.hillshade-map-table th:nth-child(5),.hillshade-map-table td:nth-child(5){width:85px}.hillshade-map-table th:nth-child(6),.hillshade-map-table td:nth-child(6){width:90px}.hillshade-map-table th:nth-child(7),.hillshade-map-table td:nth-child(7){width:65px}.hillshade-file-name{max-width:none;overflow:hidden;text-overflow:ellipsis;cursor:default}
     .table-sort-button{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-weight:600;text-align:left;white-space:nowrap}.table-sort-button:hover{background:transparent;color:#8ab4f8}
+     .map-window .mbtiles-map-table th .table-sort-button,.map-window .gpx-database-header .gpx-db-sort-button{background:transparent!important;background-color:transparent!important;color:inherit!important;border:0!important;border-radius:0!important;box-shadow:none!important;text-shadow:none!important}
+     .map-window .mbtiles-map-table th .table-sort-button:hover,.map-window .gpx-database-header .gpx-db-sort-button:hover{background:transparent!important;background-color:transparent!important;color:var(--color-content-default-high,#eee)!important;text-decoration:underline}
     .offline-map-path-cell{min-width:0;max-width:480px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;font:11px/1.35 Consolas,monospace;color:var(--color-content-default-medium,#bbb)}
     .mbtiles-map-table .offline-map-path-cell{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
     .hillshade-map-table .offline-map-path-cell{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
@@ -1824,6 +1826,8 @@ interface MapErrorEntry {
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-automatic-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
     .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
+     .fix-location-check-only-panel{flex:0 0 auto;justify-content:center;min-height:34px;padding:6px 10px}
+     .fix-location-check-only-panel .fix-location-check-only{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
     .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
     .fix-location-automatic-status{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
     :host-context(html[data-theme='light']) .fix-location-max-difference input{background:#fff;border-color:#aeb4bd;color:#202124}
