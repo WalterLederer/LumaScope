@@ -155,7 +155,7 @@ interface MapErrorEntry {
                   @if (autoFixOperationActive()) {
                     <div class="fix-location-progress-track" role="progressbar"
                       [attr.aria-valuenow]="autoFixProgressPercent()" aria-valuemin="0" aria-valuemax="100"
-                      [attr.aria-label]="autoFixProgress().scanned + ' of ' + autoFixProgress().total + ' photos checked">
+                      [attr.aria-label]="autoFixProgress().scanned + ' of ' + autoFixProgress().total + ' photos checked'">
                       <div class="fix-location-progress-fill" [style.width.%]="autoFixProgressPercent()"></div>
                     </div>
                     <div class="fix-location-progress-count">{{ formatAutoFixCount(autoFixProgress().scanned) }} / {{ formatAutoFixCount(autoFixProgress().total) }} photos checked</div>
