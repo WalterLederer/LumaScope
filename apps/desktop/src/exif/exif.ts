@@ -60,7 +60,7 @@ export class Exif {
 
   @IpcHandler({ name: 'Exif.fixFolderLocations' })
   readonly fixFolderLocations = async (
-    _event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120
+    event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120
   ): Promise<ApiResponse<FixPhotoLocationsResult>> => {
     try {
       if (!folder || typeof folder !== 'string') throw new Error('Select a valid photo folder first.');
@@ -106,6 +106,12 @@ export class Exif {
         ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0
       };
       const deviations: number[] = [];
+      const sendProgress = (): void => {
+        try {
+          event.sender.send('Exif.fixFolderLocationsProgress', { scanned: result.scanned, total: candidates.length });
+        } catch { /* The requesting window may have closed. */ }
+      };
+      sendProgress();
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       for (const path of candidates) {
@@ -148,8 +154,10 @@ export class Exif {
           result.errors++;
           console.warn('[Exif] Automatic GPS correction failed:', path, error);
         }
+        if (result.scanned % 100 === 0) sendProgress();
         if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
       }
+      if (result.scanned % 100 !== 0) sendProgress();
       result.elapsedMilliseconds = Date.now() - startedAt;
       if (deviations.length) {
         result.minDeviationSeconds = Math.min(...deviations);
