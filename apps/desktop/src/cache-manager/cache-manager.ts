@@ -910,11 +910,12 @@ export class CacheManager {
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         paths.relative_folder_path,
         location_names.display_name AS location_display_name
-      FROM photos
+      FROM photo_location_rtree r
+      JOIN photos ON photos.id = r.photo_id
       JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE photos.latitude BETWEEN :south AND :north
-        AND photos.longitude BETWEEN :west AND :east
+      WHERE r.min_latitude <= :north AND r.max_latitude >= :south
+        AND r.min_longitude <= :east AND r.max_longitude >= :west
       ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
       .all({ west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north }) as unknown as Array<{
         file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null;
