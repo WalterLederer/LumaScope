@@ -3458,16 +3458,6 @@ export class ImageView {
     this.keyboard.keydown()
       .pipe(takeUntilDestroyed())
       .subscribe(event => {
-        // Window shortcuts are handled on keydown in the document capture
-        // phase. This avoids depending on keyup delivery or tab/component focus.
-        if (!event.repeat && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey
-          && (event.code === 'KeyL' || event.code === 'KeyS')) {
-          event.preventDefault();
-          if (event.code === 'KeyL') void this.openLocationWindow();
-          else void this.openCaptureWindow();
-          return;
-        }
-
         // Handle confirmation navigation in the document capture phase, before
         // the CDK overlay and any global image-navigation listeners process it.
         if (this.dialog.openDialogs.length > 0 &&
