@@ -193,8 +193,33 @@ public static class LumaScopeWindowClose {
                     }
             )
             $mainWindow = $ownedWindows |
-                Where-Object { $_.Title.StartsWith('LumaScope', [StringComparison]::OrdinalIgnoreCase) -and -not $_.Title.TrimEnd().EndsWith('LOCATION', [StringComparison]::OrdinalIgnoreCase) } |
+                Where-Object {
+                    $_.Title.StartsWith('LumaScope', [StringComparison]::OrdinalIgnoreCase) -and
+                    -not $_.Title.TrimEnd().EndsWith('LOCATION', [StringComparison]::OrdinalIgnoreCase)
+                } |
+                Select-Object -First 1
 
+            if (-not $mainWindow) {
+                $mainWindow = $ownedWindows |
+                    Where-Object { $_.Title.StartsWith('LumaScope', [StringComparison]::OrdinalIgnoreCase) } |
+                    Select-Object -First 1
+            }
+
+            Write-ShutdownDiagnostic "close-request-start" @{
+                processId = $processId
+                windows = @($ownedWindows | ForEach-Object {
+                    @{ handle = ('0x{0:X}' -f $_.Handle.ToInt64()); title = $_.Title }
+                })
+                selectedWindow = if ($mainWindow) { $mainWindow.Title } else { $null }
+            }
+
+            if (-not $mainWindow) {
+                Write-ShutdownDiagnostic "no-visible-lumascope-window" @{ processId = $processId }
+                Write-Warning "No visible LumaScope window found for PID $processId; skipping graceful close."
+                continue
+            }
+
+            $windowHandle = [IntPtr]$mainWindow.Handle
             $closePosted = [LumaScopeWindowClose]::PostMessage(
                 $windowHandle,
                 [uint32]$wmSysCommand,
