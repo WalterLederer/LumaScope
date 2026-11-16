@@ -16,6 +16,7 @@ import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigratio
 const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const THUMBNAIL_CACHE_VERSION = 2;
+const DNG_THUMBNAIL_CACHE_VERSION = 3;
 const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
 const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'jxr-full-uhdr': 10,
@@ -26,9 +27,11 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'exr-full-uhdr-v2': 15,
   'tif-full-hdr-v6': 16,
   'tiff-full-hdr-v6': 17,
-  'dng-full-raw-v1': 18
+  'dng-full-raw-v2': 19
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
+const getThumbnailCacheVersion = (sourceName: string): number =>
+  extname(sourceName).toLowerCase() === '.dng' ? DNG_THUMBNAIL_CACHE_VERSION : THUMBNAIL_CACHE_VERSION;
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ]);
 
 export interface CacheSummary {
@@ -826,7 +829,7 @@ export class CacheManager {
         if (!row || !sourceMatches) return null;
         const id = kind === 'thumbnail' ? row.thumbnail_cache_id : row.fullsize_cache_id;
         const version = kind === 'thumbnail' ? row.thumbnail_cache_version : row.fullsize_cache_version;
-        const expectedVersion = kind === 'thumbnail' ? THUMBNAIL_CACHE_VERSION : getFullSizeCacheVersionCode(expectedFullSizeTag);
+        const expectedVersion = kind === 'thumbnail' ? getThumbnailCacheVersion(sourceName) : getFullSizeCacheVersionCode(expectedFullSizeTag);
         if (id === null || expectedVersion === null || version !== expectedVersion) return null;
         const parallel = id === CACHE_STORAGE_TYPE.PARALLEL && kind === 'fullsize';
         return {
@@ -889,7 +892,7 @@ export class CacheManager {
       const sourceName = join(folder, row.file_name);
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
-        && row.thumbnail_cache_version === THUMBNAIL_CACHE_VERSION;
+        && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
       const fullSizeTag = extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
@@ -1107,7 +1110,7 @@ export class CacheManager {
     const full = sourceTag.includes('-full-');
     const cacheId = full ? row.fullsize_cache_id : row.thumbnail_cache_id;
     const version = full ? row.fullsize_cache_version : row.thumbnail_cache_version;
-    const expectedVersion = full ? getFullSizeCacheVersionCode(sourceTag) : THUMBNAIL_CACHE_VERSION;
+    const expectedVersion = full ? getFullSizeCacheVersionCode(sourceTag) : getThumbnailCacheVersion(sourceName);
     if (cacheId === null || expectedVersion === null || version !== expectedVersion || (!full && sourceTag !== THUMBNAIL_CACHE_TAG)) return null;
     return {
       storage_type_id: cacheId,
@@ -1175,7 +1178,7 @@ export class CacheManager {
     const cacheId = full ? previous?.fullsize_cache_id : previous?.thumbnail_cache_id;
     const cacheVersion = full ? previous?.fullsize_cache_version : previous?.thumbnail_cache_version;
     const sourceChanged = previous !== null && (previousSize !== sourceStats.size || previousModified !== sourceStats.mtimeMs);
-    const storedVersion = full ? getFullSizeCacheVersionCode(sourceTag) : sourceTag === THUMBNAIL_CACHE_TAG ? THUMBNAIL_CACHE_VERSION : null;
+    const storedVersion = full ? getFullSizeCacheVersionCode(sourceTag) : sourceTag === THUMBNAIL_CACHE_TAG ? getThumbnailCacheVersion(sourceName) : null;
     if (sourceChanged || (cacheVersion !== null && cacheVersion !== storedVersion)) await rm(targetPath, { force: true });
     if (!sourceChanged && cacheId === CACHE_STORAGE_TYPE.SIDECAR && cacheVersion === storedVersion && storedVersion !== null && existsSync(targetPath)) return targetPath;
     await this.ensureCacheDirectory(dirname(targetPath));
@@ -1507,7 +1510,7 @@ export class CacheManager {
       insertPath.run({ folder });
       const path = findPath.get({ folder }) as { id: number };
       insertPhoto.run({ pathId: path.id, file, size: Number(row.source_size ?? 0), modified: Number(row.updated_at ?? 0), hdr: 0 });
-      updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: full ? getFullSizeCacheVersionCode(tag) : tag === THUMBNAIL_CACHE_TAG ? THUMBNAIL_CACHE_VERSION : null, pathId: path.id, file });
+      updatePhoto.run({ full: full ? 1 : 0, cacheId: storageId, version: full ? getFullSizeCacheVersionCode(tag) : tag === THUMBNAIL_CACHE_TAG ? getThumbnailCacheVersion(file) : null, pathId: path.id, file });
     }
     db.exec('DROP TABLE cache_files; DROP TABLE IF EXISTS cache_volume_settings;');
   };
