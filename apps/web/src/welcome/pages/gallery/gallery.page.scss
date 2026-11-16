@@ -317,3 +317,27 @@ ui-side-panel {
   transform: none !important;
   box-shadow: none !important;
 }
+
+
+/* Keep both favourite-tree menu actions neutral, regardless of the global button style. */
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button {
+  appearance: none !important;
+  background: transparent !important;
+  color: inherit !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  margin: 0 !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button:hover,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button:active,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button:focus-within {
+  background: rgb(128 128 128 / 14%) !important;
+  filter: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
