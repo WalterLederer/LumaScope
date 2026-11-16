@@ -1,5 +1,8 @@
 {
   "defaultConfigVersion": 1,
+  "preferences": {
+    "buttonStyle": "blue"
+  },
   "mapWindow": {
     "renderWorkerCount": 2,
     "timeSliderSymbolSettings": {
