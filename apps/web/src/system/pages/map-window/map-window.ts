@@ -1942,6 +1942,10 @@ interface MapErrorEntry {
     .fix-photo-preview-info{display:flex;flex:1 1 auto;flex-direction:column;gap:5px;min-width:0;font-size:12px}
     .fix-photo-preview-info strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .fix-photo-preview-info span{color:var(--text-secondary,#888)}
+     .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled){background:#d8e0e8!important;background-color:#d8e0e8!important;background-image:none!important;color:#34495a!important;border-color:#bdcbd8!important}
+     .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled):hover{background:#cbd7e2!important;background-color:#cbd7e2!important}
+     :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled){background:#343d48!important;background-color:#343d48!important;background-image:none!important;color:#c4d0dc!important;border-color:#505b68!important}
+     :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
