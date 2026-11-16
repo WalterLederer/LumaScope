@@ -6272,6 +6272,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const visible: [number, number][][] = [];
     source.forEach((sourceSegment, index) => {
       const segment = pointSegments[index];
+      if (track.databasePath && this.timeSliderActive() && !segment?.some(point => {
+        const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : null;
+        return point.inViewport !== false && this.isTimeSliderTimestampVisible(Number.isFinite(timestamp) ? timestamp : null);
+      })) return;
       // Routes without timestamps (e.g. routes returned by openrouteservice)
       // are independent of the GPX time slider and must remain visible.
       if (!segment?.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp)))) {
