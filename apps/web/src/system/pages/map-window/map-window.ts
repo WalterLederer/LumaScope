@@ -142,6 +142,7 @@ interface MapErrorEntry {
               <details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <div class="location-actions fix-location-automatic-actions">
+                  <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
                   <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label>
@@ -153,6 +154,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location MANUAL</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
+                    <div class="location-actions"><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
                     <div class="fix-location-crosshair-row"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
@@ -4778,6 +4780,14 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openGpxCacheHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('gpx-cache.md');
+  };
+
+  protected readonly openLocationFixManualHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('location-fix-manual.md');
+  };
+
+  protected readonly openLocationFixAutomaticHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('location-fix-automatic.md');
   };
 
   protected readonly openRoutingHelp = (): void => {
