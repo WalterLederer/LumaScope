@@ -2677,6 +2677,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
+  private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
   protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'name' | 'path' | 'time'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
@@ -5926,7 +5927,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const previousSettings = new Map(this.gpxDatabaseTracks().map(track => [track.databasePath || '', track]));
       const tracks: GpxTrackFile[] = results.map((file, index) => {
         const path = 'db-cache:' + file.path;
-        const previous = previousSettings.get(file.path);
+        const previous = { ...previousSettings.get(file.path), ...this.gpxDatabaseTrackSettings.get(file.path) };
         const pointSegments: GpxTrackPoint[][] = file.segments.map(segment => segment.map(point => ({
           latitude: point.latitude,
           longitude: point.longitude,
@@ -7098,6 +7099,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly sortGpxDatabase = (key: 'name' | 'path' | 'time'): void => this.gpxDatabaseSort.update(sort => ({ key, direction: sort.key === key && sort.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly gpxDatabaseSortIndicator = (key: 'name' | 'path' | 'time'): string => this.gpxDatabaseSort().key === key ? (this.gpxDatabaseSort().direction === 'asc' ? '▲' : '▼') : '↕';
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
+    const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
+    if (databasePath) this.gpxDatabaseTrackSettings.set(databasePath, { ...this.gpxDatabaseTrackSettings.get(databasePath), ...patch });
     const tracks = this.gpxDatabaseTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxDatabaseTracks.set(tracks);
     this.rebuildGpxSegments();
