@@ -348,7 +348,7 @@ interface MapErrorEntry {
         </span>
       </div>
       <div class="routing-save-location-card">
-        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Save Location...</button>
+        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Select save location...</button>
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
       <div class="routing-toolbar-actions">
