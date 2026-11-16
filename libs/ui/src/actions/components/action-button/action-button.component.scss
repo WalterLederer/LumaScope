@@ -67,3 +67,36 @@
     }
   }
 }
+
+
+// Browse favourite-tree actions are menu commands, not primary/warning buttons.
+// Keep the override in this component stylesheet so it can reliably reach the
+// native button despite Angular's view encapsulation.
+:host(.add-location-menu-button),
+:host(.remove-location-menu-button) {
+  button {
+    appearance: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    color: inherit !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  &:hover button,
+  button:hover,
+  button:active,
+  button:focus,
+  button:focus-visible {
+    background: rgb(128 128 128 / 14%) !important;
+    background-image: none !important;
+    color: inherit !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
