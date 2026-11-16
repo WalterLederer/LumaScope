@@ -1790,7 +1790,7 @@ interface MapErrorEntry {
     .marker-appearance-settings{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px 22px;width:100%;min-width:0}
      .marker-appearance-settings>.marker-setting-row{display:flex;flex:0 0 auto;align-items:center;gap:8px;width:auto;min-width:0}
      .marker-appearance-settings>.marker-setting-row>label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-     .marker-appearance-settings .color-picker-trigger{min-width:132px}
+     .marker-appearance-settings .color-picker-trigger{min-width:132px}\n    .location-tab .marker-appearance-settings .color-picker-trigger{box-shadow:inset 0 2px 2px rgba(255,255,255,.30),inset 0 -2px 3px rgba(0,0,0,.24),0 2px 4px rgba(0,0,0,.24)}
     .marker-summary-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:7px 0 0;border-top:1px solid var(--color-content-default-low,#454545)}
     .marker-summary-section>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .marker-summary-section[open]>summary{margin-bottom:2px}
