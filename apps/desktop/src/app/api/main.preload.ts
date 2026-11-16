@@ -83,8 +83,8 @@ const api: Desktop = {
     writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
     fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds, operationId),
     cancelFixFolderLocations: (operationId: string) => ipcRenderer.invoke('Exif.cancelFixFolderLocations', operationId),
-    onFixFolderLocationsProgress: (callback: (progress: { scanned: number; total: number }) => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, progress: { scanned: number; total: number }): void => callback(progress);
+    onFixFolderLocationsProgress: (callback: (progress: { scanned: number; total: number; withGps: number; withoutGps: number; matched: number; currentFolder: string }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, progress: { scanned: number; total: number; withGps: number; withoutGps: number; matched: number; currentFolder: string }): void => callback(progress);
       ipcRenderer.on('Exif.fixFolderLocationsProgress', listener);
       return () => ipcRenderer.removeListener('Exif.fixFolderLocationsProgress', listener);
     }
