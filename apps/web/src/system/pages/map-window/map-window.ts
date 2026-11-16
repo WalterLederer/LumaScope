@@ -746,7 +746,7 @@ interface MapErrorEntry {
         </div>
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
-        <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds <span class="map-bounds-info" aria-label="Map bounds require zoom level 10 or lower">ⓘ</span></label>
+        <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
         <div class="range-setting render-worker-setting">
           <label for="render-worker-count">Parallel render processes</label>
           <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
