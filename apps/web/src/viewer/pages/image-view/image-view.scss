@@ -787,15 +787,10 @@
  .image-controls-sidebar button {cursor:pointer;color:inherit;background:rgb(255 255 255 / 7%);border:1px solid rgb(255 255 255 / 18%);border-radius:4px;padding:4px 8px;min-height:28px;line-height:1.35}
  .image-controls-sidebar button.active {outline:2px solid #65a9ff;background:rgb(90 150 220 / 20%)}
  .image-controls-sidebar button:disabled {opacity:.4;cursor:default}
- .image-controls-sidebar section:has(> .section-heading) {box-sizing:border-box;border:1px solid rgb(128 128 128 / 35%);border-radius:6px;padding:6px 10px;margin:0;display:flex;flex-direction:column;gap:0;background:transparent}
+ .image-controls-sidebar section:has(> .section-heading) {box-sizing:border-box;border:1px solid var(--color-content-default-low);border-radius:6px;padding:6px 10px;margin:0;display:flex;flex-direction:column;gap:0;background:transparent}
  .image-controls-sidebar .app-disclosure {margin:0!important;background:transparent!important}
  .image-controls-sidebar .app-disclosure + .app-disclosure {margin-top:0!important}
- .image-controls-sidebar .section-heading {box-sizing:border-box;width:100%;border:0;background:transparent;text-align:left;font-family:inherit;font-size:13px;font-weight:400!important;line-height:1.4;display:flex;align-items:center;gap:7px;list-style:none;padding:0;cursor:pointer}
- .image-controls-sidebar .section-heading:not(.expanded) {font-weight:400!important}
- .image-controls-sidebar .section-heading.expanded {font-weight:700!important}
- .image-controls-sidebar section section > .section-heading,
- .image-controls-sidebar section section section > .section-heading,
- .image-controls-sidebar section section section section > .section-heading {padding-left:0}
+ .image-controls-sidebar .section-heading {box-sizing:border-box;width:100%;border:0;background:transparent;text-align:left;cursor:pointer}
  .image-controls-sidebar label {display:flex;align-items:center;gap:8px}
  .image-controls-sidebar .channel-control {display:flex;flex-direction:column;align-items:stretch;gap:3px}
  .image-controls-sidebar .channel-control > span {display:flex;justify-content:space-between;align-items:center}
