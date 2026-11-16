@@ -11,8 +11,7 @@ const TILE_SIZE = 256;
 const TILE_BYTES = TILE_SIZE * TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-// Each worker loads the selected OBF set and owns native renderer state; keep concurrency conservative.
-const HELPER_WORKER_COUNT = 2;
+// Each worker loads the selected OBF set and owns native renderer state.
 
 export interface OsmAndTileResult {
   width: number;
@@ -395,6 +394,23 @@ export class OsmAndManager {
     console.info('[OsmAnd]', 'active_obf_count=' + selectedPaths.length);
   }
 
+  private readRenderWorkerCount(): number {
+    const mapWindow = readAppSettings().mapWindow as Record<string, unknown> | undefined;
+    const value = Number(mapWindow?.renderWorkerCount ?? 2);
+    return Number.isFinite(value) ? Math.max(1, Math.min(4, Math.round(value))) : 2;
+  }
+
+  private async ensureRenderWorkerCount(): Promise<void> {
+    const count = this.readRenderWorkerCount();
+    if (count === this.workers.length) return;
+    const previousWorkers = this.workers;
+    this.workers = this.createWorkers(this.createEnvironment(), count);
+    this.pendingTiles.clear();
+    this.nextWorker = 0;
+    await Promise.all(previousWorkers.map(worker => worker.retire()));
+    console.info('[OsmAnd] render_worker_count=' + count);
+  }
+
   private async replaceWorkers(): Promise<void> {
     const previousWorkers = this.workers;
     this.workers = this.createWorkers(this.createEnvironment());
@@ -403,8 +419,8 @@ export class OsmAndManager {
     await Promise.all(previousWorkers.map(worker => worker.retire()));
   }
 
-  private createWorkers(environment: NodeJS.ProcessEnv): OsmAndHelperWorker[] {
-    return Array.from({ length: HELPER_WORKER_COUNT }, () =>
+  private createWorkers(environment: NodeJS.ProcessEnv, count = this.readRenderWorkerCount()): OsmAndHelperWorker[] {
+    return Array.from({ length: count }, () =>
       new OsmAndHelperWorker(this.helperPath, this.resourcesPath, this.stylePath, this.obfPaths, environment)
     );
   }
@@ -526,6 +542,7 @@ export class OsmAndManager {
   @IpcHandler({ name: 'OsmAnd.renderTile' })
   readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number, forceRender = false): Promise<OsmAndTileResult> => {
     await this.styleChange;
+    await this.ensureRenderWorkerCount();
     await this.refreshSelectedObf();
     if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
     const tileCount = 2 ** z;
