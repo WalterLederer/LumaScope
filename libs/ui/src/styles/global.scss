@@ -55,9 +55,17 @@ ui-action-button {
   box-shadow: 0 1px 3px rgb(0 0 0 / 22%), 0 1px 1px rgb(0 0 0 / 12%), inset 0 1px 0 rgb(255 255 255 / 5%) !important;
 }
 
-/* Native dropdowns use the same restrained elevation throughout the app. */
+/* Native dropdowns share consistent breathing room and restrained elevation. */
 select {
+  margin: 3px 4px !important;
+  min-height: 28px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(255 255 255 / 6%) !important;
+}
+
+/* Tab buttons form connected tab strips and must not inherit action-button spacing. */
+button[role="tab"],
+[role="tablist"] button {
+  margin: 0 !important;
 }
 
 /* Reusable disclosure component.
