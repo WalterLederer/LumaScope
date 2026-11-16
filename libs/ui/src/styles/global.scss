@@ -137,9 +137,9 @@ details.app-disclosure[open] > summary::before,
 /* Button-based disclosure headings share the native summary typography and marker. */
 .app-disclosure-heading {
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  column-gap: 8px;
+  display: flex !important;
+  align-items: center !important;
+  column-gap: 8px !important;
   width: 100%;
   min-height: 0;
   margin: 0;
