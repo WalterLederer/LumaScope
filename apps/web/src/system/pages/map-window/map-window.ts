@@ -4,7 +4,7 @@ import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'i
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
@@ -108,7 +108,6 @@ interface MapErrorEntry {
       <header class="map-titlebar">
         <button type="button" class="settings-toggle app-disclosure-heading" [class.active]="settingsOpen()" [class.expanded]="settingsOpen()" (click)="toggleSettings()"
                 [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">Settings</button>
-        <div class="map-title"><span class="map-title-icon">⌖</span></div>
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
@@ -732,13 +731,6 @@ interface MapErrorEntry {
       </span>
     </summary>
     <div class="view-rerender-layout">
-      <div class="range-setting render-worker-setting">
-        <label for="render-worker-count">Parallel render processes</label>
-        <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
-          [value]="renderWorkerCount()" (input)="changeRenderWorkerCount($any($event.target).value)"
-          aria-label="Number of parallel render processes">
-        <span class="range-value">{{ renderWorkerCount() }}</span>
-      </div>
       <div class="map-cache-actions view-rerender-actions">
         <div style="display: flex; align-items: center; gap: 6px;">
           <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
@@ -758,10 +750,20 @@ interface MapErrorEntry {
           <input type="checkbox" [checked]="optimizedObfSelectionEnabled()" (change)="changeOptimizedObfSelectionEnabled($any($event.target).checked)" [disabled]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
           Optimize OBF selection by bounds
         </label>
+        <div class="range-setting render-worker-setting">
+          <label for="render-worker-count">Parallel render processes</label>
+          <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
+            [value]="renderWorkerCount()" (input)="changeRenderWorkerCount($any($event.target).value)"
+            aria-label="Number of parallel render processes">
+          <span class="range-value">{{ renderWorkerCount() }}</span>
+        </div>
         @if (rerenderVisibleTilesStatus()) {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
+      <details class="render-statistics-section app-disclosure">
+        <summary>Statistics</summary>
+        <div class="render-statistics-content">
       @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
         <div class="active-obf-list-box">
           <table class="active-obf-list" aria-live="polite">
@@ -875,6 +877,8 @@ interface MapErrorEntry {
           </tr>
         </tbody>
       </table>
+        </div>
+      </details>
       </div>
     </div>
   </details>
@@ -1267,7 +1271,7 @@ interface MapErrorEntry {
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
     .map-titlebar{position:relative;z-index:2147483001;display:flex!important;flex:0 0 36px;align-items:center;gap:10px;width:100%;min-width:0;height:36px;box-sizing:border-box;padding:4px 10px;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-low,#444);overflow:visible}
-    .titlebar-always-on-top{display:flex!important;flex:0 0 auto;align-items:center;gap:5px;margin-left:auto;white-space:nowrap;font-size:12px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important}
+    .titlebar-always-on-top{display:flex!important;flex:0 0 auto;align-items:center;gap:5px;margin-left:0;white-space:nowrap;font-size:12px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important}
     .titlebar-always-on-top input{display:inline-block!important;flex:0 0 auto;width:14px;height:14px;margin:0;accent-color:#8ab4f8;visibility:visible!important;opacity:1!important}
     :host(.overlay-mode) .map-window{background:transparent;border:1px solid rgba(255,255,255,.48);border-radius:8px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.28)}
     :host(.overlay-mode) .map-titlebar{background:rgba(32,33,36,.88);border-bottom-color:rgba(255,255,255,.22)}
@@ -1470,6 +1474,9 @@ interface MapErrorEntry {
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
     @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 58px 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:12px;min-width:0}
+    .view-rerender-section .render-worker-setting{flex-basis:100%;max-width:360px}
+    .view-rerender-section .render-statistics-section{flex:1 1 100%;min-width:0;margin-top:4px}
+    .view-rerender-section .render-statistics-content{display:flex;flex-direction:column;gap:10px;min-width:0;padding-top:8px}
     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
@@ -2010,6 +2017,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(1, Math.min(4, Math.round(count)));
     this.renderWorkerCount.set(next);
     this.saveSetting('renderWorkerCount', next);
+    setOfflineRenderConcurrency(next);
   };
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
@@ -2668,6 +2676,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    setOfflineRenderConcurrency(this.renderWorkerCount());
     if (this.desktop) {
       void this.desktop.Valhalla.getRuntimeStatus().then(async status => {
         this.valhallaConfigurations.set(status.configurations ?? []);
@@ -4853,9 +4862,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rerenderVisibleTilesStatus.set(`Rendering visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tiles without using the disk cache…`);
     try {
       const count = await renderer.rerenderVisibleTiles(
-        (z, x, y, forceRender) => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender),
+        (z, x, y, forceRender) => runOfflineRenderTask(() => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender)),
         (z, x, y, displayScale, forceRender) =>
-          this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender),
+          runOfflineRenderTask(() => this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender)),
         this.displayDensityFactor(),
         (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
       );
@@ -7233,7 +7242,7 @@ ${points}
               for (const database of databases) {
                 let png: Uint8Array;
                 try {
-                  png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0);
+                  png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0));
                 } catch (error) {
                   const message = error instanceof Error ? error.message : String(error);
                   if (/Hillshade tile not found/i.test(message)) continue;
