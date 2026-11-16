@@ -95,6 +95,17 @@ export interface FixPhotoLocationsProgress {
   withGps: number;
   withoutGps: number;
   matched: number;
+  unmatched: number;
+  ignoredTooFar: number;
+  updated: number;
+  errors: number;
+  totalFilesProcessed: number;
+  totalFoldersProcessed: number;
+  minDeviationSeconds: number | null;
+  meanDeviationSeconds: number | null;
+  maxDeviationSeconds: number | null;
+  elapsedMilliseconds: number;
+  rootFolder: string;
   currentFolder: string;
 }
 
