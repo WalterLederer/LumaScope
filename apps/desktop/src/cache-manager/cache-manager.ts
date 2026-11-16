@@ -626,6 +626,38 @@ export class CacheManager {
     return [...files.values()].map(({ lastSegmentId: _segment, lastPointIndex: _point, ...file }) => file);
   };
 
+  @IpcHandler({ name: 'CacheManager.getInterpolatedGpxPosition' })
+  readonly getInterpolatedGpxPosition = async (
+    _event: IpcMainInvokeEvent, folder: string, timestampMs: number
+  ): Promise<{ latitude: number; longitude: number } | null> => {
+    if (!folder || !Number.isFinite(timestampMs)) return null;
+    const databaseKey = this.databaseKeyForPath(folder);
+    const db = this.databaseForPath(folder);
+    this.activeDatabaseKey = databaseKey;
+    const before = db.prepare(`SELECT p.segment_id, p.timestamp_ms, p.latitude, p.longitude
+      FROM gpx_track_points p
+      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms <= :timestamp
+      ORDER BY p.timestamp_ms DESC LIMIT 1`).get({ timestamp: timestampMs }) as
+        { segment_id: number; timestamp_ms: number; latitude: number; longitude: number } | undefined;
+    const after = db.prepare(`SELECT p.segment_id, p.timestamp_ms, p.latitude, p.longitude
+      FROM gpx_track_points p
+      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms >= :timestamp
+      ORDER BY p.timestamp_ms ASC LIMIT 1`).get({ timestamp: timestampMs }) as
+        { segment_id: number; timestamp_ms: number; latitude: number; longitude: number } | undefined;
+    if (!before || !after || before.segment_id !== after.segment_id) return null;
+    const beforeDelta = timestampMs - before.timestamp_ms;
+    const afterDelta = after.timestamp_ms - timestampMs;
+    const span = after.timestamp_ms - before.timestamp_ms;
+    // Never interpolate across long gaps or across GPX segment boundaries.
+    if (beforeDelta < 0 || afterDelta < 0 || beforeDelta > 150_000 || afterDelta > 150_000 || span > 300_000) return null;
+    if (span === 0) return { latitude: before.latitude, longitude: before.longitude };
+    const ratio = beforeDelta / span;
+    return {
+      latitude: before.latitude + (after.latitude - before.latitude) * ratio,
+      longitude: before.longitude + (after.longitude - before.longitude) * ratio
+    };
+  };
+
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (_event?: IpcMainInvokeEvent, requestedDatabaseKey?: string): Promise<CacheSummary> => {
     const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
