@@ -165,9 +165,10 @@ export class Exif {
         } catch (error) {
           result.errors++;
           console.warn('[Exif] Automatic GPS correction failed:', path, error);
+        } finally {
+          if (result.scanned % 100 === 0) sendProgress();
+          if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
         }
-        if (result.scanned % 100 === 0) sendProgress();
-        if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
       }
       if (result.scanned % 100 !== 0) sendProgress();
       result.elapsedMilliseconds = Date.now() - startedAt;
