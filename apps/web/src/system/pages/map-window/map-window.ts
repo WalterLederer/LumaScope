@@ -758,16 +758,15 @@ interface MapErrorEntry {
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
-      <details class="render-statistics-section app-disclosure">
-        <summary>Statistics</summary>
+      <details class="render-helper-activity-section app-disclosure">
+        <summary>Render helper activity</summary>
         <div class="render-statistics-content">
           <section class="render-helper-activity" aria-label="Active render helpers">
             <div class="render-helper-activity-heading">
-              <strong>Render helper activity</strong>
               <span>{{ offlineRenderTasks().filter(task => task.state === 'Running').length }} active · {{ offlineRenderTasks().filter(task => task.state === 'Queued').length }} queued</span>
             </div>
-            @if (offlineRenderTasks().length) {
-              <div class="render-helper-activity-list" role="list" aria-live="polite">
+            <div class="render-helper-activity-list" role="list" aria-live="polite">
+              @if (offlineRenderTasks().length) {
                 @for (task of offlineRenderTasks(); track task.id) {
                   <div class="render-helper-activity-row" role="listitem" [class.queued]="task.state === 'Queued'">
                     <span class="render-helper-activity-state">{{ task.state === 'Running' ? 'Active' : 'Queued' }}</span>
@@ -775,11 +774,16 @@ interface MapErrorEntry {
                     <span class="render-helper-activity-description" [title]="task.description">{{ task.description }}</span>
                   </div>
                 }
-              </div>
-            } @else {
-              <div class="render-helper-activity-empty">No render helper tasks are active or queued.</div>
-            }
+              } @else {
+                <div class="render-helper-activity-empty">No render helper tasks are active or queued.</div>
+              }
+            </div>
           </section>
+        </div>
+      </details>
+      <details class="render-statistics-section app-disclosure">
+        <summary>Statistics</summary>
+        <div class="render-statistics-content">
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
         
@@ -1514,7 +1518,8 @@ interface MapErrorEntry {
     .render-helper-activity-empty{padding:5px 2px;font-size:11px;color:var(--color-content-default-medium,#999)}
     @media(max-width:620px){.render-helper-activity-row{grid-template-columns:55px minmax(80px,110px) minmax(0,1fr);gap:5px}}
     .view-rerender-section .optimize-obf-rendering-section{margin-top:-12px}
-     .view-rerender-section .render-statistics-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}
+    .view-rerender-section .render-helper-activity-section{margin-top:0}
+     .view-rerender-section>summary,.view-rerender-section .render-statistics-section>summary,.view-rerender-section .render-helper-activity-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}
      .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
