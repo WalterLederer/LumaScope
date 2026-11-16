@@ -1,6 +1,7 @@
 {
   "defaultConfigVersion": 1,
   "mapWindow": {
+    "renderWorkerCount": 2,
     "timeSliderSymbolSettings": {
       "firetruck": {
         "rotation": 180,
