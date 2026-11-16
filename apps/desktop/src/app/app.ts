@@ -1,7 +1,7 @@
 import { BrowserWindow, globalShortcut, ipcMain, protocol, screen, shell } from 'electron';
 import { appProtocol, GlobalShortcutStatus } from 'internal-api';
 import { join } from 'path';
-import { statSync } from 'node:fs';
+import { appendFileSync, mkdirSync, statSync } from 'node:fs';
 import { format } from 'url';
 import { environment } from '../environments/environment';
 import { protocolHandler } from '../protocol-handler/protocol-handler';
@@ -20,6 +20,24 @@ export default class App {
   private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static pendingCaptureHotkey: string | null = null;
+  private static shutdownStartedAt: number | null = null;
+
+  private static logShutdown(event: string, details: Record<string, unknown> = {}): void {
+    try {
+      const logDirectory = join(App.application.getPath('userData'), 'logs');
+      mkdirSync(logDirectory, { recursive: true });
+      const elapsedMs = App.shutdownStartedAt === null ? null : Date.now() - App.shutdownStartedAt;
+      const entry = {
+        timestamp: new Date().toISOString(),
+        elapsedMs,
+        event,
+        ...details
+      };
+      appendFileSync(join(logDirectory, 'shutdown.log'), `${JSON.stringify(entry)}\\n`, 'utf8');
+    } catch (error) {
+      console.error('[Shutdown] Could not write shutdown diagnostic log:', error);
+    }
+  }
   static application: Electron.App;
   static BrowserWindow;
 
@@ -79,7 +97,9 @@ export default class App {
   }
 
   private static onWindowAllClosed() {
+    App.logShutdown('window-all-closed', { platform: process.platform });
     if (process.platform !== 'darwin') {
+      App.logShutdown('quit-requested', { source: 'window-all-closed' });
       App.application.quit();
     }
   }
@@ -244,18 +264,29 @@ export default class App {
     // });
 
     App.mainWindow.on('close', () => {
+      App.logShutdown('window-close', { window: 'main' });
       // Persist the last normal window rectangle, not temporary fullscreen or maximized bounds.
       App.startupConfig.saveBounds(App.mainWindow.getNormalBounds());
     });
 
     // Emitted when the window is closed.
     App.mainWindow.on('closed', () => {
-      // Dereference the main window and close all auxiliary Light Matter windows.
+      App.logShutdown('window-closed', { window: 'main' });
+      // Dereference the main window and close all auxiliary LumaScope windows.
       App.mainWindow = null;
 
-      if (App.isMapWindowOpen()) App.mapWindow.close();
-      if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.close();
-      if (App.isCapturePreviewWindowOpen()) App.capturePreviewWindow.close();
+      if (App.isMapWindowOpen()) {
+        App.logShutdown('auxiliary-close-requested', { window: 'location' });
+        App.mapWindow.close();
+      }
+      if (App.isMapOverlayWindowOpen()) {
+        App.logShutdown('auxiliary-close-requested', { window: 'location-overlay' });
+        App.mapOverlayWindow.close();
+      }
+      if (App.isCapturePreviewWindowOpen()) {
+        App.logShutdown('auxiliary-close-requested', { window: 'capture-preview' });
+        App.capturePreviewWindow.close();
+      }
     });
   }
 
@@ -312,7 +343,10 @@ export default class App {
     App.capturePreviewWindow.setTitle(capturePreviewWindowTitle);
     App.capturePreviewWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('capture'));
     App.capturePreviewWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('capture'));
-    App.capturePreviewWindow.on('close', () => { void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds()); });
+    App.capturePreviewWindow.on('close', () => {
+      App.logShutdown('window-close', { window: 'capture-preview' });
+      void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds());
+    });
     const hash = '/capture-preview';
     if (!App.application.isPackaged) {
       App.capturePreviewWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
@@ -335,6 +369,7 @@ export default class App {
       else App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
+      App.logShutdown('window-closed', { window: 'capture-preview' });
       App.capturePreviewWindow = null;
       if (App.mainWindow && !App.mainWindow.isDestroyed()) {
         App.mainWindow.webContents.send('CapturePreviewWindow.stateChanged', false);
@@ -407,7 +442,10 @@ export default class App {
     App.mapWindow.setTitle(mapWindowTitle);
     App.mapWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('map'));
     App.mapWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('map'));
-    App.mapWindow.on('close', () => { void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds()); });
+    App.mapWindow.on('close', () => {
+      App.logShutdown('window-close', { window: 'location' });
+      void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds());
+    });
     const hash = hasCoordinates
       ? `/map?lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}${imagePath ? `&imagePath=${encodeURIComponent(imagePath)}` : ''}`
       : `/map${imagePath ? `?imagePath=${encodeURIComponent(imagePath)}` : ''}`;
@@ -427,6 +465,7 @@ export default class App {
       App.mapWindow.showInactive();
     });
     App.mapWindow.on('closed', () => {
+      App.logShutdown('window-closed', { window: 'location' });
       App.mapWindow = null;
       if (App.mainWindow && !App.mainWindow.isDestroyed()) {
         App.mainWindow.webContents.send('MapWindow.stateChanged', false);
@@ -479,6 +518,7 @@ export default class App {
     });
     App.mapOverlayWindow.setMenu(null);
     App.mapOverlayWindow.on('closed', () => {
+      App.logShutdown('window-closed', { window: 'location-overlay' });
       App.mapOverlayWindow = null;
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.webContents.send('MapOverlayWindow.stateChanged', false);
     });
@@ -575,17 +615,51 @@ export default class App {
 
     startAppSettingsCheckpoint();
 
-    // Do not let Electron exit while an accepted settings write is still
-    // queued. The second quit call is allowed through after the queue drains.
+    // Record shutdown phases to a dedicated file so a stalled quit can be diagnosed
+    // without relying on the transient DevTools or console output.
+    App.logShutdown('application-initialized', { logFile: join(app.getPath('userData'), 'logs', 'shutdown.log') });
     let settingsFlushOnQuitStarted = false;
     app.on('before-quit', event => {
-      if (settingsFlushOnQuitStarted) return;
+      if (settingsFlushOnQuitStarted) {
+        App.logShutdown('before-quit-reentry');
+        return;
+      }
       event.preventDefault();
       settingsFlushOnQuitStarted = true;
+      App.shutdownStartedAt = Date.now();
+      App.logShutdown('before-quit-start', {
+        windows: App.getApplicationWindows().map(window => ({
+          title: window.getTitle(),
+          destroyed: window.isDestroyed(),
+          visible: window.isVisible()
+        }))
+      });
+
+      const flushStartedAt = Date.now();
+      App.logShutdown('settings-flush-start');
+      const watchdogs = [5000, 15000, 30000].map(delay => setTimeout(() => {
+        App.logShutdown('settings-flush-still-pending', { elapsedMs: Date.now() - flushStartedAt });
+      }, delay));
+
       void flushAppSettingsWrites()
-        .catch(error => console.error('[Settings] Could not flush settings before quit:', error))
-        .finally(() => app.quit());
+        .then(() => {
+          App.logShutdown('settings-flush-complete', { durationMs: Date.now() - flushStartedAt });
+        })
+        .catch(error => {
+          App.logShutdown('settings-flush-failed', {
+            durationMs: Date.now() - flushStartedAt,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          console.error('[Settings] Could not flush settings before quit:', error);
+        })
+        .finally(() => {
+          watchdogs.forEach(timer => clearTimeout(timer));
+          App.logShutdown('quit-requested', { source: 'settings-flush-complete' });
+          app.quit();
+        });
     });
+    app.on('will-quit', () => App.logShutdown('will-quit'));
+    app.on('quit', (_event, exitCode) => App.logShutdown('quit', { exitCode }));
 
     if (process.platform === 'linux') {
       // Must match the AppImage's light-matter.desktop filename for KDE/Wayland icon lookup.
