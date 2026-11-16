@@ -33,7 +33,7 @@ export default class App {
         event,
         ...details
       };
-      appendFileSync(join(logDirectory, 'shutdown.log'), `${JSON.stringify(entry)}\\n`, 'utf8');
+      appendFileSync(join(logDirectory, 'shutdown.log'), `${JSON.stringify(entry)}\n`, 'utf8');
     } catch (error) {
       console.error('[Shutdown] Could not write shutdown diagnostic log:', error);
     }
