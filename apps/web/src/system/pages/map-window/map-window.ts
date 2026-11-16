@@ -1319,11 +1319,8 @@ interface MapErrorEntry {
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
-    .zoom-settings-section>summary,.view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;list-style:disclosure-closed;white-space:nowrap}
-    .zoom-settings-section[open]>summary,.view-rerender-section[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;margin-left:auto}
     .zoom-summary-control input[type="range"]{flex:1 1 auto;min-width:70px;accent-color:#8ab4f8}
-    .zoom-settings-section[open]>summary{margin-bottom:2px}
     .view-source-controls,.view-style-controls{display:contents}
     .view-primary-controls .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .view-primary-controls .offline-style-control{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
@@ -1668,7 +1665,7 @@ interface MapErrorEntry {
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
     .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
     .map-toolbar-button{width:auto;min-width:92px;height:30px;padding:4px 12px;font-size:13px;white-space:nowrap}.location-actions>.map-toolbar-button:first-child{min-width:158px}
-    .opacity-settings{order:2;width:100%;flex:0 0 100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0;gap:12px}
+    .opacity-settings{order:2;width:100%;flex:0 0 100%;gap:12px}
     .opacity-settings .settings-row-title{flex:0 0 auto}
     .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:125px}
     .opacity-settings .range-setting input{flex:1;width:auto;min-width:45px}
