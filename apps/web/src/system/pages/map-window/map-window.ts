@@ -173,17 +173,17 @@ interface MapErrorEntry {
                   </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
-                    <div class="offline-address-results" role="table" aria-label="Offline address search results">
-                      <div class="offline-address-result offline-address-result-header" role="row">
-                        <strong role="columnheader">Address</strong><strong role="columnheader">Coordinates</strong>
-                      </div>
-                      @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
-                        <button type="button" class="map-toolbar-button offline-address-result" role="row" (click)="goToOfflineAddress(result)">
-                          <span class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</span>
-                          <span class="offline-address-result-coordinates" role="cell">{{ result.latitude.toFixed(6) }}, {{ result.longitude.toFixed(6) }}</span>
-                        </button>
-                      }
-                    </div>
+                    <table class="offline-address-results" aria-label="Offline address search results">
+                      <thead><tr><th scope="col">Address</th><th scope="col">Coordinates</th></tr></thead>
+                      <tbody>
+                        @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
+                          <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
+                            <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
+                            <td class="offline-address-result-coordinates">{{ result.latitude.toFixed(6) }}, {{ result.longitude.toFixed(6) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
                   }
                   <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
                 </form>
@@ -1304,14 +1304,16 @@ interface MapErrorEntry {
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
-    .offline-address-results{display:table;width:100%;min-width:0;max-height:260px;overflow:auto;border-collapse:collapse;table-layout:fixed}
-    .offline-address-result{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,auto);align-items:center;gap:10px;width:100%;min-height:28px;margin:0!important;padding:3px 6px;border:0!important;border-bottom:1px solid var(--color-content-default-low,#454545)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:left;white-space:nowrap;cursor:pointer}
-    .offline-address-result-header{position:sticky;top:0;z-index:1;padding:4px 6px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px}
-    .offline-address-result-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .offline-address-result-name strong{display:inline;font-weight:600;white-space:nowrap}
-    .offline-address-result-name>span{display:inline;color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:nowrap}
-    .offline-address-result-coordinates{justify-self:end;font:11px/1.3 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
-    .offline-address-result:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#454545) 45%,transparent)!important}
+    .offline-address-results{width:100%;min-width:0;max-height:260px;overflow:auto;border-collapse:collapse;table-layout:fixed;font-size:12px}
+    .offline-address-results th{position:sticky;top:0;z-index:1;padding:4px 6px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px;font-weight:600;text-align:left}
+    .offline-address-results th:last-child{width:190px;text-align:right}
+    .offline-address-results tbody tr{height:27px;border-bottom:1px solid var(--color-content-default-low,#454545);cursor:pointer}
+    .offline-address-results tbody tr:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#454545) 45%,transparent)}
+    .offline-address-results td{padding:3px 6px;white-space:nowrap;vertical-align:middle}
+    .offline-address-result-name{overflow:hidden;text-overflow:ellipsis}
+    .offline-address-result-name strong{font-weight:600;white-space:nowrap}
+    .offline-address-result-name span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:nowrap}
+    .offline-address-result-coordinates{text-align:right;font:11px/1.3 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
@@ -2905,6 +2907,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
         this.locationAddress.set('');
         this.marker?.setOpacity(0);
+        this.offlineRenderer?.setCurrentOpacity(0);
         if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
         return;
       }
@@ -6461,7 +6464,7 @@ export class MapWindow implements OnInit, OnDestroy {
       : null;
     const withinTimeRange = !this.timeSliderActive() || currentPhoto == null
       || this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp);
-    const opacity = this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
+    const opacity = this.coordinatesAvailable() && this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
   }
