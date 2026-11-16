@@ -1166,24 +1166,43 @@ export class ImageView {
     }
 
     const selectedPath = typeof imageView['activePath'] === 'string' ? imageView['activePath'] : '';
-    const track = tracks.find(item => item['path'] === selectedPath) ?? tracks[tracks.length - 1];
     const opacity = Number(imageView['opacity']);
     if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 100) this.gpxTrackOpacity.set(opacity);
     const color = imageView['color'];
     if (this.gpxTrackColors.some(option => option.value === color)) this.gpxTrackColor.set(color as string);
     if (typeof imageView['visible'] === 'boolean') this.gpxTrackVisible.set(imageView['visible']);
-    if (!track || typeof track['path'] !== 'string' || typeof track['name'] !== 'string') return;
 
-    const result = await this.desktopApi.FileSystem.readText(track['path']);
-    if (!result.success) {
-      this.gpxTrackStatus.set('GPX file could not be found: ' + track['name']);
-      return;
+    // Restore every enabled track, not only the last selected path. The previous
+    // implementation silently ignored all other entries in gpx.tracks.
+    const activeTracks = tracks.filter(item => item['active'] !== false);
+    const tracksToRestore = activeTracks.length > 0
+      ? activeTracks
+      : tracks.filter(item => item['path'] === selectedPath).slice(0, 1);
+    const restoredSegments: [number, number][][] = [];
+    const restoredNames: string[] = [];
+    const missingNames: string[] = [];
+    for (const track of tracksToRestore) {
+      if (typeof track['path'] !== 'string' || typeof track['name'] !== 'string') continue;
+      const result = await this.desktopApi.FileSystem.readText(track['path']);
+      if (!result.success) {
+        missingNames.push(track['name']);
+        continue;
+      }
+      try {
+        this.setGpxTrackData(result.data, track['name'], false);
+        restoredSegments.push(...this.gpxTrackSegments());
+        restoredNames.push(track['name']);
+      } catch (error) {
+        console.warn('[GPX] Could not restore track:', track['path'], error);
+        missingNames.push(track['name']);
+      }
     }
-    try {
-      this.setGpxTrackData(result.data, track['name'], false);
-    } catch (error) {
-      this.gpxTrackStatus.set(error instanceof Error ? error.message : 'Could not restore the GPX file.');
-    }
+    this.gpxTrackSegments.set(restoredSegments);
+    this.gpxTrackFileName.set(restoredNames.join(', ') || null);
+    this.gpxTrackStatus.set(missingNames.length
+      ? 'GPX file could not be found or read: ' + missingNames.join(', ')
+      : null);
+    this.applyGpxTrack();
   }
 
   private setGpxTrackData(content: string, fileName: string, fitTrack: boolean): void {
