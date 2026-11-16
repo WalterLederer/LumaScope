@@ -30,6 +30,11 @@ const api: Desktop = {
     getAppVersion: () => ipcRenderer.invoke('ProcessManager.getAppVersion'),
     getAppSettings: () => ipcRenderer.invoke('ProcessManager.getAppSettings'),
     setAppSettingsSection: (section: string, values: Record<string, unknown>) => ipcRenderer.invoke('ProcessManager.setAppSettingsSection', section, values),
+    onAppSettingsChanged: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, section: string, values: Record<string, unknown>): void => callback(section, values);
+      ipcRenderer.on('ProcessManager.appSettingsChanged', listener);
+      return () => ipcRenderer.removeListener('ProcessManager.appSettingsChanged', listener);
+    },
     isPackaged: () => ipcRenderer.invoke('ProcessManager.isPackaged'),
     getDevToolsOpen: () => ipcRenderer.invoke('ProcessManager.getDevToolsOpen'),
     setDevToolsOpen: (open: boolean) => ipcRenderer.invoke('ProcessManager.setDevToolsOpen', open),
