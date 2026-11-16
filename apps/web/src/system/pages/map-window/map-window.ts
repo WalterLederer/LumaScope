@@ -142,10 +142,10 @@ interface MapErrorEntry {
               <details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <div class="location-actions fix-location-automatic-actions">
-                  <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-animation-panel fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
                   <div class="time-slider-animation-panel fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
+                  <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
                 @if (autoFixReport().length) {
@@ -165,8 +165,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location MANUAL</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
-                    <div class="location-actions"><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
-                    <div class="fix-location-crosshair-row"><div class="time-slider-animation-panel fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
+                    <div class="fix-location-crosshair-row"><div class="time-slider-animation-panel fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
@@ -195,7 +194,7 @@ interface MapErrorEntry {
                     <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
                       {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
                     </button>
-                    <button type="button" class="routing-help-button" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
+                    <button type="button" class="routing-help-button location-row-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
                   </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
@@ -270,12 +269,12 @@ interface MapErrorEntry {
 <div class="settings-tab-content track-tab">
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
-      <button type="button" class="routing-help-button" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
       <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <label class="gpx-db-mode-toggle" title="Use GPX files stored in the cache database that intersect the current map viewport">
         <input type="checkbox" [checked]="gpxListMode() === 'database'" (change)="$any($event.target).checked ? showGpxFilesVisibleOnMap() : showRecentGpxFiles()" [disabled]="gpxDatabaseQueryBusy()">
         Use GPX files from DB
       </label>
+      <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
       @if (gpxListMode() === 'database') {
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
         <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
@@ -479,13 +478,13 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
   <div class="settings-tab-content time-slider-tab">
-    <div class="time-slider-tab-toolbar"><button type="button" class="routing-help-button" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button></div>
     <div class="time-slider-settings">
       @if (timeSliderHasData()) {
         <div class="time-slider-readouts">
           <span class="time-slider-min"><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
           <span class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderStart(), timeSliderEnd()) }}</span>
           <span class="time-slider-max"><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
+          <button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button>
         </div>
         <div class="time-slider-control-row">
           <label class="time-slider-activate" title="Activate or deactivate time filtering"><input type="checkbox" aria-label="Activate Time Slider" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"></label>
@@ -558,16 +557,15 @@ interface MapErrorEntry {
           </div>
         </details>
       } @else {
-        <span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span>
+        <span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span><button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button>
       }
     </div>
   </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
-            <div class="marker-tab-toolbar"><button type="button" class="routing-help-button" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
             <div class="marker-settings-content">
-              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
+              <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label><button type="button" class="routing-help-button" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
               <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all photos in DB</label>
               <div class="marker-appearance-settings">
                 <div class="marker-setting-row">
@@ -988,7 +986,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button resource-package-open-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
-      <button type="button" class="routing-help-button" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
+      <button type="button" class="routing-help-button resource-package-help" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
       <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Open the extracted resource package to discover offline maps and resources.' }}</span>
     </div>
     @if (resourcePackageScanFound()) {
@@ -1916,7 +1914,7 @@ interface MapErrorEntry {
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
-    .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.marker-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.time-slider-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.routing-help-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:23px!important;font-weight:800!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.routing-help-button:hover{filter:brightness(1.18)!important;transform:translateY(-1px)!important}.routing-help-button:active{transform:translateY(1px)!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d!important}.routing-help-button span{display:block!important;line-height:1!important}
+    .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.marker-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.time-slider-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.routing-help-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:23px!important;font-weight:800!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.location-actions .routing-help-button{margin-left:auto!important}.fix-location-crosshair-row{display:flex;align-items:center;gap:8px;min-width:0}.fix-location-crosshair-row .fix-location-address{flex:1 1 auto;min-width:0}.fix-location-crosshair-row .routing-help-button{margin-left:auto!important;flex:0 0 30px!important}.gpx-toolbar .gpx-toolbar-help{margin-left:auto!important}.time-slider-readouts{display:flex;align-items:center;gap:10px}.time-slider-inline-help{margin-left:auto!important;flex:0 0 30px!important}.marker-first-row{display:flex;align-items:center;gap:8px}.marker-first-row .routing-help-button{margin-left:auto!important}.resource-package-help{margin-left:auto!important}.routing-help-button:hover{filter:brightness(1.18)!important;transform:translateY(-1px)!important}.routing-help-button:active{transform:translateY(1px)!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d!important}.routing-help-button span{display:block!important;line-height:1!important}
     .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-provider-row{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;min-width:0}.routing-advanced .routing-provider-card{flex:0 1 280px;width:min(280px,100%);min-width:0;margin:0}.routing-advanced .routing-gpx-read-button{flex:0 0 auto;margin:0}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
