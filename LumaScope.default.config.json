@@ -2,7 +2,8 @@
   "defaultConfigVersion": 1,
   "preferences": {
     "buttonStyle": "blue",
-    "disclosureStyle": "classic"
+    "disclosureStyle": "classic",
+    "tabBarStyle": "classic"
   },
   "mapWindow": {
     "renderWorkerCount": 2,
