@@ -146,7 +146,7 @@ interface MapErrorEntry {
                   <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
-                <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files.</div>
+                <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
               </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location MANUAL</summary>
@@ -1814,12 +1814,12 @@ interface MapErrorEntry {
     .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
-    .location-tab .fix-location-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
+    .location-tab .fix-location-section,.location-tab .fix-location-automatic-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
     .fix-location-toggle input{accent-color:#8ab4f8}
     .location-tab .fix-location-section .offline-map-status{color:#bdc1c6}
-    :host-context(html[data-theme='light']) .location-tab .fix-location-section,:host-context(html[data-theme='light']) .location-tab .offline-address-search,:host-context(html[data-theme='light']) .location-tab .location-tools-section{background:#fff;border-color:#c5c8ce;color:#202124}
+    :host-context(html[data-theme='light']) .location-tab .fix-location-section,:host-context(html[data-theme='light']) .location-tab .fix-location-automatic-section,:host-context(html[data-theme='light']) .location-tab .offline-address-search,:host-context(html[data-theme='light']) .location-tab .location-tools-section{background:#fff;border-color:#c5c8ce;color:#202124}
     :host-context(html[data-theme='light']) .location-tab .fix-location-section .offline-map-status{color:#555}
     .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
     .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
