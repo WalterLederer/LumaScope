@@ -88,10 +88,16 @@ export interface FixPhotoLocationsResult {
   errors: number;
 }
 
+export interface FixPhotoLocationsProgress {
+  scanned: number;
+  total: number;
+}
+
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
   readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number) => Promise<ApiResponse<FixPhotoLocationsResult>>;
+  readonly onFixFolderLocationsProgress: (callback: (progress: FixPhotoLocationsProgress) => void) => () => void;
 }
 
 export interface CacheSummary {
