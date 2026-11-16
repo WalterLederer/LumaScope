@@ -64,6 +64,8 @@ export interface AppConfigV1Gallery {
 export interface AppConfigV1System {
   minimiseOnStart: boolean;
   theme?: 'dark' | 'light';
+  /** Use neutral flat styling instead of the default blue action buttons. */
+  flatStandardButtons?: boolean;
   devToolsOpen?: boolean;
   histogramVisible?: boolean;
   exifVisible?: boolean;
@@ -97,6 +99,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io2 = (input: any): boolean =>
     'boolean' === typeof input.minimiseOnStart
     && (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
+    && (undefined === input.flatStandardButtons || 'boolean' === typeof input.flatStandardButtons)
     && (undefined === input.devToolsOpen || 'boolean' === typeof input.devToolsOpen)
     && (undefined === input.histogramVisible || 'boolean' === typeof input.histogramVisible)
     && (undefined === input.exifVisible || 'boolean' === typeof input.exifVisible)
