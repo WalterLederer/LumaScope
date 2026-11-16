@@ -143,8 +143,8 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
-                  <div class="time-slider-animation-panel fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
-                  <div class="time-slider-animation-panel fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
+                  <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
+                  <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
                   <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
@@ -165,7 +165,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location MANUAL</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
-                    <div class="fix-location-crosshair-row"><div class="time-slider-animation-panel fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
+                    <div class="fix-location-crosshair-row"><div class="time-slider-control-card fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
@@ -1835,11 +1835,9 @@ interface MapErrorEntry {
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-automatic-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
     .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
-     .fix-location-check-only-panel{flex:0 0 auto;justify-content:center;min-height:34px;padding:6px 10px}
-     .fix-location-check-only-panel .fix-location-check-only{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
-    .fix-location-max-difference-panel{flex:0 0 auto}
+    .fix-location-check-only-panel{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;min-height:34px;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
+    .fix-location-check-only-panel .fix-location-check-only{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
     .fix-location-max-difference-panel .fix-location-max-difference{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
-    .fix-location-crosshair-panel{flex:0 0 auto}
     .fix-location-crosshair-panel .fix-location-toggle{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
     .fix-location-crosshair-row{align-items:center}
     .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
