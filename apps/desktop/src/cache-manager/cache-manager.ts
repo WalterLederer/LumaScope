@@ -642,7 +642,8 @@ export class CacheManager {
       FROM gpx_track_points
       WHERE timestamp_ms BETWEEN :minimum AND :maximum
       GROUP BY segment_id
-      HAVING before_timestamp IS NOT NULL AND after_timestamp IS NOT NULL
+      HAVING MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) IS NOT NULL
+        AND MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) IS NOT NULL
       ORDER BY (after_timestamp - before_timestamp), segment_id
       LIMIT 1`).get({
         timestamp: timestampMs,
