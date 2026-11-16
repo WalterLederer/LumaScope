@@ -3341,12 +3341,8 @@ export class MapWindow implements OnInit, OnDestroy {
             + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos checked');
         }
       });
-      let response;
-      try {
-        response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
-      } finally {
-        unsubscribeProgress();
-      }
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60)
+        .finally(unsubscribeProgress);
       if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
       const elapsedSeconds = result.elapsedMilliseconds / 1000;
