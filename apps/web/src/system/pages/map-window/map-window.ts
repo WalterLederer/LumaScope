@@ -1248,6 +1248,9 @@ interface MapErrorEntry {
   styles: [`
     :host{display:block;width:100%;height:100%;min-width:0;min-height:0;color:var(--color-content-default-high,#eee);font:13px/1.4 inherit}
     .map-window{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface-default-low,#202124)}
+    .map-titlebar{position:relative;z-index:2147483001;display:flex!important;flex:0 0 36px;align-items:center;gap:10px;width:100%;min-width:0;height:36px;box-sizing:border-box;padding:4px 10px;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-low,#444);overflow:visible}
+    .titlebar-always-on-top{display:flex!important;flex:0 0 auto;align-items:center;gap:5px;margin-left:auto;white-space:nowrap;font-size:12px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important}
+    .titlebar-always-on-top input{display:inline-block!important;flex:0 0 auto;width:14px;height:14px;margin:0;accent-color:#8ab4f8;visibility:visible!important;opacity:1!important}
     :host(.overlay-mode) .map-window{background:transparent;border:1px solid rgba(255,255,255,.48);border-radius:8px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.28)}
     :host(.overlay-mode) .map-titlebar{background:rgba(32,33,36,.88);border-bottom-color:rgba(255,255,255,.22)}
     :host(.overlay-mode) .map-settings{background:rgba(32,33,36,.96)}
