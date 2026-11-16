@@ -142,7 +142,7 @@ interface MapErrorEntry {
               <details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <div class="location-actions fix-location-automatic-actions">
-                  <button type="button" class="map-toolbar-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
+                  <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
@@ -402,7 +402,7 @@ interface MapErrorEntry {
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
       <div class="routing-toolbar-actions">
-        <button type="button" class="map-toolbar-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
+        <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
         <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
       </div>
     </div>
