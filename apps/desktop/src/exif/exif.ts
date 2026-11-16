@@ -67,6 +67,7 @@ export class Exif {
       if (!Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0 || maxDifferenceSeconds > 86_400) {
         throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
       }
+      const startedAt = Date.now();
       const root = resolve(folder);
       const rootInfo = await stat(root);
       if (!rootInfo.isDirectory()) throw new Error('The selected path is not a folder.');
@@ -75,9 +76,12 @@ export class Exif {
         '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf'
       ]);
       const candidates: string[] = [];
+      let totalFilesProcessed = 0;
+      let totalFoldersProcessed = 0;
       const pending = [root];
       while (pending.length) {
         const directory = pending.pop()!;
+        totalFoldersProcessed++;
         let entries;
         try { entries = await readdir(directory, { withFileTypes: true }); }
         catch { continue; }
@@ -86,13 +90,18 @@ export class Exif {
           const path = join(directory, entry.name);
           if (entry.isDirectory()) {
             if (!['.cache', '$RECYCLE.BIN', 'System Volume Information', 'node_modules', '.git'].includes(entry.name)) pending.push(path);
-          } else if (entry.isFile() && imageExtensions.has(extname(entry.name).toLowerCase())) {
-            candidates.push(path);
+          } else if (entry.isFile()) {
+            totalFilesProcessed++;
+            if (imageExtensions.has(extname(entry.name).toLowerCase())) candidates.push(path);
           }
         }
       }
 
       const result: FixPhotoLocationsResult = {
+        rootFolder: root,
+        totalFilesProcessed,
+        totalFoldersProcessed,
+        elapsedMilliseconds: 0,
         scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0,
         ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0
       };
@@ -141,6 +150,7 @@ export class Exif {
         }
         if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
       }
+      result.elapsedMilliseconds = Date.now() - startedAt;
       if (deviations.length) {
         result.minDeviationSeconds = Math.min(...deviations);
         result.meanDeviationSeconds = deviations.reduce((sum, value) => sum + value, 0) / deviations.length;
