@@ -71,6 +71,10 @@ export interface DesktopDialogs {
 }
 
 export interface FixPhotoLocationsResult {
+  rootFolder: string;
+  totalFilesProcessed: number;
+  totalFoldersProcessed: number;
+  elapsedMilliseconds: number;
   scanned: number;
   withGps: number;
   withoutGps: number;
