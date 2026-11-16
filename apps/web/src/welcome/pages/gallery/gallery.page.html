@@ -78,7 +78,7 @@
         <ui-text [inherit]="true">Add new location</ui-text>
       </ui-action-button>
     } @else {
-      <ui-action-button cdkMenuItem variant="warn" (pressed)="onRemoveLocation(data)">
+      <ui-action-button class="remove-location-menu-button" cdkMenuItem variant="warn" (pressed)="onRemoveLocation(data)">
         <ui-icon icon="folderProhibited" [inherit]="true" />
         <ui-text [inherit]="true">Remove</ui-text>
       </ui-action-button>
