@@ -112,6 +112,10 @@ export class CapturePanelComponent {
     try { localStorage.setItem('capture.gamma', String(gamma)); }
     catch { /* keep the current-session preference if storage is unavailable */ }
   };
+  protected readonly openScreenCaptureHelp = (): void => {
+    void window.desktop?.MapWindow.openHelpDocument('screen-capture.md');
+  };
+
   protected readonly status = signal('');
   protected readonly sourceDiagnostics = signal('');
   protected readonly error = signal<string | null>(null);
