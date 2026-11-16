@@ -1,4 +1,4 @@
-import { IpcMainEvent, IpcMainInvokeEvent } from 'electron';
+import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
@@ -60,7 +60,7 @@ export class Exif {
   };
 
   @IpcHandler({ name: 'Exif.cancelFixFolderLocations' })
-  readonly cancelFixFolderLocations = (_event: IpcMainEvent, operationId: string): void => {
+  readonly cancelFixFolderLocations = (_event: IpcMainInvokeEvent, operationId: string): void => {
     if (typeof operationId === 'string' && operationId) this.cancelledLocationFixes.add(operationId);
   };
 
