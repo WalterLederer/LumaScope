@@ -16,12 +16,7 @@ const ATLAS_TILE_SIZE = 256;
 const TILE_BYTES = ATLAS_TILE_SIZE * ATLAS_TILE_SIZE * 4;
 const HEADER_BYTES = 40;
 const MAX_RESPONSE_BYTES = 512 * 1024 * 1024;
-// Atlas workers each own a Qt/OpenGL context and load the selected OBF set.
-// Keep concurrency conservative to avoid competing native/GPU initialization.
-const HELPER_WORKER_COUNT = 2;
-// SQLite tile reads are independent, but each helper owns a database connection.
-// Limit concurrent readers to avoid saturating the same drive during map movement.
-const HILLSHADE_WORKER_COUNT = 2;
+// Worker counts are shared with the View > Render concurrency setting.
 // Valid transparent PNG returned for XYZ cells outside a regional hillshade database.
 const EMPTY_HILLSHADE_TILE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=', 'base64');
 
@@ -597,8 +592,35 @@ export class OsmAndAtlasManager {
     });
   }
 
-  private createHillshadeWorkers(): OsmAndHillshadeWorker[] {
-    return Array.from({ length: HILLSHADE_WORKER_COUNT }, () =>
+  private readRenderWorkerCount(): number {
+    const mapWindow = readAppSettings().mapWindow as Record<string, unknown> | undefined;
+    const value = Number(mapWindow?.renderWorkerCount ?? 2);
+    return Number.isFinite(value) ? Math.max(1, Math.min(4, Math.round(value))) : 2;
+  }
+
+  private async ensureRenderWorkerPools(): Promise<void> {
+    const count = this.readRenderWorkerCount();
+    const previousWorkers = this.workers.length === count ? null : this.workers;
+    const previousHillshadeWorkers = this.hillshadeWorkers.length === count ? null : this.hillshadeWorkers;
+    if (!previousWorkers && !previousHillshadeWorkers) return;
+    if (previousWorkers) {
+      this.workers = this.createWorkers(count);
+      this.nextWorker = 0;
+      this.pendingTiles.clear();
+    }
+    if (previousHillshadeWorkers) {
+      this.hillshadeWorkers = this.createHillshadeWorkers(count);
+      this.nextHillshadeWorker = 0;
+    }
+    await Promise.all([
+      ...(previousWorkers ?? []).map(worker => worker.retire()),
+      ...(previousHillshadeWorkers ?? []).map(worker => worker.shutdown())
+    ]);
+    console.info('[OsmAnd Atlas] render_worker_count=' + count);
+  }
+
+  private createHillshadeWorkers(count = this.readRenderWorkerCount()): OsmAndHillshadeWorker[] {
+    return Array.from({ length: count }, () =>
       new OsmAndHillshadeWorker(this.hillshadeHelperPath, this.environment)
     );
   }
@@ -752,8 +774,8 @@ export class OsmAndAtlasManager {
     return update;
   }
 
-  private createWorkers(): OsmAndAtlasWorker[] {
-    return Array.from({ length: HELPER_WORKER_COUNT }, () =>
+  private createWorkers(count = this.readRenderWorkerCount()): OsmAndAtlasWorker[] {
+    return Array.from({ length: count }, () =>
       new OsmAndAtlasWorker(
         this.helperPath, this.obfPaths, this.resourcesPath, this.stylePath, this.environment, this.displayScale
       )
@@ -1087,6 +1109,7 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.renderHillshadeTile' })
   readonly renderHillshadeTile = async (_event: Electron.IpcMainInvokeEvent, databasePath: string, z: number, x: number, y: number, s = 0): Promise<Uint8Array> => {
+    await this.ensureRenderWorkerPools();
     if (!this.hillshadeDatabases.some(item => item.path === databasePath && item.enabled)) throw new Error('[OsmAnd Hillshade] Database is not in the active Hillshade list: ' + databasePath);
     if (!databasePath || !existsSync(databasePath)) throw new Error('[OsmAnd Hillshade] Hillshade database is unavailable: ' + databasePath);
     if (!/\.(?:sqlitedb|sqlite|db)$/i.test(databasePath)) throw new Error('[OsmAnd Hillshade] Unsupported database file.');
@@ -1114,6 +1137,7 @@ export class OsmAndAtlasManager {
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
   readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
+    await this.ensureRenderWorkerPools();
     await this.styleChange;
     // OBF selection is refreshed by getRuntimeStatus() during map initialization.
     // Do not reread settings and stat every selected OBF for every tile request.
