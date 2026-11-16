@@ -103,6 +103,105 @@ let heifDecoderModule: HeifDecoderModule | null = null;
 let exrDecoderModule: Promise<ExrDecoderModule> | null = null;
 const transferLuts = new Map<number, Float32Array>();
 
+interface LibRawProcessedImage {
+  type_: string;
+  width: number;
+  height: number;
+  colors: number;
+  bits: number;
+  data_size: number;
+  data: Uint8Array;
+}
+
+interface LibRawDecoder {
+  waitUntilReady: () => Promise<void>;
+  open: (data: ArrayBuffer) => void;
+  unpack: () => void;
+  dcrawProcess: () => void;
+  dcrawMakeMemImage: () => LibRawProcessedImage;
+  setOutputColor: (value: number) => void;
+  setOutputBps: (value: number) => void;
+  setGamma: (index: number, value: number) => void;
+  setNoAutoBright: (value: number) => void;
+  setUseCameraWb: (value: number) => void;
+  dispose: () => void;
+}
+
+interface LibRawConstructor {
+  new (): LibRawDecoder;
+  initialize: (input?: ArrayBuffer | Response) => Promise<void>;
+}
+
+let libRawConstructorPromise: Promise<LibRawConstructor> | null = null;
+
+async function getLibRawConstructor(): Promise<LibRawConstructor> {
+  if (!libRawConstructorPromise) {
+    libRawConstructorPromise = (async () => {
+      const { LibRaw } = await import('@colorhythm/libraw-wasm');
+      const wasmPath = require.resolve('@colorhythm/libraw-wasm/libraw.wasm');
+      const wasmBytes = await readFile(wasmPath);
+      const wasmBuffer = new ArrayBuffer(wasmBytes.byteLength);
+      new Uint8Array(wasmBuffer).set(wasmBytes);
+      await LibRaw.initialize(wasmBuffer);
+      return LibRaw as unknown as LibRawConstructor;
+    })();
+  }
+
+  return libRawConstructorPromise;
+}
+
+/** Develop a camera RAW file to linear 16-bit RGB without an 8-bit intermediate. */
+async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.Image> {
+  const LibRaw = await getLibRawConstructor();
+  const decoder = new LibRaw();
+  await decoder.waitUntilReady();
+
+  try {
+    const input = await readFile(source);
+    const inputBuffer = new ArrayBuffer(input.byteLength);
+    new Uint8Array(inputBuffer).set(input);
+
+    decoder.open(inputBuffer);
+    decoder.setUseCameraWb(1);
+    decoder.setOutputColor(1);
+    decoder.setOutputBps(16);
+    decoder.setGamma(0, 1);
+    decoder.setGamma(1, 1);
+    decoder.setNoAutoBright(1);
+    decoder.unpack();
+    decoder.dcrawProcess();
+
+    const decoded = decoder.dcrawMakeMemImage();
+    const expectedBytes = decoded.width * decoded.height * decoded.colors * 2;
+
+    if (decoded.type_ !== 'LIBRAW_IMAGE_BITMAP' || decoded.bits !== 16 ||
+      decoded.colors !== 3 || decoded.width <= 0 || decoded.height <= 0 ||
+      decoded.data_size !== expectedBytes || decoded.data.byteLength < expectedBytes) {
+      throw new Error(
+        `LibRaw returned an unsupported DNG image (${decoded.width}x${decoded.height}, ${decoded.colors} channels, ${decoded.bits} bits).`
+      );
+    }
+
+    const pixels = new Uint16Array(decoded.width * decoded.height * 3);
+    const data = new DataView(decoded.data.buffer, decoded.data.byteOffset, expectedBytes);
+
+    for (let index = 0; index < pixels.length; index++) {
+      pixels[index] = data.getUint16(index * 2, true);
+    }
+
+    return vips.Image.newFromMemory(
+      pixels,
+      decoded.width,
+      decoded.height,
+      3,
+      vips.BandFormat.ushort
+    );
+  } finally {
+    decoder.dispose();
+  }
+}
+
+
 async function getVips(): Promise<typeof Vips> {
   if (!vipsInstance) {
     vipsInstance = await Vips();
@@ -639,8 +738,11 @@ function hlgOotf(vips: typeof Vips, sceneLinear: Vips.Image): Vips.Image {
   return sceneLinear.multiply(displayScale);
 }
 
-function histogramForImage(vips: typeof Vips, source: string): ImageHistogram {
-  using fullImage = vips.Image.newFromFile(source, { access: 'random' });
+async function histogramForImage(vips: typeof Vips, source: string): Promise<ImageHistogram> {
+  const sourceExtension = extname(source).toLowerCase();
+  using fullImage = sourceExtension === '.dng'
+    ? await decodeDngToVips(vips, source)
+    : vips.Image.newFromFile(source, { access: 'random' });
   const scale = Math.min(1, 512 / fullImage.width, 512 / fullImage.height);
   using smallImage = scale < 1 ? fullImage.resize(scale, { kernel: vips.Kernel.linear }) : fullImage.copy();
   using rgb = smallImage.bands >= 3 ? smallImage.extractBand(0, { n: 3 }) : vips.Image.bandjoin([
@@ -816,7 +918,7 @@ if (parentPort) {
 
     if (request.type === 'histogram') {
       try {
-        const histogram = histogramForImage(await getVips(), request.source);
+        const histogram = await histogramForImage(await getVips(), request.source);
         parentPort?.postMessage({ id: request.id, success: true, histogram } satisfies ThumbWorkerResponse);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -860,7 +962,37 @@ if (parentPort) {
 
       const sourceExtension = extname(source).toLowerCase();
 
-      if (sourceExtension === '.exr') {
+      if (sourceExtension === '.dng') {
+        processingStage = 'developing DNG with LibRaw';
+        using dngImage = await decodeDngToVips(vips, source);
+
+        if (cancelledRequests.has(id)) {
+          cancelRequest(id);
+          return;
+        }
+
+        if (width > 0 && height > 0) {
+          const scale = preserveAspectRatio
+            ? Math.min(width / dngImage.width, height / dngImage.height)
+            : Math.max(width / dngImage.width, height / dngImage.height) + 0.0001;
+          using resized = dngImage.resize(scale, { kernel: vips.Kernel.linear });
+          using output = preserveAspectRatio
+            ? resized.copy()
+            : resized.extractArea(
+              Math.max(0, Math.floor((resized.width - width) / 2)),
+              Math.max(0, Math.floor((resized.height - height) / 2)),
+              width,
+              height
+            );
+          processingStage = 'writing 16-bit-developed DNG thumbnail';
+          output.writeToFile(target, { Q: 85 });
+        } else {
+          processingStage = 'writing full-size DNG derivative';
+          dngImage.writeToFile(target, { Q: 90 });
+        }
+        // LibRaw's rendered linear RGB is not proof of HDR headroom or an embedded gain map.
+        isHdr = false;
+      } else if (sourceExtension === '.exr') {
         processingStage = 'loading EXR decoder';
         const decoder = await getExrDecoder();
         processingStage = 'decoding EXR pixels';
