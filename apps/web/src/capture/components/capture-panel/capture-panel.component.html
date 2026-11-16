@@ -1,4 +1,4 @@
-<section class="capture-panel">
+<section class="capture-panel" [attr.data-button-color-pref]="themeService.buttonColor()">
   <div class="capture-content">
     <div class="capture-toolbar">
       <button type="button" class="capture-help-button" (click)="openScreenCaptureHelp()" title="Open Screen Capture help" aria-label="Open Screen Capture help"><span aria-hidden="true">?</span></button>
