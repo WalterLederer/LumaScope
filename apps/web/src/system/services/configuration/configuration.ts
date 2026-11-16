@@ -39,6 +39,8 @@ export class Configuration {
 
   private _configPath?: string;
 
+  private pendingPreferences: Partial<NonNullable<AppConfigV1['preferences']>> = {};
+
   constructor() {
     this.init();
   }
@@ -63,6 +65,7 @@ export class Configuration {
   };
 
   readonly applyPreferencesConfig = (options: Partial<NonNullable<AppConfigV1['preferences']>>) => {
+    this.pendingPreferences = { ...this.pendingPreferences, ...options };
     updateSubject(this.config$, config => {
       const result = structuredClone(config);
       result.preferences = { ...result.preferences, ...options };
@@ -97,13 +100,17 @@ export class Configuration {
     const existing = await this.fileSystem.readJson<AppConfigV1 | unknown>(this._configPath);
 
     if (!existing.success || !isAppConfig(existing.data)) {
-      this.config$.next(this._defaultConfig);
+      this.config$.next({
+        ...this._defaultConfig,
+        preferences: { ...this._defaultConfig.preferences, ...this.pendingPreferences }
+      });
       return;
     }
 
     this.config$.next({
       ...this._defaultConfig,
-      ...existing.data
+      ...existing.data,
+      preferences: { ...this._defaultConfig.preferences, ...existing.data.preferences, ...this.pendingPreferences }
     });
   };
 
