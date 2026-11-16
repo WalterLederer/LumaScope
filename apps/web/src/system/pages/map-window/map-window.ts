@@ -243,8 +243,7 @@ interface MapErrorEntry {
 <div class="settings-tab-content track-tab">
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
-      <button type="button" class="offline-map-add-button" (click)="importGpxTrack()">Add GPX files...</button>
-      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
+      <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
@@ -321,6 +320,10 @@ interface MapErrorEntry {
       </div>
     }
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
+    <details class="gpx-advanced-section app-disclosure">
+      <summary>Advanced</summary>
+      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
+    </details>
   </div>
 </div>
 </div>
@@ -448,7 +451,13 @@ interface MapErrorEntry {
               <h4 class="time-slider-symbol-heading"><label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"> Symbol</label></h4>
               <div class="time-slider-symbol-controls-row">
                 <div class="time-slider-symbol-preview-row time-slider-symbol-preview-card">
-                  <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview"><span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span></div>
+                  <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview">
+                    @if (walkingFigureType() === 'walker') {
+                      <span [style.transform]="walkingFigurePreviewTransform()"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></span>
+                    } @else {
+                      <span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span>
+                    }
+                  </div>
                   <span class="time-slider-symbol-front">Front</span>
                 </div>
                 <label class="time-slider-symbol-select"><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="autoRickshaw">Auto rickshaw</option><option value="rocket">Rocket</option><option value="smallPlane">Small airplane</option><option value="flyingSaucer">Flying saucer</option><option value="locomotive">Steam locomotive</option><option value="railCar">Rail car</option><option value="tram">Tram</option><option value="mountainRailway">Mountain railway</option><option value="monorail">Monorail</option><option value="highSpeedTrain">High-speed train</option><option value="bulletTrain">Bullet train</option><option value="lightRail">Light rail</option><option value="metro">Metro</option><option value="motorYacht">Motor yacht</option><option value="ferry">Ferry</option><option value="cruiseShip">Cruise ship</option><option value="canoe">Canoe</option></select></label>
@@ -1438,6 +1447,8 @@ interface MapErrorEntry {
     .lumascope-walker-icon{background:transparent;border:0}.lumascope-walker{width:24px;height:30px;max-width:24px;max-height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%;will-change:transform}.lumascope-walker svg{display:block;width:24px!important;height:30px!important;max-width:24px;max-height:30px;overflow:visible}.lumascope-walker .walker-limb{transform-box:fill-box;transform-origin:top center;animation:walker-step var(--walker-animation-duration,.72s) ease-in-out infinite alternate}.lumascope-walker .walker-arm{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg{animation-duration:var(--walker-animation-duration,.72s)}.lumascope-walker .walker-leg.back,.lumascope-walker .walker-arm.back{animation-direction:alternate-reverse}@keyframes walker-step{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
     .time-slider-help{font-size:12px;color:var(--color-content-default-medium,#aaa)}
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
+     .gpx-toolbar .gpx-add-button{background:color-mix(in srgb,#0a84ff 13%,var(--color-surface-default-low,#252525))!important;border-color:color-mix(in srgb,#0a84ff 38%,var(--color-content-default-low,#666))!important}
+     .gpx-advanced-section{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin-top:8px!important}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
     .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) 72px minmax(135px,175px) minmax(245px,290px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-missing{color:#ff5b5b;background:color-mix(in srgb,#e53935 9%,transparent)}.gpx-file-row.gpx-missing .gpx-file-name{color:#ff5b5b}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
