@@ -46,8 +46,14 @@ ul, li {
   display: block;
 }
 
-/*
- * Reusable disclosure component.
+/* Shared action-button appearance across the application. Disclosure headings are excluded. */
+button:not(.app-disclosure-heading) {
+  border: 1px solid var(--color-content-default-low) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 28%), inset 0 1px 0 rgb(255 255 255 / 5%) !important;
+}
+
+/* Reusable disclosure component.
  * Add class="app-disclosure" to every new <details> section.
  * For custom button-based disclosure headings, use app-disclosure-heading
  * and toggle the expanded class together with the section state.
@@ -58,9 +64,9 @@ details.app-disclosure,
   box-sizing: border-box;
   min-width: 0;
   margin: 0;
-  padding: 6px 10px;
-  border: 1px solid var(--color-content-default-low);
-  border-radius: 6px;
+  padding: 6px 10px !important;
+  border: 1px solid var(--color-content-default-low) !important;
+  border-radius: 6px !important;
   background: transparent;
   color: var(--color-content-default-high);
 }
@@ -69,16 +75,17 @@ details.app-disclosure,
 details > summary,
 details.app-disclosure > summary,
 .app-disclosure > summary {
-  display: flex;
-  align-items: center;
-  column-gap: 8px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  column-gap: 8px !important;
   margin: 0;
-  padding: 0;
+  padding: 0 !important;
   font-family: inherit;
   font-size: 13px;
   font-weight: 400 !important;
   line-height: 1.4;
-  list-style: none;
+  list-style: none !important;
   cursor: pointer;
   user-select: none;
 }
