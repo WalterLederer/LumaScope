@@ -81,7 +81,7 @@ const api: Desktop = {
   Exif: {
     read: (path: string) => ipcRenderer.invoke('Exif.read', path),
     writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
-    fixFolderLocations: (folder: string, checkOnly: boolean) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly)
+    fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds)
   },
 
   CacheManager: {
@@ -110,7 +110,7 @@ const api: Desktop = {
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxFilesInBounds', bounds, databaseKey),
-    getInterpolatedGpxPosition: (folder: string, timestampMs: number) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs),
+    getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs, maxDifferenceSeconds),
     getOsmAndTileCacheSummary: () => ipcRenderer.invoke('CacheManager.getOsmAndTileCacheSummary')
   },
 
