@@ -6988,7 +6988,11 @@ export class MapWindow implements OnInit, OnDestroy {
     (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
 
   protected readonly gpxVisibleWaypointCount = (track: GpxTrackFile): number =>
-    this.visibleGpxSegments(track).reduce((count, segment) => count + segment.length, 0);
+    (this.gpxPointDataByTrack.get(track.path) ?? []).flat().filter(point => {
+      const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
+      return !this.timeSliderActive() || !Number.isFinite(timestamp)
+        || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd());
+    }).length;
 
   protected readonly gpxDatabaseVisibleTracks = (): GpxTrackFile[] =>
     this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
