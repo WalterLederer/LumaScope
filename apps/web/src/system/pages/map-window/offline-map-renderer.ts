@@ -17,6 +17,33 @@ let osmAndHillshadeDatabasesProvider: (() => OsmAndHillshadeDatabase[]) | null =
 let osmAndHillshadeProtocolRegistered = false;
 let osmAndHillshadeDiagnosticCount = 0;
 
+let offlineRenderConcurrency = 2;
+let offlineRenderActive = 0;
+const offlineRenderWaiters: Array<() => void> = [];
+
+export function setOfflineRenderConcurrency(value: number): void {
+  if (!Number.isFinite(value)) return;
+  offlineRenderConcurrency = Math.max(1, Math.min(4, Math.round(value)));
+  while (offlineRenderActive < offlineRenderConcurrency && offlineRenderWaiters.length) {
+    offlineRenderWaiters.shift()?.();
+  }
+}
+
+export async function runOfflineRenderTask<T>(task: () => Promise<T>): Promise<T> {
+  if (offlineRenderActive >= offlineRenderConcurrency) {
+    await new Promise<void>(resolve => offlineRenderWaiters.push(resolve));
+  }
+  offlineRenderActive++;
+  try {
+    return await task();
+  } finally {
+    offlineRenderActive--;
+    if (offlineRenderWaiters.length && offlineRenderActive < offlineRenderConcurrency) {
+      offlineRenderWaiters.shift()?.();
+    }
+  }
+}
+
 const EMPTY_HILLSHADE_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAQAAAD2e2DtAAAAlUlEQVR42u3BAQ0AAADCoPdP7ewBFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA3AR4AAY/4QuAAAAAASUVORK5CYII=';
 const EMPTY_HILLSHADE_PNG = Uint8Array.from(atob(EMPTY_HILLSHADE_PNG_BASE64), character => character.charCodeAt(0));
 
@@ -102,7 +129,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
         [nativeColumn, nativeRow], [nativeColumn + 1, nativeRow],
         [nativeColumn, nativeRow + 1], [nativeColumn + 1, nativeRow + 1]
       ] as const;
-      const tiles = await Promise.all(coordinates.map(([x, y]) => desktop.OsmAnd.renderTile(nativeZoom, x, y)));
+      const tiles = await Promise.all(coordinates.map(([x, y]) => runOfflineRenderTask(() => desktop.OsmAnd.renderTile(nativeZoom, x, y))));
       if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
       // A displayed 512px tile is a cache hit only when all four native
       // 256px tiles came from disk; mixed cache/render tiles remain "Rendering".
@@ -189,7 +216,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
       const renderStartedAt = performance.now();
       try {
-        tile = await desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale);
+        tile = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message)) {
@@ -367,7 +394,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       const renderStarted = performance.now();
       let png: Uint8Array;
       try {
-        png = await desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0);
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!/Hillshade tile not found/i.test(message)) {
@@ -585,7 +612,7 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
     try {
       const provider = mapsforgeDesktopProvider;
       if (!provider) throw new Error('Mapsforge desktop renderer is unavailable.');
-      const result = await provider.Mapsforge.renderTile(zoom, column, row);
+      const result = await runOfflineRenderTask(() => provider.Mapsforge.renderTile(zoom, column, row));
       if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
       if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
         throw new Error('Mapsforge renderer returned an invalid PNG tile.');
