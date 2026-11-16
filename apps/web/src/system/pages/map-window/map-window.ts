@@ -1849,10 +1849,10 @@ interface MapErrorEntry {
     .fix-location-progress-row{display:flex;align-items:center;gap:8px;min-width:0;margin-top:6px}
     .fix-location-automatic-status{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
     .fix-location-abort-button{flex:0 0 auto;white-space:nowrap}
-    .fix-location-report-wrap{max-width:100%;overflow-x:auto;margin-top:10px}
-    .fix-location-report{width:100%;border-collapse:collapse;font-size:14px;line-height:1.45}
-    .fix-location-report th,.fix-location-report td{padding:7px 10px;border:1px solid #555;text-align:left;vertical-align:top}
-    .fix-location-report th{width:42%;font-weight:600;color:inherit;background:rgba(127,127,127,.12)}
+    .fix-location-report-wrap{width:min(100%,760px);max-width:100%;overflow-x:auto;margin-top:10px}
+    .fix-location-report{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;line-height:1.4}
+    .fix-location-report th,.fix-location-report td{padding:5px 7px;border:1px solid #555;text-align:left;vertical-align:top}
+    .fix-location-report th{width:40%;font-weight:600;color:inherit;background:rgba(127,127,127,.12)}
     .fix-location-report td{overflow-wrap:anywhere}
     :host-context(html[data-theme='light']) .fix-location-report th,:host-context(html[data-theme='light']) .fix-location-report td{border-color:#c5c8ce}
 
@@ -1972,6 +1972,10 @@ interface MapErrorEntry {
      .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled):hover{background:#cbd7e2!important;background-color:#cbd7e2!important}
      :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled){background:#343d48!important;background-color:#343d48!important;background-image:none!important;color:#c4d0dc!important;border-color:#505b68!important}
      :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].settings-tab-map-group:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
+     .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled){background:#e5edf5!important;background-color:#e5edf5!important;background-image:none!important;color:#34495a!important;border-color:#cbd8e5!important}
+     .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#d9e5f0!important;background-color:#d9e5f0!important}
+     :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled){background:#343d48!important;background-color:#343d48!important;color:#dce6ef!important;border-color:#505b68!important}
+     :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -3324,6 +3328,8 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
+  protected readonly formatAutoFixCount = (value: number): string => value.toLocaleString('en-US').replace(/,/g, ' ');
+
   protected readonly setAutoFixMaxDifference = (value: string): void => {
     this.autoFixMaxDifferenceMinutes.set(value.trim() === '' ? 0 : Number(value));
   };
@@ -3346,56 +3352,21 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       const checkOnly = this.autoFixCheckOnly();
-      this.autoFixReport.set([]);
-      this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
-      const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
-      if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
-        throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
-      }
-      const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
-      this.activeAutoFixOperationId = operationId;
-      this.autoFixOperationActive.set(true);
-      const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
-        if (checkOnly) {
-          this.autoFixStatus.set('Checking photos against the GPX database… '
-            + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos checked');
-        } else {
-          this.autoFixStatus.set('Fixing missing GPS information… '
-            + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos processed');
-        }
-      });
-      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60, operationId)
-        .finally(() => {
-          unsubscribeProgress();
-          if (this.activeAutoFixOperationId === operationId) this.activeAutoFixOperationId = null;
-          this.autoFixOperationActive.set(false);
-        });
-      if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
-      const result = response.data;
-      if (result.aborted) this.autoFixStatus.set('Aborted after ' + result.scanned.toLocaleString() + ' photos.');
-      const elapsedSeconds = result.elapsedMilliseconds / 1000;
-      const elapsedText = elapsedSeconds < 60
-        ? elapsedSeconds.toFixed(1) + ' s'
-        : Math.floor(elapsedSeconds / 60).toString() + ' min ' + (elapsedSeconds % 60).toFixed(0) + ' s';
-      const deviationStats = result.minDeviationSeconds === null
-        ? 'n/a'
-        : result.minDeviationSeconds.toFixed(1) + ' / ' + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
-      if (!result.aborted) this.autoFixStatus.set('');
       this.autoFixReport.set([
-        { label: 'Start folder', value: result.rootFolder },
-        { label: 'Folders processed', value: result.totalFoldersProcessed.toLocaleString() },
-        { label: 'Files processed', value: result.totalFilesProcessed.toLocaleString() },
-        { label: 'Photo files checked', value: result.scanned.toLocaleString() },
+        { label: 'Selected start folder', value: result.rootFolder },
+        { label: 'Folders scanned (including subfolders)', value: this.formatAutoFixCount(result.totalFoldersProcessed) },
+        { label: 'All files scanned (photos and non-photos)', value: this.formatAutoFixCount(result.totalFilesProcessed) },
+        { label: 'Photo files checked', value: this.formatAutoFixCount(result.scanned) },
         { label: 'Runtime', value: elapsedText },
         { label: 'Result', value: result.aborted ? 'Aborted — partial results' : checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
-        { label: 'GPS available', value: result.withGps.toLocaleString() },
-        { label: 'GPS missing', value: result.withoutGps.toLocaleString() },
-        { label: 'GPX matches within limit', value: result.matched.toLocaleString() },
-        { label: 'No GPX match', value: result.unmatched.toLocaleString() },
-        { label: 'Ignored (time difference too high)', value: result.ignoredTooFar.toLocaleString() },
-        { label: 'GPX candidate deviation min / mean / max', value: deviationStats },
-        ...(!checkOnly ? [{ label: 'Updated', value: result.updated.toLocaleString() }] : []),
-        ...(result.errors ? [{ label: 'Errors', value: result.errors.toLocaleString() }] : [])
+        { label: 'Photos already containing GPS coordinates', value: this.formatAutoFixCount(result.withGps) },
+        { label: 'Photos missing GPS coordinates', value: this.formatAutoFixCount(result.withoutGps) },
+        { label: 'Photos matched to GPX within the time limit', value: this.formatAutoFixCount(result.matched) },
+        { label: 'Photos with no usable GPX match', value: this.formatAutoFixCount(result.unmatched) },
+        { label: 'Photos with a GPX match rejected by the time limit', value: this.formatAutoFixCount(result.ignoredTooFar) },
+        { label: 'Time deviation of GPX candidates (min / mean / max)', value: deviationStats },
+        ...(!checkOnly ? [{ label: 'Photos updated', value: this.formatAutoFixCount(result.updated) }] : []),
+        ...(result.errors ? [{ label: 'Errors', value: this.formatAutoFixCount(result.errors) }] : [])
       ]);
     } catch (error) {
       this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
