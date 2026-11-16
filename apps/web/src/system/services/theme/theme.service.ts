@@ -36,10 +36,7 @@ export class ThemeService {
     this.desktop?.Theme.onChanged(theme => this.setTheme(theme, false));
     this.desktop?.ProcessManager.onAppSettingsChanged((section, values) => {
       if (section !== 'preferences') return;
-      if (typeof values['buttonStyle'] === 'string') this.applyButtonStyle(values['buttonStyle'] as ButtonStyle);
-      if (typeof values['buttonColor'] === 'string') this.applyButtonColor(values['buttonColor'] as ButtonColor);
-      if (typeof values['disclosureStyle'] === 'string') this.applyDisclosureStyle(values['disclosureStyle'] as DisclosureStyle);
-      if (typeof values['tabBarStyle'] === 'string') this.applyTabBarStyle(values['tabBarStyle'] as TabBarStyle);
+      this.configuration.applyPreferencesConfig(values as Parameters<Configuration['applyPreferencesConfig']>[0]);
     });
 
     this.document.defaultView?.addEventListener('storage', event => {
