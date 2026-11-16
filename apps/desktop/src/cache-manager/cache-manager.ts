@@ -560,7 +560,8 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getGpxFilesInBounds' })
   readonly getGpxFilesInBounds = async (
     _event: IpcMainInvokeEvent,
-    bounds: { west: number; south: number; east: number; north: number }
+    bounds: { west: number; south: number; east: number; north: number },
+    requestedDatabaseKey?: string
   ): Promise<Array<{
     id: number; path: string; name: string; sizeBytes: number; lastModified: number;
     matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null }>>;
@@ -570,10 +571,9 @@ export class CacheManager {
       || bounds.west < -180 || bounds.west > 180 || bounds.east < -180 || bounds.east > 180) {
       throw new Error('A valid map viewport is required.');
     }
-    const databaseKey = this.activeDatabaseKey;
-    if (!databaseKey) throw new Error('No cache database drive is active. Open the Cache tab and select a drive first.');
-    const db = this.databases.get(databaseKey);
-    if (!db) throw new Error('The active GPX cache database is not open.');
+    const databaseKey = requestedDatabaseKey?.toUpperCase() ?? this.activeDatabaseKey;
+    if (!databaseKey || !/^[A-Z]:$/.test(databaseKey)) throw new Error('No cache database drive is active. Import GPX files into the cache database first.');
+    const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
     const rows = db.prepare(`SELECT f.id AS file_id, f.relative_file_path, f.file_name, f.file_size, f.modified_at,
         s.id AS segment_id, p.point_index, p.timestamp_ms, p.latitude, p.longitude
       FROM gpx_segment_rtree r
