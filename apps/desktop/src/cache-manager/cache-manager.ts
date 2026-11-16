@@ -822,7 +822,7 @@ export class CacheManager {
       // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
-      const expectedFullSizeTag = `${extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`;
+      const expectedFullSizeTag = `${extension === '.dng' ? 'dng-full-raw-v2' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`;
       const metadata = metadataByPath.get(sourceName);
       const sourceMatches = !metadata || (!!row && row.file_size === metadata.size && row.modified_at === metadata.modifiedAt);
       const getStatus = (kind: 'thumbnail' | 'fullsize') => {
@@ -893,7 +893,7 @@ export class CacheManager {
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
         && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
-      const fullSizeTag = extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const fullSizeTag = extension === '.dng' ? 'dng-full-raw-v2' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
       if (!verifyCacheFiles) {
