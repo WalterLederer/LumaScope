@@ -120,7 +120,9 @@ export class Exif {
         lastProgressFolder = currentFolder;
         try {
           event.sender.send('Exif.fixFolderLocationsProgress', {
-            scanned: result.scanned, total: candidates.length, currentFolder
+            scanned: result.scanned, total: candidates.length,
+            withGps: result.withGps, withoutGps: result.withoutGps, matched: result.matched,
+            currentFolder
           });
         } catch { /* The requesting window may have closed. */ }
       };
