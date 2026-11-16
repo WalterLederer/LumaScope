@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ButtonStyle, Desktop, DisclosureStyle } from 'internal-api';
+import { ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -19,6 +19,8 @@ export class ThemeService {
   readonly buttonStyle = signal<ButtonStyle>('blue');
 
   readonly disclosureStyle = signal<DisclosureStyle>('classic');
+
+  readonly tabBarStyle = signal<TabBarStyle>('classic');
 
   private readInitialTheme(): AppTheme {
     try {
@@ -44,6 +46,7 @@ export class ThemeService {
         const style = config.preferences?.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
         this.applyButtonStyle(style);
         this.applyDisclosureStyle(config.preferences?.disclosureStyle ?? 'classic');
+        this.applyTabBarStyle(config.preferences?.tabBarStyle ?? 'classic');
       });
   }
 
@@ -62,6 +65,16 @@ export class ThemeService {
     this.applyDisclosureStyle(style);
     this.configuration.updatePreferencesConfig({ disclosureStyle: style });
   };
+
+  readonly setTabBarStyle = (style: TabBarStyle) => {
+    this.applyTabBarStyle(style);
+    this.configuration.updatePreferencesConfig({ tabBarStyle: style });
+  };
+
+  private applyTabBarStyle(style: TabBarStyle): void {
+    this.tabBarStyle.set(style);
+    this.document.documentElement.dataset['tabBarStyle'] = style;
+  }
 
   private applyDisclosureStyle(style: DisclosureStyle): void {
     this.disclosureStyle.set(style);
