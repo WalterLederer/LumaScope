@@ -35,41 +35,7 @@
 
 
 .info-box {
-  > details,
   .measurement-details {
-    border: 1px solid var(--color-content-default-low);
-    border-radius: 6px;
-    padding: 6px 10px;
-    margin: 0 0 6px;
-  }
-
-  > details > summary,
-  .measurement-details > summary {
-    display: list-item;
-    padding: 0;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.4;
-    list-style: disclosure-closed;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  > details > summary::marker,
-  .measurement-details > summary::marker {
-    font-size: 16px;
-  }
-
-  > details[open] > summary,
-  .measurement-details[open] > summary {
-    list-style: disclosure-open;
-    margin-bottom: 4px;
-  }
-
-  .measurement-details {
-    margin-top: 6px;
-
     p {
       margin: var(--dim-small) 0;
       line-height: 1.45;
