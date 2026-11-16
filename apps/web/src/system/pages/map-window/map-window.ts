@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Desktop, lookupReverseGeocoding, type OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
@@ -2816,6 +2816,34 @@ export class MapWindow implements OnInit, OnDestroy {
     const total = this.autoFixProgress().total;
     return total > 0 ? Math.min(100, Math.max(0, count / total * 100)) : 0;
   };
+  protected readonly createAutoFixLiveReport = (
+    progress: FixPhotoLocationsProgress, checkOnly: boolean
+  ): Array<{ label: string; value: string }> => {
+    const elapsedSeconds = progress.elapsedMilliseconds / 1000;
+    const roundedElapsedSeconds = Math.round(elapsedSeconds);
+    const elapsedText = elapsedSeconds < 60
+      ? elapsedSeconds.toFixed(1) + ' s'
+      : Math.floor(roundedElapsedSeconds / 60).toString() + ' min ' + (roundedElapsedSeconds % 60).toString() + ' s';
+    const deviationStats = progress.minDeviationSeconds === null
+      ? 'n/a'
+      : progress.minDeviationSeconds.toFixed(1) + ' / ' + progress.meanDeviationSeconds!.toFixed(1) + ' / ' + progress.maxDeviationSeconds!.toFixed(1) + ' s';
+    return [
+      { label: 'Selected start folder', value: progress.rootFolder },
+      { label: 'Folders scanned (including subfolders)', value: this.formatAutoFixCount(progress.totalFoldersProcessed) },
+      { label: 'All files scanned (photos and non-photos)', value: this.formatAutoFixCount(progress.totalFilesProcessed) },
+      { label: 'Photo files checked', value: this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) },
+      { label: 'Runtime', value: elapsedText },
+      { label: 'Result', value: checkOnly ? 'Checking — no files will be changed' : 'GPS correction in progress' },
+      { label: 'Photos whose files already contain GPS coordinates', value: this.formatAutoFixCount(progress.withGps) },
+      { label: 'Photos missing GPS coordinates', value: this.formatAutoFixCount(progress.withoutGps) },
+      { label: 'Photos matched to GPX within the time limit', value: this.formatAutoFixCount(progress.matched) },
+      { label: 'Photos with no usable GPX match', value: this.formatAutoFixCount(progress.unmatched) },
+      { label: 'Photos with a GPX match rejected by the time limit', value: this.formatAutoFixCount(progress.ignoredTooFar) },
+      { label: 'Time deviation of GPX candidates (min / mean / max)', value: deviationStats },
+      ...(!checkOnly ? [{ label: 'Photos updated', value: this.formatAutoFixCount(progress.updated) }] : []),
+      ...(progress.errors ? [{ label: 'Errors', value: this.formatAutoFixCount(progress.errors) }] : [])
+    ];
+  };
   private autoFixOperationSequence = 0;
   private activeAutoFixOperationId: string | null = null;
   protected readonly currentImagePreview = signal<string | null>(null);
@@ -3408,6 +3436,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.autoFixProgress.set({ scanned: 0, total: 0, withGps: 0, withoutGps: 0, matched: 0, currentFolder: '.' });
       const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
         this.autoFixProgress.set({ scanned: progress.scanned, total: progress.total, withGps: progress.withGps, withoutGps: progress.withoutGps, matched: progress.matched, currentFolder: progress.currentFolder });
+        this.autoFixReport.set(this.createAutoFixLiveReport(progress, checkOnly));
         if (checkOnly) {
           this.autoFixStatus.set('Checking photos against the GPX database… '
             + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos checked');
