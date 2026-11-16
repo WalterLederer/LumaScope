@@ -62,13 +62,16 @@ export class Configuration {
     });
   };
 
-  readonly updatePreferencesConfig = (options: Partial<NonNullable<AppConfigV1['preferences']>>) => {
+  readonly applyPreferencesConfig = (options: Partial<NonNullable<AppConfigV1['preferences']>>) => {
     updateSubject(this.config$, config => {
       const result = structuredClone(config);
       result.preferences = { ...result.preferences, ...options };
       return result;
     }).subscribe();
+  };
 
+  readonly updatePreferencesConfig = (options: Partial<NonNullable<AppConfigV1['preferences']>>) => {
+    this.applyPreferencesConfig(options);
     this.processManager.setAppSettingsSection('preferences', options).catch(error => {
       console.error('[Configuration] Failed to save preferences:', error);
     });
