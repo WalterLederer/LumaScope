@@ -296,7 +296,9 @@ interface MapErrorEntry {
                 <button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to track">⤢</button>
                 @if (gpxListMode() === 'recent') {
                   <button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name" title="Open in default GPX editor">↗</button>
+                  <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
                 }
+                <button type="button" class="file-path-copy-button" (click)="copyFilePath(track.databasePath || track.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button>
               </div>
               <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
               <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
@@ -2637,7 +2639,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseColumnWidths = signal<Record<string, number>>((() => {
-    const defaults = { actions: 86, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
+    const defaults = { actions: 112, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
     try {
       const saved = JSON.parse(this.readSetting('gpxDatabaseColumnWidths', '{}')) as Record<string, number>;
       for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
