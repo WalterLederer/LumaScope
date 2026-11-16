@@ -7135,7 +7135,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       return earliest;
     };
-    const value = (track: GpxTrackFile): string | number | boolean => {
+    const value = (track: GpxTrackFile): string | number => {
       switch (sort.key) {
         case 'active': return track.active === false ? 0 : 1;
         case 'name': return track.name.toLocaleLowerCase();
