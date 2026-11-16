@@ -103,7 +103,7 @@ export class Configuration {
       system: {
         minimiseOnStart: false,
         theme: 'light',
-        flatStandardButtons: false
+        buttonStyle: 'blue'
       }
     };
   };
