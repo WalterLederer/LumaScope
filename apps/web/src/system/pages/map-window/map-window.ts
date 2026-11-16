@@ -2011,6 +2011,36 @@ interface MapErrorEntry {
      .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#d9e5f0!important;background-color:#d9e5f0!important}
      :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled){background:#343d48!important;background-color:#343d48!important;color:#dce6ef!important;border-color:#505b68!important}
      :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
+
+    /* The Location window uses the same user-selected tab-bar styles as the main window. */
+    :host-context(html[data-tab-bar-style='underline']) .settings-tabs.image-sidebar-tabs{background:transparent!important;border-bottom:2px solid #8b969f!important}
+    :host-context(html[data-tab-bar-style='underline']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:transparent!important;border:0!important;border-bottom:3px solid transparent!important;border-radius:0!important}
+    :host-context(html[data-tab-bar-style='underline']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{color:var(--button-text)!important;border-bottom-color:var(--button-text)!important}
+    :host-context(html[data-tab-bar-style='pills']) .settings-tabs.image-sidebar-tabs{gap:5px!important;border:0!important;background:transparent!important}
+    :host-context(html[data-tab-bar-style='pills']) .settings-tabs.image-sidebar-tabs button[role="tab"]{border:1px solid transparent!important;border-radius:999px!important}
+    :host-context(html[data-tab-bar-style='pills']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-soft-bg)!important;color:var(--button-soft-text)!important;border-color:var(--button-border-strong)!important}
+    :host-context(html[data-tab-bar-style='segmented']) .settings-tabs.image-sidebar-tabs{gap:0!important;padding:3px!important;border:1px solid #aab3bd!important;border-radius:7px!important;background:#e7eaee!important}
+    :host-context(html[data-tab-bar-style='segmented']) .settings-tabs.image-sidebar-tabs button[role="tab"]{flex:1 1 0!important;border:0!important;border-radius:4px!important}
+    :host-context(html[data-tab-bar-style='segmented']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important}
+    :host-context(html[data-theme='dark'][data-tab-bar-style='segmented']) .settings-tabs.image-sidebar-tabs{background:#292b30!important;border-color:#626a75!important}
+    :host-context(html[data-tab-bar-style='boxed']) .settings-tabs.image-sidebar-tabs{gap:4px!important;border:0!important;background:transparent!important}
+    :host-context(html[data-tab-bar-style='boxed']) .settings-tabs.image-sidebar-tabs button[role="tab"]{border:1px solid currentColor!important;border-radius:2px!important}
+    :host-context(html[data-tab-bar-style='boxed']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important;border-color:var(--button-rounded-bg)!important}
+    :host-context(html[data-tab-bar-style='minimal']) .settings-tabs.image-sidebar-tabs{background:transparent!important;border:0!important}
+    :host-context(html[data-tab-bar-style='minimal']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:transparent!important;border:0!important;border-radius:0!important}
+    :host-context(html[data-tab-bar-style='minimal']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{color:var(--button-text)!important;box-shadow:inset 0 -2px var(--button-text)!important}
+    :host-context(html[data-tab-bar-style='flat']) .settings-tabs.image-sidebar-tabs{background:transparent!important;border:0!important;gap:1px!important}
+    :host-context(html[data-tab-bar-style='flat']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:#e5e5e5!important;color:#303030!important;border:0!important;border-radius:0!important}
+    :host-context(html[data-tab-bar-style='flat']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important}
+    :host-context(html[data-tab-bar-style='contrast']) .settings-tabs.image-sidebar-tabs{background:#202124!important;border-bottom:2px solid #fff!important}
+    :host-context(html[data-tab-bar-style='contrast']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:#202124!important;color:#fff!important;border:1px solid #fff!important;border-radius:0!important}
+    :host-context(html[data-tab-bar-style='contrast']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important;border-color:#fff!important}
+    :host-context(html[data-tab-bar-style='soft']) .settings-tabs.image-sidebar-tabs{background:var(--button-soft-bg)!important;border:0!important;gap:4px!important}
+    :host-context(html[data-tab-bar-style='soft']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:var(--button-soft-bg)!important;color:var(--button-soft-text)!important;border:1px solid var(--button-soft-border)!important;border-radius:7px!important}
+    :host-context(html[data-tab-bar-style='soft']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important;border-color:var(--button-border-strong)!important}
+    :host-context(html[data-tab-bar-style='rounded']) .settings-tabs.image-sidebar-tabs{gap:5px!important;background:transparent!important;border:0!important}
+    :host-context(html[data-tab-bar-style='rounded']) .settings-tabs.image-sidebar-tabs button[role="tab"]{border-radius:10px 10px 0 0!important;border:1px solid var(--button-border-strong)!important}
+    :host-context(html[data-tab-bar-style='rounded']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:var(--button-rounded-bg)!important;color:#fff!important;border-color:var(--button-rounded-bg)!important}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
