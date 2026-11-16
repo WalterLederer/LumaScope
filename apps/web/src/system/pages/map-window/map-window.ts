@@ -1597,7 +1597,7 @@ interface MapErrorEntry {
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
      .gpx-file-row.gpx-database-file-row{gap:8px;min-width:0}
      .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-     .gpx-database-file-list{max-height:260px;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative}
+     .gpx-database-file-list{height:260px;min-height:120px;max-height:65vh;resize:vertical;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative;box-sizing:border-box}
      .gpx-database-file-list .gpx-file-header{position:sticky;top:0;z-index:3;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-medium,#888)}
      .gpx-db-sort-button{padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
      .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
@@ -2683,6 +2683,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseSort = signal<{ key: 'name' | 'path' | 'time'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseQueryBusy = signal(false);
   protected readonly gpxDatabaseQueryStatus = signal('');
+  private gpxDatabaseQueryGeneration = 0;
+  private gpxDatabaseViewportRefreshTimer: number | null = null;
   protected readonly gpxDatabaseStats = signal({ files: 0, segments: 0, points: 0 });
   protected readonly gpxDatabaseImportBusy = signal(false);
   protected readonly gpxDatabaseImportStatus = signal('');
@@ -3936,6 +3938,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
+    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -4077,6 +4080,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
@@ -4158,6 +4162,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyMapOpacity();
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+      renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -4274,6 +4279,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
+    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
     let obfViewportTimer: number | null = null;
     let previousObfZoom = renderer.map.getZoom();
     let obfZoomChanged = false;
@@ -4346,6 +4352,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
+    map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
     this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
@@ -5895,11 +5902,22 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  private scheduleGpxDatabaseViewportRefresh(): void {
+    if (this.gpxListMode() !== 'database') return;
+    if (this.gpxDatabaseViewportRefreshTimer !== null) window.clearTimeout(this.gpxDatabaseViewportRefreshTimer);
+    this.gpxDatabaseViewportRefreshTimer = window.setTimeout(() => {
+      this.gpxDatabaseViewportRefreshTimer = null;
+      if (this.gpxListMode() === 'database') void this.showGpxFilesVisibleOnMap();
+    }, 350);
+  }
+
   protected readonly showGpxFilesVisibleOnMap = async (): Promise<void> => {
+    const queryGeneration = ++this.gpxDatabaseQueryGeneration;
     const desktop = this.desktop;
-    if (!desktop) { this.gpxDatabaseQueryStatus.set('The desktop GPX database service is unavailable.'); return; }
+    if (!desktop) { this.gpxDatabaseQueryBusy.set(false); this.gpxDatabaseQueryStatus.set('The desktop GPX database service is unavailable.'); return; }
     const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
     if (!mapBounds) {
+      this.gpxDatabaseQueryBusy.set(false);
       this.gpxDatabaseQueryStatus.set('The map is not ready yet.');
       return;
     }
@@ -5910,6 +5928,7 @@ export class MapWindow implements OnInit, OnDestroy {
       north: Math.min(90, mapBounds.getNorth())
     };
     if (bounds.west < -180 || bounds.east > 180 || bounds.west > bounds.east) {
+      this.gpxDatabaseQueryBusy.set(false);
       this.gpxDatabaseQueryStatus.set('The current map viewport crosses the date line; this query is not supported yet.');
       return;
     }
@@ -5920,6 +5939,7 @@ export class MapWindow implements OnInit, OnDestroy {
         ?? this.gpxDatabaseTracks().find(track => track.databasePath && /^[a-z]:[\\/]/i.test(track.databasePath))?.databasePath;
       const databaseKey = configuredPath?.slice(0, 2);
       const results = await desktop.CacheManager.getGpxFilesInBounds(bounds, databaseKey);
+      if (queryGeneration !== this.gpxDatabaseQueryGeneration) return;
       for (const previous of this.gpxDatabaseTracks()) {
         this.gpxSegmentsByTrack.delete(previous.path);
         this.gpxPointDataByTrack.delete(previous.path);
@@ -5955,13 +5975,19 @@ export class MapWindow implements OnInit, OnDestroy {
         ? results.length + ' file(s), ' + matchingPoints.toLocaleString() + ' point(s) in the current map viewport.'
         : 'No GPX track points found in the current map viewport.');
     } catch (error) {
-      this.gpxDatabaseQueryStatus.set(error instanceof Error ? error.message : String(error));
+      if (queryGeneration === this.gpxDatabaseQueryGeneration) this.gpxDatabaseQueryStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
-      this.gpxDatabaseQueryBusy.set(false);
+      if (queryGeneration === this.gpxDatabaseQueryGeneration) this.gpxDatabaseQueryBusy.set(false);
     }
   };
 
   protected readonly showRecentGpxFiles = (): void => {
+    this.gpxDatabaseQueryGeneration++;
+    if (this.gpxDatabaseViewportRefreshTimer !== null) {
+      window.clearTimeout(this.gpxDatabaseViewportRefreshTimer);
+      this.gpxDatabaseViewportRefreshTimer = null;
+    }
+    this.gpxDatabaseQueryBusy.set(false);
     this.gpxListMode.set('recent');
     this.gpxDatabaseQueryStatus.set('');
     this.rebuildGpxSegments();
