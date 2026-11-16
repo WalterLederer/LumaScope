@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Desktop } from 'internal-api';
+import { ButtonStyle, Desktop } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -16,7 +16,7 @@ export class ThemeService {
 
   readonly current = signal<AppTheme>(this.readInitialTheme());
 
-  readonly flatStandardButtons = signal(false);
+  readonly buttonStyle = signal<ButtonStyle>('blue');
 
   private readInitialTheme(): AppTheme {
     try {
@@ -39,7 +39,8 @@ export class ThemeService {
       .pipe(takeUntilDestroyed())
       .subscribe(config => {
         this.setTheme(config.system.theme ?? 'light', false);
-        this.applyFlatStandardButtons(config.system.flatStandardButtons ?? false);
+        const style = config.system.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
+        this.applyButtonStyle(style);
       });
   }
 
@@ -49,14 +50,14 @@ export class ThemeService {
     this.configuration.updateSystemConfig({ theme });
   };
 
-  readonly setFlatStandardButtons = (enabled: boolean) => {
-    this.applyFlatStandardButtons(enabled);
-    this.configuration.updateSystemConfig({ flatStandardButtons: enabled });
+  readonly setButtonStyle = (style: ButtonStyle) => {
+    this.applyButtonStyle(style);
+    this.configuration.updateSystemConfig({ buttonStyle: style });
   };
 
-  private applyFlatStandardButtons(enabled: boolean): void {
-    this.flatStandardButtons.set(enabled);
-    this.document.documentElement.dataset['buttonStyle'] = enabled ? 'flat' : 'blue';
+  private applyButtonStyle(style: ButtonStyle): void {
+    this.buttonStyle.set(style);
+    this.document.documentElement.dataset['buttonStyle'] = style;
   }
 
   private readonly setTheme = (theme: AppTheme, broadcast = true) => {
