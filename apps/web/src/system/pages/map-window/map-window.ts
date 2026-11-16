@@ -3335,7 +3335,18 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
         throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
       }
-      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
+      const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
+        if (checkOnly) {
+          this.autoFixStatus.set('Checking photos against the GPX database… '
+            + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos checked');
+        }
+      });
+      let response;
+      try {
+        response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
+      } finally {
+        unsubscribeProgress();
+      }
       if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
       const elapsedSeconds = result.elapsedMilliseconds / 1000;
