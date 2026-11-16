@@ -1575,7 +1575,7 @@ interface MapErrorEntry {
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2147483002}
     .map-source-picker-label{font-weight:600}
-    .map-source-picker-trigger{min-width:220px;text-align:left;position:relative;padding-right:36px}
+    .map-source-picker-trigger{min-width:220px;text-align:left;position:relative;padding-right:36px;box-shadow:0 2px 5px rgba(0,0,0,.28)}
     .map-source-picker-trigger::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-52%);font-size:18px;font-weight:700;line-height:1;opacity:.95;pointer-events:none}
     .map-source-picker-menu{position:absolute;left:42px;top:calc(100% + 5px);min-width:460px;max-width:min(620px,80vw);padding:4px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-surface-default-high,#252932);box-shadow:0 8px 24px #0008;z-index:2147483003}
     .map-source-picker-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
