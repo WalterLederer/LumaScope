@@ -1,4 +1,4 @@
-import { IpcMainInvokeEvent } from 'electron';
+import { IpcMainEvent, IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
@@ -7,6 +7,7 @@ import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
 export class Exif {
+  private readonly cancelledLocationFixes = new Set<string>();
   private readonly exifTool = new ExifTool();
 
   @IpcHandler({ name: 'Exif.read' })
@@ -58,10 +59,16 @@ export class Exif {
     }
   };
 
+  @IpcHandler({ name: 'Exif.cancelFixFolderLocations' })
+  readonly cancelFixFolderLocations = (_event: IpcMainEvent, operationId: string): void => {
+    if (typeof operationId === 'string' && operationId) this.cancelledLocationFixes.add(operationId);
+  };
+
   @IpcHandler({ name: 'Exif.fixFolderLocations' })
   readonly fixFolderLocations = async (
-    event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120
+    event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120, operationId = ''
   ): Promise<ApiResponse<FixPhotoLocationsResult>> => {
+    if (operationId) this.cancelledLocationFixes.delete(operationId);
     try {
       if (!folder || typeof folder !== 'string') throw new Error('Select a valid photo folder first.');
       if (!Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0 || maxDifferenceSeconds > 86_400) {
@@ -103,7 +110,8 @@ export class Exif {
         totalFoldersProcessed,
         elapsedMilliseconds: 0,
         scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0,
-        ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0
+        ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0,
+        aborted: false
       };
       const deviations: number[] = [];
       const sendProgress = (): void => {
@@ -115,6 +123,10 @@ export class Exif {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       for (const path of candidates) {
+        if (operationId && this.cancelledLocationFixes.has(operationId)) {
+          result.aborted = true;
+          break;
+        }
         result.scanned++;
         try {
           const metadata = await this.readPhotoMetadata(path);
@@ -159,6 +171,7 @@ export class Exif {
       }
       if (result.scanned % 100 !== 0) sendProgress();
       result.elapsedMilliseconds = Date.now() - startedAt;
+      if (operationId) this.cancelledLocationFixes.delete(operationId);
       if (deviations.length) {
         result.minDeviationSeconds = Math.min(...deviations);
         result.meanDeviationSeconds = deviations.reduce((sum, value) => sum + value, 0) / deviations.length;
@@ -166,6 +179,7 @@ export class Exif {
       }
       return { success: true, data: result };
     } catch (error) {
+      if (operationId) this.cancelledLocationFixes.delete(operationId);
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
     }
   };
