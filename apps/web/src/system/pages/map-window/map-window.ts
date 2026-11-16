@@ -3307,8 +3307,8 @@ export class MapWindow implements OnInit, OnDestroy {
       const gpsCounts = 'GPS available: ' + result.withGps.toLocaleString()
         + ' · GPS missing: ' + result.withoutGps.toLocaleString();
       const deviationStats = result.minDeviationSeconds === null
-        ? 'Time deviation min/mean/max: n/a'
-        : 'Time deviation min/mean/max: ' + result.minDeviationSeconds.toFixed(1) + ' / '
+        ? 'GPX candidate deviation min/mean/max: n/a'
+        : 'GPX candidate deviation min/mean/max: ' + result.minDeviationSeconds.toFixed(1) + ' / '
           + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
       this.autoFixStatus.set(
         (checkOnly ? 'Check only — no files changed' : 'Scanned ' + result.scanned.toLocaleString() + ' photos') +
