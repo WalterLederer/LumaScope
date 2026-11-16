@@ -150,7 +150,7 @@ interface MapErrorEntry {
                 @if (autoFixStatus()) {
                   <div class="fix-location-progress-row">
                     <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div>
-                    @if (autoFixBusy()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
+                    @if (autoFixOperationActive()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
                   </div>
                 }
                 @if (autoFixReport().length) {
@@ -2766,6 +2766,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixCheckOnly = signal(false);
   protected readonly autoFixMaxDifferenceMinutes = signal(2);
   protected readonly autoFixBusy = signal(false);
+  protected readonly autoFixOperationActive = signal(false);
   protected readonly autoFixStatus = signal('');
   protected readonly autoFixReport = signal<Array<{ label: string; value: string }>>([]);
   private autoFixOperationSequence = 0;
@@ -3353,6 +3354,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
       this.activeAutoFixOperationId = operationId;
+      this.autoFixOperationActive.set(true);
       const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
         if (checkOnly) {
           this.autoFixStatus.set('Checking photos against the GPX database… '
@@ -3366,6 +3368,7 @@ export class MapWindow implements OnInit, OnDestroy {
         .finally(() => {
           unsubscribeProgress();
           if (this.activeAutoFixOperationId === operationId) this.activeAutoFixOperationId = null;
+          this.autoFixOperationActive.set(false);
         });
       if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
