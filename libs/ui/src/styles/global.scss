@@ -51,7 +51,12 @@ button:not(.app-disclosure-heading),
 ui-action-button {
   border: 1px solid var(--color-content-default-low) !important;
   border-radius: 4px !important;
-  box-shadow: 0 2px 5px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 255 255 / 8%) !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 28%), 0 1px 2px rgb(0 0 0 / 16%), inset 0 1px 0 rgb(255 255 255 / 7%) !important;
+}
+
+/* Native dropdowns use the same restrained elevation throughout the app. */
+select {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(255 255 255 / 6%) !important;
 }
 
 /* Reusable disclosure component.
