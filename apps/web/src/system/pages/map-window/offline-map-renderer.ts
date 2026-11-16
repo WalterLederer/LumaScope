@@ -17,26 +17,83 @@ let osmAndHillshadeDatabasesProvider: (() => OsmAndHillshadeDatabase[]) | null =
 let osmAndHillshadeProtocolRegistered = false;
 let osmAndHillshadeDiagnosticCount = 0;
 
+export type OfflineRenderHelper = 'OsmAnd' | 'OsmAnd Atlas' | 'Mapsforge' | 'Hillshade';
+export interface OfflineRenderTaskStatus {
+  id: number;
+  helper: OfflineRenderHelper;
+  state: 'Running' | 'Queued';
+  description: string;
+  queuedAt: number;
+}
+
 let offlineRenderConcurrency = 2;
 let offlineRenderActive = 0;
-const offlineRenderWaiters: Array<() => void> = [];
+let offlineRenderTaskId = 0;
+const offlineRenderQueue: Array<{ id: number; helper: OfflineRenderHelper; description: string; queuedAt: number; start: () => void }> = [];
+const offlineRenderTasks = new Map<number, OfflineRenderTaskStatus>();
+const offlineRenderStatusListeners = new Set<(tasks: OfflineRenderTaskStatus[]) => void>();
+
+function publishOfflineRenderStatus(): void {
+  const snapshot = [...offlineRenderTasks.values()].sort((a, b) =>
+    a.state === b.state ? a.queuedAt - b.queuedAt : a.state === 'Running' ? -1 : 1
+  );
+  for (const listener of offlineRenderStatusListeners) listener(snapshot);
+}
+
+export function getOfflineRenderStatus(): OfflineRenderTaskStatus[] {
+  return [...offlineRenderTasks.values()].sort((a, b) =>
+    a.state === b.state ? a.queuedAt - b.queuedAt : a.state === 'Running' ? -1 : 1
+  );
+}
+
+export function subscribeOfflineRenderStatus(listener: (tasks: OfflineRenderTaskStatus[]) => void): () => void {
+  offlineRenderStatusListeners.add(listener);
+  listener(getOfflineRenderStatus());
+  return () => offlineRenderStatusListeners.delete(listener);
+}
 
 export function setOfflineRenderConcurrency(value: number): void {
   if (!Number.isFinite(value)) return;
   offlineRenderConcurrency = Math.max(1, Math.min(4, Math.round(value)));
+  while (offlineRenderActive < offlineRenderConcurrency && offlineRenderQueue.length) {
+    offlineRenderQueue.shift()?.start();
+  }
 }
 
-export async function runOfflineRenderTask<T>(task: () => Promise<T>): Promise<T> {
-  if (offlineRenderActive >= offlineRenderConcurrency) {
-    await new Promise<void>(resolve => offlineRenderWaiters.push(resolve));
-  }
-  offlineRenderActive++;
+export async function runOfflineRenderTask<T>(
+  task: () => Promise<T>,
+  helper: OfflineRenderHelper,
+  description: string
+): Promise<T> {
+  const id = ++offlineRenderTaskId;
+  const queuedAt = Date.now();
   try {
+    if (offlineRenderActive >= offlineRenderConcurrency) {
+      await new Promise<void>(resolve => {
+        offlineRenderTasks.set(id, { id, helper, state: 'Queued', description, queuedAt });
+        offlineRenderQueue.push({
+          id, helper, description, queuedAt,
+          start: () => {
+            offlineRenderTasks.set(id, { id, helper, state: 'Running', description, queuedAt });
+            offlineRenderActive++;
+            publishOfflineRenderStatus();
+            resolve();
+          }
+        });
+        publishOfflineRenderStatus();
+      });
+    } else {
+      offlineRenderActive++;
+      offlineRenderTasks.set(id, { id, helper, state: 'Running', description, queuedAt });
+      publishOfflineRenderStatus();
+    }
     return await task();
   } finally {
-    offlineRenderActive--;
-    if (offlineRenderWaiters.length && offlineRenderActive < offlineRenderConcurrency) {
-      offlineRenderWaiters.shift()?.();
+    offlineRenderTasks.delete(id);
+    offlineRenderActive = Math.max(0, offlineRenderActive - 1);
+    publishOfflineRenderStatus();
+    if (offlineRenderQueue.length && offlineRenderActive < offlineRenderConcurrency) {
+      offlineRenderQueue.shift()?.start();
     }
   }
 }
@@ -126,7 +183,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop): void {
         [nativeColumn, nativeRow], [nativeColumn + 1, nativeRow],
         [nativeColumn, nativeRow + 1], [nativeColumn + 1, nativeRow + 1]
       ] as const;
-      const tiles = await Promise.all(coordinates.map(([x, y]) => runOfflineRenderTask(() => desktop.OsmAnd.renderTile(nativeZoom, x, y))));
+      const tiles = await Promise.all(coordinates.map(([x, y]) => runOfflineRenderTask(() => desktop.OsmAnd.renderTile(nativeZoom, x, y), 'OsmAnd', `Tile z${nativeZoom}/${x}/${y}`)));
       if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
       // A displayed 512px tile is a cache hit only when all four native
       // 256px tiles came from disk; mixed cache/render tiles remain "Rendering".
@@ -213,7 +270,7 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
       const renderStartedAt = performance.now();
       try {
-        tile = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale));
+        tile = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale), 'OsmAnd Atlas', `Tile z${zoom}/${column}/${row}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (abortController.signal.aborted || /\b(cancelled|canceled)\b/i.test(message)) {
@@ -391,7 +448,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       const renderStarted = performance.now();
       let png: Uint8Array;
       try {
-        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0));
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.name} · z${zoom}/${column}/${row}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!/Hillshade tile not found/i.test(message)) {
@@ -437,7 +494,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       let png: Uint8Array;
       const databaseStarted = performance.now();
       try {
-        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0));
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.name} · z${zoom}/${column}/${row}`);
         databaseMs += performance.now() - databaseStarted;
       } catch (error) {
         databaseMs += performance.now() - databaseStarted;
@@ -609,7 +666,7 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
     try {
       const provider = mapsforgeDesktopProvider;
       if (!provider) throw new Error('Mapsforge desktop renderer is unavailable.');
-      const result = await runOfflineRenderTask(() => provider.Mapsforge.renderTile(zoom, column, row));
+      const result = await runOfflineRenderTask(() => provider.Mapsforge.renderTile(zoom, column, row), 'Mapsforge', `Tile z${zoom}/${column}/${row}`);
       if (abortController.signal.aborted) throw new Error('Mapsforge tile request was cancelled.');
       if (result.width !== 256 || result.height !== 256 || result.format !== 'png' || typeof result.png_base64 !== 'string') {
         throw new Error('Mapsforge renderer returned an invalid PNG tile.');
