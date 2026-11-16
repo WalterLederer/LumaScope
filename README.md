@@ -64,7 +64,14 @@ Global shortcuts can be used while LumaScope is not focused. Their registration 
 
 ## Location, maps and routes
 
-Images containing GPS coordinates can be positioned on the location map. For photos without GPS data, the Location tab provides **Fix location**: enable **Allow fixing**, move the currently selected map source until the fixed centre crosshair marks the photo location, then choose **Save GPS position...** to write the coordinates into the image file's GPS EXIF metadata. This works with the currently selected online or offline map source and does not change map-source settings. LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
+Images containing GPS coordinates can be positioned on the location map. The Location tab provides two ways to add missing GPS data:
+ 
+- **Fix location MANUAL** corrects the currently selected photo. Enable **Show crosshair**, pan the map until its fixed centre crosshair marks the photo's actual location, optionally inspect **Show crosshair address**, and select **Save GPS position...** to write the coordinates to that photo's GPS EXIF metadata.
+- **Fix location AUTOMATIC** recursively scans a selected photo folder and matches photos without GPS against timestamped points in the GPX tracks already imported into the drive-local cache database. It interpolates between bracketing points in the same GPX segment. The default maximum time difference is 2 minutes; candidates beyond the configured 0–1440 minute limit are reported and left unchanged. **Check only** performs the scan and matching without writing files. Existing GPS coordinates are never overwritten.
+
+The automatic status report shows the selected start folder, processed folder/file totals, photo and GPS counts, matched, unmatched and time-limit-rejected photos, candidate deviation min/mean/max in seconds, updated files, errors and elapsed runtime. Deviation statistics include candidates rejected by the threshold. A missing match (no usable same-segment bracketing pair) is reported separately from a candidate rejected for excessive time difference. EXIF capture timestamps without an explicit timezone are interpreted in the computer's local timezone; timezone mismatches can therefore affect matching. See [Location and GPX](docs/features.md#location-and-gpx) for the full workflow and limitations.
+
+LumaScope can read location metadata, display coordinates and location details, and use GPX tracks as an additional geographic reference.
 
 Photo marker timestamps use this fallback order: EXIF `GPSDateTime`, XMP `GPSDateTime`, EXIF `DateTimeOriginal`, XMP `DateCreated`, EXIF `CreateDate`, and finally the source file's filesystem modification time. GPS timestamps are interpreted as UTC; the other embedded capture-date fields are interpreted as camera-local time when no timezone is stored. The timestamp is used for map time filtering and playback. Photos without valid GPS coordinates do not receive a map marker timestamp.
 
