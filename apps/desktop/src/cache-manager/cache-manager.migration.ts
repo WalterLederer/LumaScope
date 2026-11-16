@@ -288,5 +288,154 @@ ON photos (location_name_id, location_lookup_attempted_at);
 `
   }
 
+  ,
+  {
+    name: 'addSpatialPhotoAndGpxIndexesV18',
+    query: `
+BEGIN IMMEDIATE;
+
+-- Store the image capture time independently from the GPS receiver timestamp.
+ALTER TABLE photos ADD COLUMN captured_at_ms INTEGER;
+CREATE INDEX IF NOT EXISTS idx_photos_captured_at_ms
+  ON photos (captured_at_ms) WHERE captured_at_ms IS NOT NULL;
+
+-- Spatial lookup for photos in the current map viewport.
+CREATE VIRTUAL TABLE IF NOT EXISTS photo_location_rtree
+  USING rtree(photo_id, min_latitude, max_latitude, min_longitude, max_longitude);
+
+CREATE TRIGGER IF NOT EXISTS trg_photos_location_rtree_insert
+AFTER INSERT ON photos
+WHEN NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL
+  AND NEW.latitude BETWEEN -90 AND 90 AND NEW.longitude BETWEEN -180 AND 180
+BEGIN
+  INSERT OR REPLACE INTO photo_location_rtree
+    (photo_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  VALUES (NEW.id, NEW.latitude, NEW.latitude, NEW.longitude, NEW.longitude);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_photos_location_rtree_update
+AFTER UPDATE OF latitude, longitude ON photos
+BEGIN
+  DELETE FROM photo_location_rtree WHERE photo_id = OLD.id;
+  INSERT OR REPLACE INTO photo_location_rtree
+    (photo_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  SELECT NEW.id, NEW.latitude, NEW.latitude, NEW.longitude, NEW.longitude
+  WHERE NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL
+    AND NEW.latitude BETWEEN -90 AND 90 AND NEW.longitude BETWEEN -180 AND 180;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_photos_location_rtree_delete
+AFTER DELETE ON photos
+BEGIN
+  DELETE FROM photo_location_rtree WHERE photo_id = OLD.id;
+END;
+
+INSERT OR REPLACE INTO photo_location_rtree
+  (photo_id, min_latitude, max_latitude, min_longitude, max_longitude)
+SELECT id, latitude, latitude, longitude, longitude
+FROM photos
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+  AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180;
+
+-- One row per source GPX file. Paths are relative to the cache database drive.
+CREATE TABLE IF NOT EXISTS gpx_files (
+  id INTEGER PRIMARY KEY,
+  relative_file_path TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  file_name TEXT NOT NULL,
+  file_size INTEGER NOT NULL DEFAULT 0,
+  modified_at INTEGER NOT NULL DEFAULT 0,
+  content_hash TEXT,
+  imported_at INTEGER NOT NULL,
+  point_count INTEGER NOT NULL DEFAULT 0,
+  segment_count INTEGER NOT NULL DEFAULT 0
+);
+
+-- Keep GPX segment boundaries: interpolation must never bridge separate segments.
+CREATE TABLE IF NOT EXISTS gpx_track_segments (
+  id INTEGER PRIMARY KEY,
+  gpx_file_id INTEGER NOT NULL REFERENCES gpx_files(id) ON DELETE CASCADE,
+  segment_index INTEGER NOT NULL,
+  point_count INTEGER NOT NULL DEFAULT 0,
+  start_timestamp_ms INTEGER,
+  end_timestamp_ms INTEGER,
+  UNIQUE(gpx_file_id, segment_index)
+);
+
+CREATE TABLE IF NOT EXISTS gpx_track_points (
+  id INTEGER PRIMARY KEY,
+  segment_id INTEGER NOT NULL REFERENCES gpx_track_segments(id) ON DELETE CASCADE,
+  point_index INTEGER NOT NULL,
+  timestamp_ms INTEGER,
+  latitude REAL NOT NULL CHECK (latitude BETWEEN -90 AND 90),
+  longitude REAL NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+  elevation_m REAL,
+  UNIQUE(segment_id, point_index)
+);
+
+-- Timestamp lookup for photo-to-track matching and ordered segment traversal.
+CREATE INDEX IF NOT EXISTS idx_gpx_track_points_timestamp
+  ON gpx_track_points(timestamp_ms, segment_id, point_index)
+  WHERE timestamp_ms IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_gpx_track_points_segment_order
+  ON gpx_track_points(segment_id, point_index);
+CREATE INDEX IF NOT EXISTS idx_gpx_track_segments_file
+  ON gpx_track_segments(gpx_file_id, segment_index);
+CREATE INDEX IF NOT EXISTS idx_gpx_track_segments_time
+  ON gpx_track_segments(start_timestamp_ms, end_timestamp_ms);
+
+-- Index segment bounding boxes rather than individual points. This finds tracks
+-- crossing a viewport even when no stored point falls inside the viewport.
+CREATE VIRTUAL TABLE IF NOT EXISTS gpx_segment_rtree
+  USING rtree(segment_id, min_latitude, max_latitude, min_longitude, max_longitude);
+
+CREATE TRIGGER IF NOT EXISTS trg_gpx_segments_rtree_delete
+AFTER DELETE ON gpx_track_segments
+BEGIN
+  DELETE FROM gpx_segment_rtree WHERE segment_id = OLD.id;
+END;
+
+-- Segment bounds are supplied by the importer as segment points are inserted.
+-- A rebuild of the segment index is performed after each imported segment.
+CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_insert
+AFTER INSERT ON gpx_track_points
+BEGIN
+  INSERT OR REPLACE INTO gpx_segment_rtree
+    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
+  FROM gpx_track_points WHERE segment_id = NEW.segment_id
+  GROUP BY segment_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_update
+AFTER UPDATE OF latitude, longitude, segment_id ON gpx_track_points
+BEGIN
+  DELETE FROM gpx_segment_rtree WHERE segment_id = OLD.segment_id;
+  INSERT OR REPLACE INTO gpx_segment_rtree
+    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
+  FROM gpx_track_points WHERE segment_id = OLD.segment_id
+  GROUP BY segment_id;
+  INSERT OR REPLACE INTO gpx_segment_rtree
+    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
+  FROM gpx_track_points WHERE segment_id = NEW.segment_id
+  GROUP BY segment_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_delete
+AFTER DELETE ON gpx_track_points
+BEGIN
+  DELETE FROM gpx_segment_rtree WHERE segment_id = OLD.segment_id;
+  INSERT OR REPLACE INTO gpx_segment_rtree
+    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
+  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
+  FROM gpx_track_points WHERE segment_id = OLD.segment_id
+  GROUP BY segment_id;
+END;
+
+COMMIT;
+`
+  }
+
 ];
 // @formatter:on
