@@ -91,11 +91,28 @@ export class GalleryPage {
     await this.desktopApi?.CapturePreviewWindow.open();
   };
 
+  @HostListener('document:keydown', ['$event'])
+  protected readonly onMainWindowShortcut = (event: KeyboardEvent): void => {
+    if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.code !== 'KeyL' && event.code !== 'KeyS') return;
+    if (this.keyboard.isTextInputTarget(event)) return;
+    // The Image View has its own capture-phase handler while it is mounted.
+    if (this.document.querySelector('app-image-view')) return;
+    event.preventDefault();
+    if (event.code === 'KeyL') {
+      const api = this.desktopApi?.MapWindow;
+      if (!api) return;
+      void api.isOpen().then(isOpen => isOpen ? api.focus() : api.open(null, null));
+    } else {
+      void this.openCaptureWindow();
+    }
+  };
+
   @HostListener('document:keyup', ['$event'])
   protected readonly onCaptureShortcut = (event: KeyboardEvent): void => {
     const key = event.key.toLowerCase();
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
-    if (!(key === 's' && !event.shiftKey) && !(key === 'c' && event.shiftKey)) return;
+    if (!(key === 'c' && event.shiftKey)) return;
     if (this.keyboard.isTextInputTarget(event)) return;
     // The Image View owns the shortcut while it is active.
     if (this.document.querySelector('app-image-view')) return;
