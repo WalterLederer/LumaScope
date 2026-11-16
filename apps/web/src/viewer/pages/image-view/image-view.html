@@ -167,7 +167,6 @@
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'corrections') {
-      <section class="app-disclosure">
         @if(sidebarSectionExpanded('corrections')) {
           <section class="correction-subsection basic-correction-section app-disclosure">
             <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('basic')" (click)="toggleSidebarSection('basic')">Basic</button>
@@ -214,9 +213,8 @@
           </div>
             }
           </section>
-          <button (click)="resetCorrections()">Reset corrections</button>
+          <button class="reset-corrections-button" (click)="resetCorrections()">Reset corrections</button>
         }
-      </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'highlight') {
       <section><strong class="section-title">Highlight</strong>
