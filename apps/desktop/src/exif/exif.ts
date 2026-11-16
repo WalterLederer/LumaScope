@@ -60,10 +60,13 @@ export class Exif {
 
   @IpcHandler({ name: 'Exif.fixFolderLocations' })
   readonly fixFolderLocations = async (
-    _event: IpcMainInvokeEvent, folder: string, checkOnly: boolean
+    _event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120
   ): Promise<ApiResponse<FixPhotoLocationsResult>> => {
     try {
       if (!folder || typeof folder !== 'string') throw new Error('Select a valid photo folder first.');
+      if (!Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0 || maxDifferenceSeconds > 86_400) {
+        throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
+      }
       const root = resolve(folder);
       const rootInfo = await stat(root);
       if (!rootInfo.isDirectory()) throw new Error('The selected path is not a folder.');
@@ -90,8 +93,10 @@ export class Exif {
       }
 
       const result: FixPhotoLocationsResult = {
-        scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0, errors: 0
+        scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0,
+        ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0
       };
+      const deviations: number[] = [];
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       for (const path of candidates) {
@@ -107,9 +112,14 @@ export class Exif {
             result.unmatched++;
             continue;
           }
-          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000);
+          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000, maxDifferenceSeconds);
           if (!position) {
             result.unmatched++;
+            continue;
+          }
+          deviations.push(position.deviationSeconds);
+          if (position.deviationSeconds > maxDifferenceSeconds) {
+            result.ignoredTooFar++;
             continue;
           }
           result.matched++;
@@ -130,6 +140,11 @@ export class Exif {
           console.warn('[Exif] Automatic GPS correction failed:', path, error);
         }
         if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
+      }
+      if (deviations.length) {
+        result.minDeviationSeconds = Math.min(...deviations);
+        result.meanDeviationSeconds = deviations.reduce((sum, value) => sum + value, 0) / deviations.length;
+        result.maxDeviationSeconds = Math.max(...deviations);
       }
       return { success: true, data: result };
     } catch (error) {
