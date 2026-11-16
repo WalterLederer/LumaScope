@@ -732,6 +732,13 @@ interface MapErrorEntry {
       </span>
     </summary>
     <div class="view-rerender-layout">
+      <div class="range-setting render-worker-setting">
+        <label for="render-worker-count">Parallel render processes</label>
+        <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
+          [value]="renderWorkerCount()" (input)="changeRenderWorkerCount($any($event.target).value)"
+          aria-label="Number of parallel render processes">
+        <span class="range-value">{{ renderWorkerCount() }}</span>
+      </div>
       <div class="map-cache-actions view-rerender-actions">
         <div style="display: flex; align-items: center; gap: 6px;">
           <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
@@ -1846,6 +1853,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
+  protected readonly renderWorkerCount = signal(this.readNumber('renderWorkerCount', 2, 1, 4));
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
   protected readonly optimizedObfSelectionEnabled = signal(this.readSetting('optimizedObfSelectionEnabled', 'true') === 'true');
@@ -1996,6 +2004,13 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapBoundsLayers.push(label);
       }
     }  }
+  protected readonly changeRenderWorkerCount = (value: string | number): void => {
+    const count = Number(value);
+    if (!Number.isFinite(count)) return;
+    const next = Math.max(1, Math.min(4, Math.round(count)));
+    this.renderWorkerCount.set(next);
+    this.saveSetting('renderWorkerCount', next);
+  };
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
     this.saveSetting('renderVisualsEnabled', enabled);
