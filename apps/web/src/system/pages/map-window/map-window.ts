@@ -141,10 +141,9 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
-                    <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Allow fixing</label>
-                    <div class="offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+                    <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
                     <div class="location-actions">
-                      <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Save GPS position...' }}</button>
+                      <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
                     </div>
                   </div>
@@ -160,6 +159,7 @@ interface MapErrorEntry {
                     </div>
                   </div>
                 </div>
+                <div class="fix-location-help offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
               </details>
               <details class="offline-address-search app-disclosure">
                 <summary class="settings-row-title">Offline address search</summary>
@@ -1747,6 +1747,7 @@ interface MapErrorEntry {
     .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-controls .fix-location-toggle{margin:0}
     .fix-location-controls .location-actions{margin:0;align-items:flex-start}
+    .fix-location-help{display:block;width:100%;max-width:none;box-sizing:border-box;margin-top:8px;white-space:normal;line-height:1.35}
     .fix-location-layout .fix-photo-preview{margin:0;min-width:0}
     @media(max-width:560px){.fix-location-layout{grid-template-columns:minmax(0,1fr)}.fix-location-layout .fix-photo-preview{max-width:100%}}
     .fix-photo-preview{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0 10px;padding:8px;border:1px solid var(--border-color,rgba(128,128,128,.35));border-radius:6px;background:var(--panel-background,rgba(128,128,128,.08))}
