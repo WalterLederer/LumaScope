@@ -90,8 +90,12 @@ The Location tab connects image metadata to geographic context.
 - Display the current image position on the map.
 - Inspect and copy coordinates.
 - Resolve or enrich location names where a geocoding provider is configured and available.
-- Import GPX tracks and display them on the map.
+- Import individual GPX tracks for immediate map display.
+- In **Track → Advanced**, recursively import all GPX files below a selected folder into the drive-local SQLite cache database; the adjacent counters show the database totals for files, segments and track points.
+- Re-import safely: unchanged files are detected by SHA-256 content hash, changed files are re-indexed, and identical GPX content is stored only once per drive database.
 - Control GPX track visibility and presentation, including track colour.
+
+The folder import is an additive database import, not a move operation: source GPX files remain untouched. See [GPX cache database](gpx-cache.md) for the schema, indexing, duplicate rules, parser scope and current limitations.
 - Open the detached Location window.
 - Use map navigation and zoom controls; arrow-key behaviour is map-aware when the pointer is over the map.
 - Use the map time slider and playback controls where the selected map/track view supports time-based display, including animation speed, walking animation, rotation and symbol-size settings.
