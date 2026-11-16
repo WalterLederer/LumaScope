@@ -118,7 +118,7 @@ interface MapErrorEntry {
       </header>
       @if (settingsOpen()) {
         <section class="map-settings" aria-label="Map settings">
-<nav class="settings-tabs" role="tablist" aria-label="Location settings">
+<nav class="settings-tabs image-sidebar-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
@@ -141,12 +141,12 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
-                    <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
+                    <div class="fix-location-crosshair-row"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
                     </div>
-                  </div>
+                      </div>
                   <div class="fix-photo-preview">
                     @if (currentImagePreview()) {
                       <img [src]="currentImagePreview()" [alt]="currentImageName()" />
@@ -1276,7 +1276,7 @@ interface MapErrorEntry {
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
-    .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
+    .settings-tabs{flex:0 0 auto;overflow-x:auto;white-space:nowrap;margin:0 -10px 8px;padding:0 10px}
     .settings-tabs .settings-tab{margin:0!important}
     .settings-tabs-spacer{flex:1 0 12px}
     
@@ -1291,10 +1291,6 @@ interface MapErrorEntry {
     .map-error-entry-heading strong{color:#ff8a80}
     .map-error-entry-heading time{font-variant-numeric:tabular-nums}
     .map-error-entry pre{margin:6px 0 0;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap;font:11px/1.45 ui-monospace,Consolas,monospace;color:var(--color-content-default-high,#eee)}
-    .settings-tab{border:0;border-bottom:2px solid transparent;border-radius:4px 4px 0 0;background:transparent;padding:8px 12px;white-space:nowrap}
-    .settings-tab-map-group{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 78%,#8ab4f8 22%);border-radius:4px 4px 0 0}
-    .settings-tab-map-group:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#343943) 62%,#8ab4f8 38%)}
-    .settings-tab-map-group.active,.settings-tab.active{background:#31577d;border:1px solid #65a9ff;border-bottom-color:#65a9ff;color:#fff;box-shadow:inset 0 -2px #65a9ff}
     .settings-tab-panels{display:block;width:100%;min-width:0;min-height:max-content;height:max-content;overflow:visible}
     .settings-tab-panel{min-width:0;min-height:max-content;height:max-content;overflow:visible}
     .settings-tab-panel:not([hidden]){display:block}
@@ -1747,10 +1743,12 @@ interface MapErrorEntry {
 
 
     .fix-location-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:start;gap:12px;margin-top:8px}
-    .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
+    .fix-location-crosshair-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
+    .fix-location-address{min-width:0;flex:1 1 180px;overflow-wrap:anywhere}
     .fix-location-controls .fix-location-toggle{margin:0}
     .fix-location-controls .location-actions{margin:0;align-items:flex-start}
-    .fix-location-help{display:block;width:100%;max-width:none;box-sizing:border-box;margin-top:8px;white-space:normal;line-height:1.35}
+    .fix-location-help{display:block;width:100%;max-width:none;box-sizing:border-box;margin-top:2px;white-space:normal;line-height:1.35}
     .fix-location-layout .fix-photo-preview{margin:0;min-width:0}
     @media(max-width:560px){.fix-location-layout{grid-template-columns:minmax(0,1fr)}.fix-location-layout .fix-photo-preview{max-width:100%}}
     .fix-photo-preview{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0 10px;padding:8px;border:1px solid var(--border-color,rgba(128,128,128,.35));border-radius:6px;background:var(--panel-background,rgba(128,128,128,.08))}
@@ -2520,6 +2518,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpsSaveBusy = signal(false);
   protected readonly gpsSaveStatus = signal('');
   protected readonly locationAddress = signal('');
+
+  protected readonly crosshairAddress = signal('');
   protected readonly offlineAddressQuery = signal('');
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
   protected readonly offlineAddressSearchBusy = signal(false);
@@ -3189,6 +3189,23 @@ export class MapWindow implements OnInit, OnDestroy {
       return [{ id: ++this.mapErrorSequence, timestamp, source, renderer, style, message, occurrences: 1, lastSeenAt: now }, ...errors].slice(0, 100);
     });
   }
+
+  protected readonly showCrosshairAddress = (): void => {
+    const center = this.offlineRenderer?.map?.getCenter();
+    if (!center) { this.crosshairAddress.set('Map center is not available.'); return; }
+    this.crosshairAddress.set('Looking up address…');
+    void (async () => {
+      try {
+        const imagePath = this.currentImagePath;
+        let displayName: string | null = null;
+        if (imagePath && this.desktop) displayName = await this.desktop.CacheManager.resolvePhotoLocation(imagePath, center.lat, center.lng);
+        else displayName = (await lookupReverseGeocoding(center.lat, center.lng, navigator.language || 'en'))?.displayName ?? null;
+        this.crosshairAddress.set(displayName || 'No street address available for this location.');
+      } catch (error) {
+        this.crosshairAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    })();
+  };
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
     const lookupVersion = ++this.locationLookupVersion;
