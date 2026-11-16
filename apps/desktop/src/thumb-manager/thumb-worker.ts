@@ -138,11 +138,10 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
   if (!libRawConstructorPromise) {
     libRawConstructorPromise = (async () => {
       const { LibRaw } = await import('@colorhythm/libraw-wasm');
-      const wasmPath = require.resolve('@colorhythm/libraw-wasm/libraw.wasm');
-      const wasmBytes = await readFile(wasmPath);
-      const wasmBuffer = new ArrayBuffer(wasmBytes.byteLength);
-      new Uint8Array(wasmBuffer).set(wasmBytes);
-      await LibRaw.initialize(wasmBuffer);
+      // The package resolves its WASM payload relative to its own module URL.
+      // require.resolve() is rewritten by webpack to a numeric module ID in workers,
+      // which is not a filesystem path and cannot be passed to fs.readFile().
+      await LibRaw.initialize();
       return LibRaw as unknown as LibRawConstructor;
     })();
   }
