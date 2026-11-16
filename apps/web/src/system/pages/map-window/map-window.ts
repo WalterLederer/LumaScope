@@ -324,16 +324,19 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
-      <div class="gpx-database-import-row">
-        <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
-          {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
-        </button>
-        <button type="button" class="routing-help-button" (click)="openGpxCacheHelp()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
-        <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
-          Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
-        </span>
-      </div>
-      @if (gpxDatabaseImportStatus()) { <span class="offline-map-status" role="status">{{ gpxDatabaseImportStatus() }}</span> }
+      <details class="gpx-database-section app-disclosure">
+        <summary>GPX DB</summary>
+        <div class="gpx-database-import-row">
+          <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
+            {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
+          </button>
+          <button type="button" class="routing-help-button" (click)="openGpxCacheHelp()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
+          <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
+            Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
+          </span>
+        </div>
+        @if (gpxDatabaseImportStatus()) { <span class="offline-map-status" role="status">{{ gpxDatabaseImportStatus() }}</span> }
+      </details>
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
     </details>
   </div>
