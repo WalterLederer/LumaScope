@@ -7278,7 +7278,7 @@ ${points}
               for (const database of databases) {
                 let png: Uint8Array;
                 try {
-                  png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0), 'Hillshade', `${database.name} · z${coords.z}/${x}/${coords.y}`);
+                  png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0), 'Hillshade', `${database.path.split(/[\\\\/]/).pop() ?? database.id} · z${coords.z}/${x}/${coords.y}`);
                 } catch (error) {
                   const message = error instanceof Error ? error.message : String(error);
                   if (/Hillshade tile not found/i.test(message)) continue;
