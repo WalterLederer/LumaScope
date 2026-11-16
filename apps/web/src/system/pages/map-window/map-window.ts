@@ -5838,6 +5838,86 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  protected readonly showGpxFilesVisibleOnMap = async (): Promise<void> => {
+    const desktop = this.desktop;
+    if (!desktop) { this.gpxDatabaseQueryStatus.set('The desktop GPX database service is unavailable.'); return; }
+    const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+    if (!mapBounds) {
+      this.gpxDatabaseQueryStatus.set('The map is not ready yet.');
+      return;
+    }
+    const bounds = {
+      west: Math.max(-180, mapBounds.getWest()),
+      south: Math.max(-90, mapBounds.getSouth()),
+      east: Math.min(180, mapBounds.getEast()),
+      north: Math.min(90, mapBounds.getNorth())
+    };
+    if (bounds.west > bounds.east) {
+      this.gpxDatabaseQueryStatus.set('The current map viewport crosses the date line; this query is not supported yet.');
+      return;
+    }
+    this.gpxDatabaseQueryBusy.set(true);
+    this.gpxDatabaseQueryStatus.set('');
+    try {
+      const results = await desktop.CacheManager.getGpxFilesInBounds(bounds);
+      for (const previous of this.gpxDatabaseTracks()) {
+        this.gpxSegmentsByTrack.delete(previous.path);
+        this.gpxPointDataByTrack.delete(previous.path);
+      }
+      const tracks: GpxTrackFile[] = results.map((file, index) => {
+        const path = 'db-cache:' + file.path;
+        const pointSegments: GpxTrackPoint[][] = file.segments.map(segment => segment.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          elevation: null,
+          timestamp: point.timestamp === null ? null : new Date(point.timestamp).toISOString()
+        })));
+        const coordinates = pointSegments.map(segment => segment.map(point => [point.latitude, point.longitude] as [number, number]));
+        this.gpxPointDataByTrack.set(path, pointSegments);
+        this.gpxSegmentsByTrack.set(path, coordinates);
+        return {
+          path, databasePath: file.path, name: file.name, sizeBytes: file.sizeBytes,
+          lastModified: file.lastModified, active: true,
+          color: this.gpxColors[index % this.gpxColors.length]?.value ?? this.gpxColor(),
+          lineStyle: 'solid', lineWidth: 3, showDirection: false, directionStyle: 'classic'
+        };
+      });
+      this.gpxDatabaseTracks.set(tracks);
+      this.gpxListMode.set('database');
+      this.updateTimeSliderBounds();
+      this.applyGpxTrack();
+      const matchingPoints = results.reduce((total, file) => total + file.matchingPoints, 0);
+      this.gpxDatabaseQueryStatus.set(results.length
+        ? results.length + ' file(s), ' + matchingPoints.toLocaleString() + ' point(s) in the current map viewport.'
+        : 'No GPX track points found in the current map viewport.');
+    } catch (error) {
+      this.gpxDatabaseQueryStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.gpxDatabaseQueryBusy.set(false);
+    }
+  };
+
+  protected readonly showRecentGpxFiles = (): void => {
+    this.gpxListMode.set('recent');
+    this.gpxDatabaseQueryStatus.set('');
+  };
+
+  protected readonly selectAllGpxTracks = (): void => {
+    const tracks = this.gpxTracks().map(track => ({ ...track, active: true }));
+    this.gpxTracks.set(tracks);
+    void this.persistGpxTracks(tracks);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+  };
+
+  protected readonly deselectAllGpxTracks = (): void => {
+    const tracks = this.gpxTracks().map(track => ({ ...track, active: false }));
+    this.gpxTracks.set(tracks);
+    void this.persistGpxTracks(tracks);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+  };
+
   protected readonly importGpxTrack = (): void => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.gpx,application/gpx+xml,application/xml,text/xml'; input.multiple = true;
