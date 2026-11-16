@@ -785,3 +785,53 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
   flex: 0 0 0;
 }
 
+
+
+/* Browse favourite-tree popup actions must stay neutral. The shared action-button
+   rule above intentionally skins every ui-action-button, so explicitly opt these
+   two menu commands out after that rule (including the native button inside). */
+ui-action-button.add-location-menu-button,
+ui-action-button.remove-location-menu-button {
+  background: transparent !important;
+  background-image: none !important;
+  color: inherit !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+ui-action-button.add-location-menu-button > button,
+ui-action-button.remove-location-menu-button > button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: inherit !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+ui-action-button.add-location-menu-button:hover,
+ui-action-button.remove-location-menu-button:hover,
+ui-action-button.add-location-menu-button:hover > button,
+ui-action-button.remove-location-menu-button:hover > button,
+ui-action-button.add-location-menu-button > button:active,
+ui-action-button.remove-location-menu-button > button:active,
+ui-action-button.add-location-menu-button > button:focus-visible,
+ui-action-button.remove-location-menu-button > button:focus-visible {
+  background: rgb(128 128 128 / 14%) !important;
+  background-image: none !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
