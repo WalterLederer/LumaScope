@@ -878,7 +878,8 @@ export class CacheManager {
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+        lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
       ORDER BY photos.file_name COLLATE NOCASE`)
       .all({ folder: this.toRelativeFolderPath(directory, this.databaseKeyForPath(directory)) ?? '' }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
