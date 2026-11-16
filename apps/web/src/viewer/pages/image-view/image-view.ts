@@ -1548,6 +1548,12 @@ export class ImageView {
     }
   };
 
+  protected readonly imageFolderPath = (path: string): string => {
+    const normalized = path.trim();
+    const separator = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\\\'));
+    return separator > 0 ? normalized.slice(0, separator) : separator === 0 ? normalized.slice(0, 1) : '';
+  };
+
   protected readonly displayImagePath = (path: string): string => {
     if (/^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('\\\\') || path.startsWith('//')) {
       return path.replace(/\//g, '\\').replace(/\\{3,}/g, '\\\\');
