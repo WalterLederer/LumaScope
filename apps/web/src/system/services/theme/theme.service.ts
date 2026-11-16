@@ -39,7 +39,7 @@ export class ThemeService {
       .pipe(takeUntilDestroyed())
       .subscribe(config => {
         this.setTheme(config.system.theme ?? 'light', false);
-        const style = config.system.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
+        const style = config.preferences?.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
         this.applyButtonStyle(style);
       });
   }
@@ -52,7 +52,7 @@ export class ThemeService {
 
   readonly setButtonStyle = (style: ButtonStyle) => {
     this.applyButtonStyle(style);
-    this.configuration.updateSystemConfig({ buttonStyle: style });
+    this.configuration.updatePreferencesConfig({ buttonStyle: style });
   };
 
   private applyButtonStyle(style: ButtonStyle): void {
