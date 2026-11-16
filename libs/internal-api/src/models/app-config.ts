@@ -65,8 +65,13 @@ export interface AppConfigV1Gallery {
 export type ButtonStyle = 'blue' | 'flat' | 'outlined' | 'soft' | 'rounded';
 export const allButtonStyles: readonly ButtonStyle[] = ['blue', 'flat', 'outlined', 'soft', 'rounded'];
 
+export type DisclosureStyle = 'classic' | 'plain-triangle' | 'chevron' | 'plus-minus' | 'square' | 'circle' | 'arrow' | 'caret' | 'bracket' | 'none';
+export const allDisclosureStyles: readonly DisclosureStyle[] = ['classic', 'plain-triangle', 'chevron', 'plus-minus', 'square', 'circle', 'arrow', 'caret', 'bracket', 'none'];
+
 export interface AppConfigV1Preferences {
   theme?: 'dark' | 'light';
+  /** Appearance of expandable section markers. Defaults to the colored classic triangle. */
+  disclosureStyle?: DisclosureStyle;
   /** Global action-button appearance. Defaults to the original blue style. */
   buttonStyle?: ButtonStyle;
 }
@@ -124,7 +129,8 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && 'number' === typeof input.height;
   const _io4 = (input: any): boolean =>
     (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
-    && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle);
+    && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle)
+    && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
 })();
 export const isCacheConfig: (input: unknown) => input is CacheConfigV1 = (() => {
