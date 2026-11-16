@@ -276,7 +276,7 @@ interface MapErrorEntry {
     @if (gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-database-table" role="table" aria-label="GPX tracks">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
-          <span role="columnheader">Actions</span>
+          <span role="columnheader">Actions<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'actions')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
           @if (gpxDatabaseColumns().points) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
@@ -7187,6 +7187,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxListMode() === 'database' ? this.gpxVisibleWaypointCount(track) : this.gpxWaypointCount(track.path);
   protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     if (this.gpxListMode() === 'database') this.changeGpxDatabaseTrack(path, patch);
+    else if (patch.active !== undefined) this.changeGpxTrackActive(path, patch.active);
     else this.updateGpxTrack(path, patch);
   };
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
