@@ -1596,8 +1596,8 @@ interface MapErrorEntry {
      .gpx-list-action-button:hover:not(:disabled){background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
      .gpx-file-row.gpx-database-file-row{gap:8px;min-width:0}
-     .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>div,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-     .gpx-database-file-list{max-height:290px;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative}
+     .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+     .gpx-database-file-list{max-height:260px;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative}
      .gpx-database-file-list .gpx-file-header{position:sticky;top:0;z-index:3;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-medium,#888)}
      .gpx-db-sort-button{padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
      .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
@@ -5923,8 +5923,10 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxSegmentsByTrack.delete(previous.path);
         this.gpxPointDataByTrack.delete(previous.path);
       }
+      const previousSettings = new Map(this.gpxDatabaseTracks().map(track => [track.databasePath || '', track]));
       const tracks: GpxTrackFile[] = results.map((file, index) => {
         const path = 'db-cache:' + file.path;
+        const previous = previousSettings.get(file.path);
         const pointSegments: GpxTrackPoint[][] = file.segments.map(segment => segment.map(point => ({
           latitude: point.latitude,
           longitude: point.longitude,
@@ -5937,9 +5939,10 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxSegmentsByTrack.set(path, coordinates);
         return {
           path, databasePath: file.path, name: file.name, sizeBytes: file.sizeBytes,
-          lastModified: file.lastModified, active: true,
-          color: this.gpxColors[index % this.gpxColors.length]?.value ?? this.gpxColor(),
-          lineStyle: 'solid', lineWidth: 3, showDirection: false, directionStyle: 'classic'
+          lastModified: file.lastModified, active: previous?.active ?? true,
+          color: previous?.color ?? this.gpxColors[index % this.gpxColors.length]?.value ?? this.gpxColor(),
+          lineStyle: previous?.lineStyle ?? 'solid', lineWidth: previous?.lineWidth ?? 3,
+          showDirection: previous?.showDirection ?? false, directionStyle: previous?.directionStyle ?? 'classic'
         };
       });
       this.gpxDatabaseTracks.set(tracks);
@@ -7070,10 +7073,15 @@ export class MapWindow implements OnInit, OnDestroy {
     const sort = this.gpxDatabaseSort();
     const tracks = this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
     const timestamp = (track: GpxTrackFile): number => {
-      const values = (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
-        .filter(point => point.inViewport !== false && point.timestamp)
-        .map(point => Date.parse(point.timestamp!) ).filter(Number.isFinite);
-      return values.length ? Math.min(...values) : Number.MAX_SAFE_INTEGER;
+      let earliest = Number.MAX_SAFE_INTEGER;
+      for (const segment of this.gpxPointDataByTrack.get(track.path) ?? []) {
+        for (const point of segment) {
+          if (point.inViewport === false || !point.timestamp) continue;
+          const value = Date.parse(point.timestamp);
+          if (Number.isFinite(value) && value < earliest) earliest = value;
+        }
+      }
+      return earliest;
     };
     return tracks.sort((a, b) => {
       const av = sort.key === 'name' ? a.name.toLocaleLowerCase() : sort.key === 'path' ? (a.databasePath || a.path).toLocaleLowerCase() : timestamp(a);
