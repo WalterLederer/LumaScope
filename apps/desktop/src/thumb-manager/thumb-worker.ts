@@ -150,7 +150,7 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
   return libRawConstructorPromise;
 }
 
-/** Develop a camera RAW file to linear 16-bit RGB without an 8-bit intermediate. */
+/** Develop a camera RAW file to 16-bit RGB with LibRaw's standard display gamma. */
 async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.Image> {
   const LibRaw = await getLibRawConstructor();
   const decoder = new LibRaw();
@@ -165,8 +165,8 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
     decoder.setUseCameraWb(1);
     decoder.setOutputColor(1);
     decoder.setOutputBps(16);
-    decoder.setGamma(0, 1);
-    decoder.setGamma(1, 1);
+    decoder.setGamma(0, 0.45);
+    decoder.setGamma(1, 4.5);
     decoder.setNoAutoBright(1);
     decoder.unpack();
     decoder.dcrawProcess();
