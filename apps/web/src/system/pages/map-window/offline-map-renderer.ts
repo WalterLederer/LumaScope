@@ -24,9 +24,6 @@ const offlineRenderWaiters: Array<() => void> = [];
 export function setOfflineRenderConcurrency(value: number): void {
   if (!Number.isFinite(value)) return;
   offlineRenderConcurrency = Math.max(1, Math.min(4, Math.round(value)));
-  while (offlineRenderActive < offlineRenderConcurrency && offlineRenderWaiters.length) {
-    offlineRenderWaiters.shift()?.();
-  }
 }
 
 export async function runOfflineRenderTask<T>(task: () => Promise<T>): Promise<T> {
