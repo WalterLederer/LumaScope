@@ -6998,8 +6998,9 @@ export class MapWindow implements OnInit, OnDestroy {
     }).length;
   };
 
-  protected readonly gpxDatabaseVisibleTracks = (): GpxTrackFile[] =>
-    this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
+  protected readonly gpxDatabaseVisibleTracks = computed(() =>
+    this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0)
+  );
 
   protected readonly changeRouteWaypointMarkersVisible = (visible: boolean): void => {
     this.routeWaypointMarkersVisible.set(visible);
