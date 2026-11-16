@@ -92,6 +92,23 @@ html[data-button-color='gray'] {
 }
 
 
+/* Theme color saturation is shared by accent-colored action buttons and all tab bars. */
+html { --theme-color-saturation: 100%; }
+button:not([role='option']):not(.detail-header button),
+ui-action-button,
+button[role='tab'] {
+  filter: saturate(var(--theme-color-saturation, 100%));
+}
+button:not([role='option']):not(.detail-header button):hover:not(:disabled),
+ui-action-button:hover:not(:disabled) {
+  filter: saturate(var(--theme-color-saturation, 100%)) brightness(1.18) !important;
+}
+html[data-tab-bar-style] button[role='tab'].active,
+html[data-tab-bar-style] [role='tab'].active {
+  color: var(--button-text) !important;
+  border-color: var(--button-border-strong) !important;
+}
+
 /* Location window settings tabs share the configurable tab-bar appearance. */
 html[data-tab-bar-style] .settings-tabs.image-sidebar-tabs { display:flex; align-items:center; }
 html[data-tab-bar-style='underline'] .settings-tabs.image-sidebar-tabs { background:transparent!important; border-bottom:2px solid #8b969f!important; }
