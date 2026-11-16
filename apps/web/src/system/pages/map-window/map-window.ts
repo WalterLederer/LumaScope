@@ -179,9 +179,7 @@ interface MapErrorEntry {
                       </div>
                       @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
                         <button type="button" class="map-toolbar-button offline-address-result" role="row" (click)="goToOfflineAddress(result)">
-                          <span class="offline-address-result-name"><strong>{{ result.display_name }}</strong>
-                            @if (result.secondary_text) { <span>{{ result.secondary_text }}</span> }
-                          </span>
+                          <span class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</span>
                           <span class="offline-address-result-coordinates" role="cell">{{ result.latitude.toFixed(6) }}, {{ result.longitude.toFixed(6) }}</span>
                         </button>
                       }
@@ -1228,11 +1226,8 @@ interface MapErrorEntry {
               </details>
           </div>
         }
-        <div #map class="map" [class.map-hidden]="(!coordinatesAvailable() && !fixLocationEnabled()) || (settingsOpen() && activeSettingsTab() === 'offlineMaps')" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+        <div #map class="map" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
         @if (fixLocationEnabled() && !coordinatesAvailable()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
-        @if (!coordinatesAvailable() && !fixLocationEnabled() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
-          <div class="map-unavailable" role="status">GPS coordinates are not available for this image.</div>
-        }
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
@@ -1280,6 +1275,7 @@ interface MapErrorEntry {
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
     .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{display:flex;align-items:stretch;gap:3px;flex:0 0 auto;overflow-x:auto;white-space:nowrap;border-bottom:1px solid var(--color-content-default-low,#454545);margin:0 -10px 8px;padding:0 10px}
+    .settings-tabs .settings-tab{margin:0!important}
     .settings-tabs-spacer{flex:1 0 12px}
     
     .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,75,75,.30);color:#ff8a80;font-size:10px;font-weight:800}
@@ -1308,14 +1304,14 @@ interface MapErrorEntry {
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
-    .offline-address-results{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0;max-height:260px;overflow:auto}
-    .offline-address-result{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,auto);align-items:center;gap:12px;width:100%;text-align:left}
-    .offline-address-result-header{position:sticky;top:0;z-index:1;padding:5px 9px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px}
-    .offline-address-result-name{display:flex;flex-direction:column;gap:2px;min-width:0}
-    .offline-address-result-name strong{overflow-wrap:anywhere}
-    .offline-address-result-name>span{font-size:11px;color:var(--color-content-default-medium,#aaa);white-space:normal}
-    .offline-address-result-coordinates{font:11px/1.4 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
-    @media(max-width:620px){.offline-address-result{grid-template-columns:minmax(0,1fr)}.offline-address-result-coordinates{padding-top:2px}}
+    .offline-address-results{display:table;width:100%;min-width:0;max-height:260px;overflow:auto;border-collapse:collapse;table-layout:fixed}
+    .offline-address-result{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,auto);align-items:center;gap:10px;width:100%;min-height:28px;margin:0!important;padding:3px 6px;border:0!important;border-bottom:1px solid var(--color-content-default-low,#454545)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:left;white-space:nowrap;cursor:pointer}
+    .offline-address-result-header{position:sticky;top:0;z-index:1;padding:4px 6px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px}
+    .offline-address-result-name{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .offline-address-result-name strong{display:inline;font-weight:600;white-space:nowrap}
+    .offline-address-result-name>span{display:inline;color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:nowrap}
+    .offline-address-result-coordinates{justify-self:end;font:11px/1.3 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
+    .offline-address-result:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#454545) 45%,transparent)!important}
     .view-primary-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
@@ -2887,7 +2883,8 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
     } else {
-      this.locationAddress.set('This image does not contain GPS coordinates.');
+      this.locationAddress.set('');
+      void this.initialize(48.2082, 16.3738);
     }
     const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
@@ -2906,17 +2903,9 @@ export class MapWindow implements OnInit, OnDestroy {
         this.coordinatesAvailable.set(false);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
-        this.locationAddress.set('This image does not contain GPS coordinates.');
-        if (this.fixLocationEnabled()) { void this.initializeFixLocationMap(); return; }
-        this.map?.remove();
-        this.map = null;
-        this.leafletHillshadeLayer = null;
-        this.leafletHillshadePane = null;
-        this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.currentOfflineMapId = null;
-        this.activeOfflineMapId.set(null);
-        this.marker = null;
-        this.clearDirectoryMarkers();
+        this.locationAddress.set('');
+        this.marker?.setOpacity(0);
+        if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
         return;
       }
       this.coordinatesAvailable.set(true);
@@ -3019,15 +3008,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.fixLocationEnabled.set(enabled);
     this.persistLocationUiState({ fixLocationEnabled: enabled });
     this.gpsSaveStatus.set('');
-    if (!enabled) {
-      if (!this.coordinatesAvailable()) {
-        this.mapSourceGeneration++;
-        this.map?.remove(); this.map = null;
-        this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      }
-      return;
-    }
-    if (!this.coordinatesAvailable()) void this.initializeFixLocationMap();
+    if (!enabled) return;
+    if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
   };
 
   private async initializeFixLocationMap(): Promise<void> {
@@ -4093,7 +4075,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
     this.updateRouteWaypointMarkers();
-    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((this.fixLocationEnabled() && !this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
+    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
