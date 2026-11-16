@@ -325,7 +325,7 @@ interface MapErrorEntry {
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
       <details class="gpx-database-section app-disclosure">
-        <summary>GPX DB</summary>
+        <summary>GPX -&gt; DB</summary>
         <div class="gpx-database-import-row">
           <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
             {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
@@ -339,7 +339,10 @@ interface MapErrorEntry {
           <span class="offline-map-status gpx-database-import-status" [class.gpx-database-import-progress]="gpxDatabaseImportBusy()" role="status" aria-live="polite">{{ gpxDatabaseImportStatus() }}</span>
         }
       </details>
-      <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
+      <details class="gpx-database-section app-disclosure">
+        <summary>Marker -&gt; GPX</summary>
+        <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
+      </details>
     </details>
   </div>
 </div>
