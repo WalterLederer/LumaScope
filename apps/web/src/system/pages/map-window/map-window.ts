@@ -145,7 +145,7 @@ interface MapErrorEntry {
                   <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-animation-panel fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
-                  <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label>
+                  <div class="time-slider-animation-panel fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
                 <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
@@ -155,7 +155,7 @@ interface MapErrorEntry {
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
                     <div class="location-actions"><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
-                    <div class="fix-location-crosshair-row"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
+                    <div class="fix-location-crosshair-row"><div class="time-slider-animation-panel fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
@@ -1828,6 +1828,11 @@ interface MapErrorEntry {
     .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
      .fix-location-check-only-panel{flex:0 0 auto;justify-content:center;min-height:34px;padding:6px 10px}
      .fix-location-check-only-panel .fix-location-check-only{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
+    .fix-location-max-difference-panel{flex:0 0 auto}
+    .fix-location-max-difference-panel .fix-location-max-difference{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
+    .fix-location-crosshair-panel{flex:0 0 auto}
+    .fix-location-crosshair-panel .fix-location-toggle{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
+    .fix-location-crosshair-row{align-items:center}
     .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
     .fix-location-automatic-status{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
     :host-context(html[data-theme='light']) .fix-location-max-difference input{background:#fff;border-color:#aeb4bd;color:#202124}
