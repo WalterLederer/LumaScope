@@ -1,4 +1,4 @@
-import { app, IpcMainInvokeEvent, shell } from 'electron';
+import { app, BrowserWindow, IpcMainInvokeEvent, shell } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { ProcessMemorySnapshot, SystemPathMapping } from 'internal-api';
@@ -162,6 +162,13 @@ export class ProcessManager {
   readonly setAppSettingsSection = async (_: IpcMainInvokeEvent, section: string, values: Record<string, unknown>): Promise<void> => {
     if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('Settings values must be an object.');
     await updateAppSettingsSection(section, values);
+    if (section === 'preferences') {
+      for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed() && !window.webContents.isDestroyed() && window.webContents !== _.sender) {
+          window.webContents.send('ProcessManager.appSettingsChanged', section, values);
+        }
+      }
+    }
   };
 
   @IpcHandler({ name: 'MapWindow.getZoom' })
