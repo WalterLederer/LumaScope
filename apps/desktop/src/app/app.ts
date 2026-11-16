@@ -27,8 +27,15 @@ export default class App {
       const logDirectory = join(App.application.getPath('userData'), 'logs');
       mkdirSync(logDirectory, { recursive: true });
       const elapsedMs = App.shutdownStartedAt === null ? null : Date.now() - App.shutdownStartedAt;
+      const now = new Date();
+      const offsetMinutes = -now.getTimezoneOffset();
+      const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+      const offset = `${offsetSign}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
       const entry = {
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
+        timestampLocal: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}${offset}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        processId: process.pid,
         elapsedMs,
         event,
         ...details
@@ -220,7 +227,19 @@ export default class App {
       if (isMainFrame) console.error('[Startup] Main window failed to load:', { code, description, validatedURL });
     });
     App.mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      App.logShutdown('main-render-process-gone', { details });
       console.error('[Startup] Renderer process exited unexpectedly:', details);
+    });
+    App.mainWindow.webContents.on('unresponsive', () => {
+      App.logShutdown('main-renderer-unresponsive', {
+        loading: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.isLoading() : null
+      });
+    });
+    App.mainWindow.webContents.on('responsive', () => App.logShutdown('main-renderer-responsive'));
+    App.mainWindow.webContents.on('will-prevent-unload', event => {
+      App.logShutdown('main-renderer-will-prevent-unload');
+      // Keep Electron's default behavior: the close is allowed unless the
+      // renderer explicitly prevents unload. This event is diagnostic only.
     });
 
     // Debounce move/resize events so the loupe refreshes after geometry settles.
@@ -264,9 +283,25 @@ export default class App {
     // });
 
     App.mainWindow.on('close', () => {
-      App.logShutdown('window-close', { window: 'main' });
-      // Persist the last normal window rectangle, not temporary fullscreen or maximized bounds.
-      App.startupConfig.saveBounds(App.mainWindow.getNormalBounds());
+      const closeStartedAt = Date.now();
+      App.logShutdown('window-close', {
+        window: 'main',
+        destroyed: App.mainWindow.isDestroyed(),
+        webContentsDestroyed: App.mainWindow.webContents.isDestroyed(),
+        rendererLoading: App.mainWindow.webContents.isLoading(),
+        rendererUrl: App.mainWindow.webContents.getURL()
+      });
+      try {
+        // Persist the last normal window rectangle, not temporary fullscreen or maximized bounds.
+        App.startupConfig.saveBounds(App.mainWindow.getNormalBounds());
+        App.logShutdown('main-window-close-handler-complete', { durationMs: Date.now() - closeStartedAt });
+      } catch (error) {
+        App.logShutdown('main-window-close-handler-failed', {
+          durationMs: Date.now() - closeStartedAt,
+          error: error instanceof Error ? error.stack ?? error.message : String(error)
+        });
+        throw error;
+      }
     });
 
     // Emitted when the window is closed.
@@ -659,6 +694,12 @@ export default class App {
     });
     app.on('will-quit', () => App.logShutdown('will-quit'));
     app.on('quit', (_event, exitCode) => App.logShutdown('quit', { exitCode }));
+    app.on('browser-window-focus', (_event, window) => {
+      App.logShutdown('browser-window-focus', { title: window.getTitle() });
+    });
+    app.on('browser-window-blur', (_event, window) => {
+      App.logShutdown('browser-window-blur', { title: window.getTitle() });
+    });
 
     if (process.platform === 'linux') {
       // Must match the AppImage's light-matter.desktop filename for KDE/Wayland icon lookup.
