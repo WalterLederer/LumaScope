@@ -144,7 +144,7 @@ interface MapErrorEntry {
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
-                  <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="autoFixMaxDifferenceMinutes.set(Number($any($event.target).value))"></label>
+                  <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
                 <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
@@ -1817,6 +1817,11 @@ interface MapErrorEntry {
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
     .location-tab .fix-location-section,.location-tab .fix-location-automatic-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .fix-location-automatic-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+    .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
+    .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
+    .fix-location-automatic-status{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+    :host-context(html[data-theme='light']) .fix-location-max-difference input{background:#fff;border-color:#aeb4bd;color:#202124}
     .fix-location-toggle{display:flex;align-items:center;gap:8px;margin:8px 0;color:inherit}
     .fix-location-toggle input{accent-color:#8ab4f8}
     .location-tab .fix-location-section .offline-map-status{color:#bdc1c6}
@@ -3275,6 +3280,10 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     }
   }
+
+  protected readonly setAutoFixMaxDifference = (value: string): void => {
+    this.autoFixMaxDifferenceMinutes.set(value.trim() === '' ? 0 : Number(value));
+  };
 
   protected readonly fixLocationAutomatic = async (): Promise<void> => {
     if (!this.desktop || this.autoFixBusy()) return;
