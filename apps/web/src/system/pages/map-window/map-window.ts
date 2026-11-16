@@ -3240,6 +3240,10 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.unsubscribeLocation?.();
     this.markerScanGeneration++;
+    if (this.markerViewportRefreshTimer !== null) window.clearTimeout(this.markerViewportRefreshTimer);
+    this.markerViewportRefreshTimer = null;
+    if (this.gpxDatabaseViewportRefreshTimer !== null) window.clearTimeout(this.gpxDatabaseViewportRefreshTimer);
+    this.gpxDatabaseViewportRefreshTimer = null;
     this.clearDirectoryMarkers();
     window.removeEventListener('resize', this.onResize);
     this.clearMapBoundsLayers();
