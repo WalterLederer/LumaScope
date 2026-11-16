@@ -880,6 +880,7 @@ interface MapErrorEntry {
         </tbody>
       </table>
         </div>
+        </div>
       </details>
       <details class="render-statistics-section app-disclosure optimize-obf-rendering-section">
         <summary>Optimize OsmAnd .obf rendering</summary>
@@ -905,8 +906,8 @@ interface MapErrorEntry {
         </div>
       </details>
       </div>
-    </div>
   </details>
+    </div>
 </div>
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
