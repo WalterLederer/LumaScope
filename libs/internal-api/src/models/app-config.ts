@@ -52,6 +52,7 @@ export interface AppConfigV1 {
   version: 1;
   gallery: AppConfigV1Gallery;
   system: AppConfigV1System;
+  preferences?: AppConfigV1Preferences;
 }
 export interface AppConfigV1Gallery {
   locations: string[];
@@ -64,12 +65,16 @@ export interface AppConfigV1Gallery {
 export type ButtonStyle = 'blue' | 'flat' | 'outlined' | 'soft' | 'rounded';
 export const allButtonStyles: readonly ButtonStyle[] = ['blue', 'flat', 'outlined', 'soft', 'rounded'];
 
-export interface AppConfigV1System {
-  minimiseOnStart: boolean;
+export interface AppConfigV1Preferences {
   theme?: 'dark' | 'light';
   /** Global action-button appearance. Defaults to the original blue style. */
   buttonStyle?: ButtonStyle;
-  /** Legacy setting migrated to buttonStyle when loading older configurations. */
+}
+
+export interface AppConfigV1System {
+  minimiseOnStart: boolean;
+  theme?: 'dark' | 'light';
+  /** Legacy setting migrated to preferences.buttonStyle when loading older configurations. */
   flatStandardButtons?: boolean;
   devToolsOpen?: boolean;
   histogramVisible?: boolean;
@@ -104,7 +109,6 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io2 = (input: any): boolean =>
     'boolean' === typeof input.minimiseOnStart
     && (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
-    && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle)
     && (undefined === input.flatStandardButtons || 'boolean' === typeof input.flatStandardButtons)
     && (undefined === input.devToolsOpen || 'boolean' === typeof input.devToolsOpen)
     && (undefined === input.histogramVisible || 'boolean' === typeof input.histogramVisible)
@@ -117,6 +121,9 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io3 = (input: any): boolean =>
     'number' === typeof input.x && 'number' === typeof input.y && 'number' === typeof input.width
     && 'number' === typeof input.height;
+  const _io4 = (input: any): boolean =>
+    (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
+    && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
 })();
 export const isCacheConfig: (input: unknown) => input is CacheConfigV1 = (() => {
