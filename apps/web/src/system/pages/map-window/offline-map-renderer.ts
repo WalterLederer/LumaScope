@@ -448,7 +448,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       const renderStarted = performance.now();
       let png: Uint8Array;
       try {
-        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.name} · z${zoom}/${column}/${row}`);
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.path.split(/[\\\\/]/).pop() ?? database.id} · z${zoom}/${column}/${row}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!/Hillshade tile not found/i.test(message)) {
@@ -494,7 +494,7 @@ export function registerOsmAndHillshadeTileProtocol(desktop: Desktop, getDatabas
       let png: Uint8Array;
       const databaseStarted = performance.now();
       try {
-        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.name} · z${zoom}/${column}/${row}`);
+        png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, zoom, column, row, 0), 'Hillshade', `${database.path.split(/[\\\\/]/).pop() ?? database.id} · z${zoom}/${column}/${row}`);
         databaseMs += performance.now() - databaseStarted;
       } catch (error) {
         databaseMs += performance.now() - databaseStarted;
