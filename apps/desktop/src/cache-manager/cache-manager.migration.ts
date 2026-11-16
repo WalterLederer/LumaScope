@@ -402,6 +402,14 @@ END;
 COMMIT;
 `
   }
-
+,
+  {
+    name: 'deduplicateGpxContentHashesV19',
+    query: `
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gpx_files_content_hash_unique
+  ON gpx_files(content_hash)
+  WHERE content_hash IS NOT NULL AND content_hash <> '';
+`
+  }
 ];
 // @formatter:on
