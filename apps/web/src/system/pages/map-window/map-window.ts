@@ -275,15 +275,16 @@ interface MapErrorEntry {
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
-    @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
-      <div class="gpx-database-table" role="table" aria-label="GPX files visible on map from database">
+    @if (gpxDatabaseVisibleTracks().length > 0) {
+      <div class="gpx-database-table" role="table" aria-label="GPX tracks">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
+          <span role="columnheader">Actions</span>
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
           @if (gpxDatabaseColumns().points) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          @if (gpxDatabaseColumns().modified) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('modified')">Date {{ gpxDatabaseSortIndicator('modified') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
           @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
           @if (gpxDatabaseColumns().size) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
-          @if (gpxDatabaseColumns().modified) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('modified')">Modified {{ gpxDatabaseSortIndicator('modified') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
           @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('color')">Color {{ gpxDatabaseSortIndicator('color') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'color')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
@@ -291,115 +292,52 @@ interface MapErrorEntry {
           <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
         </div>
         <div class="gpx-file-list gpx-database-file-list" role="rowgroup">
-        @for (track of gpxDatabaseVisibleTracks(); track track.path) {
-          <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
-            <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxDatabaseTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
-            <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
-            @if (gpxDatabaseColumns().points) { <span class="gpx-waypoint-count" role="cell">{{ gpxVisibleWaypointCount(track) }}</span> }
-            @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell">{{ gpxTrackTimeRange(track.path) }}</span> }
-            @if (gpxDatabaseColumns().size) { <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span> }
-            @if (gpxDatabaseColumns().modified) { <span role="cell">{{ formatGpxDate(track.lastModified) }}</span> }
-            @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
-            <div class="color-picker gpx-track-color-picker" role="cell">
-              <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
-                <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
-              </button>
-              @if (gpxTrackColorMenuOpen() === track.path) {
-                <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
-                  @for (color of gpxColors; track color.value) {
-                    <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxDatabaseTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
-                      <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                    </button>
-                  }
-                </div>
-              }
+          @for (track of gpxDatabaseVisibleTracks(); track track.path) {
+            <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError">
+              <div class="gpx-row-actions" role="cell">
+                <button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to track">⤢</button>
+                @if (gpxListMode() === 'recent') {
+                  <button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name" title="Open in default GPX editor">↗</button>
+                }
+              </div>
+              <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
+              <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
+              @if (gpxDatabaseColumns().points) { <span class="gpx-waypoint-count" role="cell">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</span> }
+              @if (gpxDatabaseColumns().modified) { <span role="cell">{{ track.missing || track.readError ? (track.missing ? 'Missing' : 'Read error') : formatGpxDate(track.lastModified) }}</span> }
+              @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</span> }
+              @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
+              @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
+              <div class="color-picker gpx-track-color-picker" role="cell">
+                <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
+                  <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
+                </button>
+                @if (gpxTrackColorMenuOpen() === track.path) {
+                  <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
+                    @for (color of gpxColors; track color.value) {
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxListTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
+                        <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+              <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxListTrack(track.path, { lineStyle: $any($event.target).value })" [attr.aria-label]="'Line style for ' + track.name">
+                <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
+              </select>
+              <select class="gpx-db-select" [value]="track.lineWidth || 3" (change)="changeGpxListTrack(track.path, { lineWidth: +$any($event.target).value })" [attr.aria-label]="'Line width for ' + track.name">
+                @for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }
+              </select>
+              <select class="gpx-db-select" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxListTrack(track.path, { showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? (track.directionStyle || 'classic') : $any($event.target).value })" [attr.aria-label]="'Direction arrows for ' + track.name">
+                <option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option>
+              </select>
             </div>
-            <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxDatabaseTrack(track.path, { lineStyle: $any($event.target).value })" aria-label="Line style">
-              <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
-            </select>
-            <select class="gpx-db-select" [value]="track.lineWidth || 3" (change)="changeGpxDatabaseTrack(track.path, { lineWidth: +$any($event.target).value })" aria-label="Line width">
-              @for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }
-            </select>
-            <select class="gpx-db-select" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxDatabaseTrack(track.path, { showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? (track.directionStyle || 'classic') : $any($event.target).value })" aria-label="Direction arrows">
-              <option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option>
-            </select>
-          </div>
-        }
+          }
         </div>
       </div>
     } @else if (gpxListMode() === 'database') {
       <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
-    } @else if (gpxTracks().length > 0) {
-      <div class="gpx-file-list" role="table" aria-label="GPX tracks">
-        <div class="gpx-file-row gpx-file-header" role="row">
-          <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Waypoints</span><span role="columnheader">Date</span><span role="columnheader">Track time (min – max)</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span><span></span>
-        </div>
-        @for (track of gpxTracks(); track track.path) {
-          <div class="gpx-file-row" role="row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing">
-            <div class="gpx-row-actions" role="cell"><button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to entire track">⤢</button><button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name + ' in default editor'" title="Open in default GPX editor">↗</button></div>
-            <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxTrackActive(track.path, $any($event.target).checked)" [attr.aria-label]="'Show track ' + track.name"></label>
-            <span class="gpx-file-name" role="cell" [title]="track.path">{{ track.name }}</span>
-            <span class="gpx-waypoint-count" role="cell">{{ track.missing || track.readError ? '—' : gpxWaypointCount(track.path) }}</span>
-            <span role="cell">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : formatGpxDate(track.lastModified) }}</span>
-            <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : gpxTrackTimeRange(track.path) }}</span>
-            <span role="cell">{{ track.missing ? 'Missing' : track.readError ? 'Read error' : formatGpxFileSize(track.sizeBytes) }}</span>
-            <div class="color-picker gpx-track-color-picker" role="cell">
-              <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
-                <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span>
-                <span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
-              </button>
-              @if (gpxTrackColorMenuOpen() === track.path) {
-                <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
-                  @for (color of gpxColors; track color.value) {
-                    <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxTrackColor(track.path, color.value)">
-                      <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-            <div class="color-picker gpx-track-choice-picker" role="cell">
-              <button type="button" class="color-picker-trigger gpx-track-choice-trigger" (click)="toggleGpxTrackLineStyleMenu(track.path)" [attr.aria-expanded]="gpxTrackLineStyleMenuOpen() === track.path" [attr.aria-label]="'Line style for ' + track.name">
-                <span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">{{ gpxLineStyleSample(track.lineStyle || 'solid') }}</span><span>{{ gpxLineStyleName(track.lineStyle || 'solid') }}</span><span class="color-picker-chevron">▾</span>
-              </button>
-              @if (gpxTrackLineStyleMenuOpen() === track.path) {
-                <div class="color-picker-menu gpx-track-choice-menu gpx-line-style-menu" role="listbox" [attr.aria-label]="'Line styles for ' + track.name">
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="(track.lineStyle || 'solid') === 'solid'" (click)="changeGpxTrackLineStyle(track.path, 'solid')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">━━━━━━━━━</span><span>Solid</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dashed'" (click)="changeGpxTrackLineStyle(track.path, 'dashed')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">━ ━ ━ ━</span><span>Dashed</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dotted'" (click)="changeGpxTrackLineStyle(track.path, 'dotted')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">· · · · ·</span><span>Dotted</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'long-dashed'" (click)="changeGpxTrackLineStyle(track.path, 'long-dashed')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">━━  ━━  ━━</span><span>Long dash</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'short-dashed'" (click)="changeGpxTrackLineStyle(track.path, 'short-dashed')"><span class="gpx-track-choice-sample">━ ━ ━ ━</span><span>Short dash</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dash-dot'" (click)="changeGpxTrackLineStyle(track.path, 'dash-dot')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">━ · ━ · ━</span><span>Dash-dot</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.lineStyle === 'dash-dot-dot'" (click)="changeGpxTrackLineStyle(track.path, 'dash-dot-dot')"><span class="gpx-track-choice-sample" [style.color]="track.color || gpxColor()">━ · · ━ · ·</span><span>Dash-dot-dot</span></button>
-                </div>
-              }
-            </div>
-            <select class="gpx-track-line-width" role="cell" [value]="track.lineWidth || 4" (change)="changeGpxTrackLineWidth(track.path, $any($event.target).value)" [attr.aria-label]="'Line width for ' + track.name">
-              <option value="1">1 px</option><option value="2">2 px</option><option value="3">3 px</option>
-              <option value="4">4 px</option><option value="5">5 px</option><option value="6">6 px</option>
-              <option value="8">8 px</option><option value="10">10 px</option>
-            </select>
-            <div class="color-picker gpx-track-choice-picker" role="cell">
-              <button type="button" class="color-picker-trigger gpx-track-choice-trigger" (click)="toggleGpxTrackDirectionMenu(track.path)" [attr.aria-expanded]="gpxTrackDirectionMenuOpen() === track.path" [attr.aria-label]="'Direction arrows for ' + track.name">
-                <span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">{{ gpxDirectionSample(track.showDirection ? (track.directionStyle || 'classic') : 'off') }}</span><span>{{ gpxDirectionName(track.showDirection ? (track.directionStyle || 'classic') : 'off') }}</span><span class="color-picker-chevron">▾</span>
-              </button>
-              @if (gpxTrackDirectionMenuOpen() === track.path) {
-                <div class="color-picker-menu gpx-track-choice-menu gpx-direction-menu" role="listbox" [attr.aria-label]="'Direction arrow styles for ' + track.name">
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="!track.showDirection" (click)="changeGpxTrackDirection(track.path, 'off')"><span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">—</span><span>Off</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.showDirection && (track.directionStyle || 'classic') === 'classic'" (click)="changeGpxTrackDirection(track.path, 'classic')"><span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">➤</span><span>Classic · 16 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'chevron' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'chevron')"><span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">❯</span><span>Chevron · 16 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'triangle' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'triangle')"><span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">▶</span><span>Triangle · 16 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'thin' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'thin')"><span class="gpx-track-arrow-sample" [style.color]="track.color || gpxColor()">➜</span><span>Slim · 16 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-classic' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-classic')"><span class="gpx-track-arrow-sample large">➤</span><span>Classic · 24 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-chevron' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-chevron')"><span class="gpx-track-arrow-sample large">❯</span><span>Chevron · 24 px</span></button>
-                  <button type="button" class="color-option gpx-track-choice-option" role="option" [attr.aria-selected]="track.directionStyle === 'large-triangle' && track.showDirection" (click)="changeGpxTrackDirection(track.path, 'large-triangle')"><span class="gpx-track-arrow-sample large">▶</span><span>Triangle · 24 px</span></button>
-                </div>
-              }
-            </div>
-            <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button><button type="button" class="file-path-copy-button" (click)="copyFilePath(track.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button>
-          </div>
-        }
-      </div>
+    } @else {
+      <div class="gpx-database-empty">No GPX tracks are loaded.</div>
     }
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
@@ -2701,7 +2639,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseColumnWidths = signal<Record<string, number>>((() => {
-    const defaults = { active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
+    const defaults = { actions: 86, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
     try {
       const saved = JSON.parse(this.readSetting('gpxDatabaseColumnWidths', '{}')) as Record<string, number>;
       for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
@@ -7176,7 +7114,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly gpxDatabaseVisibleTracks = computed(() => {
     const sort = this.gpxDatabaseSort();
-    const tracks = this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
+    const databaseMode = this.gpxListMode() === 'database';
+    const tracks = databaseMode
+      ? this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0)
+      : this.gpxTracks();
     const timestamp = (track: GpxTrackFile): number => {
       let earliest = Number.MAX_SAFE_INTEGER;
       for (const segment of this.gpxPointDataByTrack.get(track.path) ?? []) {
@@ -7192,7 +7133,7 @@ export class MapWindow implements OnInit, OnDestroy {
       switch (sort.key) {
         case 'active': return track.active === false ? 0 : 1;
         case 'name': return track.name.toLocaleLowerCase();
-        case 'points': return this.gpxVisibleWaypointCount(track);
+        case 'points': return databaseMode ? this.gpxVisibleWaypointCount(track) : this.gpxWaypointCount(track.path);
         case 'time': return timestamp(track);
         case 'size': return track.sizeBytes;
         case 'modified': return track.lastModified;
@@ -7203,7 +7144,7 @@ export class MapWindow implements OnInit, OnDestroy {
         case 'arrows': return track.showDirection ? (track.directionStyle || 'classic') : 'off';
       }
     };
-    return tracks.sort((a, b) => {
+    return [...tracks].sort((a, b) => {
       const av = value(a), bv = value(b);
       const result = av < bv ? -1 : av > bv ? 1 : 0;
       return sort.direction === 'asc' ? result : -result;
@@ -7213,11 +7154,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const widths = this.gpxDatabaseColumnWidths();
     const columns = this.gpxDatabaseColumns();
     return [
-      widths['active'] + 'px', widths['name'] + 'px',
+      widths['actions'] + 'px', widths['active'] + 'px', widths['name'] + 'px',
       ...(columns.points ? [widths['points'] + 'px'] : []),
+      ...(columns.modified ? [widths['modified'] + 'px'] : []),
       ...(columns.time ? [widths['time'] + 'px'] : []),
       ...(columns.size ? [widths['size'] + 'px'] : []),
-      ...(columns.modified ? [widths['modified'] + 'px'] : []),
       ...(columns.path ? [widths['path'] + 'px'] : []),
       widths['color'] + 'px', widths['line'] + 'px', widths['width'] + 'px', widths['arrows'] + 'px'
     ].join(' ');
