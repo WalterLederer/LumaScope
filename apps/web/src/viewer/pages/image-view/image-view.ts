@@ -3480,6 +3480,12 @@ export class ImageView {
           }
         }
 
+        const keydownTarget = event.target;
+        if (keydownTarget instanceof HTMLElement && (
+          keydownTarget.isContentEditable
+          || keydownTarget.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
+        )) return;
+
         if (this.isPointerOverLocationMap &&
             (event.key === 'ArrowLeft' || event.key === 'ArrowRight' ||
              event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
@@ -3500,6 +3506,12 @@ export class ImageView {
           this.escapePressedWhileDialogOpen = false;
           return;
         }
+
+        const isTextEntryTarget = target instanceof HTMLElement && (
+          target.isContentEditable
+          || target.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
+        );
+        if (isTextEntryTarget) return;
 
         if (event.key === 'Escape') {
           this.goBack();
@@ -3564,8 +3576,8 @@ export class ImageView {
           handledImageNavigationKeyEvents.add(event);
         }
 
-        // Image navigation keys are global: they work regardless of which
-        // control currently has focus, including selects and text inputs.
+        // Image navigation keys work independently of focus, except while
+        // the user is editing text or interacting with a form control.
         if (event.key === ' ' || event.key === 'Spacebar' || event.key === 'Space' ||
             event.key === 'ArrowRight' || event.key === 'PageDown') {
           event.preventDefault();
@@ -3588,10 +3600,6 @@ export class ImageView {
         if ((event.shiftKey && event.key !== '+' && event.key !== '_') || event.ctrlKey || event.altKey || event.metaKey) {
           return;
         }
-        if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, [contenteditable="true"]')) {
-          return;
-        }
-
         // Keep keyboard zoom shortcuts wired to the same actions as both sets of
         // on-screen zoom buttons. '+' may arrive as '=' on some keyboard layouts.
         if (event.key === '+' || event.key === '=' || event.key === 'Add') {
