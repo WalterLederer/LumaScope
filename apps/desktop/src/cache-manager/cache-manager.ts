@@ -442,11 +442,18 @@ export class CacheManager {
         const hash = createHash('sha256').update(xml).digest('hex');
         const existing = findByPath.get({ path: relativePath }) as { id: number; content_hash: string | null; file_size: number; modified_at: number } | undefined;
         if (existing?.content_hash === hash) {
+          db.prepare('UPDATE gpx_files SET file_size = :size, modified_at = :modified WHERE id = :id')
+            .run({ id: existing.id, size: info.size, modified: Math.trunc(info.mtimeMs) });
           unchanged++;
           continue;
         }
         const duplicate = findByHash.get({ hash }) as { id: number; relative_file_path: string } | undefined;
         if (duplicate && duplicate.id !== existing?.id) {
+          if (existing) {
+            db.exec('BEGIN IMMEDIATE;');
+            try { deleteFile.run({ id: existing.id }); db.exec('COMMIT;'); }
+            catch (error) { try { db.exec('ROLLBACK;'); } catch { /* Preserve the database error. */ } throw error; }
+          }
           duplicates++;
           continue;
         }
@@ -487,18 +494,22 @@ export class CacheManager {
         try {
           if (existing) deleteFile.run({ id: existing.id });
           const fileResult = insertFile.run({
-            path: relativePath.replace(/[\\/]+/g, '\\\\'), name: basename(absolute),
+            path: relativePath.replace(/[\\/]+/g, sep), name: basename(absolute),
             size: info.size, modified: Math.trunc(info.mtimeMs), hash, importedAt: Date.now(),
             points: pointCount, segments: segments.length
           });
           const fileId = Number(fileResult.lastInsertRowid);
           for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
             const points = segments[segmentIndex];
-            const times = points.map(point => point.timestamp).filter((value): value is number => value !== null);
+            let startTimestamp: number | null = null, endTimestamp: number | null = null;
+            for (const point of points) {
+              if (point.timestamp === null) continue;
+              startTimestamp = startTimestamp === null ? point.timestamp : Math.min(startTimestamp, point.timestamp);
+              endTimestamp = endTimestamp === null ? point.timestamp : Math.max(endTimestamp, point.timestamp);
+            }
             const segmentResult = insertSegment.run({
               fileId, index: segmentIndex, count: points.length,
-              start: times.length ? Math.min(...times) : null,
-              end: times.length ? Math.max(...times) : null
+              start: startTimestamp, end: endTimestamp
             });
             const segmentId = Number(segmentResult.lastInsertRowid);
             let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
