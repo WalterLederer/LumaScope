@@ -61,10 +61,15 @@ export interface AppConfigV1Gallery {
   sortDir?: 'asc' | 'desc';
   selectedLocation?: string;
 }
+export type ButtonStyle = 'blue' | 'flat' | 'outlined' | 'soft' | 'rounded';
+export const allButtonStyles: readonly ButtonStyle[] = ['blue', 'flat', 'outlined', 'soft', 'rounded'];
+
 export interface AppConfigV1System {
   minimiseOnStart: boolean;
   theme?: 'dark' | 'light';
-  /** Use neutral flat styling instead of the default blue action buttons. */
+  /** Global action-button appearance. Defaults to the original blue style. */
+  buttonStyle?: ButtonStyle;
+  /** Legacy setting migrated to buttonStyle when loading older configurations. */
   flatStandardButtons?: boolean;
   devToolsOpen?: boolean;
   histogramVisible?: boolean;
@@ -99,6 +104,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
   const _io2 = (input: any): boolean =>
     'boolean' === typeof input.minimiseOnStart
     && (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
+    && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle)
     && (undefined === input.flatStandardButtons || 'boolean' === typeof input.flatStandardButtons)
     && (undefined === input.devToolsOpen || 'boolean' === typeof input.devToolsOpen)
     && (undefined === input.histogramVisible || 'boolean' === typeof input.histogramVisible)
