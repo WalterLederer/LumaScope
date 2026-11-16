@@ -5758,7 +5758,9 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private async refreshGpxDatabaseStats(): Promise<void> {
     if (!this.desktop) return;
-    try { this.gpxDatabaseStats.set(await this.desktop.CacheManager.getGpxDatabaseStats()); }
+    const configuredPath = this.gpxTracks().find(track => /^[a-z]:[\\/]/i.test(track.path) && !track.path.startsWith('memory:'))?.path;
+    const databaseKey = configuredPath?.slice(0, 2);
+    try { this.gpxDatabaseStats.set(await this.desktop.CacheManager.getGpxDatabaseStats(databaseKey)); }
     catch (error) { this.gpxDatabaseImportStatus.set(error instanceof Error ? error.message : String(error)); }
   }
 
