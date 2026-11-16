@@ -13,6 +13,9 @@ export class ProcessManager implements DesktopProcessManager {
   readonly setAppSettingsSection = (section: string, values: Record<string, unknown>): Promise<void> =>
     window.desktop.ProcessManager.setAppSettingsSection(section, values);
 
+  readonly onAppSettingsChanged = (callback: (section: string, values: Record<string, unknown>) => void): (() => void) =>
+    window.desktop.ProcessManager.onAppSettingsChanged(callback);
+
   readonly isPackaged = (): Promise<boolean> => window.desktop.ProcessManager.isPackaged();
 
   readonly getDevToolsOpen = (): Promise<boolean> => window.desktop.ProcessManager.getDevToolsOpen();
