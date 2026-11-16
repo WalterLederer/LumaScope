@@ -521,6 +521,9 @@ export class CacheManager {
               });
               minLat = Math.min(minLat, point.latitude); maxLat = Math.max(maxLat, point.latitude);
               minLon = Math.min(minLon, point.longitude); maxLon = Math.max(maxLon, point.longitude);
+              if ((pointIndex + 1) % 5000 === 0) {
+                await new Promise<void>(resolveYield => setImmediate(resolveYield));
+              }
             }
             insertBounds.run({ id: segmentId, minLat, maxLat, minLon, maxLon });
           }
