@@ -5962,6 +5962,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = [...current, ...added];
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
+    this.gpxListMode.set('recent');
+    this.gpxDatabaseQueryStatus.set('');
     this.gpxError.set('');
     this.rebuildGpxSegments();
     this.applyGpxTrack();
