@@ -617,7 +617,6 @@ export default class App {
 
     // Record shutdown phases to a dedicated file so a stalled quit can be diagnosed
     // without relying on the transient DevTools or console output.
-    App.logShutdown('application-initialized', { logFile: join(app.getPath('userData'), 'logs', 'shutdown.log') });
     let settingsFlushOnQuitStarted = false;
     app.on('before-quit', event => {
       if (settingsFlushOnQuitStarted) {
@@ -667,6 +666,7 @@ export default class App {
     }
 
     App.application.setName('LumaScope');
+    App.logShutdown('application-initialized', { logFile: join(app.getPath('userData'), 'logs', 'shutdown.log') });
     App.startupConfig = new StartupConfig(app);
 
     protocol.registerSchemesAsPrivileged([
