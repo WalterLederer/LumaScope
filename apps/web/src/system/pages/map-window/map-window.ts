@@ -5888,7 +5888,7 @@ export class MapWindow implements OnInit, OnDestroy {
       });
       this.gpxDatabaseTracks.set(tracks);
       this.gpxListMode.set('database');
-      this.updateTimeSliderBounds();
+      this.rebuildGpxSegments();
       this.applyGpxTrack();
       const matchingPoints = results.reduce((total, file) => total + file.matchingPoints, 0);
       this.gpxDatabaseQueryStatus.set(results.length
