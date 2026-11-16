@@ -78,9 +78,24 @@ function StopProcesses {
         }
     )
 
-    # Close only the actual application window gracefully. Electron starts
-    # several LumaScope.exe child processes (GPU/renderer); they must not each
-    # receive an independent 20-second window-close attempt.
+    # Ask Windows to close the main window using the same system-close
+    # command used by the taskbar's window Close action. CloseMainWindow()
+    # posts WM_CLOSE, which has not consistently triggered LumaScope's fast
+    # normal shutdown path. Electron child processes must not receive
+    # independent close attempts.
+    if (-not ([System.Management.Automation.PSTypeName]'LumaScopeWindowClose').Type) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class LumaScopeWindowClose {
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+}
+'@
+    }
+    $wmSysCommand = 0x0112
+    $scClose = 0xF060
     $lumaScopeMainProcesses = @(
         $matchingNodes |
             Where-Object { $_.Name -ieq 'LumaScope.exe' } |
@@ -101,17 +116,26 @@ function StopProcesses {
         $processId = [int]$process.Id
         try {
             Write-Host "CLOSE LumaScope main window gracefully (PID $processId)" -ForegroundColor Yellow
-            if ($process.CloseMainWindow()) {
-                if (-not $process.WaitForExit(20000)) {
-                    Write-Warning "LumaScope PID $processId did not exit within 20 seconds; force-stopping its process tree now."
-                    & taskkill.exe /PID $processId /T /F 1>$null 2>$null
-                    if ($LASTEXITCODE -ne 0) {
-                        Write-Host "INFO LumaScope PID $processId was already stopped or could not be reached (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
-                    }
-                }
+            $windowHandle = [IntPtr]$process.MainWindowHandle
+            $closePosted = [LumaScopeWindowClose]::PostMessage(
+                $windowHandle,
+                [uint32]$wmSysCommand,
+                [IntPtr]$scClose,
+                [IntPtr]::Zero
+            )
+
+            if ($closePosted -and $process.WaitForExit(5000)) {
+                Write-Host "LumaScope PID $processId closed normally." -ForegroundColor DarkGray
             }
             else {
-                Write-Warning "LumaScope PID $processId did not accept a graceful window close; force-stopping its process tree now."
+                if (-not $closePosted) {
+                    $lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+                    Write-Warning "Could not send the taskbar-style close command to LumaScope PID $processId (Win32 error $lastError)."
+                }
+                else {
+                    Write-Warning "LumaScope PID $processId did not exit within 5 seconds; force-stopping its process tree now."
+                }
+
                 & taskkill.exe /PID $processId /T /F 1>$null 2>$null
                 if ($LASTEXITCODE -ne 0) {
                     Write-Host "INFO LumaScope PID $processId was already stopped or could not be reached (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
