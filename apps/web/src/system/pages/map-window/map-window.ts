@@ -5904,6 +5904,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly showRecentGpxFiles = (): void => {
     this.gpxListMode.set('recent');
     this.gpxDatabaseQueryStatus.set('');
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
   };
 
   protected readonly selectAllGpxTracks = (): void => {
@@ -6256,7 +6258,8 @@ export class MapWindow implements OnInit, OnDestroy {
     // Update the time range before filtering points; otherwise the initial
     // persisted slider range (0..0) hides every timestamped point.
     this.updateTimeSliderBounds();
-    this.gpxSegments = [...this.gpxTracks(), ...this.gpxDatabaseTracks()]
+    const sourceTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    this.gpxSegments = sourceTracks
       .filter(track => track.active !== false)
       .flatMap(track => this.visibleGpxSegments(track));
     this.updateWalkingMarker();
@@ -6299,7 +6302,8 @@ export class MapWindow implements OnInit, OnDestroy {
       && this.timeSliderMaximum() === this.timeSliderMinimum() + 1
       ? this.timeSliderMinimum() : timestamp;
     const sources: string[] = [];
-    for (const track of [...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(item => !item.missing && !item.readError)) {
+    const sourceTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    for (const track of sourceTracks.filter(item => !item.missing && !item.readError)) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
       if (points.some(point => point.inViewport !== false && point.timestamp && Number.isFinite(Date.parse(point.timestamp))
         && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
@@ -6322,7 +6326,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // Loaded GPX tracks define the available time range even when their
       // map visibility is switched off. Track visibility must not hide the
       // time controls or make photo GPS timestamps a prerequisite.
-      ...[...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(track => !track.missing && !track.readError)
+      ...(this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => !track.missing && !track.readError)
         .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
         .filter(point => point.inViewport !== false)
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
@@ -6380,12 +6384,12 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly timeSliderNoDataHelpText = (): string =>
-    [...this.gpxTracks(), ...this.gpxDatabaseTracks()].some(track => !track.missing && !track.readError)
+    (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).some(track => !track.missing && !track.readError)
       ? 'The available GPX files contain no usable point timestamps. Track points need time values to define the time range.'
       : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.';
 
   protected readonly timeSliderHelpText = (): string => {
-    const hasTracks = [...this.gpxTracks(), ...this.gpxDatabaseTracks()].some(track => !track.missing && !track.readError
+    const hasTracks = (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).some(track => !track.missing && !track.readError
       && (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
         .some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))));
     const hasTimedPhotoMarkers = this.directoryMarkersEnabled()
@@ -6484,7 +6488,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private firstActiveGpxTrack(): GpxTrackFile | undefined {
-    return [...this.gpxTracks(), ...this.gpxDatabaseTracks()].find(track => track.active !== false && !track.missing && (this.gpxPointDataByTrack.get(track.path)?.some(segment => segment.length > 0) ?? false));
+    const sourceTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    return sourceTracks.find(track => track.active !== false && !track.missing && (this.gpxPointDataByTrack.get(track.path)?.some(segment => segment.length > 0) ?? false));
   }
 
   protected readonly changeTimeSliderWalkerVisibility = (visible: boolean): void => {
@@ -7594,8 +7599,7 @@ ${points}
   }
 
   private applyGpxTrack(): void {
-    const recentPaths = new Set(this.gpxTracks().map(track => track.path.toLowerCase()));
-    const renderTracks = [...this.gpxTracks(), ...this.gpxDatabaseTracks().filter(track => !recentPaths.has((track.databasePath || '').toLowerCase()))];
+    const renderTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
     if (this.offlineRenderer) {
       this.offlineRenderer.setTrack(this.gpxVisible() ? renderTracks.filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.visibleGpxSegments(track), color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
