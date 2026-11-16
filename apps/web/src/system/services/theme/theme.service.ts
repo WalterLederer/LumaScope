@@ -16,6 +16,8 @@ export class ThemeService {
 
   readonly current = signal<AppTheme>(this.readInitialTheme());
 
+  readonly flatStandardButtons = signal(false);
+
   private readInitialTheme(): AppTheme {
     try {
       const stored = this.document.defaultView?.localStorage.getItem('theme');
@@ -35,7 +37,10 @@ export class ThemeService {
 
     this.configuration.config()
       .pipe(takeUntilDestroyed())
-      .subscribe(config => this.setTheme(config.system.theme ?? 'light', false));
+      .subscribe(config => {
+        this.setTheme(config.system.theme ?? 'light', false);
+        this.applyFlatStandardButtons(config.system.flatStandardButtons ?? false);
+      });
   }
 
   readonly toggle = () => {
@@ -43,6 +48,16 @@ export class ThemeService {
     this.setTheme(theme);
     this.configuration.updateSystemConfig({ theme });
   };
+
+  readonly setFlatStandardButtons = (enabled: boolean) => {
+    this.applyFlatStandardButtons(enabled);
+    this.configuration.updateSystemConfig({ flatStandardButtons: enabled });
+  };
+
+  private applyFlatStandardButtons(enabled: boolean): void {
+    this.flatStandardButtons.set(enabled);
+    this.document.documentElement.dataset['buttonStyle'] = enabled ? 'flat' : 'blue';
+  }
 
   private readonly setTheme = (theme: AppTheme, broadcast = true) => {
     const changed = this.current() !== theme;
