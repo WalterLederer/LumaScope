@@ -35,6 +35,10 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getCacheSummary = (databaseKey?: string): Promise<CacheSummary> => window.desktop.CacheManager.getCacheSummary(databaseKey);
 
+  readonly importGpxFolder = () => window.desktop.CacheManager.importGpxFolder();
+
+  readonly getGpxDatabaseStats = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseStats(databaseKey);
+
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
   readonly clearOsmAndTileCache = (): Promise<CacheClearResult> =>
