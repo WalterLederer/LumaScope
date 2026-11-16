@@ -6279,7 +6279,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const flush = (): void => { if (run.length >= 2) visible.push(run); run = []; };
       for (const point of segment) {
         const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
-        if (Number.isFinite(timestamp) && timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd()) {
+        if (!Number.isFinite(timestamp) || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd())) {
           run.push([point.latitude, point.longitude]);
         } else flush();
       }
@@ -6379,8 +6379,8 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly timeSliderNoDataHelpText = (): string =>
-    this.gpxTracks().some(track => !track.missing && !track.readError)
-      ? 'The loaded GPX files contain no usable point timestamps. Track points need time values to define the time range.'
+    [...this.gpxTracks(), ...this.gpxDatabaseTracks()].some(track => !track.missing && !track.readError)
+      ? 'The available GPX files contain no usable point timestamps. Track points need time values to define the time range.'
       : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.';
 
   protected readonly timeSliderHelpText = (): string => {
@@ -6988,12 +6988,15 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxWaypointCount = (path: string): number =>
     (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
 
-  protected readonly gpxVisibleWaypointCount = (track: GpxTrackFile): number =>
-    (this.gpxPointDataByTrack.get(track.path) ?? []).flat().filter(point => point.inViewport !== false && (() => {
+  protected readonly gpxVisibleWaypointCount = (track: GpxTrackFile): number => {
+    const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
+    return points.filter(point => {
+      if (point.inViewport === false) return false;
       const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
       return !this.timeSliderActive() || !Number.isFinite(timestamp)
         || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd());
-    })()).length;
+    }).length;
+  };
 
   protected readonly gpxDatabaseVisibleTracks = (): GpxTrackFile[] =>
     this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
