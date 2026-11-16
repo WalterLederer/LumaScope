@@ -129,6 +129,7 @@ export interface DesktopCacheManager {
   readonly appendBuildLog: (line: string) => Promise<void>;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
+  readonly getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => Promise<PhotoLocation[]>;
   readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
   readonly resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => Promise<string | null>;
 }
