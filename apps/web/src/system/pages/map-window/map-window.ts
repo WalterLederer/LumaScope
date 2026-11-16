@@ -6398,7 +6398,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderHelpText = (): string => {
     const hasTracks = (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).some(track => !track.missing && !track.readError
       && (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
-        .some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))));
+        .some(point => point.inViewport !== false && point.timestamp && Number.isFinite(Date.parse(point.timestamp))));
     const hasTimedPhotoMarkers = this.directoryMarkersEnabled()
       && this.directoryPhotoTimestampMarkers.some(marker => marker.gpsTimestamp != null && Number.isFinite(marker.gpsTimestamp));
     if (hasTracks && hasTimedPhotoMarkers) return 'Only timestamped GPX track points and photos within this time range are filtered. Items without timestamps remain visible.';
