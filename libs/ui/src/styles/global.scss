@@ -62,10 +62,47 @@ select {
   box-shadow: 0 1px 2px rgb(0 0 0 / 14%), inset 0 1px 0 rgb(255 255 255 / 3%) !important;
 }
 
-/* Tab buttons form connected tab strips and must not inherit action-button spacing. */
-button[role="tab"],
-[role="tablist"] button {
+/* Shared tab-strip appearance: flat, connected tabs instead of raised action buttons. */
+[role="tablist"] {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  border-bottom: 1px solid var(--color-content-default-low);
+  background: transparent;
+}
+
+[role="tablist"] button[role="tab"],
+button[role="tab"] {
+  appearance: none;
+  flex: 0 0 auto;
+  min-height: 30px;
   margin: 0 !important;
+  padding: 5px 10px !important;
+  border: 1px solid transparent !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 5px 5px 0 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--color-content-default-medium);
+  font: inherit;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+[role="tablist"] button[role="tab"]:hover:not([aria-selected="true"]),
+button[role="tab"]:hover:not([aria-selected="true"]) {
+  background: color-mix(in srgb, CanvasText 5%, Canvas) !important;
+  color: var(--color-content-default-high);
+}
+
+[role="tablist"] button[role="tab"][aria-selected="true"],
+button[role="tab"][aria-selected="true"] {
+  border-color: var(--color-content-default-low) !important;
+  border-bottom-color: color-mix(in srgb, #0a84ff 72%, var(--color-content-default-high)) !important;
+  background: color-mix(in srgb, CanvasText 7%, Canvas) !important;
+  color: var(--color-content-default-high);
+  font-weight: 600;
 }
 
 /* Reusable disclosure component.
