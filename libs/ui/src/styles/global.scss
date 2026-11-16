@@ -55,59 +55,24 @@ ui-action-button {
   box-shadow: 0 1px 2px rgb(0 0 0 / 14%), 0 1px 1px rgb(0 0 0 / 7%), inset 0 1px 0 rgb(255 255 255 / 3%) !important;
 }
 
-/* Shared blue appearance for compact symbol-only action buttons. Keep each
- * component's own dimensions and layout; only unify the visual treatment.
+/* Shared blue appearance for compact symbol and icon action buttons.
+ * Component-specific dimensions and layout remain unchanged.
  */
 button:is(
   .routing-help-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .overlay-close-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .copy-path-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .image-copy-path-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .status-icon-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .panel-close-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .settings-close-button,
-  .map-toolbar-button,
-  .zoom-step-button,
-  .status-action-button,
-  .view-mode-button,
-  .zoom-step,
   .sidebar-close-tab,
+  .sidebar-side-toggle,
   .map-toolbar-button,
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step,
-  .sidebar-side-toggle
+  .zoom-step
 ) {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -130,7 +95,12 @@ button:is(
   .panel-close-button,
   .settings-close-button,
   .sidebar-close-tab,
-  .sidebar-side-toggle
+  .sidebar-side-toggle,
+  .map-toolbar-button,
+  .zoom-step-button,
+  .status-action-button,
+  .view-mode-button,
+  .zoom-step
 ):hover:not(:disabled) {
   filter: brightness(1.18) !important;
   transform: translateY(-1px) !important;
@@ -145,7 +115,12 @@ button:is(
   .panel-close-button,
   .settings-close-button,
   .sidebar-close-tab,
-  .sidebar-side-toggle
+  .sidebar-side-toggle,
+  .map-toolbar-button,
+  .zoom-step-button,
+  .status-action-button,
+  .view-mode-button,
+  .zoom-step
 ):active:not(:disabled) {
   transform: translateY(1px) !important;
   box-shadow: inset 0 2px 3px rgb(0 0 0 / 25%), 0 1px 0 #174b7d !important;
@@ -160,7 +135,12 @@ button:is(
   .panel-close-button,
   .settings-close-button,
   .sidebar-close-tab,
-  .sidebar-side-toggle
+  .sidebar-side-toggle,
+  .map-toolbar-button,
+  .zoom-step-button,
+  .status-action-button,
+  .view-mode-button,
+  .zoom-step
 ):disabled {
   cursor: not-allowed !important;
   filter: grayscale(.55) brightness(.72) !important;
@@ -176,7 +156,12 @@ button:is(
   .panel-close-button,
   .settings-close-button,
   .sidebar-close-tab,
-  .sidebar-side-toggle
+  .sidebar-side-toggle,
+  .map-toolbar-button,
+  .zoom-step-button,
+  .status-action-button,
+  .view-mode-button,
+  .zoom-step
 ):focus-visible {
   outline: 2px solid #75c5ff !important;
   outline-offset: 2px !important;
