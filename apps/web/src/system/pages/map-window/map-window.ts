@@ -3310,8 +3310,17 @@ export class MapWindow implements OnInit, OnDestroy {
         ? 'GPX candidate deviation min/mean/max: n/a'
         : 'GPX candidate deviation min/mean/max: ' + result.minDeviationSeconds.toFixed(1) + ' / '
           + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
+      const elapsedSeconds = result.elapsedMilliseconds / 1000;
+      const elapsedText = elapsedSeconds < 60
+        ? elapsedSeconds.toFixed(1) + ' s'
+        : Math.floor(elapsedSeconds / 60).toString() + ' min ' + (elapsedSeconds % 60).toFixed(0) + ' s';
       this.autoFixStatus.set(
-        (checkOnly ? 'Check only — no files changed' : 'Scanned ' + result.scanned.toLocaleString() + ' photos') +
+        'Start folder: ' + result.rootFolder +
+        ' · Folders processed: ' + result.totalFoldersProcessed.toLocaleString() +
+        ' · Files processed: ' + result.totalFilesProcessed.toLocaleString() +
+        ' · Photo files checked: ' + result.scanned.toLocaleString() +
+        ' · Runtime: ' + elapsedText +
+        ' · ' + (checkOnly ? 'Check only — no files changed' : 'GPS correction completed') +
         ' · ' + gpsCounts +
         ' · GPX matches within limit: ' + result.matched.toLocaleString() +
         ' · No GPX match: ' + result.unmatched.toLocaleString() +
