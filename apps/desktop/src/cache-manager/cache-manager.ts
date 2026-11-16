@@ -642,7 +642,8 @@ export class CacheManager {
       GROUP BY segment_id
       HAVING MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) IS NOT NULL
         AND MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) IS NOT NULL
-      ORDER BY (after_timestamp - before_timestamp), segment_id
+      ORDER BY MIN(ABS(:timestamp - before_timestamp), ABS(after_timestamp - :timestamp)),
+        (after_timestamp - before_timestamp), segment_id
       LIMIT 1`).get({
         timestamp: timestampMs,
         minimum: timestampMs - 86_400_000,
