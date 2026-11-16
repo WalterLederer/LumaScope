@@ -6252,7 +6252,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Update the time range before filtering points; otherwise the initial
     // persisted slider range (0..0) hides every timestamped point.
     this.updateTimeSliderBounds();
-    this.gpxSegments = this.gpxTracks()
+    this.gpxSegments = [...this.gpxTracks(), ...this.gpxDatabaseTracks()]
       .filter(track => track.active !== false)
       .flatMap(track => this.visibleGpxSegments(track));
     this.updateWalkingMarker();
@@ -6295,7 +6295,7 @@ export class MapWindow implements OnInit, OnDestroy {
       && this.timeSliderMaximum() === this.timeSliderMinimum() + 1
       ? this.timeSliderMinimum() : timestamp;
     const sources: string[] = [];
-    for (const track of this.gpxTracks().filter(item => !item.missing && !item.readError)) {
+    for (const track of [...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(item => !item.missing && !item.readError)) {
       const points = (this.gpxPointDataByTrack.get(track.path) ?? []).flat();
       if (points.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))
         && Math.floor(Date.parse(point.timestamp) / 1000) === sourceTimestamp)) {
@@ -6318,7 +6318,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // Loaded GPX tracks define the available time range even when their
       // map visibility is switched off. Track visibility must not hide the
       // time controls or make photo GPS timestamps a prerequisite.
-      ...this.gpxTracks().filter(track => !track.missing && !track.readError)
+      ...[...this.gpxTracks(), ...this.gpxDatabaseTracks()].filter(track => !track.missing && !track.readError)
         .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
         .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
       ...(this.directoryMarkersEnabled()
@@ -6380,7 +6380,7 @@ export class MapWindow implements OnInit, OnDestroy {
       : 'Load GPX files with timestamped track points or enable photo markers with timestamps to define the time range.';
 
   protected readonly timeSliderHelpText = (): string => {
-    const hasTracks = this.gpxTracks().some(track => !track.missing && !track.readError
+    const hasTracks = [...this.gpxTracks(), ...this.gpxDatabaseTracks()].some(track => !track.missing && !track.readError
       && (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
         .some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp))));
     const hasTimedPhotoMarkers = this.directoryMarkersEnabled()
@@ -6479,7 +6479,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private firstActiveGpxTrack(): GpxTrackFile | undefined {
-    return this.gpxTracks().find(track => track.active !== false && !track.missing && (this.gpxPointDataByTrack.get(track.path)?.some(segment => segment.length > 0) ?? false));
+    return [...this.gpxTracks(), ...this.gpxDatabaseTracks()].find(track => track.active !== false && !track.missing && (this.gpxPointDataByTrack.get(track.path)?.some(segment => segment.length > 0) ?? false));
   }
 
   protected readonly changeTimeSliderWalkerVisibility = (visible: boolean): void => {
@@ -7575,15 +7575,17 @@ ${points}
   }
 
   private applyGpxTrack(): void {
+    const recentPaths = new Set(this.gpxTracks().map(track => track.path.toLowerCase()));
+    const renderTracks = [...this.gpxTracks(), ...this.gpxDatabaseTracks().filter(track => !recentPaths.has((track.databasePath || '').toLowerCase()))];
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? this.gpxTracks().filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.visibleGpxSegments(track), color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(this.gpxVisible() ? renderTracks.filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.visibleGpxSegments(track), color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
-    for (const track of this.gpxTracks().filter(item => item.active !== false)) {
+    for (const track of renderTracks.filter(item => item.active !== false)) {
       for (const segment of this.visibleGpxSegments(track)) {
         if (segment.length < 2) continue;
         const lineStyle = track.lineStyle || 'solid';
