@@ -183,20 +183,51 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
       );
     }
 
-    const pixels = new Uint16Array(decoded.width * decoded.height * 3);
+    const sourcePixels = new Uint16Array(decoded.width * decoded.height * 3);
     const data = new DataView(decoded.data.buffer, decoded.data.byteOffset, expectedBytes);
 
-    for (let index = 0; index < pixels.length; index++) {
-      pixels[index] = data.getUint16(index * 2, true);
+    for (let index = 0; index < sourcePixels.length; index++) {
+      sourcePixels[index] = data.getUint16(index * 2, true);
+    }
+
+    // LibRaw's 16-bit bitmap is linear here, but writing it directly to JPEG
+    // makes it look like an ordinary SDR image and clips the HDR pipeline at 1.0.
+    // Estimate a scene exposure from the median linear luminance (18% grey) and
+    // retain values above scRGB reference white instead of clamping them.
+    const luminanceHistogram = new Uint32Array(4096);
+    const pixelCount = decoded.width * decoded.height;
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const offset = pixel * 3;
+      const red = sourcePixels[offset] / 65535;
+      const green = sourcePixels[offset + 1] / 65535;
+      const blue = sourcePixels[offset + 2] / 65535;
+      const luminance = Math.max(0, 0.2126 * red + 0.7152 * green + 0.0722 * blue);
+      luminanceHistogram[Math.min(4095, Math.floor(luminance * 4095))]++;
+    }
+
+    const medianCount = Math.ceil(pixelCount * 0.5);
+    let accumulated = 0;
+    let medianBin = 0;
+    for (; medianBin < luminanceHistogram.length; medianBin++) {
+      accumulated += luminanceHistogram[medianBin];
+      if (accumulated >= medianCount) break;
+    }
+
+    const medianLuminance = Math.max(0.0001, (medianBin + 0.5) / 4095);
+    // scRGB 1.0 represents 80 cd/m²; 0.225 is approximately 18 cd/m².
+    const exposure = Math.max(0.25, Math.min(16, 0.225 / medianLuminance));
+    const linearPixels = new Float32Array(sourcePixels.length);
+    for (let index = 0; index < sourcePixels.length; index++) {
+      linearPixels[index] = sourcePixels[index] / 65535 * exposure;
     }
 
     return vips.Image.newFromMemory(
-      pixels,
+      linearPixels,
       decoded.width,
       decoded.height,
       3,
-      vips.BandFormat.ushort
-    );
+      vips.BandFormat.float
+    ).copy({ interpretation: vips.Interpretation.scrgb });
   } finally {
     decoder.dispose();
   }
@@ -754,7 +785,13 @@ async function histogramForImage(vips: typeof Vips, source: string): Promise<Ima
   const pixelCount = Math.floor(sdrPixels.length / 3);
   let hdrPixels: typeof sdrPixels | null = null;
 
+  if (fullImage.format === 'float' && sourceExtension === '.dng') {
+    // DNG development already returns scene-linear scRGB float pixels.
+    hdrPixels = rgb.writeToMemory();
+  }
+
   try {
+    if (hdrPixels) throw new Error('DNG is already decoded to linear scRGB.');
     using hdrImage = fullImage.uhdr2scRGB();
     using hdrSmall = scale < 1 ? hdrImage.resize(scale, { kernel: vips.Kernel.linear }) : hdrImage.copy();
     using hdrRgb = hdrSmall.bands >= 3 ? hdrSmall.extractBand(0, { n: 3 }) : hdrSmall;
@@ -985,14 +1022,15 @@ if (parentPort) {
               width,
               height
             );
-          processingStage = 'writing 16-bit-developed DNG thumbnail';
-          output.writeToFile(target, { Q: 85 });
+          processingStage = 'encoding linear DNG thumbnail as Ultra HDR JPEG';
+          using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
+          encodeScRgbAsUhdr(scrgb, target, 90);
         } else {
-          processingStage = 'writing full-size DNG derivative';
-          dngImage.writeToFile(target, { Q: 90 });
+          processingStage = 'encoding full-size linear DNG derivative as Ultra HDR JPEG';
+          using scrgb = dngImage.copy({ interpretation: vips.Interpretation.scrgb });
+          encodeScRgbAsUhdr(scrgb, target, 90);
         }
-        // LibRaw's rendered linear RGB is not proof of HDR headroom or an embedded gain map.
-        isHdr = false;
+        isHdr = hasHdrHeadroom(dngImage.writeToMemory());
       } else if (sourceExtension === '.exr') {
         processingStage = 'loading EXR decoder';
         const decoder = await getExrDecoder();
