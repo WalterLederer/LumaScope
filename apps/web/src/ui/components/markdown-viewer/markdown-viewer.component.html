@@ -6,14 +6,12 @@
     </div>
     <div class="markdown-help-header-actions">
       <button type="button" class="markdown-open-file-button" (click)="openCurrentDocument()" title="Open this Markdown file with the Windows default app" aria-label="Open Markdown file with default app"><span aria-hidden="true">↗</span></button>
+      <button type="button" class="markdown-home-button" (click)="showReadme()" title="Home" aria-label="Home"><span aria-hidden="true">⌂</span></button>
       <label class="markdown-font-size">
       <span>Text size</span>
       <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" (change)="saveFontSize()" aria-label="Documentation text size">
       <output>{{ fontSize() }} px</output>
       </label>
-      @if (currentFile() !== 'README.md') {
-        <button type="button" class="markdown-home-button" (click)="showReadme()" title="Home" aria-label="Home"><span aria-hidden="true">⌂</span></button>
-      }
     </div>
   </header>
   @if (openFileError()) {
