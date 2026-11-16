@@ -52,6 +52,26 @@ function Invoke-CheckedCommand {
 # Projektbezogene Prozesse und deren temporaere Verzeichnisse bereinigen
 
 
+function Write-ShutdownDiagnostic {
+    param(
+        [string]$Event,
+        [hashtable]$Details = @{}
+    )
+
+    $timestamp = [DateTimeOffset]::Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz")
+    $record = [ordered]@{
+        timestampLocal = $timestamp
+        timezone = [TimeZoneInfo]::Local.Id
+        event = $Event
+        buildProcessId = $PID
+        details = $Details
+    }
+    $line = $record | ConvertTo-Json -Compress -Depth 6
+    $diagnosticPath = Join-Path $env:TEMP "LumaScope-build-shutdown.log"
+    Add-Content -LiteralPath $diagnosticPath -Value $line -Encoding utf8
+    Write-Host "SHUTDOWN DIAGNOSTIC $line" -ForegroundColor DarkGray
+}
+
 function StopProcesses {
     # Rekursive Temp-Bereinigung ohne separate, den Build-Output ueberlagernde Fortschrittsanzeige.
     $ProgressPreference = 'SilentlyContinue'
@@ -115,33 +135,90 @@ public static class LumaScopeWindowClose {
     foreach ($process in $lumaScopeMainProcesses) {
         $processId = [int]$process.Id
         try {
-            Write-Host "CLOSE LumaScope main window gracefully (PID $processId)" -ForegroundColor Yellow
             $windowHandle = [IntPtr]$process.MainWindowHandle
+            $windowTitle = $process.MainWindowTitle
+            $process.Refresh()
+            Write-Host "CLOSE LumaScope main window gracefully (PID $processId)" -ForegroundColor Yellow
+            Write-ShutdownDiagnostic "close-request-start" @{
+                processId = $processId
+                windowHandle = ('0x{0:X}' -f $windowHandle.ToInt64())
+                windowTitle = $windowTitle
+                processStartTime = $process.StartTime.ToString("o")
+                processRespondingBeforeClose = $process.Responding
+            }
+
             $closePosted = [LumaScopeWindowClose]::PostMessage(
                 $windowHandle,
                 [uint32]$wmSysCommand,
                 [IntPtr]$scClose,
                 [IntPtr]::Zero
             )
+            $postError = if ($closePosted) { 0 } else { [Runtime.InteropServices.Marshal]::GetLastWin32Error() }
+            Write-ShutdownDiagnostic "close-request-posted" @{
+                processId = $processId
+                closePosted = $closePosted
+                win32Error = $postError
+            }
 
-            # Electron first flushes queued settings writes in before-quit. This can
-            # take longer than a short UI-close timeout, especially when backups are
-            # created on slower or busy drives. Give the graceful shutdown 30 seconds.
-            if ($closePosted -and $process.WaitForExit(30000)) {
+            # Poll the process instead of one opaque 30-second wait. This records
+            # whether the main process remains alive/responding after Windows accepts
+            # the SC_CLOSE message, and the last observed top-level window state.
+            $closedNormally = $false
+            $elapsedSeconds = 0
+            while ($closePosted -and $elapsedSeconds -lt 30) {
+                if ($process.WaitForExit(1000)) {
+                    $closedNormally = $true
+                    break
+                }
+                $elapsedSeconds++
+                if (($elapsedSeconds % 5) -eq 0) {
+                    try {
+                        $process.Refresh()
+                        Write-ShutdownDiagnostic "close-wait-heartbeat" @{
+                            processId = $processId
+                            elapsedSeconds = $elapsedSeconds
+                            hasExited = $process.HasExited
+                            responding = $process.Responding
+                            mainWindowHandle = ('0x{0:X}' -f $process.MainWindowHandle.ToInt64())
+                            mainWindowTitle = $process.MainWindowTitle
+                        }
+                    }
+                    catch {
+                        Write-ShutdownDiagnostic "close-wait-process-query-failed" @{
+                            processId = $processId
+                            elapsedSeconds = $elapsedSeconds
+                            error = $_.Exception.Message
+                        }
+                    }
+                }
+            }
+
+            if ($closedNormally) {
+                Write-ShutdownDiagnostic "process-exited-normally" @{ processId = $processId; elapsedSeconds = $elapsedSeconds }
                 Write-Host "LumaScope PID $processId closed normally." -ForegroundColor DarkGray
             }
             else {
                 if (-not $closePosted) {
-                    $lastError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
-                    Write-Warning "Could not send the taskbar-style close command to LumaScope PID $processId (Win32 error $lastError)."
+                    Write-Warning "Could not send the taskbar-style close command to LumaScope PID $processId (Win32 error $postError)."
                 }
                 else {
                     Write-Warning "LumaScope PID $processId did not exit within 30 seconds; force-stopping its process tree now."
                 }
+                Write-ShutdownDiagnostic "graceful-close-timeout" @{
+                    processId = $processId
+                    elapsedSeconds = $elapsedSeconds
+                    closePosted = $closePosted
+                    win32Error = $postError
+                }
 
                 & taskkill.exe /PID $processId /T /F 1>$null 2>$null
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Host "INFO LumaScope PID $processId was already stopped or could not be reached (taskkill: $LASTEXITCODE)." -ForegroundColor DarkGray
+                $taskkillExitCode = $LASTEXITCODE
+                Write-ShutdownDiagnostic "force-stop-result" @{
+                    processId = $processId
+                    taskkillExitCode = $taskkillExitCode
+                }
+                if ($taskkillExitCode -ne 0) {
+                    Write-Host "INFO PID $processId was already stopped or could not be reached (taskkill: $taskkillExitCode)." -ForegroundColor DarkGray
                 }
             }
         }
