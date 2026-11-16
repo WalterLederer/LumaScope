@@ -2611,6 +2611,11 @@ export class MapWindow implements OnInit, OnDestroy {
 
   @HostListener('window:keyup', ['$event'])
   onDocumentKeyup(event: KeyboardEvent): void {
+    const target = event.target;
+    if (target instanceof HTMLElement && (
+      target.isContentEditable
+      || target.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
+    )) return;
     // The location window is a separate Electron window, so the main image-view
     // keyboard listener cannot receive shortcuts while this window has focus.
     if (event.key.toLowerCase() === 's'
@@ -2739,6 +2744,9 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapBoundsVisible.set(saved['mapBoundsVisible']);
         this.applyMapBoundsVisibility();
       }
+      if (typeof saved['fixLocationEnabled'] === 'boolean') {
+        this.fixLocationEnabled.set(saved['fixLocationEnabled']);
+      }
       if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
       if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
@@ -2761,6 +2769,9 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
+    if (this.fixLocationEnabled() && !this.coordinatesAvailable()) {
+      void this.initializeFixLocationMap();
+    }
     void this.refreshOsmAndTileCache();
     this.memoryRefreshTimer = setInterval(() => {
       if (this.activeSettingsTab() === 'memory') void this.refreshProcessMemory();
@@ -3006,6 +3017,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly setFixLocationEnabled = (enabled: boolean): void => {
     this.fixLocationEnabled.set(enabled);
+    this.persistLocationUiState({ fixLocationEnabled: enabled });
     this.gpsSaveStatus.set('');
     if (!enabled) {
       if (!this.coordinatesAvailable()) {
