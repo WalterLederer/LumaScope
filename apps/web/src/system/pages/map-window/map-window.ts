@@ -1513,7 +1513,9 @@ interface MapErrorEntry {
     .render-helper-activity-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums}
     .render-helper-activity-empty{padding:5px 2px;font-size:11px;color:var(--color-content-default-medium,#999)}
     @media(max-width:620px){.render-helper-activity-row{grid-template-columns:55px minmax(80px,110px) minmax(0,1fr);gap:5px}}
-    .view-rerender-section .optimize-obf-rendering-section{margin-top:-12px}\n     .view-rerender-section .render-statistics-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}\n     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
+    .view-rerender-section .optimize-obf-rendering-section{margin-top:-12px}
+     .view-rerender-section .render-statistics-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}
+     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
