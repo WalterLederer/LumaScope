@@ -909,7 +909,6 @@ interface MapErrorEntry {
   </details>
     </div>
 </div>
-</div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
