@@ -1552,7 +1552,7 @@ interface MapErrorEntry {
      .gpx-list-action-button{min-height:25px;padding:3px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:11px;line-height:16px;white-space:nowrap;cursor:pointer}
      .gpx-list-action-button:hover:not(:disabled){background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
-     .gpx-database-file-row{grid-template-columns:minmax(160px,1.2fr) 100px minmax(180px,230px) 90px 145px minmax(220px,2fr);gap:10px}
+     .gpx-file-row.gpx-database-file-row{grid-template-columns:minmax(160px,1.2fr) 100px minmax(180px,230px) 90px 145px minmax(220px,2fr);gap:10px}
      .gpx-database-file-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
      .gpx-database-empty{padding:10px 4px;font-size:12px;color:var(--color-content-default-medium,#aaa)}
      .gpx-advanced-section{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin-top:8px!important}
