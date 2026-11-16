@@ -3289,14 +3289,15 @@ export class MapWindow implements OnInit, OnDestroy {
       const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly);
       if (!response.success || !response.data) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
-      this.autoFixStatus.set(
-        'Scanned ' + result.scanned.toLocaleString() + ' photos · ' +
-        'GPS available: ' + result.withGps.toLocaleString() + ' · ' +
-        'GPS missing: ' + result.withoutGps.toLocaleString() + ' · ' +
-        'GPX matches: ' + result.matched.toLocaleString() +
-        (checkOnly ? ' · Check only — no files changed' : ' · Updated: ' + result.updated.toLocaleString()) +
-        ' · No match: ' + result.unmatched.toLocaleString() +
-        (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
+      const gpsCounts = 'GPS available: ' + result.withGps.toLocaleString()
+        + ' · GPS missing: ' + result.withoutGps.toLocaleString();
+      this.autoFixStatus.set(checkOnly
+        ? 'Check only — no files changed · ' + gpsCounts
+        : 'Scanned ' + result.scanned.toLocaleString() + ' photos · ' + gpsCounts +
+          ' · GPX matches: ' + result.matched.toLocaleString() +
+          ' · Updated: ' + result.updated.toLocaleString() +
+          ' · No match: ' + result.unmatched.toLocaleString() +
+          (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
       );
     } catch (error) {
       this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
