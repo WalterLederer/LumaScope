@@ -276,21 +276,21 @@ interface MapErrorEntry {
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
     @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
-      <div class="gpx-file-list gpx-database-file-list" role="table" aria-label="GPX files visible on map from database">
+      <div class="gpx-database-table" role="table" aria-label="GPX files visible on map from database">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')"></span></button>
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')"></span></button>
-          @if (gpxDatabaseColumns().points) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')"></span></button> }
-          @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')"></span></button> }
-          @if (gpxDatabaseColumns().size) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')"></span></button> }
-          @if (gpxDatabaseColumns().modified) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('modified')">Modified {{ gpxDatabaseSortIndicator('modified') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')"></span></button> }
-          @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')"></span></button> }
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('color')">Color {{ gpxDatabaseSortIndicator('color') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'color')"></span></button>
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')"></span></button>
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('width')">Width {{ gpxDatabaseSortIndicator('width') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'width')"></span></button>
-          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
+          @if (gpxDatabaseColumns().points) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          @if (gpxDatabaseColumns().size) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          @if (gpxDatabaseColumns().modified) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('modified')">Modified {{ gpxDatabaseSortIndicator('modified') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button> }
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('color')">Color {{ gpxDatabaseSortIndicator('color') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'color')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('width')">Width {{ gpxDatabaseSortIndicator('width') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'width')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></button>
         </div>
-        <div class="gpx-database-file-list" role="rowgroup">
+        <div class="gpx-file-list gpx-database-file-list" role="rowgroup">
         @for (track of gpxDatabaseVisibleTracks(); track track.path) {
           <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxDatabaseTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
@@ -7137,7 +7137,7 @@ export class MapWindow implements OnInit, OnDestroy {
     };
     const value = (track: GpxTrackFile): string | number | boolean => {
       switch (sort.key) {
-        case 'active': return track.active !== false;
+        case 'active': return track.active === false ? 0 : 1;
         case 'name': return track.name.toLocaleLowerCase();
         case 'points': return this.gpxVisibleWaypointCount(track);
         case 'time': return timestamp(track);
