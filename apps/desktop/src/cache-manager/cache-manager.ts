@@ -600,7 +600,7 @@ export class CacheManager {
       if (!file) {
         file = {
           id: row.file_id,
-          path: join(databaseKey + '\\\\', this.resolveStoredFolderPath(dirname(row.relative_file_path), databaseKey), basename(row.relative_file_path)),
+          path: join(this.resolveStoredFolderPath(dirname(row.relative_file_path), databaseKey), basename(row.relative_file_path)),
           name: row.file_name, sizeBytes: row.file_size, lastModified: row.modified_at,
           matchingPoints: 0, segments: [], lastSegmentId: -1, lastPointIndex: -2
         };
