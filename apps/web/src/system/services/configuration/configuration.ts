@@ -129,6 +129,7 @@ export class Configuration {
       preferences: {
         buttonStyle: 'blue',
         buttonColor: 'blue',
+        themeColorSaturation: 100,
         disclosureStyle: 'classic',
         tabBarStyle: 'classic'
       }
