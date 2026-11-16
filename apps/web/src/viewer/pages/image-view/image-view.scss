@@ -792,6 +792,10 @@
  .image-controls-sidebar .app-disclosure + .app-disclosure {margin-top:0!important}
  .image-controls-sidebar .section-heading {box-sizing:border-box;width:100%;border:0;background:transparent;text-align:left;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;display:flex;align-items:center;gap:7px;list-style:none;padding:0;cursor:pointer}
  .image-controls-sidebar .section-heading::before {content:"";display:inline-block;flex:0 0 5px;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:5px solid currentColor;transform-origin:2px 4px}
+ .image-controls-sidebar .section-heading:not(.expanded) {font-weight:400}
+ .image-controls-sidebar .section-heading:not(.expanded)::before {border-left-color:rgb(190 105 105 / 78%)}
+ .image-controls-sidebar .section-heading.expanded {font-weight:700}
+ .image-controls-sidebar .section-heading.expanded::before {border-left-color:rgb(105 170 125 / 78%)}
  .image-controls-sidebar section section > .section-heading,
  .image-controls-sidebar section section section > .section-heading,
  .image-controls-sidebar section section section section > .section-heading {padding-left:0}
