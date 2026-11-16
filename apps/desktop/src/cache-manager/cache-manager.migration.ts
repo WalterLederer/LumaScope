@@ -396,43 +396,9 @@ END;
 
 -- Segment bounds are supplied by the importer as segment points are inserted.
 -- A rebuild of the segment index is performed after each imported segment.
-CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_insert
-AFTER INSERT ON gpx_track_points
-BEGIN
-  INSERT OR REPLACE INTO gpx_segment_rtree
-    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
-  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
-  FROM gpx_track_points WHERE segment_id = NEW.segment_id
-  GROUP BY segment_id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_update
-AFTER UPDATE OF latitude, longitude, segment_id ON gpx_track_points
-BEGIN
-  DELETE FROM gpx_segment_rtree WHERE segment_id = OLD.segment_id;
-  INSERT OR REPLACE INTO gpx_segment_rtree
-    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
-  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
-  FROM gpx_track_points WHERE segment_id = OLD.segment_id
-  GROUP BY segment_id;
-  INSERT OR REPLACE INTO gpx_segment_rtree
-    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
-  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
-  FROM gpx_track_points WHERE segment_id = NEW.segment_id
-  GROUP BY segment_id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS trg_gpx_points_rtree_delete
-AFTER DELETE ON gpx_track_points
-BEGIN
-  DELETE FROM gpx_segment_rtree WHERE segment_id = OLD.segment_id;
-  INSERT OR REPLACE INTO gpx_segment_rtree
-    (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
-  SELECT segment_id, MIN(latitude), MAX(latitude), MIN(longitude), MAX(longitude)
-  FROM gpx_track_points WHERE segment_id = OLD.segment_id
-  GROUP BY segment_id;
-END;
-
+-- The importer writes one bounding box per completed segment after its
+-- points have been bulk-inserted. Avoid per-point aggregate triggers here:
+-- they would repeatedly scan a growing segment and become quadratic.
 COMMIT;
 `
   }
