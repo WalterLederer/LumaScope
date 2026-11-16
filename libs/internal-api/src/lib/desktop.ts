@@ -92,6 +92,9 @@ export interface FixPhotoLocationsResult {
 export interface FixPhotoLocationsProgress {
   scanned: number;
   total: number;
+  withGps: number;
+  withoutGps: number;
+  matched: number;
   currentFolder: string;
 }
 
