@@ -193,7 +193,7 @@ public static class LumaScopeWindowClose {
                     }
             )
             $mainWindow = $ownedWindows |
-                Where-Object { $_.Title -match '(?i)^LumaScope' -and $_.Title -notmatch '(?i)\\bLOCATION\\s*
+                Where-Object { $_.Title.StartsWith('LumaScope', [StringComparison]::OrdinalIgnoreCase) -and -not $_.Title.TrimEnd().EndsWith('LOCATION', [StringComparison]::OrdinalIgnoreCase) } |
 
             $closePosted = [LumaScopeWindowClose]::PostMessage(
                 $windowHandle,
@@ -596,7 +596,7 @@ Start-Process -FilePath $exe
 
             if (-not $mainWindow) {
                 $mainWindow = $ownedWindows |
-                    Where-Object { $_.Title -match '(?i)^LumaScope' } |
+                Where-Object { $_.Title.StartsWith('LumaScope', [StringComparison]::OrdinalIgnoreCase) } |
                     Select-Object -First 1
             }
             if (-not $mainWindow) {
