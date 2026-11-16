@@ -331,6 +331,7 @@ interface MapErrorEntry {
             {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
           </button>
           <button type="button" class="routing-help-button" (click)="openGpxCacheHelp()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
+          <button type="button" class="routing-help-button" (click)="refreshGpxDatabaseStats()" [disabled]="gpxDatabaseImportBusy()" title="Refresh GPX database information" aria-label="Refresh GPX database information"><span aria-hidden="true">⟳</span></button>
           <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
             Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
           </span>
@@ -5769,7 +5770,7 @@ export class MapWindow implements OnInit, OnDestroy {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
   };
-  private async refreshGpxDatabaseStats(): Promise<void> {
+  protected async refreshGpxDatabaseStats(): Promise<void> {
     if (!this.desktop) return;
     const configuredPath = this.gpxTracks().find(track => /^[a-z]:[\\/]/i.test(track.path) && !track.path.startsWith('memory:'))?.path;
     const databaseKey = configuredPath?.slice(0, 2);
