@@ -126,7 +126,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
-  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">FotoMarker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">Offline@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
@@ -604,6 +604,7 @@ interface MapErrorEntry {
             
             <div class="marker-settings-content">
               <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
+              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)" [disabled]="!currentImagePath"> Use all photos in DB</label>
               <div class="marker-appearance-settings">
                 <div class="marker-setting-row">
                   <span>Cluster Icons:</span>
@@ -2754,6 +2755,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly timeSliderHasData = computed(() => this.timeSliderMaximum() > this.timeSliderMinimum());
   protected readonly markerSectionOpen = signal(this.readSetting('markerSectionOpen', 'false') === 'true');
   protected readonly directoryMarkersEnabled = signal(this.readSetting('directoryMarkersEnabled', 'false') === 'true');
+  protected readonly useAllPhotosInDb = signal(this.readSetting('useAllPhotosInDb', 'false') === 'true');
+  private markerViewportRefreshTimer: number | null = null;
   protected readonly markerFilesChecked = signal(0);
   protected readonly markerFilesTotal = signal(0);
   protected readonly markerCount = signal(0);
@@ -3672,10 +3675,17 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     this.markerScanGeneration++;
+    if (this.markerViewportRefreshTimer !== null) window.clearTimeout(this.markerViewportRefreshTimer);
+    this.markerViewportRefreshTimer = null;
     this.clearDirectoryMarkers();
     this.markerFilesChecked.set(0);
     this.markerFilesTotal.set(0);
     this.markerStatus.set('');
+  };
+  protected readonly changeUseAllPhotosInDb = (enabled: boolean): void => {
+    this.useAllPhotosInDb.set(enabled);
+    this.saveSetting('useAllPhotosInDb', enabled);
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
   };
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
@@ -3747,17 +3757,43 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     this.clearDirectoryMarkers();
-    this.markerStatus.set('Reading location database…');
+    this.markerStatus.set(this.useAllPhotosInDb() ? 'Reading photo locations in the current map viewport…' : 'Reading location database…');
     try {
-      const directory = await desktop.FileSystem.dirname(imagePath);
-      if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      const [records, imageFiles] = await Promise.all([
-        desktop.CacheManager.getDirectoryPhotoLocations(directory),
-        desktop.FileSystem.readImages(directory, 'name', 'asc')
-      ]);
+      let records: Awaited<ReturnType<Desktop['CacheManager']['getDirectoryPhotoLocations']>>;
+      let imageFiles: Awaited<ReturnType<Desktop['FileSystem']['readImages']>> | null = null;
+      if (this.useAllPhotosInDb()) {
+        const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+        if (!mapBounds) {
+          this.markerStatus.set('The map is not ready yet.');
+          return;
+        }
+        const bounds = {
+          west: mapBounds.getWest(),
+          south: Math.max(-90, mapBounds.getSouth()),
+          east: mapBounds.getEast(),
+          north: Math.min(90, mapBounds.getNorth())
+        };
+        if (bounds.west < -180 || bounds.east > 180 || bounds.west > bounds.east) {
+          this.markerStatus.set('The current map viewport crosses the date line; this query is not supported yet.');
+          return;
+        }
+        const databaseKey = /^[a-z]:[\\/]/i.test(imagePath) ? imagePath.slice(0, 2) : '';
+        if (!databaseKey) {
+          this.markerStatus.set('The current image is not on a supported cache database drive.');
+          return;
+        }
+        records = await desktop.CacheManager.getPhotoLocationsInBounds(bounds, databaseKey);
+      } else {
+        const directory = await desktop.FileSystem.dirname(imagePath);
+        if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+        [records, imageFiles] = await Promise.all([
+          desktop.CacheManager.getDirectoryPhotoLocations(directory),
+          desktop.FileSystem.readImages(directory, 'name', 'asc')
+        ]);
+      }
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
       const modifiedAtByName = new Map(
-        (imageFiles.success ? imageFiles.data : [])
+        (imageFiles?.success ? imageFiles.data : [])
           .filter(file => !file.isDirectory && Number.isFinite(file.modifiedAt) && file.modifiedAt! > 0)
           .map(file => [file.name.toLowerCase(), Math.floor(file.modifiedAt! / 1000)])
       );
@@ -3775,14 +3811,15 @@ export class MapWindow implements OnInit, OnDestroy {
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
-      // Keep the current image as a timestamp anchor even though its marker is not displayed.
       this.directoryPhotoTimestampMarkers = markers.map(item => ({ ...item }));
       this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
       this.updateTimeSliderBounds();
       this.applyDirectoryPhotoMarkers();
       this.applyCurrentPhotoVisibility();
       if (this.offlineRenderer) this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
-      this.markerStatus.set('Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
+      this.markerStatus.set(this.useAllPhotosInDb()
+        ? 'Loaded ' + records.length + ' photo location(s) from the cache database in the current map viewport.'
+        : 'Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
     } catch (error) {
       if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Location database query failed.');
     }
@@ -5928,12 +5965,20 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private scheduleGpxDatabaseViewportRefresh(): void {
-    if (this.gpxListMode() !== 'database') return;
-    if (this.gpxDatabaseViewportRefreshTimer !== null) window.clearTimeout(this.gpxDatabaseViewportRefreshTimer);
-    this.gpxDatabaseViewportRefreshTimer = window.setTimeout(() => {
-      this.gpxDatabaseViewportRefreshTimer = null;
-      if (this.gpxListMode() === 'database') void this.showGpxFilesVisibleOnMap();
-    }, 350);
+    if (this.gpxListMode() === 'database') {
+      if (this.gpxDatabaseViewportRefreshTimer !== null) window.clearTimeout(this.gpxDatabaseViewportRefreshTimer);
+      this.gpxDatabaseViewportRefreshTimer = window.setTimeout(() => {
+        this.gpxDatabaseViewportRefreshTimer = null;
+        if (this.gpxListMode() === 'database') void this.showGpxFilesVisibleOnMap();
+      }, 350);
+    }
+    if (this.directoryMarkersEnabled() && this.useAllPhotosInDb()) {
+      if (this.markerViewportRefreshTimer !== null) window.clearTimeout(this.markerViewportRefreshTimer);
+      this.markerViewportRefreshTimer = window.setTimeout(() => {
+        this.markerViewportRefreshTimer = null;
+        if (this.directoryMarkersEnabled() && this.useAllPhotosInDb()) void this.scanDirectoryMarkers();
+      }, 350);
+    }
   }
 
   protected readonly showGpxFilesVisibleOnMap = async (): Promise<void> => {
