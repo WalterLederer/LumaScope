@@ -86,6 +86,7 @@ export interface FixPhotoLocationsResult {
   meanDeviationSeconds: number | null;
   maxDeviationSeconds: number | null;
   errors: number;
+  aborted: boolean;
 }
 
 export interface FixPhotoLocationsProgress {
@@ -96,7 +97,8 @@ export interface FixPhotoLocationsProgress {
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
-  readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number) => Promise<ApiResponse<FixPhotoLocationsResult>>;
+  readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string) => Promise<ApiResponse<FixPhotoLocationsResult>>;
+  readonly cancelFixFolderLocations: (operationId: string) => void;
   readonly onFixFolderLocationsProgress: (callback: (progress: FixPhotoLocationsProgress) => void) => () => void;
 }
 
