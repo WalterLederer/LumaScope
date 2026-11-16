@@ -429,6 +429,7 @@ export class CacheManager {
       (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
       VALUES (:id, :minLat, :maxLat, :minLon, :maxLon)`);
 
+    let processedPointCount = 0;
     for (const filePath of candidates) {
       try {
         const absolute = resolve(filePath);
@@ -521,7 +522,7 @@ export class CacheManager {
               });
               minLat = Math.min(minLat, point.latitude); maxLat = Math.max(maxLat, point.latitude);
               minLon = Math.min(minLon, point.longitude); maxLon = Math.max(maxLon, point.longitude);
-              if ((pointIndex + 1) % 5000 === 0) {
+              if (++processedPointCount % 5000 === 0) {
                 await new Promise<void>(resolveYield => setImmediate(resolveYield));
               }
             }
