@@ -256,23 +256,66 @@ interface MapErrorEntry {
         <button type="button" class="gpx-list-action-button" (click)="deselectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Deselect all</button>
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
+      @if (gpxListMode() === 'database') {
+        <details class="gpx-database-columns app-disclosure">
+          <summary>Columns</summary>
+          <div class="gpx-database-column-options">
+            <label><input type="checkbox" [checked]="gpxDatabaseColumns().points" (change)="setGpxDatabaseColumn('points', $any($event.target).checked)"> Points</label>
+            <label><input type="checkbox" [checked]="gpxDatabaseColumns().time" (change)="setGpxDatabaseColumn('time', $any($event.target).checked)"> Track time</label>
+            <label><input type="checkbox" [checked]="gpxDatabaseColumns().size" (change)="setGpxDatabaseColumn('size', $any($event.target).checked)"> File size</label>
+            <label><input type="checkbox" [checked]="gpxDatabaseColumns().modified" (change)="setGpxDatabaseColumn('modified', $any($event.target).checked)"> Modified</label>
+            <label><input type="checkbox" [checked]="gpxDatabaseColumns().path" (change)="setGpxDatabaseColumn('path', $any($event.target).checked)"> Path</label>
+          </div>
+        </details>
+      }
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
     @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-file-list gpx-database-file-list" role="table" aria-label="GPX files visible on map from database">
-        <div class="gpx-file-row gpx-database-file-row gpx-file-header" role="row">
-          <span role="columnheader">File</span><span role="columnheader">Points in map</span><span role="columnheader">Track time</span><span role="columnheader">File size</span><span role="columnheader">Modified</span><span role="columnheader">Path</span>
+        <div class="gpx-file-row gpx-database-file-row gpx-file-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
+          <span role="columnheader">Active</span>
+          <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}</button>
+          @if (gpxDatabaseColumns().points) { <span role="columnheader">Points</span> }
+          @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}</button> }
+          @if (gpxDatabaseColumns().size) { <span role="columnheader">Size</span> }
+          @if (gpxDatabaseColumns().modified) { <span role="columnheader">Modified</span> }
+          @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}</button> }
+          <span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span>
         </div>
         @for (track of gpxDatabaseVisibleTracks(); track track.path) {
-          <div class="gpx-file-row gpx-database-file-row" role="row">
-            <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
-            <span role="cell">{{ gpxVisibleWaypointCount(track) }}</span>
-            <span class="gpx-time-range" role="cell">{{ gpxTrackTimeRange(track.path) }}</span>
-            <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
-            <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
-            <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span>
+          <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
+            <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxDatabaseTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
+            <span class="gpx-file-name" role="cell" [title]="track.name">{{ track.name }}</span>
+            @if (gpxDatabaseColumns().points) { <span class="gpx-waypoint-count" role="cell">{{ gpxVisibleWaypointCount(track) }}</span> }
+            @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell">{{ gpxTrackTimeRange(track.path) }}</span> }
+            @if (gpxDatabaseColumns().size) { <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span> }
+            @if (gpxDatabaseColumns().modified) { <span role="cell">{{ formatGpxDate(track.lastModified) }}</span> }
+            @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
+            <div class="color-picker gpx-track-color-picker" role="cell">
+              <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
+                <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
+              </button>
+              @if (gpxTrackColorMenuOpen() === track.path) {
+                <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
+                  @for (color of gpxColors; track color.value) {
+                    <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxDatabaseTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
+                      <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxDatabaseTrack(track.path, { lineStyle: $any($event.target).value })" aria-label="Line style">
+              <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
+            </select>
+            <select class="gpx-db-select" [value]="track.lineWidth || 3" (change)="changeGpxDatabaseTrack(track.path, { lineWidth: +$any($event.target).value })" aria-label="Line width">
+              @for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }
+            </select>
+            <select class="gpx-db-select" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxDatabaseTrack(track.path, { showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? (track.directionStyle || 'classic') : $any($event.target).value })" aria-label="Direction arrows">
+              <option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option>
+            </select>
           </div>
         }
       </div>
@@ -1552,8 +1595,18 @@ interface MapErrorEntry {
      .gpx-list-action-button{min-height:25px;padding:3px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-low,#252525);color:var(--color-content-default,#eee);font-size:11px;line-height:16px;white-space:nowrap;cursor:pointer}
      .gpx-list-action-button:hover:not(:disabled){background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
-     .gpx-file-row.gpx-database-file-row{grid-template-columns:minmax(160px,1.2fr) 100px minmax(180px,230px) 90px 145px minmax(220px,2fr);gap:10px}
-     .gpx-database-file-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+     .gpx-file-row.gpx-database-file-row{gap:8px;min-width:0}
+     .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>div,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+     .gpx-database-file-list{max-height:290px;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative}
+     .gpx-database-file-list .gpx-file-header{position:sticky;top:0;z-index:3;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-medium,#888)}
+     .gpx-db-sort-button{padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+     .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
+     .gpx-db-select{width:100%;min-width:0;padding:3px 4px;font-size:11px}
+     .gpx-database-columns{position:relative;display:inline-flex;align-items:center}
+     .gpx-database-columns>summary{cursor:pointer;font-size:11px;padding:2px 6px}
+     .gpx-database-column-options{position:absolute;top:100%;left:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px 12px;min-width:260px;padding:8px;background:var(--color-surface-default-medium,#333);border:1px solid var(--color-content-default-low,#777);border-radius:5px;box-shadow:0 4px 12px #0008}
+     .gpx-database-column-options label{display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:11px}
+     .gpx-database-column-options input{margin:0;accent-color:#2688e8}
      .gpx-database-empty{padding:10px 4px;font-size:12px;color:var(--color-content-default-medium,#aaa)}
      .gpx-database-query-status{max-width:min(100%,520px);white-space:normal;overflow-wrap:anywhere}
      .gpx-advanced-section{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin-top:8px!important}
@@ -2625,6 +2678,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
+  protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
+  protected readonly gpxDatabaseSort = signal<{ key: 'name' | 'path' | 'time'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseQueryBusy = signal(false);
   protected readonly gpxDatabaseQueryStatus = signal('');
   protected readonly gpxDatabaseStats = signal({ files: 0, segments: 0, points: 0 });
@@ -7011,9 +7066,35 @@ export class MapWindow implements OnInit, OnDestroy {
     }).length;
   };
 
-  protected readonly gpxDatabaseVisibleTracks = computed(() =>
-    this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0)
-  );
+  protected readonly gpxDatabaseVisibleTracks = computed(() => {
+    const sort = this.gpxDatabaseSort();
+    const tracks = this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
+    const timestamp = (track: GpxTrackFile): number => {
+      const values = (this.gpxPointDataByTrack.get(track.path) ?? []).flat()
+        .filter(point => point.inViewport !== false && point.timestamp)
+        .map(point => Date.parse(point.timestamp!) ).filter(Number.isFinite);
+      return values.length ? Math.min(...values) : Number.MAX_SAFE_INTEGER;
+    };
+    return tracks.sort((a, b) => {
+      const av = sort.key === 'name' ? a.name.toLocaleLowerCase() : sort.key === 'path' ? (a.databasePath || a.path).toLocaleLowerCase() : timestamp(a);
+      const bv = sort.key === 'name' ? b.name.toLocaleLowerCase() : sort.key === 'path' ? (b.databasePath || b.path).toLocaleLowerCase() : timestamp(b);
+      const result = av < bv ? -1 : av > bv ? 1 : 0;
+      return sort.direction === 'asc' ? result : -result;
+    });
+  });
+  protected readonly gpxDatabaseGridColumns = (): string => {
+    const columns = this.gpxDatabaseColumns();
+    return ['34px', 'minmax(140px,1.2fr)', ...(columns.points ? ['72px'] : []), ...(columns.time ? ['minmax(170px,1.3fr)'] : []), ...(columns.size ? ['82px'] : []), ...(columns.modified ? ['130px'] : []), ...(columns.path ? ['minmax(180px,2fr)'] : []), 'minmax(105px,1fr)', 'minmax(95px,1fr)', '68px', 'minmax(105px,1fr)'].join(' ');
+  };
+  protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
+  protected readonly sortGpxDatabase = (key: 'name' | 'path' | 'time'): void => this.gpxDatabaseSort.update(sort => ({ key, direction: sort.key === key && sort.direction === 'asc' ? 'desc' : 'asc' }));
+  protected readonly gpxDatabaseSortIndicator = (key: 'name' | 'path' | 'time'): string => this.gpxDatabaseSort().key === key ? (this.gpxDatabaseSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
+    const tracks = this.gpxDatabaseTracks().map(track => track.path === path ? { ...track, ...patch } : track);
+    this.gpxDatabaseTracks.set(tracks);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+  };
 
   protected readonly changeRouteWaypointMarkersVisible = (visible: boolean): void => {
     this.routeWaypointMarkersVisible.set(visible);
