@@ -557,6 +557,68 @@ export class CacheManager {
       (SELECT COUNT(*) FROM gpx_track_points) AS points`).get() as { files: number; segments: number; points: number };
   };
 
+  @IpcHandler({ name: 'CacheManager.getGpxFilesInBounds' })
+  readonly getGpxFilesInBounds = async (
+    _event: IpcMainInvokeEvent,
+    bounds: { west: number; south: number; east: number; north: number }
+  ): Promise<Array<{
+    id: number; path: string; name: string; sizeBytes: number; lastModified: number;
+    matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null }>>;
+  }>> => {
+    if (!bounds || ![bounds.west, bounds.south, bounds.east, bounds.north].every(Number.isFinite)
+      || bounds.south < -90 || bounds.north > 90 || bounds.south > bounds.north
+      || bounds.west < -180 || bounds.west > 180 || bounds.east < -180 || bounds.east > 180) {
+      throw new Error('A valid map viewport is required.');
+    }
+    const databaseKey = this.activeDatabaseKey;
+    if (!databaseKey) throw new Error('No cache database drive is active. Open the Cache tab and select a drive first.');
+    const db = this.databases.get(databaseKey);
+    if (!db) throw new Error('The active GPX cache database is not open.');
+    const rows = db.prepare(`SELECT f.id AS file_id, f.relative_file_path, f.file_name, f.file_size, f.modified_at,
+        s.id AS segment_id, p.point_index, p.timestamp_ms, p.latitude, p.longitude
+      FROM gpx_segment_rtree r
+      JOIN gpx_track_segments s ON s.id = r.segment_id
+      JOIN gpx_files f ON f.id = s.gpx_file_id
+      JOIN gpx_track_points p ON p.segment_id = s.id
+      WHERE r.min_latitude <= :north AND r.max_latitude >= :south
+        AND r.min_longitude <= :east AND r.max_longitude >= :west
+        AND p.latitude BETWEEN :south AND :north
+        AND p.longitude BETWEEN :west AND :east
+      ORDER BY f.id, s.id, p.point_index`).all({
+        west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north
+      }) as unknown as Array<{
+        file_id: number; relative_file_path: string; file_name: string; file_size: number; modified_at: number;
+        segment_id: number; point_index: number; timestamp_ms: number | null; latitude: number; longitude: number;
+      }>;
+    const files = new Map<number, {
+      id: number; path: string; name: string; sizeBytes: number; lastModified: number;
+      matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null }>>;
+      lastSegmentId: number; lastPointIndex: number;
+    }>();
+    for (const row of rows) {
+      let file = files.get(row.file_id);
+      if (!file) {
+        file = {
+          id: row.file_id,
+          path: join(databaseKey + '\\\\', this.resolveStoredFolderPath(dirname(row.relative_file_path), databaseKey), basename(row.relative_file_path)),
+          name: row.file_name, sizeBytes: row.file_size, lastModified: row.modified_at,
+          matchingPoints: 0, segments: [], lastSegmentId: -1, lastPointIndex: -2
+        };
+        files.set(row.file_id, file);
+      }
+      if (file.lastSegmentId !== row.segment_id || row.point_index !== file.lastPointIndex + 1) {
+        file.segments.push([]);
+      }
+      file.segments[file.segments.length - 1].push({
+        latitude: row.latitude, longitude: row.longitude, timestamp: row.timestamp_ms
+      });
+      file.matchingPoints++;
+      file.lastSegmentId = row.segment_id;
+      file.lastPointIndex = row.point_index;
+    }
+    return [...files.values()].map(({ lastSegmentId: _segment, lastPointIndex: _point, ...file }) => file);
+  };
+
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (_event?: IpcMainInvokeEvent, requestedDatabaseKey?: string): Promise<CacheSummary> => {
     const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
