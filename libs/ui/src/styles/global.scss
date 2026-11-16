@@ -91,6 +91,38 @@ html[data-button-color='gray'] {
   --button-rounded-bg: #4f5d6e; --button-rounded-hover: #435060; --button-rounded-active: #374453;
 }
 
+
+/* Location window settings tabs share the configurable tab-bar appearance. */
+html[data-tab-bar-style] .settings-tabs.image-sidebar-tabs { display:flex; align-items:center; }
+html[data-tab-bar-style='underline'] .settings-tabs.image-sidebar-tabs { background:transparent!important; border-bottom:2px solid #8b969f!important; }
+html[data-tab-bar-style='underline'] .settings-tabs.image-sidebar-tabs button[role='tab'] { background:transparent!important; border:0!important; border-bottom:3px solid transparent!important; border-radius:0!important; }
+html[data-tab-bar-style='underline'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { color:var(--button-text)!important; border-bottom-color:var(--button-text)!important; }
+html[data-tab-bar-style='pills'] .settings-tabs.image-sidebar-tabs { gap:5px!important; border:0!important; background:transparent!important; }
+html[data-tab-bar-style='pills'] .settings-tabs.image-sidebar-tabs button[role='tab'] { border:1px solid transparent!important; border-radius:999px!important; }
+html[data-tab-bar-style='pills'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-soft-bg)!important; color:var(--button-soft-text)!important; border-color:var(--button-border-strong)!important; }
+html[data-tab-bar-style='segmented'] .settings-tabs.image-sidebar-tabs { gap:0!important; padding:3px!important; border:1px solid #aab3bd!important; border-radius:7px!important; background:#e7eaee!important; }
+html[data-tab-bar-style='segmented'] .settings-tabs.image-sidebar-tabs button[role='tab'] { flex:1 1 0!important; border:0!important; border-radius:4px!important; }
+html[data-tab-bar-style='segmented'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; }
+html[data-theme='dark'][data-tab-bar-style='segmented'] .settings-tabs.image-sidebar-tabs { background:#292b30!important; border-color:#626a75!important; }
+html[data-tab-bar-style='boxed'] .settings-tabs.image-sidebar-tabs { gap:4px!important; border:0!important; background:transparent!important; }
+html[data-tab-bar-style='boxed'] .settings-tabs.image-sidebar-tabs button[role='tab'] { border:1px solid currentColor!important; border-radius:2px!important; }
+html[data-tab-bar-style='boxed'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; border-color:var(--button-rounded-bg)!important; }
+html[data-tab-bar-style='minimal'] .settings-tabs.image-sidebar-tabs { background:transparent!important; border:0!important; }
+html[data-tab-bar-style='minimal'] .settings-tabs.image-sidebar-tabs button[role='tab'] { background:transparent!important; border:0!important; border-radius:0!important; }
+html[data-tab-bar-style='minimal'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { color:var(--button-text)!important; box-shadow:inset 0 -2px var(--button-text)!important; }
+html[data-tab-bar-style='flat'] .settings-tabs.image-sidebar-tabs { background:transparent!important; border:0!important; gap:1px!important; }
+html[data-tab-bar-style='flat'] .settings-tabs.image-sidebar-tabs button[role='tab'] { background:#e5e5e5!important; color:#303030!important; border:0!important; border-radius:0!important; }
+html[data-tab-bar-style='flat'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; }
+html[data-tab-bar-style='contrast'] .settings-tabs.image-sidebar-tabs { background:#202124!important; border-bottom:2px solid #fff!important; }
+html[data-tab-bar-style='contrast'] .settings-tabs.image-sidebar-tabs button[role='tab'] { background:#202124!important; color:#fff!important; border:1px solid #fff!important; border-radius:0!important; }
+html[data-tab-bar-style='contrast'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; border-color:#fff!important; }
+html[data-tab-bar-style='soft'] .settings-tabs.image-sidebar-tabs { background:var(--button-soft-bg)!important; border:0!important; gap:4px!important; }
+html[data-tab-bar-style='soft'] .settings-tabs.image-sidebar-tabs button[role='tab'] { background:var(--button-soft-bg)!important; color:var(--button-soft-text)!important; border:1px solid var(--button-soft-border)!important; border-radius:7px!important; }
+html[data-tab-bar-style='soft'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; border-color:var(--button-border-strong)!important; }
+html[data-tab-bar-style='rounded'] .settings-tabs.image-sidebar-tabs { gap:5px!important; background:transparent!important; border:0!important; }
+html[data-tab-bar-style='rounded'] .settings-tabs.image-sidebar-tabs button[role='tab'] { border-radius:10px 10px 0 0!important; border:1px solid var(--button-border-strong)!important; }
+html[data-tab-bar-style='rounded'] .settings-tabs.image-sidebar-tabs button[role='tab'].active { background:var(--button-rounded-bg)!important; color:#fff!important; border-color:var(--button-rounded-bg)!important; }
+
 /* All windows use the same configurable tab-bar styles. */
 html[data-tab-bar-style='underline'] [role='tablist'] { background: transparent !important; border-bottom: 2px solid #8b969f; }
 html[data-tab-bar-style='underline'] [role='tablist'] button[role='tab'] { background: transparent !important; border: 0 !important; border-bottom: 3px solid transparent !important; border-radius: 0 !important; margin-bottom: -2px !important; }
