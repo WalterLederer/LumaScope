@@ -173,7 +173,7 @@ interface MapErrorEntry {
                   </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
-                    <table class="offline-address-results" aria-label="Offline address search results">
+                    <div class="offline-address-results"><table aria-label="Offline address search results">
                       <thead><tr><th scope="col">Address</th><th scope="col">Coordinates</th></tr></thead>
                       <tbody>
                         @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
@@ -183,7 +183,7 @@ interface MapErrorEntry {
                           </tr>
                         }
                       </tbody>
-                    </table>
+                    </table></div>
                   }
                   <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
                 </form>
@@ -1227,7 +1227,7 @@ interface MapErrorEntry {
           </div>
         }
         <div #map class="map" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-        @if (fixLocationEnabled() && !coordinatesAvailable()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+        @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
@@ -1304,7 +1304,8 @@ interface MapErrorEntry {
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
-    .offline-address-results{width:100%;min-width:0;max-height:260px;overflow:auto;border-collapse:collapse;table-layout:fixed;font-size:12px}
+    .offline-address-results{width:100%;min-width:0;max-height:260px;overflow:auto}
+    .offline-address-results table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
     .offline-address-results th{position:sticky;top:0;z-index:1;padding:4px 6px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px;font-weight:600;text-align:left}
     .offline-address-results th:last-child{width:190px;text-align:right}
     .offline-address-results tbody tr{height:27px;border-bottom:1px solid var(--color-content-default-low,#454545);cursor:pointer}
