@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Title } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { OverlayComponent } from '@light-matter/ui';
@@ -9,6 +10,7 @@ import { GalleryState } from '../gallery/services/gallery-state/gallery-state';
 import { FileSystem } from '../ipc/file-system';
 import { ThemeService } from '../system/services/theme/theme.service';
 import { CaptureHotkeyService } from '../capture/capture-hotkey.service';
+import { Keyboard } from '../system/services/keyboard/keyboard';
 import { ViewNavigator } from '../viewer/services/view-navigator/view-navigator';
 
 @Component({
@@ -35,12 +37,26 @@ export class App {
 
   private readonly themeService = inject(ThemeService);
 
+  private readonly keyboard = inject(Keyboard);
+
   // Register the desktop global-shortcut listeners as soon as the main renderer starts.
   // The capture panel itself may not be mounted until its detached window is opened.
   private readonly captureHotkeyService = inject(CaptureHotkeyService);
 
   constructor() {
     this.setAppTitle();
+    this.keyboard.keydown().pipe(takeUntilDestroyed()).subscribe(event => {
+      if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.code !== 'KeyL' && event.code !== 'KeyS') return;
+      event.preventDefault();
+      if (event.code === 'KeyL') {
+        void window.desktop.MapWindow.getLocation().then(location =>
+          window.desktop.MapWindow.open(location.latitude, location.longitude, location.bearing ?? undefined, location.imagePath)
+        );
+      } else {
+        void window.desktop.CapturePreviewWindow.open();
+      }
+    });
   }
 
   setAppTitle = () => this.title.setTitle('LumaScope');
