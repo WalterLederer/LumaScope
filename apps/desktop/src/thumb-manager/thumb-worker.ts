@@ -36,6 +36,15 @@ export interface ThumbWorkerResponse {
   isHdr?: boolean;
 }
 
+type UhdrSaveImage = {
+  uhdrsave: (target: string, options: { Q: number }) => void;
+};
+
+/** Shared Ultra HDR encoder entry point for every HDR-capable source decoder. */
+function encodeScRgbAsUhdr(image: UhdrSaveImage, target: string, quality = 90): void {
+  image.uhdrsave(target, { Q: quality });
+}
+
 const cancelledRequests = new Set<string>();
 
 let vipsInstance: typeof Vips | null = null;
@@ -887,7 +896,7 @@ if (parentPort) {
           processingStage = 'resizing EXR thumbnail';
           using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
           processingStage = 'encoding EXR thumbnail as Ultra HDR JPEG';
-          scrgb.uhdrsave(target, { Q: 90 });
+          encodeScRgbAsUhdr(scrgb, target, 90);
         } else {
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
           processingStage = 'encoding full-size EXR derivative as Ultra HDR JPEG';
@@ -944,7 +953,7 @@ if (parentPort) {
             using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
             scrgb.uhdrsave(target, { Q: 90 });
           } else {
-            linearScRgb.uhdrsave(target, { Q: 90 });
+            encodeScRgbAsUhdr(linearScRgb, target, 90);
           }
         } else if (sourceImage.format === 'ushort' && sourceImage.bands >= 3) {
           // This path explicitly decodes the untagged 16-bit TIFF data as Rec. 2020 HLG.
@@ -1251,7 +1260,7 @@ if (parentPort) {
             ? resized.copy()
             : resized.extractArea(cropLeft, cropTop, width, height);
           using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
-          scrgb.uhdrsave(target, { Q: 80 });
+          encodeScRgbAsUhdr(scrgb, target, 80);
         } else {
           using scrgb = orderedRgb.copy({ interpretation: vips.Interpretation.scrgb });
           const encoderInputPixels = scrgb.writeToMemory();
