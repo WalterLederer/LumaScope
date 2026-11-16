@@ -107,6 +107,8 @@ export interface BackgroundReverseGeocodingStatus {
 
 export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
+  readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
+  readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number }>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
