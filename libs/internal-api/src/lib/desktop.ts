@@ -92,6 +92,7 @@ export interface FixPhotoLocationsResult {
 export interface FixPhotoLocationsProgress {
   scanned: number;
   total: number;
+  currentFolder: string;
 }
 
 export interface DesktopExif {
