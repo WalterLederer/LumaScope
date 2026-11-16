@@ -1508,9 +1508,10 @@ interface MapErrorEntry {
     .gpx-file-row>span:not(:first-child){white-space:nowrap;font-variant-numeric:tabular-nums}
     .gpx-file-row .offline-map-remove-button{justify-self:end}.gpx-track-color-picker .color-picker-trigger{min-width:0;width:100%;max-width:132px;padding:3px 5px;gap:5px}.gpx-track-color-picker .color-swatch{min-width:0;padding:3px 4px}.gpx-track-color-picker .color-picker-menu{min-width:160px}.gpx-file-row select{min-width:0;max-width:100%;width:100%}
     @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 58px 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
-    .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:12px;min-width:0}
+    .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:12px;row-gap:0;min-width:0}
     .view-rerender-section .render-worker-setting{flex-basis:100%;max-width:360px}
-    .view-rerender-section .render-statistics-section,.view-rerender-section .render-helper-activity-section{flex:1 1 100%;min-width:0;margin-top:0}
+    .view-rerender-section .render-statistics-section,.view-rerender-section .render-helper-activity-section{flex:1 1 100%;min-width:0;margin:0!important}
+    .view-rerender-section .view-rerender-layout>.render-helper-activity-section{margin-top:12px!important}
     .view-rerender-section .render-statistics-content{display:flex;flex-direction:column;gap:10px;min-width:0;padding-top:8px}
     .view-rerender-section .render-helper-activity-section .render-statistics-content{gap:0}
     .render-helper-activity{min-width:0;border:1px solid var(--color-content-default-low,#555);border-radius:6px;padding:8px 10px;background:var(--color-surface-default-low,#202124)}
@@ -1524,7 +1525,7 @@ interface MapErrorEntry {
     .render-helper-activity-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums}
     .render-helper-activity-empty{padding:5px 2px;font-size:11px;color:var(--color-content-default-medium,#999)}
     @media(max-width:620px){.render-helper-activity-row{grid-template-columns:55px minmax(80px,110px) minmax(0,1fr);gap:5px}}
-    .view-rerender-section .optimize-obf-rendering-section{margin-top:-12px}
+    .view-rerender-section .optimize-obf-rendering-section{margin-top:0!important}
     .view-rerender-section .render-helper-activity-section{margin-top:0}
      .view-rerender-section>summary,.view-rerender-section .render-statistics-section>summary,.view-rerender-section .render-helper-activity-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}
      .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
@@ -3310,6 +3311,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   protected readonly showCrosshairAddress = (): void => {
+    if (!this.fixLocationEnabled()) return;
     const center = this.offlineRenderer?.map?.getCenter();
     if (!center) { this.crosshairAddress.set('Map center is not available.'); return; }
     this.crosshairAddress.set('Looking up address…');
