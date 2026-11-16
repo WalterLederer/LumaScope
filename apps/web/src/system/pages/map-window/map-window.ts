@@ -324,6 +324,15 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
+      <div class="gpx-database-import-row">
+        <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
+          {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
+        </button>
+        <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
+          Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
+        </span>
+      </div>
+      @if (gpxDatabaseImportStatus()) { <span class="offline-map-status" role="status">{{ gpxDatabaseImportStatus() }}</span> }
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
     </details>
   </div>
@@ -1502,6 +1511,7 @@ interface MapErrorEntry {
     .gpx-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%}
      .gpx-toolbar .gpx-add-button{background:color-mix(in srgb,#0a84ff 13%,var(--color-surface-default-low,#252525))!important;border-color:color-mix(in srgb,#0a84ff 38%,var(--color-content-default-low,#666))!important}
      .gpx-advanced-section{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin-top:8px!important}
+    .gpx-database-import-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%}.gpx-database-statistics{font-size:12px;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
     .gpx-file-row{display:grid;grid-template-columns:58px 42px minmax(180px,1fr) 72px minmax(135px,175px) minmax(245px,290px) minmax(75px,95px) 132px 150px 68px minmax(150px,190px) 32px 28px;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--color-content-default-low,#454545);min-width:0}
     .gpx-file-row:last-child{border-bottom:0}.gpx-file-row.gpx-missing{color:#ff5b5b;background:color-mix(in srgb,#e53935 9%,transparent)}.gpx-file-row.gpx-missing .gpx-file-name{color:#ff5b5b}.gpx-file-row.gpx-hovered{background:color-mix(in srgb,var(--color-accent,#2688e8) 10%,transparent);outline:1px solid color-mix(in srgb,var(--color-accent,#2688e8) 22%,transparent);outline-offset:-1px}.gpx-hover-info{font-size:12px;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -1913,6 +1923,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
+    if (tab === 'track') void this.refreshGpxDatabaseStats();
   };
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
@@ -2566,6 +2577,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
+  protected readonly gpxDatabaseStats = signal({ files: 0, segments: 0, points: 0 });
+  protected readonly gpxDatabaseImportBusy = signal(false);
+  protected readonly gpxDatabaseImportStatus = signal('');
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
   protected readonly routeWaypointMarkersVisible = signal(this.readSetting('routeWaypointMarkersVisible', 'true') !== 'false');
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
@@ -5742,6 +5756,33 @@ export class MapWindow implements OnInit, OnDestroy {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
   };
+  private async refreshGpxDatabaseStats(): Promise<void> {
+    if (!this.desktop) return;
+    try { this.gpxDatabaseStats.set(await this.desktop.CacheManager.getGpxDatabaseStats()); }
+    catch (error) { this.gpxDatabaseImportStatus.set(error instanceof Error ? error.message : String(error)); }
+  }
+
+  protected readonly importAllGpxTracksToDatabase = async (): Promise<void> => {
+    if (!this.desktop || this.gpxDatabaseImportBusy()) return;
+    this.gpxDatabaseImportBusy.set(true);
+    this.gpxDatabaseImportStatus.set('Select a folder containing GPX files…');
+    try {
+      const result = await this.desktop.CacheManager.importGpxFolder();
+      if (result.cancelled) {
+        this.gpxDatabaseImportStatus.set('Import cancelled.');
+        return;
+      }
+      this.gpxDatabaseStats.set({ files: result.files, segments: result.segments, points: result.points });
+      this.gpxDatabaseImportStatus.set(
+        `Imported ${result.imported.toLocaleString()} · unchanged ${result.unchanged.toLocaleString()} · duplicates ${result.duplicates.toLocaleString()} · errors ${result.errors.toLocaleString()}`
+      );
+    } catch (error) {
+      this.gpxDatabaseImportStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.gpxDatabaseImportBusy.set(false);
+    }
+  };
+
   protected readonly importGpxTrack = (): void => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.gpx,application/gpx+xml,application/xml,text/xml'; input.multiple = true;
