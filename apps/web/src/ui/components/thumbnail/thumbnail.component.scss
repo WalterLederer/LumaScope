@@ -135,6 +135,10 @@ button {
     color: var(--color-content-default-medium);
   }
 
+  .detail-columns > span:nth-child(6) {
+    margin-left: 8px;
+  }
+
   .detail-columns > span {
     border-left: 1px solid var(--color-border-default, rgb(128 128 128 / 22%));
     padding-left: 12px;
