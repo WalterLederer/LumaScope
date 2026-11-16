@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
+import { Keyboard } from '../../../system/services/keyboard/keyboard';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CaptureFormat, CaptureMonitor, CapturePreview, CaptureTarget, CaptureWindow } from 'internal-api';
 import { filter, take } from 'rxjs';
@@ -55,6 +56,7 @@ export class CapturePanelComponent {
   private readonly galleryLocations = inject(GalleryLocations);
   private readonly destroyRef = inject(DestroyRef);
   private readonly hostElement = inject(ElementRef<HTMLElement>);
+  private readonly keyboard = inject(Keyboard);
 
   protected readonly monitors = signal<CaptureMonitor[]>([]);
   protected readonly windows = signal<CaptureWindow[]>([]);
@@ -251,8 +253,7 @@ export class CapturePanelComponent {
   @HostListener('window:keydown', ['$event'])
   protected readonly focusLocationWindowOnShortcut = (event: KeyboardEvent): void => {
     if (event.code !== 'KeyL' || event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
-    const target = event.target;
-    if (target instanceof HTMLElement && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
+    if (this.keyboard.isTextInputTarget(event)) return;
     event.preventDefault();
 
     const mapWindow = window.desktop?.MapWindow;
