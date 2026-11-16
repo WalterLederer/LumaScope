@@ -6,17 +6,47 @@ import { filter, fromEvent, share } from 'rxjs';
 export class Keyboard {
   private readonly document = inject(DOCUMENT);
 
-  private readonly isTextInputTarget = (event: KeyboardEvent): boolean => {
-    // composedPath() also sees the actual control when the event crosses a
-    // Shadow DOM boundary and its target is retargeted to a custom element.
+  /**
+   * Detect text-entry focus without relying on instanceof checks, which can
+   * fail for controls originating in another window or Shadow DOM.
+   */
+  isTextInputTarget = (event: KeyboardEvent): boolean => {
+    const isTextEntry = (candidate: EventTarget | null): boolean => {
+      if (!candidate || typeof candidate !== 'object') return false;
+      const element = candidate as {
+        nodeType?: number;
+        tagName?: string;
+        type?: string;
+        isContentEditable?: boolean;
+        matches?: (selector: string) => boolean;
+        parentElement?: Element | null;
+        getRootNode?: () => { host?: Element };
+      };
+      if (element.nodeType !== 1) return false;
+
+      const tagName = element.tagName?.toLowerCase();
+      if (tagName === 'textarea' || tagName === 'select') return true;
+      if (tagName === 'input') {
+        const type = (element.type ?? 'text').toLowerCase();
+        return !['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'range', 'color', 'image'].includes(type);
+      }
+      if (element.isContentEditable) return true;
+      if (element.matches?.('[role="textbox"], [contenteditable]:not([contenteditable="false"]), [data-keyboard-shortcuts="off"]')) return true;
+      return false;
+    };
+
     const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
-    return path.some(item => {
-      if (!(item instanceof Element)) return false;
-      if (item instanceof HTMLInputElement || item instanceof HTMLTextAreaElement ||
-          item instanceof HTMLSelectElement) return true;
-      if (item instanceof HTMLElement && item.isContentEditable) return true;
-      return item.matches('input, textarea, select, [role="textbox"], [contenteditable]');
-    });
+    if (path.some(item => isTextEntry(item))) return true;
+
+    // Fallback for retargeted events: inspect the focused element and any
+    // nested shadow-root host chain.
+    let active: Element | null = this.document.activeElement;
+    while (active) {
+      if (isTextEntry(active)) return true;
+      const root = active.getRootNode() as { host?: Element };
+      active = root.host ?? active.parentElement ?? null;
+    }
+    return false;
   };
 
   // Global shortcuts must not run while the user is entering text or choosing
