@@ -250,7 +250,7 @@ interface MapErrorEntry {
       <button type="button" class="gpx-list-action-button" (click)="showGpxFilesVisibleOnMap()" [disabled]="gpxDatabaseQueryBusy()" title="Find GPX files with track points inside the current map viewport">Show GPX files visible on map (DB)</button>
       @if (gpxListMode() === 'database') {
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
-        <span class="offline-map-status">{{ gpxDatabaseTracks().length }} matching DB file(s)</span>
+        <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
       } @else {
         <button type="button" class="gpx-list-action-button" (click)="selectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Select all</button>
         <button type="button" class="gpx-list-action-button" (click)="deselectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Deselect all</button>
@@ -260,15 +260,15 @@ interface MapErrorEntry {
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
-    @if (gpxListMode() === 'database' && gpxDatabaseTracks().length > 0) {
+    @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-file-list gpx-database-file-list" role="table" aria-label="GPX files visible on map from database">
         <div class="gpx-file-row gpx-database-file-row gpx-file-header" role="row">
           <span role="columnheader">File</span><span role="columnheader">Points in map</span><span role="columnheader">Track time</span><span role="columnheader">File size</span><span role="columnheader">Modified</span><span role="columnheader">Path</span>
         </div>
-        @for (track of gpxDatabaseTracks(); track track.path) {
+        @for (track of gpxDatabaseVisibleTracks(); track track.path) {
           <div class="gpx-file-row gpx-database-file-row" role="row">
             <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
-            <span role="cell">{{ gpxWaypointCount(track.path) }}</span>
+            <span role="cell">{{ gpxVisibleWaypointCount(track) }}</span>
             <span class="gpx-time-range" role="cell">{{ gpxTrackTimeRange(track.path) }}</span>
             <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
             <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
@@ -277,7 +277,7 @@ interface MapErrorEntry {
         }
       </div>
     } @else if (gpxListMode() === 'database') {
-      <div class="gpx-database-empty">No GPX track points from the database are inside the current map viewport.</div>
+      <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
     } @else if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
@@ -6986,6 +6986,12 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly gpxWaypointCount = (path: string): number =>
     (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
+
+  protected readonly gpxVisibleWaypointCount = (track: GpxTrackFile): number =>
+    this.visibleGpxSegments(track).reduce((count, segment) => count + segment.length, 0);
+
+  protected readonly gpxDatabaseVisibleTracks = (): GpxTrackFile[] =>
+    this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
 
   protected readonly changeRouteWaypointMarkersVisible = (visible: boolean): void => {
     this.routeWaypointMarkersVisible.set(visible);
