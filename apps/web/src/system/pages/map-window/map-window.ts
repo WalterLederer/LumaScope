@@ -247,7 +247,10 @@ interface MapErrorEntry {
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
       <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
-      <button type="button" class="gpx-list-action-button" (click)="showGpxFilesVisibleOnMap()" [disabled]="gpxDatabaseQueryBusy()" title="Find GPX files with track points inside the current map viewport">Show GPX files visible on map (DB)</button>
+      <label class="gpx-db-mode-toggle" title="Use GPX files stored in the cache database that intersect the current map viewport">
+        <input type="checkbox" [checked]="gpxListMode() === 'database'" (change)="$any($event.target).checked ? showGpxFilesVisibleOnMap() : showRecentGpxFiles()" [disabled]="gpxDatabaseQueryBusy()">
+        Use GPX files from DB
+      </label>
       @if (gpxListMode() === 'database') {
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
         <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
@@ -274,16 +277,20 @@ interface MapErrorEntry {
     </div>
     @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-file-list gpx-database-file-list" role="table" aria-label="GPX files visible on map from database">
-        <div class="gpx-file-row gpx-database-file-row gpx-file-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
-          <span role="columnheader">Active</span>
-          <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}</button>
-          @if (gpxDatabaseColumns().points) { <span role="columnheader">Points</span> }
-          @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}</button> }
-          @if (gpxDatabaseColumns().size) { <span role="columnheader">Size</span> }
-          @if (gpxDatabaseColumns().modified) { <span role="columnheader">Modified</span> }
-          @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}</button> }
-          <span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span>
+        <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')"></span></button>
+          @if (gpxDatabaseColumns().points) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')"></span></button> }
+          @if (gpxDatabaseColumns().time) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')"></span></button> }
+          @if (gpxDatabaseColumns().size) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')"></span></button> }
+          @if (gpxDatabaseColumns().modified) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('modified')">Modified {{ gpxDatabaseSortIndicator('modified') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')"></span></button> }
+          @if (gpxDatabaseColumns().path) { <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')"></span></button> }
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('color')">Color {{ gpxDatabaseSortIndicator('color') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'color')"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('width')">Width {{ gpxDatabaseSortIndicator('width') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'width')"></span></button>
+          <button type="button" class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')"></span></button>
         </div>
+        <div class="gpx-database-file-list" role="rowgroup">
         @for (track of gpxDatabaseVisibleTracks(); track track.path) {
           <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
             <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxDatabaseTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
@@ -318,6 +325,7 @@ interface MapErrorEntry {
             </select>
           </div>
         }
+        </div>
       </div>
     } @else if (gpxListMode() === 'database') {
       <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
@@ -1597,10 +1605,16 @@ interface MapErrorEntry {
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
      .gpx-file-row.gpx-database-file-row{gap:8px;min-width:0}
      .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-     .gpx-database-file-list{height:260px;min-height:120px;max-height:65vh;resize:vertical;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative;box-sizing:border-box}
-     .gpx-database-file-list .gpx-file-header{position:sticky;top:0;z-index:3;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-medium,#888)}
-     .gpx-db-sort-button{padding:2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+     .gpx-db-mode-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer}.gpx-db-mode-toggle input{margin:0;accent-color:#2688e8}
+     .gpx-database-table{width:100%;min-width:0;overflow-x:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+     .gpx-database-header{display:grid;align-items:center;gap:8px;min-width:max-content;padding:6px 4px;background:var(--color-surface-default-low,#202124);border-bottom:1px solid var(--color-content-default-medium,#888);font-weight:700;color:var(--color-content-default-medium,#aaa);box-sizing:border-box}
+     .gpx-database-file-list{height:260px;min-height:120px;max-height:65vh;resize:vertical;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;position:relative;box-sizing:border-box;min-width:max-content}
+     .gpx-db-sort-button{position:relative;display:block;min-width:0;width:100%;height:100%;padding:2px 8px 2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
      .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
+     .gpx-column-resizer{position:absolute;right:-3px;top:-4px;bottom:-4px;width:7px;cursor:col-resize;touch-action:none;z-index:2}
+     .gpx-column-resizer:hover{background:color-mix(in srgb,#2688e8 55%,transparent)}
+     .gpx-database-header .gpx-db-sort-button{min-height:26px}
+     .gpx-database-file-list .gpx-database-file-row{min-width:max-content}
      .gpx-db-select{width:100%;min-width:0;padding:3px 4px;font-size:11px}
      .gpx-database-columns{position:relative;display:inline-flex;align-items:center}
      .gpx-database-columns>summary{cursor:pointer;font-size:11px;padding:2px 6px}
@@ -2680,7 +2694,17 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
   protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
-  protected readonly gpxDatabaseSort = signal<{ key: 'name' | 'path' | 'time'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
+  protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
+  protected readonly gpxDatabaseColumnWidths = signal<Record<string, number>>((() => {
+    const defaults = { active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
+    try {
+      const saved = JSON.parse(this.readSetting('gpxDatabaseColumnWidths', '{}')) as Record<string, number>;
+      for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
+        if (Number.isFinite(saved[key]) && saved[key] >= 42 && saved[key] <= 900) defaults[key] = saved[key];
+      }
+    } catch { /* Keep the default column widths. */ }
+    return defaults;
+  })());
   protected readonly gpxDatabaseQueryBusy = signal(false);
   protected readonly gpxDatabaseQueryStatus = signal('');
   private gpxDatabaseQueryGeneration = 0;
@@ -7111,20 +7135,60 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       return earliest;
     };
+    const value = (track: GpxTrackFile): string | number | boolean => {
+      switch (sort.key) {
+        case 'active': return track.active !== false;
+        case 'name': return track.name.toLocaleLowerCase();
+        case 'points': return this.gpxVisibleWaypointCount(track);
+        case 'time': return timestamp(track);
+        case 'size': return track.sizeBytes;
+        case 'modified': return track.lastModified;
+        case 'path': return (track.databasePath || track.path).toLocaleLowerCase();
+        case 'color': return (track.color || '').toLocaleLowerCase();
+        case 'line': return (track.lineStyle || 'solid').toLocaleLowerCase();
+        case 'width': return track.lineWidth || 3;
+        case 'arrows': return track.showDirection ? (track.directionStyle || 'classic') : 'off';
+      }
+    };
     return tracks.sort((a, b) => {
-      const av = sort.key === 'name' ? a.name.toLocaleLowerCase() : sort.key === 'path' ? (a.databasePath || a.path).toLocaleLowerCase() : timestamp(a);
-      const bv = sort.key === 'name' ? b.name.toLocaleLowerCase() : sort.key === 'path' ? (b.databasePath || b.path).toLocaleLowerCase() : timestamp(b);
+      const av = value(a), bv = value(b);
       const result = av < bv ? -1 : av > bv ? 1 : 0;
       return sort.direction === 'asc' ? result : -result;
     });
   });
   protected readonly gpxDatabaseGridColumns = (): string => {
+    const widths = this.gpxDatabaseColumnWidths();
     const columns = this.gpxDatabaseColumns();
-    return ['34px', 'minmax(140px,1.2fr)', ...(columns.points ? ['72px'] : []), ...(columns.time ? ['minmax(170px,1.3fr)'] : []), ...(columns.size ? ['82px'] : []), ...(columns.modified ? ['130px'] : []), ...(columns.path ? ['minmax(180px,2fr)'] : []), 'minmax(105px,1fr)', 'minmax(95px,1fr)', '68px', 'minmax(105px,1fr)'].join(' ');
+    return [
+      widths.active + 'px', widths.name + 'px',
+      ...(columns.points ? [widths.points + 'px'] : []),
+      ...(columns.time ? [widths.time + 'px'] : []),
+      ...(columns.size ? [widths.size + 'px'] : []),
+      ...(columns.modified ? [widths.modified + 'px'] : []),
+      ...(columns.path ? [widths.path + 'px'] : []),
+      widths.color + 'px', widths.line + 'px', widths.width + 'px', widths.arrows + 'px'
+    ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
-  protected readonly sortGpxDatabase = (key: 'name' | 'path' | 'time'): void => this.gpxDatabaseSort.update(sort => ({ key, direction: sort.key === key && sort.direction === 'asc' ? 'desc' : 'asc' }));
-  protected readonly gpxDatabaseSortIndicator = (key: 'name' | 'path' | 'time'): string => this.gpxDatabaseSort().key === key ? (this.gpxDatabaseSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly sortGpxDatabase = (key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'): void => this.gpxDatabaseSort.update(sort => ({ key, direction: sort.key === key && sort.direction === 'asc' ? 'desc' : 'asc' }));
+  protected readonly gpxDatabaseSortIndicator = (key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'): string => this.gpxDatabaseSort().key === key ? (this.gpxDatabaseSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly startGpxColumnResize = (event: PointerEvent, key: string): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startWidth = this.gpxDatabaseColumnWidths()[key] ?? 100;
+    const move = (moveEvent: PointerEvent): void => {
+      const width = Math.max(42, Math.min(900, startWidth + moveEvent.clientX - startX));
+      this.gpxDatabaseColumnWidths.update(current => ({ ...current, [key]: width }));
+    };
+    const up = (): void => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      this.saveSetting('gpxDatabaseColumnWidths', JSON.stringify(this.gpxDatabaseColumnWidths()));
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  };
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
     if (databasePath) this.gpxDatabaseTrackSettings.set(databasePath, { ...this.gpxDatabaseTrackSettings.get(databasePath), ...patch });
