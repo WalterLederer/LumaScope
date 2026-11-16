@@ -195,7 +195,7 @@ interface MapErrorEntry {
                   <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
                   <div class="address-settings">
                     <span class="settings-row-title">Address:</span>
-                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || 'Looking up address…' }}</span>
+                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
                   </div>
                   <div class="location-actions">
                     <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
