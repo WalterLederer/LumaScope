@@ -486,3 +486,91 @@ html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.
 html[data-theme='dark'][data-button-style='flat'] ui-action-button:active:not(:disabled) {
   background: #2b333d !important;
 }
+
+/* Alternative action-button styles. Blue keeps the original application styling. */
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='outlined'] ui-action-button {
+  appearance: none !important;
+  background: transparent !important;
+  color: #1769aa !important;
+  border: 1px solid #3988c8 !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='outlined'] ui-action-button:hover:not(:disabled) {
+  background: rgb(45 137 211 / 10%) !important;
+}
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='outlined'] ui-action-button:active:not(:disabled) {
+  background: rgb(45 137 211 / 19%) !important;
+}
+html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='outlined'] ui-action-button {
+  color: #9bcfff !important;
+  border-color: #579bd5 !important;
+}
+html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='outlined'] ui-action-button:hover:not(:disabled) {
+  background: rgb(95 170 232 / 15%) !important;
+}
+
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='soft'] ui-action-button {
+  appearance: none !important;
+  background: #e5f1fc !important;
+  color: #174f7d !important;
+  border: 1px solid #c3dcef !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='soft'] ui-action-button:hover:not(:disabled) {
+  background: #d5e9fa !important;
+}
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='soft'] ui-action-button:active:not(:disabled) {
+  background: #c7e0f6 !important;
+}
+html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='soft'] ui-action-button {
+  background: #293d50 !important;
+  color: #d7eaff !important;
+  border-color: #456783 !important;
+}
+html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='soft'] ui-action-button:hover:not(:disabled) {
+  background: #344d64 !important;
+}
+
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='rounded'] ui-action-button {
+  appearance: none !important;
+  background: #287fc4 !important;
+  color: #fff !important;
+  border: 1px solid #1769aa !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='rounded'] ui-action-button:hover:not(:disabled) {
+  background: #1e70b2 !important;
+}
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='rounded'] ui-action-button:active:not(:disabled) {
+  background: #185f99 !important;
+}
+html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='rounded'] ui-action-button {
+  background: #347fb8 !important;
+  color: #fff !important;
+  border-color: #579bd5 !important;
+}
+html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='rounded'] ui-action-button:hover:not(:disabled) {
+  background: #438fc9 !important;
+}
+
