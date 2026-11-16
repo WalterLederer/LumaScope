@@ -46,7 +46,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
 
-interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; }
+interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; inViewport?: boolean; }
 type RouteProfile = 'driving-car' | 'cycling-regular' | 'foot-walking';
 type RouteProviderId = 'openrouteservice' | 'offline-valhalla';
 interface RouteWaypoint { latitude: number; longitude: number; name?: string; active?: boolean; }
@@ -5873,7 +5873,8 @@ export class MapWindow implements OnInit, OnDestroy {
           latitude: point.latitude,
           longitude: point.longitude,
           elevation: null,
-          timestamp: point.timestamp === null ? null : new Date(point.timestamp).toISOString()
+          timestamp: point.timestamp === null ? null : new Date(point.timestamp).toISOString(),
+          inViewport: point.inViewport
         })));
         const coordinates = pointSegments.map(segment => segment.map(point => [point.latitude, point.longitude] as [number, number]));
         this.gpxPointDataByTrack.set(path, pointSegments);
@@ -6988,11 +6989,11 @@ export class MapWindow implements OnInit, OnDestroy {
     (this.gpxSegmentsByTrack.get(path) ?? []).reduce((count, segment) => count + segment.length, 0);
 
   protected readonly gpxVisibleWaypointCount = (track: GpxTrackFile): number =>
-    (this.gpxPointDataByTrack.get(track.path) ?? []).flat().filter(point => {
+    (this.gpxPointDataByTrack.get(track.path) ?? []).flat().filter(point => point.inViewport !== false && (() => {
       const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
       return !this.timeSliderActive() || !Number.isFinite(timestamp)
         || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd());
-    }).length;
+    })()).length;
 
   protected readonly gpxDatabaseVisibleTracks = (): GpxTrackFile[] =>
     this.gpxDatabaseTracks().filter(track => this.gpxVisibleWaypointCount(track) > 0);
