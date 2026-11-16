@@ -599,7 +599,7 @@ export class CacheManager {
       }>;
     const files = new Map<number, {
       id: number; path: string; name: string; sizeBytes: number; lastModified: number;
-      matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null }>>;
+      matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>>;
       lastSegmentId: number; lastPointIndex: number;
     }>();
     for (const row of rows) {
@@ -617,9 +617,9 @@ export class CacheManager {
         file.segments.push([]);
       }
       file.segments[file.segments.length - 1].push({
-        latitude: row.latitude, longitude: row.longitude, timestamp: row.timestamp_ms
+        latitude: row.latitude, longitude: row.longitude, timestamp: row.timestamp_ms, inViewport: row.in_viewport === 1
       });
-      file.matchingPoints++;
+      if (row.in_viewport === 1) file.matchingPoints++;
       file.lastSegmentId = row.segment_id;
       file.lastPointIndex = row.point_index;
     }
