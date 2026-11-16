@@ -128,7 +128,7 @@ html[data-tab-bar-style='rounded'] [role='tablist'] button[role='tab'][aria-sele
 }
 
 /* Shared action-button appearance across the application. Disclosure headings are excluded. */
-button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
+button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):not(.detail-header button),
 ui-action-button {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -143,26 +143,26 @@ ui-action-button {
   transition: filter 100ms ease, transform 100ms ease, box-shadow 100ms ease;
 }
 
-button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 ui-action-button:hover:not(:disabled) {
   filter: brightness(1.18) !important;
   transform: translateY(-1px) !important;
 }
 
-button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 ui-action-button:active:not(:disabled) {
   transform: translateY(1px) !important;
   box-shadow: inset 0 2px 3px rgb(0 0 0 / 25%), 0 1px 0 #174b7d !important;
 }
 
-button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):disabled,
+button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):disabled,
 ui-action-button:disabled {
   cursor: not-allowed !important;
   filter: grayscale(.55) brightness(.72) !important;
   opacity: .6;
 }
 
-button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):focus-visible,
+button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):focus-visible,
 ui-action-button:focus-visible {
   outline: 2px solid var(--button-focus) !important;
   outline-offset: 2px !important;
@@ -203,12 +203,12 @@ button:is(
 ) {
   appearance: none !important;
   -webkit-appearance: none !important;
-  border: 1px solid #4b9fe0 !important;
+  border: 1px solid var(--button-border) !important;
   border-radius: 8px !important;
-  background: linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%) !important;
+  background: var(--button-gradient) !important;
   color: #fff !important;
   text-shadow: 0 1px 2px rgb(0 0 0 / 55%) !important;
-  box-shadow: inset 0 2px 2px rgb(255 255 255 / 55%), inset 0 -2px 3px rgb(0 0 0 / 28%), 0 2px 0 #174b7d, 0 4px 8px rgb(0 0 0 / 22%) !important;
+  box-shadow: inset 0 2px 2px rgb(255 255 255 / 55%), inset 0 -2px 3px rgb(0 0 0 / 28%), 0 2px 0 var(--button-shadow), 0 4px 8px rgb(0 0 0 / 22%) !important;
   cursor: pointer !important;
   transition: filter 100ms ease, transform 100ms ease, box-shadow 100ms ease;
 }
@@ -346,7 +346,7 @@ button:is(
   .markdown-open-file-button,
   .markdown-home-button
 ):focus-visible {
-  outline: 2px solid #75c5ff !important;
+  outline: 2px solid var(--button-focus) !important;
   outline-offset: 2px !important;
 }
 
@@ -523,7 +523,7 @@ details .app-disclosure,
 
 
 /* Optional neutral, flat action-button appearance. The default remains the blue gradient. */
-html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-button-style='flat'] ui-action-button {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -537,39 +537,39 @@ html[data-button-style='flat'] ui-action-button {
   transform: none !important;
 }
 
-html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-button-style='flat'] ui-action-button:hover:not(:disabled) {
   background: #dce4ec !important;
   filter: none !important;
   transform: none !important;
 }
 
-html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 html[data-button-style='flat'] ui-action-button:active:not(:disabled) {
   background: #d1dbe5 !important;
   box-shadow: inset 0 1px 2px rgb(0 0 0 / 12%) !important;
   transform: none !important;
 }
 
-html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='flat'] ui-action-button {
   background: #343d48 !important;
   color: #edf2f7 !important;
   border-color: var(--button-border-strong) !important;
 }
 
-html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='flat'] ui-action-button:hover:not(:disabled) {
   background: #414d5b !important;
 }
 
-html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 html[data-theme='dark'][data-button-style='flat'] ui-action-button:active:not(:disabled) {
   background: #2b333d !important;
 }
 
 /* Alternative action-button styles. Blue keeps the original application styling. */
-html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-button-style='outlined'] ui-action-button {
   appearance: none !important;
   background: transparent !important;
@@ -579,25 +579,25 @@ html[data-button-style='outlined'] ui-action-button {
   box-shadow: none !important;
   text-shadow: none !important;
 }
-html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-button-style='outlined'] ui-action-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--button-text) 10%, transparent) !important;
 }
-html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 html[data-button-style='outlined'] ui-action-button:active:not(:disabled) {
   background: color-mix(in srgb, var(--button-text) 19%, transparent) !important;
 }
-html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='outlined'] ui-action-button {
   color: #9bcfff !important;
   border-color: #579bd5 !important;
 }
-html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='outlined'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='outlined'] ui-action-button:hover:not(:disabled) {
   background: rgb(95 170 232 / 15%) !important;
 }
 
-html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-button-style='soft'] ui-action-button {
   appearance: none !important;
   background: var(--button-soft-bg) !important;
@@ -607,26 +607,26 @@ html[data-button-style='soft'] ui-action-button {
   box-shadow: none !important;
   text-shadow: none !important;
 }
-html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-button-style='soft'] ui-action-button:hover:not(:disabled) {
   background: color-mix(in srgb, var(--button-soft-bg) 90%, black) !important;
 }
-html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 html[data-button-style='soft'] ui-action-button:active:not(:disabled) {
   background: color-mix(in srgb, var(--button-soft-bg) 82%, black) !important;
 }
-html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='soft'] ui-action-button {
   background: #293d50 !important;
   color: #d7eaff !important;
   border-color: #456783 !important;
 }
-html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='soft'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='soft'] ui-action-button:hover:not(:disabled) {
   background: #344d64 !important;
 }
 
-html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-button-style='rounded'] ui-action-button {
   appearance: none !important;
   background: var(--button-rounded-bg) !important;
@@ -636,21 +636,21 @@ html[data-button-style='rounded'] ui-action-button {
   box-shadow: none !important;
   text-shadow: none !important;
 }
-html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-button-style='rounded'] ui-action-button:hover:not(:disabled) {
   background: var(--button-rounded-hover) !important;
 }
-html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):active:not(:disabled),
 html[data-button-style='rounded'] ui-action-button:active:not(:disabled) {
   background: var(--button-rounded-active) !important;
 }
-html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button),
 html[data-theme='dark'][data-button-style='rounded'] ui-action-button {
   background: var(--button-rounded-bg) !important;
   color: #fff !important;
   border-color: var(--button-border-strong) !important;
 }
-html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='rounded'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button):hover:not(:disabled),
 html[data-theme='dark'][data-button-style='rounded'] ui-action-button:hover:not(:disabled) {
   background: var(--button-rounded-hover) !important;
 }
