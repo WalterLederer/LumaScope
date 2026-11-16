@@ -26,6 +26,7 @@ import { defaultSortMode, treeNode } from '../../../gallery/services/gallery-sta
 import { Dialogs } from '../../../ipc/dialogs';
 import { DefaultPipe } from '../../../system/pipes/default/default.pipe';
 import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navigator';
+import { Keyboard } from '../../../system/services/keyboard/keyboard';
 
 @Component({
   selector: 'app-gallery',
@@ -50,6 +51,8 @@ import { ViewNavigator } from '../../../viewer/services/view-navigator/view-navi
 export class GalleryPage {
   /* DI */
   private readonly document = inject(DOCUMENT);
+
+  private readonly keyboard = inject(Keyboard);
 
   private readonly desktopApi = (this.document.defaultView as unknown as { desktop?: Desktop } | null)?.desktop;
 
@@ -93,9 +96,7 @@ export class GalleryPage {
     const key = event.key.toLowerCase();
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
     if (!(key === 's' && !event.shiftKey) && !(key === 'c' && event.shiftKey)) return;
-    const target = event.target;
-    if (target instanceof HTMLElement
-      && target.matches('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]')) return;
+    if (this.keyboard.isTextInputTarget(event)) return;
     // The Image View owns the shortcut while it is active.
     if (this.document.querySelector('app-image-view')) return;
     event.preventDefault();
