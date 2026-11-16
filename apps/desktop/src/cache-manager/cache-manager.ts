@@ -907,7 +907,7 @@ export class CacheManager {
     if (!databaseKey || !/^[A-Z]:$/.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
     const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\');
     this.activeDatabaseKey = databaseKey;
-    const rows = db.prepare(\`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
+    const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos
@@ -915,7 +915,7 @@ export class CacheManager {
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE photos.latitude BETWEEN :south AND :north
         AND photos.longitude BETWEEN :west AND :east
-      ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE\`)
+      ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
       .all({ west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north }) as unknown as Array<{
         file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null;
         relative_folder_path: string; location_display_name: string | null;
