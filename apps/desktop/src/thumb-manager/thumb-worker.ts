@@ -790,14 +790,15 @@ async function histogramForImage(vips: typeof Vips, source: string): Promise<Ima
     hdrPixels = rgb.writeToMemory();
   }
 
-  try {
-    if (hdrPixels) throw new Error('DNG is already decoded to linear scRGB.');
-    using hdrImage = fullImage.uhdr2scRGB();
-    using hdrSmall = scale < 1 ? hdrImage.resize(scale, { kernel: vips.Kernel.linear }) : hdrImage.copy();
-    using hdrRgb = hdrSmall.bands >= 3 ? hdrSmall.extractBand(0, { n: 3 }) : hdrSmall;
-    hdrPixels = hdrRgb.writeToMemory();
-  } catch {
-    // Ordinary SDR images do not contain an Ultra HDR gain map.
+  if (!hdrPixels) {
+    try {
+      using hdrImage = fullImage.uhdr2scRGB();
+      using hdrSmall = scale < 1 ? hdrImage.resize(scale, { kernel: vips.Kernel.linear }) : hdrImage.copy();
+      using hdrRgb = hdrSmall.bands >= 3 ? hdrSmall.extractBand(0, { n: 3 }) : hdrSmall;
+      hdrPixels = hdrRgb.writeToMemory();
+    } catch {
+      // Ordinary SDR images do not contain an Ultra HDR gain map.
+    }
   }
 
   if (!hdrPixels && fullImage.format === 'uchar' && fullImage.bands >= 3 &&
