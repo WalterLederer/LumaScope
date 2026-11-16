@@ -125,7 +125,6 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Marker</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
-  <span class="settings-tabs-spacer" aria-hidden="true"></span>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">Offline@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
@@ -1278,6 +1277,15 @@ interface MapErrorEntry {
     .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{flex:0 0 auto;overflow-x:auto;white-space:nowrap;margin:0 -10px 8px;padding:0 10px}
     .settings-tabs .settings-tab{margin:0!important}
+    .settings-tabs.image-sidebar-tabs{display:flex!important;flex-wrap:wrap!important;align-items:stretch;gap:0!important;white-space:normal!important;overflow:visible!important;padding:8px 12px 0!important;background:#f2f2f2!important;border-bottom:1px solid #b8b8b8}
+    :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs{background:#292b30!important;border-bottom-color:#50535b}
+    .settings-tabs.image-sidebar-tabs button[role="tab"]{margin:0!important;flex:0 1 auto!important;width:auto!important;max-width:100%!important;min-width:0;white-space:normal!important;overflow-wrap:normal!important;text-align:center;background:#dedede!important;border-color:#bdbdbd!important;color:#333!important;border-radius:5px 5px 0 0!important}
+    :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"]{background:#383b42!important;border-color:#50535b!important;color:#f5f5f5!important}
+    .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:#174f80!important;color:#fff!important;border-color:#103b61!important;border-bottom-color:#174f80!important}
+    :host-context(html[data-theme='dark']) .settings-tabs.image-sidebar-tabs button[role="tab"].active{background:#174f80!important;color:#fff!important;border-color:#103b61!important;border-bottom-color:#174f80!important}
+    :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs{background:#f7f7f7!important}
+    :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active){background:#dedede!important;border-color:#bdbdbd!important}
+    :host-context(html[data-theme='light']) .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):hover{background:#d3d3d3!important}
     .settings-tabs-spacer{flex:1 0 12px}
     
     .settings-tab-error-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;margin-left:4px;padding:0 4px;border-radius:9px;background:rgba(255,75,75,.30);color:#ff8a80;font-size:10px;font-weight:800}
@@ -1692,7 +1700,6 @@ interface MapErrorEntry {
     :host-context(html[data-theme='light']) .map-settings{background:#f7f7f8;border-color:#d0d3d8}
     :host-context(html[data-theme='light']) button,:host-context(html[data-theme='light']) select{color:#202124;background:#fff;border-color:#c5c8ce}
     :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
-    :host-context(html[data-theme='light']) .settings-tabs .settings-tab.active{background:#31577d;border-color:#65a9ff;color:#fff}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
     :host-context(html[data-theme='light']) .time-slider-control-card>strong{color:#000}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
