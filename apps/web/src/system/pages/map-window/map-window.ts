@@ -5859,7 +5859,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxDatabaseQueryBusy.set(true);
     this.gpxDatabaseQueryStatus.set('');
     try {
-      const results = await desktop.CacheManager.getGpxFilesInBounds(bounds);
+      const configuredPath = this.gpxTracks().find(track => /^[a-z]:[\\/]/i.test(track.path))?.path
+        ?? this.gpxDatabaseTracks().find(track => track.databasePath && /^[a-z]:[\\/]/i.test(track.databasePath))?.databasePath;
+      const databaseKey = configuredPath?.slice(0, 2);
+      const results = await desktop.CacheManager.getGpxFilesInBounds(bounds, databaseKey);
       for (const previous of this.gpxDatabaseTracks()) {
         this.gpxSegmentsByTrack.delete(previous.path);
         this.gpxPointDataByTrack.delete(previous.path);
