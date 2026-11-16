@@ -299,6 +299,7 @@ ui-side-panel {
 :host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button {
   appearance: none !important;
   background: transparent !important;
+  background-image: none !important;
   color: inherit !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -323,6 +324,7 @@ ui-side-panel {
 :host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button {
   appearance: none !important;
   background: transparent !important;
+  background-image: none !important;
   color: inherit !important;
   border: 0 !important;
   border-radius: 0 !important;
