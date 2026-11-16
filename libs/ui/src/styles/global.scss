@@ -426,7 +426,7 @@ button[role="tab"]:hover:not([aria-selected="true"]) {
 [role="tablist"] button[role="tab"][aria-selected="true"],
 button[role="tab"][aria-selected="true"] {
   border-color: var(--color-content-default-low) !important;
-  border-bottom-color: color-mix(in srgb, #0a84ff 72%, var(--color-content-default-high)) !important;
+  border-bottom-color: color-mix(in srgb, var(--button-text) 72%, var(--color-content-default-high)) !important;
   background: color-mix(in srgb, CanvasText 7%, Canvas) !important;
   color: var(--color-content-default-high);
   font-weight: 600;
