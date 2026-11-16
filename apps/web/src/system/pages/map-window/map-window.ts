@@ -259,18 +259,16 @@ interface MapErrorEntry {
         <button type="button" class="gpx-list-action-button" (click)="deselectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Deselect all</button>
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
-      @if (gpxListMode() === 'database') {
-        <details class="gpx-database-columns app-disclosure">
-          <summary>Columns</summary>
-          <div class="gpx-database-column-options">
-            <label><input type="checkbox" [checked]="gpxDatabaseColumns().points" (change)="setGpxDatabaseColumn('points', $any($event.target).checked)"> Points</label>
-            <label><input type="checkbox" [checked]="gpxDatabaseColumns().time" (change)="setGpxDatabaseColumn('time', $any($event.target).checked)"> Track time</label>
-            <label><input type="checkbox" [checked]="gpxDatabaseColumns().size" (change)="setGpxDatabaseColumn('size', $any($event.target).checked)"> File size</label>
-            <label><input type="checkbox" [checked]="gpxDatabaseColumns().modified" (change)="setGpxDatabaseColumn('modified', $any($event.target).checked)"> Modified</label>
-            <label><input type="checkbox" [checked]="gpxDatabaseColumns().path" (change)="setGpxDatabaseColumn('path', $any($event.target).checked)"> Path</label>
-          </div>
-        </details>
-      }
+      <details class="gpx-database-columns app-disclosure">
+        <summary>Columns</summary>
+        <div class="gpx-database-column-options">
+          <label><input type="checkbox" [checked]="gpxDatabaseColumns().points" (change)="setGpxDatabaseColumn('points', $any($event.target).checked)"> Points</label>
+          <label><input type="checkbox" [checked]="gpxDatabaseColumns().time" (change)="setGpxDatabaseColumn('time', $any($event.target).checked)"> Track time</label>
+          <label><input type="checkbox" [checked]="gpxDatabaseColumns().size" (change)="setGpxDatabaseColumn('size', $any($event.target).checked)"> File size</label>
+          <label><input type="checkbox" [checked]="gpxDatabaseColumns().modified" (change)="setGpxDatabaseColumn('modified', $any($event.target).checked)"> Date</label>
+          <label><input type="checkbox" [checked]="gpxDatabaseColumns().path" (change)="setGpxDatabaseColumn('path', $any($event.target).checked)"> Path</label>
+        </div>
+      </details>
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
@@ -7182,6 +7180,12 @@ export class MapWindow implements OnInit, OnDestroy {
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
+  };
+  protected readonly gpxListWaypointCount = (track: GpxTrackFile): number =>
+    this.gpxListMode() === 'database' ? this.gpxVisibleWaypointCount(track) : this.gpxWaypointCount(track.path);
+  protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
+    if (this.gpxListMode() === 'database') this.changeGpxDatabaseTrack(path, patch);
+    else this.updateGpxTrack(path, patch);
   };
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
