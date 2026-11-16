@@ -81,7 +81,12 @@ const api: Desktop = {
   Exif: {
     read: (path: string) => ipcRenderer.invoke('Exif.read', path),
     writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
-    fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds)
+    fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds),
+    onFixFolderLocationsProgress: (callback: (progress: { scanned: number; total: number }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, progress: { scanned: number; total: number }): void => callback(progress);
+      ipcRenderer.on('Exif.fixFolderLocationsProgress', listener);
+      return () => ipcRenderer.removeListener('Exif.fixFolderLocationsProgress', listener);
+    }
   },
 
   CacheManager: {
