@@ -4352,7 +4352,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => this.persistZoom(map.getZoom());
     map.on('zoomend', syncZoom);
-    map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+    (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
+      .on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
     this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
