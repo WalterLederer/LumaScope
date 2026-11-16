@@ -70,9 +70,20 @@ export interface DesktopDialogs {
   readonly saveFile: (defaultPath?: string) => Promise<ApiResponse<string>>;
 }
 
+export interface FixPhotoLocationsResult {
+  scanned: number;
+  withGps: number;
+  withoutGps: number;
+  matched: number;
+  updated: number;
+  unmatched: number;
+  errors: number;
+}
+
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
+  readonly fixFolderLocations: (folder: string, checkOnly: boolean) => Promise<ApiResponse<FixPhotoLocationsResult>>;
 }
 
 export interface CacheSummary {
@@ -110,6 +121,7 @@ export interface DesktopCacheManager {
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number }>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
+  readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number) => Promise<{ latitude: number; longitude: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
