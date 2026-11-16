@@ -564,7 +564,7 @@ export class CacheManager {
     requestedDatabaseKey?: string
   ): Promise<Array<{
     id: number; path: string; name: string; sizeBytes: number; lastModified: number;
-    matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null }>>;
+    matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>>;
   }>> => {
     if (!bounds || ![bounds.west, bounds.south, bounds.east, bounds.north].every(Number.isFinite)
       || bounds.south < -90 || bounds.north > 90 || bounds.south > bounds.north
@@ -575,20 +575,27 @@ export class CacheManager {
     if (!databaseKey || !/^[A-Z]:$/.test(databaseKey)) throw new Error('No cache database drive is active. Import GPX files into the cache database first.');
     const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
     const rows = db.prepare(`SELECT f.id AS file_id, f.relative_file_path, f.file_name, f.file_size, f.modified_at,
-        s.id AS segment_id, p.point_index, p.timestamp_ms, p.latitude, p.longitude
+        s.id AS segment_id, p.point_index, p.timestamp_ms, p.latitude, p.longitude,
+        CASE WHEN p.latitude BETWEEN :south AND :north AND p.longitude BETWEEN :west AND :east THEN 1 ELSE 0 END AS in_viewport
       FROM gpx_segment_rtree r
       JOIN gpx_track_segments s ON s.id = r.segment_id
       JOIN gpx_files f ON f.id = s.gpx_file_id
       JOIN gpx_track_points p ON p.segment_id = s.id
+        AND p.point_index IN (
+          SELECT p2.point_index FROM gpx_track_points p2
+            WHERE p2.segment_id = s.id AND p2.latitude BETWEEN :south AND :north AND p2.longitude BETWEEN :west AND :east
+          UNION SELECT p2.point_index - 1 FROM gpx_track_points p2
+            WHERE p2.segment_id = s.id AND p2.point_index > 0 AND p2.latitude BETWEEN :south AND :north AND p2.longitude BETWEEN :west AND :east
+          UNION SELECT p2.point_index + 1 FROM gpx_track_points p2
+            WHERE p2.segment_id = s.id AND p2.latitude BETWEEN :south AND :north AND p2.longitude BETWEEN :west AND :east
+        )
       WHERE r.min_latitude <= :north AND r.max_latitude >= :south
         AND r.min_longitude <= :east AND r.max_longitude >= :west
-        AND p.latitude BETWEEN :south AND :north
-        AND p.longitude BETWEEN :west AND :east
       ORDER BY f.id, s.id, p.point_index`).all({
         west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north
       }) as unknown as Array<{
         file_id: number; relative_file_path: string; file_name: string; file_size: number; modified_at: number;
-        segment_id: number; point_index: number; timestamp_ms: number | null; latitude: number; longitude: number;
+        segment_id: number; point_index: number; timestamp_ms: number | null; latitude: number; longitude: number; in_viewport: number;
       }>;
     const files = new Map<number, {
       id: number; path: string; name: string; sizeBytes: number; lastModified: number;
