@@ -900,7 +900,7 @@ if (parentPort) {
         } else {
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
           processingStage = 'encoding full-size EXR derivative as Ultra HDR JPEG';
-          scrgb.uhdrsave(target, { Q: 90 });
+          encodeScRgbAsUhdr(scrgb, target, 90);
         }
       } else if (sourceExtension === '.hdr') {
         using encodedHdr = vips.Image.newFromFile(source);
@@ -951,7 +951,7 @@ if (parentPort) {
               height
               );
             using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
-            scrgb.uhdrsave(target, { Q: 90 });
+            encodeScRgbAsUhdr(scrgb, target, 90);
           } else {
             encodeScRgbAsUhdr(linearScRgb, target, 90);
           }
@@ -993,10 +993,10 @@ if (parentPort) {
               height
               );
             using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
-            scrgb.uhdrsave(target, { Q: 90 });
+            encodeScRgbAsUhdr(scrgb, target, 90);
           } else {
             using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
-            scrgb.uhdrsave(target, { Q: 90 });
+            encodeScRgbAsUhdr(scrgb, target, 90);
           }
         } else if (width > 0 && height > 0) {
           using thumb = vips.Image.thumbnail(source, width, { height, size: 2, crop: preserveAspectRatio ? 0 : 1 });
@@ -1271,7 +1271,7 @@ if (parentPort) {
             sunCore: summarizePixelRegion(encoderInputPixels, scrgb.width, scrgb.height, 3, sunRegion),
             sunContext: summarizePixelRegion(encoderInputPixels, scrgb.width, scrgb.height, 3, sunContextRegion)
           }, null, 2));
-          scrgb.uhdrsave(target, { Q: 90 });
+          encodeScRgbAsUhdr(scrgb, target, 90);
         }
 
         // Only inspect the full-size JPEG. Thumbnail derivatives are deliberately
