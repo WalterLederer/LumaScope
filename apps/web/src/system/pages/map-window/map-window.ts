@@ -4838,7 +4838,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly openRoutingHelp = (): void => {
-    void this.desktop?.MapWindow.openHelpDocument('features.md');
+    void this.desktop?.MapWindow.openHelpDocument('routing.md');
   };
 
   protected readonly scanResourcePackage = async (): Promise<void> => {
