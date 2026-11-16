@@ -735,6 +735,14 @@ export const supportedFileFormats = [
     details: 'Lossless raster format with transparency and HDR support for high bit-depth images.'
   },
   {
+    name: 'Digital Negative (DNG)',
+    extensions: [ 'dng' ],
+    hdr: false,
+    fullSizeCache: true,
+    bitDepth: 'Depends on camera; commonly 10–16 bit sensor data',
+    details: 'Camera RAW developed by LibRaw to linear 16-bit RGB; RAW dynamic range is not treated as an embedded HDR gain map.'
+  },
+  {
     name: 'Radiance HDR',
     extensions: [ 'hdr' ],
     hdr: true,
