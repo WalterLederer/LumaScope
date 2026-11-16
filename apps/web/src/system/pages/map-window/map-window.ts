@@ -3072,6 +3072,22 @@ export class MapWindow implements OnInit, OnDestroy {
       ? this.offlineRenderer.map.getCenter()
       : this.map!.getCenter();
     if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
+
+    if (this.coordinatesAvailable()) {
+      const oldPosition = this.currentLatitude !== null && this.currentLongitude !== null
+        ? this.formatCoordinates(this.currentLatitude, this.currentLongitude).replace(/^Coordinates: /, '')
+        : 'the existing photo location';
+      const newPosition = center.lat.toFixed(6) + ', ' + center.lng.toFixed(6);
+      const confirmed = window.confirm(
+        'This image already contains GPS information.\n\n' +
+        'Check both positions on the map before continuing:\n' +
+        '• Red crosshair: the newly selected position (' + newPosition + ')\n' +
+        '• Location marker: the existing position from the image (' + oldPosition + ')\n\n' +
+        'Updating the GPS information will replace the existing position. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
     this.gpsSaveBusy.set(true);
     this.gpsSaveStatus.set('');
     try {
