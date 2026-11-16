@@ -78,7 +78,7 @@ For route planning, LumaScope integrates the Valhalla routing engine. Routing co
 
 LumaScope uses a local SQLite database for image-related metadata and cache status. Generated files are stored beside the source collection in a `.cache` sidecar folder, rather than relying on one central cache directory.
 
-The cache system distinguishes thumbnail files from full-size conversions and identifies whether a usable file is stored in a sidecar cache or a parallel folder. It also tracks image and location metadata used by Browse, Image and Location views.
+The cache system distinguishes thumbnail files from full-size conversions and identifies whether a usable file is stored in a sidecar cache or a parallel folder. It also tracks image and location metadata used by Browse, Image and Location views. GPX tracks can additionally be indexed in the same drive-local SQLite database, including their source-file identity, segment boundaries, timestamped points and spatial segment bounds. The Track settings provide a recursive folder import and database totals; see [GPX cache database](docs/gpx-cache.md) for the detailed design and current scope.
 
 The cache is designed to be rebuildable: source images remain the originals, while thumbnails and converted display files are derived data. A writable sidecar location is required when adding a folder to the managed Browse collection.
 
@@ -101,6 +101,7 @@ See [Supported map formats](docs/map-formats.md).
 The Help tab in the application displays this README. The detailed reference tables are maintained as separate Markdown documents:
 
 - [Feature guide](docs/features.md) — Browse, Image View, capture, location, maps, routing, cache and Windows integration.
+- [GPX cache database](docs/gpx-cache.md) — folder import, duplicate detection, SQLite schema, timestamp and spatial indexes, and implementation boundaries.
 - [Supported image formats](docs/image-formats.md) — decoder, HDR support, bit depth and full-size cache behaviour.
 - [Supported map formats](docs/map-formats.md) — map source, online/offline availability and renderer.
 - [Offline resource package format](docs/resource-package-format.md) — exact folder layout, file discovery rules, downloads and data creation for OfflineFiles.
