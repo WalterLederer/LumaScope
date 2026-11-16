@@ -1540,18 +1540,32 @@
 }
 
 
-/* Destructive and file-copy actions use a muted red accent to distinguish them. */
+/* Destructive actions use a subtle red accent. */
 .image-controls-sidebar button.danger-action {
-  border-color: #a94442;
-  background: #8f302e;
-  color: #fff;
+  border-color: color-mix(in srgb, #dc3545 38%, var(--color-content-default-low));
+  background: color-mix(in srgb, #dc3545 14%, Canvas);
+  color: var(--color-content-default);
   font-weight: 600;
 }
 .image-controls-sidebar button.danger-action:hover:not(:disabled) {
-  border-color: #c65b57;
-  background: #a83b38;
+  border-color: color-mix(in srgb, #dc3545 52%, var(--color-content-default-low));
+  background: color-mix(in srgb, #dc3545 21%, Canvas);
 }
 .image-controls-sidebar button.danger-action:disabled {
+  opacity: .45;
+  cursor: default;
+}
+/* The active copy action is distinguished with a restrained blue accent. */
+.image-controls-sidebar button.copy-action-button {
+  border-color: color-mix(in srgb, #0a84ff 38%, var(--color-content-default-low));
+  background: color-mix(in srgb, #0a84ff 14%, Canvas);
+  color: var(--color-content-default);
+}
+.image-controls-sidebar button.copy-action-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #0a84ff 52%, var(--color-content-default-low));
+  background: color-mix(in srgb, #0a84ff 21%, Canvas);
+}
+.image-controls-sidebar button.copy-action-button:disabled {
   opacity: .45;
   cursor: default;
 }
@@ -1612,12 +1626,7 @@
   width: 100%;
   margin-top: 7px;
 }
-:host-context(html[data-theme='light']) .image-controls-sidebar button.danger-action {
-  color: #111;
-}
-:host-context(html[data-theme='light']) .image-controls-sidebar button.danger-action:hover:not(:disabled) {
-  color: #fff;
-}
+
 
 
 /* Image GPS location map */
@@ -1835,8 +1844,15 @@
   user-select: text;
 }
 .image-controls-sidebar .image-copy-path-button {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  display: inline-flex;
+  flex: 0 0 30px;
+  width: 30px;
+  min-width: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px !important;
+  font-size: 17px;
+  line-height: 1;
 }
 
 
