@@ -117,7 +117,8 @@ export class Configuration {
         theme: 'light'
       },
       preferences: {
-        buttonStyle: 'blue'
+        buttonStyle: 'blue',
+        disclosureStyle: 'classic'
       }
     };
   };
