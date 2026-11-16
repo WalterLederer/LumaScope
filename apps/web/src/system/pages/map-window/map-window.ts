@@ -1236,8 +1236,10 @@ interface MapErrorEntry {
               </details>
           </div>
         }
-        <div #map class="map" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
-        @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+        <div class="map-viewport" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'">
+          <div #map class="map" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+          @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+        </div>
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
         }
@@ -1661,7 +1663,8 @@ interface MapErrorEntry {
     .map-content{position:relative;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
     .offline-map-list-view{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;width:100%;overflow:auto;overscroll-behavior:contain;background:var(--color-surface-default-low,#202124)}
     .offline-map-list-view .mbtiles-map-list{flex:1 1 auto;max-height:none;overflow:auto}
-    .map{position:relative;z-index:0;overflow:visible;flex:1 1 auto;width:100%;min-height:0;background:transparent;transition:opacity .12s ease}
+    .map-viewport{position:relative;z-index:0;display:flex;flex:1 1 auto;flex-direction:column;width:100%;min-width:0;min-height:0;overflow:hidden}
+    .map{position:relative;z-index:0;overflow:visible;flex:1 1 auto;width:100%;height:100%;min-height:0;background:transparent;transition:opacity .12s ease}
     .render-init-notice{position:absolute;z-index:1050;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 15px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(20,27,34,.92);color:#fff;font-size:13px;font-weight:600;box-shadow:0 3px 14px #0008;pointer-events:none;white-space:nowrap}
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
