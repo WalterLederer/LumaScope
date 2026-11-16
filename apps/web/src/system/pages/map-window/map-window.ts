@@ -247,10 +247,38 @@ interface MapErrorEntry {
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
       <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
-      <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+      <button type="button" class="gpx-list-action-button" (click)="showGpxFilesVisibleOnMap()" [disabled]="gpxDatabaseQueryBusy()" title="Find GPX files with track points inside the current map viewport">Show GPX files visible on map (DB)</button>
+      @if (gpxListMode() === 'database') {
+        <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
+        <span class="offline-map-status">{{ gpxDatabaseTracks().length }} matching DB file(s)</span>
+      } @else {
+        <button type="button" class="gpx-list-action-button" (click)="selectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Select all</button>
+        <button type="button" class="gpx-list-action-button" (click)="deselectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Deselect all</button>
+        <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+      }
+      @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
+      @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
-    @if (gpxTracks().length > 0) {
+    @if (gpxListMode() === 'database' && gpxDatabaseTracks().length > 0) {
+      <div class="gpx-file-list gpx-database-file-list" role="table" aria-label="GPX files visible on map from database">
+        <div class="gpx-file-row gpx-database-file-row gpx-file-header" role="row">
+          <span role="columnheader">File</span><span role="columnheader">Points in map</span><span role="columnheader">Track time</span><span role="columnheader">File size</span><span role="columnheader">Modified</span><span role="columnheader">Path</span>
+        </div>
+        @for (track of gpxDatabaseTracks(); track track.path) {
+          <div class="gpx-file-row gpx-database-file-row" role="row">
+            <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
+            <span role="cell">{{ gpxWaypointCount(track.path) }}</span>
+            <span class="gpx-time-range" role="cell">{{ gpxTrackTimeRange(track.path) }}</span>
+            <span role="cell">{{ formatGpxFileSize(track.sizeBytes) }}</span>
+            <span role="cell">{{ formatGpxDate(track.lastModified) }}</span>
+            <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span>
+          </div>
+        }
+      </div>
+    } @else if (gpxListMode() === 'database') {
+      <div class="gpx-database-empty">No GPX track points from the database are inside the current map viewport.</div>
+    } @else if (gpxTracks().length > 0) {
       <div class="gpx-file-list" role="table" aria-label="GPX tracks">
         <div class="gpx-file-row gpx-file-header" role="row">
           <span role="columnheader">Actions</span><span role="columnheader">Active</span><span role="columnheader">File</span><span role="columnheader">Waypoints</span><span role="columnheader">Date</span><span role="columnheader">Track time (min – max)</span><span role="columnheader">File size</span><span role="columnheader">Color</span><span role="columnheader">Line</span><span role="columnheader">Width</span><span role="columnheader">Arrows</span><span></span><span></span>
