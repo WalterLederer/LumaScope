@@ -118,6 +118,7 @@ export class Configuration {
       },
       preferences: {
         buttonStyle: 'blue',
+        buttonColor: 'blue',
         disclosureStyle: 'classic',
         tabBarStyle: 'classic'
       }
