@@ -3352,6 +3352,42 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       const checkOnly = this.autoFixCheckOnly();
+      this.autoFixReport.set([]);
+      this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
+      const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
+      if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
+        throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
+      }
+      const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
+      this.activeAutoFixOperationId = operationId;
+      this.autoFixOperationActive.set(true);
+      const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
+        if (checkOnly) {
+          this.autoFixStatus.set('Checking photos against the GPX database… '
+            + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos checked');
+        } else {
+          this.autoFixStatus.set('Fixing missing GPS information… '
+            + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos processed');
+        }
+      });
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60, operationId)
+        .finally(() => {
+          unsubscribeProgress();
+          if (this.activeAutoFixOperationId === operationId) this.activeAutoFixOperationId = null;
+          this.autoFixOperationActive.set(false);
+        });
+      if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
+      const result = response.data;
+      if (result.aborted) this.autoFixStatus.set('Aborted after ' + this.formatAutoFixCount(result.scanned) + ' photos.');
+      const elapsedSeconds = result.elapsedMilliseconds / 1000;
+      const roundedElapsedSeconds = Math.round(elapsedSeconds);
+      const elapsedText = elapsedSeconds < 60
+        ? elapsedSeconds.toFixed(1) + ' s'
+        : Math.floor(roundedElapsedSeconds / 60).toString() + ' min ' + (roundedElapsedSeconds % 60).toString() + ' s';
+      const deviationStats = result.minDeviationSeconds === null
+        ? 'n/a'
+        : result.minDeviationSeconds.toFixed(1) + ' / ' + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
+      if (!result.aborted) this.autoFixStatus.set('');
       this.autoFixReport.set([
         { label: 'Selected start folder', value: result.rootFolder },
         { label: 'Folders scanned (including subfolders)', value: this.formatAutoFixCount(result.totalFoldersProcessed) },
