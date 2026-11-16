@@ -3302,7 +3302,7 @@ export class MapWindow implements OnInit, OnDestroy {
         throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
       }
       const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
-      if (!response.success || !response.data) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
+      if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
       const gpsCounts = 'GPS available: ' + result.withGps.toLocaleString()
         + ' · GPS missing: ' + result.withoutGps.toLocaleString();
