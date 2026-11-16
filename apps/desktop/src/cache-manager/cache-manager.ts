@@ -645,8 +645,8 @@ export class CacheManager {
       ORDER BY (after_timestamp - before_timestamp), segment_id
       LIMIT 1`).get({
         timestamp: timestampMs,
-        minimum: timestampMs - maxDifferenceSeconds * 1000,
-        maximum: timestampMs + maxDifferenceSeconds * 1000
+        minimum: timestampMs - 86_400_000,
+        maximum: timestampMs + 86_400_000
       }) as { segment_id: number; before_timestamp: number; after_timestamp: number } | undefined;
     if (!pair) return null;
     const getPoint = db.prepare(`SELECT latitude, longitude FROM gpx_track_points
@@ -661,7 +661,7 @@ export class CacheManager {
     const afterDelta = Math.abs(pair.after_timestamp - timestampMs) / 1000;
     const deviationSeconds = Math.min(beforeDelta, afterDelta);
     const span = pair.after_timestamp - pair.before_timestamp;
-    if (span < 0 || span > maxDifferenceSeconds * 2000) return null;
+    if (span < 0 || span > 172_800_000) return null;
     if (span === 0) return { latitude: before.latitude, longitude: before.longitude, deviationSeconds };
     const ratio = (timestampMs - pair.before_timestamp) / span;
     return {
