@@ -118,7 +118,8 @@ export class Configuration {
       },
       preferences: {
         buttonStyle: 'blue',
-        disclosureStyle: 'classic'
+        disclosureStyle: 'classic',
+        tabBarStyle: 'classic'
       }
     };
   };
