@@ -335,7 +335,9 @@ interface MapErrorEntry {
             Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
           </span>
         </div>
-        @if (gpxDatabaseImportStatus()) { <span class="offline-map-status" role="status">{{ gpxDatabaseImportStatus() }}</span> }
+        @if (gpxDatabaseImportStatus()) {
+          <span class="offline-map-status gpx-database-import-status" [class.gpx-database-import-progress]="gpxDatabaseImportBusy()" role="status" aria-live="polite">{{ gpxDatabaseImportStatus() }}</span>
+        }
       </details>
       <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
     </details>
@@ -5775,7 +5777,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly importAllGpxTracksToDatabase = async (): Promise<void> => {
     if (!this.desktop || this.gpxDatabaseImportBusy()) return;
     this.gpxDatabaseImportBusy.set(true);
-    this.gpxDatabaseImportStatus.set('Select a folder containing GPX files…');
+    this.gpxDatabaseImportStatus.set('IMPORTING GPX TRACKS — PLEASE WAIT…');
     try {
       const result = await this.desktop.CacheManager.importGpxFolder();
       if (result.cancelled) {
