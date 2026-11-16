@@ -604,7 +604,7 @@ interface MapErrorEntry {
             
             <div class="marker-settings-content">
               <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label>
-              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)" [disabled]="!currentImagePath"> Use all photos in DB</label>
+              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all photos in DB</label>
               <div class="marker-appearance-settings">
                 <div class="marker-setting-row">
                   <span>Cluster Icons:</span>
