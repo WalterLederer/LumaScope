@@ -1846,7 +1846,9 @@ interface MapErrorEntry {
     .fix-location-crosshair-panel .fix-location-toggle{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
     .fix-location-crosshair-row{align-items:center}
     .fix-location-max-difference input{width:64px;min-width:64px;padding:4px 6px;border:1px solid #777;border-radius:4px;background:#202124;color:inherit}
-    .fix-location-automatic-status{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+    .fix-location-progress-row{display:flex;align-items:center;gap:8px;min-width:0;margin-top:6px}
+    .fix-location-automatic-status{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+    .fix-location-abort-button{flex:0 0 auto;white-space:nowrap}
     .fix-location-report-wrap{max-width:100%;overflow-x:auto;margin-top:10px}
     .fix-location-report{width:100%;border-collapse:collapse;font-size:14px;line-height:1.45}
     .fix-location-report th,.fix-location-report td{padding:7px 10px;border:1px solid #555;text-align:left;vertical-align:top}
