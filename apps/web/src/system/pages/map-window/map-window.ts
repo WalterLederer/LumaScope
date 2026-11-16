@@ -257,7 +257,7 @@ interface MapErrorEntry {
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
-      @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info">{{ gpxDatabaseQueryStatus() }}</span> }
+      @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
     </div>
     @if (gpxListMode() === 'database' && gpxDatabaseVisibleTracks().length > 0) {
@@ -1555,6 +1555,7 @@ interface MapErrorEntry {
      .gpx-file-row.gpx-database-file-row{grid-template-columns:minmax(160px,1.2fr) 100px minmax(180px,230px) 90px 145px minmax(220px,2fr);gap:10px}
      .gpx-database-file-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
      .gpx-database-empty{padding:10px 4px;font-size:12px;color:var(--color-content-default-medium,#aaa)}
+     .gpx-database-query-status{max-width:min(100%,520px);white-space:normal;overflow-wrap:anywhere}
      .gpx-advanced-section{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;margin-top:8px!important}
     .gpx-database-import-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;width:100%}.gpx-database-statistics{font-size:12px;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
     .gpx-file-list{display:flex;flex-direction:column;gap:0;width:100%;border-top:1px solid var(--color-content-default-low,#666);border-bottom:1px solid var(--color-content-default-low,#666);border-left:0;border-right:0;border-radius:0;padding:4px 0;box-sizing:border-box}
