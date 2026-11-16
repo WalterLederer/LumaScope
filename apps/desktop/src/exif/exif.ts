@@ -1,7 +1,8 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
-import { open } from 'node:fs/promises';
-import { ApiResponse, ExifTags } from 'internal-api';
+import { open, readdir } from 'node:fs/promises';
+import { extname, join, resolve } from 'node:path';
+import { ApiResponse, ExifTags, FixPhotoLocationsResult } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -52,6 +53,83 @@ export class Exif {
       }
 
       return { success: true, data: undefined };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  @IpcHandler({ name: 'Exif.fixFolderLocations' })
+  readonly fixFolderLocations = async (
+    _event: IpcMainInvokeEvent, folder: string, checkOnly: boolean
+  ): Promise<ApiResponse<FixPhotoLocationsResult>> => {
+    try {
+      if (!folder || typeof folder !== 'string') throw new Error('Select a valid photo folder first.');
+      const root = resolve(folder);
+      const imageExtensions = new Set([
+        '.jpg', '.jpeg', '.tif', '.tiff', '.heic', '.heif', '.png', '.webp',
+        '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf'
+      ]);
+      const candidates: string[] = [];
+      const pending = [root];
+      while (pending.length) {
+        const directory = pending.pop()!;
+        let entries;
+        try { entries = await readdir(directory, { withFileTypes: true }); }
+        catch { continue; }
+        for (const entry of entries) {
+          if (entry.isSymbolicLink()) continue;
+          const path = join(directory, entry.name);
+          if (entry.isDirectory()) {
+            if (!['.cache', '$RECYCLE.BIN', 'System Volume Information', 'node_modules', '.git'].includes(entry.name)) pending.push(path);
+          } else if (entry.isFile() && imageExtensions.has(extname(entry.name).toLowerCase())) {
+            candidates.push(path);
+          }
+        }
+      }
+
+      const result: FixPhotoLocationsResult = {
+        scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0, errors: 0
+      };
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      for (const path of candidates) {
+        result.scanned++;
+        try {
+          const metadata = await this.readPhotoMetadata(path);
+          if (metadata.latitude !== null && metadata.longitude !== null) {
+            result.withGps++;
+            continue;
+          }
+          result.withoutGps++;
+          if (metadata.gpsTimestamp === null) {
+            result.unmatched++;
+            continue;
+          }
+          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000);
+          if (!position) {
+            result.unmatched++;
+            continue;
+          }
+          result.matched++;
+          if (checkOnly) continue;
+
+          await this.exifTool.write(path, {
+            GPSLatitude: Math.abs(position.latitude),
+            GPSLatitudeRef: position.latitude < 0 ? 'South' : 'North',
+            GPSLongitude: Math.abs(position.longitude),
+            GPSLongitudeRef: position.longitude < 0 ? 'West' : 'East'
+          });
+          const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+          const updatedMetadata = await this.readPhotoMetadata(path);
+          await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, updatedMetadata);
+          result.updated++;
+        } catch (error) {
+          result.errors++;
+          console.warn('[Exif] Automatic GPS correction failed:', path, error);
+        }
+        if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
+      }
+      return { success: true, data: result };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
     }
