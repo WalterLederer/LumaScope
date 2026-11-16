@@ -439,3 +439,50 @@ details .app-disclosure,
 
 /* Deeper levels inherit the same rule and step inward again. */
 
+
+
+/* Optional neutral, flat action-button appearance. The default remains the blue gradient. */
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-button-style='flat'] ui-action-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #e8edf2 !important;
+  color: #202a34 !important;
+  border: 1px solid #aeb9c5 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-button-style='flat'] ui-action-button:hover:not(:disabled) {
+  background: #dce4ec !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+html[data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-button-style='flat'] ui-action-button:active:not(:disabled) {
+  background: #d1dbe5 !important;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 12%) !important;
+  transform: none !important;
+}
+
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]),
+html[data-theme='dark'][data-button-style='flat'] ui-action-button {
+  background: #343d48 !important;
+  color: #edf2f7 !important;
+  border-color: #596675 !important;
+}
+
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):hover:not(:disabled),
+html[data-theme='dark'][data-button-style='flat'] ui-action-button:hover:not(:disabled) {
+  background: #414d5b !important;
+}
+
+html[data-theme='dark'][data-button-style='flat'] button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):active:not(:disabled),
+html[data-theme='dark'][data-button-style='flat'] ui-action-button:active:not(:disabled) {
+  background: #2b333d !important;
+}
