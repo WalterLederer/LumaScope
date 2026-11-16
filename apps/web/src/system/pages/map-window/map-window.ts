@@ -747,10 +747,6 @@ interface MapErrorEntry {
         <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
         <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
         <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()"><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
-        <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
-          <input type="checkbox" [checked]="optimizedObfSelectionEnabled()" (change)="changeOptimizedObfSelectionEnabled($any($event.target).checked)" [disabled]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
-          Optimize OBF selection by bounds
-        </label>
         <div class="range-setting render-worker-setting">
           <label for="render-worker-count">Parallel render processes</label>
           <input id="render-worker-count" class="opacity-slider" type="range" min="1" max="4" step="1"
@@ -784,20 +780,6 @@ interface MapErrorEntry {
               <div class="render-helper-activity-empty">No render helper tasks are active or queued.</div>
             }
           </section>
-      @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
-        <div class="active-obf-list-box">
-          <table class="active-obf-list" aria-live="polite">
-            <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
-            <tbody>
-              @for (map of viewportObfMaps(); track map.id) {
-                <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
-              } @empty {
-                <tr><td colspan="2">No matching OBF maps</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
       <div class="render-tile-statistics-box">
       <table class="render-tile-statistics" aria-live="polite">
         
@@ -897,6 +879,29 @@ interface MapErrorEntry {
           </tr>
         </tbody>
       </table>
+        </div>
+      </details>
+      <details class="render-statistics-section app-disclosure optimize-obf-rendering-section">
+        <summary>Optimize OsmAnd .obf rendering</summary>
+        <div class="render-statistics-content">
+          <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+            <input type="checkbox" [checked]="optimizedObfSelectionEnabled()" (change)="changeOptimizedObfSelectionEnabled($any($event.target).checked)" [disabled]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+            Optimize OBF selection by bounds
+          </label>
+          @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+            <div class="active-obf-list-box">
+              <table class="active-obf-list" aria-live="polite">
+                <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
+                <tbody>
+                  @for (map of viewportObfMaps(); track map.id) {
+                    <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
+                  } @empty {
+                    <tr><td colspan="2">No matching OBF maps</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         </div>
       </details>
       </div>
