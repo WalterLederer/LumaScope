@@ -39,7 +39,7 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getGpxDatabaseStats = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseStats(databaseKey);
 
-  readonly getGpxFilesInBounds = (bounds: { west: number; south: number; east: number; north: number }) => window.desktop.CacheManager.getGpxFilesInBounds(bounds);
+  readonly getGpxFilesInBounds = (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => window.desktop.CacheManager.getGpxFilesInBounds(bounds, databaseKey);
 
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
