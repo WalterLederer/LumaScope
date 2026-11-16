@@ -343,3 +343,36 @@ ui-side-panel {
   transform: none !important;
   box-shadow: none !important;
 }
+
+
+/* Override the global primary-button skin on the native button rendered inside
+   ui-action-button. Styling only the custom-element host does not reach that button. */
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button button,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button button {
+  appearance: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: inherit !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button:hover button,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button:hover button,
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button button:hover,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button button:hover,
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button button:active,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button button:active,
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button button:focus-visible,
+:host ::ng-deep .gallery-folder-tree ui-action-button.remove-location-menu-button button:focus-visible {
+  background: rgb(128 128 128 / 14%) !important;
+  background-image: none !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
