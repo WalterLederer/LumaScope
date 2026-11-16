@@ -1506,7 +1506,7 @@ interface MapErrorEntry {
     .render-helper-activity-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;font-size:11px;color:var(--color-content-default-medium,#bbb)}
     .render-helper-activity-heading strong{color:var(--color-content-default-high,#eee);font-size:12px}
     .render-helper-activity-list{display:flex;flex-direction:column;gap:3px;height:120px;max-height:120px;min-height:120px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;align-content:flex-start;box-sizing:border-box}
-    .render-helper-activity-row{display:grid;grid-template-columns:62px minmax(100px,150px) minmax(0,1fr);align-items:center;gap:8px;min-width:0;padding:4px 6px;border-radius:4px;background:var(--color-surface-default-medium,#303238);font-size:11px}
+    .render-helper-activity-row{display:grid;flex:0 0 auto;grid-template-columns:62px minmax(100px,150px) minmax(0,1fr);align-items:center;gap:8px;min-width:0;padding:4px 6px;border-radius:4px;background:var(--color-surface-default-medium,#303238);font-size:11px}
     .render-helper-activity-row.queued{opacity:.72}
     .render-helper-activity-state{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:#8fce9b}
     .render-helper-activity-row.queued .render-helper-activity-state{color:#e0bd78}
