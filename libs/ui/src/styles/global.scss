@@ -575,7 +575,7 @@ html[data-theme='dark'][data-button-style='rounded'] ui-action-button:hover:not(
 }
 
 /* User-selectable disclosure markers for native <details> and custom section headings. */
-html[data-disclosure-style='plain-triangle'] details > summary::before,
+html[data-disclosure-style='plain-triangle'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='plain-triangle'] details.app-disclosure > summary::before,
 html[data-disclosure-style='plain-triangle'] .app-disclosure > summary::before,
 html[data-disclosure-style='plain-triangle'] .app-disclosure-heading::before,
@@ -584,21 +584,21 @@ html[data-disclosure-style='plain-triangle'] .app-disclosure-heading.expanded::b
   border-left-color: currentColor;
 }
 
-html[data-disclosure-style='chevron'] details > summary::before,
+html[data-disclosure-style='chevron'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='chevron'] .app-disclosure-heading::before,
-html[data-disclosure-style='plus-minus'] details > summary::before,
+html[data-disclosure-style='plus-minus'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='plus-minus'] .app-disclosure-heading::before,
-html[data-disclosure-style='square'] details > summary::before,
+html[data-disclosure-style='square'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='square'] .app-disclosure-heading::before,
-html[data-disclosure-style='circle'] details > summary::before,
+html[data-disclosure-style='circle'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='circle'] .app-disclosure-heading::before,
-html[data-disclosure-style='arrow'] details > summary::before,
+html[data-disclosure-style='arrow'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='arrow'] .app-disclosure-heading::before,
-html[data-disclosure-style='caret'] details > summary::before,
+html[data-disclosure-style='caret'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='caret'] .app-disclosure-heading::before,
-html[data-disclosure-style='bracket'] details > summary::before,
+html[data-disclosure-style='bracket'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='bracket'] .app-disclosure-heading::before,
-html[data-disclosure-style='none'] details > summary::before,
+html[data-disclosure-style='none'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='none'] .app-disclosure-heading::before {
   width: 14px;
   height: 14px;
@@ -613,42 +613,42 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
   transform: none !important;
 }
 
-html[data-disclosure-style='chevron'] details > summary::before,
+html[data-disclosure-style='chevron'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='chevron'] .app-disclosure-heading::before { content: '›'; font-size: 22px; }
 html[data-disclosure-style='chevron'] details[open] > summary::before,
 html[data-disclosure-style='chevron'] .app-disclosure-heading.expanded::before { content: '⌄'; }
 
-html[data-disclosure-style='plus-minus'] details > summary::before,
+html[data-disclosure-style='plus-minus'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='plus-minus'] .app-disclosure-heading::before { content: '+'; }
 html[data-disclosure-style='plus-minus'] details[open] > summary::before,
 html[data-disclosure-style='plus-minus'] .app-disclosure-heading.expanded::before { content: '−'; }
 
-html[data-disclosure-style='square'] details > summary::before,
+html[data-disclosure-style='square'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='square'] .app-disclosure-heading::before { content: '⊞'; }
 html[data-disclosure-style='square'] details[open] > summary::before,
 html[data-disclosure-style='square'] .app-disclosure-heading.expanded::before { content: '⊟'; }
 
-html[data-disclosure-style='circle'] details > summary::before,
+html[data-disclosure-style='circle'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='circle'] .app-disclosure-heading::before { content: '⊕'; }
 html[data-disclosure-style='circle'] details[open] > summary::before,
 html[data-disclosure-style='circle'] .app-disclosure-heading.expanded::before { content: '⊖'; }
 
-html[data-disclosure-style='arrow'] details > summary::before,
+html[data-disclosure-style='arrow'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='arrow'] .app-disclosure-heading::before { content: '➜'; font-size: 13px; }
 html[data-disclosure-style='arrow'] details[open] > summary::before,
 html[data-disclosure-style='arrow'] .app-disclosure-heading.expanded::before { content: '⬇'; }
 
-html[data-disclosure-style='caret'] details > summary::before,
+html[data-disclosure-style='caret'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='caret'] .app-disclosure-heading::before { content: '▸'; }
 html[data-disclosure-style='caret'] details[open] > summary::before,
 html[data-disclosure-style='caret'] .app-disclosure-heading.expanded::before { content: '▾'; }
 
-html[data-disclosure-style='bracket'] details > summary::before,
+html[data-disclosure-style='bracket'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='bracket'] .app-disclosure-heading::before { content: '[+]'; width: 20px; flex-basis: 20px; font-size: 11px; }
 html[data-disclosure-style='bracket'] details[open] > summary::before,
 html[data-disclosure-style='bracket'] .app-disclosure-heading.expanded::before { content: '[−]'; }
 
-html[data-disclosure-style='none'] details > summary::before,
+html[data-disclosure-style='none'] :is(details, .app-disclosure) > summary::before,
 html[data-disclosure-style='none'] .app-disclosure-heading::before {
   content: none;
   width: 0;
