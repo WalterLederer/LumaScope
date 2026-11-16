@@ -49,46 +49,46 @@ html[data-button-color='blue'] {
   --button-rounded-bg: #287fc4; --button-rounded-hover: #1e70b2; --button-rounded-active: #185f99;
 }
 html[data-button-color='cyan'] {
-  --button-border: #55c6d8; --button-gradient: linear-gradient(145deg, #57e0ef 0%, #079bbd 52%, #176f9e 100%);
+  --button-border: #55c6d8; --button-gradient: linear-gradient(145deg, #168ca6 0%, #087b9f 52%, #155b84 100%);
   --button-shadow: #075b70; --button-focus: #8cecff; --button-text: #087d9c; --button-border-strong: #159bb8;
   --button-soft-bg: #e0f8fb; --button-soft-text: #075d70; --button-soft-border: #b5e9f0;
-  --button-rounded-bg: #079bbd; --button-rounded-hover: #0787a6; --button-rounded-active: #066f89;
+  --button-rounded-bg: #087b9f; --button-rounded-hover: #076b8a; --button-rounded-active: #055873;
 }
 html[data-button-color='green'] {
-  --button-border: #65bd83; --button-gradient: linear-gradient(145deg, #72df91 0%, #269b59 52%, #176b50 100%);
+  --button-border: #65bd83; --button-gradient: linear-gradient(145deg, #278a4c 0%, #197847 52%, #145b42 100%);
   --button-shadow: #145337; --button-focus: #a4efb7; --button-text: #197342; --button-border-strong: #32965b;
   --button-soft-bg: #e4f6e9; --button-soft-text: #185b34; --button-soft-border: #c0e5cb;
-  --button-rounded-bg: #269b59; --button-rounded-hover: #20864d; --button-rounded-active: #176e3e;
+  --button-rounded-bg: #197847; --button-rounded-hover: #16683d; --button-rounded-active: #115534;
 }
 html[data-button-color='teal'] {
-  --button-border: #59bdb2; --button-gradient: linear-gradient(145deg, #67dfd0 0%, #168f86 52%, #176b78 100%);
+  --button-border: #59bdb2; --button-gradient: linear-gradient(145deg, #167f77 0%, #0e706c 52%, #14535d 100%);
   --button-shadow: #10535a; --button-focus: #9af0e5; --button-text: #08776e; --button-border-strong: #219b91;
   --button-soft-bg: #e1f6f3; --button-soft-text: #145d58; --button-soft-border: #bde5df;
-  --button-rounded-bg: #168f86; --button-rounded-hover: #117b73; --button-rounded-active: #0d655f;
+  --button-rounded-bg: #0e706c; --button-rounded-hover: #0c605d; --button-rounded-active: #094f4c;
 }
 html[data-button-color='orange'] {
-  --button-border: #e7a45b; --button-gradient: linear-gradient(145deg, #ffc36e 0%, #e78320 52%, #b84e24 100%);
+  --button-border: #e7a45b; --button-gradient: linear-gradient(145deg, #bb6a18 0%, #a64e12 52%, #783b1b 100%);
   --button-shadow: #8a3c1b; --button-focus: #ffd29a; --button-text: #a9500b; --button-border-strong: #d47a27;
   --button-soft-bg: #fff1df; --button-soft-text: #81400e; --button-soft-border: #f2d4b1;
-  --button-rounded-bg: #e78320; --button-rounded-hover: #cc7018; --button-rounded-active: #ad5c12;
+  --button-rounded-bg: #a64e12; --button-rounded-hover: #8f430f; --button-rounded-active: #78380c;
 }
 html[data-button-color='red'] {
-  --button-border: #e18b8b; --button-gradient: linear-gradient(145deg, #ff9b9b 0%, #d94b55 52%, #9d3155 100%);
+  --button-border: #e18b8b; --button-gradient: linear-gradient(145deg, #c54b55 0%, #a83749 52%, #782b50 100%);
   --button-shadow: #79243a; --button-focus: #ffb8bd; --button-text: #b52f3c; --button-border-strong: #d24c58;
   --button-soft-bg: #fce8e9; --button-soft-text: #812b33; --button-soft-border: #efc4c7;
-  --button-rounded-bg: #d94b55; --button-rounded-hover: #c53c47; --button-rounded-active: #a92f3a;
+  --button-rounded-bg: #a83749; --button-rounded-hover: #922f40; --button-rounded-active: #782638;
 }
 html[data-button-color='purple'] {
-  --button-border: #aa91df; --button-gradient: linear-gradient(145deg, #c6a8ff 0%, #8256c8 52%, #533e9f 100%);
+  --button-border: #aa91df; --button-gradient: linear-gradient(145deg, #7c56b2 0%, #5d449c 52%, #3d3476 100%);
   --button-shadow: #3e2d7c; --button-focus: #d4bcff; --button-text: #6842a8; --button-border-strong: #8965c7;
   --button-soft-bg: #f0eafb; --button-soft-text: #4d397d; --button-soft-border: #d8c9ef;
-  --button-rounded-bg: #8256c8; --button-rounded-hover: #7046b4; --button-rounded-active: #5d3999;
+  --button-rounded-bg: #5d449c; --button-rounded-hover: #4e3985; --button-rounded-active: #3d2d6b;
 }
 html[data-button-color='gray'] {
-  --button-border: #aab3bd; --button-gradient: linear-gradient(145deg, #c9d0d8 0%, #788594 52%, #505c6a 100%);
+  --button-border: #aab3bd; --button-gradient: linear-gradient(145deg, #657383 0%, #4f5d6e 52%, #374453 100%);
   --button-shadow: #39434f; --button-focus: #d8e0e8; --button-text: #4c5968; --button-border-strong: #8492a2;
   --button-soft-bg: #edf0f3; --button-soft-text: #414b56; --button-soft-border: #cbd2d9;
-  --button-rounded-bg: #788594; --button-rounded-hover: #657382; --button-rounded-active: #505d6b;
+  --button-rounded-bg: #4f5d6e; --button-rounded-hover: #435060; --button-rounded-active: #374453;
 }
 
 /* All windows use the same configurable tab-bar styles. */
