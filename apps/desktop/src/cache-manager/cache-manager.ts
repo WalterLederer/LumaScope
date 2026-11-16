@@ -634,24 +634,34 @@ export class CacheManager {
     const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(folder);
     this.activeDatabaseKey = databaseKey;
-    const before = db.prepare(`SELECT p.segment_id, p.timestamp_ms, p.latitude, p.longitude
-      FROM gpx_track_points p
-      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms <= :timestamp
-      ORDER BY p.timestamp_ms DESC LIMIT 1`).get({ timestamp: timestampMs }) as
-        { segment_id: number; timestamp_ms: number; latitude: number; longitude: number } | undefined;
-    const after = db.prepare(`SELECT p.segment_id, p.timestamp_ms, p.latitude, p.longitude
-      FROM gpx_track_points p
-      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms >= :timestamp
-      ORDER BY p.timestamp_ms ASC LIMIT 1`).get({ timestamp: timestampMs }) as
-        { segment_id: number; timestamp_ms: number; latitude: number; longitude: number } | undefined;
-    if (!before || !after || before.segment_id !== after.segment_id) return null;
-    const beforeDelta = timestampMs - before.timestamp_ms;
-    const afterDelta = after.timestamp_ms - timestampMs;
-    const span = after.timestamp_ms - before.timestamp_ms;
-    // Never interpolate across long gaps or across GPX segment boundaries.
-    if (beforeDelta < 0 || afterDelta < 0 || beforeDelta > 150_000 || afterDelta > 150_000 || span > 300_000) return null;
+    // Find a complete before/after pair inside one segment. This avoids
+    // interpolating between unrelated tracks that happen to overlap in time.
+    const pair = db.prepare(`SELECT segment_id,
+        MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) AS before_timestamp,
+        MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) AS after_timestamp
+      FROM gpx_track_points
+      WHERE timestamp_ms BETWEEN :minimum AND :maximum
+      GROUP BY segment_id
+      HAVING before_timestamp IS NOT NULL AND after_timestamp IS NOT NULL
+      ORDER BY (after_timestamp - before_timestamp), segment_id
+      LIMIT 1`).get({
+        timestamp: timestampMs,
+        minimum: timestampMs - 150_000,
+        maximum: timestampMs + 150_000
+      }) as { segment_id: number; before_timestamp: number; after_timestamp: number } | undefined;
+    if (!pair) return null;
+    const getPoint = db.prepare(`SELECT latitude, longitude FROM gpx_track_points
+      WHERE segment_id = :segmentId AND timestamp_ms = :timestamp
+      ORDER BY point_index LIMIT 1`);
+    const before = getPoint.get({ segmentId: pair.segment_id, timestamp: pair.before_timestamp }) as
+      { latitude: number; longitude: number } | undefined;
+    const after = getPoint.get({ segmentId: pair.segment_id, timestamp: pair.after_timestamp }) as
+      { latitude: number; longitude: number } | undefined;
+    if (!before || !after) return null;
+    const span = pair.after_timestamp - pair.before_timestamp;
+    if (span < 0 || span > 300_000) return null;
     if (span === 0) return { latitude: before.latitude, longitude: before.longitude };
-    const ratio = beforeDelta / span;
+    const ratio = (timestampMs - pair.before_timestamp) / span;
     return {
       latitude: before.latitude + (after.latitude - before.latitude) * ratio,
       longitude: before.longitude + (after.longitude - before.longitude) * ratio
