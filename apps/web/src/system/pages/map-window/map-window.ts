@@ -112,6 +112,7 @@ interface MapErrorEntry {
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)">
           <span>Always on top</span>
         </label>
+        <div class="titlebar-mouse-coordinate" title="Current mouse position on the map">Mouse: {{ mouseCoordinateLabel() || '—' }}</div>
         <div class="map-title"><span class="map-title-icon">⌖</span></div>
         @if (overlayMode) {
           <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
@@ -1322,6 +1323,7 @@ interface MapErrorEntry {
     :host ::ng-deep .maplibregl-ctrl-scale:hover,:host ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
     .scale-visibility-toggle{flex-basis:100%;margin-left:0}
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
+    .titlebar-mouse-coordinate{display:block;flex:0 1 auto;min-width:0;max-width:min(260px,30vw);margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:18px;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums;-webkit-app-region:no-drag}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
     .map-titlebar button,.map-titlebar select,.map-titlebar label,.map-titlebar input{-webkit-app-region:no-drag}
     .titlebar-always-on-top{position:relative;z-index:2147483002;display:flex!important;flex:0 0 auto!important;align-self:center;align-items:center;justify-content:flex-start;gap:6px;min-width:max-content;min-height:24px;margin:0 0 0 4px;padding:0 4px;white-space:nowrap;font-size:12px;line-height:18px;color:var(--color-content-default-high,#eee);visibility:visible!important;opacity:1!important;pointer-events:auto!important}
