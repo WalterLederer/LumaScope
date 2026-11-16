@@ -158,7 +158,25 @@ interface MapErrorEntry {
                       [attr.aria-label]="autoFixProgress().scanned + ' of ' + autoFixProgress().total + ' photos checked">
                       <div class="fix-location-progress-fill" [style.width.%]="autoFixProgressPercent()"></div>
                     </div>
-                    <div class="fix-location-progress-count">{{ formatAutoFixCount(autoFixProgress().scanned) }} / {{ formatAutoFixCount(autoFixProgress().total) }} photos</div>
+                    <div class="fix-location-progress-count">{{ formatAutoFixCount(autoFixProgress().scanned) }} / {{ formatAutoFixCount(autoFixProgress().total) }} photos checked</div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos without GPS found: {{ formatAutoFixCount(autoFixProgress().withoutGps) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().withoutGps)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos without GPS found">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().withoutGps)"></div>
+                      </div>
+                    </div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos with GPS found: {{ formatAutoFixCount(autoFixProgress().withGps) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().withGps)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos with GPS found">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().withGps)"></div>
+                      </div>
+                    </div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos without GPS that can be fixed: {{ formatAutoFixCount(autoFixProgress().matched) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().matched)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos without GPS that can be fixed">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().matched)"></div>
+                      </div>
+                    </div>
                     <div class="fix-location-current-folder">Current folder: {{ autoFixProgress().currentFolder === '.' ? 'Selected start folder' : autoFixProgress().currentFolder }}</div>
                   }
                 }
@@ -1861,7 +1879,10 @@ interface MapErrorEntry {
     .fix-location-progress-track{width:min(100%,760px);height:9px;margin-top:7px;overflow:hidden;border:1px solid color-mix(in srgb,CanvasText 22%,Canvas);border-radius:8px;background:color-mix(in srgb,CanvasText 9%,Canvas)}
     .fix-location-progress-fill{height:100%;border-radius:inherit;background:#4b91d1;transition:width .18s ease}
     .fix-location-progress-count{width:min(100%,760px);margin-top:3px;font-size:11px;color:color-mix(in srgb,CanvasText 72%,Canvas)}
-    .fix-location-current-folder{width:min(100%,760px);margin-top:2px;font-size:11px;color:color-mix(in srgb,CanvasText 72%,Canvas);overflow-wrap:anywhere}
+    .fix-location-counter{width:min(100%,760px);margin-top:6px}
+    .fix-location-counter-label{font-size:11px;color:color-mix(in srgb,CanvasText 82%,Canvas);margin-bottom:2px}
+    .fix-location-counter .fix-location-progress-track{margin-top:0}
+    .fix-location-current-folder{width:min(100%,760px);margin-top:6px;font-size:11px;color:color-mix(in srgb,CanvasText 72%,Canvas);overflow-wrap:anywhere}
     .fix-location-report-wrap{width:min(100%,760px);max-width:100%;overflow-x:auto;margin-top:10px}
     .fix-location-report{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;line-height:1.4}
     .fix-location-report th,.fix-location-report td{padding:5px 7px;border:1px solid #555;text-align:left;vertical-align:top}
@@ -2786,10 +2807,14 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixOperationActive = signal(false);
   protected readonly autoFixStatus = signal('');
   protected readonly autoFixReport = signal<Array<{ label: string; value: string }>>([]);
-  protected readonly autoFixProgress = signal({ scanned: 0, total: 0, currentFolder: '.' });
+  protected readonly autoFixProgress = signal({ scanned: 0, total: 0, withGps: 0, withoutGps: 0, matched: 0, currentFolder: '.' });
   protected readonly autoFixProgressPercent = (): number => {
     const progress = this.autoFixProgress();
     return progress.total > 0 ? Math.min(100, Math.max(0, progress.scanned / progress.total * 100)) : 0;
+  };
+  protected readonly autoFixCountPercent = (count: number): number => {
+    const total = this.autoFixProgress().total;
+    return total > 0 ? Math.min(100, Math.max(0, count / total * 100)) : 0;
   };
   private autoFixOperationSequence = 0;
   private activeAutoFixOperationId: string | null = null;
@@ -3371,7 +3396,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       const checkOnly = this.autoFixCheckOnly();
       this.autoFixReport.set([]);
-      this.autoFixProgress.set({ scanned: 0, total: 0, currentFolder: '.' });
+      this.autoFixProgress.set({ scanned: 0, total: 0, withGps: 0, withoutGps: 0, matched: 0, currentFolder: '.' });
       this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
       const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
       if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
@@ -3380,9 +3405,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
       this.activeAutoFixOperationId = operationId;
       this.autoFixOperationActive.set(true);
-      this.autoFixProgress.set({ scanned: 0, total: 0 });
+      this.autoFixProgress.set({ scanned: 0, total: 0, withGps: 0, withoutGps: 0, matched: 0, currentFolder: '.' });
       const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
-        this.autoFixProgress.set({ scanned: progress.scanned, total: progress.total, currentFolder: progress.currentFolder });
+        this.autoFixProgress.set({ scanned: progress.scanned, total: progress.total, withGps: progress.withGps, withoutGps: progress.withoutGps, matched: progress.matched, currentFolder: progress.currentFolder });
         if (checkOnly) {
           this.autoFixStatus.set('Checking photos against the GPX database… '
             + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos checked');
