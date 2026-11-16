@@ -139,8 +139,17 @@ interface MapErrorEntry {
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
+              <details class="fix-location-automatic-section app-disclosure">
+                <summary class="settings-row-title">Fix location AUTOMATIC</summary>
+                <div class="location-actions fix-location-automatic-actions">
+                  <button type="button" class="map-toolbar-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
+                  <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
+                </div>
+                @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
+                <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files.</div>
+              </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
-                <summary class="settings-row-title">Fix location</summary>
+                <summary class="settings-row-title">Fix location MANUAL</summary>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
                     <div class="fix-location-crosshair-row"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></div>
@@ -393,7 +402,7 @@ interface MapErrorEntry {
         <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
       </div>
       <div class="routing-toolbar-actions">
-        <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
+        <button type="button" class="map-toolbar-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
         <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
       </div>
     </div>
@@ -2709,6 +2718,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly coordinatesAvailable = signal(false);
   protected readonly fixLocationEnabled = signal(false);
   protected readonly fixLocationSectionOpen = signal(true);
+  protected readonly autoFixCheckOnly = signal(false);
+  protected readonly autoFixBusy = signal(false);
+  protected readonly autoFixStatus = signal('');
   protected readonly currentImagePreview = signal<string | null>(null);
   protected readonly currentImageName = signal('');
   private imagePreviewGeneration = 0;
@@ -3261,6 +3273,37 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     }
   }
+
+  protected readonly fixLocationAutomatic = async (): Promise<void> => {
+    if (!this.desktop || this.autoFixBusy()) return;
+    this.autoFixBusy.set(true);
+    this.autoFixStatus.set('Selecting photo folder…');
+    try {
+      const selection = await this.desktop.Dialogs.openFolder();
+      if (!selection.success || !selection.data) {
+        this.autoFixStatus.set('');
+        return;
+      }
+      const checkOnly = this.autoFixCheckOnly();
+      this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly);
+      if (!response.success || !response.data) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
+      const result = response.data;
+      this.autoFixStatus.set(
+        'Scanned ' + result.scanned.toLocaleString() + ' photos · ' +
+        'GPS available: ' + result.withGps.toLocaleString() + ' · ' +
+        'GPS missing: ' + result.withoutGps.toLocaleString() + ' · ' +
+        'GPX matches: ' + result.matched.toLocaleString() +
+        (checkOnly ? ' · Check only — no files changed' : ' · Updated: ' + result.updated.toLocaleString()) +
+        ' · No match: ' + result.unmatched.toLocaleString() +
+        (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
+      );
+    } catch (error) {
+      this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.autoFixBusy.set(false);
+    }
+  };
 
   protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!(this.map || this.offlineRenderer) && !!this.desktop;
 
