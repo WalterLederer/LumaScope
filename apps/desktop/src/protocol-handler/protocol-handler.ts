@@ -147,8 +147,8 @@ const getFullSizeDerivative = async (
   thumbManager: ThumbManager
 ): Promise<string | null> => {
   const extension = extname(fileName).toLowerCase();
-  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ]);
-  const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.jxl', '.png' ]);
+  const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ]);
   if (derivativeExtensions.has(extension)) {
     // Converted files use a shared sibling folder named "jpg", matching the source basename.
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
@@ -185,12 +185,12 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
     const extension = extname(fileName).toLowerCase();
     let source = fileName;
 
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.jxl', '.png' ].includes(extension)) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.jxl', '.png' ].includes(extension)) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const isTiff = [ '.tif', '.tiff' ].includes(extension);
-      const tag = `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
+      const tag = extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
       const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
       if (signal?.aborted) {
@@ -332,12 +332,12 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
   }
 
   try {
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ].includes(extname(fileName).toLowerCase())) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ].includes(extname(fileName).toLowerCase())) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const extension = extname(fileName).toLowerCase();
-      const cacheTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const cacheTag = extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const cacheEntry = cacheManager.exists(fileName, cacheTag);
       let wasCacheHit = false;
       if (cacheEntry && typeof cacheEntry['target_path'] === 'string' && existsSync(cacheEntry['target_path'])) {
