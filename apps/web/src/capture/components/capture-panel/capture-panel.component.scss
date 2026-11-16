@@ -4,6 +4,36 @@
   height: 100%;
 }
 
+.capture-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 30px;
+  margin-bottom: 4px;
+}
+
+.capture-help-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  color: #fff;
+  background: #2478c8;
+  border: 1px solid #1765ad;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 30%);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.capture-help-button:hover {
+  background: #1765ad;
+}
+
 .capture-panel {
   display: flex;
   flex-direction: column;
