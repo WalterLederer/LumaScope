@@ -310,6 +310,7 @@ ui-side-panel {
 }
 
 :host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button:hover,
+:host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button:active,
 :host ::ng-deep .gallery-folder-tree ui-action-button.add-location-menu-button:focus-within {
   background: rgb(128 128 128 / 14%) !important;
   filter: none !important;
