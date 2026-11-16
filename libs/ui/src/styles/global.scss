@@ -73,7 +73,7 @@ details.app-disclosure > summary,
   padding: 0;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.4;
   list-style: disclosure-closed;
   cursor: pointer;
@@ -84,6 +84,7 @@ details > summary::marker,
 details.app-disclosure > summary::marker,
 .app-disclosure > summary::marker {
   font-size: 0.75em;
+  color: rgb(190 105 105 / 78%);
 }
 
 details[open] > summary,
@@ -91,6 +92,13 @@ details.app-disclosure[open] > summary,
 .app-disclosure[open] > summary {
   list-style: disclosure-open;
   margin-bottom: 4px;
+  font-weight: 700;
+}
+
+details[open] > summary::marker,
+details.app-disclosure[open] > summary::marker,
+.app-disclosure[open] > summary::marker {
+  color: rgb(105 170 125 / 78%);
 }
 
 /* Button-based disclosure markers stay compact and align with native summary markers. */
@@ -102,7 +110,7 @@ details.app-disclosure[open] > summary,
   padding: 0;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.4;
   list-style: none;
   cursor: pointer;
@@ -118,8 +126,13 @@ details.app-disclosure[open] > summary,
   border-bottom: 4px solid transparent;
   border-left: 5px solid currentColor;
   transform-origin: 2px 4px;
+  border-left-color: rgb(190 105 105 / 78%);
+}
+.app-disclosure-heading.expanded {
+  font-weight: 700;
 }
 .app-disclosure-heading.expanded::before {
+  border-left-color: rgb(105 170 125 / 78%);
   transform: rotate(90deg);
 }
 
