@@ -1,8 +1,9 @@
-import { app, type IpcMainInvokeEvent } from 'electron';
+import { app, dialog, type IpcMainInvokeEvent } from 'electron';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { appendFile, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
@@ -373,6 +374,172 @@ export class CacheManager {
     return { total, resolved, pending, inProgress, errors, status,
       currentFilePath: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingPath : null,
       currentDisplayName: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingDisplayName : null };
+  };
+
+  @IpcHandler({ name: 'CacheManager.importGpxFolder' })
+  readonly importGpxFolder = async (): Promise<{
+    folder: string | null; files: number; segments: number; points: number;
+    imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean;
+  }> => {
+    const selection = await dialog.showOpenDialog({
+      title: 'Add all GPX tracks from folder to cache database',
+      properties: ['openDirectory']
+    });
+    if (selection.canceled || !selection.filePaths[0]) {
+      return { folder: null, files: 0, segments: 0, points: 0, imported: 0, unchanged: 0, duplicates: 0, errors: 0, cancelled: true };
+    }
+
+    const folder = resolve(selection.filePaths[0]);
+    const databaseKey = this.databaseKeyForPath(folder);
+    const db = this.databaseForPath(folder);
+    this.activeDatabaseKey = databaseKey;
+    const driveRoot = resolve(databaseKey + '\\\\');
+    const candidates: string[] = [];
+    const pending = [folder];
+    while (pending.length) {
+      const directory = pending.pop()!;
+      let entries;
+      try { entries = await readdir(directory, { withFileTypes: true }); }
+      catch { continue; }
+      for (const entry of entries) {
+        if (entry.isSymbolicLink()) continue;
+        const fullPath = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (!['.cache', '$RECYCLE.BIN', 'System Volume Information', 'node_modules', '.git'].includes(entry.name)) pending.push(fullPath);
+        } else if (entry.isFile() && extname(entry.name).toLowerCase() === '.gpx') {
+          candidates.push(fullPath);
+        }
+      }
+    }
+
+    let imported = 0, unchanged = 0, duplicates = 0, errors = 0;
+    const findByPath = db.prepare('SELECT id, content_hash, file_size, modified_at FROM gpx_files WHERE relative_file_path = :path COLLATE NOCASE');
+    const findByHash = db.prepare('SELECT id, relative_file_path FROM gpx_files WHERE content_hash = :hash');
+    const deleteFile = db.prepare('DELETE FROM gpx_files WHERE id = :id');
+    const insertFile = db.prepare(`INSERT INTO gpx_files
+      (relative_file_path, file_name, file_size, modified_at, content_hash, imported_at, point_count, segment_count)
+      VALUES (:path, :name, :size, :modified, :hash, :importedAt, :points, :segments)`);
+    const insertSegment = db.prepare(`INSERT INTO gpx_track_segments
+      (gpx_file_id, segment_index, point_count, start_timestamp_ms, end_timestamp_ms)
+      VALUES (:fileId, :index, :count, :start, :end)`);
+    const insertPoint = db.prepare(`INSERT INTO gpx_track_points
+      (segment_id, point_index, timestamp_ms, latitude, longitude, elevation_m)
+      VALUES (:segmentId, :index, :timestamp, :latitude, :longitude, :elevation)`);
+    const insertBounds = db.prepare(`INSERT OR REPLACE INTO gpx_segment_rtree
+      (segment_id, min_latitude, max_latitude, min_longitude, max_longitude)
+      VALUES (:id, :minLat, :maxLat, :minLon, :maxLon)`);
+
+    for (const filePath of candidates) {
+      try {
+        const absolute = resolve(filePath);
+        const relativePath = relative(driveRoot, absolute);
+        if (!relativePath || relativePath === '..' || relativePath.startsWith('..' + sep) || isAbsolute(relativePath)) {
+          errors++;
+          continue;
+        }
+        const info = await stat(absolute);
+        const xml = await readFile(absolute, 'utf8');
+        const hash = createHash('sha256').update(xml).digest('hex');
+        const existing = findByPath.get({ path: relativePath }) as { id: number; content_hash: string | null; file_size: number; modified_at: number } | undefined;
+        if (existing?.content_hash === hash) {
+          unchanged++;
+          continue;
+        }
+        const duplicate = findByHash.get({ hash }) as { id: number; relative_file_path: string } | undefined;
+        if (duplicate && duplicate.id !== existing?.id) {
+          duplicates++;
+          continue;
+        }
+
+        const pointPattern = /<(?:[\w.-]+:)?(trkpt|rtept)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/(?:[\w.-]+:)?\1\s*>)/gi;
+        const parsePoints = (content: string): Array<{ latitude: number; longitude: number; timestamp: number | null; elevation: number | null }> => {
+          const points: Array<{ latitude: number; longitude: number; timestamp: number | null; elevation: number | null }> = [];
+          let match: RegExpExecArray | null;
+          while ((match = pointPattern.exec(content)) !== null) {
+            const lat = Number(/\blat\s*=\s*["']([^"']+)["']/i.exec(match[2])?.[1]);
+            const lon = Number(/\blon\s*=\s*["']([^"']+)["']/i.exec(match[2])?.[1]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+            const body = match[3] ?? '';
+            const timeText = /<(?:[\w.-]+:)?time\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?time\s*>/i.exec(body)?.[1]?.trim();
+            const elevationText = /<(?:[\w.-]+:)?ele\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?ele\s*>/i.exec(body)?.[1]?.trim();
+            const timestamp = timeText ? Date.parse(timeText) : Number.NaN;
+            const elevation = elevationText ? Number(elevationText) : Number.NaN;
+            points.push({ latitude: lat, longitude: lon, timestamp: Number.isFinite(timestamp) ? timestamp : null, elevation: Number.isFinite(elevation) ? elevation : null });
+          }
+          pointPattern.lastIndex = 0;
+          return points;
+        };
+        const segmentPattern = /<(?:[\w.-]+:)?trkseg\b[^>]*>([\s\S]*?)<\/(?:[\w.-]+:)?trkseg\s*>/gi;
+        const segments: ReturnType<typeof parsePoints>[] = [];
+        let segmentMatch: RegExpExecArray | null;
+        while ((segmentMatch = segmentPattern.exec(xml)) !== null) {
+          const points = parsePoints(segmentMatch[1]);
+          if (points.length) segments.push(points);
+        }
+        if (!segments.length) {
+          const points = parsePoints(xml);
+          if (points.length) segments.push(points);
+        }
+        const pointCount = segments.reduce((total, segment) => total + segment.length, 0);
+        if (!pointCount) { errors++; continue; }
+
+        db.exec('BEGIN IMMEDIATE;');
+        try {
+          if (existing) deleteFile.run({ id: existing.id });
+          const fileResult = insertFile.run({
+            path: relativePath.replace(/[\\/]+/g, '\\\\'), name: basename(absolute),
+            size: info.size, modified: Math.trunc(info.mtimeMs), hash, importedAt: Date.now(),
+            points: pointCount, segments: segments.length
+          });
+          const fileId = Number(fileResult.lastInsertRowid);
+          for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+            const points = segments[segmentIndex];
+            const times = points.map(point => point.timestamp).filter((value): value is number => value !== null);
+            const segmentResult = insertSegment.run({
+              fileId, index: segmentIndex, count: points.length,
+              start: times.length ? Math.min(...times) : null,
+              end: times.length ? Math.max(...times) : null
+            });
+            const segmentId = Number(segmentResult.lastInsertRowid);
+            let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+            for (let pointIndex = 0; pointIndex < points.length; pointIndex++) {
+              const point = points[pointIndex];
+              insertPoint.run({
+                segmentId, index: pointIndex, timestamp: point.timestamp,
+                latitude: point.latitude, longitude: point.longitude, elevation: point.elevation
+              });
+              minLat = Math.min(minLat, point.latitude); maxLat = Math.max(maxLat, point.latitude);
+              minLon = Math.min(minLon, point.longitude); maxLon = Math.max(maxLon, point.longitude);
+            }
+            insertBounds.run({ id: segmentId, minLat, maxLat, minLon, maxLon });
+          }
+          db.exec('COMMIT;');
+          imported++;
+        } catch (error) {
+          try { db.exec('ROLLBACK;'); } catch { /* Preserve the import error. */ }
+          throw error;
+        }
+      } catch {
+        errors++;
+      }
+    }
+
+    const counts = db.prepare(`SELECT
+      (SELECT COUNT(*) FROM gpx_files) AS files,
+      (SELECT COUNT(*) FROM gpx_track_segments) AS segments,
+      (SELECT COUNT(*) FROM gpx_track_points) AS points`).get() as { files: number; segments: number; points: number };
+    return { folder, ...counts, imported, unchanged, duplicates, errors, cancelled: false };
+  };
+
+  @IpcHandler({ name: 'CacheManager.getGpxDatabaseStats' })
+  readonly getGpxDatabaseStats = async (_event?: IpcMainInvokeEvent, databaseKey?: string): Promise<{ files: number; segments: number; points: number }> => {
+    const key = databaseKey ?? this.activeDatabaseKey;
+    if (!key || !/^[a-z]:$/i.test(key)) return { files: 0, segments: 0, points: 0 };
+    const db = this.databases.get(key.toUpperCase()) ?? this.databaseForPath(key.toUpperCase() + '\\\\');
+    return db.prepare(`SELECT
+      (SELECT COUNT(*) FROM gpx_files) AS files,
+      (SELECT COUNT(*) FROM gpx_track_segments) AS segments,
+      (SELECT COUNT(*) FROM gpx_track_points) AS points`).get() as { files: number; segments: number; points: number };
   };
 
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
