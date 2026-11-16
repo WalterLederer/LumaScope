@@ -122,7 +122,14 @@ export class Exif {
           event.sender.send('Exif.fixFolderLocationsProgress', {
             scanned: result.scanned, total: candidates.length,
             withGps: result.withGps, withoutGps: result.withoutGps, matched: result.matched,
-            currentFolder
+            unmatched: result.unmatched, ignoredTooFar: result.ignoredTooFar,
+            updated: result.updated, errors: result.errors,
+            totalFilesProcessed: result.totalFilesProcessed, totalFoldersProcessed: result.totalFoldersProcessed,
+            minDeviationSeconds: deviations.length ? Math.min(...deviations) : null,
+            meanDeviationSeconds: deviations.length ? deviations.reduce((sum, value) => sum + value, 0) / deviations.length : null,
+            maxDeviationSeconds: deviations.length ? Math.max(...deviations) : null,
+            elapsedMilliseconds: Date.now() - startedAt,
+            rootFolder: root, currentFolder
           });
         } catch { /* The requesting window may have closed. */ }
       };
@@ -178,7 +185,6 @@ export class Exif {
           if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
         }
       }
-      if (result.scanned % 100 !== 0) sendProgress();
       result.elapsedMilliseconds = Date.now() - startedAt;
       if (operationId) this.cancelledLocationFixes.delete(operationId);
       if (deviations.length) {
@@ -186,6 +192,7 @@ export class Exif {
         result.meanDeviationSeconds = deviations.reduce((sum, value) => sum + value, 0) / deviations.length;
         result.maxDeviationSeconds = Math.max(...deviations);
       }
+      sendProgress(result.scanned ? candidates[result.scanned - 1] : undefined);
       return { success: true, data: result };
     } catch (error) {
       if (operationId) this.cancelledLocationFixes.delete(operationId);
