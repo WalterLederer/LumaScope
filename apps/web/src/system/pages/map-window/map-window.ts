@@ -5847,12 +5847,12 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     const bounds = {
-      west: Math.max(-180, mapBounds.getWest()),
+      west: mapBounds.getWest(),
       south: Math.max(-90, mapBounds.getSouth()),
-      east: Math.min(180, mapBounds.getEast()),
+      east: mapBounds.getEast(),
       north: Math.min(90, mapBounds.getNorth())
     };
-    if (bounds.west > bounds.east) {
+    if (bounds.west < -180 || bounds.east > 180 || bounds.west > bounds.east) {
       this.gpxDatabaseQueryStatus.set('The current map viewport crosses the date line; this query is not supported yet.');
       return;
     }
