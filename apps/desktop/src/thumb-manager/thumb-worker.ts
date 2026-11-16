@@ -149,7 +149,7 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
   return libRawConstructorPromise;
 }
 
-/** Develop a camera RAW file to 16-bit RGB with LibRaw's standard display gamma. */
+/** Develop a camera RAW file to 16-bit linear RGB without an SDR display transfer curve. */
 async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.Image> {
   const LibRaw = await getLibRawConstructor();
   const decoder = new LibRaw();
@@ -164,8 +164,10 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
     decoder.setUseCameraWb(1);
     decoder.setOutputColor(1);
     decoder.setOutputBps(16);
-    decoder.setGamma(0, 0.45);
-    decoder.setGamma(1, 4.5);
+    // Keep the RAW development output linear. The usual 0.45/4.5 curve is an SDR
+    // display transform and would discard the linear-light values needed downstream
+    // for HDR rendering and tone mapping.
+    decoder.setGamma(1, 1);
     decoder.setNoAutoBright(1);
     decoder.unpack();
     decoder.dcrawProcess();
