@@ -2122,6 +2122,14 @@
 }
 
 
+/* Keep the favourite tree's overflow (three-dot) menu trigger neutral rather than primary-blue. */
+:host(.browse-layout) .browse-favourites-tree ::ng-deep button[aria-haspopup='menu'] {
+  background: transparent !important;
+  color: inherit !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 /* The Browse tab's right sidebar is dedicated to favourite folder navigation. */
 :host(.browse-layout) .browse-favourites-tree {
   display: block;
