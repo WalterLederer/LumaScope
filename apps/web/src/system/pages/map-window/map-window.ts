@@ -1500,12 +1500,12 @@ interface MapErrorEntry {
     @media(max-width:900px){.gpx-file-list{overflow-x:auto}.gpx-file-row{min-width:1360px;grid-template-columns:54px 30px minmax(140px,1fr) 58px 90px minmax(245px,290px) 65px 120px 105px 62px 150px 32px 28px;gap:4px}.gpx-file-row select{max-width:100%;min-width:0;padding:3px 2px;font-size:11px}.gpx-direction-arrow-icon{background:transparent;border:0}.gpx-direction-arrow{display:block;font-size:15px;line-height:16px;font-weight:700;text-shadow:-1px -1px 2px #fff,1px 1px 2px #fff;}}
     .view-rerender-section .view-rerender-layout{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:12px;min-width:0}
     .view-rerender-section .render-worker-setting{flex-basis:100%;max-width:360px}
-    .view-rerender-section .render-statistics-section{flex:1 1 100%;min-width:0;margin-top:4px}
+    .view-rerender-section .render-statistics-section{flex:1 1 100%;min-width:0;margin-top:0}
     .view-rerender-section .render-statistics-content{display:flex;flex-direction:column;gap:10px;min-width:0;padding-top:8px}
     .render-helper-activity{min-width:0;border:1px solid var(--color-content-default-low,#555);border-radius:6px;padding:8px 10px;background:var(--color-surface-default-low,#202124)}
     .render-helper-activity-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;font-size:11px;color:var(--color-content-default-medium,#bbb)}
     .render-helper-activity-heading strong{color:var(--color-content-default-high,#eee);font-size:12px}
-    .render-helper-activity-list{display:flex;flex-direction:column;gap:3px}
+    .render-helper-activity-list{display:flex;flex-direction:column;gap:3px;height:120px;max-height:120px;min-height:120px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;align-content:flex-start;box-sizing:border-box}
     .render-helper-activity-row{display:grid;grid-template-columns:62px minmax(100px,150px) minmax(0,1fr);align-items:center;gap:8px;min-width:0;padding:4px 6px;border-radius:4px;background:var(--color-surface-default-medium,#303238);font-size:11px}
     .render-helper-activity-row.queued{opacity:.72}
     .render-helper-activity-state{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:#8fce9b}
@@ -1513,7 +1513,7 @@ interface MapErrorEntry {
     .render-helper-activity-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#bbb);font-variant-numeric:tabular-nums}
     .render-helper-activity-empty{padding:5px 2px;font-size:11px;color:var(--color-content-default-medium,#999)}
     @media(max-width:620px){.render-helper-activity-row{grid-template-columns:55px minmax(80px,110px) minmax(0,1fr);gap:5px}}
-    .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
+    .view-rerender-section .optimize-obf-rendering-section{margin-top:-12px}\n     .view-rerender-section .render-statistics-section>summary{user-select:text;-webkit-user-select:text;cursor:pointer}\n     .view-rerender-section .view-rerender-actions{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-width:0}
     .view-rerender-section .view-rerender-actions .visibility-toggle{align-self:flex-start}
     .view-rerender-section .offline-map-status{max-width:none;flex:0 0 auto}
     @media(max-width:620px){.view-rerender-section .view-rerender-layout{flex-wrap:wrap}.view-rerender-section .render-tile-statistics-box{max-width:100%}}
