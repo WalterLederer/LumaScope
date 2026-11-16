@@ -164,7 +164,7 @@ interface MapErrorEntry {
                     </table>
                   </div>
                 }
-                <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
+                <div class="fix-location-help offline-map-status">Only photos without existing GPS coordinates are matched against GPX tracks; photos that already contain GPS are counted separately and skipped. A GPX match requires track points before and after the photo time in the same track segment. “No usable GPX match” means no such pair was found within the search window. “Rejected by the time limit” counts candidates that were found but whose nearest track point was farther away than the configured maximum time difference. Check only reports results without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
               </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location MANUAL</summary>
