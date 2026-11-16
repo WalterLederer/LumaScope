@@ -124,7 +124,10 @@ public static class LumaScopeWindowClose {
                 [IntPtr]::Zero
             )
 
-            if ($closePosted -and $process.WaitForExit(5000)) {
+            # Electron first flushes queued settings writes in before-quit. This can
+            # take longer than a short UI-close timeout, especially when backups are
+            # created on slower or busy drives. Give the graceful shutdown 30 seconds.
+            if ($closePosted -and $process.WaitForExit(30000)) {
                 Write-Host "LumaScope PID $processId closed normally." -ForegroundColor DarkGray
             }
             else {
@@ -133,7 +136,7 @@ public static class LumaScopeWindowClose {
                     Write-Warning "Could not send the taskbar-style close command to LumaScope PID $processId (Win32 error $lastError)."
                 }
                 else {
-                    Write-Warning "LumaScope PID $processId did not exit within 5 seconds; force-stopping its process tree now."
+                    Write-Warning "LumaScope PID $processId did not exit within 30 seconds; force-stopping its process tree now."
                 }
 
                 & taskkill.exe /PID $processId /T /F 1>$null 2>$null
