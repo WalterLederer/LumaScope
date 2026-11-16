@@ -72,7 +72,21 @@ button:is(
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step
+  .zoom-step,
+  .gpx-open-button,
+  .offline-map-remove-button,
+  .file-path-copy-button,
+  .mbtiles-remove-button,
+  .map-display-notice-close,
+  .copy-action-button,
+  .copy-confirm-button,
+  .gpx-fit-button,
+  .routing-point-move-button,
+  .time-slider-symbol-snap,
+  .status-location-button,
+  .show-controls-sidebar,
+  .markdown-open-file-button,
+  .markdown-home-button
 ) {
   appearance: none !important;
   -webkit-appearance: none !important;
@@ -100,7 +114,21 @@ button:is(
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step
+  .zoom-step,
+  .gpx-open-button,
+  .offline-map-remove-button,
+  .file-path-copy-button,
+  .mbtiles-remove-button,
+  .map-display-notice-close,
+  .copy-action-button,
+  .copy-confirm-button,
+  .gpx-fit-button,
+  .routing-point-move-button,
+  .time-slider-symbol-snap,
+  .status-location-button,
+  .show-controls-sidebar,
+  .markdown-open-file-button,
+  .markdown-home-button
 ):hover:not(:disabled) {
   filter: brightness(1.18) !important;
   transform: translateY(-1px) !important;
@@ -120,7 +148,21 @@ button:is(
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step
+  .zoom-step,
+  .gpx-open-button,
+  .offline-map-remove-button,
+  .file-path-copy-button,
+  .mbtiles-remove-button,
+  .map-display-notice-close,
+  .copy-action-button,
+  .copy-confirm-button,
+  .gpx-fit-button,
+  .routing-point-move-button,
+  .time-slider-symbol-snap,
+  .status-location-button,
+  .show-controls-sidebar,
+  .markdown-open-file-button,
+  .markdown-home-button
 ):active:not(:disabled) {
   transform: translateY(1px) !important;
   box-shadow: inset 0 2px 3px rgb(0 0 0 / 25%), 0 1px 0 #174b7d !important;
@@ -140,7 +182,21 @@ button:is(
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step
+  .zoom-step,
+  .gpx-open-button,
+  .offline-map-remove-button,
+  .file-path-copy-button,
+  .mbtiles-remove-button,
+  .map-display-notice-close,
+  .copy-action-button,
+  .copy-confirm-button,
+  .gpx-fit-button,
+  .routing-point-move-button,
+  .time-slider-symbol-snap,
+  .status-location-button,
+  .show-controls-sidebar,
+  .markdown-open-file-button,
+  .markdown-home-button
 ):disabled {
   cursor: not-allowed !important;
   filter: grayscale(.55) brightness(.72) !important;
@@ -161,7 +217,21 @@ button:is(
   .zoom-step-button,
   .status-action-button,
   .view-mode-button,
-  .zoom-step
+  .zoom-step,
+  .gpx-open-button,
+  .offline-map-remove-button,
+  .file-path-copy-button,
+  .mbtiles-remove-button,
+  .map-display-notice-close,
+  .copy-action-button,
+  .copy-confirm-button,
+  .gpx-fit-button,
+  .routing-point-move-button,
+  .time-slider-symbol-snap,
+  .status-location-button,
+  .show-controls-sidebar,
+  .markdown-open-file-button,
+  .markdown-home-button
 ):focus-visible {
   outline: 2px solid #75c5ff !important;
   outline-offset: 2px !important;
