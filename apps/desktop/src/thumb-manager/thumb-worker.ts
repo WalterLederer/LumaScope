@@ -155,9 +155,14 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
   const decoder = new LibRaw();
   await decoder.waitUntilReady();
 
+  let decoderDisposed = false;
+  let linearPixels: Float32Array;
+  let width = 0;
+  let height = 0;
+
   try {
-    const input = await readFile(source);
-    const inputBuffer = new ArrayBuffer(input.byteLength);
+    let input: Buffer | null = await readFile(source);
+    let inputBuffer: ArrayBuffer | null = new ArrayBuffer(input.byteLength);
     new Uint8Array(inputBuffer).set(input);
 
     decoder.open(inputBuffer);
@@ -173,34 +178,29 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
     decoder.dcrawProcess();
 
     const decoded = decoder.dcrawMakeMemImage();
-    const expectedBytes = decoded.width * decoded.height * decoded.colors * 2;
+    width = decoded.width;
+    height = decoded.height;
+    const expectedBytes = width * height * decoded.colors * 2;
 
     if (decoded.type_ !== 'LIBRAW_IMAGE_BITMAP' || decoded.bits !== 16 ||
-      decoded.colors !== 3 || decoded.width <= 0 || decoded.height <= 0 ||
+      decoded.colors !== 3 || width <= 0 || height <= 0 ||
       decoded.data_size !== expectedBytes || decoded.data.byteLength < expectedBytes) {
       throw new Error(
-        `LibRaw returned an unsupported DNG image (${decoded.width}x${decoded.height}, ${decoded.colors} channels, ${decoded.bits} bits).`
+        `LibRaw returned an unsupported DNG image (${width}x${height}, ${decoded.colors} channels, ${decoded.bits} bits).`
       );
     }
 
-    const sourcePixels = new Uint16Array(decoded.width * decoded.height * 3);
+    // Read LibRaw's WASM-backed bitmap directly. Avoid an intermediate Uint16Array:
+    // the extra full-frame copy can add tens of megabytes for modern phone DNGs.
     const data = new DataView(decoded.data.buffer, decoded.data.byteOffset, expectedBytes);
-
-    for (let index = 0; index < sourcePixels.length; index++) {
-      sourcePixels[index] = data.getUint16(index * 2, true);
-    }
-
-    // LibRaw's 16-bit bitmap is linear here, but writing it directly to JPEG
-    // makes it look like an ordinary SDR image and clips the HDR pipeline at 1.0.
-    // Estimate a scene exposure from the median linear luminance (18% grey) and
-    // retain values above scRGB reference white instead of clamping them.
+    const pixelCount = width * height;
     const luminanceHistogram = new Uint32Array(4096);
-    const pixelCount = decoded.width * decoded.height;
+
     for (let pixel = 0; pixel < pixelCount; pixel++) {
-      const offset = pixel * 3;
-      const red = sourcePixels[offset] / 65535;
-      const green = sourcePixels[offset + 1] / 65535;
-      const blue = sourcePixels[offset + 2] / 65535;
+      const offset = pixel * 6;
+      const red = data.getUint16(offset, true) / 65535;
+      const green = data.getUint16(offset + 2, true) / 65535;
+      const blue = data.getUint16(offset + 4, true) / 65535;
       const luminance = Math.max(0, 0.2126 * red + 0.7152 * green + 0.0722 * blue);
       luminanceHistogram[Math.min(4095, Math.floor(luminance * 4095))]++;
     }
@@ -216,21 +216,34 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
     const medianLuminance = Math.max(0.0001, (medianBin + 0.5) / 4095);
     // scRGB 1.0 represents 80 cd/m²; 0.225 is approximately 18 cd/m².
     const exposure = Math.max(0.25, Math.min(16, 0.225 / medianLuminance));
-    const linearPixels = new Float32Array(sourcePixels.length);
-    for (let index = 0; index < sourcePixels.length; index++) {
-      linearPixels[index] = sourcePixels[index] / 65535 * exposure;
+    linearPixels = new Float32Array(pixelCount * 3);
+    for (let pixel = 0; pixel < pixelCount; pixel++) {
+      const sourceOffset = pixel * 6;
+      const targetOffset = pixel * 3;
+      linearPixels[targetOffset] = data.getUint16(sourceOffset, true) / 65535 * exposure;
+      linearPixels[targetOffset + 1] = data.getUint16(sourceOffset + 2, true) / 65535 * exposure;
+      linearPixels[targetOffset + 2] = data.getUint16(sourceOffset + 4, true) / 65535 * exposure;
     }
 
-    return vips.Image.newFromMemory(
-      linearPixels,
-      decoded.width,
-      decoded.height,
-      3,
-      vips.BandFormat.float
-    ).copy({ interpretation: vips.Interpretation.scrgb });
-  } finally {
+    // Release LibRaw's large WASM heap allocations before libvips allocates its
+    // Float32 image. Keeping both decoder heaps alive caused OOM on phone DNGs.
+    inputBuffer = null;
+    input = null;
     decoder.dispose();
+    decoderDisposed = true;
+  } finally {
+    if (!decoderDisposed) {
+      decoder.dispose();
+    }
   }
+
+  return vips.Image.newFromMemory(
+    linearPixels!,
+    width,
+    height,
+    3,
+    vips.BandFormat.float
+  ).copy({ interpretation: vips.Interpretation.scrgb });
 }
 
 
