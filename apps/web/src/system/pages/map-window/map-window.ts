@@ -111,6 +111,7 @@ interface MapErrorEntry {
         <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
           <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top
         </label>
+        <div class="map-title"><span class="map-title-icon">⌖</span></div>
         @if (overlayMode) {
           <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
         }
