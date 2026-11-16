@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ButtonStyle, Desktop } from 'internal-api';
+import { ButtonStyle, Desktop, DisclosureStyle } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -17,6 +17,8 @@ export class ThemeService {
   readonly current = signal<AppTheme>(this.readInitialTheme());
 
   readonly buttonStyle = signal<ButtonStyle>('blue');
+
+  readonly disclosureStyle = signal<DisclosureStyle>('classic');
 
   private readInitialTheme(): AppTheme {
     try {
@@ -41,6 +43,7 @@ export class ThemeService {
         this.setTheme(config.system.theme ?? 'light', false);
         const style = config.preferences?.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
         this.applyButtonStyle(style);
+        this.applyDisclosureStyle(config.preferences?.disclosureStyle ?? 'classic');
       });
   }
 
@@ -54,6 +57,16 @@ export class ThemeService {
     this.applyButtonStyle(style);
     this.configuration.updatePreferencesConfig({ buttonStyle: style });
   };
+
+  readonly setDisclosureStyle = (style: DisclosureStyle) => {
+    this.applyDisclosureStyle(style);
+    this.configuration.updatePreferencesConfig({ disclosureStyle: style });
+  };
+
+  private applyDisclosureStyle(style: DisclosureStyle): void {
+    this.disclosureStyle.set(style);
+    this.document.documentElement.dataset['disclosureStyle'] = style;
+  }
 
   private applyButtonStyle(style: ButtonStyle): void {
     this.buttonStyle.set(style);
