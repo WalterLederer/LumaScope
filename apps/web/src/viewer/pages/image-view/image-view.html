@@ -488,7 +488,10 @@
       }
 @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'actions') {
         <section class="image-actions-section">
-          <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
+          <details class="delete-file-section app-disclosure">
+            <summary class="section-heading">Delete file</summary>
+            <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
+          </details>
           <section class="copy-file-section app-disclosure">
               <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('copy')" type="button" (click)="toggleSidebarSection('copy')">Copy file</button>
               @if (sidebarSectionExpanded('copy')) {
