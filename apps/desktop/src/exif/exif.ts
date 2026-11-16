@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
-import { extname, join, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 import { ApiResponse, ExifTags, FixPhotoLocationsResult } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -114,9 +114,14 @@ export class Exif {
         aborted: false
       };
       const deviations: number[] = [];
-      const sendProgress = (): void => {
+      let lastProgressFolder = '';
+      const sendProgress = (currentPhotoPath?: string): void => {
+        const currentFolder = currentPhotoPath ? (relative(root, dirname(currentPhotoPath)) || '.') : '.';
+        lastProgressFolder = currentFolder;
         try {
-          event.sender.send('Exif.fixFolderLocationsProgress', { scanned: result.scanned, total: candidates.length });
+          event.sender.send('Exif.fixFolderLocationsProgress', {
+            scanned: result.scanned, total: candidates.length, currentFolder
+          });
         } catch { /* The requesting window may have closed. */ }
       };
       sendProgress();
@@ -166,7 +171,8 @@ export class Exif {
           result.errors++;
           console.warn('[Exif] Automatic GPS correction failed:', path, error);
         } finally {
-          if (result.scanned % 100 === 0) sendProgress();
+          const currentFolder = relative(root, dirname(path)) || '.';
+          if (result.scanned % 100 === 0 || currentFolder !== lastProgressFolder) sendProgress(path);
           if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
         }
       }
