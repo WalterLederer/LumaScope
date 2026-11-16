@@ -328,6 +328,7 @@ interface MapErrorEntry {
         <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
           {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
         </button>
+        <button type="button" class="routing-help-button" (click)="openGpxCacheHelp()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
         <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
           Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
         </span>
@@ -4579,6 +4580,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openResourcePackageHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('resource-package-format.md');
+  };
+
+  protected readonly openGpxCacheHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('gpx-cache.md');
   };
 
   protected readonly openRoutingHelp = (): void => {
