@@ -144,6 +144,7 @@ interface MapErrorEntry {
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label>
+                  <label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="autoFixMaxDifferenceMinutes.set(Number($any($event.target).value))"></label>
                 </div>
                 @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
                 <div class="fix-location-help offline-map-status">Matches photo capture times with the imported GPX tracks and interpolates positions within the same track segment. Photos that already contain GPS coordinates are never changed. Check only reports counts and matches without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
@@ -2719,6 +2720,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly fixLocationEnabled = signal(false);
   protected readonly fixLocationSectionOpen = signal(true);
   protected readonly autoFixCheckOnly = signal(false);
+  protected readonly autoFixMaxDifferenceMinutes = signal(2);
   protected readonly autoFixBusy = signal(false);
   protected readonly autoFixStatus = signal('');
   protected readonly currentImagePreview = signal<string | null>(null);
@@ -3286,18 +3288,28 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       const checkOnly = this.autoFixCheckOnly();
       this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
-      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly);
+      const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
+      if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
+        throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
+      }
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60);
       if (!response.success || !response.data) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
       const gpsCounts = 'GPS available: ' + result.withGps.toLocaleString()
         + ' · GPS missing: ' + result.withoutGps.toLocaleString();
-      this.autoFixStatus.set(checkOnly
-        ? 'Check only — no files changed · ' + gpsCounts
-        : 'Scanned ' + result.scanned.toLocaleString() + ' photos · ' + gpsCounts +
-          ' · GPX matches: ' + result.matched.toLocaleString() +
-          ' · Updated: ' + result.updated.toLocaleString() +
-          ' · No match: ' + result.unmatched.toLocaleString() +
-          (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
+      const deviationStats = result.minDeviationSeconds === null
+        ? 'Time deviation min/mean/max: n/a'
+        : 'Time deviation min/mean/max: ' + result.minDeviationSeconds.toFixed(1) + ' / '
+          + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
+      this.autoFixStatus.set(
+        (checkOnly ? 'Check only — no files changed' : 'Scanned ' + result.scanned.toLocaleString() + ' photos') +
+        ' · ' + gpsCounts +
+        ' · GPX matches within limit: ' + result.matched.toLocaleString() +
+        ' · No GPX match: ' + result.unmatched.toLocaleString() +
+        ' · Ignored (time difference too high): ' + result.ignoredTooFar.toLocaleString() +
+        ' · ' + deviationStats +
+        (checkOnly ? '' : ' · Updated: ' + result.updated.toLocaleString()) +
+        (result.errors ? ' · Errors: ' + result.errors.toLocaleString() : '')
       );
     } catch (error) {
       this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
