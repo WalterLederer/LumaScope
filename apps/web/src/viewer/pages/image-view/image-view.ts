@@ -3520,7 +3520,12 @@ export class ImageView {
         if (isTextEntryTarget) return;
 
         if (event.key === 'Escape') {
-          this.goBack();
+          // Escape is the main-window shortcut for returning to Browse.
+          // Dialogs and text-entry controls are handled above and retain ownership.
+          if (this.activeImageSidebarTab() !== 'gallery') {
+            event.preventDefault();
+            this.setActiveImageSidebarTab('gallery');
+          }
           return;
         }
 
