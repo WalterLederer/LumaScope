@@ -51,7 +51,7 @@ button:not(.app-disclosure-heading),
 ui-action-button {
   border: 1px solid var(--color-content-default-low) !important;
   border-radius: 4px !important;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 28%), inset 0 1px 0 rgb(255 255 255 / 5%) !important;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 255 255 / 8%) !important;
 }
 
 /* Reusable disclosure component.
@@ -68,7 +68,7 @@ details.app-disclosure,
   padding: 6px 10px !important;
   border: 1px solid var(--color-content-default-low) !important;
   border-radius: 6px !important;
-  background: transparent;
+  background: color-mix(in srgb, CanvasText 6%, Canvas) !important;
   color: var(--color-content-default-high);
 }
 
@@ -79,7 +79,7 @@ details.app-disclosure > summary,
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  column-gap: 8px !important;
+  column-gap: 5px !important;
   margin: 0;
   padding: 0 !important;
   font-family: inherit;
@@ -163,15 +163,14 @@ details.app-disclosure[open] > summary::before,
   font-weight: 700 !important;
 }
 
-/* Nested button-based disclosures are visually indented within their parent section. */
-.app-disclosure-heading.is-nested {
+/* Every nested disclosure keeps the shared frame and fill, with one indentation step. */
+details details,
+details .app-disclosure,
+.app-disclosure details,
+.app-disclosure .app-disclosure {
   width: calc(100% - 16px);
-  margin-left: 16px;
+  margin: 8px 0 0 16px !important;
 }
 
-/* Disclosure sections are flush; nesting is indicated by indentation, not spacing. */
-details details,
-.app-disclosure .app-disclosure {
-  margin: 0;
-}
+/* Deeper levels inherit the same rule and step inward again. */
 
