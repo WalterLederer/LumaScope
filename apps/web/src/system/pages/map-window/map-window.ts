@@ -1331,6 +1331,7 @@ interface MapErrorEntry {
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
     .settings-toggle{height:28px;white-space:nowrap;flex:0 0 auto}
+    .map-titlebar>.settings-toggle.app-disclosure-heading{width:auto!important;max-width:max-content;min-width:max-content;flex:0 0 auto!important}
     .map-settings{position:relative;z-index:2147483000;display:block;padding:0 10px 8px;background:var(--color-surface-default-low,#252629);border-bottom:0;box-sizing:border-box;height:max-content;min-height:max-content;max-height:none;overflow:visible;resize:none;flex:0 0 auto}
     .settings-tabs{flex:0 0 auto;overflow-x:auto;white-space:nowrap;margin:0 -10px 8px;padding:0 10px}
     .settings-tabs .settings-tab{margin:0!important}
