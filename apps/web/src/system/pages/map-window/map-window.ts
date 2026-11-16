@@ -152,6 +152,14 @@ interface MapErrorEntry {
                     <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div>
                     @if (autoFixOperationActive()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
                   </div>
+                  @if (autoFixOperationActive()) {
+                    <div class="fix-location-progress-track" role="progressbar"
+                      [attr.aria-valuenow]="autoFixProgressPercent()" aria-valuemin="0" aria-valuemax="100"
+                      [attr.aria-label]="autoFixProgress().scanned + ' of ' + autoFixProgress().total + ' photos checked">
+                      <div class="fix-location-progress-fill" [style.width.%]="autoFixProgressPercent()"></div>
+                    </div>
+                    <div class="fix-location-progress-count">{{ formatAutoFixCount(autoFixProgress().scanned) }} / {{ formatAutoFixCount(autoFixProgress().total) }} photos</div>
+                  }
                 }
                 @if (autoFixReport().length) {
                   <div class="fix-location-report-wrap">
@@ -164,7 +172,7 @@ interface MapErrorEntry {
                     </table>
                   </div>
                 }
-                <div class="fix-location-help offline-map-status">Only photos without existing GPS coordinates are matched against GPX tracks; photos that already contain GPS are counted separately and skipped. A GPX match requires track points before and after the photo time in the same track segment. “No usable GPX match” means no such pair was found within the search window. “Rejected by the time limit” counts candidates that were found but whose nearest track point was farther away than the configured maximum time difference. Check only reports results without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
+                <div class="fix-location-help offline-map-status">GPS availability here refers to coordinates embedded in the photo files themselves (EXIF/XMP), not GPS records in the LumaScope cache database. Photos whose files already contain GPS coordinates are counted separately and skipped. A GPX match requires track points before and after the photo time in the same track segment. “No usable GPX match” means no such pair was found within the search window. “Rejected by the time limit” counts candidates that were found but whose nearest track point was farther away than the configured maximum time difference. Check only reports results without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
               </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location MANUAL</summary>
@@ -1849,6 +1857,9 @@ interface MapErrorEntry {
     .fix-location-progress-row{display:flex;align-items:center;gap:8px;min-width:0;margin-top:6px}
     .fix-location-automatic-status{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
     .fix-location-abort-button{flex:0 0 auto;white-space:nowrap}
+    .fix-location-progress-track{width:min(100%,760px);height:9px;margin-top:7px;overflow:hidden;border:1px solid color-mix(in srgb,CanvasText 22%,Canvas);border-radius:8px;background:color-mix(in srgb,CanvasText 9%,Canvas)}
+    .fix-location-progress-fill{height:100%;border-radius:inherit;background:#4b91d1;transition:width .18s ease}
+    .fix-location-progress-count{width:min(100%,760px);margin-top:3px;font-size:11px;color:color-mix(in srgb,CanvasText 72%,Canvas)}
     .fix-location-report-wrap{width:min(100%,760px);max-width:100%;overflow-x:auto;margin-top:10px}
     .fix-location-report{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;line-height:1.4}
     .fix-location-report th,.fix-location-report td{padding:5px 7px;border:1px solid #555;text-align:left;vertical-align:top}
@@ -2773,6 +2784,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixOperationActive = signal(false);
   protected readonly autoFixStatus = signal('');
   protected readonly autoFixReport = signal<Array<{ label: string; value: string }>>([]);
+  protected readonly autoFixProgress = signal({ scanned: 0, total: 0 });
+  protected readonly autoFixProgressPercent = (): number => {
+    const progress = this.autoFixProgress();
+    return progress.total > 0 ? Math.min(100, Math.max(0, progress.scanned / progress.total * 100)) : 0;
+  };
   private autoFixOperationSequence = 0;
   private activeAutoFixOperationId: string | null = null;
   protected readonly currentImagePreview = signal<string | null>(null);
@@ -3353,6 +3369,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       const checkOnly = this.autoFixCheckOnly();
       this.autoFixReport.set([]);
+      this.autoFixProgress.set({ scanned: 0, total: 0 });
       this.autoFixStatus.set(checkOnly ? 'Checking photos against the GPX database…' : 'Fixing missing GPS information… Please wait.');
       const maxDifferenceMinutes = this.autoFixMaxDifferenceMinutes();
       if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
@@ -3361,7 +3378,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
       this.activeAutoFixOperationId = operationId;
       this.autoFixOperationActive.set(true);
+      this.autoFixProgress.set({ scanned: 0, total: 0 });
       const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
+        this.autoFixProgress.set({ scanned: progress.scanned, total: progress.total });
         if (checkOnly) {
           this.autoFixStatus.set('Checking photos against the GPX database… '
             + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos checked');
@@ -3395,7 +3414,7 @@ export class MapWindow implements OnInit, OnDestroy {
         { label: 'Photo files checked', value: this.formatAutoFixCount(result.scanned) },
         { label: 'Runtime', value: elapsedText },
         { label: 'Result', value: result.aborted ? 'Aborted — partial results' : checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
-        { label: 'Photos already containing GPS coordinates', value: this.formatAutoFixCount(result.withGps) },
+        { label: 'Photos whose files already contain GPS coordinates', value: this.formatAutoFixCount(result.withGps) },
         { label: 'Photos missing GPS coordinates', value: this.formatAutoFixCount(result.withoutGps) },
         { label: 'Photos matched to GPX within the time limit', value: this.formatAutoFixCount(result.matched) },
         { label: 'Photos with no usable GPX match', value: this.formatAutoFixCount(result.unmatched) },
