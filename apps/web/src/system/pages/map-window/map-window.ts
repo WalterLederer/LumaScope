@@ -468,6 +468,7 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
   <div class="settings-tab-content time-slider-tab">
+    <div class="time-slider-tab-toolbar"><button type="button" class="routing-help-button" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button></div>
     <div class="time-slider-settings">
       @if (timeSliderHasData()) {
         <div class="time-slider-readouts">
@@ -1888,7 +1889,7 @@ interface MapErrorEntry {
     .routing-travel-mode-card{display:flex;flex-direction:column;align-items:stretch;gap:5px;flex:0 0 auto;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
     .routing-travel-mode-label{font-size:12px;font-weight:600}
     .routing-gpx-read-button{font-size:11px;padding:6px 8px}
-    .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.marker-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.routing-help-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:23px!important;font-weight:800!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.routing-help-button:hover{filter:brightness(1.18)!important;transform:translateY(-1px)!important}.routing-help-button:active{transform:translateY(1px)!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d!important}.routing-help-button span{display:block!important;line-height:1!important}
+    .routing-tab-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;margin-bottom:2px}.marker-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.time-slider-tab-toolbar{display:flex;justify-content:flex-end;align-items:center;min-height:30px;margin-bottom:4px}.routing-help-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:23px!important;font-weight:800!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.55)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.routing-help-button:hover{filter:brightness(1.18)!important;transform:translateY(-1px)!important}.routing-help-button:active{transform:translateY(1px)!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.25),0 1px 0 #174b7d!important}.routing-help-button span{display:block!important;line-height:1!important}
     .routing-advanced{margin-top:12px;padding-top:8px;border-top:1px solid var(--color-content-default-low,#555)}.routing-advanced summary{cursor:pointer;font-size:12px;font-weight:600;padding:4px 0 8px}.routing-advanced .routing-provider-row{display:flex;align-items:center;gap:10px;width:100%;margin-top:6px;min-width:0}.routing-advanced .routing-provider-card{flex:0 1 280px;width:min(280px,100%);min-width:0;margin:0}.routing-advanced .routing-gpx-read-button{flex:0 0 auto;margin:0}
     .routing-travel-mode-control{display:flex;align-items:center;gap:9px}.routing-travel-mode-control select{min-width:112px}
     .routing-travel-mode-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:38px;font-size:32px;line-height:1}
@@ -4802,6 +4803,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openPhotoMarkersTabHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('photo-markers-tab.md');
+  };
+
+  protected readonly openTimeSliderHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('time-slider.md');
   };
 
   protected readonly openRoutingHelp = (): void => {
