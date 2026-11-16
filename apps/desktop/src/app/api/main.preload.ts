@@ -80,7 +80,8 @@ const api: Desktop = {
 
   Exif: {
     read: (path: string) => ipcRenderer.invoke('Exif.read', path),
-    writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude)
+    writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
+    fixFolderLocations: (folder: string, checkOnly: boolean) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly)
   },
 
   CacheManager: {
@@ -109,6 +110,7 @@ const api: Desktop = {
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxFilesInBounds', bounds, databaseKey),
+    getInterpolatedGpxPosition: (folder: string, timestampMs: number) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs),
     getOsmAndTileCacheSummary: () => ipcRenderer.invoke('CacheManager.getOsmAndTileCacheSummary')
   },
 
