@@ -25,10 +25,11 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'hdr-full-uhdr': 14,
   'exr-full-uhdr-v2': 15,
   'tif-full-hdr-v6': 16,
-  'tiff-full-hdr-v6': 17
+  'tiff-full-hdr-v6': 17,
+  'dng-full-raw-v1': 18
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
-const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff' ]);
+const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ]);
 
 export interface CacheSummary {
   total: CacheClearResult;
@@ -818,7 +819,7 @@ export class CacheManager {
       // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
-      const expectedFullSizeTag = `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const expectedFullSizeTag = `${extension === '.dng' ? 'dng-full-raw-v1' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`;
       const metadata = metadataByPath.get(sourceName);
       const sourceMatches = !metadata || (!!row && row.file_size === metadata.size && row.modified_at === metadata.modifiedAt);
       const getStatus = (kind: 'thumbnail' | 'fullsize') => {
