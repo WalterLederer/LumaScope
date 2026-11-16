@@ -522,7 +522,7 @@
         </section>
       }
 @if (activeImageSidebarTab() === 'general') {
-      <section>@if(sidebarSectionExpanded('general')){<div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div><app-settings-panel mode="general" />}</section>
+      <section>@if(sidebarSectionExpanded('general')){<div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div><label class="setting-toggle image-flat-buttons-toggle"><input type="checkbox" [checked]="themeService.flatStandardButtons()" (change)="themeService.setFlatStandardButtons($any($event.target).checked)" /><span>Use flat standard buttons</span></label><app-settings-panel mode="general" />}</section>
       }
       @if (activeImageSidebarTab() === 'help') {
         <app-markdown-viewer [initialDocument]="helpDocument()" />
