@@ -1291,6 +1291,11 @@
 }
 
 
+/* Keep the General/Cache/Help group at the right edge of the main tab bar. */
+.image-controls-sidebar .image-sidebar-tabs button[role="tab"].tabs-right-start {
+  margin-left:auto !important;
+}
+
 /* Content-sized tabs; preserve full labels and keep the selected tab blue. */
 .image-controls-sidebar .image-sidebar-tabs button[role="tab"] {
   margin:0 !important;
