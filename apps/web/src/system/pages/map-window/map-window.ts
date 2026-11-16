@@ -184,6 +184,7 @@ interface MapErrorEntry {
                     <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
                       {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
                     </button>
+                    <button type="button" class="routing-help-button" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
                   </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
@@ -4788,6 +4789,10 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openLocationFixAutomaticHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('location-fix-automatic.md');
+  };
+
+  protected readonly openOfflineAddressSearchHelp = (): void => {
+    void this.desktop?.MapWindow.openHelpDocument('offline-address-search.md');
   };
 
   protected readonly openRoutingHelp = (): void => {
