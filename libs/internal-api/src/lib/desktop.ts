@@ -30,6 +30,7 @@ export interface DesktopProcessManager {
   readonly getAppVersion: () => Promise<string>;
   readonly getAppSettings: () => Promise<Record<string, unknown>>;
   readonly setAppSettingsSection: (section: string, values: Record<string, unknown>) => Promise<void>;
+  readonly onAppSettingsChanged: (callback: (section: string, values: Record<string, unknown>) => void) => () => void;
   readonly isPackaged: () => Promise<boolean>;
   readonly getDevToolsOpen: () => Promise<boolean>;
   readonly setDevToolsOpen: (open: boolean) => Promise<void>;
