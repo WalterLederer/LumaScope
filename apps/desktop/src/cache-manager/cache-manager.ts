@@ -891,6 +891,45 @@ export class CacheManager {
     }));
   };
 
+  @IpcHandler({ name: 'CacheManager.getPhotoLocationsInBounds' })
+  readonly getPhotoLocationsInBounds = async (
+    _event: IpcMainInvokeEvent,
+    bounds: { west: number; south: number; east: number; north: number },
+    requestedDatabaseKey: string
+  ): Promise<PhotoLocation[]> => {
+    if (!bounds || ![bounds.west, bounds.south, bounds.east, bounds.north].every(Number.isFinite)
+      || bounds.south < -90 || bounds.north > 90 || bounds.south > bounds.north
+      || bounds.west < -180 || bounds.west > 180 || bounds.east < -180 || bounds.east > 180
+      || bounds.west > bounds.east) {
+      throw new Error('A valid map viewport is required.');
+    }
+    const databaseKey = requestedDatabaseKey?.toUpperCase();
+    if (!databaseKey || !/^[A-Z]:$/.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
+    const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\');
+    this.activeDatabaseKey = databaseKey;
+    const rows = db.prepare(\`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
+        paths.relative_folder_path,
+        location_names.display_name AS location_display_name
+      FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
+      WHERE photos.latitude BETWEEN :south AND :north
+        AND photos.longitude BETWEEN :west AND :east
+      ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE\`)
+      .all({ west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north }) as unknown as Array<{
+        file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null;
+        relative_folder_path: string; location_display_name: string | null;
+      }>;
+    return rows.map(row => ({
+      path: join(this.resolveStoredFolderPath(row.relative_folder_path, databaseKey), row.file_name),
+      fileName: row.file_name,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      gpsTimestamp: row.gps_timestamp,
+      displayName: row.location_display_name
+    }));
+  };
+
   @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
