@@ -147,7 +147,12 @@ interface MapErrorEntry {
                   <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
                   <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 </div>
-                @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
+                @if (autoFixStatus()) {
+                  <div class="fix-location-progress-row">
+                    <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div>
+                    @if (autoFixBusy()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
+                  </div>
+                }
                 @if (autoFixReport().length) {
                   <div class="fix-location-report-wrap">
                     <table class="fix-location-report">
@@ -2761,6 +2766,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixBusy = signal(false);
   protected readonly autoFixStatus = signal('');
   protected readonly autoFixReport = signal<Array<{ label: string; value: string }>>([]);
+  private autoFixOperationSequence = 0;
+  private activeAutoFixOperationId: string | null = null;
   protected readonly currentImagePreview = signal<string | null>(null);
   protected readonly currentImageName = signal('');
   private imagePreviewGeneration = 0;
@@ -3318,6 +3325,13 @@ export class MapWindow implements OnInit, OnDestroy {
     this.autoFixMaxDifferenceMinutes.set(value.trim() === '' ? 0 : Number(value));
   };
 
+  protected readonly abortAutomaticLocationFix = (): void => {
+    const operationId = this.activeAutoFixOperationId;
+    if (!operationId || !this.desktop) return;
+    this.autoFixStatus.set('Aborting…');
+    this.desktop.Exif.cancelFixFolderLocations(operationId);
+  };
+
   protected readonly fixLocationAutomatic = async (): Promise<void> => {
     if (!this.desktop || this.autoFixBusy()) return;
     this.autoFixBusy.set(true);
@@ -3335,16 +3349,25 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!Number.isFinite(maxDifferenceMinutes) || maxDifferenceMinutes < 0 || maxDifferenceMinutes > 1440) {
         throw new Error('Maximum time difference must be between 0 and 1440 minutes.');
       }
+      const operationId = Date.now().toString(36) + '-' + (++this.autoFixOperationSequence).toString(36);
+      this.activeAutoFixOperationId = operationId;
       const unsubscribeProgress = this.desktop.Exif.onFixFolderLocationsProgress(progress => {
         if (checkOnly) {
           this.autoFixStatus.set('Checking photos against the GPX database… '
             + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos checked');
+        } else {
+          this.autoFixStatus.set('Fixing missing GPS information… '
+            + progress.scanned.toLocaleString() + ' / ' + progress.total.toLocaleString() + ' photos processed');
         }
       });
-      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60)
-        .finally(unsubscribeProgress);
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60, operationId)
+        .finally(() => {
+          unsubscribeProgress();
+          if (this.activeAutoFixOperationId === operationId) this.activeAutoFixOperationId = null;
+        });
       if (!response.success) throw new Error(response.errorMessage || 'Automatic GPS correction failed.');
       const result = response.data;
+      if (result.aborted) this.autoFixStatus.set('Aborted after ' + result.scanned.toLocaleString() + ' photos.');
       const elapsedSeconds = result.elapsedMilliseconds / 1000;
       const elapsedText = elapsedSeconds < 60
         ? elapsedSeconds.toFixed(1) + ' s'
@@ -3352,14 +3375,14 @@ export class MapWindow implements OnInit, OnDestroy {
       const deviationStats = result.minDeviationSeconds === null
         ? 'n/a'
         : result.minDeviationSeconds.toFixed(1) + ' / ' + result.meanDeviationSeconds!.toFixed(1) + ' / ' + result.maxDeviationSeconds!.toFixed(1) + ' s';
-      this.autoFixStatus.set('');
+      if (!result.aborted) this.autoFixStatus.set('');
       this.autoFixReport.set([
         { label: 'Start folder', value: result.rootFolder },
         { label: 'Folders processed', value: result.totalFoldersProcessed.toLocaleString() },
         { label: 'Files processed', value: result.totalFilesProcessed.toLocaleString() },
         { label: 'Photo files checked', value: result.scanned.toLocaleString() },
         { label: 'Runtime', value: elapsedText },
-        { label: 'Result', value: checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
+        { label: 'Result', value: result.aborted ? 'Aborted — partial results' : checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
         { label: 'GPS available', value: result.withGps.toLocaleString() },
         { label: 'GPS missing', value: result.withoutGps.toLocaleString() },
         { label: 'GPX matches within limit', value: result.matched.toLocaleString() },
