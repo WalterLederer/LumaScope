@@ -1277,9 +1277,9 @@
   border-bottom-color:#50535b;
 }
 :host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-tabs button[role="tab"] {
-  background:#383b42 !important;
-  border-color:#50535b !important;
-  color:#f5f5f5 !important;
+  background:#343d48 !important;
+  border-color:#505b68 !important;
+  color:#dce6ef !important;
 }
 :host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-tabs button[role="tab"].active {
   background:#202124 !important;
@@ -1314,11 +1314,12 @@
   background:#f7f7f7 !important;
 }
 :host-context(html[data-theme='light']) .image-controls-sidebar .image-sidebar-tabs button[role="tab"]:not(.active) {
-  background:#dedede !important;
-  border-color:#bdbdbd !important;
+  background:#e5edf5 !important;
+  border-color:#cbd8e5 !important;
+  color:#34495a !important;
 }
 :host-context(html[data-theme='light']) .image-controls-sidebar .image-sidebar-tabs button[role="tab"]:not(.active):hover {
-  background:#d3d3d3 !important;
+  background:#d9e5f0 !important;
 }
 
 
