@@ -545,6 +545,7 @@
 @if (activeImageSidebarTab() === 'general') {
       <section class="app-disclosure image-preferences-section">
           <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('preferences')" type="button" (click)="toggleSidebarSection('preferences')">
+            <span class="image-preferences-disclosure-marker" [attr.data-style]="themeService.disclosureStyle()" [class.expanded]="sidebarSectionExpanded('preferences')" aria-hidden="true"></span>
             Preferences
           </button>
           @if (sidebarSectionExpanded('preferences')) {
