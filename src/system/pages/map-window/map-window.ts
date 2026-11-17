@@ -73,11 +73,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
           <div class="settings-group opacity-settings">
             <label class="range-setting">Map opacity <span>{{ mapOpacity() }}%</span>
-              <ui-slider [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" (valueChange)="changeMapOpacity($event)" aria-label="Map opacity" />
+              <ui-slider [color]="themeService.sliderColor()" [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" (valueChange)="changeMapOpacity($event)" aria-label="Map opacity" />
             </label>
           
             <label class="range-setting">Track opacity <span>{{ gpxOpacity() }}%</span>
-              <ui-slider [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" (valueChange)="changeGpxOpacity($event)" aria-label="Track opacity" />
+              <ui-slider [color]="themeService.sliderColor()" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" (valueChange)="changeGpxOpacity($event)" aria-label="Track opacity" />
             </label></div>
           <div class="settings-group">
             <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
@@ -129,11 +129,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .external-map-select{max-width:125px;height:27px;padding:3px 5px;font-size:11px}.external-map-open{font-size:17px}
     button,select{font:inherit;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#383a3f);border:1px solid var(--color-content-default-low,#555);border-radius:4px;padding:4px 8px}
     button{cursor:pointer}button:hover,.settings-toggle.active{background:var(--color-surface-default-medium,#4b5260);border-color:#8ab4f8}
-    .settings-toggle{height:28px;white-space:nowrap}.settings-toggle span{margin-left:3px}
+    .settings-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:104px;flex:0 0 auto;height:28px;padding:4px 10px;white-space:nowrap;box-sizing:border-box}.settings-toggle span{margin:0}
     .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    select{max-width:170px}.range-setting{min-width:150px}.range-setting ui-slider{width:100px;min-width:0}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
+    select{max-width:170px}.range-setting{min-width:150px}.range-setting ui-slider{flex:0 1 100px;width:100px;min-width:0}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .gpx-settings{gap:7px}.gpx-settings strong{white-space:nowrap}.gpx-filename{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
@@ -144,13 +144,13 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
-    .zoom-control input{flex:1;min-width:70px;accent-color:var(--zoom-slider-color,#14b8a6)}
+    .zoom-control ui-slider{flex:1 1 auto;width:auto;min-width:70px}
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
     .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
     .map-toolbar-button{width:27px;height:27px;padding:0;font-size:16px}
     .opacity-settings{width:100%;flex-basis:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0}
     .opacity-settings .range-setting{flex:1;min-width:180px}
-    .opacity-settings .range-setting ui-slider{flex:1;width:auto;min-width:0}
+    .opacity-settings .range-setting ui-slider{flex:1 1 auto;width:auto;min-width:0}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
