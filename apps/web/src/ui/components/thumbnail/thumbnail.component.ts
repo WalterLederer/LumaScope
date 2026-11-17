@@ -39,6 +39,8 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
   }
 })
 export class ThumbnailComponent implements OnDestroy {
+  private static startupConstructionCount = 0;
+
   /* DI */
   private readonly devicePixelRatioService = inject(DevicePixelRatioService);
 
