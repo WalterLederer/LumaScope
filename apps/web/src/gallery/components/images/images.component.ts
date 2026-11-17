@@ -13,7 +13,7 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { CacheDirectoryStats, CacheImageStatus, ExifTags } from 'internal-api';
+import { CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -180,6 +180,9 @@ export class ImagesComponent {
   readonly distinctSuffixCount = computed(() => new Set(
     (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
   ).size);
+  readonly unsupportedSuffixCount = computed(() => (this.images() ?? []).filter(image =>
+    !supportedFileExtensions.includes(this.getSuffix(image.name))
+  ).length);
   readonly fullSizeConversionTotal = computed(() => {
     const statuses = this.cacheStatuses();
     return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
