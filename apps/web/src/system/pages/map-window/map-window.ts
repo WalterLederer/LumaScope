@@ -5149,6 +5149,34 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
+  protected readonly copyOfflineFolder = async (path: string, isFolder: boolean): Promise<void> => {
+    if (!this.desktop || !path.trim()) return;
+    try {
+      const folderPath = isFolder ? path : await this.desktop.FileSystem.dirname(path);
+      await this.copyFilePath(folderPath);
+    } catch (error) {
+      console.warn('[OfflineMap] Could not resolve folder path:', error);
+    }
+  };
+  protected readonly openOfflineFolder = async (path: string, isFolder: boolean): Promise<void> => {
+    if (!this.desktop || !path.trim()) return;
+    try {
+      const folderPath = isFolder ? path : await this.desktop.FileSystem.dirname(path);
+      const error = await this.desktop.ProcessManager.openPath(folderPath);
+      if (error) console.warn('[OfflineMap] Could not open folder:', error);
+    } catch (error) {
+      console.warn('[OfflineMap] Could not open folder:', error);
+    }
+  };
+  protected readonly openOfflineFileWith = async (filePath: string): Promise<void> => {
+    if (!this.desktop || !filePath.trim()) return;
+    try {
+      await this.desktop.ProcessManager.openWith(filePath);
+    } catch (error) {
+      console.warn('[OfflineMap] Could not open file chooser:', error);
+    }
+  };
+
   protected readonly setAllOfflineEnabled = async (enabled: boolean): Promise<void> => {
     if (!this.desktop) return;
     this.obfBoundsPreview.set(null);
