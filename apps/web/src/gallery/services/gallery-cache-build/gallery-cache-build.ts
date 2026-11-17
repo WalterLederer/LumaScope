@@ -10,9 +10,8 @@ interface GalleryCacheBuildController {
   readonly cacheRunActive: Signal<boolean>;
   readonly cacheRunProgress: Signal<CacheBuildProgress>;
   readonly cacheRunCurrentOperation: Signal<string>;
-  readonly selectedLocation: Signal<string | null>;
-  readonly start: () => void;
-  readonly startRecursive: () => void;
+  readonly start: (directory: string) => void;
+  readonly startRecursive: (directory: string) => void;
   readonly cancel: () => void;
   readonly refreshDetailCacheStatus: () => void;
 }
@@ -31,7 +30,6 @@ export class GalleryCacheBuild {
   readonly cacheRunActive = computed(() => this.controller()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.controller()?.cacheRunProgress() ?? { completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = computed(() => this.controller()?.cacheRunCurrentOperation() ?? '');
-  readonly currentFolderPath = computed(() => this.controller()?.selectedLocation()?.trim() ?? '');
 
   readonly setVerifyCacheFiles = (enabled: boolean): void => {
     this.verifyCacheFiles.set(enabled);
@@ -39,8 +37,8 @@ export class GalleryCacheBuild {
     catch { /* Keep the session setting. */ }
   };
 
-  readonly startCacheBuild = (): void => this.controller()?.start();
-  readonly startRecursiveCacheBuild = (): void => this.controller()?.startRecursive();
+  readonly startCacheBuild = (directory: string): void => this.controller()?.start(directory);
+  readonly startRecursiveCacheBuild = (directory: string): void => this.controller()?.startRecursive(directory);
   readonly cancelCacheBuild = (): void => this.controller()?.cancel();
   readonly refreshDetailCacheStatus = (): void => this.controller()?.refreshDetailCacheStatus();
 
