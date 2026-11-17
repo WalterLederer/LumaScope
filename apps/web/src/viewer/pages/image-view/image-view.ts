@@ -241,6 +241,8 @@ export class ImageView {
 
   protected readonly themeService = inject(ThemeService);
 
+  protected readonly zoomSliderColorControl = new FormControl(this.themeService.zoomSliderColorValue(), { nonNullable: true });
+
   protected readonly settingsFilePath = signal('');
   protected readonly settingsFileError = signal<string | null>(null);
 
@@ -1748,6 +1750,9 @@ export class ImageView {
   };
 
   constructor() {
+    this.zoomSliderColorControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => this.themeService.setZoomSliderColorFromSlider(value));
     void this.loadSettingsFilePath();
     // Restore the last image only after the persisted gallery folder has loaded.
     // Do not write the initial null selection over the saved path before that.
