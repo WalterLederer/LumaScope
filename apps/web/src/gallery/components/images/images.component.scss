@@ -43,8 +43,8 @@
 
  .detail-table {
   display: grid;
-  /* Keep metadata columns content-sized and let Location absorb the remaining window width. */
-  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
+  /* Each column can be resized from its header, like Windows Explorer. */
+  grid-template-columns: minmax(84px, var(--detail-col-0-width, max-content)) minmax(40px, var(--detail-col-1-width, max-content)) minmax(40px, var(--detail-col-2-width, max-content)) minmax(40px, var(--detail-col-3-width, max-content)) minmax(40px, var(--detail-col-4-width, max-content)) minmax(40px, var(--detail-col-5-width, max-content)) minmax(40px, var(--detail-col-6-width, max-content)) minmax(40px, var(--detail-col-7-width, max-content)) minmax(40px, var(--detail-col-8-width, max-content)) minmax(40px, var(--detail-col-9-width, max-content)) minmax(80px, var(--detail-col-10-width, 1fr));
   column-gap: 16px;
   row-gap: 0;
   width: 100%;
@@ -55,7 +55,6 @@
 
   &.without-thumbnails {
     /* Keep the thumbnail slot reserved so every detail column stays aligned. */
-    grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
   }
 }
 
@@ -86,6 +85,7 @@
   align-self: start;
   background: var(--color-surface-default-low);
   display: grid;
+  position: relative;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   align-items: center;
@@ -118,6 +118,30 @@
       line-height: 1.25;
       font-variant-numeric: tabular-nums;
     }
+  }
+
+  .column-resizer {
+    grid-row: 1;
+    align-self: stretch;
+    justify-self: end;
+    width: 8px;
+    margin-right: -4px;
+    z-index: 3;
+    cursor: col-resize;
+    touch-action: none;
+
+    &::after {
+      content: "";
+      display: block;
+      width: 1px;
+      height: 100%;
+      margin: 0 auto;
+      background: transparent;
+      transition: background 100ms ease;
+    }
+
+    &:hover::after,
+    &:active::after { background: var(--color-accent-default, var(--color-content-primary-high)); }
   }
 
   button {
@@ -249,14 +273,4 @@
   }
 }
 
-@media (max-width: 900px) {
-  .detail-table:not(.without-thumbnails) {
-    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
-    column-gap: 12px;
-  }
-
-  .detail-table.without-thumbnails {
-    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
-    column-gap: 12px;
-  }
-}
+@media (max-width: 900px) { .detail-table { column-gap: 12px; } }
