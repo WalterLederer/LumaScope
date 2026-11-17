@@ -353,7 +353,7 @@ export class SettingsPanelComponent {
     { keys: 'Ctrl + Shift + Win + PrtScn', action: 'Select a screen rectangle and copy it to the clipboard', global: true, id: 'rectangle' as const },
     { keys: 'Space / → / Page Down', action: 'Show the next image (when the location map is not under the pointer)', global: false, id: null },
     { keys: '← / Page Up', action: 'Show the previous image (when the location map is not under the pointer)', global: false, id: null },
-    { keys: 'Esc', action: 'Close the image view or dismiss the active dialog', global: false, id: null },
+    { keys: 'Esc', action: 'Switch to the Browse tab in the main window; dismiss an active dialog first', global: false, id: null },
     { keys: '+ / =', action: 'Zoom in; in Browse, increase thumbnail size; over the location map, zoom the map in', global: false, id: null },
     { keys: '- / _', action: 'Zoom out; in Browse, decrease thumbnail size; over the location map, zoom the map out', global: false, id: null },
     { keys: 'V', action: 'Cycle image comparison modes', global: false, id: null },
