@@ -134,7 +134,7 @@ ui-toolbar {
 
   &.details-mode {
     width: max-content;
-    max-width: calc(100% - 320px);
+    max-width: 100%;
     overflow-x: auto;
   }
 }
