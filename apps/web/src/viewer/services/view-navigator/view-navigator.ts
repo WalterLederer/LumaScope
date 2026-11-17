@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, pairwise, take, tap, withLatestFrom } from 'rxjs';
+import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, take, tap } from 'rxjs';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { imageUrl } from '../../utils/image-url';
@@ -18,93 +18,82 @@ export class ViewNavigator {
   private readonly images$ = this.galleryState.images();
   private readonly cacheRevision$ = toObservable(this.cacheManager.cacheRevision);
 
-  private readonly selectedIndex$ = new BehaviorSubject(-1);
-
-  constructor() {
-    // Sorting or refreshing the gallery can reorder the image array. Keep the
-    // selected file stable by translating its old index to its new index.
-    // Otherwise the same numeric index would silently select a different file
-    // and ImageView would interpret that as an explicit image selection.
-    this.images$
-      .pipe(pairwise(), withLatestFrom(this.selectedIndex$))
-      .subscribe(([[previousImages, currentImages], selectedIndex]) => {
-        if (selectedIndex < 0 || selectedIndex >= previousImages.length) return;
-        const selectedPath = previousImages[selectedIndex].path;
-        const nextIndex = currentImages.findIndex(image => image.path === selectedPath);
-        if (nextIndex >= 0 && nextIndex !== selectedIndex) {
-          this.selectedIndex$.next(nextIndex);
-        }
-      });
-  }
+  // Keep the selected file stable when sorting or refreshing changes its index.
+  private readonly selectedPath$ = new BehaviorSubject<string | null>(null);
 
   private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
     this.images$,
-    this.selectedIndex$,
+    this.selectedPath$,
     this.cacheRevision$
-  ])
-    .pipe(
-      map(([ images, index, cacheRevision ]) => {
-        if (index < 0 || index >= images.length) {
-          return null;
-        }
+  ]).pipe(
+    map(([images, selectedPath, cacheRevision]) => {
+      if (selectedPath === null) return null;
+      const image = images.find(item => item.path === selectedPath);
+      if (!image) return null;
 
-        return {
-          path: images[index].path,
-          url: imageUrl(images[index].path, cacheRevision),
-          size: images[index].size,
-          modifiedAt: images[index].modifiedAt
-        };
-      })
-    );
+      return {
+        path: image.path,
+        url: imageUrl(image.path, cacheRevision),
+        size: image.size,
+        modifiedAt: image.modifiedAt
+      };
+    })
+  );
 
-  private readonly hasPrevious$ = combineLatest([ this.images$, this.selectedIndex$ ])
-    .pipe(map(([ _, index ]) => index > 0));
+  private readonly selectedIndex$ = combineLatest([this.images$, this.selectedPath$])
+    .pipe(map(([images, selectedPath]) => selectedPath === null
+      ? -1
+      : images.findIndex(image => image.path === selectedPath)));
 
-  private readonly hasNext$ = combineLatest([ this.images$, this.selectedIndex$ ])
-    .pipe(map(([ images, index ]) => index >= 0 && index < images.length - 1));
+  private readonly hasPrevious$ = this.selectedIndex$
+    .pipe(map(index => index > 0));
+
+  private readonly hasNext$ = combineLatest([this.images$, this.selectedIndex$])
+    .pipe(map(([images, index]) => index >= 0 && index < images.length - 1));
 
   /* Getters */
   readonly selectedImage = () => this.selectedImage$;
 
-  readonly imagePosition = () => combineLatest([ this.images$, this.selectedIndex$ ])
-    .pipe(map(([ images, index ]) => ({ position: index >= 0 && index < images.length ? index + 1 : 0, total: images.length })));
+  readonly imagePosition = () => combineLatest([this.images$, this.selectedIndex$])
+    .pipe(map(([images, index]) => ({
+      position: index >= 0 && index < images.length ? index + 1 : 0,
+      total: images.length
+    })));
 
   readonly hasPrevious = () => this.hasPrevious$;
 
   readonly hasNext = () => this.hasNext$;
 
   /* Modifiers */
-  readonly previous = () =>
-    combineLatest([ this.hasPrevious$, this.selectedIndex$ ])
-      .pipe(
-        take(1),
-        filter(([ hasPrevious ]) => hasPrevious),
-        map(([ _, selectedIndex ]) => selectedIndex - 1)
-      )
-      .subscribe(selectedIndex => this.selectedIndex$.next(selectedIndex));
+  readonly previous = () => combineLatest([this.images$, this.selectedIndex$])
+    .pipe(
+      take(1),
+      filter(([_, index]) => index > 0),
+      map(([images, index]) => images[index - 1].path)
+    )
+    .subscribe(path => this.selectedPath$.next(path));
 
-  readonly next = () =>
-    combineLatest([ this.hasNext$, this.selectedIndex$ ])
-      .pipe(
-        take(1),
-        filter(([ hasNext ]) => hasNext),
-        map(([ _, selectedIndex ]) => selectedIndex + 1)
-      )
-      .subscribe(selectedIndex => this.selectedIndex$.next(selectedIndex));
+  readonly next = () => combineLatest([this.images$, this.selectedIndex$])
+    .pipe(
+      take(1),
+      filter(([images, index]) => index >= 0 && index < images.length - 1),
+      map(([images, index]) => images[index + 1].path)
+    )
+    .subscribe(path => this.selectedPath$.next(path));
 
-  readonly selectPosition = (position: number) =>
-    this.images$
-      .pipe(take(1), map(images => Math.max(0, Math.min(images.length - 1, Math.trunc(position) - 1))))
-      .subscribe(index => this.selectedIndex$.next(index));
+  readonly selectPosition = (position: number) => this.images$
+    .pipe(
+      take(1),
+      map(images => images[Math.max(0, Math.min(images.length - 1, Math.trunc(position) - 1))]?.path ?? null)
+    )
+    .subscribe(path => this.selectedPath$.next(path));
 
-  readonly selectImage = (path: string) =>
-    this.images$
-      .pipe(
-        take(1),
-        map(images => images.findIndex(image => image.path === path)),
-        tap(index => this.selectedIndex$.next(index)),
-        map(index => index >= 0)
-      );
+  readonly selectImage = (path: string) => this.images$
+    .pipe(
+      take(1),
+      map(images => images.some(image => image.path === path)),
+      tap(found => this.selectedPath$.next(found ? path : null))
+    );
 
   readonly deleteImage = async (path: string): Promise<boolean> => {
     const images = await firstValueFrom(this.images$.pipe(take(1)));
@@ -114,12 +103,10 @@ export class ViewNavigator {
       return false;
     }
 
-    const selectedIndex = this.selectedIndex$.value;
-
-    if (deletedIndex < selectedIndex) {
-      this.selectedIndex$.next(selectedIndex - 1);
-    } else if (deletedIndex === selectedIndex && deletedIndex >= images.length - 1) {
-      this.selectedIndex$.next(Math.max(0, selectedIndex - 1));
+    if (this.selectedPath$.value === path) {
+      const remainingImages = await firstValueFrom(this.images$.pipe(take(1)));
+      const replacement = remainingImages[Math.min(deletedIndex, remainingImages.length - 1)];
+      this.selectedPath$.next(replacement?.path ?? null);
     }
 
     return true;
