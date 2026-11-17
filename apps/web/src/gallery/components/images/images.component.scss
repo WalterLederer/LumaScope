@@ -64,7 +64,7 @@
     margin-left: 8px;
   }
   /* Sortable column headings are text controls, not global action buttons. */
-  > button {
+  > .detail-column-heading {
     appearance: none !important;
     -webkit-appearance: none !important;
     min-height: 0 !important;
@@ -142,7 +142,7 @@
 }
 
   .detail-header {
-    > button,
+    > .detail-column-heading,
     > .count-heading {
       display: flex;
       flex-direction: column;
