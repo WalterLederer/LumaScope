@@ -2,29 +2,16 @@
   display: flex;
   align-items: center;
   gap: var(--dim-medium);
-
   height: calc(var(--dim-medium) * 4);
   margin: 0;
   padding: 0 var(--dim-medium) 0 var(--level-offset);
-
   font-size: var(--text-font-size);
   border-radius: calc(var(--border-radius-large) - 1px);
   cursor: pointer;
-
   transition: background-color 250ms ease-in-out;
-
-  &.root {
-    font-weight: bold;
-    cursor: default;
-  }
-
-  &:hover {
-    background-color: var(--color-surface-default-high);
-  }
-
-  &.selected {
-    background-color: var(--color-surface-default-highest);
-  }
+  &.root { font-weight: bold; cursor: default; }
+  &:hover { background-color: var(--color-surface-default-high); }
+  &.selected { background-color: var(--color-surface-default-highest); }
 }
 
 .expand-indicator,
@@ -43,16 +30,30 @@
   line-height: 1;
   color: var(--color-text-secondary);
   transition: transform 150ms ease-in-out;
-
-  &.expanded {
-    transform: rotate(90deg);
-  }
+  &.expanded { transform: rotate(90deg); }
 }
 
-.prefix {
-  flex-shrink: 0;
-}
+.prefix { flex-shrink: 0; }
+.action { flex-shrink: 0; }
 
-.action {
-  flex-shrink: 0;
+.tree-inline-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.tree-inline-action:hover {
+  background: var(--color-surface-default-highest);
 }
