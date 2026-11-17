@@ -35,18 +35,11 @@ export class Keyboard {
       return false;
     };
 
+    // Use the actual event target, not document.activeElement. Clicking a
+    // non-focusable photo or canvas does not move focus, so activeElement may
+    // still be an old text field and incorrectly suppress global shortcuts.
     const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
-    if (path.some(item => isTextEntry(item))) return true;
-
-    // Fallback for retargeted events: inspect the focused element and any
-    // nested shadow-root host chain.
-    let active: Element | null = this.document.activeElement;
-    while (active) {
-      if (isTextEntry(active)) return true;
-      const root = active.getRootNode() as { host?: Element };
-      active = root.host ?? active.parentElement ?? null;
-    }
-    return false;
+    return path.some(item => isTextEntry(item));
   };
 
   // Global shortcuts must not run while the user is entering text or choosing
