@@ -1434,11 +1434,10 @@
   max-width: 560px;
   align-items: center;
 }
-:host .image-status-bar .status-position-slider input {
+:host .image-status-bar .status-position-slider ui-slider {
   width: 100%;
   min-width: 60px;
   cursor: pointer;
-  accent-color: var(--color-content-default);
 }
 :host .image-status-bar .status-position-value {
   flex: 0 0 auto;
