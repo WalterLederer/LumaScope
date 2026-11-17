@@ -197,6 +197,9 @@ export interface CacheDirectoryStats {
   total: number;
   thumbnails: number;
   fullSizeConversions: number;
+  gps: number;
+  hdr: number;
+  location: number;
   thumbnailPaths: string[];
   fullSizePaths: string[];
 }
