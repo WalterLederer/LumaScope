@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { SliderComponent } from '@light-matter/ui';
 import { Desktop } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 
@@ -26,6 +27,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
 @Component({
   selector: 'app-map-window',
   standalone: true,
+  imports: [SliderComponent],
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
       <header class="map-titlebar">
@@ -71,11 +73,11 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
           </div>
           <div class="settings-group opacity-settings">
             <label class="range-setting">Map opacity <span>{{ mapOpacity() }}%</span>
-              <input type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+              <ui-slider [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" (valueChange)="changeMapOpacity($event)" aria-label="Map opacity" />
             </label>
           
             <label class="range-setting">Track opacity <span>{{ gpxOpacity() }}%</span>
-              <input type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+              <ui-slider [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" (valueChange)="changeGpxOpacity($event)" aria-label="Track opacity" />
             </label></div>
           <div class="settings-group">
             <label class="always-on-top-setting" title="Keep the map window above the main window"><input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)"> Always on top</label>
@@ -84,7 +86,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
               </div>
-              <input class="zoom-purpose-range" type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+              <ui-slider class="zoom-purpose-slider" [min]="1" [max]="20" [step]="1" [value]="zoomLevel()" (valueChange)="changeZoom($event)" aria-label="Map zoom" />
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
@@ -131,7 +133,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-settings{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 10px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .settings-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-right:10px;border-right:1px solid var(--color-content-default-low,#454545)}
     .settings-group:last-child{border-right:0;padding-right:0}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
-    select{max-width:170px}.range-setting{min-width:150px}.range-setting input{width:100px;accent-color:#8ab4f8}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
+    select{max-width:170px}.range-setting{min-width:150px}.range-setting ui-slider{width:100px;min-width:0}.range-setting span{color:var(--color-content-default-medium,#aaa);min-width:34px;text-align:right}
     .always-on-top-setting input{accent-color:#8ab4f8}
     .zoom-buttons{display:flex;gap:4px}.zoom-buttons button{width:28px;height:27px;padding:0;font-size:18px}
     .gpx-settings{gap:7px}.gpx-settings strong{white-space:nowrap}.gpx-filename{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
@@ -148,7 +150,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .map-toolbar-button{width:27px;height:27px;padding:0;font-size:16px}
     .opacity-settings{width:100%;flex-basis:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);padding:7px 0 0}
     .opacity-settings .range-setting{flex:1;min-width:180px}
-    .opacity-settings .range-setting input{flex:1;width:auto}
+    .opacity-settings .range-setting ui-slider{flex:1;width:auto;min-width:0}
     :host ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
     :host ::ng-deep .leaflet-control-attribution:hover{opacity:1}
     :host-context(html[data-theme='light']) .map-titlebar{background:#f1f2f4;border-color:#d0d3d8}
@@ -157,7 +159,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     :host-context(html[data-theme='light']) button:hover,:host-context(html[data-theme='light']) .settings-toggle.active{background:#e4eaf3;border-color:#477fc4}
     :host-context(html[data-theme='light']) .map-coordinates,:host-context(html[data-theme='light']) .range-setting span,:host-context(html[data-theme='light']) .gpx-filename{color:#555}
     :host-context(html[data-theme='light']) .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
-    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting input{flex:1}}
+    @media(max-width:650px){.map-coordinates{display:none}.map-settings{align-items:flex-start}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting ui-slider{flex:1}}
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
