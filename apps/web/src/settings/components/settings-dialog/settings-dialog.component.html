@@ -89,7 +89,7 @@
         <div class="cache-box-content">
         <div class="build-cache-current-folder">
           <span>Selected folder</span>
-          <input type="text" readonly [value]="currentFolderPath()" [placeholder]="currentFolderPath() ? '' : 'No folder selected'" aria-label="Selected gallery folder" />
+          <input type="text" [value]="cacheFolderPath()" (input)="cacheFolderPath.set($any($event.target).value)" [placeholder]="cacheFolderPath() ? '' : 'Enter or paste a folder path'" aria-label="Cache target folder" />
         </div>
         <p>Build cache processes files in the selected folder. Enable <strong>Recursive build</strong> to include all subfolders. No other registered folders are affected.</p>
         <div class="build-cache-actions">
@@ -98,7 +98,7 @@
                   [class.cache-check-complete]="cacheCheckState() === 'complete'"
                   [class.cache-check-missing]="cacheCheckState() === 'missing' || cacheCheckState() === 'error'"
                   [class.cache-check-running]="cacheCheckState() === 'checking'"
-                  [disabled]="!currentFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive()"
+                  [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive()"
                   (click)="checkCache()">Check cache</button>
           <button class="cache-button" type="button" [disabled]="cacheBuildActive() || locationLookupActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
           <button class="cache-button" type="button"
