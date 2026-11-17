@@ -6,6 +6,7 @@
   "license": "MIT",
   "author": "hexmode.org",
   "scripts": {
+    "inspect:wasm-memory": "node tools/inspect-wasm-memory.cjs",
     "format": "dprint fmt",
     "format:check": "dprint check",
     "typia": "typia generate --input libs/internal-api/src/typia --output libs/internal-api/src/models --project libs/internal-api/tsconfig.lib.json",
