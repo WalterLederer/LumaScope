@@ -30,6 +30,7 @@ export class ProcessManager implements DesktopProcessManager {
 
   readonly openConfigFile = (): Promise<string> => window.desktop.ProcessManager.openConfigFile();
   readonly openPath = (filePath: string): Promise<string> => window.desktop.ProcessManager.openPath(filePath);
+  readonly openWith = (filePath: string): Promise<void> => window.desktop.ProcessManager.openWith(filePath);
   readonly openExternal = (url: string): Promise<void> => window.desktop.ProcessManager.openExternal(url);
 
   readonly quit = (code: number): Promise<void> => window.desktop.ProcessManager.quit(code);
