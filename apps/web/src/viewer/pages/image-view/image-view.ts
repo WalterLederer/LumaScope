@@ -715,6 +715,15 @@ export class ImageView {
 
   protected readonly sidebarSections = signal<Record<string, boolean>>({ zoom: true, brightness: true, basic: true, rgb: true, rgbLevels: false, inverse: false, loupe: true, loupeRenderer: false, highlight: true, toneCurve: false, mode: true, histogram: false, info: true, database: false, general: true, preferences: false, actions: false, copy: false });
   protected readonly sidebarSectionExpanded = (key: string): boolean => ['corrections', 'highlight', 'mode', 'info', 'general'].includes(key) || this.sidebarSections()[key] === true;
+  protected readonly onSidebarDetailsToggle = (key: string, event: Event): void => {
+    const details = event.currentTarget as HTMLDetailsElement | null;
+    if (!details) return;
+
+    const sections = { ...this.sidebarSections(), [key]: details.open };
+    this.sidebarSections.set(sections);
+    this.configuration.updateSystemConfig({ imageSidebarSections: sections });
+  };
+
   protected readonly toggleSidebarSection = (key: string): void => {
     const sections = { ...this.sidebarSections(), [key]: !this.sidebarSectionExpanded(key) };
     this.sidebarSections.set(sections);
