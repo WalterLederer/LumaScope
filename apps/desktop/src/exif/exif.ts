@@ -80,7 +80,7 @@ export class Exif {
       if (!rootInfo.isDirectory()) throw new Error('The selected path is not a folder.');
       const imageExtensions = new Set([
         '.jpg', '.jpeg', '.tif', '.tiff', '.heic', '.heif', '.png', '.webp',
-        '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf'
+        '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf', '.raw'
       ]);
       const candidates: string[] = [];
       let totalFilesProcessed = 0;
