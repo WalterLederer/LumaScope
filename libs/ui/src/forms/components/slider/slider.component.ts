@@ -88,9 +88,9 @@ export class SliderComponent extends FormElementDirective<number> {
 
   private readonly trackRef = viewChild<unknown, ElementRef<HTMLDivElement>>('track', { read: ElementRef });
 
-  protected readonly trackColor = computed(() => this.color() ?? `var(--color-element-${this.variant()}-low)`);
+  protected readonly trackColor = computed(() => this.color() ?? `var(--slider-color, var(--color-element-${this.variant()}-low))`);
 
-  protected readonly indicatorColor = computed(() => this.color() ?? `var(--color-contrast-${this.variant()}-lowest)`);
+  protected readonly indicatorColor = computed(() => this.color() ?? `var(--slider-color, var(--color-contrast-${this.variant()}-lowest))`);
 
   override readonly writeValue = (value: number) => {
     this.currentValue.set(value);
