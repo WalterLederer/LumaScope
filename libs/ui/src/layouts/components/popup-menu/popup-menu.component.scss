@@ -19,4 +19,29 @@
    their selected button styling, not an extra opaque white panel. */
 :host(.gallery-dropdown-menu) {
   background: transparent;
+
+  .gallery-menu-item {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: var(--dim-medium);
+    width: 100%;
+    min-height: 32px;
+    margin: 0;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: var(--border-radius-small);
+    background: transparent;
+    box-shadow: none;
+    color: var(--color-content-primary-high);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-surface-default-medium);
+      outline: none;
+    }
+  }
 }
