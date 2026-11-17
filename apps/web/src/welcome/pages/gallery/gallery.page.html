@@ -13,9 +13,11 @@
             <ui-tree #tree
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
+                     [inlineActions]="true"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
                      (selected)="selectLocation($event)"
+                     (action)="onTreeAction($event)"
                      (locationSelected)="locationSelected.emit()"
                      (hovered)="onTreeNodeHovered($event)" />
           }
@@ -43,9 +45,11 @@
             <ui-tree #tree
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
+                     [inlineActions]="true"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
                      (selected)="selectLocation($event)"
+                     (action)="onTreeAction($event)"
                      (hovered)="onTreeNodeHovered($event)" />
           }
         </section>
@@ -85,4 +89,4 @@
       </button>
     }
   </ui-popup-menu>
-</ng-template>
+}
