@@ -231,6 +231,7 @@ export interface CacheImageStatus {
   fullSizeRequired: boolean;
   latitude: number | null;
   longitude: number | null;
+  gpsTimestamp: number | null;
   verification?: { sourceChecked: boolean; thumbnailChecked: boolean; fullSizeChecked: boolean; invalidEntries: number };
 }
 
