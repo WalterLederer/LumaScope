@@ -314,13 +314,24 @@ export class ImageGridComponent {
   /* Constructor */
   constructor() {
     console.warn('[ImageGrid] CONSTRUCTOR START');
-    // Startup diagnostic: observe the child view query without registering it.
-    // This separates viewChild tracking from GalleryCacheBuild.register().
-    effect(() => {
+    effect(onCleanup => {
       const images = this.imagesComponent();
-      if (images) {
-        console.warn('[ImageGrid] ImagesComponent view query resolved');
-      }
+      if (!images) return;
+
+      const unregister = this.galleryCacheBuild.register({
+        cacheRunActive: images.cacheRunActive,
+        cacheRunProgress: images.cacheRunProgress,
+        cacheRunCurrentOperation: images.cacheRunCurrentOperation,
+        start: directory => { void images.cacheAllImages(directory); },
+        startRecursive: directory => { void images.cacheAllImagesRecursive(directory); },
+        cancel: () => images.cancelCacheRun(),
+        refreshDetailCacheStatus: () => {
+          if (this.viewMode() === 'details') images.refreshGallery();
+          void this.refreshDirectoryCacheStats();
+        }
+      });
+
+      onCleanup(unregister);
     });
 
     effect(() => {
