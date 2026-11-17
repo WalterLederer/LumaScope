@@ -41,6 +41,14 @@ The report includes:
 
 The min/mean/max deviation statistics include all usable GPX candidates, including candidates rejected by the configured time limit. This makes it possible to assess how close the rejected candidates were.
 
+## GPS Auto Fix log file
+
+In addition to the on-screen status report, GPS Auto Fix writes its diagnostic information to:
+
+`%APPDATA%\LumaScope\gps-auto-fix-debug.log`
+
+The log contains detailed information about photo timestamps, EXIF date candidates, GPX track-point comparisons, matching results and processing errors. It is recreated for each GPS Auto Fix run. Use it when investigating photos that are not matched to a GPX track.
+
 ## Timestamp and timezone considerations
 
 Photo timestamps are read from the image metadata. EXIF capture timestamps without an explicit timezone are interpreted in the computer's local timezone. GPX timestamps are time-based track records; if the camera clock or timezone differs from the computer's interpretation of the photo timestamp, the calculated deviation may be large and a valid geographic match may be rejected. Check camera time, timezone and GPX timestamps before increasing the threshold.
