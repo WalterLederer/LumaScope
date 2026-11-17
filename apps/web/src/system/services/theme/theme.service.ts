@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ButtonColor, ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
+import { allButtonColors, ButtonColor, ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -77,6 +77,13 @@ export class ThemeService {
   readonly setButtonColor = (color: ButtonColor) => {
     this.applyButtonColor(color);
     this.configuration.updatePreferencesConfig({ buttonColor: color });
+  };
+
+  readonly buttonColorSliderValue = () => Math.max(0, allButtonColors.indexOf(this.buttonColor()));
+
+  readonly setButtonColorFromSlider = (value: number) => {
+    const index = Math.max(0, Math.min(allButtonColors.length - 1, Math.round(Number(value) || 0)));
+    this.setButtonColor(allButtonColors[index]);
   };
 
   readonly setThemeColorSaturation = (saturation: number) => {
