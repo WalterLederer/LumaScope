@@ -2210,7 +2210,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
     if (this.offlineRowActionMenuOpen() === path) { this.offlineRowActionMenuOpen.set(null); return; }
     this.offlineRowActionMenuOpen.set(path);
-    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 190, 190));
+    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 220, 190));
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
