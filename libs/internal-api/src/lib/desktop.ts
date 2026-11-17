@@ -169,6 +169,8 @@ export interface DesktopCacheManager {
   readonly resumeBackgroundReverseGeocoding: () => Promise<boolean>;
   readonly abortBackgroundReverseGeocoding: () => Promise<boolean>;
   readonly getBackgroundReverseGeocodingStatus: () => Promise<BackgroundReverseGeocodingStatus>;
+  readonly onBackgroundReverseGeocodingStatusChanged: (callback: () => void) => () => void;
+  readonly onDirectoryPhotoLocationsChanged: (callback: (directory: string) => void) => () => void;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
   readonly getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => Promise<CacheImageStatus[]>;
