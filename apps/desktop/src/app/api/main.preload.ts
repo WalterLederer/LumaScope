@@ -110,6 +110,16 @@ const api: Desktop = {
     resumeBackgroundReverseGeocoding: () => ipcRenderer.invoke('CacheManager.resumeBackgroundReverseGeocoding'),
     abortBackgroundReverseGeocoding: () => ipcRenderer.invoke('CacheManager.abortBackgroundReverseGeocoding'),
     getBackgroundReverseGeocodingStatus: () => ipcRenderer.invoke('CacheManager.getBackgroundReverseGeocodingStatus'),
+    onBackgroundReverseGeocodingStatusChanged: callback => {
+      const listener = (): void => callback();
+      ipcRenderer.on('CacheManager.reverseGeocodingStatusChanged', listener);
+      return () => ipcRenderer.removeListener('CacheManager.reverseGeocodingStatusChanged', listener);
+    },
+    onDirectoryPhotoLocationsChanged: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, directory: string): void => callback(directory);
+      ipcRenderer.on('CacheManager.directoryPhotoLocationsChanged', listener);
+      return () => ipcRenderer.removeListener('CacheManager.directoryPhotoLocationsChanged', listener);
+    },
     cacheInfo: (directory?: string, recursive = false) => ipcRenderer.invoke('CacheManager.cacheInfo', directory, recursive),
     imageCachePath: (sourceName: string) => ipcRenderer.invoke('CacheManager.imageCachePath', sourceName),
     getImageCacheStatuses: (sourceNames: string[], verifyCacheFiles?: boolean, sourceMetadata?: Array<{ path: string; size: number; modifiedAt: number }>) => ipcRenderer.invoke('CacheManager.getImageCacheStatuses', sourceNames, verifyCacheFiles, sourceMetadata),
