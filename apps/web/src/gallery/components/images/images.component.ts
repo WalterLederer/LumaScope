@@ -233,7 +233,17 @@ export class ImagesComponent {
     if (!this.isDateSorted()) {
       return [];
     }
-    return groupImagesByYearAndMonth(this.images());
+    const images = this.images();
+    const startedAt = performance.now();
+    console.warn('[Images] GROUPING START', { imageCount: images?.length ?? 0 });
+    const groups = groupImagesByYearAndMonth(images);
+    console.warn('[Images] GROUPING DONE', {
+      imageCount: images?.length ?? 0,
+      yearCount: groups.length,
+      monthCount: groups.reduce((total, year) => total + year.months.length, 0),
+      durationMs: Math.round((performance.now() - startedAt) * 100) / 100
+    });
+    return groups;
   });
 
   /* Signals */
@@ -637,12 +647,15 @@ export class ImagesComponent {
     });
 
     effect(() => {
+      console.warn('[Images] DATE GROUP EFFECT START');
       const isDate = this.isDateSorted();
       const groups = this.groupedImages();
+      console.warn('[Images] DATE GROUP EFFECT DATA', { isDate, yearCount: groups.length });
 
       if (!isDate || groups.length === 0) {
         this.activeSectionId.set(null);
         this.cleanupObserver();
+        console.warn('[Images] DATE GROUP EFFECT SKIPPED');
         return;
       }
 
@@ -651,8 +664,10 @@ export class ImagesComponent {
       }
 
       queueMicrotask(() => {
+        console.warn('[Images] DATE GROUP EFFECT MICROTASK');
         this.setupObserver();
       });
+      console.warn('[Images] DATE GROUP EFFECT REGISTERED MICROTASK');
     });
 
     console.warn('[Images] CONSTRUCTOR EFFECTS REGISTERED');
@@ -671,6 +686,7 @@ export class ImagesComponent {
   }
 
   private setupObserver(): void {
+    console.warn('[Images] SETUP OBSERVER START');
     this.cleanupObserver();
 
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
@@ -703,6 +719,7 @@ export class ImagesComponent {
     sections.forEach(section => {
       this.observer?.observe(section);
     });
+    console.warn('[Images] SETUP OBSERVER DONE', { sectionCount: sections.length });
   }
 
   private cleanupObserver(): void {
