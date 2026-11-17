@@ -1005,7 +1005,7 @@ export class ImageView {
       }
       this.exifXmpTags.set(response.data);
       this.exifXmpStatus.set('');
-      if (!Object.keys(response.data).some(key => /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i.test(key))) {
+      if (this.exifXmpFields().length === 0) {
         this.exifXmpStatus.set('No date, camera model or GPS fields were found in this file.');
       }
     } catch (error) {
