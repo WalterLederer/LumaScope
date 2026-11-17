@@ -65,7 +65,7 @@ export class ThumbManager {
       if (result.success && width === 0 && height === 0) {
         this.fullSizeConversionDurations.set(resolve(source), performance.now() - startedAt);
       }
-      return { success: result.success, isHdr: result.success ? result.isHdr ?? null : null };
+      return { success: result.success, isHdr: result.success ? result.isHdr ?? null : null, error: result.error };
     }
   ));
 
@@ -79,7 +79,7 @@ export class ThumbManager {
     height: number,
     signal?: AbortSignal,
     preserveAspectRatio = false
-  ): Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr'>> => {
+  ): Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr' | 'error'>> => {
     if (signal?.aborted) {
       return { success: false };
     }
@@ -93,7 +93,7 @@ export class ThumbManager {
       }
     }
 
-    return new Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr'>>(resolve => {
+    return new Promise<Pick<ThumbWorkerResponse, 'success' | 'isHdr' | 'error'>>(resolve => {
       const id = randomUUID();
 
       let onAbort: (() => void) | undefined;
@@ -106,7 +106,7 @@ export class ThumbManager {
 
       const wrappedResolve = (response: ThumbWorkerResponse) => {
         cleanup();
-        resolve({ success: response.success, isHdr: response.isHdr });
+        resolve({ success: response.success, isHdr: response.isHdr, error: response.error });
       };
 
       this.pendingRequests.set(id, wrappedResolve);
@@ -144,13 +144,13 @@ export class ThumbManager {
         } else {
           this.pendingRequests.delete(id);
           cleanup();
-          resolve({ success: false });
+          resolve({ success: false, error: 'Thumbnail worker is unavailable.' });
         }
       } catch (err) {
         console.error('[ThumbManager] Failed to post message to worker:', err);
         this.pendingRequests.delete(id);
         cleanup();
-        resolve({ success: false });
+        resolve({ success: false, error: err instanceof Error ? err.message : String(err) });
       }
     });
   };
