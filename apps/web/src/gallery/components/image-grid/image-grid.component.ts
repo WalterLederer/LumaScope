@@ -197,8 +197,9 @@ export class ImageGridComponent {
         total: stats.total,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
-        // GPS, HDR and location are directory-wide counters. A one-file cache
-        // update must never replace them with 0/1 values.
+        gps: stats.gps,
+        hdr: stats.hdr,
+        location: stats.location,
         thumbnailPaths: [],
         fullSizePaths: []
       });
@@ -226,9 +227,7 @@ export class ImageGridComponent {
         ...current,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
-        gps: stats.gps,
-        hdr: stats.hdr,
-        location: stats.location,
+        // Keep directory-wide GPS, HDR and location totals from the last full refresh.
         thumbnailPaths: [],
         fullSizePaths: []
       }));
