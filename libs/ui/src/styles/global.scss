@@ -788,10 +788,10 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
 
 
 /* Browse favourites use native menu items, not themed application action buttons. */
-.gallery-folder-tree button.gallery-location-menu-action,
-.gallery-folder-tree button.gallery-location-menu-action:hover,
-.gallery-folder-tree button.gallery-location-menu-action:active,
-.gallery-folder-tree button.gallery-location-menu-action:focus-visible {
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action,
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:hover,
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:active,
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:focus-visible {
   appearance: none !important;
   -webkit-appearance: none !important;
   display: flex !important;
@@ -814,7 +814,7 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
   cursor: pointer !important;
 }
 
-.gallery-folder-tree button.gallery-location-menu-action:hover,
-.gallery-folder-tree button.gallery-location-menu-action:focus-visible {
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:hover,
+.gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:focus-visible {
   background: rgb(128 128 128 / 14%) !important;
 }
