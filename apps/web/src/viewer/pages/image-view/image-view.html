@@ -135,7 +135,7 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
-        <section class="image-database-section app-disclosure" [open]="sidebarSectionExpanded('database')" (toggle)="onSidebarDetailsToggle('database', $event)">
+        <details class="image-database-section app-disclosure" [open]="sidebarSectionExpanded('database')" (toggle)="onSidebarDetailsToggle('database', $event)">
           <summary class="section-heading">SQLite database record</summary>
           @if (sidebarSectionExpanded('database')) {
             @if (photoDatabaseRecordStatus()) {
@@ -171,7 +171,7 @@
         </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section class="app-disclosure" [open]="sidebarSectionExpanded('zoom')" (toggle)="onSidebarDetailsToggle('zoom', $event)">
+      <details class="app-disclosure" [open]="sidebarSectionExpanded('zoom')" (toggle)="onSidebarDetailsToggle('zoom', $event)">
         <summary class="section-heading">Zoom</summary>
         @if (sidebarSectionExpanded('zoom')) {
           <div class="viewer-zoom-controls" aria-label="Image zoom">
@@ -186,7 +186,7 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'corrections') {
         @if(sidebarSectionExpanded('corrections')) {
-          <section class="correction-subsection basic-correction-section app-disclosure" [open]="sidebarSectionExpanded('basic')" (toggle)="onSidebarDetailsToggle('basic', $event)">
+          <details class="correction-subsection basic-correction-section app-disclosure" [open]="sidebarSectionExpanded('basic')" (toggle)="onSidebarDetailsToggle('basic', $event)">
             <summary class="section-heading">Basic</summary>
             @if (sidebarSectionExpanded('basic')) {
               <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
@@ -195,7 +195,7 @@
               <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
             }
           </details>
-          <section class="correction-subsection rgb-correction-section app-disclosure" [open]="sidebarSectionExpanded('rgbLevels')" (toggle)="onSidebarDetailsToggle('rgbLevels', $event)">
+          <details class="correction-subsection rgb-correction-section app-disclosure" [open]="sidebarSectionExpanded('rgbLevels')" (toggle)="onSidebarDetailsToggle('rgbLevels', $event)">
             <summary class="section-heading">RGB</summary>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
@@ -205,7 +205,7 @@
               </div>
             }
           </details>
-          <section class="correction-subsection inverse-section app-disclosure" [open]="sidebarSectionExpanded('inverse')" (toggle)="onSidebarDetailsToggle('inverse', $event)">
+          <details class="correction-subsection inverse-section app-disclosure" [open]="sidebarSectionExpanded('inverse')" (toggle)="onSidebarDetailsToggle('inverse', $event)">
             <summary class="section-heading">Inverse</summary>
             @if (sidebarSectionExpanded('inverse')) {
               <div class="rgb-inversion-controls">
@@ -218,7 +218,7 @@
               </div>
             }
           </details>
-          <section class="tone-curve-section app-disclosure" [open]="sidebarSectionExpanded('toneCurve')" (toggle)="onSidebarDetailsToggle('toneCurve', $event)">
+          <details class="tone-curve-section app-disclosure" [open]="sidebarSectionExpanded('toneCurve')" (toggle)="onSidebarDetailsToggle('toneCurve', $event)">
             <summary class="section-heading">Tone curve</summary>
             @if (sidebarSectionExpanded('toneCurve')) {
           <div class="tone-curve-controls">
@@ -268,14 +268,14 @@
          <details class="app-disclosure" [open]="sidebarSectionExpanded('loupe')" (toggle)="onSidebarDetailsToggle('loupe', $event)">
            <summary class="section-heading">Magnifier (M)</summary>
         @if(sidebarSectionExpanded('loupe')) {
-          <section class="app-disclosure" [open]="sidebarSectionExpanded('magnifierSettings')" (toggle)="onSidebarDetailsToggle('magnifierSettings', $event)">
+          <details class="app-disclosure" [open]="sidebarSectionExpanded('magnifierSettings')" (toggle)="onSidebarDetailsToggle('magnifierSettings', $event)">
             <summary class="section-heading">Magnifier Settings</summary>
             @if(sidebarSectionExpanded('magnifierSettings')) {
             <label class="channel-control"><span>Magnifier zoom (mouse wheel)<span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
             <label class="channel-control"><span>Magnifier size<span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
             <label class="channel-control"><span>Magnifier brightness<span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
             <div class="channel-control"><span>Magnifier Shape</span><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
-              <section class="app-disclosure" [open]="sidebarSectionExpanded('loupeRenderer')" (toggle)="onSidebarDetailsToggle('loupeRenderer', $event)">
+              <details class="app-disclosure" [open]="sidebarSectionExpanded('loupeRenderer')" (toggle)="onSidebarDetailsToggle('loupeRenderer', $event)">
                 <summary class="section-heading">Magnifier renderer</summary>
                 @if(sidebarSectionExpanded('loupeRenderer')) {
                   <button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>
@@ -514,7 +514,7 @@
             <summary class="section-heading">Delete file</summary>
             <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
           </details>
-          <section class="copy-file-section app-disclosure" [open]="sidebarSectionExpanded('copy')" (toggle)="onSidebarDetailsToggle('copy', $event)">
+          <details class="copy-file-section app-disclosure" [open]="sidebarSectionExpanded('copy')" (toggle)="onSidebarDetailsToggle('copy', $event)">
               <summary class="section-heading">Copy file</summary>
               @if (sidebarSectionExpanded('copy')) {
                 <div class="copy-folder-info-box">
@@ -544,7 +544,7 @@
         </section>
       }
 @if (activeImageSidebarTab() === 'general') {
-      <section class="app-disclosure image-preferences-section" [open]="sidebarSectionExpanded('preferences')" (toggle)="onSidebarDetailsToggle('preferences', $event)">
+      <details class="app-disclosure image-preferences-section" [open]="sidebarSectionExpanded('preferences')" (toggle)="onSidebarDetailsToggle('preferences', $event)">
           <summary class="section-heading">Preferences</summary>
           @if (sidebarSectionExpanded('preferences')) {
             <div class="setting-row setting-config-path">
