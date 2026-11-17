@@ -150,9 +150,24 @@ export class Exif {
           }
           result.withoutGps++;
           if (metadata.gpsTimestamp === null) {
+            console.info('[Exif GPX time debug] Photo has no usable timestamp:', {
+              photo: path,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              localNow: new Date().toString(),
+              utcNow: new Date().toISOString()
+            });
             result.unmatched++;
             continue;
           }
+          console.info('[Exif GPX time debug] Photo timestamp:', {
+            photo: path,
+            timestampSeconds: metadata.gpsTimestamp,
+            timestampUtc: new Date(metadata.gpsTimestamp * 1000).toISOString(),
+            timestampLocal: new Date(metadata.gpsTimestamp * 1000).toString(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            localOffsetMinutes: new Date(metadata.gpsTimestamp * 1000).getTimezoneOffset(),
+            maxDifferenceSeconds
+          });
           const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000, maxDifferenceSeconds);
           if (!position) {
             result.unmatched++;
