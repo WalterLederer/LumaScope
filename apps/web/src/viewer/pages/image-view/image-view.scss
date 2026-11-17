@@ -2330,19 +2330,24 @@
 
 /* Zoom-purpose sliders use a teal accent so they are instantly recognizable
    and visually distinct from the standard blue application sliders. */
-:host ::ng-deep ui-slider.zoom-purpose-slider input[type='range'] {
+:host ::ng-deep .image-controls-sidebar ui-slider.zoom-purpose-slider input[type='range'],
+:host ::ng-deep .image-status-bar ui-slider.zoom-purpose-slider input[type='range'] {
   accent-color: #0d9488 !important;
 }
-:host ::ng-deep ui-slider.zoom-purpose-slider input[type='range']::-webkit-slider-thumb {
+:host ::ng-deep .image-controls-sidebar ui-slider.zoom-purpose-slider input[type='range'],
+:host ::ng-deep .image-status-bar ui-slider.zoom-purpose-slider input[type='range']::-webkit-slider-thumb {
   border-color: #0f766e !important;
   background: linear-gradient(145deg, #5eead4 0%, #0d9488 55%, #0f766e 100%) !important;
 }
-:host ::ng-deep ui-slider.zoom-purpose-slider input[type='range']::-moz-range-thumb {
+:host ::ng-deep .image-controls-sidebar ui-slider.zoom-purpose-slider input[type='range'],
+:host ::ng-deep .image-status-bar ui-slider.zoom-purpose-slider input[type='range']::-moz-range-thumb {
   border-color: #0f766e !important;
   background: linear-gradient(145deg, #5eead4 0%, #0d9488 55%, #0f766e 100%) !important;
 }
-:host ::ng-deep ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-webkit-slider-thumb,
-:host ::ng-deep ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-moz-range-thumb {
+:host ::ng-deep .image-controls-sidebar ui-slider.zoom-purpose-slider input[type='range'],
+:host ::ng-deep .image-status-bar ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-webkit-slider-thumb,
+:host ::ng-deep .image-controls-sidebar ui-slider.zoom-purpose-slider input[type='range'],
+:host ::ng-deep .image-status-bar ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-moz-range-thumb {
   border-color: #0f766e !important;
   background: linear-gradient(145deg, #99f6e4 0%, #14b8a6 55%, #0d9488 100%) !important;
 }
