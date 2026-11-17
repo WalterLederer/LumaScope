@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { TreeNode, updateSubject } from '@light-matter/ui';
 import { FileInfo, getThumbnailSize, thumbnailDimensions, ThumbnailSize } from 'internal-api';
-import { BehaviorSubject, defer, filter, map, Observable, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
+import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
 import { FileSystem } from '../../../ipc/file-system';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { GalleryLocations } from '../gallery-locations/gallery-locations';
@@ -93,7 +93,7 @@ export class GalleryState {
 
   readonly galleryRoot = () => this.galleryRoot$;
 
-  readonly selectedLocation = () => this.selectedLocation$.asObservable();
+  readonly selectedLocation = () => this.selectedLocation$.pipe(distinctUntilChanged());
 
   readonly sortMode = () => this.sortMode$.asObservable();
 
