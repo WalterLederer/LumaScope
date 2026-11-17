@@ -178,6 +178,11 @@
         color: var(--color-content-default-highest);
         background: var(--color-accent-default, var(--color-surface-default-high));
       }
+
+      &.worker-error {
+        color: #fff;
+        background: #c62828;
+      }
     }
 
     .column-summary {
