@@ -126,7 +126,7 @@ export class ThumbnailComponent implements OnDestroy {
     const height = Number(tags?.ImageHeight);
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return '—';
     const bitsPerSample = String((tags as unknown as Record<string, unknown> | null)?.['BitsPerSample'] ?? '')
-      .split(/[,\\s/]+/)
+      .split(/[,\s/]+/)
       .map(value => Number.parseInt(value, 10))
       .find(value => Number.isFinite(value) && value > 0);
     const dimensions = `${Math.trunc(width)} × ${Math.trunc(height)}`;
