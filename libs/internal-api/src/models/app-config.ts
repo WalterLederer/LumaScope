@@ -86,6 +86,8 @@ export interface AppConfigV1Preferences {
   buttonColor?: ButtonColor;
   /** Saturation of the selected theme color, from 0 (grayscale) to 200 (vivid). Defaults to 100. */
   themeColorSaturation?: number;
+  /** Accent color used by zoom sliders. Defaults to teal. */
+  zoomSliderColor?: string;
   /** Total brightness applied to themed foreground and background controls. Defaults to 100%. */
   themeTotalBrightness?: number;
   /** Brightness applied only to themed control backgrounds. Defaults to 100%. */
@@ -150,6 +152,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.buttonStyle || 'blue' === input.buttonStyle || 'flat' === input.buttonStyle || 'outlined' === input.buttonStyle || 'soft' === input.buttonStyle || 'rounded' === input.buttonStyle)
     && (undefined === input.buttonColor || 'blue' === input.buttonColor || 'cyan' === input.buttonColor || 'green' === input.buttonColor || 'teal' === input.buttonColor || 'orange' === input.buttonColor || 'red' === input.buttonColor || 'purple' === input.buttonColor || 'gray' === input.buttonColor || typeof input.buttonColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.buttonColor))
     && (undefined === input.themeColorSaturation || 'number' === typeof input.themeColorSaturation && input.themeColorSaturation >= 0 && input.themeColorSaturation <= 200)
+    && (undefined === input.zoomSliderColor || typeof input.zoomSliderColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.zoomSliderColor))
     && (undefined === input.themeTotalBrightness || 'number' === typeof input.themeTotalBrightness && input.themeTotalBrightness >= 50 && input.themeTotalBrightness <= 150)
     && (undefined === input.themeBackgroundBrightness || 'number' === typeof input.themeBackgroundBrightness && input.themeBackgroundBrightness >= 50 && input.themeBackgroundBrightness <= 150)
     && (undefined === input.themeColorBrightness || 'number' === typeof input.themeColorBrightness && input.themeColorBrightness >= 50 && input.themeColorBrightness <= 150)
