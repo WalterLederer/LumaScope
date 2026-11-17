@@ -6,7 +6,7 @@
 @let exif = exifState();
 @let isHdrImage = imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
 
-@if (activeImageSidebarTab() === 'gallery' || activeImageSidebarTab() === 'cache') {
+@if (activeImageSidebarTab() === 'gallery') {
   <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="'grid'" [style.grid-template-columns]="sidebarOnLeft() ? ((controlsSidebarVisible() ? sidebarWidth() : 0) + 'px minmax(0, 1fr)') : ('minmax(0, 1fr) ' + (controlsSidebarVisible() ? sidebarWidth() : 0) + 'px')" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'" [style.overflow]="'hidden'">
     <app-gallery class="gallery-tab-content"
                  [showFolderTree]="false"
@@ -43,6 +43,11 @@
   }
   </div>
 } @else if (selected !== null) {
+  @if (activeImageSidebarTab() === 'cache') {
+    <!-- Keep the Browse cache-build controller mounted without replacing the displayed image. -->
+    <app-gallery [showFolderTree]="false" [showImageGrid]="true" [style.display]="'none'" />
+  }
+
   <app-image-renderer [url]="selected.url"
                       [style.margin-right.px]="!fullScreen && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
                       [style.margin-left.px]="!fullScreen && controlsSidebarVisible() && sidebarOnLeft() ? sidebarWidth() + 16 : 0"
@@ -127,6 +132,18 @@
       <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [class.tabs-right-start]="tab.id === 'general'" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleControlsSidebar()">×</button><button class="sidebar-side-toggle" type="button" [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" (click)="toggleSidebarSide()">⇄</button></nav>
       @if (activeImageSidebarTab() === 'image') { <nav class="image-sidebar-tabs image-sidebar-subtabs" role="tablist" aria-label="Image detail tabs">@for (tab of imageSubTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSubTab() === tab.id" [attr.aria-selected]="activeImageSubTab() === tab.id" (click)="setActiveImageSubTab(tab.id)">{{tab.label}}</button> }</nav> }
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
+      @if (activeImageSidebarTab() === 'cache') {
+        <app-settings-panel mode="cache"
+                            [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
+                            [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
+                            [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
+                            [currentFolderPath]="gallerySelectedLocation() ?? ''"
+                            [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
+                            (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
+                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
+                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
+                            [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
+      }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
         <section class="image-database-section app-disclosure">
