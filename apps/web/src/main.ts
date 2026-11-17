@@ -5,6 +5,22 @@ import { appConfig } from './app/app.config';
 
 console.warn('[Startup] Renderer entry reached; requesting ProcessManager.isPackaged');
 
+// Capture renderer failures before Angular and the router start bootstrapping.
+window.addEventListener('error', event => {
+  console.error('[RendererGlobalError] Uncaught error', {
+    message: event.message,
+    filename: event.filename,
+    line: event.lineno,
+    column: event.colno,
+    stack: event.error instanceof Error ? event.error.stack : undefined
+  });
+});
+window.addEventListener('unhandledrejection', event => {
+  const reason = event.reason;
+  console.error('[RendererGlobalError] Unhandled promise rejection', reason instanceof Error ? reason.stack ?? reason.message : reason);
+});
+
+
 window.desktop
   .ProcessManager
   .isPackaged()
