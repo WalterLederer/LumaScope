@@ -244,6 +244,16 @@ export class ProcessManager {
   @IpcHandler({ name: 'ProcessManager.openPath' })
   readonly openPath = async (_: IpcMainInvokeEvent, filePath: string): Promise<string> => shell.openPath(filePath);
 
+  @IpcHandler({ name: 'ProcessManager.openWith' })
+  readonly openWith = async (_: IpcMainInvokeEvent, filePath: string): Promise<void> => {
+    if (process.platform === 'win32') {
+      await execFileAsync('rundll32.exe', ['shell32.dll,OpenAs_RunDLL', filePath], { windowsHide: true });
+      return;
+    }
+    const error = await shell.openPath(filePath);
+    if (error) throw new Error(error);
+  };
+
   @IpcHandler({ name: 'ProcessManager.openConfigFile' })
   readonly openConfigFile = async (): Promise<string> => shell.openPath(App.startupConfig.configPath());
 
