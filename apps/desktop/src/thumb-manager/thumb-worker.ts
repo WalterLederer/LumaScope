@@ -124,6 +124,7 @@ interface LibRawDecoder {
   setGamma: (index: number, value: number) => void;
   setNoAutoBright: (value: number) => void;
   setUseCameraWb: (value: number) => void;
+  setHalfSize: (value: number) => void;
   dispose: () => void;
 }
 
@@ -149,8 +150,8 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
   return libRawConstructorPromise;
 }
 
-/** Develop a camera RAW file to 16-bit linear RGB without an SDR display transfer curve. */
-async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.Image> {
+/** Develop a camera RAW file to linear scRGB. Half-size decoding avoids full-frame allocations for thumbnails and histograms. */
+async function decodeDngToVips(vips: typeof Vips, source: string, halfSize = false): Promise<Vips.Image> {
   const LibRaw = await getLibRawConstructor();
   const decoder = new LibRaw();
   await decoder.waitUntilReady();
@@ -169,6 +170,9 @@ async function decodeDngToVips(vips: typeof Vips, source: string): Promise<Vips.
     decoder.setUseCameraWb(1);
     decoder.setOutputColor(1);
     decoder.setOutputBps(16);
+    // Thumbnails and histograms do not need full sensor resolution. Ask LibRaw
+    // to reduce the developed bitmap before allocating its RGB output buffer.
+    decoder.setHalfSize(halfSize ? 1 : 0);
     // Keep the RAW development output linear. The usual 0.45/4.5 curve is an SDR
     // display transform and would discard the linear-light values needed downstream
     // for HDR rendering and tone mapping.
@@ -786,7 +790,7 @@ function hlgOotf(vips: typeof Vips, sceneLinear: Vips.Image): Vips.Image {
 async function histogramForImage(vips: typeof Vips, source: string): Promise<ImageHistogram> {
   const sourceExtension = extname(source).toLowerCase();
   using fullImage = sourceExtension === '.dng'
-    ? await decodeDngToVips(vips, source)
+    ? await decodeDngToVips(vips, source, true)
     : vips.Image.newFromFile(source, { access: 'random' });
   const scale = Math.min(1, 512 / fullImage.width, 512 / fullImage.height);
   using smallImage = scale < 1 ? fullImage.resize(scale, { kernel: vips.Kernel.linear }) : fullImage.copy();
@@ -1016,7 +1020,7 @@ if (parentPort) {
 
       if (sourceExtension === '.dng') {
         processingStage = 'developing DNG with LibRaw';
-        using dngImage = await decodeDngToVips(vips, source);
+        using dngImage = await decodeDngToVips(vips, source, width > 0 && height > 0);
 
         if (cancelledRequests.has(id)) {
           cancelRequest(id);
@@ -1044,7 +1048,7 @@ if (parentPort) {
           using scrgb = dngImage.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 90);
         }
-        isHdr = hasHdrHeadroom(dngImage.writeToMemory());
+        isHdr = dngImage.max() > 1;
       } else if (sourceExtension === '.exr') {
         processingStage = 'loading EXR decoder';
         const decoder = await getExrDecoder();
