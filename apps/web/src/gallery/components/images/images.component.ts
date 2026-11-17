@@ -313,6 +313,7 @@ export class ImagesComponent {
       }
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
+      this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       if (controller.signal.aborted && !this.cacheRunCurrentOperation().startsWith('Cache build ')) {
