@@ -92,16 +92,16 @@ html[data-button-color='gray'] {
 }
 
 
-/* Theme color saturation is shared by accent-colored action buttons and all tab bars. */
-html { --theme-color-saturation: 100%; }
+/* Theme color saturation and brightness are shared by accent-colored buttons and tab bars. */
+html { --theme-color-saturation: 100%; --theme-color-brightness: 100%; }
 button:not([role='option']):not(.detail-header button),
 ui-action-button,
 button[role='tab'] {
-  filter: saturate(var(--theme-color-saturation, 100%));
+  filter: saturate(var(--theme-color-saturation, 100%)) brightness(var(--theme-color-brightness, 100%));
 }
 button:not([role='option']):not(.detail-header button):hover:not(:disabled),
 ui-action-button:hover:not(:disabled) {
-  filter: saturate(var(--theme-color-saturation, 100%)) brightness(1.18) !important;
+  filter: saturate(var(--theme-color-saturation, 100%)) brightness(calc(var(--theme-color-brightness, 100%) * 1.18)) !important;
 }
 html[data-tab-bar-style] button[role='tab'].active,
 html[data-tab-bar-style] [role='tab'].active {
