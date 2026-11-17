@@ -12,8 +12,8 @@
       <button type="button" (click)="sortDetailsBy('name')">
         <span>Name{{ sortIndicator('name') }}</span>
         <small class="column-count">{{ cacheStats().total }}</small>
-        @if (cacheRunActive()) {
-          <small class="column-count worker-running">Running: {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
+        @if (galleryCacheBuild.cacheRunActive()) {
+          <small class="column-count worker-running">Running: {{ galleryCacheBuild.cacheRunProgress().completed }} / {{ galleryCacheBuild.cacheRunProgress().total }}</small>
         }
       </button>
       <button type="button" (click)="sortDetailsBy('date')">
