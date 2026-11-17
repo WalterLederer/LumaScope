@@ -547,118 +547,12 @@ export class ImagesComponent {
 
   constructor() {
     console.warn('[Images] CONSTRUCTOR START');
-    effect(() => {
-      const images = this.images() ?? [];
-      const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
-      if (!isDetails || images.length === 0) return;
-      const request = ++this.metadataRequest;
-      const missing = images.filter(image => !this.metadata().has(image.path));
-      if (missing.length === 0) return;
-      void Promise.all(missing.map(async image => {
-        try {
-          const result = await this.exif.read(image.path);
-          return result.success ? [image.path, result.data] as const : null;
-        } catch {
-          return null;
-        }
-      })).then(results => {
-        if (request !== this.metadataRequest) return;
-        this.metadata.update(current => {
-          const next = new Map(current);
-          for (const result of results) if (result) next.set(result[0], result[1]);
-          return next;
-        });
-      });
-    });
-
-    effect(onCleanup => {
-      const folder = this.folderPath();
-      const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
-      if (!folder || !isDetails) {
-        this.locationDisplayNames.set(new Map());
-        return;
-      }
-      let active = true;
-      const refreshLocations = async (): Promise<void> => {
-        try {
-          const rows = await this.cacheManager.getDirectoryPhotoLocations(folder);
-          if (!active || this.folderPath() !== folder) return;
-          this.locationDisplayNames.set(new Map(rows
-            .filter(row => typeof row.displayName === 'string' && row.displayName.trim().length > 0)
-            .map(row => [row.path, row.displayName!])));
-        } catch (error) {
-          console.error('Failed to read cached gallery location names', error);
-        }
-      };
-      void refreshLocations();
-      const unsubscribe = this.cacheManager.onDirectoryPhotoLocationsChanged(changedDirectory => {
-        const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
-        if (normalize(changedDirectory) === normalize(folder)) void refreshLocations();
-      });
-      onCleanup(() => { active = false; unsubscribe(); });
-    });
-
-    effect(() => {
-      const images = this.images() ?? [];
-      this.thumbnailRefreshToken();
-      const request = ++this.cacheStatusRequest;
-      if ((this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') || images.length === 0) {
-        this.cacheStatuses.set(new Map());
-        this.cacheStatusLoading.set(false);
-      } else {
-        this.cacheStatusLoading.set(true);
-        const pathRequestVersions = new Map(this.cacheStatusPathRequests);
-        void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
-          if (request !== this.cacheStatusRequest) return;
-          this.cacheStatuses.update(current => {
-            const updated = new Map(statuses.map(status => [status.sourceName, status]));
-            for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
-              if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && current.has(sourceName)) {
-                const currentStatus = current.get(sourceName);
-                if (currentStatus) updated.set(sourceName, currentStatus);
-              }
-            }
-            return updated;
-          });
-        }).catch(error => {
-          if (request !== this.cacheStatusRequest) return;
-          console.error('Failed to retrieve gallery cache statuses', error);
-          this.cacheStatuses.set(new Map());
-        }).finally(() => {
-          if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
-        });
-      }
-    });
-
-    effect(() => {
-      console.warn('[Images] DATE GROUP EFFECT START');
-      const isDate = this.isDateSorted();
-      const groups = this.groupedImages();
-      console.warn('[Images] DATE GROUP EFFECT DATA', { isDate, yearCount: groups.length });
-
-      if (!isDate || groups.length === 0) {
-        this.activeSectionId.set(null);
-        this.cleanupObserver();
-        console.warn('[Images] DATE GROUP EFFECT SKIPPED');
-        return;
-      }
-
-      if (!this.activeSectionId() || !groups.some(g => g.months.some(m => m.sectionId === this.activeSectionId()))) {
-        this.activeSectionId.set(groups[0]?.months[0]?.sectionId ?? null);
-      }
-
-      queueMicrotask(() => {
-        console.warn('[Images] DATE GROUP EFFECT MICROTASK');
-        this.setupObserver();
-      });
-      console.warn('[Images] DATE GROUP EFFECT REGISTERED MICROTASK');
-    });
-
-    console.warn('[Images] CONSTRUCTOR EFFECTS REGISTERED');
+    console.warn('[Images] DIAGNOSTIC: constructor effects disabled');
     this.destroyRef.onDestroy(() => {
       this.cacheStatusRequest++;
       this.cleanupObserver();
     });
+    console.warn('[Images] CONSTRUCTOR COMPLETE');
   }
 
   scrollToSection(sectionId: string): void {
