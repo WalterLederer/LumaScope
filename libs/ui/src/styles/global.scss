@@ -881,3 +881,99 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+
+/* Shared ui-checkbox appearance. The native input remains responsible for
+   checked state, keyboard interaction, focus and form submission. */
+.ui-checkbox,
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  margin: 0 3px 0 0;
+  vertical-align: middle;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--theme-button-color, #287fc4) 48%, CanvasText 52%);
+  border-radius: 4px;
+  background: color-mix(in srgb, Canvas 94%, var(--theme-button-color, #287fc4) 6%);
+  color: #fff;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 16%), 0 1px 1px rgb(255 255 255 / 10%);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.ui-checkbox::before,
+input[type="checkbox"]::before {
+  content: "";
+  width: 6px;
+  height: 9px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg) scale(0);
+  transform-origin: center;
+  transition: transform 100ms ease;
+}
+
+.ui-checkbox:checked,
+input[type="checkbox"]:checked {
+  border-color: var(--theme-button-color, #287fc4);
+  background: var(--theme-button-color, #287fc4);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 18%), 0 1px 3px color-mix(in srgb, var(--theme-button-color, #287fc4) 32%, transparent);
+}
+
+.ui-checkbox:checked::before,
+input[type="checkbox"]:checked::before {
+  transform: translateY(-1px) rotate(45deg) scale(1);
+}
+
+.ui-checkbox:indeterminate,
+input[type="checkbox"]:indeterminate {
+  border-color: var(--theme-button-color, #287fc4);
+  background: var(--theme-button-color, #287fc4);
+}
+
+.ui-checkbox:indeterminate::before,
+input[type="checkbox"]:indeterminate::before {
+  width: 7px;
+  height: 0;
+  border: 0;
+  border-top: 2px solid currentColor;
+  transform: none;
+}
+
+.ui-checkbox:hover:not(:disabled),
+input[type="checkbox"]:hover:not(:disabled) {
+  border-color: var(--theme-button-color, #287fc4);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-button-color, #287fc4) 18%, transparent), inset 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.ui-checkbox:focus-visible,
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--button-focus, var(--theme-button-color, #287fc4));
+  outline-offset: 2px;
+}
+
+.ui-checkbox:disabled,
+input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.ui-checkbox:disabled:checked,
+input[type="checkbox"]:disabled:checked {
+  background: color-mix(in srgb, var(--theme-button-color, #287fc4) 55%, CanvasText 45%);
+  border-color: color-mix(in srgb, var(--theme-button-color, #287fc4) 55%, CanvasText 45%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-checkbox,
+  input[type="checkbox"],
+  .ui-checkbox::before,
+  input[type="checkbox"]::before {
+    transition: none;
+  }
+}
