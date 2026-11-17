@@ -648,4 +648,8 @@ app-map-window {
     .time-slider-no-data-row .time-slider-help{flex:1 1 auto;min-width:0}
     .time-slider-no-data-row .time-slider-inline-help{margin-left:auto!important;flex:0 0 30px!important}
 
+    .marker-first-row{display:flex;align-items:center;justify-content:flex-start;width:100%;min-width:0}
+    .marker-first-row>.routing-help-button{margin-left:auto!important;flex:0 0 30px!important}
+    .time-slider-readouts>.time-slider-inline-help{margin-left:auto!important;flex:0 0 30px!important}
+
 }
