@@ -23,10 +23,12 @@ export class SettingsPanelComponent {
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
   readonly cacheBuildCurrentOperation = input('');
   readonly currentFolderPath = input('');
+  readonly cacheFolderPath = signal('');
+  private readonly syncCacheFolderPath = effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
-  readonly startCacheBuild = input<(() => void) | null>(null);
-  readonly startRecursiveCacheBuild = input<(() => void) | null>(null);
+  readonly startCacheBuild = input<((directory: string) => void) | null>(null);
+  readonly startRecursiveCacheBuild = input<((directory: string) => void) | null>(null);
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
   protected readonly recursiveBuild = signal(false);
@@ -47,9 +49,9 @@ export class SettingsPanelComponent {
     this.cacheCheckResult.set(null);
     this.cacheCheckError.set(null);
     if (this.recursiveBuild()) {
-      this.startRecursiveCacheBuild()?.();
+      this.startRecursiveCacheBuild()?.(this.cacheFolderPath().trim());
     } else {
-      this.startCacheBuild()?.();
+      this.startCacheBuild()?.(this.cacheFolderPath().trim());
     }
   };
   protected readonly stopCacheBuild = (): void => this.cancelCacheBuild()?.();
