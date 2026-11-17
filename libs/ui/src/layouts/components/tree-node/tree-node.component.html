@@ -13,7 +13,14 @@
 
 <div class="spacer"></div>
 
-@if (currentMenu !== null && currentNode.hideMenu !== true) {
+@if (inlineActions() && currentNode.id !== undefined) {
+  <button type="button"
+          class="tree-inline-action"
+          [attr.aria-label]="currentNode.id === '' ? 'Add location' : 'Remove favourite'"
+          [title]="currentNode.id === '' ? 'Add location' : 'Remove favourite'"
+          (click)="onAction($event)"
+          uiStopPropagation>{{ currentNode.id === '' ? '+' : 'x' }}</button>
+} @else if (currentMenu !== null && currentNode.hideMenu !== true) {
   <ui-action-button class="action"
                     [cdkMenuTriggerFor]="currentMenu"
                     [cdkMenuTriggerData]="{ data: currentNode }"
