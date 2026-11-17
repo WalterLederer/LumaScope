@@ -227,7 +227,17 @@ export default class App {
     const logRendererStartup = (event: string, details: Record<string, unknown> = {}): void => {
       console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
     };
-    App.mainWindow.webContents.on('did-start-loading', () => logRendererStartup('Renderer navigation started'));
+    let devToolsAttachedForMainNavigation = false;
+    App.mainWindow.webContents.on('did-start-loading', () => {
+      logRendererStartup('Renderer navigation started');
+      // Attach after Chromium has created the navigation target, but before
+      // the renderer executes the application entry bundle.
+      if (!devToolsAttachedForMainNavigation && App.startupConfig.devToolsOpen()) {
+        devToolsAttachedForMainNavigation = true;
+        App.mainWindow.webContents.openDevTools({ mode: 'detach', activate: true });
+        logRendererStartup('DevTools attached to active renderer navigation');
+      }
+    });
     App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready'));
     App.mainWindow.webContents.on('did-finish-load', () => logRendererStartup('Renderer document finished loading', {
       url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
@@ -275,12 +285,6 @@ export default class App {
     };
     App.mainWindow.on('move', notifyLoupeGeometryChanged);
     App.mainWindow.on('resize', notifyLoupeGeometryChanged);
-
-    // Attach DevTools before navigation so startup console messages are captured.
-    if (App.startupConfig.devToolsOpen()) {
-      App.mainWindow.webContents.openDevTools();
-      logRendererStartup('DevTools opened before renderer navigation');
-    }
 
     // Show the window once Chromium reports that the first frame is ready.
     App.mainWindow.once('ready-to-show', () => {
