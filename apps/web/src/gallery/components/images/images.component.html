@@ -82,7 +82,7 @@
 
               <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
                 @for (image of monthGroup.images; track image.path) {
-                  <app-thumbnail [image]="image" [viewMode]="viewMode()"
+                  <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                                  (hovered)="hovered.emit($event)"
                                  (cacheUpdated)="cacheUpdated.emit($event)"
                                  (clicked)="this.selected.emit($event)" />
@@ -103,7 +103,7 @@
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
     @for (image of imageList; track image.path) {
-      <app-thumbnail [image]="image" [viewMode]="viewMode()"
+      <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
                      (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
