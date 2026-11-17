@@ -257,20 +257,6 @@ export class ImagesComponent {
       : (this.images() ?? [])
   );
 
-  private readonly ensureActiveSelection = effect(() => {
-    const images = this.displayedImages();
-    const activePath = this.activeSelectionPath();
-    const openedPath = this.selectedImagePath();
-    if (images.length === 0) {
-      this.activeSelectionPath.set(null);
-      return;
-    }
-    if (activePath && images.some(image => image.path === activePath)) return;
-    this.activeSelectionPath.set(
-      openedPath && images.some(image => image.path === openedPath) ? openedPath : images[0].path
-    );
-  });
-
   protected readonly selectThumbnail = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
@@ -278,7 +264,7 @@ export class ImagesComponent {
   };
 
   @HostListener('keydown', ['$event'])
-  protected readonly onThumbnailListKeydown = (event: KeyboardEvent): void => {
+  protected onThumbnailListKeydown(event: KeyboardEvent): void {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && target.matches('input, textarea, select, button, a, [contenteditable="true"], [role="menuitem"]')) return;
@@ -289,8 +275,8 @@ export class ImagesComponent {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       event.stopPropagation();
-      const baseIndex = currentIndex < 0 ? 0 : currentIndex;
       const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const baseIndex = currentIndex < 0 ? (delta > 0 ? -1 : 0) : currentIndex;
       const nextIndex = Math.max(0, Math.min(images.length - 1, baseIndex + delta));
       const next = images[nextIndex];
       this.activeSelectionPath.set(next.path);
@@ -746,6 +732,20 @@ export class ImagesComponent {
       queueMicrotask(() => {
         this.setupObserver();
       });
+    });
+
+    effect(() => {
+      const images = this.displayedImages();
+      const activePath = this.activeSelectionPath();
+      const openedPath = this.selectedImagePath();
+      if (images.length === 0) {
+        this.activeSelectionPath.set(null);
+        return;
+      }
+      if (activePath && images.some(image => image.path === activePath)) return;
+      this.activeSelectionPath.set(
+        openedPath && images.some(image => image.path === openedPath) ? openedPath : images[0].path
+      );
     });
 
     this.destroyRef.onDestroy(() => {
