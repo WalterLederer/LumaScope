@@ -295,6 +295,7 @@ export class ImagesComponent {
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
+    this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
       let images = this.images() ?? [];
       if (directory?.trim()) {
@@ -325,6 +326,7 @@ export class ImagesComponent {
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
+    this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
       const rootImages = await this.fileSystem.readImages(rootPath, this.sortBy(), this.sortDirection());
       if (!rootImages.success) throw new Error(rootImages.errorMessage || `Could not read folder: ${rootPath}`);
