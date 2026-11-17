@@ -263,11 +263,14 @@ export class ImagesComponent {
     this.selected.emit(image);
   };
 
-  @HostListener('keydown', ['$event'])
+  @HostListener('document:keydown', ['$event'])
   protected onThumbnailListKeydown(event: KeyboardEvent): void {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = event.target;
     if (target instanceof HTMLElement && target.matches('input, textarea, select, button, a, [contenteditable="true"], [role="menuitem"]')) return;
+    const host = this.elementRef.nativeElement as HTMLElement;
+    if (target instanceof Node && !host.contains(target)
+      && target !== host.ownerDocument.body && target !== host.ownerDocument.documentElement) return;
 
     const images = this.displayedImages();
     if (images.length === 0) return;
