@@ -170,6 +170,9 @@ export class ImagesComponent {
   });
 
   /* Computed */
+  readonly distinctSuffixCount = computed(() => new Set(
+    (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
+  ).size);
   readonly dimensions = computed(() => thumbnailDimensions[this.thumbSize()]);
   readonly detailThumbnailWidth = computed(() => {
     const width = this.dimensions().width;
