@@ -74,6 +74,8 @@ export class GalleryPage {
 
   readonly imageSelected = output<FileInfo>();
 
+  readonly locationSelected = output<void>();
+
   readonly showFolderTree = input(true);
 
   readonly showImageGrid = input(true);
@@ -299,7 +301,7 @@ export class GalleryPage {
   protected readonly selectLocation = (node: TreeNode<string>) =>
     this.galleryState
       .navigateTo(node.id)
-      .subscribe();
+      .subscribe(() => this.locationSelected.emit());
 
   protected readonly onImageSelected = (file: FileInfo) =>
     this.viewNavigator
