@@ -246,6 +246,11 @@ export class GalleryPage {
 
   protected readonly onThumbSizeChange = (value: ThumbnailSize) => this.galleryState.changeThumbnailSize(value);
 
+  protected readonly onTreeAction = (node: TreeNode<string>): void => {
+    if (node.id === '') void this.onAddLocation();
+    else void this.onRemoveLocation(node);
+  };
+
   protected readonly onAddLocation = async () => {
     this.galleryLocationError.set(null);
     const result = await this.dialogs.openFolder();
