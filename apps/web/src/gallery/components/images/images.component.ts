@@ -547,8 +547,10 @@ export class ImagesComponent {
       }
     };
     void refreshReverseGeocodingStatus();
-    const reverseGeocodingTimer = setInterval(() => void refreshReverseGeocodingStatus(), 1000);
-    this.destroyRef.onDestroy(() => clearInterval(reverseGeocodingTimer));
+    const unsubscribeStatus = this.cacheManager.onBackgroundReverseGeocodingStatusChanged(
+      () => void refreshReverseGeocodingStatus()
+    );
+    this.destroyRef.onDestroy(unsubscribeStatus);
 
     effect(() => {
       const images = this.images() ?? [];
@@ -594,8 +596,11 @@ export class ImagesComponent {
         }
       };
       void refreshLocations();
-      const timer = setInterval(() => void refreshLocations(), 1500);
-      onCleanup(() => { active = false; clearInterval(timer); });
+      const unsubscribe = this.cacheManager.onDirectoryPhotoLocationsChanged(changedDirectory => {
+        const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+        if (normalize(changedDirectory) === normalize(folder)) void refreshLocations();
+      });
+      onCleanup(() => { active = false; unsubscribe(); });
     });
 
     effect(() => {
