@@ -78,3 +78,19 @@
   --track-color: var(--zoom-slider-color, #14b8a6) !important;
   --indicator-color: var(--zoom-slider-color, #14b8a6) !important;
 }
+
+
+:host {
+  outline: none;
+  cursor: pointer;
+}
+
+:host(:focus-visible) .container .indicator {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 36%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 30%, transparent);
+}
+
+:host(.disabled) {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
