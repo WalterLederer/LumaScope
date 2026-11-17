@@ -963,6 +963,15 @@ export class CacheManager {
     return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, gps, hdr, location, thumbnailPaths, fullSizePaths };
   };
 
+  @IpcHandler({ name: 'CacheManager.selectDatabaseForDirectory' })
+  readonly selectDatabaseForDirectory = async (_event: IpcMainInvokeEvent, directory: string): Promise<boolean> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
+    this.databaseForPath(directory);
+    this.activeDatabaseKey = this.databaseKeyForPath(directory);
+    this.notifyReverseGeocodingStatusChanged();
+    return true;
+  };
+
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
