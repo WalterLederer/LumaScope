@@ -173,6 +173,11 @@
         color: #fff;
         background: #c62828;
       }
+
+      &.worker-running {
+        color: var(--color-content-default-highest);
+        background: var(--color-accent-default, var(--color-surface-default-high));
+      }
     }
 
     .column-summary {
