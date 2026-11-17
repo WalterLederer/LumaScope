@@ -141,6 +141,7 @@ export class ImageView {
   protected readonly galleryCacheBuild = inject(GalleryCacheBuild);
 
   private readonly galleryState = inject(GalleryState);
+  protected readonly gallerySelectedLocation = toSignal(this.galleryState.selectedLocation(), { initialValue: null });
 
   private readonly keyboard = inject(Keyboard);
 
