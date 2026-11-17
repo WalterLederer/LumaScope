@@ -45,10 +45,16 @@
       <span class="count-heading">
         <span>GPS coordinates</span>
         <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
+        @if (cacheRunActive()) {
+          <small class="worker-progress" aria-live="polite">Running: {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
+        }
       </span>
       <span class="count-heading">
         <span>Location</span>
         <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
+        @if (reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused) {
+          <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
+        }
       </span>
       <div class="column-resizer" style="grid-column: 1;" role="separator" aria-orientation="vertical" aria-label="Resize column" (pointerdown)="startColumnResize($event, 0)"></div>
       <div class="column-resizer" style="grid-column: 2;" role="separator" aria-orientation="vertical" aria-label="Resize column" (pointerdown)="startColumnResize($event, 1)"></div>
