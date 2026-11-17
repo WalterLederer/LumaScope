@@ -7,7 +7,7 @@ import SquirrelEvents from './app/events/squirrel.events';
 import UpdateEvents from './app/events/update.events';
 
 const isImageFileArgument = (value: string): boolean =>
-  /\.(?:avif|bmp|gif|hdr|heic|heif|jpe?g|jxl|jxr|dng|png|svg|tiff?|webp|exr)$/i.test(value);
+  /\.(?:avif|bmp|gif|hdr|heic|heif|jpe?g|jxl|jxr|dng|rw2|raw|png|svg|tiff?|webp|exr)$/i.test(value);
 
 export default class Main {
   static initialize(): boolean {
