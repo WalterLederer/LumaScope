@@ -17,10 +17,15 @@
   width: 100%;
 
   .track {
-    border-radius: var(--track-radius);
-    width: 100% ;
+    width: 100%;
     height: calc(var(--track-radius) * 2);
+    box-sizing: border-box;
+    border: 0;
+    outline: 0;
+    border-radius: var(--track-radius);
     background: var(--track-color);
+    background-clip: padding-box;
+    box-shadow: none;
   }
 
   .indicator {
@@ -59,26 +64,9 @@
   box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 60%);
 }
 
-/* Purpose styling for zoom and thumbnail-size sliders. ui-slider is a custom
-   track/indicator control, not a native input[type=range]. */
+/* Zoom-purpose sliders use the exact same geometry and interaction styling.
+   Only their color tokens differ from ordinary sliders. */
 :host(.zoom-purpose-slider) {
-  --track-color: color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 65%, black) !important;
-  --indicator-color: color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 50%, white) !important;
-}
-
-:host(.zoom-purpose-slider) .container .track {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 65%, black) 0%, var(--zoom-slider-color, #14b8a6) 100%);
-}
-
-:host(.zoom-purpose-slider) .container .indicator {
-  z-index: 1;
-  border: 2px solid color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 75%, black);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 50%, white) 0%, var(--zoom-slider-color, #14b8a6) 55%, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 72%, black) 100%);
-  box-shadow: 0 2px 5px rgb(0 0 0 / 38%), 0 0 0 1px rgb(0 0 0 / 18%), inset 0 1px 1px rgb(255 255 255 / 65%);
-  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
-}
-
-:host(.zoom-purpose-slider:hover) .container .indicator {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 80%, white) 0%, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 15%, white) 55%, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 72%, black) 100%);
-  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 70%);
+  --track-color: var(--zoom-slider-color, #14b8a6) !important;
+  --indicator-color: var(--zoom-slider-color, #14b8a6) !important;
 }
