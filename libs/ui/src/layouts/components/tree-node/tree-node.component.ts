@@ -54,6 +54,8 @@ export class TreeNodeComponent<T> {
 
   protected readonly isSelected = computed(() => this.node().isSelected === true);
 
+  protected readonly isRootNode = (): boolean => String(this.node().id) === ''; 
+
   protected readonly onClick = () => this.pressed.emit(this.node());
 
   protected readonly onAction = (event: Event) => {
