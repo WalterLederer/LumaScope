@@ -271,9 +271,16 @@ export class Exif {
         if (value instanceof Date) {
           return Number.isFinite(value.getTime()) ? Math.floor(value.getTime() / 1000) : null;
         }
-        if (typeof value !== 'string' || !value.trim()) return null;
 
-        const text = value.trim();
+        // exiftool-vendored can return date tags as ExifDateTime objects
+        // rather than native Date or string values. Their string form carries
+        // the original EXIF timestamp (including any timezone suffix).
+        const text = typeof value === 'string'
+          ? value.trim()
+          : value && typeof value === 'object'
+            ? String(value).trim()
+            : '';
+        if (!text || text === '[object Object]') return null;
         // ExifTool may return EXIF date strings without timezone information.
         // Interpret those camera-local values in the local timezone rather than
         // letting Date.parse reject the colon-separated date format.
