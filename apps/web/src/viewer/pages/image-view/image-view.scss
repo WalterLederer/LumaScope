@@ -2277,3 +2277,52 @@
 :host .image-preferences-section {
   margin-top: 10px;
 }
+
+
+/* Apply the shared raised-thumb treatment to the image zoom and magnifier sliders.
+   These controls live inside ui-slider, so the selectors must reach its native range input. */
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range'] {
+  cursor: pointer !important;
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid var(--button-border-strong, #3988c8) !important;
+  border-radius: 50% !important;
+  background: var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%)) !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 38%), 0 0 0 1px rgb(0 0 0 / 18%), inset 0 1px 1px rgb(255 255 255 / 55%) !important;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease !important;
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']::-moz-range-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border: 2px solid var(--button-border-strong, #3988c8) !important;
+  border-radius: 50% !important;
+  background: var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%)) !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 38%), 0 0 0 1px rgb(0 0 0 / 18%), inset 0 1px 1px rgb(255 255 255 / 55%) !important;
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease !important;
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:hover:not(:disabled)::-webkit-slider-thumb {
+  border-color: var(--button-border-strong, #3988c8) !important;
+  background: var(--button-gradient-hover, linear-gradient(145deg, #70ccff 0%, #268be5 48%, #7565d5 100%)) !important;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 65%) !important;
+  transform: scale(1.12);
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:hover:not(:disabled)::-moz-range-thumb {
+  border-color: var(--button-border-strong, #3988c8) !important;
+  background: var(--button-gradient-hover, linear-gradient(145deg, #70ccff 0%, #268be5 48%, #7565d5 100%)) !important;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 65%) !important;
+  transform: scale(1.12);
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:active:not(:disabled)::-webkit-slider-thumb,
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 2px 7px rgb(0 0 0 / 45%), 0 0 0 4px color-mix(in srgb, var(--button-border-strong, #3988c8) 30%, transparent), inset 0 1px 1px rgb(255 255 255 / 65%) !important;
+  transform: scale(1.16);
+}
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:active:not(:disabled)::-moz-range-thumb,
+:host ::ng-deep .image-controls-sidebar ui-slider.image-enhanced-slider input[type='range']:focus-visible::-moz-range-thumb {
+  box-shadow: 0 2px 7px rgb(0 0 0 / 45%), 0 0 0 4px color-mix(in srgb, var(--button-border-strong, #3988c8) 30%, transparent), inset 0 1px 1px rgb(255 255 255 / 65%) !important;
+  transform: scale(1.16);
+}
