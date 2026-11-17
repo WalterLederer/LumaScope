@@ -163,8 +163,6 @@ export class GalleryPage {
   readonly thumbSize$ = this.galleryState.thumbSize();
 
   constructor() {
-    console.warn('[GalleryPage] CONSTRUCTOR START');
-    afterNextRender(() => console.warn('[GalleryPage] AFTER NEXT RENDER'));
 
     // Only the image-grid instance owns window title and cache refresh side effects.
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
