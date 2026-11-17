@@ -677,6 +677,45 @@ export class CacheManager {
     const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(folder);
     this.activeDatabaseKey = databaseKey;
+    const diagnosticPointQuery = db.prepare(`SELECT p.timestamp_ms, p.latitude, p.longitude,
+        s.id AS segment_id, f.file_name, f.relative_file_path
+      FROM gpx_track_points p
+      JOIN gpx_track_segments s ON s.id = p.segment_id
+      JOIN gpx_files f ON f.id = s.gpx_file_id
+      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms <= :timestamp
+      ORDER BY p.timestamp_ms DESC LIMIT 1`);
+    const diagnosticBefore = diagnosticPointQuery.get({ timestamp: timestampMs }) as
+      { timestamp_ms: number; latitude: number; longitude: number; segment_id: number; file_name: string; relative_file_path: string } | undefined;
+    const diagnosticAfter = db.prepare(`SELECT p.timestamp_ms, p.latitude, p.longitude,
+        s.id AS segment_id, f.file_name, f.relative_file_path
+      FROM gpx_track_points p
+      JOIN gpx_track_segments s ON s.id = p.segment_id
+      JOIN gpx_files f ON f.id = s.gpx_file_id
+      WHERE p.timestamp_ms IS NOT NULL AND p.timestamp_ms >= :timestamp
+      ORDER BY p.timestamp_ms ASC LIMIT 1`).get({ timestamp: timestampMs }) as
+      { timestamp_ms: number; latitude: number; longitude: number; segment_id: number; file_name: string; relative_file_path: string } | undefined;
+    const describePoint = (point: typeof diagnosticBefore) => point ? ({
+      timestampMs: point.timestamp_ms,
+      utc: new Date(point.timestamp_ms).toISOString(),
+      local: new Date(point.timestamp_ms).toString(),
+      deltaSeconds: (point.timestamp_ms - timestampMs) / 1000,
+      segmentId: point.segment_id,
+      file: point.relative_file_path,
+      latitude: point.latitude,
+      longitude: point.longitude
+    }) : null;
+    console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', {
+      photoTimestampMs: timestampMs,
+      photoUtc: new Date(timestampMs).toISOString(),
+      photoLocal: new Date(timestampMs).toString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      localOffsetMinutes: new Date(timestampMs).getTimezoneOffset(),
+      databaseKey,
+      importedGpxPointCount: (db.prepare('SELECT COUNT(*) AS count FROM gpx_track_points WHERE timestamp_ms IS NOT NULL').get() as { count: number }).count,
+      nearestBefore: describePoint(diagnosticBefore),
+      nearestAfter: describePoint(diagnosticAfter),
+      sameSegment: !!diagnosticBefore && !!diagnosticAfter && diagnosticBefore.segment_id === diagnosticAfter.segment_id
+    });
     const pair = db.prepare(`SELECT segment_id,
         MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) AS before_timestamp,
         MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) AS after_timestamp
