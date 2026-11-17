@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, Signal, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, Signal, signal, untracked } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
 interface CacheBuildProgress {
@@ -70,7 +70,7 @@ export class GalleryCacheBuild {
   readonly cancelCacheBuild = (): void => this.controller()?.cancel();
   readonly refreshDetailCacheStatus = (): void => this.controller()?.refreshDetailCacheStatus();
 
-  readonly register = (controller: GalleryCacheBuildController): (() => void) => {
+  readonly register = (controller: GalleryCacheBuildController): (() => void) => untracked(() => {
     const current = this.controller();
     if (current && current !== controller && current.cacheRunActive()) {
       // Do not replace an active build with a newly mounted, idle ImageGrid.
@@ -81,7 +81,9 @@ export class GalleryCacheBuild {
       this.retiredController.set(false);
     }
 
-    return () => {
+    // Registration is an imperative operation. Its internal signal reads must
+    // not become dependencies of the calling component's registration effect.
+    return () => untracked(() => {
       if (this.pendingController() === controller) {
         this.pendingController.set(null);
       }
@@ -97,6 +99,6 @@ export class GalleryCacheBuild {
         this.pendingController.set(null);
         this.retiredController.set(false);
       }
-    };
-  };
+    });
+  });
 }
