@@ -57,7 +57,7 @@ export class ThumbManager {
     height: number,
     signal?: AbortSignal,
     preserveAspectRatio = false
-  ): Promise<{ success: boolean; isHdr: boolean | null }> => this.enqueue(() => this.runWorkerOperation(
+  ): Promise<{ success: boolean; isHdr: boolean | null; error?: string }> => this.enqueue(() => this.runWorkerOperation(
     source,
     async () => {
       const startedAt = performance.now();
