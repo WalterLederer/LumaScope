@@ -45,7 +45,7 @@
       <span class="count-heading">
         <span>GPS coordinates</span>
         <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
-        @if (cacheRunActive() && cacheRunProgress().total > 0) {
+        @if (cacheRunActive()) {
           <small class="worker-progress" aria-live="polite">Running: {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
         }
       </span>
