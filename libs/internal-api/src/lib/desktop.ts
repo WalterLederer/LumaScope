@@ -144,6 +144,7 @@ export interface BackgroundReverseGeocodingStatus {
   inProgress: number;
   errors: number;
   status: 'running' | 'idle' | 'completed';
+  paused: boolean;
   currentFilePath: string | null;
   currentDisplayName: string | null;
 }
@@ -164,6 +165,9 @@ export interface DesktopCacheManager {
   readonly getCacheSummary: (databaseKey?: string) => Promise<CacheSummary>;
   readonly resolveMissingLocationNames: (directory: string, recursive?: boolean) => Promise<ResolveLocationNamesResult>;
   readonly cancelResolveMissingLocationNames: () => Promise<boolean>;
+  readonly pauseBackgroundReverseGeocoding: () => Promise<boolean>;
+  readonly resumeBackgroundReverseGeocoding: () => Promise<boolean>;
+  readonly abortBackgroundReverseGeocoding: () => Promise<boolean>;
   readonly getBackgroundReverseGeocodingStatus: () => Promise<BackgroundReverseGeocodingStatus>;
   readonly cacheInfo: (directory?: string, recursive?: boolean) => Promise<CacheInfo>;
   readonly imageCachePath: (sourceName: string) => Promise<string | null>;
