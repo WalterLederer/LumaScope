@@ -1,4 +1,5 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -7,6 +8,7 @@ import {
   ElementRef,
   inject,
   input,
+  Injector,
   output,
   signal
 } from '@angular/core';
@@ -49,6 +51,7 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
 })
 export class ImagesComponent {
   private readonly elementRef = inject(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
   private readonly exif = inject(ExifService);
   private readonly fileSystem = inject(FileSystem);
@@ -84,6 +87,7 @@ export class ImagesComponent {
 
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
+  readonly selectedImagePath = input<string | null>(null);
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly folderPath = input<string | null>(null);
   readonly sortBy = input<SortType>(allSortTypes[0]);
@@ -176,6 +180,10 @@ export class ImagesComponent {
   readonly distinctSuffixCount = computed(() => new Set(
     (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
   ).size);
+  readonly fullSizeConversionTotal = computed(() => {
+    const statuses = this.cacheStatuses();
+    return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
+  });
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
     const dates = images.map(image => image.modifiedAt ?? image.createdAt).filter(value => Number.isFinite(value));
@@ -538,6 +546,18 @@ export class ImagesComponent {
   }
 
   constructor() {
+    effect(() => {
+      const selectedPath = this.selectedImagePath();
+      const images = this.images() ?? [];
+      if (!selectedPath || !images.some(image => image.path === selectedPath)) return;
+      afterNextRender(() => {
+        if (this.selectedImagePath() !== selectedPath) return;
+        const elements = (this.elementRef.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-image-path]');
+        const selected = Array.from(elements).find(element => element.dataset['imagePath'] === selectedPath);
+        selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }, { injector: this.injector });
+    });
+
     effect(() => {
       const images = this.images() ?? [];
       const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
