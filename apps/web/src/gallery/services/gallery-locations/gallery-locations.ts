@@ -1,12 +1,16 @@
 import { inject, Injectable } from '@angular/core';
-import { map, shareReplay, take } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay, take } from 'rxjs';
 import { Configuration } from '../../../system/services/configuration/configuration';
 
 @Injectable({ providedIn: 'root' })
 export class GalleryLocations {
   private readonly configuration = inject(Configuration);
 
-  private readonly locations$ = this.configuration.config().pipe(map(config => config.gallery.locations), shareReplay({ bufferSize: 1, refCount: false }));
+  private readonly locations$ = this.configuration.config().pipe(
+    map(config => config.gallery.locations),
+    distinctUntilChanged((previous, current) => previous.length === current.length && previous.every((path, index) => path === current[index])),
+    shareReplay({ bufferSize: 1, refCount: false })
+  );
 
   readonly locations = () => this.locations$;
 
