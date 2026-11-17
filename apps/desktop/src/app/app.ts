@@ -228,22 +228,19 @@ export default class App {
       console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
     };
     App.mainWindow.webContents.on('did-start-loading', () => logRendererStartup('Renderer navigation started'));
-    App.mainWindow.webContents.on('dom-ready', () => {
-      logRendererStartup('Renderer DOM ready');
-      // Open DevTools as soon as Chromium has a DOM, not after ready-to-show.
-      // This keeps startup diagnostics available even if Angular never renders
-      // the first frame and Electron therefore never emits ready-to-show.
-      if (App.startupConfig.devToolsOpen() && !App.mainWindow.webContents.isDevToolsOpened()) {
-        App.mainWindow.webContents.openDevTools();
-        logRendererStartup('DevTools opened during renderer startup');
-      }
-    });
+    App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready'));
     App.mainWindow.webContents.on('did-finish-load', () => logRendererStartup('Renderer document finished loading', {
       url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
     }));
-    App.mainWindow.webContents.on('console-message', (_event, level, message, lineNumber, sourceId) => {
-      const label = level === 2 ? 'ERROR' : level === 1 ? 'WARN' : 'LOG';
-      const log = label === 'ERROR' ? console.error : label === 'WARN' ? console.warn : console.log;
+    App.mainWindow.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
+      const label = level === 'error' ? 'ERROR'
+        : level === 'warning' ? 'WARN'
+        : level === 'debug' ? 'DEBUG'
+        : 'INFO';
+      const log = level === 'error' ? console.error
+        : level === 'warning' ? console.warn
+        : level === 'debug' ? console.debug
+        : console.log;
       log(`[Renderer ${label}] ${message} ( ${sourceId}:${lineNumber} )`);
     });
     App.mainWindow.webContents.on('paint', () => logRendererStartup('First renderer paint'));
@@ -278,6 +275,12 @@ export default class App {
     };
     App.mainWindow.on('move', notifyLoupeGeometryChanged);
     App.mainWindow.on('resize', notifyLoupeGeometryChanged);
+
+    // Attach DevTools before navigation so startup console messages are captured.
+    if (App.startupConfig.devToolsOpen()) {
+      App.mainWindow.webContents.openDevTools();
+      logRendererStartup('DevTools opened before renderer navigation');
+    }
 
     // Show the window once Chromium reports that the first frame is ready.
     App.mainWindow.once('ready-to-show', () => {
