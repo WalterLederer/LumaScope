@@ -6,7 +6,7 @@ import { Configuration } from '../../../system/services/configuration/configurat
 export class GalleryLocations {
   private readonly configuration = inject(Configuration);
 
-  private readonly locations$ = this.configuration.config().pipe(map(config => config.gallery.locations), shareReplay({ bufferSize: 1, refCount: true }));
+  private readonly locations$ = this.configuration.config().pipe(map(config => config.gallery.locations), shareReplay({ bufferSize: 1, refCount: false }));
 
   readonly locations = () => this.locations$;
 
