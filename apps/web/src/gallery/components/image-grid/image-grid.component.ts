@@ -272,12 +272,12 @@ export class ImageGridComponent {
     this.imagesComponent()?.refreshGallery();
   };
 
-  readonly cacheAllImages = (): void => {
-    void this.imagesComponent()?.cacheAllImages();
+  readonly cacheAllImages = (directory: string): void => {
+    void this.imagesComponent()?.cacheAllImages(directory);
   };
 
-  readonly cacheAllImagesRecursive = (): void => {
-    void this.imagesComponent()?.cacheAllImagesRecursive();
+  readonly cacheAllImagesRecursive = (directory: string): void => {
+    void this.imagesComponent()?.cacheAllImagesRecursive(directory);
   };
 
   readonly refreshDetailCacheStatus = (): void => {
@@ -333,7 +333,6 @@ export class ImageGridComponent {
         cacheRunActive: images.cacheRunActive,
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        selectedLocation: this.selectedLocation,
         start: this.cacheAllImages,
         startRecursive: this.cacheAllImagesRecursive,
         cancel: this.cancelCacheRun,
