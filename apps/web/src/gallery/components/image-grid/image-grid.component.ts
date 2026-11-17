@@ -314,27 +314,8 @@ export class ImageGridComponent {
   /* Constructor */
   constructor() {
     console.warn('[ImageGrid] CONSTRUCTOR START');
-    effect(onCleanup => {
-      const images = this.imagesComponent();
-      if (!images) return;
-      const unregister = this.galleryCacheBuild.register({
-        cacheRunActive: images.cacheRunActive,
-        cacheRunProgress: images.cacheRunProgress,
-        cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        // Capture the actual ImagesComponent instance. The ImageGrid can be
-        // destroyed during navigation while its asynchronous cache run continues.
-        // These direct references keep progress and cancellation connected to that run.
-        start: directory => { void images.cacheAllImages(directory); },
-        startRecursive: directory => { void images.cacheAllImagesRecursive(directory); },
-        cancel: () => images.cancelCacheRun(),
-        refreshDetailCacheStatus: () => {
-          if (this.viewMode() === 'details') images.refreshGallery();
-          void this.refreshDirectoryCacheStats();
-        }
-      });
-      onCleanup(unregister);
-    });
-
+    // Startup diagnostic: temporarily disable the ImagesComponent registration effect.
+    // The child component remains mounted so its creation can be tested independently.
     effect(() => {
       this.images();
       this.selectedLocation();
