@@ -9,7 +9,7 @@
 @if (activeImageSidebarTab() === 'gallery') {
   <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="'grid'" [style.grid-template-columns]="sidebarOnLeft() ? ((controlsSidebarVisible() ? sidebarWidth() : 0) + 'px minmax(0, 1fr)') : ('minmax(0, 1fr) ' + (controlsSidebarVisible() ? sidebarWidth() : 0) + 'px')" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'" [style.overflow]="'hidden'">
     <div class="gallery-tab-content" [style.grid-column]="sidebarOnLeft() && controlsSidebarVisible() ? '2' : '1'" [style.grid-row]="'1'">
-      <app-gallery class="browse-image-grid" [showFolderTree]="false" [showImageGrid]="true" (imageSelected)="onGalleryImageSelected($event)" />
+      <app-gallery class="browse-image-grid" [showFolderTree]="false" [showImageGrid]="true" (imageSelected)="onGalleryImageSelected()" />
     </div>
   @if (controlsSidebarVisible()) {
     <aside class="image-controls-sidebar gallery-shell-sidebar" [class.sidebar-left]="sidebarOnLeft()" aria-label="Image controls" [style.position]="'relative'" [style.grid-column]="sidebarOnLeft() ? '1' : '2'" [style.grid-row]="'1'" [style.width]="'100%'" [style.min-width]="'0'">
