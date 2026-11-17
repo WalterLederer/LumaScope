@@ -15,6 +15,9 @@
         @if (galleryCacheBuild.cacheRunActive()) {
           <small class="column-count worker-running">Running: {{ galleryCacheBuild.cacheRunProgress().completed }} / {{ galleryCacheBuild.cacheRunProgress().total }}</small>
         }
+        @if (galleryCacheBuild.cacheRunErrorCount() > 0) {
+          <small class="column-count worker-error">Errors: {{ galleryCacheBuild.cacheRunErrorCount() }}</small>
+        }
       </button>
       <button type="button" (click)="sortDetailsBy('date')">
         <span>Date modified{{ sortIndicator('date') }}</span>
@@ -54,6 +57,9 @@
         @if (reverseGeocodingStatus(); as geoStatus) {
           @if (geoStatus.status === 'running' || geoStatus.paused) {
             <small class="column-count worker-running">{{ geoStatus.paused ? 'Paused' : 'Running' }}: {{ geoStatus.resolved + geoStatus.errors }} / {{ geoStatus.total }}</small>
+          }
+          @if (geoStatus.errors > 0) {
+            <small class="column-count worker-error">Errors: {{ geoStatus.errors }}</small>
           }
         }
       </span>
