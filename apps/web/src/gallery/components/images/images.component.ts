@@ -9,6 +9,7 @@ import {
   inject,
   input,
   Injector,
+  HostListener,
   output,
   signal
 } from '@angular/core';
@@ -43,6 +44,7 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
   styleUrl: './images.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
+    'tabindex': '0',
     '[style.--thumb-width.px]': 'dimensions().width',
     '[style.--thumb-height.px]': 'dimensions().height',
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
@@ -88,6 +90,7 @@ export class ImagesComponent {
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
   readonly selectedImagePath = input<string | null>(null);
+  readonly activeSelectionPath = signal<string | null>(null);
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly folderPath = input<string | null>(null);
   readonly sortBy = input<SortType>(allSortTypes[0]);
@@ -247,6 +250,63 @@ export class ImagesComponent {
 
   /* Signals */
   readonly activeSectionId = signal<string | null>(null);
+
+  private readonly displayedImages = computed(() =>
+    this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails'
+      ? this.sortedDetailImages()
+      : (this.images() ?? [])
+  );
+
+  private readonly ensureActiveSelection = effect(() => {
+    const images = this.displayedImages();
+    const activePath = this.activeSelectionPath();
+    const openedPath = this.selectedImagePath();
+    if (images.length === 0) {
+      this.activeSelectionPath.set(null);
+      return;
+    }
+    if (activePath && images.some(image => image.path === activePath)) return;
+    this.activeSelectionPath.set(
+      openedPath && images.some(image => image.path === openedPath) ? openedPath : images[0].path
+    );
+  });
+
+  private readonly selectThumbnail = (image: FileInfo): void => {
+    this.activeSelectionPath.set(image.path);
+    (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
+    this.selected.emit(image);
+  };
+
+  @HostListener('keydown', ['$event'])
+  protected readonly onThumbnailListKeydown = (event: KeyboardEvent): void => {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.matches('input, textarea, select, button, a, [contenteditable="true"], [role="menuitem"]')) return;
+
+    const images = this.displayedImages();
+    if (images.length === 0) return;
+    const currentIndex = images.findIndex(image => image.path === this.activeSelectionPath());
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      event.stopPropagation();
+      const baseIndex = currentIndex < 0 ? 0 : currentIndex;
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = Math.max(0, Math.min(images.length - 1, baseIndex + delta));
+      const next = images[nextIndex];
+      this.activeSelectionPath.set(next.path);
+      queueMicrotask(() => {
+        const elements = (this.elementRef.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-image-path]');
+        Array.from(elements).find(element => element.dataset['imagePath'] === next.path)
+          ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+      return;
+    }
+    if (event.key === 'Enter' && currentIndex >= 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.selected.emit(images[currentIndex]);
+    }
+  };
 
   /* Outputs */
   readonly selected = output<FileInfo>();
