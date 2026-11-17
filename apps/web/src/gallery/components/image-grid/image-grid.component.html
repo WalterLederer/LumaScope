@@ -63,17 +63,9 @@
 </ui-toolbar>
 
 <div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox>
-  <app-images [images]="images()"
-              [cacheStats]="cacheStats()"
-              [folderPath]="selectedLocation()"
-              [sortBy]="sortBy()"
-              [sortDirection]="sortDirection()"
-              [thumbSize]="thumbSize()"
-              [viewMode]="viewMode()"
-              [verifyCacheFiles]="verifyCacheFiles()"
-              (hovered)="onThumbnailHovered($event)"
-              (cacheUpdated)="onCacheUpdated($event)"
-              (selected)="selected.emit($event)" />
+  <div class="images-startup-diagnostic-placeholder">
+    Image list temporarily disabled for startup diagnosis.
+  </div>
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
