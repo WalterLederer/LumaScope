@@ -117,7 +117,7 @@ button[role='tab'] {
   isolation: isolate;
 }
 
-button:not([role='option']):not(.detail-header button)::before,
+button:not([role='option']):not(.detail-header button):not(.app-disclosure-heading)::before,
 ui-action-button::before,
 button[role='tab']::before {
   content: '';
