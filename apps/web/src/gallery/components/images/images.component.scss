@@ -79,9 +79,9 @@
     transform: none !important;
   }
 
-  position: relative;
-  top: auto;
-  z-index: 1;
+  position: sticky;
+  top: 0;
+  z-index: 10;
   align-self: start;
   background: var(--color-surface-default-low);
   display: grid;
@@ -209,6 +209,16 @@
         color: #fff;
         background: #c62828;
       }
+    }
+
+    .worker-progress {
+      display: inline-block;
+      color: var(--color-content-default-medium);
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1.25;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
     }
 
     .column-summary {
