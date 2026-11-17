@@ -36,7 +36,7 @@ export class SettingsPanelComponent {
   protected readonly locationLookupCancelRequested = signal(false);
   protected readonly locationLookupOutput = signal('No location lookup has run yet.');
   protected readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
-    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle', currentFilePath: null, currentDisplayName: null
+    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle', paused: false, currentFilePath: null, currentDisplayName: null
   });
   protected readonly reverseGeocodingStatusError = signal<string | null>(null);
   protected readonly reverseGeocodingControlBusy = signal(false);
