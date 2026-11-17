@@ -24,7 +24,6 @@ export class SettingsPanelComponent {
   readonly cacheBuildCurrentOperation = input('');
   readonly currentFolderPath = input('');
   readonly cacheFolderPath = signal('');
-  private readonly syncCacheFolderPath = effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
   readonly startCacheBuild = input<((directory: string) => void) | null>(null);
@@ -57,7 +56,7 @@ export class SettingsPanelComponent {
   protected readonly stopCacheBuild = (): void => this.cancelCacheBuild()?.();
 
   protected readonly resolveMissingLocations = async (): Promise<void> => {
-    const directory = this.currentFolderPath().trim();
+    const directory = this.cacheFolderPath().trim();
     if (!directory || this.locationLookupActive() || this.cacheBuildActive() || this.cacheCheckState() === 'checking' || this.isClearing()) return;
 
     const recursive = this.recursiveBuild();
@@ -433,6 +432,7 @@ export class SettingsPanelComponent {
     });
     const destroyRef = inject(DestroyRef);
     destroyRef.onDestroy(removeExternalProcessListener);
+    effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
     void this.refreshReverseGeocodingStatus();
     const reverseGeocodingTimer = setInterval(() => void this.refreshReverseGeocodingStatus(), 1000);
     destroyRef.onDestroy(() => clearInterval(reverseGeocodingTimer));
@@ -447,16 +447,16 @@ export class SettingsPanelComponent {
     effect(() => {
       const global = this.deleteCacheGlobal();
       const recursive = this.recursiveDelete();
-      const directory = this.currentFolderPath().trim();
+      const directory = this.cacheFolderPath().trim();
       void this.updateCacheInfo(global ? undefined : directory || null, !global && recursive);
     });
     effect(() => {
       const recursive = this.recursiveBuild();
-      const directory = this.currentFolderPath().trim();
+      const directory = this.cacheFolderPath().trim();
       void this.updateBuildCacheInfo(directory || null, recursive);
     });
     effect(() => {
-      this.currentFolderPath();
+      this.cacheFolderPath();
       this.recursiveBuild();
       this.cacheCheckRequestId++;
       this.cacheCheckState.set('idle');
@@ -489,13 +489,13 @@ export class SettingsPanelComponent {
     effect(() => {
       const buildActive = this.cacheBuildActive();
       if (!buildActive) {
-        const directory = this.currentFolderPath().trim();
+        const directory = this.cacheFolderPath().trim();
         void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
       }
     });
     let previousSummaryDrive: string | null = null;
     effect(() => {
-      const folder = this.currentFolderPath().trim();
+      const folder = this.cacheFolderPath().trim();
       const drive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
       if (!drive || drive === previousSummaryDrive) return;
       previousSummaryDrive = drive;
@@ -654,7 +654,7 @@ export class SettingsPanelComponent {
 
   /* Event handlers */
   protected readonly checkCache = async (): Promise<void> => {
-    const directory = this.currentFolderPath().trim();
+    const directory = this.cacheFolderPath().trim();
     const recursive = this.recursiveBuild();
     if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive() || this.locationLookupActive()) return;
 
@@ -696,7 +696,7 @@ export class SettingsPanelComponent {
         ]);
 
         if (requestId !== this.cacheCheckRequestId
-          || directory !== this.currentFolderPath().trim()
+          || directory !== this.cacheFolderPath().trim()
           || recursive !== this.recursiveBuild()) return;
       }
 
@@ -717,7 +717,7 @@ export class SettingsPanelComponent {
           .map(status => status.sourceName));
 
         if (requestId !== this.cacheCheckRequestId
-          || directory !== this.currentFolderPath().trim()
+          || directory !== this.cacheFolderPath().trim()
           || recursive !== this.recursiveBuild()) return;
       }
 
@@ -757,7 +757,7 @@ export class SettingsPanelComponent {
     if (this.isClearing()) return;
 
     const global = this.deleteCacheGlobal();
-    const directory = global ? undefined : this.currentFolderPath().trim();
+    const directory = global ? undefined : this.cacheFolderPath().trim();
     const recursive = !global && this.recursiveDelete();
     if (!global && !directory) {
       this.clearError.set('Select a gallery folder, or enable Delete cache global.');
@@ -809,7 +809,7 @@ export class SettingsPanelComponent {
       this.deleteCancelRequested.set(false);
       this.isClearing.set(false);
       await this.updateCacheInfo(global ? undefined : directory || null, recursive);
-      await this.updateBuildCacheInfo(this.currentFolderPath().trim() || null, this.recursiveBuild());
+      await this.updateBuildCacheInfo(this.cacheFolderPath().trim() || null, this.recursiveBuild());
     }
   };
 
