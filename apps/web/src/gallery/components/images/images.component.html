@@ -6,16 +6,34 @@
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <div class="detail-header">
       <span></span>
-      <button type="button" (click)="sortDetailsBy('name')">Name{{ sortIndicator('name') }}</button>
+      <button type="button" (click)="sortDetailsBy('name')">
+        <span>Name{{ sortIndicator('name') }}</span>
+        <small class="column-count" [class.incomplete]="cacheStats().total > 0 && cacheStats().total < cacheStats().total">{{ cacheStats().total }}</small>
+      </button>
       <button type="button" (click)="sortDetailsBy('date')">Date modified{{ sortIndicator('date') }}</button>
       <button type="button" (click)="sortDetailsBy('dimensions')">Dimensions{{ sortIndicator('dimensions') }}</button>
       <button type="button" (click)="sortDetailsBy('size')">File size{{ sortIndicator('size') }}</button>
       <button type="button" (click)="sortDetailsBy('suffix')">Suffix{{ sortIndicator('suffix') }}</button>
-      <button type="button" (click)="sortDetailsBy('hdr')">HDR{{ sortIndicator('hdr') }}</button>
-      <button type="button" (click)="sortDetailsBy('thumb')">Thumb{{ sortIndicator('thumb') }}</button>
-      <button type="button" (click)="sortDetailsBy('fullSize')">Full-Size Conversion{{ sortIndicator('fullSize') }}</button>
-      <span>GPS coordinates</span>
-      <span>Location</span>
+      <button type="button" (click)="sortDetailsBy('hdr')">
+        <span>HDR{{ sortIndicator('hdr') }}</span>
+        <small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small>
+      </button>
+      <button type="button" (click)="sortDetailsBy('thumb')">
+        <span>Thumb{{ sortIndicator('thumb') }}</span>
+        <small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small>
+      </button>
+      <button type="button" (click)="sortDetailsBy('fullSize')">
+        <span>Full-Size Conversion{{ sortIndicator('fullSize') }}</span>
+        <small class="column-count">{{ cacheStats().fullSizeConversions }}</small>
+      </button>
+      <span class="count-heading">
+        <span>GPS coordinates</span>
+        <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
+      </span>
+      <span class="count-heading">
+        <span>Location</span>
+        <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
+      </span>
     </div>
   <div class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     @for (image of sortedDetailImages(); track image.path) {
