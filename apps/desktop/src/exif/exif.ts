@@ -173,6 +173,9 @@ export class Exif {
           if (metadata.gpsTimestamp === null) {
             const missingTimestampDetails = {
               photo: path,
+              selectedExifTag: metadata.gpsTimestampSource,
+              selectedExifRaw: metadata.gpsTimestampRaw,
+              allExifTimestampCandidates: metadata.gpsTimestampCandidates,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
               localNow: new Date().toString(),
               utcNow: new Date().toISOString()
@@ -222,6 +225,10 @@ export class Exif {
         } catch (error) {
           result.errors++;
           console.warn('[Exif] Automatic GPS correction failed:', path, error);
+          await writeGpsDebug('Photo processing error:', {
+            photo: path,
+            error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error)
+          });
         } finally {
           const currentFolder = relative(root, dirname(path)) || '.';
           if (result.scanned % 100 === 0 || currentFolder !== lastProgressFolder) sendProgress(path);
