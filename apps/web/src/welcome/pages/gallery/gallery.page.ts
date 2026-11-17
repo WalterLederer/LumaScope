@@ -78,6 +78,7 @@ export class GalleryPage {
   readonly showFolderTree = input(true);
 
   readonly showImageGrid = input(true);
+  readonly selectedImagePath = input<string | null>(null);
 
 
   protected readonly tree = viewChild(TreeComponent);
