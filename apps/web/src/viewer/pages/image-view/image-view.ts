@@ -3536,8 +3536,22 @@ export class ImageView {
              event.key === '-' || event.key === '_' || event.key === 'Subtract')) {
           event.preventDefault();
         }
-        if (event.key === 'Escape' && this.dialog.openDialogs.length > 0) {
-          this.escapePressedWhileDialogOpen = true;
+        if (event.key === 'Escape') {
+          if (this.dialog.openDialogs.length > 0) {
+            // The dialog owns Escape. Remember the keydown so its keyup cannot
+            // trigger the main-window Browse shortcut after the dialog closes.
+            this.escapePressedWhileDialogOpen = true;
+            return;
+          }
+
+          // Handle this in the document capture phase so the shortcut works
+          // from every main-window tab, even if a child component stops keyup.
+          this.escapePressedWhileDialogOpen = false;
+          event.preventDefault();
+          event.stopPropagation();
+          if (this.activeImageSidebarTab() !== 'gallery') {
+            this.setActiveImageSidebarTab('gallery');
+          }
         }
       });
 
@@ -3555,16 +3569,6 @@ export class ImageView {
           || target.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
         );
         if (isTextEntryTarget) return;
-
-        if (event.key === 'Escape') {
-          // Escape is the main-window shortcut for returning to Browse.
-          // Dialogs and text-entry controls are handled above and retain ownership.
-          if (this.activeImageSidebarTab() !== 'gallery') {
-            event.preventDefault();
-            this.setActiveImageSidebarTab('gallery');
-          }
-          return;
-        }
 
         // Modal dialogs own keyboard interaction. In particular, left/right
         // must remain available to move between confirmation actions instead
