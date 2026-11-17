@@ -892,14 +892,22 @@ html input[type='range']:not(.time-slider-range-input) {
   cursor: pointer;
 }
 html input[type='range']:not(.time-slider-range-input)::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  appearance: none;
   height: 8px;
+  border: 0;
+  outline: 0;
   border-radius: 999px;
+  box-shadow: none;
   background: color-mix(in srgb, var(--button-border-strong, #3988c8) 42%, transparent);
 }
 html input[type='range']:not(.time-slider-range-input)::-moz-range-track {
+  appearance: none;
   height: 8px;
   border: 0;
+  outline: 0;
   border-radius: 999px;
+  box-shadow: none;
   background: color-mix(in srgb, var(--button-border-strong, #3988c8) 42%, transparent);
 }
 html input[type='range']:not(.time-slider-range-input)::-webkit-slider-thumb {
