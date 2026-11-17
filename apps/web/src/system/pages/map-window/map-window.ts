@@ -2409,6 +2409,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (target instanceof Element && target.closest('.gpx-row-actions')) return;
     if (target instanceof Element && target.closest('.offline-row-actions')) return;
     this.gpxRowActionMenuOpen.set(null);
+    this.gpxRowActionTrack.set(null);
     this.offlineRowActionMenuOpen.set(null);
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
@@ -2428,6 +2429,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
     this.gpxRowActionMenuOpen.set(null);
+    this.gpxRowActionTrack.set(null);
     this.offlineRowActionMenuOpen.set(null);
   }
 
