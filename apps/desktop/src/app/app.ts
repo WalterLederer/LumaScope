@@ -228,6 +228,7 @@ export default class App {
       console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
     };
     let devToolsAttachedForMainNavigation = false;
+    let rendererUnresponsive = false;
     App.mainWindow.webContents.on('did-start-loading', () => {
       logRendererStartup('Renderer navigation started');
       // Attach after Chromium has created the navigation target, but before
@@ -262,11 +263,15 @@ export default class App {
       console.error('[Startup] Renderer process exited unexpectedly:', details);
     });
     App.mainWindow.webContents.on('unresponsive', () => {
+      rendererUnresponsive = true;
       App.logShutdown('main-renderer-unresponsive', {
         loading: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.isLoading() : null
       });
     });
-    App.mainWindow.webContents.on('responsive', () => App.logShutdown('main-renderer-responsive'));
+    App.mainWindow.webContents.on('responsive', () => {
+      rendererUnresponsive = false;
+      App.logShutdown('main-renderer-responsive');
+    });
     App.mainWindow.webContents.on('will-prevent-unload', event => {
       App.logShutdown('main-renderer-will-prevent-unload');
       // Keep Electron's default behavior: the close is allowed unless the
@@ -313,7 +318,7 @@ export default class App {
         elapsedMs: Date.now() - startupStartedAt,
         loading: webContents.isLoading(),
         crashed: webContents.isCrashed(),
-        responsive: App.mainWindow.isResponsive()
+        rendererUnresponsive
       };
       // Log before contacting the renderer: executeJavaScript itself can be
       // blocked when the renderer main thread is stuck during Angular startup.
