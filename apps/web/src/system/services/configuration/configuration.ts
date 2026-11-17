@@ -130,6 +130,7 @@ export class Configuration {
         buttonStyle: 'blue',
         buttonColor: 'blue',
         themeColorSaturation: 100,
+        themeColorBrightness: 100,
         disclosureStyle: 'classic',
         tabBarStyle: 'classic'
       }
