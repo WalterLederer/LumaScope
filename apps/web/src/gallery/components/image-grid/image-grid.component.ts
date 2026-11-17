@@ -1,5 +1,5 @@
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
-import { DatePipe, DecimalPipe, DOCUMENT } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -37,8 +37,6 @@ import { GalleryViewMode } from '../images/images.component.types';
   selector: 'app-image-grid',
   imports: [
     ImagesComponent,
-    DatePipe,
-    DecimalPipe,
     ToolbarComponent,
     TitleComponent,
     ActionButtonComponent,
