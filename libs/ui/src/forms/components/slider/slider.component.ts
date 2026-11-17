@@ -68,6 +68,7 @@ export class SliderComponent extends FormElementDirective<number> {
   protected readonly currentValue = signal(0);
 
   constructor() {
+    super();
     effect(() => {
       const value = this.value();
       if (value !== undefined && Number.isFinite(value)) this.currentValue.set(this.normalizeValue(value));
