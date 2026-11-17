@@ -178,6 +178,7 @@ export interface DesktopCacheManager {
   readonly resetBuildLog: () => Promise<void>;
   readonly appendBuildLog: (line: string) => Promise<void>;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
+  readonly selectDatabaseForDirectory: (directory: string) => Promise<boolean>;
   readonly getDirectoryPhotoLocations: (directory: string) => Promise<PhotoLocation[]>;
   readonly getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => Promise<PhotoLocation[]>;
   readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
