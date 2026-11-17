@@ -54,6 +54,7 @@ export const resumeReverseGeocoding = (): void => {
 };
 
 export const abortReverseGeocoding = (): void => {
+  paused = true;
   abortGeneration++;
   activeRequestController?.abort();
   for (const resume of [...pauseWaiters]) resume();
