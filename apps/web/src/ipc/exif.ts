@@ -5,6 +5,11 @@ import { ApiResponse, DesktopExif, ExifTags, FixPhotoLocationsProgress, FixPhoto
 export class ExifService implements DesktopExif {
   private readonly metadataCache = new Map<string, { expiresAt: number; result: Promise<ApiResponse<ExifTags>> }>();
 
+  readonly readFresh = (path: string): Promise<ApiResponse<ExifTags>> => {
+    this.metadataCache.delete(path);
+    return this.read(path);
+  };
+
   readonly read = (path: string): Promise<ApiResponse<ExifTags>> => {
     const cached = this.metadataCache.get(path);
     if (cached && cached.expiresAt > Date.now()) return cached.result;
