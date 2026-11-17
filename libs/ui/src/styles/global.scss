@@ -100,6 +100,15 @@ html {
   --theme-background-overlay-color: #fff;
   --theme-background-overlay-opacity: 0;
 }
+
+/* Shared sliders and checkboxes follow the active theme's saturation and
+   foreground brightness, including controls with their own accent colors. */
+ui-slider,
+.ui-checkbox,
+input[type="checkbox"] {
+  filter: saturate(var(--theme-color-saturation, 100%))
+    brightness(var(--theme-total-brightness, 100%));
+}
 button:not([role='option']):not(.detail-header button),
 ui-action-button,
 button[role='tab'] {
