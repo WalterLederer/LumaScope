@@ -112,7 +112,7 @@ export class GalleryState {
         }),
         tap(response => {
           console.warn('[GalleryState] readImages RESULT', { success: response.success, count: response.success ? response.data.length : 0, error: response.success ? undefined : response.errorMessage });
-          this.images$.next(response.success ? response.data.slice(0, 1) : []);
+          this.images$.next(response.success ? response.data : []);
         }),
         map(() => true)
       );
