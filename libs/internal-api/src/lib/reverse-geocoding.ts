@@ -39,6 +39,39 @@ interface NominatimReverseResponse {
 
 let requestQueue: Promise<void> = Promise.resolve();
 let lastRequestAt = 0;
+let paused = false;
+let abortGeneration = 0;
+let activeRequestController: AbortController | null = null;
+const pauseWaiters = new Set<() => void>();
+
+const abortError = (): Error => Object.assign(new Error('Reverse geocoding was aborted.'), { name: 'AbortError' });
+
+export const pauseReverseGeocoding = (): void => { paused = true; };
+
+export const resumeReverseGeocoding = (): void => {
+  paused = false;
+  for (const resume of [...pauseWaiters]) resume();
+};
+
+export const abortReverseGeocoding = (): void => {
+  abortGeneration++;
+  activeRequestController?.abort();
+  for (const resume of [...pauseWaiters]) resume();
+};
+
+export const isReverseGeocodingPaused = (): boolean => paused;
+
+const waitUntilResumed = (generation: number): Promise<void> => {
+  if (!paused) return generation === abortGeneration ? Promise.resolve() : Promise.reject(abortError());
+  return new Promise((resolve, reject) => {
+    const resume = (): void => {
+      pauseWaiters.delete(resume);
+      if (generation !== abortGeneration) reject(abortError());
+      else resolve();
+    };
+    pauseWaiters.add(resume);
+  });
+};
 
 /**
  * Resolve GPS coordinates through the same Nominatim reverse-geocoding
@@ -51,14 +84,20 @@ export const lookupReverseGeocoding = (
   language = 'en'
 ): Promise<ReverseGeocodingResult | null> => {
   const queuedAt = Date.now();
+  const requestGeneration = abortGeneration;
   console.debug('[ReverseGeocoding] Queued request', { latitude, longitude, language });
   const request = requestQueue.then(async () => {
+    await waitUntilResumed(requestGeneration);
+    if (requestGeneration !== abortGeneration) throw abortError();
     const wait = Math.max(0, 1000 - (Date.now() - lastRequestAt));
     if (wait > 0) {
       console.debug('[ReverseGeocoding] Waiting for provider rate limit', { waitMs: wait, latitude, longitude });
       await new Promise(resolve => setTimeout(resolve, wait));
     }
+    if (requestGeneration !== abortGeneration) throw abortError();
     lastRequestAt = Date.now();
+    const controller = new AbortController();
+    activeRequestController = controller;
     const startedAt = Date.now();
 
     const url = new URL('https://nominatim.openstreetmap.org/reverse');
@@ -79,7 +118,7 @@ export const lookupReverseGeocoding = (
           'User-Agent': 'LumaScope/1.0 (+https://github.com/WalterLederer/light-matter)',
           'Accept-Language': language || 'en'
         },
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
       });
       if (!response.ok) {
         console.info('[ReverseGeocoding] Provider response', {
@@ -143,11 +182,14 @@ export const lookupReverseGeocoding = (
         street
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error;
       console.error('[ReverseGeocoding] Request failed', {
         latitude, longitude, durationMs: Date.now() - startedAt,
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
+    } finally {
+      if (activeRequestController?.signal === controller.signal) activeRequestController = null;
     }
   });
 
