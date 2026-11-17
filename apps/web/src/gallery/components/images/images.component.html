@@ -12,6 +12,9 @@
       <button type="button" (click)="sortDetailsBy('name')">
         <span>Name{{ sortIndicator('name') }}</span>
         <small class="column-count">{{ cacheStats().total }}</small>
+        @if (cacheRunActive()) {
+          <small class="column-count worker-running">Running: {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
+        }
       </button>
       <button type="button" (click)="sortDetailsBy('date')">
         <span>Date modified{{ sortIndicator('date') }}</span>
@@ -48,6 +51,11 @@
       <span class="count-heading">
         <span>Location</span>
         <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
+        @if (reverseGeocodingStatus(); as geoStatus) {
+          @if (geoStatus.status === 'running' || geoStatus.paused) {
+            <small class="column-count worker-running">{{ geoStatus.paused ? 'Paused' : 'Running' }}: {{ geoStatus.resolved + geoStatus.errors }} / {{ geoStatus.total }}</small>
+          }
+        }
       </span>
     </div>
   <div class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
