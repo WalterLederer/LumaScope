@@ -1912,6 +1912,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndStyles = signal<import('internal-api').OsmAndRenderingStyle[]>([]);
   protected readonly offlineMapStatus = signal<import('internal-api').OfflineMapStatus | null>(null);
   protected readonly offlineMaps = signal<import('internal-api').OfflineMapStatus[]>([]);
+  // The initial map-source restore can run before the asynchronous offline-map catalogue is loaded.
+  protected readonly offlineMapsLoaded = signal(false);
   protected readonly viewportObfMapIds = signal<string[]>([]);
   protected readonly viewportObfMaps = computed(() => {
     const ids = new Set(this.viewportObfMapIds());
@@ -2684,6 +2686,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
       const mapsWithMetadata = await this.enrichObfMetadata(maps);
       this.offlineMaps.set(mapsWithMetadata);
+      this.offlineMapsLoaded.set(true);
       this.applyMapBoundsVisibility();
 
       if (this.mapSource() === 'mapsforge' && this.currentLatitude !== null && this.currentLongitude !== null) {
@@ -3825,6 +3828,9 @@ export class MapWindow implements OnInit, OnDestroy {
     const maps = this.offlineMaps().filter(map => map.type === 'mapsforge' && map.enabled && map.available);
     if (maps.length === 0) {
       this.renderInitStatus.set('');
+      // Do not report a missing-map error while the initial offline catalogue is still loading.
+      // The catalogue completion handler restarts Mapsforge initialization with the loaded entries.
+      if (!this.offlineMapsLoaded()) return;
       this.mapDisplayNotice.set('No active Mapsforge .map files. Add and activate Mapsforge maps in Offline.');
       this.recordMapError('Mapsforge', 'No active Mapsforge .map files are loaded.');
       return;
@@ -4369,6 +4375,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ]);
       const mapsWithMetadata = await this.enrichObfMetadata(maps, atlasStatus.resourcesAvailable);
       this.offlineMaps.set(mapsWithMetadata);
+      this.offlineMapsLoaded.set(true);
       this.applyMapBoundsVisibility();
       this.hillshadeDatabases.set(hillshade);
       this.valhallaConfigurations.set(valhalla.configurations ?? []);
