@@ -166,15 +166,19 @@ button {
     font-weight: 600;
   }
 
-  .detail-dynamic-range {
-    display: inline-flex;
-    flex: 0 0 auto;
+  .detail-columns > .detail-dynamic-range {
+    display: inline-flex !important;
+    flex: 0 0 max-content;
     justify-self: start;
     width: max-content;
     min-width: max-content;
-    max-width: none;
+    max-width: max-content;
     align-self: center;
-    white-space: nowrap;
+    flex-wrap: nowrap;
+    white-space: nowrap !important;
+    overflow: visible;
+    overflow-wrap: normal;
+    word-break: keep-all;
     line-height: 1.2;
     padding: 2px 6px;
     border-radius: 3px;
