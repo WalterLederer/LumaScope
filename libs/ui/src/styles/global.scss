@@ -556,6 +556,25 @@ details.app-disclosure[open] > summary::before,
   transform: rotate(90deg);
 }
 
+/* Explicit classic fallback for button-based disclosure headings (including Preferences). */
+html[data-disclosure-style='classic'] .app-disclosure-heading::before,
+html:not([data-disclosure-style]) .app-disclosure-heading::before {
+  content: "";
+  display: inline-block;
+  flex: 0 0 7px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 7px solid rgb(190 105 105 / 78%);
+  transform-origin: 3px 6px;
+}
+html[data-disclosure-style='classic'] .app-disclosure-heading.expanded::before,
+html:not([data-disclosure-style]) .app-disclosure-heading.expanded::before {
+  border-left-color: rgb(105 170 125 / 78%);
+  transform: rotate(90deg);
+}
+
 /* Button-based disclosure headings share the native summary typography and marker. */
 .app-disclosure-heading {
   box-sizing: border-box;
