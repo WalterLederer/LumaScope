@@ -213,6 +213,11 @@
     height: var(--thumb-height, 128px);
   }
 
+  app-thumbnail.selected-image {
+    outline: 2px solid var(--color-accent-default, var(--color-content-primary-high));
+    outline-offset: -2px;
+  }
+
   &.info-tiles {
     align-items: flex-start;
 
