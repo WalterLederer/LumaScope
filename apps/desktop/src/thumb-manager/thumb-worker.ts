@@ -142,6 +142,16 @@ function getLibRawWasmHeapCapacity(LibRaw: LibRawConstructor): number | null {
   return module?.HEAPU8?.buffer.byteLength ?? null;
 }
 
+function getWorkerErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const message = (error as { message?: unknown } | null)?.message;
+  if (Array.isArray(message)) {
+    return message.map(value => String(value)).filter(Boolean).join(': ');
+  }
+  if (typeof message === 'string') return message;
+  return String(error);
+}
+
 function formatMemoryBytes(bytes: number | null): string {
   if (bytes === null) return 'unavailable';
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
@@ -253,10 +263,6 @@ async function decodeCameraRawToVips(
       throw new Error('libvips returned an unexpected pixel format while resizing the camera RAW thumbnail.');
     }
 
-    linearPixels = new Float32Array(scaledPixels.length);
-    for (let index = 0; index < scaledPixels.length; index++) {
-      linearPixels[index] = scaledPixels[index] / 65535 * exposure;
-    }
     width = scaledRawImage.width;
     height = scaledRawImage.height;
 
@@ -267,7 +273,7 @@ async function decodeCameraRawToVips(
       `LibRaw WASM heap initial/after decode=${formatMemoryBytes(libRawHeapInitialCapacity)} / ${formatMemoryBytes(libRawHeapCapacity)}; ` +
       `decoded RGB16=${formatMemoryBytes(decoded.data.byteLength)}; ` +
       `resized RGB16 copy=${formatMemoryBytes(scaledPixels.byteLength)}; ` +
-      `Float32 RGB=${formatMemoryBytes(linearPixels.byteLength)}; ` +
+      `Float32 RGB=lazy libvips conversion; ` +
       `libvips WASM heap=${formatMemoryBytes(vipsHeapCapacity)}; ` +
       `libvips tracked=${formatMemoryBytes(vips.Stats.mem())}; ` +
       `libvips worker high-water=${formatMemoryBytes(vips.Stats.memHighwater())}.`
@@ -279,16 +285,19 @@ async function decodeCameraRawToVips(
     }
   }
 
-  // Dispose the temporary Float32-backed image after creating the independent
-  // scRGB copy. Leaving this source image undisposed retains 137 MiB per
-  // 12-megapixel DNG in the long-lived thumbnail worker.
-  using linearImage = vips.Image.newFromMemory(
-    linearPixels!,
+  // Convert the resized 16-bit RGB pixels to linear Float32 inside libvips.
+  // A JavaScript Float32Array would add another 137 MiB full-size allocation
+  // before libvips creates its own image buffer, which can exceed the fixed
+  // 1-GiB wasm-vips memory even though the source bitmap is only 68.7 MiB.
+  using resizedImage = vips.Image.newFromMemory(
+    scaledPixels!,
     width,
     height,
     3,
-    vips.BandFormat.float
+    vips.BandFormat.ushort
   );
+  using floatImage = resizedImage.cast(vips.BandFormat.float);
+  using linearImage = floatImage.linear([ 1 / 65535 ], [ 0 ]);
   return linearImage.copy({ interpretation: vips.Interpretation.scrgb });
 }
 
@@ -1019,14 +1028,7 @@ if (parentPort) {
         const histogram = await histogramForImage(await getVips(), request.source);
         parentPort?.postMessage({ id: request.id, success: true, histogram } satisfies ThumbWorkerResponse);
       } catch (err: unknown) {
-        const wasmMessage = (err as { message?: unknown } | null)?.message;
-      const errorMessage = err instanceof Error
-        ? String(err.message)
-        : Array.isArray(wasmMessage)
-          ? wasmMessage.map(value => String(value)).filter(Boolean).join(': ')
-          : typeof wasmMessage === 'string'
-            ? wasmMessage
-            : String(err);
+        const errorMessage = getWorkerErrorMessage(err);
         parentPort?.postMessage({ id: request.id, success: false, error: errorMessage } satisfies ThumbWorkerResponse);
       }
       return;
@@ -1701,10 +1703,10 @@ if (parentPort) {
 
       parentPort?.postMessage({ id, success: true, isHdr } satisfies ThumbWorkerResponse);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorMessage = getWorkerErrorMessage(err);
       const errorDetails = err instanceof Error
-        ? `${err.name}: ${err.message}${err.stack ? `\\n${err.stack}` : ''}`
-        : Object.prototype.toString.call(err);
+        ? `${err.name}: ${errorMessage}${err.stack ? `\\n${err.stack}` : ''}`
+        : `${Object.prototype.toString.call(err)}: ${errorMessage}`;
       console.error(`[ThumbWorker] Thumbnail generation error (${source}) at stage "${processingStage}": ${errorMessage}`);
       console.error('[ThumbWorker] Thumbnail error details:', errorDetails, err);
       parentPort?.postMessage(
