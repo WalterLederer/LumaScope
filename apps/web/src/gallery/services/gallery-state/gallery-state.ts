@@ -81,7 +81,7 @@ export class GalleryState {
 
         return root;
       }),
-      shareReplay({ bufferSize: 1, refCount: true })
+      shareReplay({ bufferSize: 1, refCount: false })
     );
 
   /* Getters */
