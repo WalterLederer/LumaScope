@@ -288,6 +288,7 @@ export default class App {
 
     // Show the window once Chromium reports that the first frame is ready.
     App.mainWindow.once('ready-to-show', () => {
+      clearInterval(startupProbe);
       logRendererStartup('Renderer ready-to-show');
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.show();
 
