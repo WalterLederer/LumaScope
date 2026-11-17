@@ -212,6 +212,7 @@ export class ThumbnailComponent implements OnDestroy {
   constructor() {
     effect(() => {
       const image = this.image();
+      this.refreshToken();
       if (!this.isVisible() || this.viewMode() === 'thumbnails') return;
       const request = ++this.infoRequest;
       this.imageInfoReady.set(false);
