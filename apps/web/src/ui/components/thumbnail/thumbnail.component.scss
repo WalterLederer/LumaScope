@@ -167,30 +167,28 @@ button {
   }
 
   .detail-columns > .detail-dynamic-range {
-    /* This is a grid item inside the details subgrid: keep the badge a
-       single, intrinsically-sized block instead of a shrinkable flex box. */
+    /* Keep the dynamic-range label in the HDR column without a colored badge. */
     display: block !important;
     box-sizing: border-box;
     grid-column: 7;
     justify-self: start;
     align-self: center;
-    width: fit-content !important;
+    width: max-content !important;
     min-width: max-content !important;
     max-width: none !important;
     flex: none;
-    white-space: pre !important;
+    white-space: nowrap !important;
     overflow: visible !important;
     overflow-wrap: normal !important;
     word-break: normal !important;
     line-height: 1.2;
     padding: 2px 6px;
-    border-radius: 3px;
     color: var(--color-content-default-medium);
     font-weight: 400;
 
     &.hdr {
-      color: #fff;
-      background: #e53935;
+      color: var(--color-content-default-high);
+      background: transparent !important;
       font-weight: 700;
     }
   }
