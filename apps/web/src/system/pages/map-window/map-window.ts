@@ -1067,8 +1067,6 @@ interface MapErrorEntry {
          <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="valhalla" class="resource-valhalla-filter-option">Valhalla (offline routing)</option><option value="osmandResources" class="resource-osmand-filter-option">OsmAnd resources (rendering)</option><option value="mapsforgeTheme" class="resource-mapsforge-filter-option">Mapsforge XML theme</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
        </select>
      </label>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineEnabled(true)" [disabled]="!filteredOffline().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Activate visible files</button>
-     <button class="offline-map-add-button offline-map-bulk-button" type="button" (click)="setAllOfflineEnabled(false)" [disabled]="!filteredOffline().some(map => map.available) && !filteredHillshadeDatabases().some(database => database.available)">Deactivate visible files</button>
   </div>
 </div>
 </div>
@@ -1224,7 +1222,7 @@ interface MapErrorEntry {
             <div class="mbtiles-map-list">
               @if (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
                 <table class="mbtiles-map-table">
-                  <thead><tr><th class="mbtiles-inuse-column"><span class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</span></th><th class="mbtiles-enabled-column"><span class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</span></th><th class="mbtiles-type-column"><span class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('fileSize')">Size {{ offlineMapSortIndicator('fileSize') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</span></th><th class="offline-file-status-column">Status</th><th class="mbtiles-updates-column"><span class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</span></th><th></th></tr></thead>
+                  <thead><tr><th class="mbtiles-inuse-column"><span class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</span></th><th class="mbtiles-enabled-column"><span class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</span></th><th class="mbtiles-type-column"><span class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('fileSize')">Size {{ offlineMapSortIndicator('fileSize') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</span></th><th class="offline-file-status-column">Status</th><th class="mbtiles-updates-column"><span class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</span></th><th class="offline-row-actions-column"></th></tr></thead>
                   <tbody>
                     @let duplicateIds = offlineMapDuplicateIds();
                     @let hillshadeDuplicateSet = hillshadeDuplicateIds();
@@ -1240,7 +1238,19 @@ interface MapErrorEntry {
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds" [attr.title]="obfMetadataTooltip(map)">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable && map.minZoom > 0 && map.maxZoom > 0 ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" >Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'osmand-resources'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
@@ -1254,7 +1264,19 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">—</td>
                         <td class="offline-file-status-cell">External resource</td>
                         <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'">Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (map of sortedOffline().filter(map => map.type === 'mapsforge'); track map.id) {
@@ -1269,7 +1291,19 @@ interface MapErrorEntry {
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" >Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'mapsforge-theme'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
@@ -1283,7 +1317,19 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">—</td>
                         <td class="offline-file-status-cell">External resource</td>
                         <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'">Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (map of sortedOffline().filter(map => map.type !== 'obf' && map.type !== 'mapsforge'); track map.id) {
@@ -1298,7 +1344,19 @@ interface MapErrorEntry {
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(map.filePath)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" >Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (database of sortedHillshadeDatabases(); track database.id) {
@@ -1310,7 +1368,19 @@ interface MapErrorEntry {
                         <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
                         <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
                         <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!database.available || !database.path.trim() ? 'Missing' : database.enabled ? 'Active' : 'Inactive') + (hillshadeDuplicateSet.has(database.id) ? ' · Duplicate' : '') }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(database.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(database.path); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === database.path" [attr.aria-label]="'Actions for ' + database.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === database.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(database.path, false); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(database.path, false); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(database.path); offlineRowActionMenuOpen.set(null)" >Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'valhalla'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
@@ -1324,7 +1394,19 @@ interface MapErrorEntry {
                         <td class="mbtiles-map-number">—</td>
                         <td class="offline-file-status-cell">External resource</td>
                         <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(entry.path)" title="Copy folder path" aria-label="Copy folder path">⧉</button></td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="gpx-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)">Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'">Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()">Deactivate visible files</button>
+                            </div>
+                          }
+                        </td>
                       </tr>
                     }
                   </tbody>
@@ -2117,6 +2199,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
+  protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
+  protected readonly toggleOfflineRowActionMenu = (path: string): void => this.offlineRowActionMenuOpen.update(openPath => openPath === path ? null : path);
+  protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly toggleGpxRowActionMenu = (path: string): void => this.gpxRowActionMenuOpen.update(openPath => openPath === path ? null : path);
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
@@ -2296,7 +2381,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (target instanceof Element && target.closest('.color-picker')) return;
     if (target instanceof Element && target.closest('.map-source-picker')) return;
     if (target instanceof Element && target.closest('.gpx-row-actions')) return;
+    if (target instanceof Element && target.closest('.offline-row-actions')) return;
     this.gpxRowActionMenuOpen.set(null);
+    this.offlineRowActionMenuOpen.set(null);
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
@@ -2315,6 +2402,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
     this.gpxRowActionMenuOpen.set(null);
+    this.offlineRowActionMenuOpen.set(null);
   }
 
   @HostListener('document:pointermove', ['$event'])
