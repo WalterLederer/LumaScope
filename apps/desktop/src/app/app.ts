@@ -228,7 +228,16 @@ export default class App {
       console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
     };
     App.mainWindow.webContents.on('did-start-loading', () => logRendererStartup('Renderer navigation started'));
-    App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready'));
+    App.mainWindow.webContents.on('dom-ready', () => {
+      logRendererStartup('Renderer DOM ready');
+      // Open DevTools as soon as Chromium has a DOM, not after ready-to-show.
+      // This keeps startup diagnostics available even if Angular never renders
+      // the first frame and Electron therefore never emits ready-to-show.
+      if (App.startupConfig.devToolsOpen() && !App.mainWindow.webContents.isDevToolsOpened()) {
+        App.mainWindow.webContents.openDevTools();
+        logRendererStartup('DevTools opened during renderer startup');
+      }
+    });
     App.mainWindow.webContents.on('did-finish-load', () => logRendererStartup('Renderer document finished loading', {
       url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
     }));
@@ -270,16 +279,13 @@ export default class App {
     App.mainWindow.on('move', notifyLoupeGeometryChanged);
     App.mainWindow.on('resize', notifyLoupeGeometryChanged);
 
-    // Show the window once Chromium reports it is ready.
+    // Show the window once Chromium reports that the first frame is ready.
     App.mainWindow.once('ready-to-show', () => {
+      logRendererStartup('Renderer ready-to-show');
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.show();
 
       if (!App.application.isPackaged && App.startupConfig.minimiseOnStart()) {
         App.mainWindow.minimize();
-      }
-
-      if (App.startupConfig.devToolsOpen()) {
-        App.mainWindow.webContents.openDevTools();
       }
     });
 
