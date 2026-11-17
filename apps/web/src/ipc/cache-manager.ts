@@ -67,6 +67,12 @@ export class CacheManager implements DesktopCacheManager {
   readonly getBackgroundReverseGeocodingStatus = () =>
     window.desktop.CacheManager.getBackgroundReverseGeocodingStatus();
 
+  readonly onBackgroundReverseGeocodingStatusChanged = (callback: () => void): (() => void) =>
+    window.desktop.CacheManager.onBackgroundReverseGeocodingStatusChanged(callback);
+
+  readonly onDirectoryPhotoLocationsChanged = (callback: (directory: string) => void): (() => void) =>
+    window.desktop.CacheManager.onDirectoryPhotoLocationsChanged(callback);
+
   readonly cacheInfo = (directory?: string, recursive = false): Promise<CacheInfo> => window.desktop.CacheManager.cacheInfo(directory, recursive);
 
   readonly imageCachePath = (sourceName: string): Promise<string | null> =>
