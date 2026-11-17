@@ -189,7 +189,7 @@ async function decodeCameraRawToVips(
   await decoder.waitUntilReady();
 
   let decoderDisposed = false;
-  let linearPixels: Float32Array;
+  let scaledPixels: Uint16Array;
   let width = 0;
   let height = 0;
 
@@ -234,11 +234,6 @@ async function decodeCameraRawToVips(
       );
     }
 
-    // Keep LibRaw's camera-developed linear pixel levels unchanged.
-    // Median-based exposure normalization artificially brightened dark DNGs
-    // and did not recover additional highlight information from a single exposure.
-    const exposure = 1.0;
-
     // Let libvips resize the compact 16-bit bitmap first. Creating a full-size
     // Float32 RGB buffer here used about 137 MiB for half-resolution S25 Ultra
     // DNGs, exceeding the WASM image-memory limit before thumbnail encoding.
@@ -258,10 +253,11 @@ async function decodeCameraRawToVips(
     using scaledRawImage = scale < 1
       ? rawImage.resize(scale, { kernel: vips.Kernel.linear })
       : rawImage.copy();
-    const scaledPixels = scaledRawImage.writeToMemory();
-    if (!(scaledPixels instanceof Uint16Array)) {
+    const resizedPixels = scaledRawImage.writeToMemory();
+    if (!(resizedPixels instanceof Uint16Array)) {
       throw new Error('libvips returned an unexpected pixel format while resizing the camera RAW thumbnail.');
     }
+    scaledPixels = resizedPixels;
 
     width = scaledRawImage.width;
     height = scaledRawImage.height;
