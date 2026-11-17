@@ -13,7 +13,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CaptionComponent } from '@light-matter/ui';
 import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions } from 'internal-api';
-import { DatePipe } from '@angular/common';
 import { ExifService } from '../../../ipc/exif';
 import { GalleryViewMode } from '../../../gallery/components/images/images.component.types';
 import { distinctUntilChanged, Subscription } from 'rxjs';
@@ -25,8 +24,7 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 @Component({
   selector: 'app-thumbnail',
   imports: [
-    CaptionComponent,
-    DatePipe
+    CaptionComponent
   ],
   templateUrl: './thumbnail.component.html',
   styleUrl: './thumbnail.component.scss',
@@ -52,6 +50,15 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
+
+  readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
+    if (value === null || value === undefined || !Number.isFinite(value instanceof Date ? value.getTime() : value)) return '—';
+    const date = value instanceof Date ? value : new Date(value);
+    return new Intl.DateTimeFormat(undefined, {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).format(date);
+  };
 
   readonly viewMode = input<GalleryViewMode>('thumbnails');
 
