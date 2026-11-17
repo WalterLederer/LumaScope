@@ -1329,10 +1329,10 @@ export class CacheManager {
           lookupError = error instanceof Error ? error.message : String(error);
           thrownError = error;
           console.error('[CacheManager] Reverse geocoding failed', {
-          photoId: photo.id,
-          latitude: photo.latitude,
-          longitude: photo.longitude,
-          error: lookupError
+            photoId: photo.id,
+            latitude: photo.latitude,
+            longitude: photo.longitude,
+            error: lookupError
           });
         }
       }
