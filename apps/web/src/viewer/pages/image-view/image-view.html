@@ -167,7 +167,7 @@
             <button type="button" class="status-icon-button" (click)="resetZoom()" title="Reset zoom / fit to window" aria-label="Reset zoom">⟲</button>
             <button type="button" class="status-icon-button" (click)="zoomOut()" title="Zoom out" aria-label="Zoom out">−</button>
             <button type="button" class="status-icon-button" (click)="zoomIn()" title="Zoom in" aria-label="Zoom in">+</button>
-            <div class="viewer-zoom-slider"><ui-slider class="image-enhanced-slider" [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
+            <div class="viewer-zoom-slider"><ui-slider class="zoom-purpose-slider image-enhanced-slider" [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
             <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
           </div>
         }
@@ -579,7 +579,7 @@
           <button type="button" class="status-icon-button" (click)="resetZoom()" title="Reset zoom / fit to window" aria-label="Reset zoom">⟲</button>
           <button type="button" class="status-icon-button" (click)="zoomOut()" title="Zoom out (−)" aria-label="Zoom out">−</button>
           <button type="button" class="status-icon-button" (click)="zoomIn()" title="Zoom in (+)" aria-label="Zoom in">+</button>
-          <div class="status-zoom-slider"><ui-slider [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
+          <div class="status-zoom-slider"><ui-slider class="zoom-purpose-slider" [formControl]="zoomSlider" [min]="zoomConfig.min" [max]="zoomConfig.max"/></div>
           <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
         </div>
         <div class="status-control-group status-navigation">
