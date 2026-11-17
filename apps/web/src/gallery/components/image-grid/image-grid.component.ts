@@ -214,24 +214,10 @@ export class ImageGridComponent {
       return;
     }
     if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
+    // Re-read the complete visible folder just like the thumbnail counter:
+    // this keeps HDR, GPS and location totals in sync as metadata is written.
     this.cachePathUpdateRevision++;
-    void this.cacheManager.getDirectoryCacheStats([sourceName], this.verifyCacheFiles()).then(stats => {
-      if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
-      stats.thumbnailPaths.includes(sourceName)
-        ? this.thumbnailCachePaths.add(sourceName)
-        : this.thumbnailCachePaths.delete(sourceName);
-      stats.fullSizePaths.includes(sourceName)
-        ? this.fullSizeCachePaths.add(sourceName)
-        : this.fullSizeCachePaths.delete(sourceName);
-      this.cacheStats.update(current => ({
-        ...current,
-        thumbnails: this.thumbnailCachePaths.size,
-        fullSizeConversions: this.fullSizeCachePaths.size,
-        // Keep directory-wide GPS, HDR and location totals from the last full refresh.
-        thumbnailPaths: [],
-        fullSizePaths: []
-      }));
-    }).catch(error => console.error('Failed to update gallery cache count', error));
+    void this.refreshDirectoryCacheStats();
   };
 
 
