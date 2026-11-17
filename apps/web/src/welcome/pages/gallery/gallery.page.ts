@@ -2,6 +2,7 @@ import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   ConfirmationDialogComponent,
@@ -15,7 +16,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, map, switchMap } from 'rxjs';
+import { combineLatest, map, shareReplay, switchMap } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -143,7 +144,8 @@ export class GalleryPage {
         await this.restoreSelectedTreePath(restoredRoot, selectedLocation);
       }
       return restoredRoot;
-    })
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   readonly hoveredFolderPath = signal<string | null>(null);
@@ -165,7 +167,7 @@ export class GalleryPage {
     afterNextRender(() => console.warn('[GalleryPage] AFTER NEXT RENDER'));
 
     // Only the image-grid instance owns window title and cache refresh side effects.
-    if (this.showImageGrid()) this.selectedLocation$.subscribe(location => {
+    if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
       // Selecting a gallery folder also selects its drive-local cache database.
       if (location) void this.desktopApi?.CacheManager.getDirectoryPhotoLocations(location).catch(() => undefined);
