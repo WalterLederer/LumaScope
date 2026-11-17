@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation, ResolveLocationNamesResult } from 'internal-api';
 import type { Exif } from '../exif/exif';
-import { lookupReverseGeocoding } from 'internal-api';
+import { abortReverseGeocoding, isReverseGeocodingPaused, lookupReverseGeocoding, pauseReverseGeocoding, resumeReverseGeocoding } from 'internal-api';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
 
 const execFileAsync = promisify(execFile);
@@ -338,6 +338,25 @@ export class CacheManager {
     return true;
   };
 
+  @IpcHandler({ name: 'CacheManager.pauseBackgroundReverseGeocoding' })
+  readonly pauseBackgroundReverseGeocoding = async (): Promise<boolean> => {
+    pauseReverseGeocoding();
+    return true;
+  };
+
+  @IpcHandler({ name: 'CacheManager.resumeBackgroundReverseGeocoding' })
+  readonly resumeBackgroundReverseGeocoding = async (): Promise<boolean> => {
+    resumeReverseGeocoding();
+    return true;
+  };
+
+  @IpcHandler({ name: 'CacheManager.abortBackgroundReverseGeocoding' })
+  readonly abortBackgroundReverseGeocoding = async (): Promise<boolean> => {
+    this.locationLookupCancelled = true;
+    abortReverseGeocoding();
+    return true;
+  };
+
   @IpcHandler({ name: 'CacheManager.getBackgroundReverseGeocodingStatus' })
   readonly getBackgroundReverseGeocodingStatus = async (): Promise<import('internal-api').BackgroundReverseGeocodingStatus> => {
     const db = this.activeDatabase();
@@ -376,7 +395,7 @@ export class CacheManager {
         ? 'completed'
         : 'idle';
 
-    return { total, resolved, pending, inProgress, errors, status,
+    return { total, resolved, pending, inProgress, errors, status, paused: isReverseGeocodingPaused(),
       currentFilePath: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingPath : null,
       currentDisplayName: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingDisplayName : null };
   };
@@ -1305,14 +1324,17 @@ export class CacheManager {
           lookupError = 'The provider returned no location result for these coordinates.';
         }
       } catch (error) {
-        lookupError = error instanceof Error ? error.message : String(error);
-        thrownError = error;
-        console.error('[CacheManager] Reverse geocoding failed', {
+        const aborted = error instanceof Error && error.name === 'AbortError';
+        if (!aborted) {
+          lookupError = error instanceof Error ? error.message : String(error);
+          thrownError = error;
+          console.error('[CacheManager] Reverse geocoding failed', {
           photoId: photo.id,
           latitude: photo.latitude,
           longitude: photo.longitude,
           error: lookupError
-        });
+          });
+        }
       }
 
       db.prepare(`UPDATE photos SET
