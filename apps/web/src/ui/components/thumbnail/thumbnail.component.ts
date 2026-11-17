@@ -218,7 +218,7 @@ export class ThumbnailComponent implements OnDestroy {
   constructor() {
     const startupCount = ++ThumbnailComponent.startupConstructionCount;
     if (startupCount === 1 || startupCount % 50 === 0) {
-      console.warn('[Thumbnail] CONSTRUCTOR PROGRESS', { count: startupCount, path: this.image()?.path ?? null });
+      console.warn('[Thumbnail] CONSTRUCTOR PROGRESS', { count: startupCount });
     }
     effect(() => {
       const image = this.image();
