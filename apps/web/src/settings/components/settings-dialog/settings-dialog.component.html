@@ -130,12 +130,22 @@
       <details class="build-cache-box reverse-geocoding-status-box app-disclosure" open>
         <summary>
           <span>Background Reverse Geocoding</span>
-          <span class="reverse-geocoding-state" [class.running]="reverseGeocodingStatus().status === 'running'"
+          <span class="reverse-geocoding-state" [class.running]="reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused"
                 [class.completed]="reverseGeocodingStatus().status === 'completed'">
-            {{ reverseGeocodingStatus().status === 'running' ? 'Running' : reverseGeocodingStatus().status === 'completed' ? 'Completed' : 'Idle' }}
+            {{ reverseGeocodingStatus().paused ? 'Paused' : reverseGeocodingStatus().status === 'running' ? 'Running' : reverseGeocodingStatus().status === 'completed' ? 'Completed' : 'Idle' }}
           </span>
         </summary>
         <div class="cache-box-content">
+          <div class="cache-actions">
+            <button class="cache-button" type="button"
+                    [disabled]="reverseGeocodingControlBusy() || (reverseGeocodingStatus().pending === 0 && reverseGeocodingStatus().inProgress === 0 && !reverseGeocodingStatus().paused)"
+                    (click)="toggleBackgroundReverseGeocodingPause()">
+              {{ reverseGeocodingStatus().paused ? 'Resume' : 'Pause' }}
+            </button>
+            <button class="cache-button warning" type="button"
+                    [disabled]="reverseGeocodingControlBusy() || (reverseGeocodingStatus().pending === 0 && reverseGeocodingStatus().inProgress === 0)"
+                    (click)="abortBackgroundReverseGeocoding()">Abort</button>
+          </div>
           @if (reverseGeocodingStatusError()) {
             <p class="cache-status error" role="alert">Could not read reverse-geocoding status: {{ reverseGeocodingStatusError() }}</p>
           } @else {
