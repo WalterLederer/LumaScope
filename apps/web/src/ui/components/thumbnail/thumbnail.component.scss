@@ -171,9 +171,10 @@ button {
        single, intrinsically-sized block instead of a shrinkable flex box. */
     display: block !important;
     box-sizing: border-box;
+    grid-column: 7;
     justify-self: start;
     align-self: center;
-    width: max-content !important;
+    width: fit-content !important;
     min-width: max-content !important;
     max-width: none !important;
     flex: none;
