@@ -183,8 +183,8 @@ export class ImagesComponent {
       const height = Number(tags?.ImageHeight) || 0;
       return { width, height, area: width * height };
     }).filter(value => value.width > 0 && value.height > 0);
-    const minDate = dates.length ? new Date(Math.min(...dates)).toLocaleString() : '—';
-    const maxDate = dates.length ? new Date(Math.max(...dates)).toLocaleString() : '—';
+    const minDate = dates.length ? new Date(dates.reduce((min, value) => Math.min(min, value), Infinity)).toLocaleString('en-GB') : '—';
+    const maxDate = dates.length ? new Date(dates.reduce((max, value) => Math.max(max, value), -Infinity)).toLocaleString('en-GB') : '—';
     const formatSize = (bytes: number) => {
       if (bytes < 1024) return `${bytes} B`;
       const units = ['KB', 'MB', 'GB', 'TB'];
@@ -193,8 +193,8 @@ export class ImagesComponent {
       while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
       return `${value.toFixed(1)} ${units[unit]}`;
     };
-    const minSize = sizes.length ? formatSize(Math.min(...sizes)) : '—';
-    const maxSize = sizes.length ? formatSize(Math.max(...sizes)) : '—';
+    const minSize = sizes.length ? formatSize(sizes.reduce((min, value) => Math.min(min, value), Infinity)) : '—';
+    const maxSize = sizes.length ? formatSize(sizes.reduce((max, value) => Math.max(max, value), -Infinity)) : '—';
     const minDimensions = dimensionValues.length
       ? dimensionValues.reduce((min, value) => value.area < min.area ? value : min)
       : null;
