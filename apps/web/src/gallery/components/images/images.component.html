@@ -9,39 +9,39 @@
         <span>Thumb</span>
         <small>{{ dimensions().width }} × {{ dimensions().height }} px</small>
       </span>
-      <button type="button" (click)="sortDetailsBy('name')">
-        <span>Name{{ sortIndicator('name') }}</span>
+      <span class="detail-column-heading">
+        <span>Name</span>
         <small class="column-count">{{ cacheStats().total }}</small>
         <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('date')">
-        <span>Date modified{{ sortIndicator('date') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>Date modified</span>
         <small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('dimensions')">
-        <span>Dimensions{{ sortIndicator('dimensions') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>Dimensions</span>
         <small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('size')">
-        <span>File size{{ sortIndicator('size') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>File size</span>
         <small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('suffix')">
-        <span>Suffix{{ sortIndicator('suffix') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>Suffix</span>
         <small class="column-count">{{ distinctSuffixCount() }}</small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('hdr')">
-        <span>HDR{{ sortIndicator('hdr') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>HDR</span>
         <small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('thumb')">
-        <span>Thumb{{ sortIndicator('thumb') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>Thumb</span>
         <small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small>
-      </button>
-      <button type="button" (click)="sortDetailsBy('fullSize')">
-        <span>Full-Size Conversion{{ sortIndicator('fullSize') }}</span>
+      </span>
+      <span class="detail-column-heading">
+        <span>Full-Size Conversion</span>
         <small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small>
-      </button>
+      </span>
       <span class="count-heading">
         <span>GPS coordinates</span>
         <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
