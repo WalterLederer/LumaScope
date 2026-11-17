@@ -44,7 +44,7 @@
  .detail-table {
   display: grid;
   /* Each column can be resized from its header, like Windows Explorer. */
-  grid-template-columns: minmax(84px, var(--detail-col-0-width, max-content)) minmax(40px, var(--detail-col-1-width, max-content)) minmax(40px, var(--detail-col-2-width, max-content)) minmax(40px, var(--detail-col-3-width, max-content)) minmax(40px, var(--detail-col-4-width, max-content)) minmax(40px, var(--detail-col-5-width, max-content)) minmax(40px, var(--detail-col-6-width, max-content)) minmax(40px, var(--detail-col-7-width, max-content)) minmax(40px, var(--detail-col-8-width, max-content)) minmax(40px, var(--detail-col-9-width, max-content)) minmax(80px, var(--detail-col-10-width, 1fr));
+  grid-template-columns: minmax(84px, var(--detail-col-0-width, max-content)) minmax(40px, var(--detail-col-1-width, max-content)) minmax(40px, var(--detail-col-2-width, max-content)) minmax(40px, var(--detail-col-3-width, max-content)) minmax(40px, var(--detail-col-4-width, max-content)) minmax(40px, var(--detail-col-5-width, max-content)) minmax(40px, var(--detail-col-6-width, max-content)) minmax(40px, var(--detail-col-7-width, max-content)) minmax(40px, var(--detail-col-8-width, max-content)) minmax(40px, var(--detail-col-9-width, max-content)) minmax(80px, var(--detail-col-10-width, max-content)) minmax(80px, var(--detail-col-11-width, 1fr));
   column-gap: 16px;
   row-gap: 0;
   width: 100%;
