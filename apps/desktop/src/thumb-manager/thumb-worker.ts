@@ -133,6 +133,20 @@ interface LibRawConstructor {
   initialize: (input?: ArrayBuffer | Response) => Promise<void>;
 }
 
+interface EmscriptenHeapModule {
+  HEAPU8?: Uint8Array;
+}
+
+function getLibRawWasmHeapCapacity(LibRaw: LibRawConstructor): number | null {
+  const module = (LibRaw as unknown as { module?: EmscriptenHeapModule }).module;
+  return module?.HEAPU8?.buffer.byteLength ?? null;
+}
+
+function formatMemoryBytes(bytes: number | null): string {
+  if (bytes === null) return 'unavailable';
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
 let libRawConstructorPromise: Promise<LibRawConstructor> | null = null;
 
 const cameraRawExtensions = new Set([ '.dng', '.rw2', '.raw' ]);
@@ -173,7 +187,11 @@ async function decodeCameraRawToVips(
     let inputBuffer: ArrayBuffer | null = new ArrayBuffer(input.byteLength);
     new Uint8Array(inputBuffer).set(input);
 
+    // LibRaw.open() copies this buffer into its own WASM heap. Release the
+    // duplicate JavaScript input buffers immediately after that copy.
     decoder.open(inputBuffer);
+    inputBuffer = null;
+    input = null;
     decoder.setUseCameraWb(1);
     decoder.setOutputColor(1);
     decoder.setOutputBps(16);
@@ -188,6 +206,13 @@ async function decodeCameraRawToVips(
     width = decoded.width;
     height = decoded.height;
     const expectedBytes = width * height * decoded.colors * 2;
+    const libRawHeapCapacity = getLibRawWasmHeapCapacity(LibRaw);
+
+    // dcrawMakeMemImage() returns an owned JavaScript copy of LibRaw's output.
+    // The decoder's input, unpacked sensor data and post-processing buffers are
+    // no longer needed, so release its WASM allocations before libvips starts.
+    decoder.dispose();
+    decoderDisposed = true;
 
     if (decoded.type_ !== 'LIBRAW_IMAGE_BITMAP' || decoded.bits !== 16 ||
       decoded.colors !== 3 || width <= 0 || height <= 0 ||
@@ -201,6 +226,16 @@ async function decodeCameraRawToVips(
     // Median-based exposure normalization artificially brightened dark DNGs
     // and did not recover additional highlight information from a single exposure.
     const exposure = 1.0;
+
+    const vipsHeapCapacity = (vips as unknown as EmscriptenHeapModule).HEAPU8?.buffer.byteLength ?? null;
+    console.info(
+      `[RawMemory] ${source}: ${width}x${height}, ${halfSize ? 'half-size' : 'full-size'}; ` +
+      `LibRaw WASM heap capacity=${formatMemoryBytes(libRawHeapCapacity)}; ` +
+      `decoded RGB16 buffer=${formatMemoryBytes(decoded.data.byteLength)}; ` +
+      `libvips WASM heap capacity=${formatMemoryBytes(vipsHeapCapacity)}; ` +
+      `libvips tracked=${formatMemoryBytes(vips.Stats.mem())}; ` +
+      `libvips high-water=${formatMemoryBytes(vips.Stats.memHighwater())}.`
+    );
 
     // Let libvips resize the compact 16-bit bitmap first. Creating a full-size
     // Float32 RGB buffer here used about 137 MiB for half-resolution S25 Ultra
@@ -233,12 +268,6 @@ async function decodeCameraRawToVips(
     width = scaledRawImage.width;
     height = scaledRawImage.height;
 
-    // Release LibRaw's large WASM heap allocations before returning the smaller
-    // Float32 buffer to the caller.
-    inputBuffer = null;
-    input = null;
-    decoder.dispose();
-    decoderDisposed = true;
   } finally {
     if (!decoderDisposed) {
       decoder.dispose();
