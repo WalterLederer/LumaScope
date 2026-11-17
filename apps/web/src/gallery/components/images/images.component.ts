@@ -292,7 +292,7 @@ export class ImagesComponent {
       event.stopPropagation();
       this.selected.emit(images[currentIndex]);
     }
-  };
+  }
 
   /* Outputs */
   readonly selected = output<FileInfo>();
