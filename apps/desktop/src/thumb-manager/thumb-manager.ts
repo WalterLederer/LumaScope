@@ -12,6 +12,12 @@ import type {
 export class ThumbManager {
   private static readonly workerRecycleAfterHeavyImages = 8;
 
+  // Full-size camera RAW development can fragment wasm-vips memory even after
+  // image disposal. Recreate the worker before a third consecutive RAW decode.
+  private static readonly workerRecycleAfterCameraRawImages = 2;
+
+  private static readonly cameraRawExtensions = new Set([ '.dng', '.rw2', '.raw' ]);
+
   // wasm-vips also allocates WASM memory while processing ordinary JPEG/PNG files.
   // Periodically recreate the worker so long gallery scans cannot accumulate heap fragmentation.
   private static readonly workerRecycleAfterImages = 250;
@@ -27,6 +33,8 @@ export class ThumbManager {
   private workerQueue: Promise<void> = Promise.resolve();
 
   private heavyImagesSinceRestart = 0;
+
+  private cameraRawImagesSinceRestart = 0;
 
   private imagesSinceRestart = 0;
 
@@ -220,6 +228,7 @@ export class ThumbManager {
 
     try {
       this.heavyImagesSinceRestart = 0;
+      this.cameraRawImagesSinceRestart = 0;
       this.imagesSinceRestart = 0;
       this.worker = new Worker(this.workerPath, {
         execArgv: this.workerPath.endsWith('.ts') ? [ '--require', 'ts-node/register' ] : undefined
@@ -268,12 +277,17 @@ export class ThumbManager {
     } finally {
       this.imagesSinceRestart++;
 
-      if (ThumbManager.heavyExtensions.has(extname(source).toLowerCase())) {
+      const extension = extname(source).toLowerCase();
+      if (ThumbManager.heavyExtensions.has(extension)) {
         this.heavyImagesSinceRestart++;
+      }
+      if (ThumbManager.cameraRawExtensions.has(extension)) {
+        this.cameraRawImagesSinceRestart++;
       }
 
       if (
-        this.heavyImagesSinceRestart >= ThumbManager.workerRecycleAfterHeavyImages
+        this.cameraRawImagesSinceRestart >= ThumbManager.workerRecycleAfterCameraRawImages
+        || this.heavyImagesSinceRestart >= ThumbManager.workerRecycleAfterHeavyImages
         || this.imagesSinceRestart >= ThumbManager.workerRecycleAfterImages
       ) {
         await this.recycleWorker();
