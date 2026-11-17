@@ -168,7 +168,18 @@
               <div><span>Errors</span><strong [class.has-errors]="reverseGeocodingStatus().errors > 0">{{ reverseGeocodingStatus().errors }}</strong></div>
             </div>
           }
-          <p class="reverse-geocoding-note">Counts GPS images indexed in the database. In progress includes requests waiting in the provider queue. Includes lookups started while browsing the gallery and via Resolve locations; cache building does not wait for reverse geocoding.</p>
+          @if (reverseGeocodingStatus().paused) {
+            <p class="reverse-geocoding-note">Paused. Pending lookups will resume only after you press Resume. No provider request is currently being processed.</p>
+          } @else if (reverseGeocodingStatus().status === 'running') {
+            <p class="reverse-geocoding-note">Running. The current request and queued provider requests are being processed. Remaining pending images are not automatically queued.</p>
+          } @else if (reverseGeocodingStatus().pending > 0) {
+            <p class="reverse-geocoding-note">Idle - {{ reverseGeocodingStatus().pending }} images are unresolved but are not currently queued. They will not start automatically; use Resolve locations to process them, or browse images to trigger individual lookups.</p>
+          } @else if (reverseGeocodingStatus().status === 'completed') {
+            <p class="reverse-geocoding-note">Completed. All GPS images have either a resolved location or a recorded lookup error.</p>
+          } @else {
+            <p class="reverse-geocoding-note">Idle. No unresolved GPS images are currently available for lookup.</p>
+          }
+          <p class="reverse-geocoding-note">In progress includes requests waiting in the provider queue. Includes lookups started while browsing the gallery and via Resolve locations; cache building does not wait for reverse geocoding.</p>
         </div>
       </details>
     </section>
