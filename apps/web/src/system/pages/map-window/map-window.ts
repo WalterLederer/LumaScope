@@ -334,7 +334,6 @@ interface MapErrorEntry {
     @if (gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-database-table" role="table" aria-label="GPX tracks">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
-          <span role="columnheader">Actions<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'actions')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           @if (gpxDatabaseColumns().points) { <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span> }
@@ -346,18 +345,11 @@ interface MapErrorEntry {
           <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('width')">Width {{ gpxDatabaseSortIndicator('width') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'width')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
           <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
+          <span role="columnheader">Actions</span>
         </div>
         <div class="gpx-file-list gpx-database-file-list" role="rowgroup">
           @for (track of gpxDatabaseVisibleTracks(); track track.path) {
             <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError">
-              <div class="gpx-row-actions" role="cell">
-                <button type="button" class="gpx-fit-button" (click)="fitGpxTrack(track.path)" [attr.aria-label]="'Fit map to ' + track.name" title="Fit map to track">⤢</button>
-                @if (gpxListMode() === 'recent') {
-                  <button type="button" class="gpx-open-button" (click)="openGpxTrack(track)" [disabled]="track.missing || track.path.startsWith('memory:')" [attr.aria-label]="'Open ' + track.name" title="Open in default GPX editor">↗</button>
-                  <button type="button" class="offline-map-remove-button" (click)="removeGpxTrack(track.path)" [attr.aria-label]="'Remove ' + track.name" title="Remove GPX track">×</button>
-                }
-                <button type="button" class="file-path-copy-button" (click)="copyFilePath(track.databasePath || track.path)" title="Copy full file path" aria-label="Copy full file path">⧉</button>
-              </div>
               <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
               <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
               @if (gpxDatabaseColumns().points) { <span class="gpx-waypoint-count" role="cell">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</span> }
@@ -376,6 +368,19 @@ interface MapErrorEntry {
                         <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
                       </button>
                     }
+                  </div>
+                }
+              </div>
+              <div class="gpx-row-actions" role="cell">
+                <button type="button" class="gpx-row-menu-trigger" (click)="toggleGpxRowActionMenu(track.path); $event.stopPropagation()" [attr.aria-expanded]="gpxRowActionMenuOpen() === track.path" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                @if (gpxRowActionMenuOpen() === track.path) {
+                  <div class="gpx-row-action-menu" role="menu" [attr.aria-label]="'Actions for ' + track.name" (click)="$event.stopPropagation()">
+                    <button type="button" role="menuitem" (click)="fitGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
+                    @if (gpxListMode() === 'recent') {
+                      <button type="button" role="menuitem" (click)="openGpxTrack(track); gpxRowActionMenuOpen.set(null)" [disabled]="track.missing || track.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
+                      <button type="button" role="menuitem" (click)="removeGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">×</span> Remove track</button>
+                    }
+                    <button type="button" role="menuitem" (click)="copyFilePath(track.databasePath || track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy full file path</button>
                   </div>
                 }
               </div>
@@ -2106,6 +2111,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
+  protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
+  protected readonly toggleGpxRowActionMenu = (path: string): void => this.gpxRowActionMenuOpen.update(openPath => openPath === path ? null : path);
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(true);
@@ -2283,6 +2290,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const target = event.target;
     if (target instanceof Element && target.closest('.color-picker')) return;
     if (target instanceof Element && target.closest('.map-source-picker')) return;
+    if (target instanceof Element && target.closest('.gpx-row-actions')) return;
+    this.gpxRowActionMenuOpen.set(null);
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
@@ -2300,6 +2309,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
     this.currentMarkerColorMenuOpen.set(false);
+    this.gpxRowActionMenuOpen.set(null);
   }
 
   @HostListener('document:pointermove', ['$event'])
@@ -6787,13 +6797,13 @@ export class MapWindow implements OnInit, OnDestroy {
     const widths = this.gpxDatabaseColumnWidths();
     const columns = this.gpxDatabaseColumns();
     return [
-      widths['actions'] + 'px', widths['active'] + 'px', widths['name'] + 'px',
+      widths['active'] + 'px', widths['name'] + 'px',
       ...(columns.points ? [widths['points'] + 'px'] : []),
       ...(columns.modified ? [widths['modified'] + 'px'] : []),
       ...(columns.time ? [widths['time'] + 'px'] : []),
       ...(columns.size ? [widths['size'] + 'px'] : []),
       ...(columns.path ? [widths['path'] + 'px'] : []),
-      widths['color'] + 'px', widths['line'] + 'px', widths['width'] + 'px', widths['arrows'] + 'px'
+      widths['color'] + 'px', widths['line'] + 'px', widths['width'] + 'px', widths['arrows'] + 'px', widths['actions'] + 'px'
     ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
