@@ -63,7 +63,7 @@
 </ui-toolbar>
 
 <div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox>
-  <app-images [images]="images()"
+  <app-images [images]="images()" [selectedImagePath]="selectedImagePath()"
               [cacheStats]="cacheStats()"
               [folderPath]="selectedLocation()"
               [sortBy]="sortBy()"
