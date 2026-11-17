@@ -818,3 +818,21 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
 .gallery-folder-tree button:not([role="tab"]):not(.app-disclosure-heading):not([aria-expanded]):not([role="option"]):not(.detail-header button).gallery-location-menu-action:focus-visible {
   background: rgb(128 128 128 / 14%) !important;
 }
+
+/* Browse sort and view dropdowns sit directly on the gallery surface. Keep them
+   visually unboxed regardless of the globally selected button style. */
+.gallery-controls ui-action-button,
+.gallery-controls ui-action-button button {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.gallery-controls ui-action-button:hover,
+.gallery-controls ui-action-button:hover button {
+  background: rgb(128 128 128 / 12%) !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
