@@ -8,7 +8,7 @@
       <span></span>
       <button type="button" (click)="sortDetailsBy('name')">
         <span>Name{{ sortIndicator('name') }}</span>
-        <small class="column-count" [class.incomplete]="cacheStats().total > 0 && cacheStats().total < cacheStats().total">{{ cacheStats().total }}</small>
+        <small class="column-count">{{ cacheStats().total }}</small>
       </button>
       <button type="button" (click)="sortDetailsBy('date')">Date modified{{ sortIndicator('date') }}</button>
       <button type="button" (click)="sortDetailsBy('dimensions')">Dimensions{{ sortIndicator('dimensions') }}</button>
