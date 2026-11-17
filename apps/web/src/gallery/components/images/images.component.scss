@@ -126,8 +126,10 @@
     > .count-heading {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
+      width: 100%;
+      text-align: center;
       gap: 3px;
       min-height: 30px;
     }
@@ -135,6 +137,11 @@
     .column-count {
       display: inline-block;
       min-width: 1.5em;
+      width: max-content;
+      max-width: 100%;
+      white-space: nowrap;
+      text-align: center;
+      justify-self: center;
       padding: 1px 5px;
       border-radius: 3px;
       color: var(--color-content-default-medium);
