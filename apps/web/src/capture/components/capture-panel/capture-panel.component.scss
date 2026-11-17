@@ -61,7 +61,7 @@
   column-gap: 10px;
 }
 
-.capture-brightness-row input[type='range'] {
+.capture-brightness-row ui-slider {
   width: 100%;
   min-width: 0;
   margin: 0;
@@ -585,16 +585,16 @@
 }
 
 
-.capture-gamma-slider input[type='range'],
-.capture-quality-slider input[type='range'] {
+.capture-gamma-slider ui-slider,
+.capture-quality-slider ui-slider {
   width: 100%;
   margin: 2px 0 0;
   accent-color: var(--accent-color, #4d9bcf);
   cursor: pointer;
 }
 
-.capture-gamma-slider input[type='range']:disabled,
-.capture-quality-slider input[type='range']:disabled {
+.capture-gamma-slider ui-slider.disabled,
+.capture-quality-slider ui-slider.disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
