@@ -83,10 +83,12 @@
 
 .markdown-font-size input {
   width: 110px;
+  min-width: 0;
   margin: 0;
-  accent-color: var(--color-content-accent, #69aee8);
   cursor: pointer;
 }
+
+.markdown-font-size ui-slider { width:110px; min-width:0; }
 
 .markdown-font-size output {
   min-width: 34px;
