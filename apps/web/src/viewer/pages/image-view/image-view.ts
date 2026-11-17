@@ -1925,7 +1925,12 @@ export class ImageView {
       });
 
     this.selectedImage$
-      .pipe(takeUntilDestroyed())
+      .pipe(
+        // A gallery refresh can emit a new SelectedImage object for the same
+        // file. Only an actual path change represents user image navigation.
+        distinctUntilChanged((previous, current) => previous?.path === current?.path),
+        takeUntilDestroyed()
+      )
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
         this.setActiveImageSidebarTab(image ? 'image' : 'gallery');
