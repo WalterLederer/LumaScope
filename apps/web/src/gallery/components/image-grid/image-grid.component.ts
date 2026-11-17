@@ -227,6 +227,9 @@ export class ImageGridComponent {
         ...current,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
+        gps: stats.gps,
+        hdr: stats.hdr,
+        location: stats.location,
         thumbnailPaths: [],
         fullSizePaths: []
       }));
