@@ -1024,7 +1024,7 @@ if (parentPort) {
 
       if (cameraRawExtensions.has(sourceExtension)) {
         processingStage = 'developing camera RAW with LibRaw';
-        using dngImage = await decodeCameraRawToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
+        using cameraRawImage = await decodeCameraRawToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
 
         if (cancelledRequests.has(id)) {
           cancelRequest(id);
@@ -1033,9 +1033,9 @@ if (parentPort) {
 
         if (width > 0 && height > 0) {
           const scale = preserveAspectRatio
-            ? Math.min(width / dngImage.width, height / dngImage.height)
-            : Math.max(width / dngImage.width, height / dngImage.height) + 0.0001;
-          using resized = dngImage.resize(scale, { kernel: vips.Kernel.linear });
+            ? Math.min(width / cameraRawImage.width, height / cameraRawImage.height)
+            : Math.max(width / cameraRawImage.width, height / cameraRawImage.height) + 0.0001;
+          using resized = cameraRawImage.resize(scale, { kernel: vips.Kernel.linear });
           using output = preserveAspectRatio
             ? resized.copy()
             : resized.extractArea(
@@ -1049,10 +1049,10 @@ if (parentPort) {
           encodeScRgbAsUhdr(scrgb, target, 90);
         } else {
           processingStage = 'encoding full-size linear camera RAW derivative as Ultra HDR JPEG';
-          using scrgb = dngImage.copy({ interpretation: vips.Interpretation.scrgb });
+          using scrgb = cameraRawImage.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 90);
         }
-        isHdr = dngImage.max() > 1;
+        isHdr = cameraRawImage.max() > 1;
       } else if (sourceExtension === '.exr') {
         processingStage = 'loading EXR decoder';
         const decoder = await getExrDecoder();
