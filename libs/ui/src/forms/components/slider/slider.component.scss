@@ -69,5 +69,5 @@
 
 :host(.zoom-purpose-slider:hover) .container .indicator {
   background: linear-gradient(145deg, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 48%, white) 0%, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 82%, white) 55%, color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 72%, black) 100%);
-  box-shadow: 0 2px 5px rgb(0 0 0 / 36%), 0 0 0 2px color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 18%, transparent), inset 0 1px 1px rgb(255 255 255 / 70%);
+  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--zoom-slider-color, #14b8a6) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 70%);
 }
