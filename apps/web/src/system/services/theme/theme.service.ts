@@ -22,6 +22,8 @@ export class ThemeService {
 
   readonly zoomSliderColor = signal('#14b8a6');
 
+  readonly sliderColor = signal('#287fc4');
+
   readonly themeColorSaturation = signal(100);
 
   readonly themeTotalBrightness = signal(100);
@@ -61,6 +63,7 @@ export class ThemeService {
         this.applyButtonStyle(style);
         this.applyButtonColor(config.preferences?.buttonColor ?? 'blue');
         this.applyZoomSliderColor(config.preferences?.zoomSliderColor ?? '#14b8a6');
+        this.applySliderColor(config.preferences?.sliderColor ?? '#287fc4');
         this.applyThemeColorSaturation(config.preferences?.themeColorSaturation ?? 100);
         this.applyThemeTotalBrightness(config.preferences?.themeTotalBrightness ?? config.preferences?.themeColorBrightness ?? 100);
         this.applyThemeBackgroundBrightness(config.preferences?.themeBackgroundBrightness ?? 100);
@@ -85,10 +88,11 @@ export class ThemeService {
     this.configuration.updatePreferencesConfig({ buttonColor: color });
   };
 
-  readonly buttonColorSliderValue = () => {
-    const color = this.buttonColor();
+  readonly buttonColorSliderValue = () => this.colorSliderValue(this.buttonColor(), 29);
+
+  private colorSliderValue(color: string, fallback: number): number {
     const match = /^#([0-9a-f]{6})$/i.exec(color);
-    if (!match) return 29;
+    if (!match) return fallback;
     const value = Number.parseInt(match[1], 16);
     const red = (value >> 16) & 255;
     const green = (value >> 8) & 255;
@@ -103,12 +107,20 @@ export class ThemeService {
       else hue = 60 * ((red - green) / 255 / delta + 4);
     }
     return Math.round((((hue + 360) % 360) / 360) * 49);
-  };
+  }
 
   readonly setButtonColorFromSlider = (value: number) => {
     const index = Math.max(0, Math.min(49, Math.round(Number(value) || 0)));
     const hue = index * 360 / 50;
     this.setButtonColor(this.hslToHex(hue, 100, 50));
+  };
+
+  readonly sliderColorValue = () => this.colorSliderValue(this.sliderColor(), 29);
+
+  readonly setSliderColorFromSlider = (value: number) => {
+    const index = Math.max(0, Math.min(49, Math.round(Number(value) || 0)));
+    this.applySliderColor(this.hslToHex(index * 360 / 50, 100, 50));
+    this.configuration.updatePreferencesConfig({ sliderColor: this.sliderColor() });
   };
 
   readonly zoomSliderColorValue = () => {
@@ -173,6 +185,12 @@ export class ThemeService {
     this.applyTabBarStyle(style);
     this.configuration.updatePreferencesConfig({ tabBarStyle: style });
   };
+
+  private applySliderColor(color: string): void {
+    const normalized = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#287fc4';
+    this.sliderColor.set(normalized);
+    this.document.documentElement.style.setProperty('--slider-color', normalized);
+  }
 
   private applyZoomSliderColor(color: string): void {
     const normalized = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#14b8a6';
