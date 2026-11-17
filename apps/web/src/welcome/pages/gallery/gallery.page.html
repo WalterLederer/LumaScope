@@ -1,4 +1,4 @@
-@let galleryRoot = galleryRoot$ | async;
+@let galleryRoot = showFolderTree() ? (galleryRoot$ | async) : null;
 @let selectedLocation = selectedLocation$ | async;
 @let images = images$ | async;
 @let sorting = sortMode$ | async | default:defaultSortMode;
