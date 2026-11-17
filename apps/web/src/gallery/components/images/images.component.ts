@@ -239,30 +239,45 @@ export class ImagesComponent {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
-  readonly cacheAllImages = async (): Promise<void> => {
+  readonly cacheAllImages = async (directory?: string): Promise<void> => {
     if (this.cacheRunActive()) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
-    await this.runCacheForImages(this.images() ?? [], true, controller.signal);
-    if (this.cacheAbortController === controller) this.cacheAbortController = null;
-    this.cacheRunActive.set(false);
+    try {
+      let images = this.images() ?? [];
+      if (directory?.trim()) {
+        this.cacheRunCurrentOperation.set(`Reading images in ${directory.trim()}`);
+        const result = await this.fileSystem.readImages(directory.trim(), this.sortBy(), this.sortDirection());
+        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${directory}`);
+        images = result.data;
+      }
+      await this.runCacheForImages(images, true, controller.signal);
+    } catch (error) {
+      this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      this.cacheRunActive.set(false);
+      this.cacheUpdated.emit('');
+    }
   };
 
   readonly cancelCacheRun = (): void => {
     this.cacheAbortController?.abort();
   };
 
-  readonly cacheAllImagesRecursive = async (): Promise<void> => {
+  readonly cacheAllImagesRecursive = async (directory?: string): Promise<void> => {
     if (this.cacheRunActive()) return;
-    const rootPath = this.folderPath() ?? this.images()?.[0]?.parent ?? null;
+    const rootPath = directory?.trim() || this.folderPath() || this.images()?.[0]?.parent || null;
     if (!rootPath) return;
 
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
     try {
-      const allImages: FileInfo[] = [...(this.images() ?? [])];
+      const rootImages = await this.fileSystem.readImages(rootPath, this.sortBy(), this.sortDirection());
+      if (!rootImages.success) throw new Error(rootImages.errorMessage || `Could not read folder: ${rootPath}`);
+      const allImages: FileInfo[] = [...rootImages.data];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
 
