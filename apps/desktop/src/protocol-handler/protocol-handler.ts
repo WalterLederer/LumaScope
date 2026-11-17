@@ -185,7 +185,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
     const extension = extname(fileName).toLowerCase();
     let source = fileName;
 
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.jxl', '.png' ].includes(extension)) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.jxl', '.png' ].includes(extension)) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
@@ -332,12 +332,12 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
   }
 
   try {
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ].includes(extname(fileName).toLowerCase())) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw' ].includes(extname(fileName).toLowerCase())) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const extension = extname(fileName).toLowerCase();
-      const cacheTag = extension === '.dng' ? 'dng-full-raw-v2' : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const cacheTag = ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const cacheEntry = cacheManager.exists(fileName, cacheTag);
       let wasCacheHit = false;
       if (cacheEntry && typeof cacheEntry['target_path'] === 'string' && existsSync(cacheEntry['target_path'])) {
