@@ -145,7 +145,7 @@ export class GalleryPage {
       }
       return restoredRoot;
     }),
-    shareReplay({ bufferSize: 1, refCount: false })
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   readonly hoveredFolderPath = signal<string | null>(null);
