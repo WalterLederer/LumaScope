@@ -55,6 +55,15 @@ export class CacheManager implements DesktopCacheManager {
   readonly cancelResolveMissingLocationNames = () =>
     window.desktop.CacheManager.cancelResolveMissingLocationNames();
 
+  readonly pauseBackgroundReverseGeocoding = () =>
+    window.desktop.CacheManager.pauseBackgroundReverseGeocoding();
+
+  readonly resumeBackgroundReverseGeocoding = () =>
+    window.desktop.CacheManager.resumeBackgroundReverseGeocoding();
+
+  readonly abortBackgroundReverseGeocoding = () =>
+    window.desktop.CacheManager.abortBackgroundReverseGeocoding();
+
   readonly getBackgroundReverseGeocodingStatus = () =>
     window.desktop.CacheManager.getBackgroundReverseGeocodingStatus();
 
