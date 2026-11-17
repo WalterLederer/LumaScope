@@ -4,6 +4,7 @@
     "buttonStyle": "blue",
     "buttonColor": "blue",
     "themeColorSaturation": 100,
+    "sliderColor": "#287fc4",
     "themeTotalBrightness": 100,
     "themeBackgroundBrightness": 100,
     "disclosureStyle": "classic",
