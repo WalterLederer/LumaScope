@@ -36,6 +36,7 @@
   <div class="detail-columns">
     <span class="detail-name" [title]="image().name">{{ image().name }}</span>
     <span>{{ formatOsDateTime(image().modifiedAt ?? image().createdAt) }}</span>
+    <span>{{ gpsDateLabel() }}</span>
     <span [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</span>
     <span>{{ formattedFileSize() }}</span>
     <span>{{ imageSuffix() }}</span>
