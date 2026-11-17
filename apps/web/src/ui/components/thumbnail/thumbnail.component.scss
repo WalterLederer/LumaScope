@@ -167,18 +167,20 @@ button {
   }
 
   .detail-columns > .detail-dynamic-range {
-    display: inline-flex !important;
-    flex: 0 0 max-content;
+    /* This is a grid item inside the details subgrid: keep the badge a
+       single, intrinsically-sized block instead of a shrinkable flex box. */
+    display: block !important;
+    box-sizing: border-box;
     justify-self: start;
-    width: max-content;
-    min-width: max-content;
-    max-width: max-content;
     align-self: center;
-    flex-wrap: nowrap;
-    white-space: nowrap !important;
-    overflow: visible;
-    overflow-wrap: normal;
-    word-break: keep-all;
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    flex: none;
+    white-space: pre !important;
+    overflow: visible !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
     line-height: 1.2;
     padding: 2px 6px;
     border-radius: 3px;
