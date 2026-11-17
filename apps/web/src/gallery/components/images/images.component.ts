@@ -173,6 +173,43 @@ export class ImagesComponent {
   readonly distinctSuffixCount = computed(() => new Set(
     (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
   ).size);
+  readonly detailSummary = computed(() => {
+    const images = this.images() ?? [];
+    const dates = images.map(image => image.modifiedAt ?? image.createdAt).filter(value => Number.isFinite(value));
+    const sizes = images.map(image => image.size).filter(value => Number.isFinite(value));
+    const dimensionValues = images.map(image => {
+      const tags = this.metadata().get(image.path);
+      const width = Number(tags?.ImageWidth) || 0;
+      const height = Number(tags?.ImageHeight) || 0;
+      return { width, height, area: width * height };
+    }).filter(value => value.width > 0 && value.height > 0);
+    const minDate = dates.length ? new Date(Math.min(...dates)).toLocaleString() : '—';
+    const maxDate = dates.length ? new Date(Math.max(...dates)).toLocaleString() : '—';
+    const formatSize = (bytes: number) => {
+      if (bytes < 1024) return `${bytes} B`;
+      const units = ['KB', 'MB', 'GB', 'TB'];
+      let value = bytes / 1024;
+      let unit = 0;
+      while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+      return `${value.toFixed(1)} ${units[unit]}`;
+    };
+    const minSize = sizes.length ? formatSize(Math.min(...sizes)) : '—';
+    const maxSize = sizes.length ? formatSize(Math.max(...sizes)) : '—';
+    const minDimensions = dimensionValues.length
+      ? dimensionValues.reduce((min, value) => value.area < min.area ? value : min)
+      : null;
+    const maxDimensions = dimensionValues.length
+      ? dimensionValues.reduce((max, value) => value.area > max.area ? value : max)
+      : null;
+    return {
+      date: [minDate, maxDate],
+      size: [minSize, maxSize],
+      dimensions: [
+        minDimensions ? `${minDimensions.width} × ${minDimensions.height}` : '—',
+        maxDimensions ? `${maxDimensions.width} × ${maxDimensions.height}` : '—'
+      ]
+    };
+  });
   readonly dimensions = computed(() => thumbnailDimensions[this.thumbSize()]);
   readonly detailThumbnailWidth = computed(() => {
     const width = this.dimensions().width;
@@ -452,6 +489,30 @@ export class ImagesComponent {
   }
 
   constructor() {
+    effect(() => {
+      const images = this.images() ?? [];
+      const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
+      if (!isDetails || images.length === 0) return;
+      const request = ++this.metadataRequest;
+      const missing = images.filter(image => !this.metadata().has(image.path));
+      if (missing.length === 0) return;
+      void Promise.all(missing.map(async image => {
+        try {
+          const result = await this.exif.read(image.path);
+          return result.success ? [image.path, result.data] as const : null;
+        } catch {
+          return null;
+        }
+      })).then(results => {
+        if (request !== this.metadataRequest) return;
+        this.metadata.update(current => {
+          const next = new Map(current);
+          for (const result of results) if (result) next.set(result[0], result[1]);
+          return next;
+        });
+      });
+    });
+
     effect(onCleanup => {
       const folder = this.folderPath();
       const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
