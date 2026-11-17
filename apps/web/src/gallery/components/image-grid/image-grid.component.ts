@@ -117,7 +117,15 @@ export class ImageGridComponent {
     const gps = latitude !== undefined && longitude !== undefined
       ? `GPS: ${String(latitude)}${tags?.GPSLatitudeRef ? ` ${String(tags.GPSLatitudeRef)}` : ''}, ${String(longitude)}${tags?.GPSLongitudeRef ? ` ${String(tags.GPSLongitudeRef)}` : ''}`
       : '';
-    const locationParts = [tags?.Sublocation, tags?.City, tags?.State, tags?.Country]
+    const locationTags = tags as Record<string, unknown> | null;
+    const locationParts = [
+      locationTags?.Sublocation,
+      locationTags?.['Sub-location'],
+      locationTags?.Location,
+      locationTags?.City,
+      locationTags?.State,
+      locationTags?.Country
+    ]
       .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
       .map(value => String(value).trim());
     const location = locationParts.length ? `Location: ${[...new Set(locationParts)].join(', ')}` : '';
