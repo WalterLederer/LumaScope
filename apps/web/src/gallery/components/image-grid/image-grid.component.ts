@@ -58,6 +58,8 @@ export class ImageGridComponent {
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
 
+  readonly selectedImagePath = input<string | null>(null);
+
   readonly selectedLocation = input.required<string | null>();
 
   readonly hoveredFolderPath = input<string | null>(null);
