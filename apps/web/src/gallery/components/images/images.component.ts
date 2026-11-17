@@ -98,86 +98,9 @@ export class ImagesComponent {
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
 
-  private readonly readStoredDetailSortColumn = (): 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize' => {
-    try {
-      const stored = globalThis.localStorage.getItem('detailSortColumn');
-      return stored === 'name' || stored === 'date' || stored === 'dimensions' || stored === 'size' || stored === 'suffix' || stored === 'hdr' || stored === 'thumb' || stored === 'fullSize' ? stored : stored === 'cacheStatus' || stored === 'cacheLocation' ? 'thumb' : 'date';
-    } catch { return 'date'; }
-  };
-
-  private readonly readStoredDetailSortDirection = (): 'asc' | 'desc' => {
-    try {
-      const stored = globalThis.localStorage.getItem('detailSortDirection');
-      return stored === 'asc' || stored === 'desc' ? stored : this.sortDirection();
-    } catch { return this.sortDirection(); }
-  };
-
-  readonly detailSortColumn = signal<'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'>(this.readStoredDetailSortColumn());
-  readonly detailSortDirection = signal<'asc' | 'desc'>(this.readStoredDetailSortDirection());
-
-  readonly sortedDetailImages = computed(() => {
-    const images = [...(this.images() ?? [])];
-    const column = this.detailSortColumn();
-    const direction = this.detailSortDirection() === 'asc' ? 1 : -1;
-    const metadata = this.metadata();
-
-    const compareText = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-    const dimensions = (path: string) => {
-      const tags = metadata.get(path);
-      const width = Number(tags?.ImageWidth) || 0;
-      const height = Number(tags?.ImageHeight) || 0;
-      return { width, height };
-    };
-    const hdr = (path: string) => {
-      const tags = metadata.get(path) ?? null;
-      const bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
-      return imageDynamicRange(path, tags, bits === null ? null : String(bits));
-    };
-
-    images.sort((a, b) => {
-      let result = 0;
-      switch (column) {
-        case 'name':
-          result = compareText(a.name, b.name);
-          break;
-        case 'date':
-          result = (a.modifiedAt ?? a.createdAt) - (b.modifiedAt ?? b.createdAt);
-          break;
-        case 'size':
-          result = a.size - b.size;
-          break;
-        case 'dimensions': {
-          const left = dimensions(a.path);
-          const right = dimensions(b.path);
-          result = left.width - right.width || left.height - right.height;
-          break;
-        }
-        case 'suffix':
-          result = compareText(this.getSuffix(a.name), this.getSuffix(b.name));
-          break;
-        case 'hdr':
-          result = compareText(hdr(a.path), hdr(b.path));
-          break;
-        case 'cacheStatus': {
-          const rank = (status: CacheImageStatus | undefined) => status?.thumbnail?.status === 'valid' ? 0 : status?.thumbnail?.status === 'stale' ? 1 : 2;
-          result = rank(this.cacheStatuses().get(a.path)) - rank(this.cacheStatuses().get(b.path));
-          break;
-        }
-        case 'cacheLocation': {
-          const location = (status: CacheImageStatus | undefined) => status?.thumbnail?.storageType ?? '';
-          result = compareText(location(this.cacheStatuses().get(a.path)), location(this.cacheStatuses().get(b.path)));
-          break;
-        }
-        case 'fullSize': {
-          const rank = (status: CacheImageStatus | undefined) => !status?.fullSizeRequired ? 0 : status.fullSize?.status === 'valid' ? 1 : status.fullSize?.status === 'stale' ? 2 : 3;
-          result = rank(this.cacheStatuses().get(a.path)) - rank(this.cacheStatuses().get(b.path));
-          break;
-        }
-      }
-      return result * direction || compareText(a.name, b.name);
-    });
-    return images;
-  });
+  // The gallery list is already sorted by GalleryState. Keep this as the
+  // single source of ordering in every view mode, including the detail list.
+  readonly sortedDetailImages = computed(() => this.images() ?? []);
 
   /* Computed */
   readonly distinctSuffixCount = computed(() => new Set(
@@ -534,67 +457,6 @@ export class ImagesComponent {
   };
 
 
-  async sortDetailsBy(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): Promise<void> {
-    if (this.detailSortColumn() === column) {
-      this.detailSortDirection.update(direction => direction === 'asc' ? 'desc' : 'asc');
-    } else {
-      this.detailSortColumn.set(column);
-      this.detailSortDirection.set(column === 'name' ? 'asc' : 'desc');
-    }
-
-    try {
-      globalThis.localStorage.setItem('detailSortColumn', this.detailSortColumn());
-      globalThis.localStorage.setItem('detailSortDirection', this.detailSortDirection());
-    } catch { /* Keep the selected detail sort for the current session. */ }
-
-    if (column !== 'dimensions' && column !== 'hdr') return;
-
-    const images = this.images() ?? [];
-    const request = ++this.metadataRequest;
-    const missing = images.filter(image => !this.metadata().has(image.path));
-    const results = await Promise.all(missing.map(async image => {
-      try {
-        const result = await this.exif.read(image.path);
-        return result.success ? [image.path, result.data] as const : null;
-      } catch {
-        return null;
-      }
-    }));
-
-    if (request !== this.metadataRequest) return;
-    this.metadata.update(current => {
-      const next = new Map(current);
-      for (const result of results) {
-        if (result) next.set(result[0], result[1]);
-      }
-      return next;
-    });
-  }
-
-  private getSuffix(name: string): string {
-    const fileName = name.split(/[\\/]/).pop() ?? name;
-    const dotIndex = fileName.lastIndexOf('.');
-    return dotIndex > 0 && dotIndex < fileName.length - 1
-      ? fileName.slice(dotIndex + 1).toLocaleLowerCase()
-      : '';
-  }
-
-  readonly refreshCacheStatus = (sourceName: string): void => {
-    if ((this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') || !(this.images() ?? []).some(image => image.path === sourceName)) return;
-    const request = (this.cacheStatusPathRequests.get(sourceName) ?? 0) + 1;
-    this.cacheStatusPathRequests.set(sourceName, request);
-    void this.cacheManager.getImageCacheStatuses([sourceName]).then(([status]) => {
-      if (this.cacheStatusPathRequests.get(sourceName) !== request || !status) return;
-      this.cacheStatuses.update(current => new Map(current).set(sourceName, status));
-    }).catch(error => {
-      console.error('Failed to refresh thumbnail cache status', error);
-    });
-  };
-
-  sortIndicator(column: 'name' | 'date' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'cacheStatus' | 'cacheLocation' | 'fullSize'): string {
-    if (this.detailSortColumn() !== column) return '';
-    return this.detailSortDirection() === 'asc' ? ' ▲' : ' ▼';
-  }
 
   constructor() {
     effect(onCleanup => {
