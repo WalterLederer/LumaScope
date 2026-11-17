@@ -14,21 +14,22 @@ ui-toolbar {
     margin-right: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: var(--dim-medium);
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    /* Keep the toolbar controls inset from the right edge, matching the list gutter. */
-    padding-right: var(--dim-large);
+    padding: 0 var(--dim-large);
   }
 }
 
 .gallery-controls {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: var(--dim-medium);
-  margin-left: auto;
+  margin-left: 0;
   flex: 0 0 auto;
   white-space: nowrap;
 }
