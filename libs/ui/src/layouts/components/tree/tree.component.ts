@@ -6,27 +6,20 @@ import { TreeLoadRequest } from './tree.component.types';
 
 @Component({
   selector: 'ui-tree',
-  imports: [
-    TreeNodeComponent,
-    NgTemplateOutlet
-  ],
+  imports: [TreeNodeComponent, NgTemplateOutlet],
   templateUrl: './tree.component.html',
   styleUrl: './tree.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TreeComponent<T> {
   readonly root = input.required<TreeNode<T>>();
-
   readonly enableLoading = input(false);
-
   readonly menu = input<TemplateRef<unknown> | null>(null);
-
+  readonly inlineActions = input(false);
   readonly selected = output<TreeNode<T>>();
-
   readonly hovered = output<TreeNode<T> | null>();
-
   readonly loadRequested = output<TreeLoadRequest<T>>();
-
+  readonly action = output<TreeNode<T>>();
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
 
   constructor() {
@@ -34,7 +27,6 @@ export class TreeComponent<T> {
     effect(() => {
       const incoming = this.root();
       console.warn('[Tree] ROOT INPUT', { id: incoming.id, childCount: incoming.children?.length ?? null });
-      // Avoid tracking treeRoot here: writing it would otherwise retrigger this effect indefinitely.
       const current = untracked(() => this.treeRoot());
       this.treeRoot.set(current === null ? incoming : this.mergeTreeState(incoming, current));
     });
@@ -42,13 +34,10 @@ export class TreeComponent<T> {
 
   private readonly mergeTreeState = (incoming: TreeNode<T>, current: TreeNode<T>): TreeNode<T> => {
     const previousChildren = current.children ?? [];
-    const children = incoming.children === undefined
-      ? current.children
-      : incoming.children.map(child => {
-          const previous = previousChildren.find(item => item.id === child.id);
-          return previous === undefined ? child : this.mergeTreeState(child, previous);
-        });
-
+    const children = incoming.children === undefined ? current.children : incoming.children.map(child => {
+      const previous = previousChildren.find(item => item.id === child.id);
+      return previous === undefined ? child : this.mergeTreeState(child, previous);
+    });
     return {
       ...incoming,
       isOpen: current.isOpen ?? incoming.isOpen,
@@ -61,17 +50,9 @@ export class TreeComponent<T> {
 
   readonly updateNode = (node: TreeNode<T>) => {
     const root = structuredClone(this.treeRoot());
-
-    if (root === null) {
-      return;
-    }
-
-    const target = this.findTreeNode([ root ], node.id);
-
-    if (target === null) {
-      return;
-    }
-
+    if (root === null) return;
+    const target = this.findTreeNode([root], node.id);
+    if (target === null) return;
     target.isLoading = false;
     target.isOpen = node.isOpen ?? (node.children !== undefined && node.children.length > 0);
     target.label = node.label;
@@ -85,74 +66,43 @@ export class TreeComponent<T> {
 
   protected readonly nodeSelected = (node: TreeNode<T>) => {
     const root = structuredClone(this.treeRoot());
-
-    if (root === null) {
-      return;
-    }
-
-    const target = this.findTreeNode([ root ], node.id);
-
-    if (target === null) {
-      return;
-    }
-
-    this.resetNodeSelection([ root ]);
+    if (root === null) return;
+    const target = this.findTreeNode([root], node.id);
+    if (target === null) return;
+    this.resetNodeSelection([root]);
     target.isSelected = true;
     this.selected.emit(target);
-
     this.toggleNode(target, root);
     this.treeRoot.set(root);
   };
 
   private readonly findTreeNode = (nodes: TreeNode<T>[], id: T): TreeNode<T> | null => {
     for (const node of nodes) {
-      if (node.id === id) {
-        return node;
-      }
-
+      if (node.id === id) return node;
       if (node.children !== undefined && node.children.length > 0) {
         const result = this.findTreeNode(node.children, id);
-
-        if (result !== null) {
-          return result;
-        }
+        if (result !== null) return result;
       }
     }
-
     return null;
   };
 
   private readonly resetNodeSelection = (nodes: TreeNode<T>[]) => {
     for (const node of nodes) {
       node.isSelected = false;
-
-      if (node.children !== undefined && node.children.length > 0) {
-        this.resetNodeSelection(node.children);
-      }
+      if (node.children !== undefined && node.children.length > 0) this.resetNodeSelection(node.children);
     }
   };
 
   private readonly toggleNode = (node: TreeNode<T>, root: TreeNode<T>) => {
-    if (node.isLoading || node.hasChildren === false) {
-      return;
-    }
-
-    if (node.isOpen === true) {
-      node.isOpen = false;
-      return;
-    }
-
-    if (node.children !== undefined) {
-      node.isOpen = true;
-      return;
-    }
-
+    if (node.isLoading || node.hasChildren === false) return;
+    if (node.isOpen === true) { node.isOpen = false; return; }
+    if (node.children !== undefined) { node.isOpen = true; return; }
     if (this.enableLoading()) {
       node.isLoading = true;
       this.loadRequested.emit({ node, root });
       return;
     }
-
     node.isOpen = true;
   };
 }
