@@ -146,6 +146,7 @@ export class ImagesComponent {
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
     const dates = images.map(image => image.modifiedAt ?? image.createdAt).filter(value => Number.isFinite(value));
+    const gpsDates = images.map(image => this.cacheStatuses().get(image.path)?.gpsTimestamp).filter((value): value is number => Number.isFinite(value));
     const sizes = images.map(image => image.size).filter(value => Number.isFinite(value));
     const dimensionValues = images.map(image => {
       const tags = this.metadata().get(image.path);
@@ -179,6 +180,9 @@ export class ImagesComponent {
       : null;
     return {
       date: [minDate, maxDate],
+      gpsDate: gpsDates.length
+        ? [formatOsDateTime(gpsDates.reduce((min, value) => Math.min(min, value), Infinity) * 1000), formatOsDateTime(gpsDates.reduce((max, value) => Math.max(max, value), -Infinity) * 1000)]
+        : ['—', '—'],
       size: [minSize, maxSize],
       dimensions: [
         minDimensions ? `${minDimensions.width} × ${minDimensions.height}` : '—',
@@ -228,7 +232,7 @@ export class ImagesComponent {
     if (!table || !cell) return;
     const startX = event.clientX;
     const startWidth = cell.getBoundingClientRect().width;
-    const minimumWidth = columnIndex === 0 ? 84 : columnIndex === 10 ? 80 : 40;
+    const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     handle.setPointerCapture(pointerId);
     const onMove = (moveEvent: PointerEvent): void => {
