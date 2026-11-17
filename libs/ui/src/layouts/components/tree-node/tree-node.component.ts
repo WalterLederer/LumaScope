@@ -32,9 +32,13 @@ export class TreeNodeComponent<T> {
 
   readonly menu = input<TemplateRef<unknown> | null>(null);
 
+  readonly inlineActions = input(false);
+
   readonly pressed = output<TreeNode<T>>();
 
   readonly hovered = output<TreeNode<T> | null>();
+
+  readonly action = output<TreeNode<T>>();
 
   protected readonly offset = computed(() => `calc(${this.level()} * var(--dim-medium) * 3 + var(--dim-medium))`);
 
@@ -51,4 +55,9 @@ export class TreeNodeComponent<T> {
   protected readonly isSelected = computed(() => this.node().isSelected === true);
 
   protected readonly onClick = () => this.pressed.emit(this.node());
+
+  protected readonly onAction = (event: Event) => {
+    event.stopPropagation();
+    this.action.emit(this.node());
+  };
 }
