@@ -9,6 +9,7 @@
 @if (activeImageSidebarTab() === 'gallery') {
   <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="'grid'" [style.grid-template-columns]="sidebarOnLeft() ? ((controlsSidebarVisible() ? sidebarWidth() : 0) + 'px minmax(0, 1fr)') : ('minmax(0, 1fr) ' + (controlsSidebarVisible() ? sidebarWidth() : 0) + 'px')" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'" [style.overflow]="'hidden'">
     <app-gallery class="gallery-tab-content"
+                 [selectedImagePath]="selected?.path ?? null"
                  [showFolderTree]="false"
                  [showImageGrid]="true"
                  [style.display]="activeImageSidebarTab() === 'gallery' ? 'block' : 'none'"
