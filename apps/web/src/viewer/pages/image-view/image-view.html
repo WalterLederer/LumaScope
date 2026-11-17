@@ -135,10 +135,8 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
         <app-exif-info mode="cache" [path]="selected.path" [loadDuration]="loadDuration()" />
-        <section class="image-database-section app-disclosure">
-          <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('database')" type="button" (click)="toggleSidebarSection('database')">
-            SQLite database record
-          </button>
+        <section class="image-database-section app-disclosure" [open]="sidebarSectionExpanded('database')" (toggle)="onSidebarDetailsToggle('database', $event)">
+          <summary class="section-heading">SQLite database record</summary>
           @if (sidebarSectionExpanded('database')) {
             @if (photoDatabaseRecordStatus()) {
               <div class="image-database-record-status" role="status">{{photoDatabaseRecordStatus()}}</div>
@@ -164,7 +162,7 @@
               <textarea class="image-location-resolve-error" aria-label="Location lookup error" readonly rows="3" [value]="photoLocationResolveError()"></textarea>
             }
           }
-        </section>
+        </details>
       }
       @if (activeImageSidebarTab() === 'capture') {
         <section class="capture-window-launch" aria-label="Screen Capture">
@@ -173,8 +171,8 @@
         </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section class="app-disclosure">
-        <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('zoom')" (click)="toggleSidebarSection('zoom')">Zoom</button>
+      <section class="app-disclosure" [open]="sidebarSectionExpanded('zoom')" (toggle)="onSidebarDetailsToggle('zoom', $event)">
+        <summary class="section-heading">Zoom</summary>
         @if (sidebarSectionExpanded('zoom')) {
           <div class="viewer-zoom-controls" aria-label="Image zoom">
             <button type="button" class="status-icon-button" (click)="resetZoom()" title="Reset zoom / fit to window" aria-label="Reset zoom">⟲</button>
@@ -184,21 +182,21 @@
             <span class="zoom-factor-readout">{{ getZoomFactor(currentImageLocation).toFixed(2) }}×</span>
           </div>
         }
-      </section>
+      </details>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'corrections') {
         @if(sidebarSectionExpanded('corrections')) {
-          <section class="correction-subsection basic-correction-section app-disclosure">
-            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('basic')" (click)="toggleSidebarSection('basic')">Basic</button>
+          <section class="correction-subsection basic-correction-section app-disclosure" [open]="sidebarSectionExpanded('basic')" (toggle)="onSidebarDetailsToggle('basic', $event)">
+            <summary class="section-heading">Basic</summary>
             @if (sidebarSectionExpanded('basic')) {
               <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
               <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="imageContrast()" (input)="setImageContrast($any($event.target).value)"/></label>
               <label class="channel-control"><span><b>Gamma</b><span>{{imageGamma().toFixed(2)}}</span></span><input type="range" min="0.1" max="3" step=".01" [value]="imageGamma()" (input)="setImageGamma($any($event.target).value)" title="Gamma correction; 1.00 = unchanged"/></label>
               <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
             }
-          </section>
-          <section class="correction-subsection rgb-correction-section app-disclosure">
-            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('rgbLevels')" (click)="toggleSidebarSection('rgbLevels')">RGB</button>
+          </details>
+          <section class="correction-subsection rgb-correction-section app-disclosure" [open]="sidebarSectionExpanded('rgbLevels')" (toggle)="onSidebarDetailsToggle('rgbLevels', $event)">
+            <summary class="section-heading">RGB</summary>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
                 <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="redChannelLevel()" (input)="setRedChannelLevel($any($event.target).value)"/></label>
@@ -206,9 +204,9 @@
                 <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="blueChannelLevel()" (input)="setBlueChannelLevel($any($event.target).value)"/></label>
               </div>
             }
-          </section>
-          <section class="correction-subsection inverse-section app-disclosure">
-            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('inverse')" (click)="toggleSidebarSection('inverse')">Inverse</button>
+          </details>
+          <section class="correction-subsection inverse-section app-disclosure" [open]="sidebarSectionExpanded('inverse')" (toggle)="onSidebarDetailsToggle('inverse', $event)">
+            <summary class="section-heading">Inverse</summary>
             @if (sidebarSectionExpanded('inverse')) {
               <div class="rgb-inversion-controls">
                 <div class="rgb-inversion-row">
@@ -219,9 +217,9 @@
                 </div>
               </div>
             }
-          </section>
-          <section class="tone-curve-section app-disclosure">
-            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('toneCurve')" (click)="toggleSidebarSection('toneCurve')">Tone curve</button>
+          </details>
+          <section class="tone-curve-section app-disclosure" [open]="sidebarSectionExpanded('toneCurve')" (toggle)="onSidebarDetailsToggle('toneCurve', $event)">
+            <summary class="section-heading">Tone curve</summary>
             @if (sidebarSectionExpanded('toneCurve')) {
           <div class="tone-curve-controls">
             <svg class="tone-curve" viewBox="0 0 120 72" role="img" aria-label="Tone curve with adjustable black and white points">
@@ -232,7 +230,7 @@
             <label class="channel-control"><span><span>White point</span><span>{{(whitePoint()*100).toFixed(0)}}%</span></span><input type="range" [min]="blackPoint() + 0.01" max="2" step=".01" [value]="whitePoint()" (input)="setWhitePoint($any($event.target).value)"/></label>
           </div>
             }
-          </section>
+          </details>
           <button class="reset-corrections-button" (click)="resetCorrections()">Reset corrections</button>
         }
       }
@@ -264,25 +262,27 @@
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'zoom') {
-      <section class="magnifier-section app-disclosure">
-        <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('loupe')" (click)="toggleSidebarSection('loupe')">Magnifier (M)</button>
+      <section class="magnifier-section">
+        
         <label class="magnifier-enable-toggle"><input type="checkbox" [checked]="loupeEnabled()" (change)="toggleLoupe($any($event.target).checked)"/> Enable magnifier</label>
+         <details class="app-disclosure" [open]="sidebarSectionExpanded('loupe')" (toggle)="onSidebarDetailsToggle('loupe', $event)">
+           <summary class="section-heading">Magnifier (M)</summary>
         @if(sidebarSectionExpanded('loupe')) {
-          <section class="app-disclosure">
-            <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('magnifierSettings')" (click)="toggleSidebarSection('magnifierSettings')">Magnifier Settings</button>
+          <section class="app-disclosure" [open]="sidebarSectionExpanded('magnifierSettings')" (toggle)="onSidebarDetailsToggle('magnifierSettings', $event)">
+            <summary class="section-heading">Magnifier Settings</summary>
             @if(sidebarSectionExpanded('magnifierSettings')) {
             <label class="channel-control"><span>Magnifier zoom (mouse wheel)<span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
             <label class="channel-control"><span>Magnifier size<span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
             <label class="channel-control"><span>Magnifier brightness<span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
             <div class="channel-control"><span>Magnifier Shape</span><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
-              <section class="app-disclosure">
-                <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('loupeRenderer')" (click)="toggleSidebarSection('loupeRenderer')">Magnifier renderer</button>
+              <section class="app-disclosure" [open]="sidebarSectionExpanded('loupeRenderer')" (toggle)="onSidebarDetailsToggle('loupeRenderer', $event)">
+                <summary class="section-heading">Magnifier renderer</summary>
                 @if(sidebarSectionExpanded('loupeRenderer')) {
                   <button (click)="toggleLoupeRenderer()">{{loupeRendererMode()==='webgpu'?'WebGPU (HDR)':'CSS (SDR)'}}</button>
                 }
-              </section>
+              </details>
             }
-          </section>
+          </details>
         }
       @if (sidebarSectionExpanded('loupe') && loupeEnabled()) {
         <section class="loupe-info-box location-info-box" aria-label="Location pixel information">
@@ -393,7 +393,8 @@
           }
         </section>
       }
-      </section>
+      </details>
+       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'view') {
       <section><strong class="section-title">View mode (V)</strong>
@@ -513,8 +514,8 @@
             <summary class="section-heading">Delete file</summary>
             <button class="danger-action" type="button" (click)="deletePhoto()">Delete file (DEL)</button>
           </details>
-          <section class="copy-file-section app-disclosure">
-              <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('copy')" type="button" (click)="toggleSidebarSection('copy')">Copy file</button>
+          <section class="copy-file-section app-disclosure" [open]="sidebarSectionExpanded('copy')" (toggle)="onSidebarDetailsToggle('copy', $event)">
+              <summary class="section-heading">Copy file</summary>
               @if (sidebarSectionExpanded('copy')) {
                 <div class="copy-folder-info-box">
                   <div class="copy-folder-info-title">Source</div>
@@ -535,7 +536,7 @@
                 @if (copyPhotoStatus()) { <div class="copy-photo-status" role="status">{{copyPhotoStatus()}}</div> }
                 <button class="copy-action-button copy-confirm-button" type="button" [disabled]="!copyDestinationFolder()" (click)="copyPhoto()">Copy (C, F8)</button>
               }
-          </section>
+          </details>
           <div class="image-path-copy-row">
               <div class="image-path-value" [title]="displayImagePath(selected.path)">{{displayImagePath(selected.path)}}</div>
               <button type="button" class="image-copy-path-button" (click)="copyImagePath()" [attr.aria-label]="copyPathStatus() || 'Copy image path'" [title]="copyPathStatus() || 'Copy image path'">⧉</button>
@@ -543,11 +544,20 @@
         </section>
       }
 @if (activeImageSidebarTab() === 'general') {
-      <section class="app-disclosure image-preferences-section">
-          <button class="section-heading app-disclosure-heading" [class.expanded]="sidebarSectionExpanded('preferences')" type="button" (click)="toggleSidebarSection('preferences')">
-            Preferences
-          </button>
+      <section class="app-disclosure image-preferences-section" [open]="sidebarSectionExpanded('preferences')" (toggle)="onSidebarDetailsToggle('preferences', $event)">
+          <summary class="section-heading">Preferences</summary>
           @if (sidebarSectionExpanded('preferences')) {
+            <div class="setting-row setting-config-path">
+              <div class="cache-path-details">
+                <strong class="setting-section-title">Settings file</strong>
+                <code>{{ settingsFilePath() || 'Loading path…' }}</code>
+              </div>
+              <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFile()">Open settings file</button>
+            </div>
+            @if (settingsFileError()) {
+              <p class="cache-status error" role="alert">Could not open settings file: {{settingsFileError()}}</p>
+            }
+
             <div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div>
             <label class="image-button-style-setting"><span>Button style</span><select [value]="themeService.buttonStyle()" (change)="themeService.setButtonStyle($any($event.target).value)"><option value="blue">Blue (default)</option><option value="flat">Flat</option><option value="outlined">Outlined</option><option value="soft">Soft</option><option value="rounded">Rounded</option></select></label>
             <label class="image-button-style-setting theme-color-slider-setting"><span>Theme color · {{themeService.buttonColor()}}</span><div class="theme-color-gradient" aria-hidden="true"></div><input class="theme-color-range" type="range" min="0" max="49" step="1" [value]="themeService.buttonColorSliderValue()" (input)="themeService.setButtonColorFromSlider(+$any($event.target).value)" aria-label="Theme color" title="Select theme color"/></label>
@@ -557,7 +567,7 @@
             <label class="image-button-style-setting"><span>Section open/close symbols</span><select [value]="themeService.disclosureStyle()" (change)="themeService.setDisclosureStyle($any($event.target).value)"><option value="classic">Classic colored triangle</option><option value="plain-triangle">Plain monochrome triangle</option><option value="chevron">Chevron</option><option value="plus-minus">Plus / minus</option><option value="square">Square plus / minus</option><option value="circle">Circle plus / minus</option><option value="arrow">Arrow</option><option value="caret">Caret</option><option value="bracket">Bracket plus / minus</option><option value="none">No symbol</option></select></label>
             <label class="image-button-style-setting"><span>Tab bar style</span><select [value]="themeService.tabBarStyle()" (change)="themeService.setTabBarStyle($any($event.target).value)"><option value="classic">Classic connected tabs</option><option value="underline">Underline</option><option value="pills">Pills</option><option value="segmented">Segmented control</option><option value="boxed">Outlined boxes</option><option value="minimal">Minimal</option><option value="flat">Flat</option><option value="contrast">High contrast</option><option value="soft">Soft colors</option><option value="rounded">Rounded tabs</option></select></label>
           }
-        </section>
+        </details>
         <app-settings-panel mode="general" />
       }
       @if (activeImageSidebarTab() === 'help') {
@@ -616,6 +626,17 @@
                  (toggle)="onSidebarDetailsToggle('preferences', $event)">
           <summary>Preferences</summary>
           <div class="image-preferences-content">
+            <div class="setting-row setting-config-path">
+              <div class="cache-path-details">
+                <strong class="setting-section-title">Settings file</strong>
+                <code>{{ settingsFilePath() || 'Loading path…' }}</code>
+              </div>
+              <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFile()">Open settings file</button>
+            </div>
+            @if (settingsFileError()) {
+              <p class="cache-status error" role="alert">Could not open settings file: {{settingsFileError()}}</p>
+            }
+
             <div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div>
             <label class="image-button-style-setting"><span>Button style</span><select [value]="themeService.buttonStyle()" (change)="themeService.setButtonStyle($any($event.target).value)"><option value="blue">Blue (default)</option><option value="flat">Flat</option><option value="outlined">Outlined</option><option value="soft">Soft</option><option value="rounded">Rounded</option></select></label>
             <label class="image-button-style-setting"><span>Theme color</span><select [value]="themeService.buttonColor()" (change)="themeService.setButtonColor($any($event.target).value)"><option value="blue">Blue</option><option value="cyan">Cyan</option><option value="green">Green</option><option value="teal">Teal</option><option value="orange">Orange</option><option value="red">Red</option><option value="purple">Purple</option><option value="gray">Gray</option></select></label>
