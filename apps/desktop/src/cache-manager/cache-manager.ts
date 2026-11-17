@@ -51,6 +51,7 @@ interface PhotoRow {
   file_name: string;
   file_size: number;
   modified_at: number;
+  gps_timestamp: number | null;
   is_hdr: number;
   thumbnail_cache_id: number | null;
   thumbnail_cache_version: number | null;
@@ -717,7 +718,11 @@ export class CacheManager {
       sameSegment: !!diagnosticBefore && !!diagnosticAfter && diagnosticBefore.segment_id === diagnosticAfter.segment_id
     };
     console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', gpxTimeDiagnostic);
-    await this.appendGpsAutoFixDebug(`[${new Date().toISOString()}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
+    try {
+      await this.appendGpsAutoFixDebug(`[${new Date().toISOString()}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
+    } catch (error) {
+      console.warn('[CacheManager] Could not write GPS Auto Fix debug log:', error);
+    }
     const pair = db.prepare(`SELECT segment_id,
         MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) AS before_timestamp,
         MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) AS after_timestamp
