@@ -39,6 +39,7 @@ export class SettingsPanelComponent {
     total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0, status: 'idle', currentFilePath: null, currentDisplayName: null
   });
   protected readonly reverseGeocodingStatusError = signal<string | null>(null);
+  protected readonly reverseGeocodingControlBusy = signal(false);
   protected readonly reverseGeocodingCompleted = computed(() =>
     this.reverseGeocodingStatus().resolved + this.reverseGeocodingStatus().errors
   );
@@ -85,6 +86,35 @@ export class SettingsPanelComponent {
     } finally {
       this.locationLookupActive.set(false);
       this.locationLookupCancelRequested.set(false);
+    }
+  };
+
+  protected readonly toggleBackgroundReverseGeocodingPause = async (): Promise<void> => {
+    if (this.reverseGeocodingControlBusy()) return;
+    this.reverseGeocodingControlBusy.set(true);
+    try {
+      if (this.reverseGeocodingStatus().paused) await this.cacheManager.resumeBackgroundReverseGeocoding();
+      else await this.cacheManager.pauseBackgroundReverseGeocoding();
+      await this.refreshReverseGeocodingStatus();
+    } catch (error) {
+      this.reverseGeocodingStatusError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.reverseGeocodingControlBusy.set(false);
+    }
+  };
+
+  protected readonly abortBackgroundReverseGeocoding = async (): Promise<void> => {
+    if (this.reverseGeocodingControlBusy()) return;
+    this.reverseGeocodingControlBusy.set(true);
+    try {
+      if (this.locationLookupActive()) this.locationLookupCancelRequested.set(true);
+      await this.cacheManager.abortBackgroundReverseGeocoding();
+      this.locationLookupOutput.update(output => `${output}\nBackground reverse geocoding aborted.`);
+      await this.refreshReverseGeocodingStatus();
+    } catch (error) {
+      this.reverseGeocodingStatusError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.reverseGeocodingControlBusy.set(false);
     }
   };
 
