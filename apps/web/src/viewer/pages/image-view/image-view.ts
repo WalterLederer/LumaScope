@@ -241,6 +241,27 @@ export class ImageView {
 
   protected readonly themeService = inject(ThemeService);
 
+  protected readonly settingsFilePath = signal('');
+  protected readonly settingsFileError = signal<string | null>(null);
+
+  protected readonly openSettingsFile = async (): Promise<void> => {
+    this.settingsFileError.set(null);
+    try {
+      const error = await this.processManager.openConfigFile();
+      if (error) this.settingsFileError.set(error);
+    } catch (error) {
+      this.settingsFileError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  private readonly loadSettingsFilePath = async (): Promise<void> => {
+    try {
+      this.settingsFilePath.set((await this.processManager.getSystemPaths()).appConfig);
+    } catch (error) {
+      this.settingsFileError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   private readonly readStoredBoolean = (key: string, fallback: boolean): boolean => {
     try {
       const value = this.document.defaultView?.localStorage.getItem(`${key}`);
@@ -1727,6 +1748,7 @@ export class ImageView {
   };
 
   constructor() {
+    void this.loadSettingsFilePath();
     // Restore the last image only after the persisted gallery folder has loaded.
     // Do not write the initial null selection over the saved path before that.
     const storage = this.document.defaultView?.localStorage;
