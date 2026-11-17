@@ -213,6 +213,39 @@ export class ImagesComponent {
     this.selected.emit(image);
   };
 
+  protected startColumnResize(event: PointerEvent, columnIndex: number): void {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const handle = event.currentTarget as HTMLElement;
+    const header = handle.closest('.detail-header') as HTMLElement | null;
+    const table = header?.closest('.detail-table') as HTMLElement | null;
+    const cell = header?.children.item(columnIndex) as HTMLElement | null;
+    if (!table || !cell) return;
+    const startX = event.clientX;
+    const startWidth = cell.getBoundingClientRect().width;
+    const minimumWidth = columnIndex === 0 ? 84 : columnIndex === 10 ? 80 : 40;
+    const pointerId = event.pointerId;
+    handle.setPointerCapture(pointerId);
+    const onMove = (moveEvent: PointerEvent): void => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
+      table.style.setProperty("--detail-col-" + columnIndex + "-width", width + "px");
+    };
+    const cleanup = (): void => {
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+    };
+    const onUp = (upEvent: PointerEvent): void => {
+      if (upEvent.pointerId !== pointerId) return;
+      cleanup();
+      if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+    };
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  }
   @HostListener('document:keydown', ['$event'])
   protected onThumbnailListKeydown(event: KeyboardEvent): void {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
