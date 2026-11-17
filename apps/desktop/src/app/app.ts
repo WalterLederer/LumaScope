@@ -223,6 +223,22 @@ export default class App {
     App.mainWindow.webContents.on('dom-ready', applyMainWindowTitle);
     App.mainWindow.setTitle(mainWindowTitle);
     App.mainWindow.center();
+    const startupStartedAt = Date.now();
+    const logRendererStartup = (event: string, details: Record<string, unknown> = {}): void => {
+      console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
+    };
+    App.mainWindow.webContents.on('did-start-loading', () => logRendererStartup('Renderer navigation started'));
+    App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready'));
+    App.mainWindow.webContents.on('did-finish-load', () => logRendererStartup('Renderer document finished loading', {
+      url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
+    }));
+    App.mainWindow.webContents.on('console-message', (_event, details) => {
+      const level = details.level === 2 ? 'ERROR' : details.level === 1 ? 'WARN' : 'LOG';
+      console[level === 'ERROR' ? 'error' : level === 'WARN' ? 'warn' : 'log'](
+        `[Renderer ${level}] ${details.message} ( ${details.sourceId}:${details.lineNumber} )`
+      );
+    });
+    App.mainWindow.webContents.on('paint', () => logRendererStartup('First renderer paint'));
     App.mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
       if (isMainFrame) console.error('[Startup] Main window failed to load:', { code, description, validatedURL });
     });
