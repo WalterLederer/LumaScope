@@ -18,7 +18,8 @@ ui-toolbar {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding-right: 0;
+    /* Keep the toolbar controls inset from the right edge, matching the list gutter. */
+    padding-right: var(--dim-large);
   }
 }
 
