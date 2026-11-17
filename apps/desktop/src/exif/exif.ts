@@ -164,6 +164,9 @@ export class Exif {
             timestampSeconds: metadata.gpsTimestamp,
             timestampUtc: new Date(metadata.gpsTimestamp * 1000).toISOString(),
             timestampLocal: new Date(metadata.gpsTimestamp * 1000).toString(),
+            selectedExifTag: metadata.gpsTimestampSource,
+            selectedExifRaw: metadata.gpsTimestampRaw,
+            allExifTimestampCandidates: metadata.gpsTimestampCandidates,
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             localOffsetMinutes: new Date(metadata.gpsTimestamp * 1000).getTimezoneOffset(),
             maxDifferenceSeconds
@@ -251,10 +254,13 @@ export class Exif {
     longitude: number | null;
     altitudeM: number | null;
     gpsTimestamp: number | null;
+    gpsTimestampSource: string | null;
+    gpsTimestampRaw: string | null;
+    gpsTimestampCandidates: Array<{ tag: string; raw: string; timestamp: number | null }>;
     directionDeg: number | null;
     coordinateSourceId: number | null;
   }> => {
-    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, directionDeg: null, coordinateSourceId: null };
+    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, gpsTimestampSource: null, gpsTimestampRaw: null, gpsTimestampCandidates: [], directionDeg: null, coordinateSourceId: null };
     try {
       const tags = await this.exifTool.read(path) as unknown as Record<string, unknown>;
       const first = (...values: unknown[]) => values.find(value => value !== undefined && value !== null);
@@ -322,19 +328,29 @@ export class Exif {
           : new Date(text);
         return Number.isFinite(date.getTime()) ? Math.floor(date.getTime() / 1000) : null;
       };
-      const gpsTimestamp = [
-        toTimestamp(tags['GPSDateTime'], true),
-        toTimestamp(tags['XMP:GPSDateTime'], true),
-        toTimestamp(tags['DateTimeOriginal']),
-        toTimestamp(tags['XMP:DateCreated']),
-        toTimestamp(tags['CreateDate'])
-      ].find((timestamp): timestamp is number => timestamp !== null) ?? null;
+      const timestampTags: Array<{ tag: string; value: unknown; assumeUtc: boolean }> = [
+        { tag: 'GPSDateTime', value: tags['GPSDateTime'], assumeUtc: true },
+        { tag: 'XMP:GPSDateTime', value: tags['XMP:GPSDateTime'], assumeUtc: true },
+        { tag: 'DateTimeOriginal', value: tags['DateTimeOriginal'], assumeUtc: false },
+        { tag: 'XMP:DateCreated', value: tags['XMP:DateCreated'], assumeUtc: false },
+        { tag: 'CreateDate', value: tags['CreateDate'], assumeUtc: false }
+      ];
+      const gpsTimestampCandidates = timestampTags.map(candidate => ({
+        tag: candidate.tag,
+        raw: candidate.value === undefined || candidate.value === null ? '' : String(candidate.value),
+        timestamp: toTimestamp(candidate.value, candidate.assumeUtc)
+      }));
+      const selectedTimestamp = gpsTimestampCandidates.find(candidate => candidate.timestamp !== null);
+      const gpsTimestamp = selectedTimestamp?.timestamp ?? null;
       const directionDeg = numeric(first(tags['GPSImgDirection'], tags['XMP:GPSImgDirection']));
       return {
         latitude: latitude !== null && latitude >= -90 && latitude <= 90 ? latitude : null,
         longitude: longitude !== null && longitude >= -180 && longitude <= 180 ? longitude : null,
         altitudeM,
         gpsTimestamp,
+        gpsTimestampSource: selectedTimestamp?.tag ?? null,
+        gpsTimestampRaw: selectedTimestamp?.raw ?? null,
+        gpsTimestampCandidates,
         directionDeg: directionDeg !== null && directionDeg >= 0 && directionDeg < 360 ? directionDeg : null,
         coordinateSourceId
       };
