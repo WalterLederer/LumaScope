@@ -43,6 +43,7 @@ const api: Desktop = {
     getSystemPaths: () => ipcRenderer.invoke('ProcessManager.getSystemPaths'),
     openConfigFile: () => ipcRenderer.invoke('ProcessManager.openConfigFile'),
     openPath: (filePath: string) => ipcRenderer.invoke('ProcessManager.openPath', filePath),
+    openWith: (filePath: string) => ipcRenderer.invoke('ProcessManager.openWith', filePath),
     openExternal: (url: string) => ipcRenderer.invoke('ProcessManager.openExternal', url),
     quit: (code: number) => ipcRenderer.invoke('ProcessManager.quit', code),
     setWindowTitle: (title: string) => ipcRenderer.invoke('ProcessManager.setWindowTitle', title)
