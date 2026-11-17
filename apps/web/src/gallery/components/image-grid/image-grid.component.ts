@@ -118,7 +118,7 @@ export class ImageGridComponent {
 
   private readonly cacheManager = inject(CacheManager);
 
-  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] });
+  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
 
   private cacheStatsRequest = 0;
   private cachePathUpdateRevision = 0;
@@ -132,7 +132,7 @@ export class ImageGridComponent {
     if (images.length === 0) {
       this.thumbnailCachePaths.clear();
       this.fullSizeCachePaths.clear();
-      this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] });
+      this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
       return;
     }
     try {
@@ -150,6 +150,9 @@ export class ImageGridComponent {
         total: stats.total,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
+        gps: stats.gps,
+        hdr: stats.hdr,
+        location: stats.location,
         thumbnailPaths: [],
         fullSizePaths: []
       });
@@ -174,7 +177,7 @@ export class ImageGridComponent {
         ? this.fullSizeCachePaths.add(sourceName)
         : this.fullSizeCachePaths.delete(sourceName);
       this.cacheStats.update(current => ({
-        total: current.total,
+        ...current,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
         thumbnailPaths: [],
