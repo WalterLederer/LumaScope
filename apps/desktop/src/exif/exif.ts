@@ -136,16 +136,20 @@ export class Exif {
       sendProgress();
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
-      await cacheManager.resetGpsAutoFixDebug([
-        `GPS Auto Fix debug started: ${new Date().toISOString()}`,
-        `Folder: ${root}`,
-        `Check only: ${checkOnly}`,
-        `Maximum time difference: ${maxDifferenceSeconds} seconds`,
-        `Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
-        `Local UTC offset now: ${new Date().getTimezoneOffset()} minutes`,
-        `Photo candidates: ${candidates.length}`,
-        ''
-      ].join('\n'));
+      try {
+        await cacheManager.resetGpsAutoFixDebug([
+          `GPS Auto Fix debug started: ${new Date().toISOString()}`,
+          `Folder: ${root}`,
+          `Check only: ${checkOnly}`,
+          `Maximum time difference: ${maxDifferenceSeconds} seconds`,
+          `Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+          `Local UTC offset now: ${new Date().getTimezoneOffset()} minutes`,
+          `Photo candidates: ${candidates.length}`,
+          ''
+        ].join('\n'));
+      } catch (logError) {
+        console.warn('[Exif] Could not initialize GPS Auto Fix debug log:', logError);
+      }
       const writeGpsDebug = async (label: string, details: unknown): Promise<void> => {
         try {
           await cacheManager.appendGpsAutoFixDebug(`[${new Date().toISOString()}] ${label} ${JSON.stringify(details)}`);
