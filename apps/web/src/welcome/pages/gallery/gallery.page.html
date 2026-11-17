@@ -16,6 +16,7 @@
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
                      (selected)="selectLocation($event)"
+                     (locationSelected)="locationSelected.emit()"
                      (hovered)="onTreeNodeHovered($event)" />
           }
         </section>
