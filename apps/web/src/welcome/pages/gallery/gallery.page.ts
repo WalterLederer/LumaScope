@@ -4,7 +4,6 @@ import { AsyncPipe, DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  ActionButtonComponent,
   ConfirmationDialogComponent,
   IconComponent,
   PopupMenuComponent,
