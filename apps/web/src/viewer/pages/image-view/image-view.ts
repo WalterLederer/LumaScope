@@ -2426,6 +2426,7 @@ export class ImageView {
   };
 
   protected readonly onGalleryImageSelected = (): void => {
+    console.trace('[GalleryNavigationTrace] ImageView received GalleryPage.imageSelected; switching to Image tab.');
     this.setActiveImageSidebarTab('image');
   };
 
