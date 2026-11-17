@@ -1354,8 +1354,19 @@ export class CacheManager {
           lookupError = 'The provider returned no location result for these coordinates.';
         }
       } catch (error) {
-        const aborted = error instanceof Error && error.name === 'AbortError';
-        if (!aborted) {
+        const errorName = error instanceof Error ? error.name : '';
+        const aborted = errorName === 'AbortError';
+        const timedOut = errorName === 'TimeoutError';
+        if (timedOut) {
+          // Keep location_name_id unset so a later cache/geocoding pass can retry this photo.
+          lookupError = 'Nominatim request timed out; this location can be retried.';
+          console.warn('[CacheManager] Reverse geocoding timed out; location remains retryable', {
+            photoId: photo.id,
+            latitude: photo.latitude,
+            longitude: photo.longitude,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        } else if (!aborted) {
           lookupError = error instanceof Error ? error.message : String(error);
           thrownError = error;
           console.error('[CacheManager] Reverse geocoding failed', {
