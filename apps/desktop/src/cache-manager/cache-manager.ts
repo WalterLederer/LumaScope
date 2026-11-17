@@ -1,4 +1,4 @@
-import { app, dialog, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, type IpcMainInvokeEvent } from 'electron';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -73,6 +73,22 @@ export class CacheManager {
   private currentReverseGeocodingDisplayName: string | null = null;
   private currentReverseGeocodingPhotoId: number | null = null;
   private currentReverseGeocodingDatabaseKey: string | null = null;
+
+  private readonly broadcastCacheEvent = (channel: string, ...args: unknown[]): void => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (window.isDestroyed() || window.webContents.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  };
+
+  private readonly notifyReverseGeocodingStatusChanged = (): void => {
+    this.broadcastCacheEvent('CacheManager.reverseGeocodingStatusChanged');
+  };
+
+  private readonly notifyDirectoryPhotoLocationsChanged = (directory: string): void => {
+    this.broadcastCacheEvent('CacheManager.directoryPhotoLocationsChanged', directory);
+    this.notifyReverseGeocodingStatusChanged();
+  };
 
   private readonly activeClearOperations = new Set<string>();
 
@@ -341,12 +357,14 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.pauseBackgroundReverseGeocoding' })
   readonly pauseBackgroundReverseGeocoding = async (): Promise<boolean> => {
     pauseReverseGeocoding();
+    this.notifyReverseGeocodingStatusChanged();
     return true;
   };
 
   @IpcHandler({ name: 'CacheManager.resumeBackgroundReverseGeocoding' })
   readonly resumeBackgroundReverseGeocoding = async (): Promise<boolean> => {
     resumeReverseGeocoding();
+    this.notifyReverseGeocodingStatusChanged();
     return true;
   };
 
@@ -354,6 +372,7 @@ export class CacheManager {
   readonly abortBackgroundReverseGeocoding = async (): Promise<boolean> => {
     this.locationLookupCancelled = true;
     abortReverseGeocoding();
+    this.notifyReverseGeocodingStatusChanged();
     return true;
   };
 
@@ -1357,8 +1376,22 @@ export class CacheManager {
     })();
 
     this.pendingLocationLookups.set(pendingKey, operation);
-    try { return await operation; }
-    finally { if (this.pendingLocationLookups.get(pendingKey) === operation) this.pendingLocationLookups.delete(pendingKey); }
+    this.notifyReverseGeocodingStatusChanged();
+    try {
+      return await operation;
+    } finally {
+      if (this.pendingLocationLookups.get(pendingKey) === operation) this.pendingLocationLookups.delete(pendingKey);
+      if (this.currentReverseGeocodingPhotoId === photo.id && this.currentReverseGeocodingDatabaseKey === databaseKey) {
+        this.currentReverseGeocodingPath = null;
+        this.currentReverseGeocodingDisplayName = null;
+        this.currentReverseGeocodingPhotoId = null;
+      }
+      const sourceFolder = this.currentReverseGeocodingPath && this.currentReverseGeocodingDatabaseKey === databaseKey
+        ? dirname(this.currentReverseGeocodingPath)
+        : null;
+      if (sourceFolder) this.notifyDirectoryPhotoLocationsChanged(sourceFolder);
+      else this.notifyReverseGeocodingStatusChanged();
+    }
   };
 
   private readonly getSidecarPath = (sourceName: string, full: boolean): string => {
