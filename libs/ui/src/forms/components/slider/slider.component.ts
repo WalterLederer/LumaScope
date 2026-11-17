@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NG_VALUE_ACCESSOR } from '@angular/forms';
-import { distinctUntilChanged, map } from 'rxjs';
+import { distinctUntilChanged, finalize, map } from 'rxjs';
 import { allVariants, Variant } from '../../../content';
 import { MouseMovement, MouseTrackerService } from '../../../dom';
 import { FormElementDirective } from '../../directives/form-element/form-element.directive';
@@ -56,6 +56,8 @@ export class SliderComponent extends FormElementDirective<number> {
   readonly value = input<number | undefined>(undefined);
 
   readonly valueChange = output<number>();
+
+  readonly valueCommit = output<number>();
 
   readonly color = input<string | undefined>(undefined);
 
@@ -125,7 +127,8 @@ export class SliderComponent extends FormElementDirective<number> {
         map(state => this.getX(origin, state, width)),
         map(x => x / width),
         map(x => this.normalizeValue((max - min) * x + min)),
-        distinctUntilChanged()
+        distinctUntilChanged(),
+        finalize(() => this.valueCommit.emit(this.currentValue()))
       )
       .subscribe(value => {
         this.currentValue.set(value);
@@ -155,6 +158,7 @@ export class SliderComponent extends FormElementDirective<number> {
     this.onChange(next);
     this.valueChange.emit(next);
     this.onTouched();
+    this.valueCommit.emit(next);
   };
 
   private readonly normalizeValue = (value: number): number => {
