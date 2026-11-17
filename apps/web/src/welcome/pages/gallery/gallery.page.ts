@@ -307,10 +307,12 @@ export class GalleryPage {
       .navigateTo(node.id)
       .subscribe(() => this.locationSelected.emit());
 
-  protected readonly onImageSelected = (file: FileInfo) =>
+  protected readonly onImageSelected = (file: FileInfo) => {
+    console.trace('[GalleryNavigationTrace] GalleryPage received thumbnail selection:', file.path);
     this.viewNavigator
       .selectImage(file.path)
       .subscribe(selected => {
         if (selected) this.imageSelected.emit(file);
       });
+  };
 }
