@@ -47,7 +47,7 @@
               title="Smaller thumbnails (-)"
               aria-label="Smaller thumbnails"
               (click)="adjustThumbnailSize(-1)">−</button>
-      <ui-slider [formControl]="thumbSizeSlider"
+      <ui-slider class="zoom-purpose-slider" [formControl]="thumbSizeSlider"
                  [min]="0"
                  [max]="thumbnailSliderMax"
                  aria-label="Thumbnail size" />
