@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { SliderComponent } from '@light-matter/ui';
 import { Desktop, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
@@ -103,6 +104,7 @@ interface MapErrorEntry {
 @Component({
   selector: 'app-map-window',
   standalone: true,
+  imports: [SliderComponent],
   host: { '[class.overlay-mode]': 'overlayMode' },
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
@@ -759,22 +761,22 @@ interface MapErrorEntry {
     <div class="opacity-content">
       <div class="range-setting">
         <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="mapOpacity()" (input)="changeMapOpacity($any($event.target).value)">
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMapOpacity($event)" />
         <span class="range-value">{{ mapOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="gpxOpacity()" (input)="changeGpxOpacity($any($event.target).value)">
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeGpxOpacity($event)" />
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="markerOpacity()" (input)="changeMarkerOpacity($any($event.target).value)">
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
       <div class="range-setting">
         <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
-        <input class="opacity-slider" type="range" min="0" max="100" step="1" [value]="locationOpacity()" (input)="changeLocationOpacity($any($event.target).value)">
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
         <span class="range-value">{{ locationOpacity() }}%</span>
       </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
