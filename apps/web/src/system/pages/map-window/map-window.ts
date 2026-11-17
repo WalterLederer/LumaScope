@@ -786,16 +786,12 @@ interface MapErrorEntry {
       </div>
       <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline' && mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
         <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() === 'online'" aria-label="Show labels"></label>
-        <input id="map-label-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
-          [value]="labelOpacity()" (input)="changeLabelOpacity($any($event.target).value)"
-          [disabled]="mapSource() === 'osmand' || mapSource() === 'osmand-atlas'" aria-label="Map label opacity">
+        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="mapSource() === 'osmand' || mapSource() === 'osmand-atlas'" aria-label="Map label opacity" />
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
-        <input id="hillshade-opacity" class="opacity-slider" type="range" min="0" max="100" step="1"
-          [value]="hillshadeOpacity()" (input)="changeHillshadeOpacity($any($event.target).value)"
-          [disabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity">
+        <ui-slider id="hillshade-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="hillshadeOpacity()" (valueChange)="changeHillshadeOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity" />
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
       </div>
     </div>
