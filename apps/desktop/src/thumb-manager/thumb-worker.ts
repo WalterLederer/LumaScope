@@ -195,30 +195,10 @@ async function decodeDngToVips(
       );
     }
 
-    const data = new DataView(decoded.data.buffer, decoded.data.byteOffset, expectedBytes);
-    const pixelCount = width * height;
-    const luminanceHistogram = new Uint32Array(4096);
-
-    for (let pixel = 0; pixel < pixelCount; pixel++) {
-      const offset = pixel * 6;
-      const red = data.getUint16(offset, true) / 65535;
-      const green = data.getUint16(offset + 2, true) / 65535;
-      const blue = data.getUint16(offset + 4, true) / 65535;
-      const luminance = Math.max(0, 0.2126 * red + 0.7152 * green + 0.0722 * blue);
-      luminanceHistogram[Math.min(4095, Math.floor(luminance * 4095))]++;
-    }
-
-    const medianCount = Math.ceil(pixelCount * 0.5);
-    let accumulated = 0;
-    let medianBin = 0;
-    for (; medianBin < luminanceHistogram.length; medianBin++) {
-      accumulated += luminanceHistogram[medianBin];
-      if (accumulated >= medianCount) break;
-    }
-
-    const medianLuminance = Math.max(0.0001, (medianBin + 0.5) / 4095);
-    // scRGB 1.0 represents 80 cd/m²; 0.225 is approximately 18 cd/m².
-    const exposure = Math.max(0.25, Math.min(16, 0.225 / medianLuminance));
+    // Keep LibRaw's camera-developed linear pixel levels unchanged.
+    // Median-based exposure normalization artificially brightened dark DNGs
+    // and did not recover additional highlight information from a single exposure.
+    const exposure = 1.0;
 
     // Let libvips resize the compact 16-bit bitmap first. Creating a full-size
     // Float32 RGB buffer here used about 137 MiB for half-resolution S25 Ultra
