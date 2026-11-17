@@ -136,6 +136,23 @@ export class Exif {
       sendProgress();
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
+      await cacheManager.resetGpsAutoFixDebug([
+        `GPS Auto Fix debug started: ${new Date().toISOString()}`,
+        `Folder: ${root}`,
+        `Check only: ${checkOnly}`,
+        `Maximum time difference: ${maxDifferenceSeconds} seconds`,
+        `Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+        `Local UTC offset now: ${new Date().getTimezoneOffset()} minutes`,
+        `Photo candidates: ${candidates.length}`,
+        ''
+      ].join('\n'));
+      const writeGpsDebug = async (label: string, details: unknown): Promise<void> => {
+        try {
+          await cacheManager.appendGpsAutoFixDebug(`[${new Date().toISOString()}] ${label} ${JSON.stringify(details)}`);
+        } catch (logError) {
+          console.warn('[Exif] Could not write GPS Auto Fix debug log:', logError);
+        }
+      };
       for (const path of candidates) {
         if (operationId && this.cancelledLocationFixes.has(operationId)) {
           result.aborted = true;
@@ -150,16 +167,18 @@ export class Exif {
           }
           result.withoutGps++;
           if (metadata.gpsTimestamp === null) {
-            console.info('[Exif GPX time debug] Photo has no usable timestamp:', {
+            const missingTimestampDetails = {
               photo: path,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
               localNow: new Date().toString(),
               utcNow: new Date().toISOString()
-            });
+            };
+            console.info('[Exif GPX time debug] Photo has no usable timestamp:', missingTimestampDetails);
+            await writeGpsDebug('Photo has no usable timestamp:', missingTimestampDetails);
             result.unmatched++;
             continue;
           }
-          console.info('[Exif GPX time debug] Photo timestamp:', {
+          const photoTimestampDetails = {
             photo: path,
             timestampSeconds: metadata.gpsTimestamp,
             timestampUtc: new Date(metadata.gpsTimestamp * 1000).toISOString(),
@@ -170,7 +189,9 @@ export class Exif {
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             localOffsetMinutes: new Date(metadata.gpsTimestamp * 1000).getTimezoneOffset(),
             maxDifferenceSeconds
-          });
+          };
+          console.info('[Exif GPX time debug] Photo timestamp:', photoTimestampDetails);
+          await writeGpsDebug('Photo timestamp:', photoTimestampDetails);
           const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000, maxDifferenceSeconds);
           if (!position) {
             result.unmatched++;
@@ -204,6 +225,7 @@ export class Exif {
         }
       }
       result.elapsedMilliseconds = Date.now() - startedAt;
+      await writeGpsDebug('GPS Auto Fix summary:', result);
       if (operationId) this.cancelledLocationFixes.delete(operationId);
       if (deviations.length) {
         result.minDeviationSeconds = Math.min(...deviations);
