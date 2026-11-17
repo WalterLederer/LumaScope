@@ -309,7 +309,6 @@ interface MapErrorEntry {
         <input type="checkbox" [checked]="gpxListMode() === 'database'" (change)="$any($event.target).checked ? showGpxFilesVisibleOnMap() : showRecentGpxFiles()" [disabled]="gpxDatabaseQueryBusy()">
         Use GPX files from DB
       </label>
-      <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
       @if (gpxListMode() === 'database') {
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
         <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
@@ -329,6 +328,7 @@ interface MapErrorEntry {
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
+      <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
     </div>
     @if (gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-database-table" role="table" aria-label="GPX tracks">
@@ -603,7 +603,7 @@ interface MapErrorEntry {
           </div>
         </details>
       } @else {
-        <span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span><button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button>
+        <div class="time-slider-no-data-row"><span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span><button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button></div>
       }
     </div>
   </div>
