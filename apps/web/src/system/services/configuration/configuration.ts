@@ -141,6 +141,7 @@ export class Configuration {
         buttonStyle: 'blue',
         buttonColor: 'blue',
         zoomSliderColor: '#14b8a6',
+        sliderColor: '#287fc4',
         themeColorSaturation: 100,
         themeTotalBrightness: 100,
         themeBackgroundBrightness: 100,
