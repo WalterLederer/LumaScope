@@ -16,7 +16,7 @@ export class ThumbManager {
   // Periodically recreate the worker so long gallery scans cannot accumulate heap fragmentation.
   private static readonly workerRecycleAfterImages = 250;
 
-  private static readonly heavyExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng' ]);
+  private static readonly heavyExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw' ]);
 
   private worker: Worker | null = null;
 
