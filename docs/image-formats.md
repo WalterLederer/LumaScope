@@ -15,7 +15,7 @@ The Help reference contains **15 format entries: 9 HDR-capable entries, 6 SDR en
 | JPEG XR | `.jxr` | Yes | Yes | 8/16 bit integer; 16/32 bit float | jpegxr + wasm-vips; HDR converted to scRGB/JPEG for display | High-bit-depth and floating-point images use the HDR display path. |
 | OpenEXR | `.exr` | Yes | Yes | 16 bit half or 32 bit float | exrs; EXR converted to scRGB/JPEG for display | HDR; the viewer currently uses the standard RGB channels. |
 | PNG | `.png` | Yes, for supported high-bit-depth content | No | 1/2/4/8/16 bit/channel | Chromium / Electron | Lossless raster format with transparency and high-bit-depth support. |
-| Digital Negative (DNG) | `.dng` | No, not inferred from RAW data alone | Yes | Depends on camera; commonly 10–16 bit sensor data | LibRaw WASM; developed to 16-bit RGB with standard display gamma | Camera RAW is developed with the as-shot white balance; no embedded Ultra HDR gain map is assumed. |
+| Camera RAW (DNG / Panasonic RW2 / RAW) | `.dng`, `.rw2`, `.raw` | No, not inferred from RAW data alone | Yes | Depends on camera; commonly 10–16 bit sensor data | LibRaw WASM; developed to 16-bit RGB with standard display gamma | Includes Panasonic RW2 files. The generic `.raw` extension is accepted, but decoding depends on the file variant being supported by LibRaw. Camera RAW is developed with the as-shot white balance; no embedded Ultra HDR gain map is assumed. |
 | Radiance HDR | `.hdr` | Yes | Yes | 32 bit RGBE per pixel | wasm-vips / libvips; expanded to floating-point RGB and converted for display | Radiance RGBE image format. |
 | SVG | `.svg` | No | No | Not applicable | Chromium / Electron | Vector graphics; rasterized for display at the required size. |
 | TIFF | `.tif`, `.tiff` | Yes, depending on file | Yes | Depends on file; common 8/16 bit integer and float variants | wasm-vips / libvips; custom HDR conversion path | 16-bit HDR TIFF images use the HDR display path; other TIFFs are converted for display. |
@@ -31,6 +31,6 @@ The application uses several decoding families:
 - **libheif-js + wasm-vips** for HEIF and HEIC.
 - **jpegxr** for JPEG XR decoding and conversion.
 - **exrs** for OpenEXR.
-- **LibRaw WASM** for Digital Negative (DNG) camera RAW files.
+- **LibRaw WASM** for camera RAW files, including DNG and Panasonic RW2; `.raw` files are accepted when their variant is supported by LibRaw.
 
 Some formats use an intermediate converted image for display. The full-size cache column indicates whether LumaScope generates and manages a full-size converted cache entry for that format; it does not indicate whether the original file is modified.
