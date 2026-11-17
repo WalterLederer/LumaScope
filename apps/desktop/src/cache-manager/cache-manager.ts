@@ -704,7 +704,7 @@ export class CacheManager {
       latitude: point.latitude,
       longitude: point.longitude
     }) : null;
-    console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', {
+    const gpxTimeDiagnostic = {
       photoTimestampMs: timestampMs,
       photoUtc: new Date(timestampMs).toISOString(),
       photoLocal: new Date(timestampMs).toString(),
@@ -715,7 +715,9 @@ export class CacheManager {
       nearestBefore: describePoint(diagnosticBefore),
       nearestAfter: describePoint(diagnosticAfter),
       sameSegment: !!diagnosticBefore && !!diagnosticAfter && diagnosticBefore.segment_id === diagnosticAfter.segment_id
-    });
+    };
+    console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', gpxTimeDiagnostic);
+    await this.appendGpsAutoFixDebug(`[${new Date().toISOString()}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
     const pair = db.prepare(`SELECT segment_id,
         MAX(CASE WHEN timestamp_ms <= :timestamp THEN timestamp_ms END) AS before_timestamp,
         MIN(CASE WHEN timestamp_ms >= :timestamp THEN timestamp_ms END) AS after_timestamp
@@ -866,6 +868,16 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.cacheSize' })
   readonly cacheSize = async (): Promise<number> => (await this.cacheInfo()).bytes;
 
+  readonly resetGpsAutoFixDebug = async (header = ''): Promise<void> => {
+    const filePath = join(this.userData, 'gps-auto-fix-debug.log');
+    await writeFile(filePath, header ? header + '\n' : '', 'utf-8');
+  };
+
+  readonly appendGpsAutoFixDebug = async (line: string): Promise<void> => {
+    if (typeof line !== 'string' || line.length > 1048576) return;
+    await appendFile(join(this.userData, 'gps-auto-fix-debug.log'), line.endsWith('\n') ? line : line + '\n', 'utf-8');
+  };
+
   @IpcHandler({ name: 'CacheManager.getBuildLogPath' })
   readonly getBuildLogPath = async (): Promise<string> => join(this.userData, 'cache-build.log');
 
@@ -946,7 +958,7 @@ export class CacheManager {
           fullSize = null;
         }
       }
-      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, verification };
+      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null, verification };
     }));
   };
 
