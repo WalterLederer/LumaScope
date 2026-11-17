@@ -230,21 +230,21 @@
           @if (highlightHdrPixels()) {
             <label class="hdr-threshold-control">
               <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{hdrHighlightThresholdNits().toLocaleString()}} nits</span></span>
-              <ui-slider [min]="1" [max]="125" [step]="0.1" [value]="hdrHighlightThreshold()" (valueChange)="setHdrHighlightThreshold($event)" aria-label="HDR highlight threshold from 80 to 10000 nits" />
+              <ui-slider [min]="1" [max]="125" [step]="0.1" [value]="hdrHighlightThreshold()" [color]="'#ff35df'" (valueChange)="setHdrHighlightThreshold($event)" aria-label="HDR highlight threshold from 80 to 10000 nits" />
             </label>
           }
           <label class="sdr-overexposure-toggle"><input type="checkbox" [checked]="highlightSdrOverexposure()" (change)="setSdrOverexposureHighlight($any($event.target).checked)"/> Highlight overexposed SDR pixels</label>
           @if (highlightSdrOverexposure()) {
             <label class="sdr-overexposure-threshold">
               <span><b>SDR threshold</b><span>{{sdrOverexposureThreshold()}} / 255</span></span>
-              <ui-slider [min]="0" [max]="255" [step]="1" [value]="sdrOverexposureThreshold()" (valueChange)="setSdrOverexposureThreshold($event)" aria-label="SDR overexposure threshold from 0 to 255" />
+              <ui-slider [min]="0" [max]="255" [step]="1" [value]="sdrOverexposureThreshold()" [color]="'#ff8a3d'" (valueChange)="setSdrOverexposureThreshold($event)" aria-label="SDR overexposure threshold from 0 to 255" />
             </label>
           }
           <label class="sdr-underexposure-toggle"><input type="checkbox" [checked]="highlightSdrUnderexposure()" (change)="setSdrUnderexposureHighlight($any($event.target).checked)"/> Highlight underexposed SDR pixels</label>
           @if (highlightSdrUnderexposure()) {
             <label class="sdr-underexposure-threshold">
               <span><b>SDR shadow threshold</b><span>{{sdrUnderexposureThreshold()}} / 255</span></span>
-              <ui-slider [min]="0" [max]="64" [step]="1" [value]="sdrUnderexposureThreshold()" (valueChange)="setSdrUnderexposureThreshold($event)" aria-label="SDR underexposure threshold from 0 to 64" />
+              <ui-slider [min]="0" [max]="64" [step]="1" [value]="sdrUnderexposureThreshold()" [color]="'#00d1e0'" (valueChange)="setSdrUnderexposureThreshold($event)" aria-label="SDR underexposure threshold from 0 to 64" />
             </label>
           }
         }
