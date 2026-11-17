@@ -100,6 +100,39 @@ export class ImageGridComponent {
 
   readonly hoveredTags = signal<ExifTags | null>(null);
 
+  readonly hoverStatusText = computed(() => {
+    const image = this.hoveredImage();
+    if (!image) return '';
+    const tags = this.hoveredTags();
+    const width = this.formatPixelDimension(tags?.ImageWidth);
+    const height = this.formatPixelDimension(tags?.ImageHeight);
+    const dimensions = width !== 'undefined' && height !== 'undefined' && width !== '' && height !== '' ? `${width} × ${height}` : '';
+    const date = image.modifiedAt ?? image.createdAt;
+    const modified = Number.isFinite(date) ? this.formatOsDateTime(date) : '';
+    const size = this.formatFileSize(image.size);
+    const bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
+    const range = imageDynamicRange(image.path, tags, bits === null ? null : `${bits}-bit`);
+    return [image.path, modified, size, dimensions, range].filter(Boolean).join('  ·  ');
+  });
+
+  protected readonly formatOsDateTime = (value: number | Date): string => {
+    const date = value instanceof Date ? value : new Date(value);
+    return new Intl.DateTimeFormat(undefined, {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).format(date);
+  };
+
+  private readonly formatFileSize = (bytes: number): string => {
+    if (!Number.isFinite(bytes) || bytes < 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(1)} ${units[unit]}`;
+  };
+
   protected readonly imageDynamicRange = imageDynamicRange;
 
   protected readonly formatPixelDimension = (value: unknown): string => {
