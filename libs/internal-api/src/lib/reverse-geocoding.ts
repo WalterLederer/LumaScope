@@ -94,6 +94,7 @@ export const lookupReverseGeocoding = (
       console.debug('[ReverseGeocoding] Waiting for provider rate limit', { waitMs: wait, latitude, longitude });
       await new Promise(resolve => setTimeout(resolve, wait));
     }
+    await waitUntilResumed(requestGeneration);
     if (requestGeneration !== abortGeneration) throw abortError();
     lastRequestAt = Date.now();
     const controller = new AbortController();
