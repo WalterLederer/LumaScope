@@ -314,8 +314,15 @@ export class ImageGridComponent {
   /* Constructor */
   constructor() {
     console.warn('[ImageGrid] CONSTRUCTOR START');
-    // Startup diagnostic: temporarily disable the ImagesComponent registration effect.
-    // The child component remains mounted so its creation can be tested independently.
+    // Startup diagnostic: observe the child view query without registering it.
+    // This separates viewChild tracking from GalleryCacheBuild.register().
+    effect(() => {
+      const images = this.imagesComponent();
+      if (images) {
+        console.warn('[ImageGrid] ImagesComponent view query resolved');
+      }
+    });
+
     effect(() => {
       this.images();
       this.selectedLocation();
