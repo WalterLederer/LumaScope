@@ -375,7 +375,9 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
         return [ '.jxl', '.png' ].includes(extension) ? streamFile(fileName) : notFound();
       }
 
-      return streamFile(result);
+      const response = streamFile(result);
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
     }
 
     return streamFile(fileName);
