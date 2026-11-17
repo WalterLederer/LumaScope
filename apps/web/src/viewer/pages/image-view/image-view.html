@@ -188,9 +188,9 @@
             <summary class="section-heading">RGB</summary>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
-                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="redChannelLevel()" (valueChange)="setRedChannelLevel($event)" /></label>
-                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="greenChannelLevel()" (valueChange)="setGreenChannelLevel($event)" /></label>
-                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="blueChannelLevel()" (valueChange)="setBlueChannelLevel($event)" /></label>
+                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="redChannelLevel()" [color]="'#ff4242'" (valueChange)="setRedChannelLevel($event)" /></label>
+                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="greenChannelLevel()" [color]="'#36cf70'" (valueChange)="setGreenChannelLevel($event)" /></label>
+                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="blueChannelLevel()" [color]="'#438cff'" (valueChange)="setBlueChannelLevel($event)" /></label>
               </div>
             }
           </details>
