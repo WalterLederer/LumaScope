@@ -234,7 +234,7 @@ export default class App {
       // the renderer executes the application entry bundle.
       if (!devToolsAttachedForMainNavigation && App.startupConfig.devToolsOpen()) {
         devToolsAttachedForMainNavigation = true;
-        App.mainWindow.webContents.openDevTools({ mode: 'detach', activate: true });
+        App.mainWindow.webContents.openDevTools({ mode: 'right', activate: true });
         logRendererStartup('DevTools attached to active renderer navigation');
       }
     });
