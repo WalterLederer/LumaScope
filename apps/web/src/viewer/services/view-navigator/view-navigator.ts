@@ -1,6 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, take, tap } from 'rxjs';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
+import { CacheManager } from '../../../ipc/cache-manager';
 import { imageUrl } from '../../utils/image-url';
 import { SelectedImage } from './view-navigator.types';
 
@@ -8,27 +10,30 @@ import { SelectedImage } from './view-navigator.types';
 export class ViewNavigator {
   /* DI */
   private readonly galleryState = inject(GalleryState);
+  private readonly cacheManager = inject(CacheManager);
 
   /* State */
   readonly standalone = signal(false);
 
   private readonly images$ = this.galleryState.images();
+  private readonly cacheRevision$ = toObservable(this.cacheManager.cacheRevision);
 
   private readonly selectedIndex$ = new BehaviorSubject(-1);
 
   private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
     this.images$,
-    this.selectedIndex$
+    this.selectedIndex$,
+    this.cacheRevision$
   ])
     .pipe(
-      map(([ images, index ]) => {
+      map(([ images, index, cacheRevision ]) => {
         if (index < 0 || index >= images.length) {
           return null;
         }
 
         return {
           path: images[index].path,
-          url: imageUrl(images[index].path),
+          url: imageUrl(images[index].path, cacheRevision),
           size: images[index].size,
           modifiedAt: images[index].modifiedAt
         };
