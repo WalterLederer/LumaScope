@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, Signal, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, Signal, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 
 interface CacheBuildProgress {
@@ -20,6 +20,8 @@ interface GalleryCacheBuildController {
 export class GalleryCacheBuild {
   private readonly document = inject(DOCUMENT);
   private readonly controller = signal<GalleryCacheBuildController | null>(null);
+  private readonly pendingController = signal<GalleryCacheBuildController | null>(null);
+  private readonly retiredController = signal(false);
 
   private readonly readVerifyCacheFiles = (): boolean => {
     try { return this.document.defaultView?.localStorage.getItem('verifyCacheFiles') === 'true'; }
@@ -30,6 +32,26 @@ export class GalleryCacheBuild {
   readonly cacheRunActive = computed(() => this.controller()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.controller()?.cacheRunProgress() ?? { completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = computed(() => this.controller()?.cacheRunCurrentOperation() ?? '');
+
+  constructor() {
+    // A cache build can outlive the Gallery component that started it. Keep
+    // that controller as the source of progress/cancellation until it finishes,
+    // then hand control to the currently mounted Gallery instance.
+    effect(() => {
+      const current = this.controller();
+      if (!current || current.cacheRunActive()) return;
+
+      const pending = this.pendingController();
+      if (pending) {
+        this.controller.set(pending);
+        this.pendingController.set(null);
+        this.retiredController.set(false);
+      } else if (this.retiredController()) {
+        this.controller.set(null);
+        this.retiredController.set(false);
+      }
+    });
+  }
 
   readonly setVerifyCacheFiles = (enabled: boolean): void => {
     this.verifyCacheFiles.set(enabled);
@@ -43,9 +65,32 @@ export class GalleryCacheBuild {
   readonly refreshDetailCacheStatus = (): void => this.controller()?.refreshDetailCacheStatus();
 
   readonly register = (controller: GalleryCacheBuildController): (() => void) => {
-    this.controller.set(controller);
+    const current = this.controller();
+    if (current && current !== controller && current.cacheRunActive()) {
+      // Do not replace an active build with a newly mounted, idle ImageGrid.
+      this.pendingController.set(controller);
+    } else {
+      this.controller.set(controller);
+      this.pendingController.set(null);
+      this.retiredController.set(false);
+    }
+
     return () => {
-      if (this.controller() === controller) this.controller.set(null);
+      if (this.pendingController() === controller) {
+        this.pendingController.set(null);
+      }
+      if (this.controller() !== controller) return;
+
+      if (controller.cacheRunActive()) {
+        // The asynchronous build still owns its signals and cancel callback.
+        // Retain them until the run completes, even after its view is destroyed.
+        this.retiredController.set(true);
+      } else {
+        const pending = this.pendingController();
+        this.controller.set(pending);
+        this.pendingController.set(null);
+        this.retiredController.set(false);
+      }
     };
   };
 }
