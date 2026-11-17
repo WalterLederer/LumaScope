@@ -166,12 +166,26 @@ const getFullSizeDerivative = async (
     return null;
   }
 
-  return await cacheManager.get(
+  let conversionError: string | null = null;
+  const result = await cacheManager.get(
     fileName,
     cacheTag,
-    async target => await thumbManager.generate(fileName, target, 0, 0),
+    async target => {
+      const generated = await thumbManager.generateWithMetadata(fileName, target, 0, 0);
+      if (!generated.success) {
+        conversionError = generated.error ?? 'The image decoder failed without returning an error message.';
+        return false;
+      }
+      return true;
+    },
     '.jpg'
   );
+
+  if (result === null) {
+    throw new Error(conversionError ?? `The full-size conversion could not be created for ${basename(fileName)}. Check the source file and cache folder.`);
+  }
+
+  return result;
 };
 
 const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise<GlobalResponse> => {
@@ -365,9 +379,13 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
     }
 
     return streamFile(fileName);
-  } catch (_error) {
-    console.error(_error);
-    return notFound();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[protocolHandler] Full-size image request failed for ${fileName}:`, error);
+    return new Response(message, {
+      status: 500,
+      headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }
+    });
   }
 };
 
