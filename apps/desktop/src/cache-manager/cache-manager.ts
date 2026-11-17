@@ -1273,6 +1273,7 @@ export class CacheManager {
     const pending = this.pendingLocationLookups.get(pendingKey);
     if (pending) return pending;
 
+    let lookupDirectory: string | null = null;
     const operation = (async (): Promise<string | null> => {
       let locationNameId: number | null = null;
       let displayName: string | null = null;
@@ -1285,6 +1286,7 @@ export class CacheManager {
       const source = db.prepare(`SELECT paths.relative_folder_path, photos.file_name FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.id = :photoId`)
         .get({ photoId: photo.id }) as { relative_folder_path: string; file_name: string } | undefined;
       this.currentReverseGeocodingPath = source ? join(this.resolveStoredFolderPath(source.relative_folder_path, databaseKey), source.file_name) : null;
+      lookupDirectory = this.currentReverseGeocodingPath ? dirname(this.currentReverseGeocodingPath) : null;
       db.prepare(`UPDATE photos
         SET location_lookup_error = NULL, location_lookup_attempted_at = :attemptedAt
         WHERE id = :photoId`)
@@ -1386,10 +1388,7 @@ export class CacheManager {
         this.currentReverseGeocodingDisplayName = null;
         this.currentReverseGeocodingPhotoId = null;
       }
-      const sourceFolder = this.currentReverseGeocodingPath && this.currentReverseGeocodingDatabaseKey === databaseKey
-        ? dirname(this.currentReverseGeocodingPath)
-        : null;
-      if (sourceFolder) this.notifyDirectoryPhotoLocationsChanged(sourceFolder);
+      if (lookupDirectory) this.notifyDirectoryPhotoLocationsChanged(lookupDirectory);
       else this.notifyReverseGeocodingStatusChanged();
     }
   };
