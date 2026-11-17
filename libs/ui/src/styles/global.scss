@@ -908,30 +908,30 @@ html input[type='range']:not(.time-slider-range-input)::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   margin-top: -4px;
-  border: 2px solid var(--button-border-strong, #3988c8);
+  border: 2px solid color-mix(in srgb, var(--button-border-strong, #3988c8) 72%, black);
   border-radius: 50%;
   background: radial-gradient(circle at center, #17466f 0 2px, transparent 2.5px), var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%));
-  box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%), inset 0 1px 1px rgb(255 255 255 / 60%);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%);
   transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
 html input[type='range']:not(.time-slider-range-input)::-moz-range-thumb {
   width: 12px;
   height: 12px;
-  border: 2px solid var(--button-border-strong, #3988c8);
+  border: 2px solid color-mix(in srgb, var(--button-border-strong, #3988c8) 72%, black);
   border-radius: 50%;
   background: radial-gradient(circle at center, #17466f 0 2px, transparent 2.5px), var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%));
-  box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%), inset 0 1px 1px rgb(255 255 255 / 60%);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%);
   transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 }
 html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-webkit-slider-thumb,
 html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-moz-range-thumb {
-  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 70%);
+  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent);
 }
 html input[type='range']:not(.time-slider-range-input):active:not(:disabled)::-webkit-slider-thumb,
 html input[type='range']:not(.time-slider-range-input):focus-visible::-webkit-slider-thumb,
 html input[type='range']:not(.time-slider-range-input):active:not(:disabled)::-moz-range-thumb,
 html input[type='range']:not(.time-slider-range-input):focus-visible::-moz-range-thumb {
-  box-shadow: 0 1px 3px rgb(0 0 0 / 36%), 0 0 0 2px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 65%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 36%), 0 0 0 2px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent);
 }
 html input[type='range']:not(.time-slider-range-input):disabled {
   cursor: not-allowed;
