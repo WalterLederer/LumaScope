@@ -17,7 +17,7 @@
 
   @if (!loading && !error) {
     <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
-            (click)="clicked.emit(image())">
+            (click)="$event.stopPropagation(); clicked.emit(image())">
       <img loading="lazy"
            [alt]="image().name"
            [src]="url()" />
