@@ -787,51 +787,34 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
 
 
 
-/* Browse favourite-tree popup actions must stay neutral. The shared action-button
-   rule above intentionally skins every ui-action-button, so explicitly opt these
-   two menu commands out after that rule (including the native button inside). */
-ui-action-button.add-location-menu-button,
-ui-action-button.remove-location-menu-button {
-  background: transparent !important;
-  background-image: none !important;
-  color: inherit !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-ui-action-button.add-location-menu-button > button,
-ui-action-button.remove-location-menu-button > button {
+/* Browse favourites use native menu items, not themed application action buttons. */
+.gallery-folder-tree button.gallery-location-menu-action,
+.gallery-folder-tree button.gallery-location-menu-action:hover,
+.gallery-folder-tree button.gallery-location-menu-action:active,
+.gallery-folder-tree button.gallery-location-menu-action:focus-visible {
   appearance: none !important;
   -webkit-appearance: none !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 34px !important;
+  padding: 6px 12px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
   background: transparent !important;
   background-image: none !important;
   color: inherit !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
   box-shadow: none !important;
   text-shadow: none !important;
   filter: none !important;
   transform: none !important;
+  font: inherit !important;
+  text-align: left !important;
+  cursor: pointer !important;
 }
 
-ui-action-button.add-location-menu-button:hover,
-ui-action-button.remove-location-menu-button:hover,
-ui-action-button.add-location-menu-button:hover > button,
-ui-action-button.remove-location-menu-button:hover > button,
-ui-action-button.add-location-menu-button > button:active,
-ui-action-button.remove-location-menu-button > button:active,
-ui-action-button.add-location-menu-button > button:focus-visible,
-ui-action-button.remove-location-menu-button > button:focus-visible {
+.gallery-folder-tree button.gallery-location-menu-action:hover,
+.gallery-folder-tree button.gallery-location-menu-action:focus-visible {
   background: rgb(128 128 128 / 14%) !important;
-  background-image: none !important;
-  color: inherit !important;
-  box-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
 }
