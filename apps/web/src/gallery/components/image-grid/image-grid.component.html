@@ -87,7 +87,7 @@
 </ui-toolbar>
 
 <ng-template #viewModeMenu>
-  <ui-popup-menu cdkMenu>
+  <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
     <ui-action-button cdkMenuItem (pressed)="setViewMode('thumbnails')">
       <ui-icon [icon]="viewMode() === 'thumbnails' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">▦</ui-text>
@@ -112,7 +112,7 @@
 </ng-template>
 
 <ng-template #sortMenu>
-  <ui-popup-menu cdkMenu>
+  <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
 
     <ui-action-button cdkMenuItem
                       (pressed)="sortByChanged.emit('date')">
@@ -139,7 +139,7 @@
 </ng-template>
 
 <ng-template #sortDirectionMenu>
-  <ui-popup-menu cdkMenu>
+  <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
     <ui-action-button cdkMenuItem
                       (pressed)="sortDirChanged.emit('asc')">
       <ui-icon [icon]="sortDir === 'asc' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
