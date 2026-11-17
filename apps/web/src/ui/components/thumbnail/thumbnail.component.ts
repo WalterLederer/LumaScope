@@ -35,7 +35,8 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
     '[class.view-details]': "viewMode() === 'details'",
     '[class.view-details-no-thumbnails]': "viewMode() === 'details-no-thumbnails'",
     '(mouseenter)': 'hovered.emit(image())',
-    '(mouseleave)': 'hovered.emit(null)'
+    '(mouseleave)': 'hovered.emit(null)',
+    '(click)': 'rowSelected.emit(image())'
   }
 })
 export class ThumbnailComponent implements OnDestroy {
@@ -78,6 +79,8 @@ export class ThumbnailComponent implements OnDestroy {
   readonly refreshToken = input(0);
 
   readonly clicked = output<FileInfo>();
+
+  readonly rowSelected = output<FileInfo>();
 
   readonly hovered = output<FileInfo | null>();
 
