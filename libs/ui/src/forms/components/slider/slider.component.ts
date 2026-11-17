@@ -51,7 +51,7 @@ export class SliderComponent extends FormElementDirective<number> {
 
   readonly max = input(100);
 
-  readonly step = input(1);
+  readonly step = input(0);
 
   readonly value = input<number | undefined>(undefined);
 
@@ -74,7 +74,10 @@ export class SliderComponent extends FormElementDirective<number> {
     });
   }
 
-  protected readonly position = computed(() => (this.currentValue() - this.min()) / (this.max() - this.min()));
+  protected readonly position = computed(() => {
+    const range = this.max() - this.min();
+    return range > 0 ? Math.max(0, Math.min(1, (this.currentValue() - this.min()) / range)) : 0;
+  });
 
   protected readonly stylePosition = computed(() => `${this.position() * 100}%`);
 
