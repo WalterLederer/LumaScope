@@ -392,6 +392,7 @@ interface MapErrorEntry {
                                     <div class="gpx-row-action-menu-separator" role="separator"></div>
                                     <button type="button" role="menuitem" (click)="selectAllGpxTracks(); gpxRowActionMenuOpen.set(null)" [disabled]="gpxTracks().length === 0">Select all</button>
                                     <button type="button" role="menuitem" (click)="deselectAllGpxTracks(); gpxRowActionMenuOpen.set(null)" [disabled]="gpxTracks().length === 0">Deselect all</button>
+                                    <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteAllGpxTracks(); gpxRowActionMenuOpen.set(null)" [disabled]="gpxTracks().length === 0">Delete All</button>
                                   }
                                 </div>
                               }
@@ -5669,6 +5670,15 @@ export class MapWindow implements OnInit, OnDestroy {
     const tracks = this.gpxTracks().map(track => ({ ...track, active: false }));
     this.gpxTracks.set(tracks);
     void this.persistGpxTracks(tracks);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+  };
+
+  protected readonly deleteAllGpxTracks = async (): Promise<void> => {
+    this.gpxSegmentsByTrack.clear();
+    this.gpxPointDataByTrack.clear();
+    this.gpxTracks.set([]);
+    await this.persistGpxTracks([]);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
   };
