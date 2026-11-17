@@ -92,16 +92,42 @@ html[data-button-color='gray'] {
 }
 
 
-/* Theme color saturation and brightness are shared by accent-colored buttons and tab bars. */
-html { --theme-color-saturation: 100%; --theme-color-brightness: 100%; }
+/* Total brightness affects foreground and background; background brightness is a separate background-only overlay. */
+html {
+  --theme-color-saturation: 100%;
+  --theme-total-brightness: 100%;
+  --theme-background-brightness: 100%;
+  --theme-background-overlay-color: #fff;
+  --theme-background-overlay-opacity: 0;
+}
 button:not([role='option']):not(.detail-header button),
 ui-action-button,
 button[role='tab'] {
-  filter: saturate(var(--theme-color-saturation, 100%)) brightness(var(--theme-color-brightness, 100%));
+  filter: saturate(var(--theme-color-saturation, 100%)) brightness(var(--theme-total-brightness, 100%));
 }
 button:not([role='option']):not(.detail-header button):hover:not(:disabled),
 ui-action-button:hover:not(:disabled) {
-  filter: saturate(var(--theme-color-saturation, 100%)) brightness(calc(var(--theme-color-brightness, 100%) * 1.18)) !important;
+  filter: saturate(var(--theme-color-saturation, 100%)) brightness(calc(var(--theme-total-brightness, 100%) * 1.18)) !important;
+}
+
+button:not([role='option']):not(.detail-header button),
+ui-action-button,
+button[role='tab'] {
+  position: relative;
+  isolation: isolate;
+}
+
+button:not([role='option']):not(.detail-header button)::before,
+ui-action-button::before,
+button[role='tab']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--theme-background-overlay-color, #fff);
+  opacity: var(--theme-background-overlay-opacity, 0);
+  pointer-events: none;
 }
 html[data-tab-bar-style] button[role='tab'].active,
 html[data-tab-bar-style] [role='tab'].active {
