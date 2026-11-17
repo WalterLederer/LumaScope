@@ -174,6 +174,7 @@ async function decodeCameraRawToVips(
   maxDimension = 0
 ): Promise<Vips.Image> {
   const LibRaw = await getLibRawConstructor();
+  const libRawHeapInitialCapacity = getLibRawWasmHeapCapacity(LibRaw);
   const decoder = new LibRaw();
   await decoder.waitUntilReady();
 
@@ -184,6 +185,7 @@ async function decodeCameraRawToVips(
 
   try {
     let input: Buffer | null = await readFile(source);
+    const inputBytes = input.byteLength;
     let inputBuffer: ArrayBuffer | null = new ArrayBuffer(input.byteLength);
     new Uint8Array(inputBuffer).set(input);
 
@@ -227,16 +229,6 @@ async function decodeCameraRawToVips(
     // and did not recover additional highlight information from a single exposure.
     const exposure = 1.0;
 
-    const vipsHeapCapacity = (vips as unknown as EmscriptenHeapModule).HEAPU8?.buffer.byteLength ?? null;
-    console.info(
-      `[RawMemory] ${source}: ${width}x${height}, ${halfSize ? 'half-size' : 'full-size'}; ` +
-      `LibRaw WASM heap capacity=${formatMemoryBytes(libRawHeapCapacity)}; ` +
-      `decoded RGB16 buffer=${formatMemoryBytes(decoded.data.byteLength)}; ` +
-      `libvips WASM heap capacity=${formatMemoryBytes(vipsHeapCapacity)}; ` +
-      `libvips tracked=${formatMemoryBytes(vips.Stats.mem())}; ` +
-      `libvips high-water=${formatMemoryBytes(vips.Stats.memHighwater())}.`
-    );
-
     // Let libvips resize the compact 16-bit bitmap first. Creating a full-size
     // Float32 RGB buffer here used about 137 MiB for half-resolution S25 Ultra
     // DNGs, exceeding the WASM image-memory limit before thumbnail encoding.
@@ -267,6 +259,19 @@ async function decodeCameraRawToVips(
     }
     width = scaledRawImage.width;
     height = scaledRawImage.height;
+
+    const vipsHeapCapacity = (vips as unknown as EmscriptenHeapModule).HEAPU8?.buffer.byteLength ?? null;
+    console.info(
+      `[RawMemory] ${source}: ${width}x${height}, ${halfSize ? 'half-size' : 'full-size'}; ` +
+      `file=${formatMemoryBytes(inputBytes)}; ` +
+      `LibRaw WASM heap initial/after decode=${formatMemoryBytes(libRawHeapInitialCapacity)} / ${formatMemoryBytes(libRawHeapCapacity)}; ` +
+      `decoded RGB16=${formatMemoryBytes(decoded.data.byteLength)}; ` +
+      `resized RGB16 copy=${formatMemoryBytes(scaledPixels.byteLength)}; ` +
+      `Float32 RGB=${formatMemoryBytes(linearPixels.byteLength)}; ` +
+      `libvips WASM heap=${formatMemoryBytes(vipsHeapCapacity)}; ` +
+      `libvips tracked=${formatMemoryBytes(vips.Stats.mem())}; ` +
+      `libvips worker high-water=${formatMemoryBytes(vips.Stats.memHighwater())}.`
+    );
 
   } finally {
     if (!decoderDisposed) {
