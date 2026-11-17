@@ -93,7 +93,7 @@ The cache is designed to be rebuildable: source images remain the originals, whi
 
 ### Images
 
-LumaScope currently documents AVIF, BMP, Digital Negative (DNG), GIF, HEIF/HEIC, JPEG, JPEG XL, JPEG XR, OpenEXR, PNG, Radiance HDR, SVG, TIFF, Ultra HDR JPEG and WebP. HDR capability is format- and file-dependent; not every file with an extension is necessarily HDR.
+LumaScope currently documents AVIF, BMP, camera RAW (DNG, Panasonic RW2 and supported `.raw` variants), GIF, HEIF/HEIC, JPEG, JPEG XL, JPEG XR, OpenEXR, PNG, Radiance HDR, SVG, TIFF, Ultra HDR JPEG and WebP. HDR capability is format- and file-dependent; not every file with an extension is necessarily HDR.
 
 See the complete table in [Supported image formats](docs/image-formats.md).
 
