@@ -20,7 +20,7 @@
         <ui-icon [icon]="sortDir === 'asc' ? 'arrowSortUp' : 'arrowSortDown'" [inherit]="true" />
         <ui-text [inherit]="true">{{ sortDir === 'asc' ? 'Ascending' : 'Descending' }}</ui-text>
         <ui-icon icon="chevronDown" [inherit]="true" size="small" />
-      </ui-action-button>
+      </button>
 
       <ui-action-button class="action"
                         [title]="'Sort by ' + (sortType === 'date' ? 'date' : sortType === 'name' ? 'name' : 'size') + ', ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
@@ -29,7 +29,7 @@
         <ui-icon [icon]="sortType === 'date' ? 'calendar' : sortType === 'name' ? 'text' : 'save'" [inherit]="true" />
         <ui-text [inherit]="true">{{ sortType === 'date' ? 'Date' : sortType === 'name' ? 'Name' : 'Size' }}</ui-text>
         <ui-icon icon="chevronDown" [inherit]="true" size="small" />
-      </ui-action-button>
+      </button>
 
       <ui-action-button class="action"
                         [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : viewMode() === 'details-no-thumbnails' ? 'Details without thumbnails' : 'Details')"
@@ -38,7 +38,7 @@
         <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? '▦' : viewMode() === 'tiles' ? '▤' : '☷' }}</ui-text>
         <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles' : viewMode() === 'details-no-thumbnails' ? 'Details (no thumbnails)' : 'Details' }}</ui-text>
         <ui-icon icon="chevronDown" [inherit]="true" size="small" />
-      </ui-action-button>
+      </button>
     </div>
 
     <div class="thumbnail-size-control" title="Thumbnail size">
@@ -88,71 +88,71 @@
 
 <ng-template #viewModeMenu>
   <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
-    <ui-action-button cdkMenuItem (pressed)="setViewMode('thumbnails')">
+    <button type="button" class="gallery-menu-item" cdkMenuItem (pressed)="setViewMode('thumbnails')">
       <ui-icon [icon]="viewMode() === 'thumbnails' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">▦</ui-text>
       <ui-text [inherit]="true">Thumbnails</ui-text>
-    </ui-action-button>
-    <ui-action-button cdkMenuItem (pressed)="setViewMode('tiles')">
+    </button>
+    <button type="button" class="gallery-menu-item" cdkMenuItem (pressed)="setViewMode('tiles')">
       <ui-icon [icon]="viewMode() === 'tiles' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">▤</ui-text>
       <ui-text [inherit]="true">Tiles with information</ui-text>
-    </ui-action-button>
-    <ui-action-button cdkMenuItem (pressed)="setViewMode('details')">
+    </button>
+    <button type="button" class="gallery-menu-item" cdkMenuItem (pressed)="setViewMode('details')">
       <ui-icon [icon]="viewMode() === 'details' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">☷</ui-text>
       <ui-text [inherit]="true">Details</ui-text>
-    </ui-action-button>
-    <ui-action-button cdkMenuItem (pressed)="setViewMode('details-no-thumbnails')">
+    </button>
+    <button type="button" class="gallery-menu-item" cdkMenuItem (pressed)="setViewMode('details-no-thumbnails')">
       <ui-icon [icon]="viewMode() === 'details-no-thumbnails' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-text [inherit]="true">☷</ui-text>
       <ui-text [inherit]="true">Details without thumbnails</ui-text>
-    </ui-action-button>
+    </button>
   </ui-popup-menu>
 </ng-template>
 
 <ng-template #sortMenu>
   <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
 
-    <ui-action-button cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem
                       (pressed)="sortByChanged.emit('date')">
       <ui-icon [icon]="sortType === 'date' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="calendar" [inherit]="true" />
       <ui-text [inherit]="true">Date</ui-text>
-    </ui-action-button>
+    </button>
 
-    <ui-action-button cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem
                       (pressed)="sortByChanged.emit('name')">
       <ui-icon [icon]="sortType === 'name' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="text" [inherit]="true" />
       <ui-text [inherit]="true">Name</ui-text>
-    </ui-action-button>
+    </button>
 
-    <ui-action-button cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem
                       (pressed)="sortByChanged.emit('size')">
       <ui-icon [icon]="sortType === 'size' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="save" [inherit]="true" />
       <ui-text [inherit]="true">Size</ui-text>
-    </ui-action-button>
+    </button>
 
   </ui-popup-menu>
 </ng-template>
 
 <ng-template #sortDirectionMenu>
   <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
-    <ui-action-button cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem
                       (pressed)="sortDirChanged.emit('asc')">
       <ui-icon [icon]="sortDir === 'asc' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="arrowSortUp" [inherit]="true" />
       <ui-text [inherit]="true">Ascending</ui-text>
-    </ui-action-button>
+    </button>
 
-    <ui-action-button cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem
                       (pressed)="sortDirChanged.emit('desc')">
       <ui-icon [icon]="sortDir === 'desc' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="arrowSortDown" [inherit]="true" />
       <ui-text [inherit]="true">Descending</ui-text>
-    </ui-action-button>
+    </button>
 
   </ui-popup-menu>
 </ng-template>
