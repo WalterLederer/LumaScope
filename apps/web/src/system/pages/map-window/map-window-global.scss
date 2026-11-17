@@ -220,7 +220,7 @@ app-map-window {
      .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
      .gpx-column-resizer{position:absolute;right:-3px;top:-4px;bottom:-4px;width:7px;cursor:col-resize;touch-action:none;z-index:2}
      .gpx-column-resizer:hover{background:color-mix(in srgb,#2688e8 55%,transparent)}
-     .gpx-database-header .gpx-db-sort-button{min-height:26px}
+     .gpx-database-header .gpx-db-sort-button{display:block;min-height:26px;padding:2px 8px 2px 3px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.gpx-database-header .gpx-db-sort-button:hover{color:var(--color-content-default-high,#fff);text-decoration:underline}
      .gpx-database-file-list .gpx-database-file-row{min-width:max-content}
      .gpx-db-select{width:100%;min-width:0;padding:3px 4px;font-size:11px}
      .gpx-database-columns{position:relative;display:inline-flex;align-items:center}
