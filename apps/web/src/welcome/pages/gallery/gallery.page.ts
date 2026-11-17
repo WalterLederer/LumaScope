@@ -1,7 +1,7 @@
 import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
