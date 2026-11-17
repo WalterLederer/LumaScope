@@ -279,13 +279,17 @@ async function decodeCameraRawToVips(
     }
   }
 
-  return vips.Image.newFromMemory(
+  // Dispose the temporary Float32-backed image after creating the independent
+  // scRGB copy. Leaving this source image undisposed retains 137 MiB per
+  // 12-megapixel DNG in the long-lived thumbnail worker.
+  using linearImage = vips.Image.newFromMemory(
     linearPixels!,
     width,
     height,
     3,
     vips.BandFormat.float
-  ).copy({ interpretation: vips.Interpretation.scrgb });
+  );
+  return linearImage.copy({ interpretation: vips.Interpretation.scrgb });
 }
 
 
