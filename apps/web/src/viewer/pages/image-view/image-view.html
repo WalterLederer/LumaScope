@@ -178,19 +178,19 @@
           <details class="correction-subsection basic-correction-section app-disclosure" [open]="sidebarSectionExpanded('basic')" (toggle)="onSidebarDetailsToggle('basic', $event)">
             <summary class="section-heading">Basic</summary>
             @if (sidebarSectionExpanded('basic')) {
-              <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="mainImageBrightness()" (input)="setMainBrightness($any($event.target).value)"/></label>
-              <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="imageContrast()" (input)="setImageContrast($any($event.target).value)"/></label>
-              <label class="channel-control"><span><b>Gamma</b><span>{{imageGamma().toFixed(2)}}</span></span><input type="range" min="0.1" max="3" step=".01" [value]="imageGamma()" (input)="setImageGamma($any($event.target).value)" title="Gamma correction; 1.00 = unchanged"/></label>
-              <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="3" step=".01" [value]="colorIntensity()" (input)="setColorIntensity($any($event.target).value)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors"/></label>
+              <label class="channel-control"><span><b>Brightness</b><span>{{((mainImageBrightness()-1)*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="mainImageBrightness()" (valueChange)="setMainBrightness($event)" /></label>
+              <label class="channel-control"><span><b>Contrast</b><span>{{(imageContrast()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="imageContrast()" (valueChange)="setImageContrast($event)" /></label>
+              <label class="channel-control"><span><b>Gamma</b><span>{{imageGamma().toFixed(2)}}</span></span><ui-slider [min]="0.1" [max]="3" [step]=".01" [value]="imageGamma()" (valueChange)="setImageGamma($event)" title="Gamma correction; 1.00 = unchanged" /></label>
+              <label class="channel-control"><span><b>Color intensity</b><span>{{(colorIntensity()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="3" [step]=".01" [value]="colorIntensity()" (valueChange)="setColorIntensity($event)" title="0% = black and white; 100% = original colors; 300% = strongly boosted colors" /></label>
             }
           </details>
           <details class="correction-subsection rgb-correction-section app-disclosure" [open]="sidebarSectionExpanded('rgbLevels')" (toggle)="onSidebarDetailsToggle('rgbLevels', $event)">
             <summary class="section-heading">RGB</summary>
             @if (sidebarSectionExpanded('rgbLevels')) {
               <div class="rgb-correction-controls" aria-label="RGB channel levels">
-                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="redChannelLevel()" (input)="setRedChannelLevel($any($event.target).value)"/></label>
-                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="greenChannelLevel()" (input)="setGreenChannelLevel($any($event.target).value)"/></label>
-                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="2" step=".01" [value]="blueChannelLevel()" (input)="setBlueChannelLevel($any($event.target).value)"/></label>
+                <label class="channel-control rgb-red"><span><b>R</b><span>{{(redChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="redChannelLevel()" (valueChange)="setRedChannelLevel($event)" /></label>
+                <label class="channel-control rgb-green"><span><b>G</b><span>{{(greenChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="greenChannelLevel()" (valueChange)="setGreenChannelLevel($event)" /></label>
+                <label class="channel-control rgb-blue"><span><b>B</b><span>{{(blueChannelLevel()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="2" [step]=".01" [value]="blueChannelLevel()" (valueChange)="setBlueChannelLevel($event)" /></label>
               </div>
             }
           </details>
@@ -215,8 +215,8 @@
               <path class="tone-curve-grid" d="M4 4V68H116M4 36H116M60 4V68" />
               <path class="tone-curve-line" [attr.d]="'M4 68 H' + (4 + blackPoint() * 56) + ' L' + (4 + whitePoint() * 56) + ' 4 H116'" />
             </svg>
-            <label class="channel-control"><span><span>Black point</span><span>{{(blackPoint()*100).toFixed(0)}}%</span></span><input type="range" min="0" [max]="whitePoint() - 0.01" step=".005" [value]="blackPoint()" (input)="setBlackPoint($any($event.target).value)"/></label>
-            <label class="channel-control"><span><span>White point</span><span>{{(whitePoint()*100).toFixed(0)}}%</span></span><input type="range" [min]="blackPoint() + 0.01" max="2" step=".01" [value]="whitePoint()" (input)="setWhitePoint($any($event.target).value)"/></label>
+            <label class="channel-control"><span><span>Black point</span><span>{{(blackPoint()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="whitePoint() - 0.01" [step]=".005" [value]="blackPoint()" (valueChange)="setBlackPoint($event)" /></label>
+            <label class="channel-control"><span><span>White point</span><span>{{(whitePoint()*100).toFixed(0)}}%</span></span><ui-slider [min]="blackPoint() + 0.01" [max]="2" [step]=".01" [value]="whitePoint()" (valueChange)="setWhitePoint($event)" /></label>
           </div>
             }
           </details>
@@ -230,21 +230,21 @@
           @if (highlightHdrPixels()) {
             <label class="hdr-threshold-control">
               <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{hdrHighlightThresholdNits().toLocaleString()}} nits</span></span>
-              <input type="range" min="1" max="125" step="0.1" [value]="hdrHighlightThreshold()" (input)="setHdrHighlightThreshold($any($event.target).value)" aria-label="HDR highlight threshold from 80 to 10000 nits"/>
+              <ui-slider [min]="1" [max]="125" [step]="0.1" [value]="hdrHighlightThreshold()" (valueChange)="setHdrHighlightThreshold($event)" aria-label="HDR highlight threshold from 80 to 10000 nits" />
             </label>
           }
           <label class="sdr-overexposure-toggle"><input type="checkbox" [checked]="highlightSdrOverexposure()" (change)="setSdrOverexposureHighlight($any($event.target).checked)"/> Highlight overexposed SDR pixels</label>
           @if (highlightSdrOverexposure()) {
             <label class="sdr-overexposure-threshold">
               <span><b>SDR threshold</b><span>{{sdrOverexposureThreshold()}} / 255</span></span>
-              <input type="range" min="0" max="255" step="1" [value]="sdrOverexposureThreshold()" (input)="setSdrOverexposureThreshold($any($event.target).value)" aria-label="SDR overexposure threshold from 0 to 255"/>
+              <ui-slider [min]="0" [max]="255" [step]="1" [value]="sdrOverexposureThreshold()" (valueChange)="setSdrOverexposureThreshold($event)" aria-label="SDR overexposure threshold from 0 to 255" />
             </label>
           }
           <label class="sdr-underexposure-toggle"><input type="checkbox" [checked]="highlightSdrUnderexposure()" (change)="setSdrUnderexposureHighlight($any($event.target).checked)"/> Highlight underexposed SDR pixels</label>
           @if (highlightSdrUnderexposure()) {
             <label class="sdr-underexposure-threshold">
               <span><b>SDR shadow threshold</b><span>{{sdrUnderexposureThreshold()}} / 255</span></span>
-              <input type="range" min="0" max="64" step="1" [value]="sdrUnderexposureThreshold()" (input)="setSdrUnderexposureThreshold($any($event.target).value)" aria-label="SDR underexposure threshold from 0 to 64"/>
+              <ui-slider [min]="0" [max]="64" [step]="1" [value]="sdrUnderexposureThreshold()" (valueChange)="setSdrUnderexposureThreshold($event)" aria-label="SDR underexposure threshold from 0 to 64" />
             </label>
           }
         }
@@ -261,8 +261,8 @@
             <summary class="section-heading">Magnifier Settings</summary>
             @if(sidebarSectionExpanded('magnifierSettings')) {
             <label class="channel-control"><span>Magnifier zoom (mouse wheel)<span>{{(loupePixelSize() * 2).toFixed(1)}}×</span></span><div class="control-row"><ui-slider class="zoom-purpose-slider image-enhanced-slider" [formControl]="loupeSlider" [min]="0.1" [max]="64"/></div></label>
-            <label class="channel-control"><span>Magnifier size<span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><input type="range" min="0.5" max="1.2" step="0.1" [value]="loupeSizeScale()" (input)="setLoupeSize($any($event.target).value)"/></label>
-            <label class="channel-control"><span>Magnifier brightness<span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><input type="range" min="0" max="4" step=".01" [value]="loupeBrightness()" (input)="setLoupeBrightness($any($event.target).value)"/></label>
+            <label class="channel-control"><span>Magnifier size<span>{{(loupeSizeScale()*100).toFixed(0)}}%</span></span><ui-slider [min]="0.5" [max]="1.2" [step]="0.1" [value]="loupeSizeScale()" (valueChange)="setLoupeSize($event)" /></label>
+            <label class="channel-control"><span>Magnifier brightness<span>{{(loupeBrightness()*100).toFixed(0)}}%</span></span><ui-slider [min]="0" [max]="4" [step]=".01" [value]="loupeBrightness()" (valueChange)="setLoupeBrightness($event)" /></label>
             <div class="channel-control"><span>Magnifier Shape</span><div class="shape-row"><button [class.active]="loupeShape()==='circular'" title="Circle" (click)="setLoupeShape('circular')">◯</button><button [class.active]="loupeShape()==='rectangular'" title="Rectangle" (click)="setLoupeShape('rectangular')">▭</button><button [class.active]="loupeShape()==='ruler'" title="Horizontal ruler" (click)="setLoupeShape('ruler')">↔</button><button [class.active]="loupeShape()==='vertical-ruler'" title="Vertical ruler" (click)="setLoupeShape('vertical-ruler')">↕</button></div></div>
               <details class="app-disclosure" [open]="sidebarSectionExpanded('loupeRenderer')" (toggle)="onSidebarDetailsToggle('loupeRenderer', $event)">
                 <summary class="section-heading">Magnifier renderer</summary>
@@ -394,7 +394,7 @@
 <button class="mode-button" [class.active]="comparisonMode()==='stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('stacked')" aria-label="Stacked overlay" title="Stacked · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair vertical overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
 <button class="mode-button" [class.active]="comparisonMode()==='dual-side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-side-by-side')" aria-label="Full size side by side without overlay" title="Full size side by side · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
 <button class="mode-button" [class.active]="comparisonMode()==='dual-stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-stacked')" aria-label="Full size stacked without overlay" title="Full size stacked · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair vertical"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
-</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><input type="range" min="1" max="99" [value]="comparisonSplit()" (input)="previewComparisonSplit($any($event.target).value)" (change)="setComparisonSplit($any($event.target).value)"/>} }
+</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><ui-slider [min]="1" [max]="99" [value]="comparisonSplit()" (valueChange)="previewComparisonSplit($event)" (valueCommit)="setComparisonSplit($event)" />} }
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'histogram') {
@@ -549,11 +549,11 @@
 
             <div class="image-theme-setting"><button class="image-theme-toggle" type="button" (click)="themeService.toggle()" [attr.aria-label]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'" [title]="themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'"><span class="image-theme-toggle-icon" aria-hidden="true">{{themeService.current()==='dark'?'☀':'●'}}</span><span>{{themeService.current()==='dark'?'Switch to light mode':'Switch to dark mode'}}</span></button></div>
             <label class="image-button-style-setting"><span>Button style</span><select [value]="themeService.buttonStyle()" (change)="themeService.setButtonStyle($any($event.target).value)"><option value="blue">Blue (default)</option><option value="flat">Flat</option><option value="outlined">Outlined</option><option value="soft">Soft</option><option value="rounded">Rounded</option></select></label>
-            <label class="image-button-style-setting theme-color-slider-setting"><span>Theme color · {{themeService.buttonColor()}}</span><div class="theme-color-gradient" aria-hidden="true"></div><input class="theme-color-range" type="range" min="0" max="49" step="1" [style.--range-thumb-color]="themeService.buttonColor()" [value]="themeService.buttonColorSliderValue()" (input)="themeService.setButtonColorFromSlider(+$any($event.target).value)" aria-label="Theme color" title="Select theme color"/></label>
+            <label class="image-button-style-setting theme-color-slider-setting"><span>Theme color · {{themeService.buttonColor()}}</span><div class="theme-color-gradient" aria-hidden="true"></div><ui-slider class="theme-color-range" [min]="0" [max]="49" [step]="1" [color]="themeService.buttonColor()" [value]="themeService.buttonColorSliderValue()" (valueChange)="themeService.setButtonColorFromSlider(+$event)" aria-label="Theme color" title="Select theme color" /></label>
             <label class="image-button-style-setting theme-color-slider-setting"><span>Zoom slider color · {{themeService.zoomSliderColor()}}</span><ui-slider class="zoom-purpose-slider color-setting-slider" [formControl]="zoomSliderColorControl" [min]="0" [max]="49" /></label>
-            <label class="image-button-style-setting"><span>Theme color saturation · {{themeService.themeColorSaturation()}}%</span><input type="range" min="0" max="200" step="5" [value]="themeService.themeColorSaturation()" (input)="themeService.setThemeColorSaturation($any($event.target).value)" /></label>
-            <label class="image-button-style-setting"><span>Theme total brightness · {{themeService.themeTotalBrightness()}}%</span><input type="range" min="50" max="150" step="5" [value]="themeService.themeTotalBrightness()" (input)="themeService.setThemeTotalBrightness($any($event.target).value)" /></label>
-            <label class="image-button-style-setting"><span>Theme color brightness · {{themeService.themeBackgroundBrightness()}}%</span><input type="range" min="50" max="150" step="5" [value]="themeService.themeBackgroundBrightness()" (input)="themeService.setThemeBackgroundBrightness($any($event.target).value)" /></label>
+            <label class="image-button-style-setting"><span>Theme color saturation · {{themeService.themeColorSaturation()}}%</span><ui-slider [min]="0" [max]="200" [step]="5" [value]="themeService.themeColorSaturation()" (valueChange)="themeService.setThemeColorSaturation($event)" /></label>
+            <label class="image-button-style-setting"><span>Theme total brightness · {{themeService.themeTotalBrightness()}}%</span><ui-slider [min]="50" [max]="150" [step]="5" [value]="themeService.themeTotalBrightness()" (valueChange)="themeService.setThemeTotalBrightness($event)" /></label>
+            <label class="image-button-style-setting"><span>Theme color brightness · {{themeService.themeBackgroundBrightness()}}%</span><ui-slider [min]="50" [max]="150" [step]="5" [value]="themeService.themeBackgroundBrightness()" (valueChange)="themeService.setThemeBackgroundBrightness($event)" /></label>
             <label class="image-button-style-setting"><span>Section open/close symbols</span><select [value]="themeService.disclosureStyle()" (change)="themeService.setDisclosureStyle($any($event.target).value)"><option value="classic">Classic colored triangle</option><option value="plain-triangle">Plain monochrome triangle</option><option value="chevron">Chevron</option><option value="plus-minus">Plus / minus</option><option value="square">Square plus / minus</option><option value="circle">Circle plus / minus</option><option value="arrow">Arrow</option><option value="caret">Caret</option><option value="bracket">Bracket plus / minus</option><option value="none">No symbol</option></select></label>
             <label class="image-button-style-setting"><span>Tab bar style</span><select [value]="themeService.tabBarStyle()" (change)="themeService.setTabBarStyle($any($event.target).value)"><option value="classic">Classic connected tabs</option><option value="underline">Underline</option><option value="pills">Pills</option><option value="segmented">Segmented control</option><option value="boxed">Outlined boxes</option><option value="minimal">Minimal</option><option value="flat">Flat</option><option value="contrast">High contrast</option><option value="soft">Soft colors</option><option value="rounded">Rounded tabs</option></select></label>
           }
@@ -587,10 +587,10 @@
           <button type="button" class="status-icon-button" [disabled]="!(hasPrevious$ | async)" (click)="prevPhoto()" title="Previous image (←, PageUp)" aria-label="Previous image">‹</button>
           <button type="button" class="status-icon-button" [disabled]="!(hasNext$ | async)" (click)="nextPhoto()" title="Next image (→, Space, PageDown)" aria-label="Next image">›</button>
           <div class="status-position-slider" [title]="(imagePosition?.position ?? 0) + ' / ' + (imagePosition?.total ?? 0)">
-            <input type="range" min="1" [max]="imagePosition?.total ?? 1" [value]="imagePosition?.position ?? 1"
-                   [disabled]="(imagePosition?.total ?? 0) < 2"
+            <ui-slider [min]="1" [max]="imagePosition?.total ?? 1" [value]="imagePosition?.position ?? 1"
+                   [isDisabled]="(imagePosition?.total ?? 0) < 2"
                    [attr.aria-label]="'Image position ' + (imagePosition?.position ?? 0) + ' of ' + (imagePosition?.total ?? 0)"
-                   (input)="changeImagePosition(+$any($event.target).value)" />
+                   (valueChange)="changeImagePosition(+$event)" />
             <span class="status-position-value">{{ imagePosition?.position ?? 0 }} / {{ imagePosition?.total ?? 0 }}</span>
             <span class="status-position-tooltip">{{ imagePosition?.position ?? 0 }} / {{ imagePosition?.total ?? 0 }}</span>
           </div>
@@ -631,7 +631,7 @@
             <label class="image-button-style-setting"><span>Button style</span><select [value]="themeService.buttonStyle()" (change)="themeService.setButtonStyle($any($event.target).value)"><option value="blue">Blue (default)</option><option value="flat">Flat</option><option value="outlined">Outlined</option><option value="soft">Soft</option><option value="rounded">Rounded</option></select></label>
             <label class="image-button-style-setting"><span>Theme color</span><select [value]="themeService.buttonColor()" (change)="themeService.setButtonColor($any($event.target).value)"><option value="blue">Blue</option><option value="cyan">Cyan</option><option value="green">Green</option><option value="teal">Teal</option><option value="orange">Orange</option><option value="red">Red</option><option value="purple">Purple</option><option value="gray">Gray</option></select></label>
             <label class="image-button-style-setting theme-color-slider-setting"><span>Zoom slider color · {{themeService.zoomSliderColor()}}</span><ui-slider class="zoom-purpose-slider color-setting-slider" [formControl]="zoomSliderColorControl" [min]="0" [max]="49" /></label>
-            <label class="image-button-style-setting"><span>Theme color saturation · {{themeService.themeColorSaturation()}}%</span><input type="range" min="0" max="200" step="5" [value]="themeService.themeColorSaturation()" (input)="themeService.setThemeColorSaturation($any($event.target).value)" /></label>
+            <label class="image-button-style-setting"><span>Theme color saturation · {{themeService.themeColorSaturation()}}%</span><ui-slider [min]="0" [max]="200" [step]="5" [value]="themeService.themeColorSaturation()" (valueChange)="themeService.setThemeColorSaturation($event)" /></label>
             <label class="image-button-style-setting"><span>Section open/close symbols</span><select [value]="themeService.disclosureStyle()" (change)="themeService.setDisclosureStyle($any($event.target).value)"><option value="classic">Classic colored triangle</option><option value="plain-triangle">Plain monochrome triangle</option><option value="chevron">Chevron</option><option value="plus-minus">Plus / minus</option><option value="square">Square plus / minus</option><option value="circle">Circle plus / minus</option><option value="arrow">Arrow</option><option value="caret">Caret</option><option value="bracket">Bracket plus / minus</option><option value="none">No symbol</option></select></label>
             <label class="image-button-style-setting"><span>Tab bar style</span><select [value]="themeService.tabBarStyle()" (change)="themeService.setTabBarStyle($any($event.target).value)"><option value="classic">Classic connected tabs</option><option value="underline">Underline</option><option value="pills">Pills</option><option value="segmented">Segmented control</option><option value="boxed">Outlined boxes</option><option value="minimal">Minimal</option><option value="flat">Flat</option><option value="contrast">High contrast</option><option value="soft">Soft colors</option><option value="rounded">Rounded tabs</option></select></label>
           </div>
