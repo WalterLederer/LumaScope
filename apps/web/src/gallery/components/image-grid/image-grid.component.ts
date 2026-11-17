@@ -313,6 +313,7 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    console.warn('[ImageGrid] CONSTRUCTOR START', { imageCount: this.images()?.length ?? null });
     effect(onCleanup => {
       const images = this.imagesComponent();
       if (!images) return;
@@ -341,7 +342,7 @@ export class ImageGridComponent {
       void this.refreshDirectoryCacheStats();
     });
 
-    console.warn('[ImageGrid] CONSTRUCTOR START');
+    console.warn('[ImageGrid] CONSTRUCTOR EFFECTS REGISTERED');
     fromEvent<KeyboardEvent>(this.document, 'keyup')
       .pipe(takeUntilDestroyed())
       .subscribe(event => {
