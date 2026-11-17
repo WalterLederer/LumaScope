@@ -132,7 +132,6 @@ ui-toolbar {
   min-height: 0;
   overflow-y: auto;
   padding-right: var(--dim-large);
-  contain: paint;
 
   &.details-mode {
     width: 100%;
