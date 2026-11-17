@@ -320,10 +320,16 @@ export class ImageGridComponent {
         cacheRunActive: images.cacheRunActive,
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        start: this.cacheAllImages,
-        startRecursive: this.cacheAllImagesRecursive,
-        cancel: this.cancelCacheRun,
-        refreshDetailCacheStatus: this.refreshDetailCacheStatus
+        // Capture the actual ImagesComponent instance. The ImageGrid can be
+        // destroyed during navigation while its asynchronous cache run continues.
+        // These direct references keep progress and cancellation connected to that run.
+        start: directory => { void images.cacheAllImages(directory); },
+        startRecursive: directory => { void images.cacheAllImagesRecursive(directory); },
+        cancel: () => images.cancelCacheRun(),
+        refreshDetailCacheStatus: () => {
+          if (this.viewMode() === 'details') images.refreshGallery();
+          void this.refreshDirectoryCacheStats();
+        }
       });
       onCleanup(unregister);
     });
