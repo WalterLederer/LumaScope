@@ -877,15 +877,20 @@ export class CacheManager {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
-    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, thumbnailPaths: [], fullSizePaths: [] };
+    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
     const folder = dirname(sourceNames[0]);
     const db = this.databaseForPath(sourceNames[0]);
     const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
-    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path FROM photos
-      JOIN paths ON paths.id = photos.path_id WHERE paths.relative_folder_path = :folder COLLATE NOCASE
-      AND (photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL)`)
-      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { relative_folder_path: string }>;
+    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path,
+        location_names.display_name AS location_display_name
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE`)
+      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { relative_folder_path: string; location_display_name: string | null }>;
     const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
+    const gps = matching.filter(row => row.latitude !== null && row.longitude !== null).length;
+    const hdr = matching.filter(row => row.is_hdr === 1).length;
+    const location = matching.filter(row => !!row.location_display_name?.trim()).length;
     const thumbnailPaths: string[] = [];
     const fullSizePaths: string[] = [];
     await Promise.all(matching.map(async row => {
@@ -916,7 +921,7 @@ export class CacheManager {
         catch { /* Missing full-size cache file. */ }
       }
     }));
-    return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, thumbnailPaths, fullSizePaths };
+    return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, gps, hdr, location, thumbnailPaths, fullSizePaths };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
