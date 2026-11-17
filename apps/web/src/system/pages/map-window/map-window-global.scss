@@ -618,7 +618,7 @@ app-map-window {
      .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#d9e5f0!important;background-color:#d9e5f0!important}
      html[data-theme='dark'] & .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled){background:#343d48!important;background-color:#343d48!important;color:#dce6ef!important;border-color:#505b68!important}
      html[data-theme='dark'] & .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
-    .offline-row-actions{position:relative;display:flex;align-items:center;justify-content:center;min-width:38px;overflow:visible}
+    .offline-row-actions{position:relative;min-width:38px;text-align:center;overflow:visible}
     .offline-row-actions-column{width:42px;min-width:42px}
     .offline-row-menu-trigger{width:28px;height:26px}
     .offline-row-action-menu{right:0;left:auto;min-width:205px}
