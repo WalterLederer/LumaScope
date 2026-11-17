@@ -296,6 +296,42 @@ export default class App {
       }
     });
 
+    // Capture renderer state while startup is waiting for the first visible frame.
+    // This diagnostic runs in the main process, so it remains useful when DevTools is blank.
+    let startupProbeCount = 0;
+    const startupProbe = setInterval(() => {
+      if (!App.mainWindow || App.mainWindow.isDestroyed() || App.mainWindow.webContents.isDestroyed()) {
+        clearInterval(startupProbe);
+        return;
+      }
+      startupProbeCount++;
+      const webContents = App.mainWindow.webContents;
+      const probeStartedAt = Date.now();
+      void webContents.executeJavaScript(
+        `({ readyState: document.readyState, bodyChildCount: document.body?.children.length ?? 0, bodyTextLength: document.body?.innerText?.length ?? 0, appRootCount: document.querySelectorAll('app-root').length, imageViewCount: document.querySelectorAll('app-image-view').length, galleryCount: document.querySelectorAll('app-gallery').length, imageGridCount: document.querySelectorAll('app-image-grid').length, imageCount: document.querySelectorAll('app-thumbnail').length })`,
+        true
+      ).then(state => {
+        console.warn('[StartupProbe] Renderer responded', {
+          probe: startupProbeCount,
+          elapsedMs: Date.now() - startupStartedAt,
+          responseMs: Date.now() - probeStartedAt,
+          loading: webContents.isLoading(),
+          crashed: webContents.isCrashed(),
+          state
+        });
+      }).catch(error => {
+        console.error('[StartupProbe] Renderer did not answer', {
+          probe: startupProbeCount,
+          elapsedMs: Date.now() - startupStartedAt,
+          responseMs: Date.now() - probeStartedAt,
+          loading: webContents.isLoading(),
+          crashed: webContents.isCrashed(),
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
+      if (startupProbeCount >= 8) clearInterval(startupProbe);
+    }, 1500);
+
     // Avoid leaving the application running invisibly if ready-to-show never arrives.
     setTimeout(() => {
       if (App.mainWindow && !App.mainWindow.isDestroyed() && !App.mainWindow.isVisible()) {
