@@ -539,6 +539,7 @@ export class ImagesComponent {
   }
 
   constructor() {
+    console.warn('[Images] CONSTRUCTOR START', { imageCount: this.images()?.length ?? null, viewMode: this.viewMode() });
     const refreshReverseGeocodingStatus = async (): Promise<void> => {
       try {
         this.reverseGeocodingStatus.set(await this.cacheManager.getBackgroundReverseGeocodingStatus());
@@ -654,6 +655,7 @@ export class ImagesComponent {
       });
     });
 
+    console.warn('[Images] CONSTRUCTOR EFFECTS REGISTERED');
     this.destroyRef.onDestroy(() => {
       this.cacheStatusRequest++;
       this.cleanupObserver();
