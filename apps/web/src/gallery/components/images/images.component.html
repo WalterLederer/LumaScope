@@ -10,9 +10,18 @@
         <span>Name{{ sortIndicator('name') }}</span>
         <small class="column-count">{{ cacheStats().total }}</small>
       </button>
-      <button type="button" (click)="sortDetailsBy('date')">Date modified{{ sortIndicator('date') }}</button>
-      <button type="button" (click)="sortDetailsBy('dimensions')">Dimensions{{ sortIndicator('dimensions') }}</button>
-      <button type="button" (click)="sortDetailsBy('size')">File size{{ sortIndicator('size') }}</button>
+      <button type="button" (click)="sortDetailsBy('date')">
+        <span>Date modified{{ sortIndicator('date') }}</span>
+        <small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small>
+      </button>
+      <button type="button" (click)="sortDetailsBy('dimensions')">
+        <span>Dimensions{{ sortIndicator('dimensions') }}</span>
+        <small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small>
+      </button>
+      <button type="button" (click)="sortDetailsBy('size')">
+        <span>File size{{ sortIndicator('size') }}</span>
+        <small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small>
+      </button>
       <button type="button" (click)="sortDetailsBy('suffix')">
         <span>Suffix{{ sortIndicator('suffix') }}</span>
         <small class="column-count">{{ distinctSuffixCount() }}</small>
