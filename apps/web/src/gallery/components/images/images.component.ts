@@ -384,6 +384,7 @@ export class ImagesComponent {
         return logWrite;
       };
       let nextIndex = 0;
+      const cacheBuildErrors: string[] = [];
       const worker = async (workerId: number): Promise<void> => {
         while (nextIndex < images.length && !signal?.aborted) {
           const index = nextIndex++;
@@ -399,7 +400,10 @@ export class ImagesComponent {
                 this.setCacheWorkerOperation(workerId, `Thumbnail generation for file ${image.path}`);
                 await appendLog(`[${index + 1}/${images.length}] THUMBNAIL: ${image.path}`);
                 const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
-                if (!thumbnailResponse.ok) throw new Error(`Thumbnail generation failed for ${image.path}`);
+                if (!thumbnailResponse.ok) {
+                  const responseDetails = (await thumbnailResponse.text()).trim();
+                  throw new Error(`Thumbnail generation failed (HTTP ${thumbnailResponse.status}${responseDetails ? `: ${responseDetails}` : ''})`);
+                }
                 thumbnailsGenerated++;
                 await thumbnailResponse.body?.cancel();
               }
@@ -407,15 +411,21 @@ export class ImagesComponent {
                 this.setCacheWorkerOperation(workerId, `Full-Size conversion for file ${image.path}`);
                 await appendLog(`[${index + 1}/${images.length}] FULL-SIZE: ${image.path}`);
                 const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
-                if (!fullSizeResponse.ok) throw new Error(`Full-size conversion failed for ${image.path}`);
+                if (!fullSizeResponse.ok) {
+                  const responseDetails = (await fullSizeResponse.text()).trim();
+                  throw new Error(`Full-size conversion failed (HTTP ${fullSizeResponse.status}${responseDetails ? `: ${responseDetails}` : ''})`);
+                }
                 fullSizeConversionsGenerated++;
                 await fullSizeResponse.body?.cancel();
               }
             }
           } catch (error) {
             if (!signal?.aborted) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
               console.error('Failed to cache gallery image', image.path, error);
-              await appendLog(`[${index + 1}/${images.length}] ERROR: ${image.path} :: ${error instanceof Error ? error.message : String(error)}`);
+              const failure = `[${index + 1}/${images.length}] ERROR: ${image.path} :: ${errorMessage}`;
+              cacheBuildErrors.push(failure);
+              await appendLog(failure);
             }
           } finally {
             this.setCacheWorkerOperation(workerId, null);
@@ -423,13 +433,19 @@ export class ImagesComponent {
           }
         }
       };
-      await Promise.all([worker(0), worker(1)]);
+      // Full-size RAW development can allocate very large WASM images.
+      // Run cache jobs sequentially to avoid two simultaneous full-size decodes
+      // exhausting the renderer/worker memory budget.
+      await worker(0);
       if (logBuffer.length > 0) {
         const chunk = logBuffer.splice(0).join('\n');
         logWrite = logWrite.then(() => this.cacheManager.appendBuildLog(chunk));
       }
       await logWrite;
-      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const errorSummary = cacheBuildErrors.length
+        ? `Failed files: ${cacheBuildErrors.length}\n${cacheBuildErrors.join('\n')}`
+        : 'Failed files: 0';
+      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\n${errorSummary}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary);
       this.cacheRunCurrentOperation.set(summary);
     } catch (error) {
