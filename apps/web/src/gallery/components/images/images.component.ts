@@ -11,7 +11,7 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { CacheDirectoryStats, CacheImageStatus, ExifTags } from 'internal-api';
+import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -61,6 +61,7 @@ export class ImagesComponent {
   readonly cacheRunActive = signal(false);
   readonly cacheRunProgress = signal({ completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = signal('');
+  readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus | null>(null);
   readonly verifyCacheFiles = input(false);
   private readonly cacheWorkerOperations = new Map<number, string>();
   private readonly setCacheWorkerOperation = (workerId: number, operation: string | null): void => {
@@ -536,6 +537,17 @@ export class ImagesComponent {
   }
 
   constructor() {
+    const refreshReverseGeocodingStatus = async (): Promise<void> => {
+      try {
+        this.reverseGeocodingStatus.set(await this.cacheManager.getBackgroundReverseGeocodingStatus());
+      } catch {
+        this.reverseGeocodingStatus.set(null);
+      }
+    };
+    void refreshReverseGeocodingStatus();
+    const reverseGeocodingTimer = setInterval(() => void refreshReverseGeocodingStatus(), 1000);
+    this.destroyRef.onDestroy(() => clearInterval(reverseGeocodingTimer));
+
     effect(() => {
       const images = this.images() ?? [];
       const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
