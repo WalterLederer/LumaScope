@@ -108,6 +108,33 @@ export class ImagesComponent {
   ).size);
   readonly unsupportedSuffixCount = signal(0);
   readonly unsupportedSuffixes = signal<string[]>([]);
+  private getSuffix(name: string): string {
+    const fileName = name.split(/[\\\\/]/).pop() ?? name;
+    const dotIndex = fileName.lastIndexOf('.');
+    return dotIndex > 0 && dotIndex < fileName.length - 1
+      ? fileName.slice(dotIndex + 1).toLocaleLowerCase()
+      : '';
+  }
+
+  protected readonly refreshCacheStatus = async (sourcePath: string): Promise<void> => {
+    if (!sourcePath) return;
+    const requestVersion = (this.cacheStatusPathRequests.get(sourcePath) ?? 0) + 1;
+    this.cacheStatusPathRequests.set(sourcePath, requestVersion);
+    try {
+      const statuses = await this.cacheManager.getImageCacheStatuses([sourcePath]);
+      if (this.cacheStatusPathRequests.get(sourcePath) !== requestVersion) return;
+      this.cacheStatuses.update(current => {
+        const next = new Map(current);
+        const status = statuses.find(item => item.sourceName === sourcePath);
+        if (status) next.set(sourcePath, status);
+        else next.delete(sourcePath);
+        return next;
+      });
+    } catch (error) {
+      console.error('Failed to refresh gallery cache status', sourcePath, error);
+    }
+  };
+
   readonly fullSizeConversionTotal = computed(() => {
     const statuses = this.cacheStatuses();
     return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
