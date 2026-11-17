@@ -394,7 +394,7 @@
 <button class="mode-button" [class.active]="comparisonMode()==='stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('stacked')" aria-label="Stacked overlay" title="Stacked · Overlay / split view"><span class="mode-layout-icon overlay" aria-hidden="true">◑</span><span class="mode-logo-pair vertical overlay-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
 <button class="mode-button" [class.active]="comparisonMode()==='dual-side-by-side'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-side-by-side')" aria-label="Full size side by side without overlay" title="Full size side by side · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
 <button class="mode-button" [class.active]="comparisonMode()==='dual-stacked'" [disabled]="!isHdrImage" (click)="setComparisonMode('dual-stacked')" aria-label="Full size stacked without overlay" title="Full size stacked · No overlay"><span class="mode-layout-icon fullsize" aria-hidden="true"><span></span></span><span class="mode-logo-pair vertical"><img class="mode-logo-image sdr-logo-image" src="sdr-logo.png" alt="SDR logo"><img class="mode-logo-image" src="hdr-logo.png" alt="HDR logo"></span></button>
-</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><ui-slider [min]="1" [max]="99" [value]="comparisonSplit()" (valueChange)="previewComparisonSplit($event)" (valueCommit)="setComparisonSplit($event)" />} }
+</div>@if(isHdrImage&&(comparisonMode()==='side-by-side'||comparisonMode()==='stacked')){<label>Split {{comparisonSplit()}}%</label><ui-slider [min]="1" [max]="99" [step]="1" [value]="comparisonSplit()" (valueChange)="previewComparisonSplit($event)" (valueCommit)="setComparisonSplit($event)" />} }
       </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'histogram') {
@@ -587,7 +587,7 @@
           <button type="button" class="status-icon-button" [disabled]="!(hasPrevious$ | async)" (click)="prevPhoto()" title="Previous image (←, PageUp)" aria-label="Previous image">‹</button>
           <button type="button" class="status-icon-button" [disabled]="!(hasNext$ | async)" (click)="nextPhoto()" title="Next image (→, Space, PageDown)" aria-label="Next image">›</button>
           <div class="status-position-slider" [title]="(imagePosition?.position ?? 0) + ' / ' + (imagePosition?.total ?? 0)">
-            <ui-slider [min]="1" [max]="imagePosition?.total ?? 1" [value]="imagePosition?.position ?? 1"
+            <ui-slider [min]="1" [max]="imagePosition?.total ?? 1" [step]="1" [value]="imagePosition?.position ?? 1"
                    [isDisabled]="(imagePosition?.total ?? 0) < 2"
                    [attr.aria-label]="'Image position ' + (imagePosition?.position ?? 0) + ' of ' + (imagePosition?.total ?? 0)"
                    (valueChange)="changeImagePosition(+$event)" />
