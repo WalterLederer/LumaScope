@@ -2397,6 +2397,10 @@ export class ImageView {
     this.setActiveImageSidebarTab('image');
   };
 
+  protected readonly onGalleryFolderSelected = (): void => {
+    this.setActiveImageSidebarTab('gallery');
+  };
+
   protected readonly toggleSidebarSide = (): void => {
     const nextOnLeft = !this.sidebarOnLeft();
     this.sidebarOnLeft.set(nextOnLeft);
