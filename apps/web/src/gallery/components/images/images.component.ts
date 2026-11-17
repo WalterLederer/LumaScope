@@ -183,8 +183,12 @@ export class ImagesComponent {
       const height = Number(tags?.ImageHeight) || 0;
       return { width, height, area: width * height };
     }).filter(value => value.width > 0 && value.height > 0);
-    const minDate = dates.length ? new Date(dates.reduce((min, value) => Math.min(min, value), Infinity)).toLocaleString('en-GB') : '—';
-    const maxDate = dates.length ? new Date(dates.reduce((max, value) => Math.max(max, value), -Infinity)).toLocaleString('en-GB') : '—';
+    const formatOsDateTime = (value: number): string => new Intl.DateTimeFormat(undefined, {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    }).format(new Date(value));
+    const minDate = dates.length ? formatOsDateTime(dates.reduce((min, value) => Math.min(min, value), Infinity)) : '—';
+    const maxDate = dates.length ? formatOsDateTime(dates.reduce((max, value) => Math.max(max, value), -Infinity)) : '—';
     const formatSize = (bytes: number) => {
       if (bytes < 1024) return `${bytes} B`;
       const units = ['KB', 'MB', 'GB', 'TB'];
