@@ -66,7 +66,10 @@ export class ImagesComponent {
   private readonly setCacheWorkerOperation = (workerId: number, operation: string | null): void => {
     if (operation) this.cacheWorkerOperations.set(workerId, operation);
     else this.cacheWorkerOperations.delete(workerId);
-    this.cacheRunCurrentOperation.set([...this.cacheWorkerOperations.values()].at(-1) ?? '');
+    const currentOperations = [...this.cacheWorkerOperations.values()];
+    const previousOutput = this.cacheRunCurrentOperation();
+    const retainedErrors = previousOutput.split('\\n').filter(line => line.includes('] ERROR:'));
+    this.cacheRunCurrentOperation.set([...currentOperations, ...retainedErrors].join('\\n'));
   };
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
@@ -333,6 +336,7 @@ export class ImagesComponent {
 
     if (!alreadyActive) this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheWorkerOperations.clear();
     this.cacheRunCurrentOperation.set('Preparing cache status for files...');
     const buildStartedAt = performance.now();
     let verificationSummary = '';
@@ -425,6 +429,9 @@ export class ImagesComponent {
               console.error('Failed to cache gallery image', image.path, error);
               const failure = `[${index + 1}/${images.length}] ERROR: ${image.path} :: ${errorMessage}`;
               cacheBuildErrors.push(failure);
+              const currentOperations = [...this.cacheWorkerOperations.values()];
+              const retainedErrors = this.cacheRunCurrentOperation().split('\\n').filter(line => line.includes('] ERROR:'));
+              this.cacheRunCurrentOperation.set([...currentOperations, ...retainedErrors, failure].join('\\n'));
               await appendLog(failure);
             }
           } finally {
