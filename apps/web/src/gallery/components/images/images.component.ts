@@ -11,11 +11,10 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags } from 'internal-api';
+import { CacheDirectoryStats, CacheImageStatus, ExifTags } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
-import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
   allSortTypes,
@@ -54,7 +53,6 @@ export class ImagesComponent {
   private readonly exif = inject(ExifService);
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
-  readonly galleryCacheBuild = inject(GalleryCacheBuild);
   private cacheStatusRequest = 0;
   private cacheAbortController: AbortController | null = null;
   private readonly cacheStatusPathRequests = new Map<string, number>();
@@ -63,7 +61,6 @@ export class ImagesComponent {
   readonly cacheRunActive = signal(false);
   readonly cacheRunProgress = signal({ completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = signal('');
-  readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus | null>(null);
   readonly verifyCacheFiles = input(false);
   private readonly cacheWorkerOperations = new Map<number, string>();
   private readonly setCacheWorkerOperation = (workerId: number, operation: string | null): void => {
@@ -550,19 +547,6 @@ export class ImagesComponent {
 
   constructor() {
     console.warn('[Images] CONSTRUCTOR START');
-    const refreshReverseGeocodingStatus = async (): Promise<void> => {
-      try {
-        this.reverseGeocodingStatus.set(await this.cacheManager.getBackgroundReverseGeocodingStatus());
-      } catch {
-        this.reverseGeocodingStatus.set(null);
-      }
-    };
-    void refreshReverseGeocodingStatus();
-    const unsubscribeStatus = this.cacheManager.onBackgroundReverseGeocodingStatusChanged(
-      () => void refreshReverseGeocodingStatus()
-    );
-    this.destroyRef.onDestroy(unsubscribeStatus);
-
     effect(() => {
       const images = this.images() ?? [];
       const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
