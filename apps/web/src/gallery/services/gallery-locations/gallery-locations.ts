@@ -9,7 +9,7 @@ export class GalleryLocations {
   private readonly locations$ = this.configuration.config().pipe(
     map(config => config.gallery.locations),
     distinctUntilChanged((previous, current) => previous.length === current.length && previous.every((path, index) => path === current[index])),
-    shareReplay({ bufferSize: 1, refCount: false })
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   readonly locations = () => this.locations$;
