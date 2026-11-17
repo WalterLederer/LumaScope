@@ -1019,7 +1019,14 @@ if (parentPort) {
         const histogram = await histogramForImage(await getVips(), request.source);
         parentPort?.postMessage({ id: request.id, success: true, histogram } satisfies ThumbWorkerResponse);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
+        const wasmMessage = (err as { message?: unknown } | null)?.message;
+      const errorMessage = err instanceof Error
+        ? String(err.message)
+        : Array.isArray(wasmMessage)
+          ? wasmMessage.map(value => String(value)).filter(Boolean).join(': ')
+          : typeof wasmMessage === 'string'
+            ? wasmMessage
+            : String(err);
         parentPort?.postMessage({ id: request.id, success: false, error: errorMessage } satisfies ThumbWorkerResponse);
       }
       return;
