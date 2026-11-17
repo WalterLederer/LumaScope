@@ -84,7 +84,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
                 <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
                 <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
               </div>
-              <input type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
+              <input class="zoom-purpose-range" type="range" min="1" max="20" step="1" [value]="zoomLevel()" (input)="changeZoom($any($event.target).value)" aria-label="Map zoom">
               <span class="zoom-value">{{ zoomLevel() }}</span>
             </div>
           </div>
@@ -142,7 +142,7 @@ type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 
     .color-swatch-off{background:var(--color-surface-default-medium,#555);color:var(--color-content-default-high,#fff)}
     .map{flex:1 1 auto;width:100%;min-height:0;background:transparent}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
-    .zoom-control input{flex:1;min-width:70px;accent-color:#8ab4f8}
+    .zoom-control input{flex:1;min-width:70px;accent-color:var(--zoom-slider-color,#14b8a6)}
     .zoom-step{width:28px;height:27px;padding:0;font-size:18px}
     .zoom-value{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
     .map-toolbar-button{width:27px;height:27px;padding:0;font-size:16px}
