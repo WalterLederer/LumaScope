@@ -473,11 +473,12 @@
 
       }
       @if (activeImageSidebarTab() === 'cache') {
+        @let cacheSelectedImage = selectedImage$ | async;
         <app-settings-panel mode="cache"
                             [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
                             [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
                             [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
-                            [currentFolderPath]="imageFolderPath(selected?.path ?? '') || (gallerySelectedLocation() ?? '')"
+                            [currentFolderPath]="imageFolderPath(cacheSelectedImage?.path ?? '') || (gallerySelectedLocation() ?? '')"
                             [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
                             (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
                             [startCacheBuild]="galleryCacheBuild.startCacheBuild"
