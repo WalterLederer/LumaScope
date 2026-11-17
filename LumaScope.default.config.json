@@ -1,13 +1,21 @@
 {
   "defaultConfigVersion": 1,
   "preferences": {
+    "theme": "light",
+    "activeImageSidebarTab": "gallery",
+    "imageSidebarSide": "right",
     "buttonStyle": "blue",
     "buttonColor": "blue",
     "themeColorSaturation": 100,
     "themeTotalBrightness": 100,
     "themeBackgroundBrightness": 100,
     "disclosureStyle": "classic",
-    "tabBarStyle": "classic"
+    "tabBarStyle": "classic",
+    "buttonColor": "#0085ff",
+    "themeColorSaturation": 30,
+    "themeColorBrightness": 110,
+    "themeTotalBrightness": 95,
+    "themeBackgroundBrightness": 130
   },
   "mapWindow": {
     "renderWorkerCount": 2,

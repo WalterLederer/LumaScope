@@ -58,3 +58,6 @@ Thumbs.db
 /vendor/osmand
 /tools/mapsforge-renderer/stage/runtime
 /build/official-workspace
+/tools/mapsforge-renderer/target/mapsforge-renderer.jar
+/tools/mapsforge-renderer/target/original-mapsforge-renderer.jar
+/.gitignore
