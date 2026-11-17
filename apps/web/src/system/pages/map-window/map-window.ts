@@ -371,19 +371,6 @@ interface MapErrorEntry {
                   </div>
                 }
               </div>
-              <div class="gpx-row-actions" role="cell">
-                <button type="button" class="gpx-row-menu-trigger" (click)="toggleGpxRowActionMenu(track.path); $event.stopPropagation()" [attr.aria-expanded]="gpxRowActionMenuOpen() === track.path" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
-                @if (gpxRowActionMenuOpen() === track.path) {
-                  <div class="gpx-row-action-menu" role="menu" [attr.aria-label]="'Actions for ' + track.name" (click)="$event.stopPropagation()">
-                    <button type="button" role="menuitem" (click)="fitGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
-                    @if (gpxListMode() === 'recent') {
-                      <button type="button" role="menuitem" (click)="openGpxTrack(track); gpxRowActionMenuOpen.set(null)" [disabled]="track.missing || track.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
-                      <button type="button" role="menuitem" (click)="removeGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">×</span> Remove track</button>
-                    }
-                    <button type="button" role="menuitem" (click)="copyFilePath(track.databasePath || track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy full file path</button>
-                  </div>
-                }
-              </div>
               <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxListTrack(track.path, { lineStyle: $any($event.target).value })" [attr.aria-label]="'Line style for ' + track.name">
                 <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
               </select>
@@ -393,6 +380,20 @@ interface MapErrorEntry {
               <select class="gpx-db-select" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxListTrack(track.path, { showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? (track.directionStyle || 'classic') : $any($event.target).value })" [attr.aria-label]="'Direction arrows for ' + track.name">
                 <option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option>
               </select>
+              <div class="gpx-row-actions" role="cell">
+                              <button type="button" class="gpx-row-menu-trigger" (click)="toggleGpxRowActionMenu(track.path); $event.stopPropagation()" [attr.aria-expanded]="gpxRowActionMenuOpen() === track.path" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                              @if (gpxRowActionMenuOpen() === track.path) {
+                                <div class="gpx-row-action-menu" role="menu" [attr.aria-label]="'Actions for ' + track.name" (click)="$event.stopPropagation()">
+                                  <button type="button" role="menuitem" (click)="fitGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
+                                  @if (gpxListMode() === 'recent') {
+                                    <button type="button" role="menuitem" (click)="openGpxTrack(track); gpxRowActionMenuOpen.set(null)" [disabled]="track.missing || track.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
+                                    <button type="button" role="menuitem" (click)="removeGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">×</span> Remove track</button>
+                                  }
+                                  <button type="button" role="menuitem" (click)="copyFilePath(track.databasePath || track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy full file path</button>
+                                </div>
+                              }
+                            </div>
+              
             </div>
           }
         </div>
@@ -2123,7 +2124,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseColumnWidths = signal<Record<string, number>>((() => {
-    const defaults = { actions: 112, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
+    const defaults = { actions: 42, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
     try {
       const saved = JSON.parse(this.readSetting('gpxDatabaseColumnWidths', '{}')) as Record<string, number>;
       for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
