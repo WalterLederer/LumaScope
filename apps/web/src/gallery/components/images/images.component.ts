@@ -14,7 +14,7 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions } from 'internal-api';
+import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -86,6 +86,10 @@ export class ImagesComponent {
   private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
   readonly locationDisplayNames = signal<Map<string, string>>(new Map());
+  readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
+    total: 0, resolved: 0, pending: 0, inProgress: 0, errors: 0,
+    status: 'idle', paused: false, currentFilePath: null, currentDisplayName: null
+  });
 
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
@@ -519,6 +523,15 @@ export class ImagesComponent {
 
 
   constructor() {
+    const refreshReverseGeocodingStatus = (): void => {
+      void this.cacheManager.getBackgroundReverseGeocodingStatus().then(status => {
+        this.reverseGeocodingStatus.set(status);
+      }).catch(error => console.error('Failed to retrieve Browse reverse-geocoding status', error));
+    };
+    refreshReverseGeocodingStatus();
+    const unsubscribeReverseGeocoding = this.cacheManager.onBackgroundReverseGeocodingStatusChanged(refreshReverseGeocodingStatus);
+    this.destroyRef.onDestroy(unsubscribeReverseGeocoding);
+
     effect(onCleanup => {
       const folder = this.folderPath();
       if (!folder) {
