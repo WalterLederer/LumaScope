@@ -15,6 +15,7 @@ import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
   allSortTypes,
@@ -53,6 +54,7 @@ export class ImagesComponent {
   private readonly exif = inject(ExifService);
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
+  readonly galleryCacheBuild = inject(GalleryCacheBuild);
   private cacheStatusRequest = 0;
   private cacheAbortController: AbortController | null = null;
   private readonly cacheStatusPathRequests = new Map<string, number>();
