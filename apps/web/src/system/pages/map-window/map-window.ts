@@ -143,12 +143,12 @@ interface MapErrorEntry {
             <div class="location-settings-content">
               <details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
                   <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
-                  <button type="button" class="routing-help-button" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
-                </div>
+                 </div>
                 @if (autoFixStatus()) {
                   <div class="fix-location-progress-row">
                     <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div>
@@ -197,9 +197,10 @@ interface MapErrorEntry {
               </details>
               <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
                 <summary class="settings-row-title">Fix location MANUAL</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="fix-location-layout">
                   <div class="fix-location-controls">
-                    <div class="fix-location-crosshair-row"><div class="time-slider-control-card fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span><button type="button" class="routing-help-button" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button></div>
+                    <div class="fix-location-crosshair-row"><div class="time-slider-control-card fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span> </div>
                     <div class="location-actions">
                       <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
                       @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
@@ -221,6 +222,7 @@ interface MapErrorEntry {
               </details>
               <details class="offline-address-search app-disclosure">
                 <summary class="settings-row-title">Offline address search</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
                 <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
                   <div class="location-actions">
                     <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
@@ -228,8 +230,7 @@ interface MapErrorEntry {
                     <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
                       {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
                     </button>
-                    <button type="button" class="routing-help-button location-row-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
-                  </div>
+                   </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
                     <div class="offline-address-results"><table aria-label="Offline address search results">
