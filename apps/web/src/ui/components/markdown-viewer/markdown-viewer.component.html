@@ -9,7 +9,7 @@
       <button type="button" class="markdown-home-button" (click)="showReadme()" title="Home" aria-label="Home"><span aria-hidden="true">⌂</span></button>
       <label class="markdown-font-size">
       <span>Text size</span>
-      <input type="range" min="10" max="20" step="1" [value]="fontSize()" (input)="onFontSizeChange($event)" (change)="saveFontSize()" aria-label="Documentation text size">
+      <ui-slider [min]="10" [max]="20" [step]="1" [value]="fontSize()" (valueChange)="onFontSizeChange($event)" (valueCommit)="saveFontSize()" aria-label="Documentation text size" />
       <output>{{ fontSize() }} px</output>
       </label>
     </div>
