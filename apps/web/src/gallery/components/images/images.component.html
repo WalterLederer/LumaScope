@@ -39,7 +39,7 @@
       </button>
       <button type="button" (click)="sortDetailsBy('fullSize')">
         <span>Full-Size Conversion{{ sortIndicator('fullSize') }}</span>
-        <small class="column-count">{{ cacheStats().fullSizeConversions }}</small>
+        <small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small>
       </button>
       <span class="count-heading">
         <span>GPS coordinates</span>
@@ -52,7 +52,7 @@
     </div>
   <div class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     @for (image of sortedDetailImages(); track image.path) {
-      <app-thumbnail [image]="image" [viewMode]="viewMode()"
+      <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                      [cacheStatusLoading]="cacheStatusLoading()"
                      [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
