@@ -965,6 +965,56 @@ export class ImageView {
 
   protected readonly imageTags = signal<ExifTags | null>(null);
 
+  protected readonly exifXmpTags = signal<ExifTags | null>(null);
+  protected readonly exifXmpPath = signal('');
+  protected readonly exifXmpStatus = signal('');
+  protected readonly exifXmpCheckRunning = signal(false);
+  private exifXmpCheckRequest = 0;
+  protected readonly exifXmpFields = computed(() => {
+    const tags = this.exifXmpTags();
+    if (!tags) return [];
+    const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
+    return Object.entries(tags)
+      .filter(([key, value]) => relevantField.test(key) && value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => ({ key, value: this.formatExifXmpValue(value) }))
+      .sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
+  });
+  private readonly formatExifXmpValue = (value: unknown): string => {
+    if (value === null || value === undefined) return '—';
+    if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(item)).join(', ');
+    if (typeof value === 'object') {
+      const displayValue = String(value);
+      if (displayValue !== '[object Object]') return displayValue;
+      try { return JSON.stringify(value); } catch { return displayValue; }
+    }
+    return String(value);
+  };
+  protected readonly checkExifXmp = async (path: string): Promise<void> => {
+    if (!path || this.exifXmpCheckRunning()) return;
+    const request = ++this.exifXmpCheckRequest;
+    this.exifXmpPath.set(path);
+    this.exifXmpTags.set(null);
+    this.exifXmpStatus.set('Reading metadata from file…');
+    this.exifXmpCheckRunning.set(true);
+    try {
+      const response = await this.exif.readFresh(path);
+      if (request !== this.exifXmpCheckRequest) return;
+      if (!response.success) {
+        this.exifXmpStatus.set(response.errorMessage || 'Could not read metadata from this file.');
+        return;
+      }
+      this.exifXmpTags.set(response.data);
+      this.exifXmpStatus.set('');
+      if (!Object.keys(response.data).some(key => /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i.test(key))) {
+        this.exifXmpStatus.set('No date, camera model or GPS fields were found in this file.');
+      }
+    } catch (error) {
+      if (request === this.exifXmpCheckRequest) this.exifXmpStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (request === this.exifXmpCheckRequest) this.exifXmpCheckRunning.set(false);
+    }
+  };
+
   protected readonly copyLocationStatus = signal('');
 
   protected readonly locationMapElement = viewChild<ElementRef<HTMLDivElement>>('locationMapElement');
