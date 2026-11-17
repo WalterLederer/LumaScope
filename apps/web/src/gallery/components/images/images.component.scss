@@ -43,18 +43,19 @@
 
  .detail-table {
   display: grid;
-  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
+  /* Keep metadata columns content-sized and let Location absorb the remaining window width. */
+  grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
   column-gap: 16px;
   row-gap: 0;
-  width: max-content;
+  width: 100%;
   max-width: none;
-  min-width: max-content;
+  min-width: 100%;
   padding: 0 12px;
   box-sizing: border-box;
 
   &.without-thumbnails {
     /* Keep the thumbnail slot reserved so every detail column stays aligned. */
-    grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
+    grid-template-columns: max(84px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
   }
 }
 
@@ -250,7 +251,7 @@
 
 @media (max-width: 900px) {
   .detail-table:not(.without-thumbnails) {
-    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(10, max-content);
+    grid-template-columns: max(72px, calc(var(--detail-thumb-width, 36px) + 24px)) repeat(9, max-content) minmax(0, 1fr);
     column-gap: 12px;
   }
 
