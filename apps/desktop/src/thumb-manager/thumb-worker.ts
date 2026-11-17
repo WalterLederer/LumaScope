@@ -150,8 +150,13 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
   return libRawConstructorPromise;
 }
 
-/** Develop a camera RAW file to linear scRGB. Half-size decoding avoids full-frame allocations for thumbnails and histograms. */
-async function decodeDngToVips(vips: typeof Vips, source: string, halfSize = false): Promise<Vips.Image> {
+/** Develop a camera RAW file to linear scRGB. Thumbnail callers downsample 16-bit data before creating the Float32 image. */
+async function decodeDngToVips(
+  vips: typeof Vips,
+  source: string,
+  halfSize = false,
+  maxDimension = 0
+): Promise<Vips.Image> {
   const LibRaw = await getLibRawConstructor();
   const decoder = new LibRaw();
   await decoder.waitUntilReady();
@@ -170,12 +175,8 @@ async function decodeDngToVips(vips: typeof Vips, source: string, halfSize = fal
     decoder.setUseCameraWb(1);
     decoder.setOutputColor(1);
     decoder.setOutputBps(16);
-    // Thumbnails and histograms do not need full sensor resolution. Ask LibRaw
-    // to reduce the developed bitmap before allocating its RGB output buffer.
+    // Half-size decoding reduces LibRaw's initial bitmap for thumbnails/histograms.
     decoder.setHalfSize(halfSize ? 1 : 0);
-    // Keep the RAW development output linear. The usual 0.45/4.5 curve is an SDR
-    // display transform and would discard the linear-light values needed downstream
-    // for HDR rendering and tone mapping.
     decoder.setGamma(1, 1);
     decoder.setNoAutoBright(1);
     decoder.unpack();
@@ -194,8 +195,6 @@ async function decodeDngToVips(vips: typeof Vips, source: string, halfSize = fal
       );
     }
 
-    // Read LibRaw's WASM-backed bitmap directly. Avoid an intermediate Uint16Array:
-    // the extra full-frame copy can add tens of megabytes for modern phone DNGs.
     const data = new DataView(decoded.data.buffer, decoded.data.byteOffset, expectedBytes);
     const pixelCount = width * height;
     const luminanceHistogram = new Uint32Array(4096);
@@ -220,17 +219,40 @@ async function decodeDngToVips(vips: typeof Vips, source: string, halfSize = fal
     const medianLuminance = Math.max(0.0001, (medianBin + 0.5) / 4095);
     // scRGB 1.0 represents 80 cd/m²; 0.225 is approximately 18 cd/m².
     const exposure = Math.max(0.25, Math.min(16, 0.225 / medianLuminance));
-    linearPixels = new Float32Array(pixelCount * 3);
-    for (let pixel = 0; pixel < pixelCount; pixel++) {
-      const sourceOffset = pixel * 6;
-      const targetOffset = pixel * 3;
-      linearPixels[targetOffset] = data.getUint16(sourceOffset, true) / 65535 * exposure;
-      linearPixels[targetOffset + 1] = data.getUint16(sourceOffset + 2, true) / 65535 * exposure;
-      linearPixels[targetOffset + 2] = data.getUint16(sourceOffset + 4, true) / 65535 * exposure;
+
+    // Let libvips resize the compact 16-bit bitmap first. Creating a full-size
+    // Float32 RGB buffer here used about 137 MiB for half-resolution S25 Ultra
+    // DNGs, exceeding the WASM image-memory limit before thumbnail encoding.
+    const rawPixels = new Uint16Array(
+      decoded.data.buffer,
+      decoded.data.byteOffset,
+      expectedBytes / Uint16Array.BYTES_PER_ELEMENT
+    );
+    using rawImage = vips.Image.newFromMemory(
+      rawPixels,
+      width,
+      height,
+      3,
+      vips.BandFormat.ushort
+    );
+    const scale = maxDimension > 0 ? Math.min(1, maxDimension / Math.max(width, height)) : 1;
+    using scaledRawImage = scale < 1
+      ? rawImage.resize(scale, { kernel: vips.Kernel.linear })
+      : rawImage.copy();
+    const scaledPixels = scaledRawImage.writeToMemory();
+    if (!(scaledPixels instanceof Uint16Array)) {
+      throw new Error('libvips returned an unexpected pixel format while resizing the DNG thumbnail.');
     }
 
-    // Release LibRaw's large WASM heap allocations before libvips allocates its
-    // Float32 image. Keeping both decoder heaps alive caused OOM on phone DNGs.
+    linearPixels = new Float32Array(scaledPixels.length);
+    for (let index = 0; index < scaledPixels.length; index++) {
+      linearPixels[index] = scaledPixels[index] / 65535 * exposure;
+    }
+    width = scaledRawImage.width;
+    height = scaledRawImage.height;
+
+    // Release LibRaw's large WASM heap allocations before returning the smaller
+    // Float32 buffer to the caller.
     inputBuffer = null;
     input = null;
     decoder.dispose();
@@ -790,7 +812,7 @@ function hlgOotf(vips: typeof Vips, sceneLinear: Vips.Image): Vips.Image {
 async function histogramForImage(vips: typeof Vips, source: string): Promise<ImageHistogram> {
   const sourceExtension = extname(source).toLowerCase();
   using fullImage = sourceExtension === '.dng'
-    ? await decodeDngToVips(vips, source, true)
+    ? await decodeDngToVips(vips, source, true, 512)
     : vips.Image.newFromFile(source, { access: 'random' });
   const scale = Math.min(1, 512 / fullImage.width, 512 / fullImage.height);
   using smallImage = scale < 1 ? fullImage.resize(scale, { kernel: vips.Kernel.linear }) : fullImage.copy();
@@ -1020,7 +1042,7 @@ if (parentPort) {
 
       if (sourceExtension === '.dng') {
         processingStage = 'developing DNG with LibRaw';
-        using dngImage = await decodeDngToVips(vips, source, width > 0 && height > 0);
+        using dngImage = await decodeDngToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
 
         if (cancelledRequests.has(id)) {
           cancelRequest(id);
