@@ -308,27 +308,38 @@ export default class App {
       startupProbeCount++;
       const webContents = App.mainWindow.webContents;
       const probeStartedAt = Date.now();
-      void webContents.executeJavaScript(
+      const probeDetails = {
+        probe: startupProbeCount,
+        elapsedMs: Date.now() - startupStartedAt,
+        loading: webContents.isLoading(),
+        crashed: webContents.isCrashed(),
+        responsive: App.mainWindow.isResponsive()
+      };
+      // Log before contacting the renderer: executeJavaScript itself can be
+      // blocked when the renderer main thread is stuck during Angular startup.
+      console.warn('[StartupProbe] Main process heartbeat', probeDetails);
+      let timeoutHandle: NodeJS.Timeout | null = null;
+      const rendererProbe = webContents.executeJavaScript(
         `({ readyState: document.readyState, bodyChildCount: document.body?.children.length ?? 0, bodyTextLength: document.body?.innerText?.length ?? 0, appRootCount: document.querySelectorAll('app-root').length, imageViewCount: document.querySelectorAll('app-image-view').length, galleryCount: document.querySelectorAll('app-gallery').length, imageGridCount: document.querySelectorAll('app-image-grid').length, imageCount: document.querySelectorAll('app-thumbnail').length })`,
         true
-      ).then(state => {
+      );
+      const rendererTimeout = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Renderer did not answer within 1200 ms')), 1200);
+      });
+      void Promise.race([rendererProbe, rendererTimeout]).then(state => {
         console.warn('[StartupProbe] Renderer responded', {
-          probe: startupProbeCount,
-          elapsedMs: Date.now() - startupStartedAt,
+          ...probeDetails,
           responseMs: Date.now() - probeStartedAt,
-          loading: webContents.isLoading(),
-          crashed: webContents.isCrashed(),
           state
         });
       }).catch(error => {
-        console.error('[StartupProbe] Renderer did not answer', {
-          probe: startupProbeCount,
-          elapsedMs: Date.now() - startupStartedAt,
+        console.error('[StartupProbe] Renderer probe failed', {
+          ...probeDetails,
           responseMs: Date.now() - probeStartedAt,
-          loading: webContents.isLoading(),
-          crashed: webContents.isCrashed(),
           error: error instanceof Error ? error.message : String(error)
         });
+      }).finally(() => {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
       });
       if (startupProbeCount >= 8) clearInterval(startupProbe);
     }, 1500);
