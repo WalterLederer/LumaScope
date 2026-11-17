@@ -24,7 +24,7 @@
         </section>
       </ui-vertical-stack>
     </aside>
-    <app-image-grid [selectedLocation]="selectedLocation"
+    <app-image-grid [selectedLocation]="selectedLocation" [selectedImagePath]="selectedImagePath()"
                     [hoveredFolderPath]="hoveredFolderPath()"
                     [images]="images"
                     [sortBy]="sorting.sortBy"
@@ -57,7 +57,7 @@
     </aside>
   }
   @if (showImageGrid()) {
-    <app-image-grid [selectedLocation]="selectedLocation"
+    <app-image-grid [selectedLocation]="selectedLocation" [selectedImagePath]="selectedImagePath()"
                     [hoveredFolderPath]="hoveredFolderPath()"
                     [images]="images"
                     [sortBy]="sorting.sortBy"
