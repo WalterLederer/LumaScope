@@ -25,17 +25,6 @@
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       @if (activeImageSidebarTab() === 'gallery') {
         <app-gallery class="browse-favourites-tree" [showFolderTree]="true" [showImageGrid]="false" (locationSelected)="onGalleryFolderSelected()" />
-      } @else if (activeImageSidebarTab() === 'cache') {
-        <app-settings-panel mode="cache"
-                            [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
-                            [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
-                            [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
-                            [currentFolderPath]="gallerySelectedLocation() ?? ''"
-                            [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
-                            (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
-                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
-                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
-                            [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
     </aside>
   } @else {
