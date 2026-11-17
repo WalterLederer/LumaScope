@@ -32,6 +32,12 @@ export class GalleryCacheBuild {
   readonly cacheRunActive = computed(() => this.controller()?.cacheRunActive() ?? false);
   readonly cacheRunProgress = computed(() => this.controller()?.cacheRunProgress() ?? { completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = computed(() => this.controller()?.cacheRunCurrentOperation() ?? '');
+  readonly cacheRunErrorCount = computed(() => {
+    const output = this.cacheRunCurrentOperation();
+    const summary = output.match(/Failed files:\s*(\d+)/i);
+    if (summary) return Number(summary[1]);
+    return (output.match(/\] ERROR:/g) ?? []).length;
+  });
 
   constructor() {
     // A cache build can outlive the Gallery component that started it. Keep
