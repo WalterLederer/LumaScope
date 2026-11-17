@@ -10,7 +10,7 @@ The Help reference lists **15 shortcuts**. Global shortcuts are registered throu
 | `Ctrl + Shift + Win + PrtScn` | Select a screen rectangle and copy it to the clipboard. | Yes |
 | `Space / → / Page Down` | Show the next image, unless the pointer is over the location map. | No |
 | `← / Page Up` | Show the previous image, unless the pointer is over the location map. | No |
-| `Esc` | Close the image view or dismiss the active dialog. | No |
+| `Esc` | Switch to the Browse tab in the main window; dismiss an active dialog first. | No |
 | `+ / =` | Zoom in; in Browse, increase thumbnail size; over the location map, zoom the map in. | No |
 | `- / _` | Zoom out; in Browse, decrease thumbnail size; over the location map, zoom the map out. | No |
 | `V` | Cycle image comparison modes. | No |
