@@ -135,6 +135,8 @@ interface LibRawConstructor {
 
 let libRawConstructorPromise: Promise<LibRawConstructor> | null = null;
 
+const cameraRawExtensions = new Set([ '.dng', '.rw2', '.raw' ]);
+
 async function getLibRawConstructor(): Promise<LibRawConstructor> {
   if (!libRawConstructorPromise) {
     libRawConstructorPromise = (async () => {
@@ -151,7 +153,7 @@ async function getLibRawConstructor(): Promise<LibRawConstructor> {
 }
 
 /** Develop a camera RAW file to linear scRGB. Thumbnail callers downsample 16-bit data before creating the Float32 image. */
-async function decodeDngToVips(
+async function decodeCameraRawToVips(
   vips: typeof Vips,
   source: string,
   halfSize = false,
@@ -191,7 +193,7 @@ async function decodeDngToVips(
       decoded.colors !== 3 || width <= 0 || height <= 0 ||
       decoded.data_size !== expectedBytes || decoded.data.byteLength < expectedBytes) {
       throw new Error(
-        `LibRaw returned an unsupported DNG image (${width}x${height}, ${decoded.colors} channels, ${decoded.bits} bits).`
+        `LibRaw returned an unsupported camera RAW image (${width}x${height}, ${decoded.colors} channels, ${decoded.bits} bits).`
       );
     }
 
@@ -221,7 +223,7 @@ async function decodeDngToVips(
       : rawImage.copy();
     const scaledPixels = scaledRawImage.writeToMemory();
     if (!(scaledPixels instanceof Uint16Array)) {
-      throw new Error('libvips returned an unexpected pixel format while resizing the DNG thumbnail.');
+      throw new Error('libvips returned an unexpected pixel format while resizing the camera RAW thumbnail.');
     }
 
     linearPixels = new Float32Array(scaledPixels.length);
@@ -791,8 +793,8 @@ function hlgOotf(vips: typeof Vips, sceneLinear: Vips.Image): Vips.Image {
 
 async function histogramForImage(vips: typeof Vips, source: string): Promise<ImageHistogram> {
   const sourceExtension = extname(source).toLowerCase();
-  using fullImage = sourceExtension === '.dng'
-    ? await decodeDngToVips(vips, source, true, 512)
+  using fullImage = cameraRawExtensions.has(sourceExtension)
+    ? await decodeCameraRawToVips(vips, source, true, 512)
     : vips.Image.newFromFile(source, { access: 'random' });
   const scale = Math.min(1, 512 / fullImage.width, 512 / fullImage.height);
   using smallImage = scale < 1 ? fullImage.resize(scale, { kernel: vips.Kernel.linear }) : fullImage.copy();
@@ -804,8 +806,8 @@ async function histogramForImage(vips: typeof Vips, source: string): Promise<Ima
   const pixelCount = Math.floor(sdrPixels.length / 3);
   let hdrPixels: typeof sdrPixels | null = null;
 
-  if (fullImage.format === 'float' && sourceExtension === '.dng') {
-    // DNG development already returns scene-linear scRGB float pixels.
+  if (fullImage.format === 'float' && cameraRawExtensions.has(sourceExtension)) {
+    // Camera RAW development already returns scene-linear scRGB float pixels.
     hdrPixels = rgb.writeToMemory();
   }
 
@@ -1020,9 +1022,9 @@ if (parentPort) {
 
       const sourceExtension = extname(source).toLowerCase();
 
-      if (sourceExtension === '.dng') {
-        processingStage = 'developing DNG with LibRaw';
-        using dngImage = await decodeDngToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
+      if (cameraRawExtensions.has(sourceExtension)) {
+        processingStage = 'developing camera RAW with LibRaw';
+        using dngImage = await decodeCameraRawToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
 
         if (cancelledRequests.has(id)) {
           cancelRequest(id);
@@ -1042,11 +1044,11 @@ if (parentPort) {
               width,
               height
             );
-          processingStage = 'encoding linear DNG thumbnail as Ultra HDR JPEG';
+          processingStage = 'encoding linear camera RAW thumbnail as Ultra HDR JPEG';
           using scrgb = output.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 90);
         } else {
-          processingStage = 'encoding full-size linear DNG derivative as Ultra HDR JPEG';
+          processingStage = 'encoding full-size linear camera RAW derivative as Ultra HDR JPEG';
           using scrgb = dngImage.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 90);
         }
