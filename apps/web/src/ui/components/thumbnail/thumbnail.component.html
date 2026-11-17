@@ -5,7 +5,7 @@
 <div class="thumbnail-preview">
   @if (loading) {
     <div class="message">
-      <ui-caption [title]="thumbnailError() ?? ''">{{ isCacheStatusReady() ? (isCaching() ? 'Caching...' : 'Loading...') : 'Checking...' }}</ui-caption>
+      <ui-caption [title]="thumbnailError() ?? ''">{{ !isCacheStatusReady() ? 'Checking...' : thumbnailError() ? 'Check failed' : (isCaching() ? 'Caching...' : 'Loading...') }}</ui-caption>
     </div>
   }
 
@@ -16,7 +16,7 @@
   }
 
   @if (!loading && !error) {
-    <button [title]="image().name"
+    <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
             (click)="clicked.emit(image())">
       <img loading="lazy"
            [alt]="image().name"
