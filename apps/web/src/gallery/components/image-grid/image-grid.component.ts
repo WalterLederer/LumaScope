@@ -112,7 +112,16 @@ export class ImageGridComponent {
     const size = this.formatFileSize(image.size);
     const bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
     const range = imageDynamicRange(image.path, tags, bits === null ? null : `${bits}-bit`);
-    return [image.path, modified, size, dimensions, range].filter(Boolean).join('  ·  ');
+    const latitude = tags?.GPSLatitude;
+    const longitude = tags?.GPSLongitude;
+    const gps = latitude !== undefined && longitude !== undefined
+      ? `GPS: ${String(latitude)}${tags?.GPSLatitudeRef ? ` ${String(tags.GPSLatitudeRef)}` : ''}, ${String(longitude)}${tags?.GPSLongitudeRef ? ` ${String(tags.GPSLongitudeRef)}` : ''}`
+      : '';
+    const locationParts = [tags?.Sublocation, tags?.City, tags?.State, tags?.Country]
+      .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+      .map(value => String(value).trim());
+    const location = locationParts.length ? `Location: ${[...new Set(locationParts)].join(', ')}` : '';
+    return [image.path, modified, size, dimensions, range, gps, location].filter(Boolean).join('  ·  ');
   });
 
   protected readonly formatOsDateTime = (value: number | Date): string => {
