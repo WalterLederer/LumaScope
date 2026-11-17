@@ -170,7 +170,7 @@ export class GalleryPage {
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
       // Selecting a gallery folder also selects its drive-local cache database.
-      if (location) void this.desktopApi?.CacheManager.getDirectoryPhotoLocations(location).catch(() => undefined);
+      if (location) void this.desktopApi?.CacheManager.selectDatabaseForDirectory(location).catch(() => undefined);
     });
 
     if (this.showImageGrid()) afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
