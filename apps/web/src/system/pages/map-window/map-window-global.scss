@@ -627,4 +627,16 @@ app-map-window {
 
 
 
+    /* Location help buttons share the existing section-heading line. */
+    .location-tab .fix-location-automatic-section,
+    .location-tab .fix-location-section,
+    .location-tab .offline-address-search{position:relative}
+    .location-tab .fix-location-automatic-section>.settings-row-title,
+    .location-tab .fix-location-section>.settings-row-title,
+    .location-tab .offline-address-search>.settings-row-title{padding-right:42px}
+    .location-tab .location-section-help{position:absolute!important;top:4px;right:6px;margin:0!important;z-index:2}
+    .time-slider-readouts{width:100%;min-width:0}
+    .marker-first-row{width:100%;min-height:30px}
+    .resource-package-scan-toolbar{width:100%;min-width:0}
+
 }
