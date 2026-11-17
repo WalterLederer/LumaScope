@@ -120,7 +120,7 @@ export const lookupReverseGeocoding = (
           'User-Agent': 'LumaScope/1.0 (+https://github.com/WalterLederer/light-matter)',
           'Accept-Language': language || 'en'
         },
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)])
       });
       if (!response.ok) {
         console.info('[ReverseGeocoding] Provider response', {
