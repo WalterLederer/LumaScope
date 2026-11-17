@@ -56,7 +56,7 @@
 
 /* Keep non-zoom ui-slider instances on the same restrained interaction style. */
 :host(:hover) .container .indicator {
-  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 24%, transparent);
+  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 60%);
 }
 
 /* Purpose styling for zoom and thumbnail-size sliders. ui-slider is a custom
