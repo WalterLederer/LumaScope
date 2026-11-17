@@ -12,7 +12,7 @@
       <button type="button" (click)="sortDetailsBy('name')">
         <span>Name{{ sortIndicator('name') }}</span>
         <small class="column-count">{{ cacheStats().total }}</small>
-        <small class="column-summary">Unsupported suffix: {{ unsupportedSuffixCount() }}</small>
+        <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
       </button>
       <button type="button" (click)="sortDetailsBy('date')">
         <span>Date modified{{ sortIndicator('date') }}</span>
