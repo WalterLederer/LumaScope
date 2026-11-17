@@ -30,11 +30,9 @@ export class GalleryState {
   private readonly sortMode$ = new BehaviorSubject<SortMode>(defaultSortMode());
 
   constructor() {
-    console.warn('[GalleryState] Constructor: waiting for configuration');
     this.configuration.config()
       .pipe(take(1))
       .subscribe(config => {
-        console.warn('[GalleryState] Configuration received');
         const defaultSort = defaultSortMode();
         this.sortMode$.next({
           sortBy: config.gallery.sortBy ?? defaultSort.sortBy,
@@ -46,11 +44,7 @@ export class GalleryState {
 
         const selectedLocation = this.selectedLocation$.value;
         if (selectedLocation !== null) {
-          console.warn('[GalleryState] Loading saved gallery location');
           this.navigateTo(selectedLocation).subscribe({
-            next: () => console.warn('[GalleryState] Saved gallery location loaded'),
-            error: error => console.error('[GalleryState] Saved gallery location failed', error),
-            complete: () => console.warn('[GalleryState] Saved gallery location request completed')
           });
         }
       });
@@ -60,7 +54,6 @@ export class GalleryState {
     .pipe(
       startWith([]),
       map(locations => {
-        console.warn('[GalleryState] Building gallery root', { locationCount: locations.length });
         const root = galleryRoot();
         const selectedLocation = this.selectedLocation$.value ?? locations[0] ?? null;
         root.children = locations.map(location => {
@@ -71,11 +64,7 @@ export class GalleryState {
         });
 
         if (this.selectedLocation$.value === null && locations[0] !== undefined) {
-          console.warn('[GalleryState] Loading first configured gallery location');
           this.navigateTo(locations[0]).subscribe({
-            next: () => console.warn('[GalleryState] First gallery location loaded'),
-            error: error => console.error('[GalleryState] First gallery location failed', error),
-            complete: () => console.warn('[GalleryState] First gallery location request completed')
           });
         }
 
@@ -99,7 +88,6 @@ export class GalleryState {
 
   /* Modifiers */
   readonly navigateTo = (path: string): Observable<boolean> => {
-    console.warn('[GalleryState] navigateTo START', path);
     this.selectedLocation$.next(path);
     this.configuration.updateGalleryConfig({ selectedLocation: path });
 
@@ -107,11 +95,9 @@ export class GalleryState {
       .pipe(
         take(1),
         switchMap(sortMode => {
-          console.warn('[GalleryState] readImages INVOKE', path);
           return defer(() => this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir));
         }),
         tap(response => {
-          console.warn('[GalleryState] readImages RESULT', { success: response.success, count: response.success ? response.data.length : 0, error: response.success ? undefined : response.errorMessage });
           this.images$.next(response.success ? response.data : []);
         }),
         map(() => true)
