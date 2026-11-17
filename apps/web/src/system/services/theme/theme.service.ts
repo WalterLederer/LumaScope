@@ -22,6 +22,8 @@ export class ThemeService {
 
   readonly themeColorSaturation = signal(100);
 
+  readonly themeColorBrightness = signal(100);
+
   readonly disclosureStyle = signal<DisclosureStyle>('classic');
 
   readonly tabBarStyle = signal<TabBarStyle>('classic');
@@ -55,6 +57,7 @@ export class ThemeService {
         this.applyButtonStyle(style);
         this.applyButtonColor(config.preferences?.buttonColor ?? 'blue');
         this.applyThemeColorSaturation(config.preferences?.themeColorSaturation ?? 100);
+        this.applyThemeColorBrightness(config.preferences?.themeColorBrightness ?? 100);
         this.applyDisclosureStyle(config.preferences?.disclosureStyle ?? 'classic');
         this.applyTabBarStyle(config.preferences?.tabBarStyle ?? 'classic');
       });
@@ -82,6 +85,12 @@ export class ThemeService {
     this.configuration.updatePreferencesConfig({ themeColorSaturation: value });
   };
 
+  readonly setThemeColorBrightness = (brightness: number) => {
+    const value = Math.max(50, Math.min(150, Math.round(Number(brightness) || 50)));
+    this.applyThemeColorBrightness(value);
+    this.configuration.updatePreferencesConfig({ themeColorBrightness: value });
+  };
+
   readonly setDisclosureStyle = (style: DisclosureStyle) => {
     this.applyDisclosureStyle(style);
     this.configuration.updatePreferencesConfig({ disclosureStyle: style });
@@ -101,6 +110,12 @@ export class ThemeService {
     const value = Math.max(0, Math.min(200, saturation));
     this.themeColorSaturation.set(value);
     this.document.documentElement.style.setProperty('--theme-color-saturation', `${value}%`);
+  }
+
+  private applyThemeColorBrightness(brightness: number): void {
+    const value = Math.max(50, Math.min(150, brightness));
+    this.themeColorBrightness.set(value);
+    this.document.documentElement.style.setProperty('--theme-color-brightness', `${value}%`);
   }
 
   private applyTabBarStyle(style: TabBarStyle): void {
