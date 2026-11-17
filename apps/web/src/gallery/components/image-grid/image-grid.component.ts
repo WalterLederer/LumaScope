@@ -119,12 +119,12 @@ export class ImageGridComponent {
       : '';
     const locationTags = tags as Record<string, unknown> | null;
     const locationParts = [
-      locationTags?.Sublocation,
+      locationTags?.['Sublocation'],
       locationTags?.['Sub-location'],
-      locationTags?.Location,
-      locationTags?.City,
-      locationTags?.State,
-      locationTags?.Country
+      locationTags?.['Location'],
+      locationTags?.['City'],
+      locationTags?.['State'],
+      locationTags?.['Country']
     ]
       .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
       .map(value => String(value).trim());
