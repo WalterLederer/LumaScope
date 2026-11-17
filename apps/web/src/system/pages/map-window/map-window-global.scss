@@ -620,4 +620,25 @@ app-map-window {
      html[data-theme='dark'] & .settings-tabs.image-sidebar-tabs button[role="tab"]:not(.active):not(:disabled):hover{background:#3d4956!important;background-color:#3d4956!important}
 
 
+    /* Teal purpose sliders distinguish the symbol Size and map Zoom controls
+       from ordinary settings sliders in the Location window. */
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"],
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]{accent-color:#0d9488!important;cursor:pointer}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]::-webkit-slider-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]::-webkit-slider-thumb{border:2px solid #0f766e!important;background:linear-gradient(145deg,#5eead4 0%,#0d9488 55%,#0f766e 100%)!important;box-shadow:0 1px 4px #0008}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]::-moz-range-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]::-moz-range-thumb{border:2px solid #0f766e!important;background:linear-gradient(145deg,#5eead4 0%,#0d9488 55%,#0f766e 100%)!important;box-shadow:0 1px 4px #0008}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:hover:not(:disabled)::-webkit-slider-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:hover:not(:disabled)::-webkit-slider-thumb{border-color:#0f766e!important;background:linear-gradient(145deg,#99f6e4 0%,#14b8a6 55%,#0d9488 100%)!important;box-shadow:0 3px 7px #0007,0 0 0 3px rgba(20,184,166,.24),inset 0 1px 1px #ffffff99}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:hover:not(:disabled)::-moz-range-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:hover:not(:disabled)::-moz-range-thumb{border-color:#0f766e!important;background:linear-gradient(145deg,#99f6e4 0%,#14b8a6 55%,#0d9488 100%)!important;box-shadow:0 3px 7px #0007,0 0 0 3px rgba(20,184,166,.24),inset 0 1px 1px #ffffff99}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:active:not(:disabled)::-webkit-slider-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:active:not(:disabled)::-webkit-slider-thumb,
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:focus-visible::-webkit-slider-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:focus-visible::-webkit-slider-thumb{border-color:#0f766e!important;box-shadow:0 1px 2px #0008,0 0 0 3px rgba(20,184,166,.36),inset 0 1px 2px #0003}
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:active:not(:disabled)::-moz-range-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:active:not(:disabled)::-moz-range-thumb,
+    .map-window .time-slider-symbol-size input.zoom-purpose-slider[type="range"]:focus-visible::-moz-range-thumb,
+    .map-window .zoom-summary-control input.zoom-purpose-slider[type="range"]:focus-visible::-moz-range-thumb{border-color:#0f766e!important;box-shadow:0 1px 2px #0008,0 0 0 3px rgba(20,184,166,.36),inset 0 1px 2px #0003}
+
 }
