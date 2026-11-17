@@ -313,7 +313,7 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
-    console.warn('[ImageGrid] CONSTRUCTOR START', { imageCount: this.images()?.length ?? null });
+    console.warn('[ImageGrid] CONSTRUCTOR START');
     effect(onCleanup => {
       const images = this.imagesComponent();
       if (!images) return;
