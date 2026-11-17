@@ -2273,54 +2273,7 @@
   overflow: auto;
 }
 
-
-/* Keep the Preferences disclosure marker visible independently of global button resets. */
-:host .image-preferences-section > .app-disclosure-heading::before {
-  content: none !important;
-  display: none !important;
+/* Keep the Preferences detail section visually separated from the tab bar. */
+:host .image-preferences-section {
+  margin-top: 10px;
 }
-:host .image-preferences-disclosure-marker {
-  display: inline-flex;
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  align-items: center;
-  justify-content: center;
-  color: currentColor;
-  font-family: Arial, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-}
-:host .image-preferences-disclosure-marker[data-style='classic']::before,
-:host .image-preferences-disclosure-marker[data-style='plain-triangle']::before {
-  content: '▶';
-  font-size: 11px;
-}
-:host .image-preferences-disclosure-marker[data-style='classic']:not(.expanded)::before {
-  color: rgb(190 105 105 / 95%);
-}
-:host .image-preferences-disclosure-marker[data-style='classic'].expanded::before {
-  content: '▼';
-  color: rgb(105 170 125 / 95%);
-  font-size: 11px;
-}
-:host .image-preferences-disclosure-marker[data-style='plain-triangle'].expanded::before {
-  content: '▼';
-  font-size: 11px;
-}
-:host .image-preferences-disclosure-marker[data-style='chevron']::before { content: '›'; font-size: 22px; }
-:host .image-preferences-disclosure-marker[data-style='chevron'].expanded::before { content: '⌄'; font-size: 18px; }
-:host .image-preferences-disclosure-marker[data-style='plus-minus']::before { content: '+'; }
-:host .image-preferences-disclosure-marker[data-style='plus-minus'].expanded::before { content: '−'; }
-:host .image-preferences-disclosure-marker[data-style='square']::before { content: '⊞'; }
-:host .image-preferences-disclosure-marker[data-style='square'].expanded::before { content: '⊟'; }
-:host .image-preferences-disclosure-marker[data-style='circle']::before { content: '⊕'; }
-:host .image-preferences-disclosure-marker[data-style='circle'].expanded::before { content: '⊖'; }
-:host .image-preferences-disclosure-marker[data-style='arrow']::before { content: '➜'; font-size: 13px; }
-:host .image-preferences-disclosure-marker[data-style='arrow'].expanded::before { content: '⬇'; }
-:host .image-preferences-disclosure-marker[data-style='caret']::before { content: '▸'; }
-:host .image-preferences-disclosure-marker[data-style='caret'].expanded::before { content: '▾'; }
-:host .image-preferences-disclosure-marker[data-style='bracket']::before { content: '[+]'; font-size: 11px; }
-:host .image-preferences-disclosure-marker[data-style='bracket'].expanded::before { content: '[−]'; font-size: 11px; }
-:host .image-preferences-disclosure-marker[data-style='none'] { display: none; }
