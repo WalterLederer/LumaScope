@@ -47,7 +47,8 @@
   column-gap: 16px;
   row-gap: 0;
   width: max-content;
-  min-width: 0;
+  max-width: none;
+  min-width: max-content;
   padding: 0 12px;
   box-sizing: border-box;
 
