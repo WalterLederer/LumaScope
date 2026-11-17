@@ -881,3 +881,86 @@ html[data-disclosure-style='none'] .app-disclosure-heading::before {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+
+/* Shared raised slider thumbs. Keep each input's accent-color for its track,
+   while using the application's selected button palette for the draggable grip. */
+html input[type='range']:not(.time-slider-range-input) {
+  cursor: pointer;
+}
+
+html input[type='range']:not(.time-slider-range-input)::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--button-border-strong, #3988c8);
+  border-radius: 50%;
+  background: var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%));
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 38%),
+    0 0 0 1px rgb(0 0 0 / 18%),
+    inset 0 1px 1px rgb(255 255 255 / 55%);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+html input[type='range']:not(.time-slider-range-input)::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--button-border-strong, #3988c8);
+  border-radius: 50%;
+  background: var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%));
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 38%),
+    0 0 0 1px rgb(0 0 0 / 18%),
+    inset 0 1px 1px rgb(255 255 255 / 55%);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-webkit-slider-thumb {
+  border-color: var(--button-focus, #75c5ff);
+  background: var(--button-rounded-hover, var(--button-rounded-bg, #287fc4));
+  box-shadow:
+    0 3px 7px rgb(0 0 0 / 42%),
+    0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 28%, transparent),
+    inset 0 1px 1px rgb(255 255 255 / 60%);
+  transform: scale(1.12);
+}
+
+html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-moz-range-thumb {
+  border-color: var(--button-focus, #75c5ff);
+  background: var(--button-rounded-hover, var(--button-rounded-bg, #287fc4));
+  box-shadow:
+    0 3px 7px rgb(0 0 0 / 42%),
+    0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 28%, transparent),
+    inset 0 1px 1px rgb(255 255 255 / 60%);
+  transform: scale(1.12);
+}
+
+html input[type='range']:not(.time-slider-range-input):active:not(:disabled)::-webkit-slider-thumb,
+html input[type='range']:not(.time-slider-range-input):focus-visible::-webkit-slider-thumb {
+  border-color: var(--button-focus, #75c5ff);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 40%),
+    0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 38%, transparent),
+    inset 0 1px 2px rgb(0 0 0 / 18%);
+}
+
+html input[type='range']:not(.time-slider-range-input):active:not(:disabled)::-moz-range-thumb,
+html input[type='range']:not(.time-slider-range-input):focus-visible::-moz-range-thumb {
+  border-color: var(--button-focus, #75c5ff);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 40%),
+    0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 38%, transparent),
+    inset 0 1px 2px rgb(0 0 0 / 18%);
+}
+
+html input[type='range']:not(.time-slider-range-input):disabled {
+  cursor: not-allowed;
+}
+
+html input[type='range']:not(.time-slider-range-input):disabled::-webkit-slider-thumb,
+html input[type='range']:not(.time-slider-range-input):disabled::-moz-range-thumb {
+  opacity: .45;
+  box-shadow: none;
+}
