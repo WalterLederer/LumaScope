@@ -241,3 +241,22 @@ ui-toolbar {
     overflow: hidden;
   }
 }
+
+
+/* Distinguish thumbnail zoom from ordinary range controls. */
+:host ::ng-deep .thumbnail-size-control ui-slider.zoom-purpose-slider input[type='range'] {
+  accent-color: #0d9488 !important;
+}
+:host ::ng-deep .thumbnail-size-control ui-slider.zoom-purpose-slider input[type='range']::-webkit-slider-thumb {
+  border-color: #0f766e !important;
+  background: linear-gradient(145deg, #5eead4 0%, #0d9488 55%, #0f766e 100%) !important;
+}
+:host ::ng-deep .thumbnail-size-control ui-slider.zoom-purpose-slider input[type='range']::-moz-range-thumb {
+  border-color: #0f766e !important;
+  background: linear-gradient(145deg, #5eead4 0%, #0d9488 55%, #0f766e 100%) !important;
+}
+:host ::ng-deep .thumbnail-size-control ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-webkit-slider-thumb,
+:host ::ng-deep .thumbnail-size-control ui-slider.zoom-purpose-slider input[type='range']:hover:not(:disabled)::-moz-range-thumb {
+  border-color: #0f766e !important;
+  background: linear-gradient(145deg, #99f6e4 0%, #14b8a6 55%, #0d9488 100%) !important;
+}
