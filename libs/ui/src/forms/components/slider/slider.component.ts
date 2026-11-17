@@ -37,12 +37,12 @@ import { FormElementDirective } from '../../directives/form-element/form-element
     '[style.--track-color]': 'trackColor()',
     '[style.--indicator-color]': 'indicatorColor()',
     '[attr.role]': "'slider'",
-    '[attr.tabindex]': 'disabled ? -1 : 0',
+    '[attr.tabindex]': 'disabled || isDisabled() ? -1 : 0',
     '[attr.aria-valuemin]': 'min()',
     '[attr.aria-valuemax]': 'max()',
     '[attr.aria-valuenow]': 'currentValue()',
-    '[attr.aria-disabled]': 'disabled',
-    '[class.disabled]': 'disabled',
+    '[attr.aria-disabled]': 'disabled || isDisabled()',
+    '[class.disabled]': 'disabled || isDisabled()',
     '(keydown)': 'onKeyDown($event)'
   }
 })
@@ -56,6 +56,10 @@ export class SliderComponent extends FormElementDirective<number> {
   readonly value = input<number | undefined>(undefined);
 
   readonly valueChange = output<number>();
+
+  readonly color = input<string | undefined>(undefined);
+
+  readonly isDisabled = input(false);
 
   readonly variant = input<Variant>(allVariants[0]);
 
@@ -78,9 +82,9 @@ export class SliderComponent extends FormElementDirective<number> {
 
   private readonly trackRef = viewChild<unknown, ElementRef<HTMLDivElement>>('track', { read: ElementRef });
 
-  protected readonly trackColor = computed(() => `var(--color-element-${this.variant()}-low)`);
+  protected readonly trackColor = computed(() => this.color() ?? `var(--color-element-${this.variant()}-low)`);
 
-  protected readonly indicatorColor = computed(() => `var(--color-contrast-${this.variant()}-lowest)`);
+  protected readonly indicatorColor = computed(() => this.color() ?? `var(--color-contrast-${this.variant()}-lowest)`);
 
   override readonly writeValue = (value: number) => {
     this.currentValue.set(value);
@@ -102,7 +106,7 @@ export class SliderComponent extends FormElementDirective<number> {
       return;
     }
 
-    if (this.disabled) return;
+    if (this.disabled || this.isDisabled()) return;
 
     const min = this.min();
     const max = this.max();
@@ -131,7 +135,7 @@ export class SliderComponent extends FormElementDirective<number> {
   };
 
   protected readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (this.disabled) return;
+    if (this.disabled || this.isDisabled()) return;
     const increment = this.step() > 0 ? this.step() : 1;
     const pageIncrement = Math.max(increment, (this.max() - this.min()) / 10);
     let next = this.currentValue();
