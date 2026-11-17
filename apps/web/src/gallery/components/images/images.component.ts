@@ -180,9 +180,7 @@ export class ImagesComponent {
   readonly distinctSuffixCount = computed(() => new Set(
     (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
   ).size);
-  readonly unsupportedSuffixCount = computed(() => (this.images() ?? []).filter(image =>
-    !supportedFileExtensions.includes(this.getSuffix(image.name))
-  ).length);
+  readonly unsupportedSuffixCount = signal(0);
   readonly fullSizeConversionTotal = computed(() => {
     const statuses = this.cacheStatuses();
     return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
@@ -549,6 +547,26 @@ export class ImagesComponent {
   }
 
   constructor() {
+    effect(onCleanup => {
+      const folder = this.folderPath();
+      if (!folder) {
+        this.unsupportedSuffixCount.set(0);
+        return;
+      }
+      let active = true;
+      void this.fileSystem.readDir(folder).then(entries => {
+        if (!active || this.folderPath() !== folder) return;
+        this.unsupportedSuffixCount.set(entries.filter(entry =>
+          !entry.isDirectory && !supportedFileExtensions.includes(entry.ext.toLowerCase().replace(/^\\./, ''))
+        ).length);
+      }).catch(error => {
+        if (!active || this.folderPath() !== folder) return;
+        console.error('Failed to count unsupported image suffixes', error);
+        this.unsupportedSuffixCount.set(0);
+      });
+      onCleanup(() => { active = false; });
+    });
+
     effect(() => {
       const selectedPath = this.selectedImagePath();
       const images = this.images() ?? [];
