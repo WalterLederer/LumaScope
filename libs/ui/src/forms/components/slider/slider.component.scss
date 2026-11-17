@@ -27,7 +27,7 @@
     width: calc(var(--indicator-radius) * 2);
     height: calc(var(--indicator-radius) * 2);
     background: var(--indicator-color);
-    box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%), inset 0 1px 1px rgb(255 255 255 / 60%);
+    box-shadow: 0 2px 5px rgb(0 0 0 / 32%), 0 0 0 1px rgb(0 0 0 / 14%);
     transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
 
     left: var(--position);
@@ -53,7 +53,7 @@
 
 /* Keep non-zoom ui-slider instances on the same restrained interaction style. */
 :host(:hover) .container .indicator {
-  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 70%);
+  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--indicator-color) 24%, transparent);
 }
 
 /* Purpose styling for zoom and thumbnail-size sliders. ui-slider is a custom
