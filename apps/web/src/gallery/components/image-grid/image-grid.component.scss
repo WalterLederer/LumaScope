@@ -8,7 +8,7 @@
 }
 
 ui-toolbar {
-  margin-bottom: var(--dim-xx-large);
+  margin-bottom: var(--dim-medium);
 
   aside {
     margin-right: 0;
@@ -18,7 +18,7 @@ ui-toolbar {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    padding-right: 320px;
+    padding-right: 0;
   }
 }
 
@@ -133,8 +133,8 @@ ui-toolbar {
   contain: paint;
 
   &.details-mode {
-    width: max-content;
-    max-width: 100%;
+    width: 100%;
+    max-width: none;
     overflow-x: auto;
   }
 }
