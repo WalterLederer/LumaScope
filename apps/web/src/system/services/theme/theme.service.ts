@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { allButtonColors, ButtonColor, ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
+import { ButtonColor, ButtonStyle, Desktop, DisclosureStyle, TabBarStyle } from 'internal-api';
 import { Configuration } from '../configuration/configuration';
 
 export type AppTheme = 'dark' | 'light';
@@ -18,7 +18,7 @@ export class ThemeService {
 
   readonly buttonStyle = signal<ButtonStyle>('blue');
 
-  readonly buttonColor = signal<ButtonColor>('blue');
+  readonly buttonColor = signal<ButtonColor>('#287fc4');
 
   readonly themeColorSaturation = signal(100);
 
@@ -79,12 +79,41 @@ export class ThemeService {
     this.configuration.updatePreferencesConfig({ buttonColor: color });
   };
 
-  readonly buttonColorSliderValue = () => Math.max(0, allButtonColors.indexOf(this.buttonColor()));
+  readonly buttonColorSliderValue = () => {
+    const color = this.buttonColor();
+    const match = /^#([0-9a-f]{6})$/i.exec(color);
+    if (!match) return 29;
+    const value = Number.parseInt(match[1], 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    const max = Math.max(red, green, blue) / 255;
+    const min = Math.min(red, green, blue) / 255;
+    const delta = max - min;
+    let hue = 0;
+    if (delta !== 0) {
+      if (max === red / 255) hue = 60 * (((green - blue) / 255 / delta) % 6);
+      else if (max === green / 255) hue = 60 * ((blue - red) / 255 / delta + 2);
+      else hue = 60 * ((red - green) / 255 / delta + 4);
+    }
+    return Math.round((((hue + 360) % 360) / 360) * 49);
+  };
 
   readonly setButtonColorFromSlider = (value: number) => {
-    const index = Math.max(0, Math.min(allButtonColors.length - 1, Math.round(Number(value) || 0)));
-    this.setButtonColor(allButtonColors[index]);
+    const index = Math.max(0, Math.min(49, Math.round(Number(value) || 0)));
+    const hue = index * 360 / 50;
+    this.setButtonColor(this.hslToHex(hue, 100, 50));
   };
+
+  private hslToHex(hue: number, saturation: number, lightness: number): string {
+    const s = saturation / 100;
+    const l = lightness / 100;
+    const chroma = (1 - Math.abs(2 * l - 1)) * s;
+    const x = chroma * (1 - Math.abs((hue / 60) % 2 - 1));
+    const m = l - chroma / 2;
+    const [r, g, b] = hue < 60 ? [chroma, x, 0] : hue < 120 ? [x, chroma, 0] : hue < 180 ? [0, chroma, x] : hue < 240 ? [0, x, chroma] : hue < 300 ? [x, 0, chroma] : [chroma, 0, x];
+    return '#' + [r, g, b].map(channel => Math.round((channel + m) * 255).toString(16).padStart(2, '0')).join('');
+  }
 
   readonly setThemeColorSaturation = (saturation: number) => {
     const value = Math.max(0, Math.min(200, Math.round(Number(saturation) || 0)));
@@ -109,8 +138,27 @@ export class ThemeService {
   };
 
   private applyButtonColor(color: ButtonColor): void {
-    this.buttonColor.set(color);
-    this.document.documentElement.dataset['buttonColor'] = color;
+    const legacyColors: Record<string, string> = {
+      blue: '#287fc4', cyan: '#087b9f', green: '#197847', teal: '#0e706c',
+      orange: '#a64e12', red: '#a83749', purple: '#5d449c', gray: '#4f5d6e'
+    };
+    const normalized = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : legacyColors[color] ?? '#287fc4';
+    const root = this.document.documentElement;
+    this.buttonColor.set(normalized);
+    root.dataset['buttonColor'] = normalized;
+    root.style.setProperty('--theme-button-color', normalized);
+    root.style.setProperty('--button-border', 'color-mix(in srgb, var(--theme-button-color) 70%, white)');
+    root.style.setProperty('--button-gradient', 'linear-gradient(145deg, color-mix(in srgb, var(--theme-button-color) 78%, white) 0%, var(--theme-button-color) 52%, color-mix(in srgb, var(--theme-button-color) 72%, black) 100%)');
+    root.style.setProperty('--button-shadow', 'color-mix(in srgb, var(--theme-button-color) 70%, black)');
+    root.style.setProperty('--button-focus', 'color-mix(in srgb, var(--theme-button-color) 45%, white)');
+    root.style.setProperty('--button-text', 'var(--theme-button-color)');
+    root.style.setProperty('--button-border-strong', 'var(--theme-button-color)');
+    root.style.setProperty('--button-soft-bg', 'color-mix(in srgb, var(--theme-button-color) 14%, white)');
+    root.style.setProperty('--button-soft-text', 'color-mix(in srgb, var(--theme-button-color) 78%, black)');
+    root.style.setProperty('--button-soft-border', 'color-mix(in srgb, var(--theme-button-color) 30%, white)');
+    root.style.setProperty('--button-rounded-bg', 'var(--theme-button-color)');
+    root.style.setProperty('--button-rounded-hover', 'color-mix(in srgb, var(--theme-button-color) 85%, black)');
+    root.style.setProperty('--button-rounded-active', 'color-mix(in srgb, var(--theme-button-color) 70%, black)');
   }
 
   private applyThemeColorSaturation(saturation: number): void {
