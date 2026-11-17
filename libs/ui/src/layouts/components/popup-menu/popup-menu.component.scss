@@ -14,3 +14,9 @@
   border-radius: var(--border-radius);
   overflow: hidden;
 }
+
+/* Browse dropdowns use the gallery's own surface; only the menu items carry
+   their selected button styling, not an extra opaque white panel. */
+:host(.gallery-dropdown-menu) {
+  background: transparent;
+}
