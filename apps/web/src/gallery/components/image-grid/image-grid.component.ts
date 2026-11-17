@@ -117,7 +117,7 @@ export class ImageGridComponent {
 
   protected readonly formatOsDateTime = (value: number | Date): string => {
     const date = value instanceof Date ? value : new Date(value);
-    const datePart = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+    const datePart = new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
     const timePart = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(date);
     return `${datePart} ${timePart}`;
   };
