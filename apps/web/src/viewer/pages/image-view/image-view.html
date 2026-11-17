@@ -496,6 +496,25 @@
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
         <app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />
+        <section class="image-exif-xmp-section app-disclosure" aria-label="EXIF and XMP metadata">
+          <div class="image-exif-xmp-header">
+            <span class="section-heading">EXIF/XMP</span>
+            <button type="button" class="image-exif-xmp-check" [disabled]="exifXmpCheckRunning()" (click)="checkExifXmp(selected.path)">{{exifXmpCheckRunning() ? 'Checking…' : 'Check'}}</button>
+          </div>
+          @if (exifXmpPath() === selected.path && exifXmpStatus()) {
+            <div class="image-exif-xmp-status" role="status">{{exifXmpStatus()}}</div>
+          }
+          @if (exifXmpPath() === selected.path && exifXmpFields().length) {
+            <div class="image-exif-xmp-fields" role="list" aria-label="Date, camera and GPS metadata">
+              @for (field of exifXmpFields(); track field.key) {
+                <div class="image-exif-xmp-field" role="listitem">
+                  <span class="image-exif-xmp-key">{{field.key}}</span>
+                  <span class="image-exif-xmp-value">{{field.value}}</span>
+                </div>
+              }
+            </div>
+          }
+        </section>
       }
 @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'actions') {
         <section class="image-actions-section">
