@@ -5,13 +5,13 @@
 <div class="thumbnail-preview">
   @if (loading) {
     <div class="message">
-      <ui-caption>{{ isCacheStatusReady() ? (isCaching() ? 'Caching...' : 'Loading...') : 'Checking...' }}</ui-caption>
+      <ui-caption [title]="thumbnailError() ?? ''">{{ isCacheStatusReady() ? (isCaching() ? 'Caching...' : 'Loading...') : 'Checking...' }}</ui-caption>
     </div>
   }
 
   @if (error) {
     <div class="message">
-      <ui-caption variant="warn">Failed to load an image</ui-caption>
+      <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
     </div>
   }
 
@@ -36,10 +36,10 @@
   <div class="detail-columns">
     <span class="detail-name" [title]="image().name">{{ image().name }}</span>
     <span>{{ image().modifiedAt | date: 'yyyy-MM-dd HH:mm:ss' }}</span>
-    <span>{{ imageDimensions() }}</span>
+    <span [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</span>
     <span>{{ formattedFileSize() }}</span>
     <span>{{ imageSuffix() }}</span>
-    <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'">{{ dynamicRangeLabel() }}</span>
+    <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</span>
     <span class="detail-thumb" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
     <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
