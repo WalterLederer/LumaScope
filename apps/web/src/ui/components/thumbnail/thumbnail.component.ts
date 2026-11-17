@@ -68,6 +68,13 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly locationDisplayName = input<string | null>(null);
 
+  readonly gpsDateLabel = computed(() => {
+    const timestamp = this.cacheStatus()?.gpsTimestamp;
+    return timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)
+      ? '—'
+      : this.formatOsDateTime(timestamp * 1000);
+  });
+
   readonly gpsCoordinates = computed(() => {
     const status = this.cacheStatus();
     if (status?.latitude === null || status?.latitude === undefined || status.longitude === null || status.longitude === undefined) return '—';
