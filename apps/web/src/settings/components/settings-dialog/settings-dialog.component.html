@@ -132,7 +132,7 @@
           <span>Background Reverse Geocoding</span>
           <span class="reverse-geocoding-state" [class.running]="reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused"
                 [class.completed]="reverseGeocodingStatus().status === 'completed'">
-            {{ reverseGeocodingStatus().paused ? 'Paused' : reverseGeocodingStatus().status === 'running' ? 'Running' : reverseGeocodingStatus().status === 'completed' ? 'Completed' : 'Idle' }}
+            {{ reverseGeocodingStatus().paused ? 'Paused' : reverseGeocodingStatus().status === 'running' ? 'Running' : reverseGeocodingStatus().status === 'completed' ? 'Completed' : reverseGeocodingStatus().pending > 0 ? 'Idle - ' + reverseGeocodingStatus().pending + ' pending' : 'Idle' }}
           </span>
         </summary>
         <div class="cache-box-content">
