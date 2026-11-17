@@ -22,7 +22,9 @@ export class ThemeService {
 
   readonly themeColorSaturation = signal(100);
 
-  readonly themeColorBrightness = signal(100);
+  readonly themeTotalBrightness = signal(100);
+
+  readonly themeBackgroundBrightness = signal(100);
 
   readonly disclosureStyle = signal<DisclosureStyle>('classic');
 
@@ -57,7 +59,8 @@ export class ThemeService {
         this.applyButtonStyle(style);
         this.applyButtonColor(config.preferences?.buttonColor ?? 'blue');
         this.applyThemeColorSaturation(config.preferences?.themeColorSaturation ?? 100);
-        this.applyThemeColorBrightness(config.preferences?.themeColorBrightness ?? 100);
+        this.applyThemeTotalBrightness(config.preferences?.themeTotalBrightness ?? config.preferences?.themeColorBrightness ?? 100);
+        this.applyThemeBackgroundBrightness(config.preferences?.themeBackgroundBrightness ?? 100);
         this.applyDisclosureStyle(config.preferences?.disclosureStyle ?? 'classic');
         this.applyTabBarStyle(config.preferences?.tabBarStyle ?? 'classic');
       });
@@ -121,10 +124,16 @@ export class ThemeService {
     this.configuration.updatePreferencesConfig({ themeColorSaturation: value });
   };
 
-  readonly setThemeColorBrightness = (brightness: number) => {
+  readonly setThemeTotalBrightness = (brightness: number) => {
     const value = Math.max(50, Math.min(150, Math.round(Number(brightness) || 50)));
-    this.applyThemeColorBrightness(value);
-    this.configuration.updatePreferencesConfig({ themeColorBrightness: value });
+    this.applyThemeTotalBrightness(value);
+    this.configuration.updatePreferencesConfig({ themeTotalBrightness: value });
+  };
+
+  readonly setThemeBackgroundBrightness = (brightness: number) => {
+    const value = Math.max(50, Math.min(150, Math.round(Number(brightness) || 50)));
+    this.applyThemeBackgroundBrightness(value);
+    this.configuration.updatePreferencesConfig({ themeBackgroundBrightness: value });
   };
 
   readonly setDisclosureStyle = (style: DisclosureStyle) => {
@@ -167,10 +176,19 @@ export class ThemeService {
     this.document.documentElement.style.setProperty('--theme-color-saturation', `${value}%`);
   }
 
-  private applyThemeColorBrightness(brightness: number): void {
+  private applyThemeTotalBrightness(brightness: number): void {
     const value = Math.max(50, Math.min(150, brightness));
-    this.themeColorBrightness.set(value);
-    this.document.documentElement.style.setProperty('--theme-color-brightness', `${value}%`);
+    this.themeTotalBrightness.set(value);
+    this.document.documentElement.style.setProperty('--theme-total-brightness', `${value}%`);
+  }
+
+  private applyThemeBackgroundBrightness(brightness: number): void {
+    const value = Math.max(50, Math.min(150, brightness));
+    const root = this.document.documentElement;
+    this.themeBackgroundBrightness.set(value);
+    root.style.setProperty('--theme-background-brightness', `${value}%`);
+    root.style.setProperty('--theme-background-overlay-color', value < 100 ? '#000' : '#fff');
+    root.style.setProperty('--theme-background-overlay-opacity', String(Math.abs(value - 100) / 100));
   }
 
   private applyTabBarStyle(style: TabBarStyle): void {
