@@ -614,7 +614,7 @@
                             [cacheBuildActive]="galleryCacheBuild.cacheRunActive()"
                             [cacheBuildProgress]="galleryCacheBuild.cacheRunProgress()"
                             [cacheBuildCurrentOperation]="galleryCacheBuild.cacheRunCurrentOperation()"
-                            [currentFolderPath]="galleryCacheBuild.currentFolderPath()"
+                            [currentFolderPath]="imageFolderPath(selected?.path ?? '') || (gallerySelectedLocation() ?? '')"
                             [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
                             (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
                             [startCacheBuild]="galleryCacheBuild.startCacheBuild"
