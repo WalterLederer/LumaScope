@@ -107,10 +107,21 @@ export class Configuration {
       return;
     }
 
+    const storedPreferences = existing.data.preferences;
+    const legacyBrightnessMigration = storedPreferences?.themeTotalBrightness === undefined
+      && storedPreferences?.themeColorBrightness !== undefined
+      ? { themeTotalBrightness: storedPreferences.themeColorBrightness }
+      : {};
+
     this.config$.next({
       ...this._defaultConfig,
       ...existing.data,
-      preferences: { ...this._defaultConfig.preferences, ...existing.data.preferences, ...this.pendingPreferences }
+      preferences: {
+        ...this._defaultConfig.preferences,
+        ...storedPreferences,
+        ...legacyBrightnessMigration,
+        ...this.pendingPreferences
+      }
     });
   };
 
