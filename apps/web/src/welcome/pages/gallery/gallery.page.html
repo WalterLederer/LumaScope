@@ -73,15 +73,15 @@
 <ng-template #galleryMenu let-data="data">
   <ui-popup-menu cdkMenu>
     @if (data.id === '') {
-      <ui-action-button class="add-location-menu-button" cdkMenuItem (pressed)="onAddLocation()">
+      <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onAddLocation()">
         <ui-icon icon="folderAdd" [inherit]="true" />
         <ui-text [inherit]="true">Add new location</ui-text>
-      </ui-action-button>
+      </button>
     } @else {
-      <ui-action-button class="remove-location-menu-button" cdkMenuItem variant="warn" (pressed)="onRemoveLocation(data)">
+      <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onRemoveLocation(data)">
         <ui-icon icon="folderProhibited" [inherit]="true" />
         <ui-text [inherit]="true">Remove</ui-text>
-      </ui-action-button>
+      </button>
     }
   </ui-popup-menu>
 </ng-template>
