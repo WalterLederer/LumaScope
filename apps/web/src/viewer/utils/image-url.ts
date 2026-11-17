@@ -1,10 +1,11 @@
 import { appPaths, appProtocol } from 'internal-api';
 
-export function imageUrl(selectedFile: string): string {
+export function imageUrl(selectedFile: string, refreshToken = 0): string {
   const result = new URL(`${appProtocol}://app`);
 
   result.pathname = appPaths.raw;
   result.searchParams.set('image', selectedFile);
+  if (refreshToken > 0) result.searchParams.set('refresh', refreshToken.toString());
 
   return result.toString();
 }
