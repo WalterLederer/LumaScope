@@ -36,6 +36,7 @@ import { GalleryViewMode } from '../images/images.component.types';
 @Component({
   selector: 'app-image-grid',
   imports: [
+    ImagesComponent,
     ToolbarComponent,
     TitleComponent,
     ActionButtonComponent,
