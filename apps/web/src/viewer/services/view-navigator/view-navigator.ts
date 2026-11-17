@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, take, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, pairwise, take, tap, withLatestFrom } from 'rxjs';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { imageUrl } from '../../utils/image-url';
@@ -19,6 +19,23 @@ export class ViewNavigator {
   private readonly cacheRevision$ = toObservable(this.cacheManager.cacheRevision);
 
   private readonly selectedIndex$ = new BehaviorSubject(-1);
+
+  constructor() {
+    // Sorting or refreshing the gallery can reorder the image array. Keep the
+    // selected file stable by translating its old index to its new index.
+    // Otherwise the same numeric index would silently select a different file
+    // and ImageView would interpret that as an explicit image selection.
+    this.images$
+      .pipe(pairwise(), withLatestFrom(this.selectedIndex$))
+      .subscribe(([[previousImages, currentImages], selectedIndex]) => {
+        if (selectedIndex < 0 || selectedIndex >= previousImages.length) return;
+        const selectedPath = previousImages[selectedIndex].path;
+        const nextIndex = currentImages.findIndex(image => image.path === selectedPath);
+        if (nextIndex >= 0 && nextIndex !== selectedIndex) {
+          this.selectedIndex$.next(nextIndex);
+        }
+      });
+  }
 
   private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
     this.images$,
