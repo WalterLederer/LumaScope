@@ -64,33 +64,42 @@ export class SliderComponent extends FormElementDirective<number> {
   };
 
   protected readonly onMouseDown = (event: MouseEvent) => {
-    if (event.target instanceof HTMLDivElement) {
-      const track = this.trackRef()?.nativeElement;
-
-      if (track === undefined) {
-        return;
-      }
-
-      const position = this.position();
-      const min = this.min();
-      const max = this.max();
-      const width = track.offsetWidth;
-      const origin = width * position;
-
-      this.mouseTrackerService
-        .mouseDown(event)
-        .pipe(
-          takeUntilDestroyed(this.destroyRef),
-          map(state => this.getX(origin, state, width)),
-          map(x => x / width),
-          map(x => (max - min) * x + min),
-          distinctUntilChanged()
-        )
-        .subscribe(value => {
-          this.currentValue.set(value);
-          this.onChange(value);
-        });
+    if (event.button !== 0) {
+      return;
     }
+
+    const track = this.trackRef()?.nativeElement;
+    if (!track) {
+      return;
+    }
+
+    const bounds = track.getBoundingClientRect();
+    const width = bounds.width;
+    if (width <= 0) {
+      return;
+    }
+
+    const min = this.min();
+    const max = this.max();
+    const origin = Math.max(0, Math.min(width, event.clientX - bounds.left));
+    const initialValue = min + (max - min) * (origin / width);
+
+    this.currentValue.set(initialValue);
+    this.onChange(initialValue);
+
+    this.mouseTrackerService
+      .mouseDown(event)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        map(state => this.getX(origin, state, width)),
+        map(x => x / width),
+        map(x => (max - min) * x + min),
+        distinctUntilChanged()
+      )
+      .subscribe(value => {
+        this.currentValue.set(value);
+        this.onChange(value);
+      });
   };
 
   private readonly getX = (origin: number, state: MouseMovement, width: number): number => {
