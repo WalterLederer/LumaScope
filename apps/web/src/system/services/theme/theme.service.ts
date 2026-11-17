@@ -20,6 +20,8 @@ export class ThemeService {
 
   readonly buttonColor = signal<ButtonColor>('#287fc4');
 
+  readonly zoomSliderColor = signal('#14b8a6');
+
   readonly themeColorSaturation = signal(100);
 
   readonly themeTotalBrightness = signal(100);
@@ -58,6 +60,7 @@ export class ThemeService {
         const style = config.preferences?.buttonStyle ?? (config.system.flatStandardButtons ? 'flat' : 'blue');
         this.applyButtonStyle(style);
         this.applyButtonColor(config.preferences?.buttonColor ?? 'blue');
+        this.applyZoomSliderColor(config.preferences?.zoomSliderColor ?? '#14b8a6');
         this.applyThemeColorSaturation(config.preferences?.themeColorSaturation ?? 100);
         this.applyThemeTotalBrightness(config.preferences?.themeTotalBrightness ?? config.preferences?.themeColorBrightness ?? 100);
         this.applyThemeBackgroundBrightness(config.preferences?.themeBackgroundBrightness ?? 100);
@@ -108,6 +111,31 @@ export class ThemeService {
     this.setButtonColor(this.hslToHex(hue, 100, 50));
   };
 
+  readonly zoomSliderColorValue = () => {
+    const match = /^#([0-9a-f]{6})$/i.exec(this.zoomSliderColor());
+    if (!match) return 24;
+    const value = Number.parseInt(match[1], 16);
+    const red = (value >> 16) & 255, green = (value >> 8) & 255, blue = value & 255;
+    const max = Math.max(red, green, blue) / 255, min = Math.min(red, green, blue) / 255;
+    const delta = max - min;
+    let hue = 0;
+    if (delta !== 0) {
+      if (max === red / 255) hue = 60 * (((green - blue) / 255 / delta) % 6);
+      else if (max === green / 255) hue = 60 * ((blue - red) / 255 / delta + 2);
+      else hue = 60 * ((red - green) / 255 / delta + 4);
+    }
+    return Math.round((((hue + 360) % 360) / 360) * 49);
+  };
+
+  readonly setZoomSliderColorFromSlider = (value: number) => {
+    const index = Math.max(0, Math.min(49, Math.round(Number(value) || 0)));
+    const hue = index * 360 / 50;
+    const color = this.hslToHex(hue, 100, 50);
+    this.zoomSliderColor.set(color);
+    this.document.documentElement.style.setProperty('--zoom-slider-color', color);
+    this.configuration.updatePreferencesConfig({ zoomSliderColor: color });
+  };
+
   private hslToHex(hue: number, saturation: number, lightness: number): string {
     const s = saturation / 100;
     const l = lightness / 100;
@@ -145,6 +173,12 @@ export class ThemeService {
     this.applyTabBarStyle(style);
     this.configuration.updatePreferencesConfig({ tabBarStyle: style });
   };
+
+  private applyZoomSliderColor(color: string): void {
+    const normalized = /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : '#14b8a6';
+    this.zoomSliderColor.set(normalized);
+    this.document.documentElement.style.setProperty('--zoom-slider-color', normalized);
+  }
 
   private applyButtonColor(color: ButtonColor): void {
     const legacyColors: Record<string, string> = {
