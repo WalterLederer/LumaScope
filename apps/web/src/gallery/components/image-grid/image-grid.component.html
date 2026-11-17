@@ -64,6 +64,7 @@
 
 <div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox>
   <app-images [images]="images()"
+              [cacheStats]="cacheStats()"
               [folderPath]="selectedLocation()"
               [sortBy]="sortBy()"
               [sortDirection]="sortDirection()"
@@ -83,45 +84,6 @@
             (click)="refreshGallery()">↻</button>
   </div>
   <ui-text>
-    <strong>Total: {{ cacheStats().total }}</strong>,
-    <span class="status-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total"
-          [attr.title]="cacheStats().thumbnails < cacheStats().total ? 'Some thumbnails have not been generated yet' : 'All thumbnails are generated'">
-      Thumb: {{ cacheStats().thumbnails }}
-    </span>,
-    Full-Size Conversion: {{ cacheStats().fullSizeConversions }},
-    <span class="status-count" [class.incomplete]="cacheStats().gps < cacheStats().total"
-          [attr.title]="cacheStats().gps < cacheStats().total ? 'Some images have no GPS coordinates' : 'All images have GPS coordinates'">
-      GPS: {{ cacheStats().gps }}
-    </span>,
-    <span class="status-count" [class.incomplete]="cacheStats().hdr < cacheStats().total"
-          [attr.title]="cacheStats().hdr < cacheStats().total ? 'Some images are not identified as HDR' : 'All images are identified as HDR'">
-      HDR: {{ cacheStats().hdr }}
-    </span>,
-    <span class="status-count" [class.incomplete]="cacheStats().location < cacheStats().total"
-          [attr.title]="cacheStats().location < cacheStats().total ? 'Some images have no resolved location name' : 'All images have resolved location names'">
-      Location: {{ cacheStats().location }}
-    </span>
-    @if (hoveredFolderPath(); as folderPath) {
-      · {{ folderPath }}
-    } @else if (hoveredImage(); as image) {
-      @let tags = hoveredTags();
-      @let bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
-      @if (tags !== null) {
-        ·
-        <strong class="dynamic-range" [class.hdr]="imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') === 'HDR'">
-          {{ imageDynamicRange(image.path, tags, bits === null ? null : bits + '-bit') }}
-        </strong>
-      }
-      · {{ image.name }}
-      @if (tags?.ImageWidth && tags?.ImageHeight) {
-        · {{ formatPixelDimension(tags?.ImageWidth) }} x {{ formatPixelDimension(tags?.ImageHeight) }}
-      }
-      · {{ image.size | number: '1.0-0' }} bytes
-      @if (image.modifiedAt !== undefined) {
-        · {{ image.modifiedAt | date: 'yyyy-MM-dd HH:mm:ss' }}
-      }
-    }
-  </ui-text>
 </ui-toolbar>
 
 <ng-template #viewModeMenu>
