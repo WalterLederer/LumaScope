@@ -933,7 +933,7 @@ html input[type='range']:not(.time-slider-range-input)::-moz-range-thumb {
 }
 html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-webkit-slider-thumb,
 html input[type='range']:not(.time-slider-range-input):hover:not(:disabled)::-moz-range-thumb {
-  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent);
+  box-shadow: 0 3px 7px rgb(0 0 0 / 42%), 0 0 0 3px color-mix(in srgb, var(--button-border-strong, #3988c8) 24%, transparent), inset 0 1px 1px rgb(255 255 255 / 60%);
 }
 html input[type='range']:not(.time-slider-range-input):active:not(:disabled)::-webkit-slider-thumb,
 html input[type='range']:not(.time-slider-range-input):focus-visible::-webkit-slider-thumb,
