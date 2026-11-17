@@ -639,4 +639,13 @@ app-map-window {
     .marker-first-row{width:100%;min-height:30px}
     .resource-package-scan-toolbar{width:100%;min-width:0}
 
+    /* Row action menus are viewport overlays: they must not be clipped by scrollable lists. */
+    .gpx-row-action-menu-floating,
+    .offline-row-action-menu{position:fixed!important;top:auto;right:auto;left:auto;z-index:5000;max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain}
+    .gpx-toolbar{width:100%;min-width:0}
+    .gpx-toolbar .gpx-toolbar-help{margin-left:auto!important;flex:0 0 30px!important}
+    .time-slider-no-data-row{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
+    .time-slider-no-data-row .time-slider-help{flex:1 1 auto;min-width:0}
+    .time-slider-no-data-row .time-slider-inline-help{margin-left:auto!important;flex:0 0 30px!important}
+
 }
