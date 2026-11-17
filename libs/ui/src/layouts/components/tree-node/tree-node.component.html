@@ -13,10 +13,10 @@
 
 <div class="spacer"></div>
 
-@if (inlineActions() && currentNode.id !== undefined) {
+@if (inlineActions() && level() <= 1) {
   <button type="button"
           class="tree-inline-action"
-          [attr.aria-label]="currentNode.id === '' ? 'Add location' : 'Remove favourite'"
+          [attr.aria-label]="String(currentNode.id) === '' ? 'Add location' : 'Remove favourite'"
           [title]="currentNode.id === '' ? 'Add location' : 'Remove favourite'"
           (click)="onAction($event)"
           uiStopPropagation>{{ currentNode.id === '' ? '+' : 'x' }}</button>
