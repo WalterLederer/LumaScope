@@ -313,8 +313,6 @@ interface MapErrorEntry {
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
         <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
       } @else {
-        <button type="button" class="gpx-list-action-button" (click)="selectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Select all</button>
-        <button type="button" class="gpx-list-action-button" (click)="deselectAllGpxTracks()" [disabled]="gpxTracks().length === 0">Deselect all</button>
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
       <details class="gpx-database-columns app-disclosure">
@@ -390,6 +388,11 @@ interface MapErrorEntry {
                                     <button type="button" role="menuitem" (click)="removeGpxTrack(track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">×</span> Remove track</button>
                                   }
                                   <button type="button" role="menuitem" (click)="copyFilePath(track.databasePath || track.path); gpxRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy full file path</button>
+                                  @if (gpxListMode() === 'recent') {
+                                    <div class="gpx-row-action-menu-separator" role="separator"></div>
+                                    <button type="button" role="menuitem" (click)="selectAllGpxTracks(); gpxRowActionMenuOpen.set(null)" [disabled]="gpxTracks().length === 0">Select all</button>
+                                    <button type="button" role="menuitem" (click)="deselectAllGpxTracks(); gpxRowActionMenuOpen.set(null)" [disabled]="gpxTracks().length === 0">Deselect all</button>
+                                  }
                                 </div>
                               }
                             </div>
