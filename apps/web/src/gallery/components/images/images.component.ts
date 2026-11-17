@@ -417,7 +417,9 @@ export class ImagesComponent {
                 const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
                 if (!fullSizeResponse.ok) {
                   const responseDetails = (await fullSizeResponse.text()).trim();
-                  throw new Error(`Full-size conversion failed (HTTP ${fullSizeResponse.status}${responseDetails ? `: ${responseDetails}` : ''})`);
+                  throw new Error(responseDetails
+                    ? `Full-size conversion failed: ${responseDetails}`
+                    : `Full-size conversion failed (HTTP ${fullSizeResponse.status} ${fullSizeResponse.statusText}).`);
                 }
                 fullSizeConversionsGenerated++;
                 await fullSizeResponse.body?.cancel();
