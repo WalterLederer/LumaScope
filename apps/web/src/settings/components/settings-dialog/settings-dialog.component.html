@@ -3,26 +3,6 @@
 
 <div class="settings-panel">
 
-  @if (mode() !== 'cache' && mode() !== 'help') {
-  <section>
-    <div class="setting-row setting-config-path">
-      <div class="cache-path-details">
-        <strong class="setting-section-title">Settings file</strong>
-        <code>{{ configPath() || 'Loading path…' }}</code>
-      </div>
-      <button class="cache-button"
-              type="button"
-              [disabled]="!configPath()"
-              (click)="openConfigFile()">
-        Open settings file
-      </button>
-    </div>
-    @if (configFileError() !== null) {
-      <p class="cache-status error" role="alert">Could not open settings file: {{ configFileError() }}</p>
-    }
-  </section>
-
-  }
 
   @if (mode() === 'cache') {
     <section class="cache-summary-section">
