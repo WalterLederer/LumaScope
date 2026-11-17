@@ -5,7 +5,10 @@
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <div class="detail-header">
-      <span></span>
+      <span class="thumb-column-heading">
+        <span>Thumb</span>
+        <small>{{ dimensions().width }} × {{ dimensions().height }} px</small>
+      </span>
       <button type="button" (click)="sortDetailsBy('name')">
         <span>Name{{ sortIndicator('name') }}</span>
         <small class="column-count">{{ cacheStats().total }}</small>
