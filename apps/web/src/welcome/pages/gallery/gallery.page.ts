@@ -34,7 +34,6 @@ import { Keyboard } from '../../../system/services/keyboard/keyboard';
     ImageGridComponent,
     SidePanelComponent,
     TreeComponent,
-    ActionButtonComponent,
     CdkMenu,
     CdkMenuItem,
     IconComponent,
