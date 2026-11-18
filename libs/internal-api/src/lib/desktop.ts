@@ -89,6 +89,11 @@ export interface FixPhotoLocationsResult {
   maxDeviationSeconds: number | null;
   errors: number;
   aborted: boolean;
+  gpxFromTimestamp: number | null;
+  gpxToTimestamp: number | null;
+  photoFromTimestamp: number | null;
+  photoToTimestamp: number | null;
+  databaseKeys: string[];
 }
 
 export interface FixPhotoLocationsProgress {
@@ -109,6 +114,11 @@ export interface FixPhotoLocationsProgress {
   elapsedMilliseconds: number;
   rootFolder: string;
   currentFolder: string;
+  gpxFromTimestamp: number | null;
+  gpxToTimestamp: number | null;
+  photoFromTimestamp: number | null;
+  photoToTimestamp: number | null;
+  databaseKeys: string[];
 }
 
 export interface DesktopExif {
@@ -154,6 +164,7 @@ export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number; timestampedPoints: number }>;
+  readonly getGpxDatabaseTimeRange: (databaseKey?: string) => Promise<{ from: number | null; to: number | null }>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
   readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
