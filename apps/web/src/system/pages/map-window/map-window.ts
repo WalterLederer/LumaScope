@@ -892,6 +892,13 @@ interface MapErrorEntry {
           <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
           <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
           <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
+          <div class="range-setting photo-preview-size-setting">
+            <label for="photo-preview-size">Photo marker preview width</label>
+            <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
+              [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
+              [color]="themeService.sliderColor()" aria-label="Photo marker preview width" />
+            <span class="range-value">{{ photoPreviewSize() }} px</span>
+          </div>
         </div>
       </details>
       <details class="render-statistics-section app-disclosure">
@@ -1577,6 +1584,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly renderWorkerCount = signal(this.readNumber('renderWorkerCount', 2, 1, 4));
+  protected readonly photoPreviewSize = signal(this.readNumber('photoPreviewSize', 120, 60, 240));
   protected readonly offlineRenderTasks = signal<OfflineRenderTaskStatus[]>([]);
   private offlineRenderStatusUnsubscribe: (() => void) | null = null;
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
@@ -1765,6 +1773,15 @@ export class MapWindow implements OnInit, OnDestroy {
     this.renderWorkerCount.set(next);
     this.saveSetting('renderWorkerCount', next);
     setOfflineRenderConcurrency(next);
+  };
+  protected readonly changePhotoPreviewSize = (value: string | number): void => {
+    const size = Number(value);
+    if (!Number.isFinite(size)) return;
+    const next = Math.max(60, Math.min(240, Math.round(size / 10) * 10));
+    this.photoPreviewSize.set(next);
+    this.saveSetting('photoPreviewSize', next);
+    this.offlineRenderer?.setPhotoPreviewSize(next);
+    if (this.leaflet && this.directoryMarkerGroup) this.applyDirectoryPhotoMarkers();
   };
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
@@ -3594,7 +3611,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const marker = this.leaflet!.marker([item.latitude, item.longitude], {
         icon: this.createImageMarkerIcon(false)
       }).setOpacity((this.markersVisible() ? this.markerOpacity() / 100 : 0));
-      marker.bindTooltip(buildPhotoMarkerPreviewHtml(item.path, item.fileName), {
+      marker.bindTooltip(buildPhotoMarkerPreviewHtml(item.path, item.fileName, this.photoPreviewSize()), {
         direction: 'top', className: 'folder-marker-tooltip', opacity: 1
       });
       marker.on('click', () => { void this.desktop?.MapWindow.selectImage(item.path); });
