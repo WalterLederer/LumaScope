@@ -22,7 +22,7 @@
               @for (database of cacheSummary().databases; track database.key) {
                 <option [value]="database.key">{{ database.key }} · {{ database.path }}</option>
               } @empty {
-                <option value="">No active cache database</option>
+                <option value="">No cache databases found</option>
               }
             </select>
           </label>
