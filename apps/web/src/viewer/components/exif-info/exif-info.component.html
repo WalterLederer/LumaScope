@@ -7,7 +7,7 @@
 @if (mode() !== 'cache') {
 <section class="info-box file-info">
   <details class="app-disclosure">
-    <summary>File · Size {{ fileSize() | byteSize }} · Modified {{ timestamp === undefined ? '—' : (timestamp | date: 'dd.MM.yyyy, HH:mm:ss') }}</summary>
+    <summary>File · Size {{ fileSize() | byteSize }} · Modified {{ timestamp === undefined ? '—' : formatModifiedAt(timestamp) }}</summary>
   <dl>
     @if (exifData === false) {
       <dt>Loading...</dt><dd></dd>
@@ -16,7 +16,7 @@
       @if (exifData.Directory !== undefined) { <dt>Directory</dt><dd>{{ exifData.Directory }}</dd> }
       <dt>File size</dt><dd>{{ fileSize() | byteSize }}</dd>
       <dt>Dimensions</dt><dd>{{ dims.width }} x {{ dims.height }}</dd>
-      @if (timestamp !== undefined) { <dt>Last modified</dt><dd>{{ timestamp | date: 'dd.MM.yyyy, HH:mm:ss' }}</dd> }
+      @if (timestamp !== undefined) { <dt>Last modified</dt><dd>{{ formatModifiedAt(timestamp) }}</dd> }
       <dt>Format</dt><dd>{{ exifData.FileType }}</dd>
       <dt>MIME type</dt><dd>{{ exifData.MIMEType }}</dd>
       @if (exifData.Comment !== undefined) { <dt>Comment</dt><dd>{{ exifData.Comment }}</dd> }
