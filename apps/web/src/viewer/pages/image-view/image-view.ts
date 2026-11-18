@@ -1112,12 +1112,32 @@ export class ImageView {
       });
     }
 
+    // Match the timestamp priority used by GPS Auto Fix, including camera
+    // timestamps embedded in filenames (important for Android/ADB copies).
+    const filenameDateMatch = fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_-]?(\\d{2})(\\d{2})(\\d{2})(?=[^0-9]|$)/);
+    let filenameTimestamp: Date | null = null;
+    if (filenameDateMatch) {
+      const [, year, month, day, hour, minute, second] = filenameDateMatch;
+      const parsed = new Date(
+        Number(year), Number(month) - 1, Number(day),
+        Number(hour), Number(minute), Number(second)
+      );
+      if (parsed.getFullYear() === Number(year)
+        && parsed.getMonth() === Number(month) - 1
+        && parsed.getDate() === Number(day)
+        && parsed.getHours() === Number(hour)
+        && parsed.getMinutes() === Number(minute)
+        && parsed.getSeconds() === Number(second)) {
+        filenameTimestamp = parsed;
+      }
+    }
     const timestampCandidates: Array<{ name: string; value: unknown; assumeUtc: boolean }> = [
-      { name: 'GPSDateTime', value: findTag('GPSDateTime'), assumeUtc: true },
+      { name: 'EXIF:GPSDateTime', value: findTag('GPSDateTime'), assumeUtc: true },
       { name: 'XMP:GPSDateTime', value: findTag('XMP:GPSDateTime'), assumeUtc: true },
-      { name: 'DateTimeOriginal', value: findTag('DateTimeOriginal'), assumeUtc: false },
+      { name: 'Filename:YYYYMMDD_HHmmss', value: filenameTimestamp, assumeUtc: false },
+      { name: 'EXIF:DateTimeOriginal', value: findTag('DateTimeOriginal'), assumeUtc: false },
       { name: 'XMP:DateCreated', value: findTag('XMP:DateCreated'), assumeUtc: false },
-      { name: 'CreateDate', value: findTag('CreateDate'), assumeUtc: false }
+      { name: 'EXIF:CreateDate', value: findTag('CreateDate'), assumeUtc: false }
     ];
     const selectedTimestamp = timestampCandidates
       .map(candidate => ({ ...candidate, date: this.parseExifXmpDate(candidate.value, candidate.assumeUtc) }))
@@ -1151,6 +1171,11 @@ export class ImageView {
       value: formatGpsCoordinates(signedLatitude, signedLongitude) !== '—'
         ? formatGpsCoordinates(signedLatitude, signedLongitude) + (useXmp ? ' (XMP)' : ' (EXIF)')
         : '—'
+    });
+    rows.push({
+      source: 'App',
+      name: 'GPS Date Source',
+      value: selectedTimestamp?.name ?? '—'
     });
     return rows;
   });
