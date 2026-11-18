@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener,
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, SliderComponent } from '@light-matter/ui';
-import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord } from 'internal-api';
+import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatOsDateTime } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
@@ -1014,7 +1014,7 @@ export class ImageView {
   private readonly formatExifXmpDate = (value: unknown): string => {
     const date = this.parseExifXmpDate(value);
     if (!date) return this.formatExifXmpValue('', value);
-    return date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    return formatOsDateTime(date);
   };
   private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
@@ -1087,7 +1087,7 @@ export class ImageView {
     rows.push({
       source: 'App',
       name: 'GPS Date',
-      value: selectedTimestamp?.date ? selectedTimestamp.date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '—'
+      value: selectedTimestamp?.date ? formatOsDateTime(selectedTimestamp.date) : '—'
     });
 
     const exifLatitudeValue = findTag('GPSLatitude');
