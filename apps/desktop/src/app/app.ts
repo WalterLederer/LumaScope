@@ -421,15 +421,25 @@ export default class App {
     return App.startupConfig.saveDevToolsOpen(open);
   }
 
+  /**
+   * Bring an existing auxiliary window to the foreground using one shared policy.
+   * Callers only decide which window to open; restore/show/focus stays centralized.
+   */
+  static focusWindow(window: BrowserWindow | null): boolean {
+    if (!window || window.isDestroyed()) return false;
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
+    return true;
+  }
+
   static isCapturePreviewWindowOpen(): boolean {
     return App.capturePreviewWindow !== null && !App.capturePreviewWindow.isDestroyed();
   }
 
   static openCapturePreviewWindow(): boolean {
     if (App.isCapturePreviewWindowOpen()) {
-      if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
-      App.capturePreviewWindow.show();
-      App.capturePreviewWindow.focus();
+      App.focusWindow(App.capturePreviewWindow);
       return true;
     }
     const display = screen.getDisplayMatching(App.mainWindow.getBounds());
@@ -503,11 +513,7 @@ export default class App {
   }
 
   static focusMapWindow(): boolean {
-    if (!App.isMapWindowOpen()) return false;
-    if (App.mapWindow.isMinimized()) App.mapWindow.restore();
-    App.mapWindow.show();
-    App.mapWindow.focus();
-    return true;
+    return App.focusWindow(App.mapWindow);
   }
 
   static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean {
@@ -524,8 +530,7 @@ export default class App {
 
     if (App.isMapWindowOpen()) {
       App.mapWindow.webContents.send('MapWindow.locationChanged', location);
-      if (App.mapWindow.isMinimized()) App.mapWindow.restore();
-      App.mapWindow.showInactive();
+      App.focusWindow(App.mapWindow);
       return true;
     }
 
