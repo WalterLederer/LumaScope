@@ -67,7 +67,7 @@ export class Exif {
 
   @IpcHandler({ name: 'Exif.fixFolderLocations' })
   readonly fixFolderLocations = async (
-    event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120, operationId = ''
+    event: IpcMainInvokeEvent, folder: string, checkOnly: boolean, maxDifferenceSeconds = 120, operationId = '', requestedDatabaseKeys: string[] = []
   ): Promise<ApiResponse<FixPhotoLocationsResult>> => {
     if (operationId) this.cancelledLocationFixes.delete(operationId);
     try {
@@ -222,7 +222,15 @@ export class Exif {
           };
           console.info('[Exif GPX time debug] Photo timestamp:', photoTimestampDetails);
           await writeGpsDebug('Photo timestamp:', photoTimestampDetails);
-          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds);
+          const rootDrive = root.slice(0, 2).toUpperCase();
+          const databaseKeys = [...new Set([rootDrive, ...(Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [])]
+            .filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key))
+            .map(key => key.toUpperCase()))];
+          let position: { latitude: number; longitude: number; deviationSeconds: number } | null = null;
+          for (const databaseKey of databaseKeys) {
+            position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey);
+            if (position) break;
+          }
           if (!position) {
             result.unmatched++;
             continue;
