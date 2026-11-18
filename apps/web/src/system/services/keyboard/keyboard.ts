@@ -25,7 +25,7 @@ export class Keyboard {
       if (element.nodeType !== 1) return false;
 
       const tagName = element.tagName?.toLowerCase();
-      if (tagName === 'textarea' || tagName === 'select') return true;
+      if (tagName === 'textarea') return true;
       if (tagName === 'input') {
         const type = (element.type ?? 'text').toLowerCase();
         return !['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'range', 'color', 'image'].includes(type);
