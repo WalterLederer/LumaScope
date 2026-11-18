@@ -652,6 +652,68 @@ export class CacheManager {
     return { files, imported, unchanged, duplicates, errors };
   };
 
+  @IpcHandler({ name: 'CacheManager.exportGpxFileFromDatabase' })
+  readonly exportGpxFileFromDatabase = async (
+    _event?: IpcMainInvokeEvent, sourcePath?: string, requestedDatabaseKey?: string
+  ): Promise<{ cancelled: boolean; path: string | null; points: number; elevationPoints: number }> => {
+    if (!sourcePath || typeof sourcePath !== 'string') throw new Error('A GPX source path is required.');
+    let databaseKey: string;
+    let relativePath: string;
+    if (/^[a-z]:[\\\\/]/i.test(sourcePath)) {
+      const absolute = resolve(sourcePath);
+      databaseKey = this.databaseKeyForPath(absolute);
+      relativePath = relative(resolve(databaseKey + '\\\\'), absolute);
+    } else {
+      databaseKey = (requestedDatabaseKey ?? this.activeDatabaseKey ?? '').toUpperCase();
+      relativePath = sourcePath;
+    }
+    if (!/^[A-Z]:$/.test(databaseKey) || !relativePath || relativePath === '..'
+      || relativePath.startsWith('..' + sep) || isAbsolute(relativePath)) {
+      throw new Error('The GPX file path is not inside a cache database drive.');
+    }
+    const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
+    const file = db.prepare('SELECT id, file_name FROM gpx_files WHERE relative_file_path = :path COLLATE NOCASE')
+      .get({ path: relativePath }) as { id: number; file_name: string } | undefined;
+    if (!file) throw new Error('The selected GPX track was not found in the cache database. Import it first.');
+    const segments = db.prepare(`SELECT s.id, s.segment_index FROM gpx_track_segments s
+      WHERE s.gpx_file_id = :fileId ORDER BY s.segment_index`).all({ fileId: file.id }) as Array<{ id: number; segment_index: number }>;
+    const rows = db.prepare(`SELECT timestamp_ms, latitude, longitude, elevation_m
+      FROM gpx_track_points WHERE segment_id = :segmentId ORDER BY point_index`);
+    const escapeXml = (value: string): string => value.replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+    })[character] ?? character);
+    let pointCount = 0, elevationCount = 0;
+    const trackSegments: string[] = [];
+    for (const segment of segments) {
+      const points = rows.all({ segmentId: segment.id }) as Array<{
+        timestamp_ms: number | null; latitude: number; longitude: number; elevation_m: number | null;
+      }>;
+      const pointXml = points.map(point => {
+        pointCount++;
+        const elevation = point.elevation_m !== null && Number.isFinite(point.elevation_m)
+          ? (elevationCount++, `<ele>${point.elevation_m}</ele>`) : '';
+        const timestamp = point.timestamp_ms !== null && Number.isFinite(point.timestamp_ms)
+          ? `<time>${new Date(point.timestamp_ms).toISOString()}</time>` : '';
+        return `<trkpt lat="${point.latitude}" lon="${point.longitude}">${elevation}${timestamp}</trkpt>`;
+      }).join('');
+      if (pointXml) trackSegments.push(`<trkseg>${pointXml}</trkseg>`);
+    }
+    if (!pointCount) throw new Error('The selected GPX database entry contains no track points.');
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(file.file_name)}</name>${trackSegments.join('')}</trk></gpx>\\n`;
+    const defaultName = file.file_name.toLowerCase().endsWith('.gpx')
+      ? file.file_name.replace(/\\.gpx$/i, '') + '.from-db.gpx' : file.file_name + '.from-db.gpx';
+    const selection = await dialog.showSaveDialog({
+      title: 'Export GPX track from cache database',
+      defaultPath: join(app.getPath('documents'), defaultName),
+      filters: [{ name: 'GPX files', extensions: ['gpx'] }]
+    });
+    if (selection.canceled || !selection.filePath) {
+      return { cancelled: true, path: null, points: pointCount, elevationPoints: elevationCount };
+    }
+    await writeFile(selection.filePath, xml, 'utf8');
+    return { cancelled: false, path: selection.filePath, points: pointCount, elevationPoints: elevationCount };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGpxDatabaseStats' })
   readonly getGpxDatabaseStats = async (_event?: IpcMainInvokeEvent, databaseKey?: string): Promise<{ files: number; segments: number; points: number; timestampedPoints: number }> => {
     const key = databaseKey ?? this.activeDatabaseKey;
