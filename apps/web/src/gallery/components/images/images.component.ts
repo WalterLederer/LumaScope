@@ -172,7 +172,7 @@ export class ImagesComponent {
 
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
-    const dates = images.map(image => image.modifiedAt ?? image.createdAt).filter(value => Number.isFinite(value));
+    const dates = images.map(image => image.modifiedAt).filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
     const gpsDates = images.map(image => this.cacheStatuses().get(image.path)?.gpsTimestamp).filter((value): value is number => Number.isFinite(value));
     const sizes = images.map(image => image.size).filter(value => Number.isFinite(value));
     const dimensionValues = images.map(image => {
@@ -669,6 +669,8 @@ export class ImagesComponent {
         return;
       }
 
+      this.cacheStatuses.set(new Map());
+      this.gpsDateComparisons.set(new Map());
       this.cacheStatusLoading.set(true);
       const pathRequestVersions = new Map(this.cacheStatusPathRequests);
       void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
