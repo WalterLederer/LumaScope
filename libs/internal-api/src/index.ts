@@ -11,3 +11,5 @@ declare global {
   }
 }
 export * from './lib/reverse-geocoding';
+
+export * from './lib/date-time';
