@@ -87,7 +87,7 @@ const api: Desktop = {
   Exif: {
     read: (path: string) => ipcRenderer.invoke('Exif.read', path),
     writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
-    fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds, operationId),
+    fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds, operationId, databaseKeys),
     cancelFixFolderLocations: (operationId: string) => ipcRenderer.invoke('Exif.cancelFixFolderLocations', operationId),
     onFixFolderLocationsProgress: (callback: (progress: { scanned: number; total: number; withGps: number; withoutGps: number; matched: number; unmatched: number; ignoredTooFar: number; updated: number; errors: number; totalFilesProcessed: number; totalFoldersProcessed: number; minDeviationSeconds: number | null; meanDeviationSeconds: number | null; maxDeviationSeconds: number | null; elapsedMilliseconds: number; rootFolder: string; currentFolder: string }) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, progress: { scanned: number; total: number; withGps: number; withoutGps: number; matched: number; unmatched: number; ignoredTooFar: number; updated: number; errors: number; totalFilesProcessed: number; totalFoldersProcessed: number; minDeviationSeconds: number | null; meanDeviationSeconds: number | null; maxDeviationSeconds: number | null; elapsedMilliseconds: number; rootFolder: string; currentFolder: string }): void => callback(progress);
@@ -136,7 +136,7 @@ const api: Desktop = {
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxFilesInBounds', bounds, databaseKey),
-    getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs, maxDifferenceSeconds),
+    getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs, maxDifferenceSeconds, databaseKey),
     getOsmAndTileCacheSummary: () => ipcRenderer.invoke('CacheManager.getOsmAndTileCacheSummary')
   },
 
