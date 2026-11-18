@@ -329,15 +329,9 @@ export class FileSystem {
     return 0;
   };
 
-  // The Browse date column displays the file modification time, not its creation time.
-  // Fall back to createdAt only when a modification timestamp is unavailable.
-  private readonly getFileDateForSorting = (file: FileInfo): number => file.modifiedAt ?? file.createdAt;
+  private readonly sortByModifiedDateAsc = (a: FileInfo, b: FileInfo): number => a.modifiedAt - b.modifiedAt;
 
-  private readonly sortByModifiedDateAsc = (a: FileInfo, b: FileInfo): number =>
-    this.getFileDateForSorting(a) - this.getFileDateForSorting(b);
-
-  private readonly sortByModifiedDateDesc = (a: FileInfo, b: FileInfo): number =>
-    this.getFileDateForSorting(b) - this.getFileDateForSorting(a);
+  private readonly sortByModifiedDateDesc = (a: FileInfo, b: FileInfo): number => b.modifiedAt - a.modifiedAt;
 
   private readonly sortBySizeAsc = (a: FileInfo, b: FileInfo): number => a.size - b.size;
 
