@@ -138,11 +138,6 @@ export class SettingsPanelComponent {
   /* State */
   protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
   protected readonly buildCacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
-  protected readonly cacheSummary = signal<CacheSummary>({
-    total: { entries: 0, bytes: 0 }, fullSize: { entries: 0, bytes: 0 },
-    thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
-    gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
-  });
   protected readonly cacheSummaryColumns = signal<Array<{
     key: string;
     summary: CacheSummary;
@@ -161,6 +156,7 @@ export class SettingsPanelComponent {
   protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
   private cacheSummaryRequestId = 0;
   private cacheSummaryLoadedKey = '';
+  private cacheSummaryRequestedKey = '';
 
   private cacheInfoRequestId = 0;
   private buildCacheInfoRequestId = 0;
@@ -472,7 +468,6 @@ export class SettingsPanelComponent {
     const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
       const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
       this.favoriteCacheDatabaseKeys.set(keys);
-      if (this.mode() === 'cache') void this.loadFavoriteCacheDatabases(keys);
     });
     destroyRef.onDestroy(() => favoriteLocationsSubscription.unsubscribe());
     effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
@@ -537,6 +532,7 @@ export class SettingsPanelComponent {
       }
     });
     effect(() => {
+      if (this.mode() !== 'cache') return;
       this.cacheFolderPath();
       void this.updateCacheSummary();
     });
@@ -653,10 +649,6 @@ export class SettingsPanelComponent {
     }
   };
 
-  private readonly loadFavoriteCacheDatabases = async (keys: string[]): Promise<void> => {
-    await this.updateCacheSummary(keys);
-  };
-
   private readonly updateCacheSummary = async (requestedKeys?: string[], force = false): Promise<void> => {
     const folder = this.cacheFolderPath().trim();
     const folderDrive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
@@ -664,8 +656,10 @@ export class SettingsPanelComponent {
       .filter((key): key is string => !!key && /^[A-Z]:$/.test(key)))].sort();
     const signature = keys.join('|');
     if (!force && signature === this.cacheSummaryLoadedKey && this.cacheSummaryColumns().length === keys.length) return;
+    if (this.cacheSummaryLoading() && signature === this.cacheSummaryRequestedKey) return;
 
     const requestId = ++this.cacheSummaryRequestId;
+    this.cacheSummaryRequestedKey = signature;
     this.cacheSummaryLoading.set(keys.length > 0);
     this.cacheSummaryLoadingDrives.set(keys);
     this.cacheSummaryError.set(null);
@@ -673,6 +667,7 @@ export class SettingsPanelComponent {
       this.cacheSummaryColumns.set([]);
       this.cacheSummaryLoading.set(false);
       this.cacheSummaryLoadedKey = '';
+      this.cacheSummaryRequestedKey = '';
       return;
     }
 
@@ -695,6 +690,7 @@ export class SettingsPanelComponent {
       if (requestId === this.cacheSummaryRequestId) {
         this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
         this.cacheSummaryLoadedKey = '';
+        this.cacheSummaryRequestedKey = '';
       }
     } finally {
       if (requestId === this.cacheSummaryRequestId) {
