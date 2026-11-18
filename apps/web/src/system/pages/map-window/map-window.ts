@@ -2829,13 +2829,37 @@ export class MapWindow implements OnInit, OnDestroy {
         this.locationLookupVersion++;
         this.mapSourceGeneration++;
         this.mapInitialization = null;
-        this.coordinatesAvailable.set(false);
-        this.coordinateLabel.set('GPS coordinates unavailable');
+        const savedLatitude = Number(this.readSetting('lastLatitude', ''));
+        const savedLongitude = Number(this.readSetting('lastLongitude', ''));
+        const hasSavedPosition = Number.isFinite(savedLatitude) && Number.isFinite(savedLongitude)
+          && savedLatitude >= -90 && savedLatitude <= 90
+          && savedLongitude >= -180 && savedLongitude <= 180;
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
-        this.locationAddress.set('');
-        this.marker?.setOpacity(0);
-        this.offlineRenderer?.setCurrentOpacity(0);
-        if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
+        if (hasSavedPosition) {
+          this.currentLatitude = savedLatitude;
+          this.currentLongitude = savedLongitude;
+          this.coordinatesAvailable.set(true);
+          this.coordinateLabel.set(this.formatCoordinates(savedLatitude, savedLongitude));
+          this.locationAddress.set('Looking up address…');
+          void this.lookupLocationAddress(savedLatitude, savedLongitude);
+          if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
+            void this.initialize(savedLatitude, savedLongitude);
+          } else if (this.offlineRenderer) {
+            this.offlineRenderer.updateCurrentLocation(savedLatitude, savedLongitude);
+            this.offlineRenderer.map.jumpTo({ center: [savedLongitude, savedLatitude] });
+          } else if (this.map) {
+            this.map.setView([savedLatitude, savedLongitude], this.map.getZoom());
+          } else {
+            void this.initialize(savedLatitude, savedLongitude);
+          }
+        } else {
+          this.coordinatesAvailable.set(false);
+          this.coordinateLabel.set('GPS coordinates unavailable');
+          this.locationAddress.set('');
+          this.marker?.setOpacity(0);
+          this.offlineRenderer?.setCurrentOpacity(0);
+          if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
+        }
         return;
       }
       this.coordinatesAvailable.set(true);
