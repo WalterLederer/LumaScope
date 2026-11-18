@@ -146,7 +146,7 @@ export class Exif {
       const rootDrive = root.slice(0, 2).toUpperCase();
       const databaseKeys = [...new Set([rootDrive, ...(Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [])]
         .filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key))
-        .map(key => key.toUpperCase()))];
+        .map(key => key.toUpperCase()))].sort((a, b) => a.localeCompare(b));
       const gpxDatabaseStats = await Promise.all(databaseKeys.map(async databaseKey => ({
         databaseKey,
         stats: await cacheManager.getGpxDatabaseStats(undefined as never, databaseKey)
