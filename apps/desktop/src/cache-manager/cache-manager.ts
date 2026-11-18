@@ -518,7 +518,7 @@ export class CacheManager {
           // Older imports may contain stale elevation values even when the source
           // GPX has no <ele> elements (for example, LumaScope Photo Markers GPX).
           // Reconcile that metadata even when the file content hash is unchanged.
-          const hasElevation = /<(?:[\\w.-]+:)?ele\\b[^>]*>\\s*[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?\\s*<\\/(?:[\\w.-]+:)?ele\\s*>/i.test(xml);
+          const hasElevation = /<(?:[\w.-]+:)?ele\b[^>]*>\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\s*<\/(?:[\w.-]+:)?ele\s*>/i.test(xml);
           if (!hasElevation) {
             db.prepare(`UPDATE gpx_track_points SET elevation_m = NULL
               WHERE segment_id IN (SELECT id FROM gpx_track_segments WHERE gpx_file_id = :fileId)`)
