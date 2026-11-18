@@ -154,14 +154,25 @@ export class ImagesComponent {
   };
 
   /* Computed */
-  readonly distinctSuffixes = computed(() => [...new Set(
-    (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
-  )].sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' })));
+  readonly suffixFileCounts = computed(() => {
+    const counts = new Map<string, number>();
+    for (const image of this.images() ?? []) {
+      const suffix = this.getSuffix(image.name);
+      if (suffix) counts.set(suffix, (counts.get(suffix) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort(([left], [right]) =>
+      left.localeCompare(right, undefined, { sensitivity: 'base' })
+    );
+  });
+  readonly distinctSuffixes = computed(() => this.suffixFileCounts().map(([suffix]) => suffix));
   readonly distinctSuffixCount = computed(() => this.distinctSuffixes().length);
   readonly distinctSuffixTooltip = computed(() => {
-    const suffixes = this.distinctSuffixes();
+    const suffixes = this.suffixFileCounts();
     const count = suffixes.length;
-    return `${count} suffix${count === 1 ? '' : 'es'} found: ${suffixes.join(', ')}`;
+    const details = suffixes.map(([suffix, fileCount]) =>
+      `${suffix} (${fileCount} ${fileCount === 1 ? 'file' : 'files'})`
+    );
+    return `${count} suffix${count === 1 ? '' : 'es'} found: ${details.join(', ')}`;
   });
   readonly unsupportedSuffixCount = signal(0);
   readonly unsupportedSuffixes = signal<string[]>([]);
