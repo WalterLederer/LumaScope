@@ -124,6 +124,8 @@ The timestamp used for a photo marker and the map time slider is selected in thi
 5. XMP `DateCreated`.
 6. EXIF `CreateDate`.
 
+  During a normal GPS Auto Fix run, this selected timestamp is also synchronized to the SQLite `photos.gps_timestamp` field for every scanned photo. **Check only** does not modify the database. Filesystem last-modified time is used only when none of the metadata or filename timestamps is available.
+
 For GPS Auto Fix only, if none of these values is available, the source file's filesystem last-modified time is used as the final fallback. Filename timestamps are interpreted as camera-local time and take precedence over Windows filesystem dates because Android/ADB copies can set those dates to the transfer time.
 
 GPS date/time values are treated as UTC. Embedded capture dates without timezone information are interpreted in the computer's local timezone. The selected timestamp is stored with the photo's location record and is used for map time filtering and playback. A photo without valid latitude and longitude cannot be shown as a location marker and therefore has no marker timestamp.
