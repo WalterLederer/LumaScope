@@ -475,6 +475,8 @@ app-map-window {
     .render-init-spinner{width:14px;height:14px;flex:0 0 14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:render-init-spin .8s linear infinite}
     @keyframes render-init-spin{to{transform:rotate(360deg)}}
     .location-tab .fix-location-section,.location-tab .fix-location-automatic-section,.location-tab .offline-address-search,.location-tab .location-tools-section{box-sizing:border-box;width:100%;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
+    .location-tab .fix-location-step-title{box-sizing:border-box;width:100%;margin:8px 0 5px;padding:5px 8px;border-left:3px solid var(--theme-button-color,#287fc4);background:color-mix(in srgb,var(--theme-button-color,#287fc4) 12%,transparent);color:inherit;font-size:12px;font-weight:700;letter-spacing:.35px}
+    html[data-theme='light'] & .location-tab .fix-location-step-title{background:color-mix(in srgb,var(--theme-button-color,#287fc4) 9%,#fff)}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
     .fix-location-automatic-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
     .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
