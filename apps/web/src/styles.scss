@@ -46,7 +46,9 @@ html body app-map-window .map-window .offline-row-action-menu {
 html body .gpx-row-action-menu button,
 html body .detail-row-action-menu button,
 html body ui-popup-menu button,
-html body .gallery-location-menu-action {
+html body .gallery-location-menu-action,
+html body app-map-window .map-window .gpx-row-action-menu button,
+html body app-map-window .map-window .offline-row-action-menu button {
   appearance: none !important; -webkit-appearance: none !important;
   display: flex !important; align-items: center !important; gap: 9px !important;
   box-sizing: border-box !important; width: 100% !important; min-width: 0 !important;
@@ -60,12 +62,16 @@ html body .gallery-location-menu-action {
 html body .gpx-row-action-menu button:hover:not(:disabled),
 html body .detail-row-action-menu button:hover:not(:disabled),
 html body ui-popup-menu button:hover:not(:disabled),
-html body .gallery-location-menu-action:hover:not(:disabled) {
+html body .gallery-location-menu-action:hover:not(:disabled),
+html body app-map-window .map-window .gpx-row-action-menu button:hover:not(:disabled),
+html body app-map-window .map-window .offline-row-action-menu button:hover:not(:disabled) {
   background: var(--color-surface-default-medium, #444) !important;
 }
 html body .gpx-row-action-menu button:disabled,
 html body .detail-row-action-menu button:disabled,
-html body ui-popup-menu button:disabled { opacity: .4 !important; cursor: default !important; }
+html body ui-popup-menu button:disabled,
+html body app-map-window .map-window .gpx-row-action-menu button:disabled,
+html body app-map-window .map-window .offline-row-action-menu button:disabled { opacity: .4 !important; cursor: default !important; }
 html body .gpx-row-action-menu button span,
 html body .detail-row-action-menu button span,
 html body ui-popup-menu button ui-icon {
