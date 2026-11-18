@@ -29,13 +29,13 @@
 @if (viewMode() === 'tiles') {
   <div class="thumbnail-info">
     <div class="thumbnail-name" [title]="image().name">{{ image().name }}</div>
-    <div>{{ formatOsDateTime(image().modifiedAt ?? image().createdAt) }}</div>
+    <div>{{ formatOsDateTime(image().modifiedAt) }}</div>
     <div>{{ imageFileInfo() }}</div>
   </div>
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-columns">
     <span class="detail-name" [title]="image().name">{{ image().name }}</span>
-    <span>{{ formatDetailDateTime(image().modifiedAt ?? image().createdAt) }}</span>
+    <span>{{ formatDetailDateTime(image().modifiedAt) }}</span>
     <span class="detail-gps-date"
           [class.is-different]="gpsDateDiffersFromModified()"
           [class.is-same]="gpsDateMatchesModified()">{{ gpsDateLabel() }}</span>
