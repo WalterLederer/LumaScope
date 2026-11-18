@@ -1017,7 +1017,8 @@ ipcMain.handle('Loupe.capture', async () => {
     const monitorHdrModes = queryWindowsMonitorHdrModes();
     const selectedMonitorDevice = String(monitorDiagnostics[monitorIndex - 1]?.deviceName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
     console.info('[HDR Loupe] Capture diagnostics:', JSON.stringify({
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }),
+      timestampUtc: new Date().toISOString(),
       os: { version: os.version(), release: os.release(), arch: process.arch },
       electron: process.versions.electron,
       node: process.versions.node,
