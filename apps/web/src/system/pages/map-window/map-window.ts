@@ -7940,7 +7940,8 @@ ${points}
   private gpxSpeedColor(speedKmh: number, track: GpxTrackFile): string {
     const minimum = Math.max(0, track.speedMinKmh ?? 0);
     const maximum = Math.max(minimum + 1, track.speedMaxKmh ?? 120);
-    const t = Math.max(0, Math.min(1, (speedKmh - minimum) / (maximum - minimum)));
+    const rawT = Math.max(0, Math.min(1, (speedKmh - minimum) / (maximum - minimum)));
+    const t = Math.round(rawT * 23) / 23;
     const stops: Array<[number, number, number, number]> = track.speedPalette === 'cool-warm'
       ? [[0, 37, 115, 190], [0.5, 70, 190, 170], [1, 220, 70, 55]]
       : [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]];
@@ -7957,22 +7958,33 @@ ${points}
     const radians = Math.PI / 180;
     const earthRadius = 6371000;
     for (const points of pointSegments) {
+      let current: { coordinates: [number, number][]; color: string } | null = null;
+      const flush = (): void => { if (current && current.coordinates.length >= 2) result.push(current); current = null; };
       for (let i = 1; i < points.length; i++) {
         const a = points[i - 1], b = points[i];
-        if (a.inViewport === false || b.inViewport === false) continue;
+        if (a.inViewport === false || b.inViewport === false) { flush(); continue; }
         const timeA = a.timestamp ? Date.parse(a.timestamp) : Number.NaN;
         const timeB = b.timestamp ? Date.parse(b.timestamp) : Number.NaN;
-        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || timeB <= timeA) continue;
-        if (this.timeSliderActive() && (!this.isTimeSliderTimestampVisible(timeA / 1000) || !this.isTimeSliderTimestampVisible(timeB / 1000))) continue;
+        const elapsedMs = timeB - timeA;
+        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || elapsedMs <= 0 || elapsedMs > 30 * 60 * 1000) { flush(); continue; }
+        if (this.timeSliderActive() && (!this.isTimeSliderTimestampVisible(timeA / 1000) || !this.isTimeSliderTimestampVisible(timeB / 1000))) { flush(); continue; }
         const lat1 = a.latitude * radians, lat2 = b.latitude * radians;
         const dLat = lat2 - lat1, dLon = (b.longitude - a.longitude) * radians;
         const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
         const distance = 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(h)));
-        const speedKmh = distance / ((timeB - timeA) / 1000) * 3.6;
-        // Ignore stationary duplicate points and implausible GPS jumps.
-        if (!Number.isFinite(speedKmh) || speedKmh < 0.5 || speedKmh > 300) continue;
-        result.push({ coordinates: [[a.latitude, a.longitude], [b.latitude, b.longitude]], color: this.gpxSpeedColor(speedKmh, track) });
+        if (!Number.isFinite(distance) || distance < 0.5) { flush(); continue; }
+        const speedKmh = distance / (elapsedMs / 1000) * 3.6;
+        if (!Number.isFinite(speedKmh) || speedKmh > 300) { flush(); continue; }
+        const color = this.gpxSpeedColor(speedKmh, track);
+        const previous = current?.coordinates[current.coordinates.length - 1];
+        if (current && current.color === color && previous?.[0] === a.latitude && previous?.[1] === a.longitude) {
+          current.coordinates.push([b.latitude, b.longitude]);
+        } else {
+          flush();
+          current = { coordinates: [[a.latitude, a.longitude], [b.latitude, b.longitude]], color };
+        }
       }
+      flush();
     }
     return result;
   }
