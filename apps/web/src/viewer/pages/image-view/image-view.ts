@@ -27,6 +27,7 @@ import {
   ImagePositioningResult
 } from '../../services/image-positioning/image-positioning.types';
 import { ViewNavigator } from '../../services/view-navigator/view-navigator';
+import { ImageFileActions } from '../../services/view-navigator/image-file-actions';
 import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { GalleryPage } from '../../../welcome/pages/gallery/gallery.page';
@@ -137,6 +138,7 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
 export class ImageView {
   /* DI */
   protected readonly viewNavigator = inject(ViewNavigator);
+  private readonly imageFileActions = inject(ImageFileActions);
 
   protected readonly galleryCacheBuild = inject(GalleryCacheBuild);
 
@@ -3489,26 +3491,12 @@ export class ImageView {
       );
   };
 
-  protected readonly deletePhoto = () => {
-    this.selectedImage$
-      .pipe(take(1), filter(image => image !== null))
-      .subscribe(image =>
-        ConfirmationDialogComponent
-          .open(this.dialog, {
-            title: 'Delete image?',
-            description: `Do you want to permanently delete "${image.path}" from disk?`,
-            defaultAction: 'cancel'
-          })
-          .subscribe(async () => {
-            const deleted = await this.viewNavigator.deleteImage(image.path);
-
-            if (!deleted) {
-              this.document.defaultView?.alert('The image could not be deleted.');
-            } else {
-              await this.refreshSourceFileCount(image.path, true);
-            }
-          })
-      );
+  protected readonly deletePhoto = async (): Promise<void> => {
+    const image = await this.selectedImage$.pipe(take(1)).toPromise();
+    if (!image) return;
+    const deleted = await this.imageFileActions.confirmAndDelete(image.path);
+    if (!deleted) return;
+    await this.refreshSourceFileCount(image.path, true);
   };
 
 
