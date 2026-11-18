@@ -2247,7 +2247,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
-    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 245 : 115));
+    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 245 : 115, true));
   };
   protected readonly toggleRoutePointActionMenu = (index: number, event: MouseEvent): void => {
     if (this.routePointActionMenuOpen() === index) { this.routePointActionMenuOpen.set(null); return; }
@@ -2259,14 +2259,23 @@ export class MapWindow implements OnInit, OnDestroy {
     if (action === 'remove') this.removeRouteWaypoint(index);
     else this.moveRouteWaypoint(index, action === 'up' ? -1 : 1);
   };
-  private getRowActionMenuPosition(event: MouseEvent, width: number, estimatedHeight: number): { top: number; left: number } {
+  private getRowActionMenuPosition(event: MouseEvent, width: number, estimatedHeight: number, anchorAtPointer = false): { top: number; left: number } {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
+    const menuWidth = Math.min(width, Math.max(0, viewportWidth - 16));
+    if (anchorAtPointer && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+      let top = event.clientY + 4;
+      if (top + estimatedHeight > viewportHeight - 8) top = event.clientY - estimatedHeight - 4;
+      top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - Math.min(estimatedHeight, viewportHeight - 16) - 8)));
+      let left = event.clientX + 4;
+      if (left + menuWidth > viewportWidth - 8) left = event.clientX - menuWidth - 4;
+      left = Math.max(8, Math.min(left, viewportWidth - menuWidth - 8));
+      return { top, left };
+    }
     let top = rect.bottom + 3;
     if (top + estimatedHeight > viewportHeight - 8) top = rect.top - estimatedHeight - 3;
     top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - Math.min(estimatedHeight, viewportHeight - 16) - 8)));
-    const menuWidth = Math.min(width, Math.max(0, viewportWidth - 16));
     const anchorX = Number.isFinite(event.clientX) && event.clientX > 0 ? event.clientX : rect.right;
     const left = Math.max(8, Math.min(anchorX - menuWidth, viewportWidth - menuWidth - 8));
     return { top, left };
