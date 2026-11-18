@@ -53,20 +53,14 @@ export class App {
         // The map window may never have been opened before, so no previous
         // location is guaranteed to exist. Still open the window without a
         // starting position in that case.
-        void window.desktop.MapWindow.getLocation().then(async location => {
-          await window.desktop.MapWindow.open(
+        void window.desktop.MapWindow.getLocation().then(location =>
+          window.desktop.MapWindow.open(
             location?.latitude ?? null,
             location?.longitude ?? null,
             location?.bearing ?? undefined,
             location?.imagePath ?? null
-          );
-          // openMapWindow uses showInactive for an existing window; the L
-          // shortcut must explicitly activate it, just like the capture window.
-          await window.desktop.MapWindow.focus();
-        }).catch(async () => {
-          await window.desktop.MapWindow.open(null, null);
-          await window.desktop.MapWindow.focus();
-        });
+          )
+        ).catch(() => window.desktop.MapWindow.open(null, null));
       } else {
         void window.desktop.CapturePreviewWindow.open();
       }
