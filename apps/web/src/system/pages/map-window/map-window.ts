@@ -7941,10 +7941,10 @@ ${points}
     const minimum = Math.max(0, track.speedMinKmh ?? 0);
     const maximum = Math.max(minimum + 1, track.speedMaxKmh ?? 120);
     const t = Math.max(0, Math.min(1, (speedKmh - minimum) / (maximum - minimum)));
-    const stops = track.speedPalette === 'cool-warm'
+    const stops: Array<[number, number, number, number]> = track.speedPalette === 'cool-warm'
       ? [[0, 37, 115, 190], [0.5, 70, 190, 170], [1, 220, 70, 55]]
       : [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]];
-    let lower = stops[0], upper = stops[stops.length - 1];
+    let lower = stops[0]!, upper = stops[stops.length - 1]!;
     for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { lower = stops[i - 1]; upper = stops[i]; break; }
     const fraction = (t - lower[0]) / Math.max(0.0001, upper[0] - lower[0]);
     const rgb = [1, 2, 3].map(index => Math.round(lower[index] + (upper[index] - lower[index]) * fraction));
