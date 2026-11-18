@@ -1,4 +1,4 @@
-import { ScreenCapture } from '@screen-capture/node';
+import { captureApiSupport, ScreenCapture } from '@screen-capture/node';
 
 interface CapturedFrame {
   buffer: Buffer;
@@ -83,8 +83,31 @@ export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: 
   // border. Retry without the option only for that specific compatibility error.
   let capture = createCapture(false);
   let phase = 'initialize capture';
+  const captureStartedAt = Date.now();
+  let phaseStartedAt = captureStartedAt;
+  const logPhase = (nextPhase: string): void => {
+    const now = Date.now();
+    console.info('[HDR Loupe] WGC phase:', JSON.stringify({
+      phase: nextPhase,
+      previousPhaseDurationMs: now - phaseStartedAt,
+      elapsedMs: now - captureStartedAt
+    }));
+    phase = nextPhase;
+    phaseStartedAt = now;
+  };
+  console.info('[HDR Loupe] WGC session diagnostics:', JSON.stringify({
+    platform: process.platform,
+    arch: process.arch,
+    node: process.versions.node,
+    apiSupport: captureApiSupport(),
+    monitorIndex,
+    requestedColorFormat: 'rgba16F',
+    cursorCapture: false,
+    minimumUpdateIntervalMs: 0,
+    borderSettingRequested: false
+  }, null, 2));
   try {
-    phase = 'start capture session';
+    logPhase('start capture session');
     try {
       await capture.start();
     } catch (error) {
@@ -97,32 +120,58 @@ export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: 
       capture = createCapture();
       await capture.start();
     }
-    phase = 'wait for first frame';
+    logPhase('wait for first FP16 frame');
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const frame = await Promise.race([
       capture.nextFrame(),
       new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error('HDR monitor capture timed out.')), 10000);
+        timeout = setTimeout(() => reject(new Error(`HDR monitor capture timed out after ${Date.now() - phaseStartedAt} ms waiting for the first FP16 frame.`)), 10000);
       })
     ]).finally(() => {
       if (timeout !== undefined) clearTimeout(timeout);
     });
 
-    phase = 'validate captured frame';
+    logPhase('validate captured FP16 frame');
     if (!frame) throw new Error('HDR monitor capture returned no frame.');
     if (frame.colorFormat !== 'rgba16F') throw new Error(`Expected rgba16F but received ${String(frame.colorFormat)}.`);
     if (frame.rowPitch !== frame.width * 8 || frame.buffer.byteLength !== frame.width * frame.height * 8) {
       throw new Error('Unexpected FP16 frame layout; refusing to sample incorrect pixels.');
     }
 
+    console.info('[HDR Loupe] WGC first frame received:', JSON.stringify({
+      elapsedMs: Date.now() - captureStartedAt,
+      width: frame.width,
+      height: frame.height,
+      colorFormat: frame.colorFormat,
+      rowPitch: frame.rowPitch,
+      bufferByteLength: frame.buffer.byteLength,
+      expectedRowPitch: frame.width * 8,
+      expectedBufferByteLength: frame.width * frame.height * 8
+    }));
+
     if (request === captureRequest) {
       capturedFrame = { buffer: Buffer.from(frame.buffer), width: frame.width, height: frame.height };
     }
     return { width: frame.width, height: frame.height };
   } catch (error) {
+    const detail = error as { name?: unknown; message?: unknown; code?: unknown; hresult?: unknown; stack?: unknown };
+    console.error('[HDR Loupe] WGC capture failed:', JSON.stringify({
+      phase,
+      phaseElapsedMs: Date.now() - phaseStartedAt,
+      totalElapsedMs: Date.now() - captureStartedAt,
+      errorName: detail?.name,
+      errorMessage: detail?.message ?? String(error),
+      code: detail?.code,
+      hresult: detail?.hresult,
+      stack: detail?.stack
+    }, null, 2));
     throw describeCaptureError(error, phase);
   } finally {
-    await capture.stop().catch(() => undefined);
+    const stopStartedAt = Date.now();
+    await capture.stop().catch(stopError => {
+      console.warn('[HDR Loupe] WGC session stop failed:', stopError);
+    });
+    console.info('[HDR Loupe] WGC session stopped:', JSON.stringify({ stopDurationMs: Date.now() - stopStartedAt, totalElapsedMs: Date.now() - captureStartedAt }));
   }
 };
 
