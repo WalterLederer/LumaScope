@@ -9,7 +9,7 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 
 - In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The section lists cache databases for favorite drives and shows each database file path, cache size/entries, and GPX file/segment/point totals, including timestamped points. The same shared importer is also available under **Track → Advanced**.
 - Auto Fix searches the selected photo folder's drive first, followed by every drive referenced by a Gallery favorite. Import GPX data into any of these drive-local cache databases; a favorite drive is included even when no image from it is open.
-- Before scanning photos, Auto Fix checks all candidate cache databases and stops with an error if none contains timestamped GPX track points. The candidate drives are the selected photo folder's drive and every drive represented by a Gallery favorite.
+- After the folder is selected and enumerated, but before photo metadata is processed, Auto Fix checks all candidate cache databases and stops with an error if none contains timestamped GPX track points. The candidate drives are the selected photo folder's drive and every drive represented by a Gallery favorite.
 - GPX track points must have timestamps. Matching uses points within an individual GPX segment.
 
 ## Workflow
