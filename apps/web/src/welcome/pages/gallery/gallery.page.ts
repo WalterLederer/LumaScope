@@ -282,6 +282,11 @@ export class GalleryPage {
       )
       .subscribe(() => this.galleryLocations.removeLocation(data.id));
 
+  protected readonly onOpenLocationPath = async (data: TreeNode<string>): Promise<void> => {
+    const error = await this.processManager.openPath(data.id);
+    if (error) this.document.defaultView?.alert(error);
+  };
+
   protected readonly loadTreeNode = async (state: TreeLoadRequest<string>) => {
     const result = await this.galleryState.getDirContents(state.node.id);
     const node = structuredClone(state.node);
