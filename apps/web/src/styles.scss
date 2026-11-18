@@ -33,6 +33,53 @@
 }
 
 
+/* One typography and button reset for every popup menu in the application. */
+.gpx-row-action-menu button,
+.detail-row-action-menu button,
+.gallery-location-menu-action {
+  box-sizing: border-box !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+}
+.gpx-row-action-menu button,
+.detail-row-action-menu button {
+  background: transparent !important;
+  color: inherit !important;
+  text-align: left !important;
+}
+
+/* The map window has a generic button rule with higher specificity; keep its
+   hamburger triggers on the shared neutral icon treatment. */
+app-map-window .map-window .file-row-menu-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  padding: 0 !important;
+  border: 1px solid var(--color-content-default-low, #666) !important;
+  border-radius: 3px !important;
+  background: var(--color-surface-default-low, #252525) !important;
+  color: var(--color-content-default, #eee) !important;
+  box-shadow: none !important;
+  font: 400 13px/1 sans-serif !important;
+}
+app-map-window .map-window .file-row-menu-trigger:hover,
+app-map-window .map-window .file-row-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-default-medium, #444) !important;
+  border-color: var(--color-content-default-medium, #999) !important;
+}
+
 /* Keep favourite popup actions on a single line with a comfortable hit target. */
 .gallery-location-menu-action {
   display: flex !important;
