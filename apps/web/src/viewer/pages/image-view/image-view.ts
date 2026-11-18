@@ -1064,7 +1064,9 @@ export class ImageView {
     }
     const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
     const metadataRows = Object.entries(tags)
-      .filter(([key, value]) => relevantField.test(key) && value !== undefined && value !== null && value !== '')
+      .filter(([key, value]) => relevantField.test(key)
+        && !/^File(?:Access|Create|Modify)Date$/i.test(key)
+        && value !== undefined && value !== null && value !== '')
       .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     for (const [key, value] of metadataRows) {
       rows.push({
