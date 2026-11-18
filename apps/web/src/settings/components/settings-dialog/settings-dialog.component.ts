@@ -19,6 +19,7 @@ import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 })
 export class SettingsPanelComponent {
   readonly mode = input<'all' | 'general' | 'cache' | 'help'>('all');
+  readonly formatDateTime = (value: number | Date | string | null | undefined): string => formatOsDateTime(value);
   readonly cacheBuildActive = input(false);
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
   readonly cacheBuildCurrentOperation = input('');
