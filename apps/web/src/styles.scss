@@ -1,2 +1,33 @@
 @use "libs/ui/src/styles/global.scss";
 @use "./system/pages/map-window/map-window-global.scss";
+
+
+/* Shared, neutral hamburger trigger used by Track, Offline and image detail rows. */
+.file-row-menu-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--color-content-default-low, #666) !important;
+  border-radius: 3px !important;
+  background: var(--color-surface-default-low, #252525) !important;
+  color: var(--color-content-default, #eee) !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+.file-row-menu-trigger:hover,
+.file-row-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-default-medium, #444) !important;
+  border-color: var(--color-content-default-medium, #999) !important;
+}
