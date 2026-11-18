@@ -26,7 +26,7 @@
       <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('size')">File size</button>
         <small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small>
       </span>
-      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('suffix')">Suffix</button>
+      <span class="detail-column-heading" [attr.title]="distinctSuffixTooltip()"><button type="button" (click)="sortDetailBy('suffix')">Suffix</button>
         <small class="column-count">{{ distinctSuffixCount() }}</small>
       </span>
       <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('hdr')">HDR</button>
