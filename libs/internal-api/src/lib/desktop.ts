@@ -176,6 +176,7 @@ export interface GpxElevationProfile {
 export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
+  readonly importGpxFiles: (filePaths: string[]) => Promise<{ files: number; imported: number; unchanged: number; duplicates: number; errors: number }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number; timestampedPoints: number }>;
   readonly getGpxDatabaseTimeRange: (databaseKey?: string) => Promise<{ from: number | null; to: number | null }>;
   readonly getLatestGpxElevationProfile: (databaseKeys?: string[]) => Promise<GpxElevationProfile | null>;
