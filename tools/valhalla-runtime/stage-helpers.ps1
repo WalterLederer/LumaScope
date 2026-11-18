@@ -73,7 +73,7 @@ if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
 
 $builtHelper = Get-Item -LiteralPath $helper
 if ($null -eq $previousHelper -or $builtHelper.LastWriteTimeUtc -gt $previousHelper.LastWriteTimeUtc) {
-    Write-Host "Valhalla helper was rebuilt: $($builtHelper.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss.fff'))" -ForegroundColor Green
+    Write-Host "Valhalla helper was rebuilt: $($builtHelper.LastWriteTime.ToString('dd.MM.yyyy, HH:mm:ss.fff'))" -ForegroundColor Green
 }
 else {
     Write-Host "Valhalla helper is up to date; no rebuild was needed." -ForegroundColor DarkGray
