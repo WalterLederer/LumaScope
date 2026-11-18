@@ -20,11 +20,11 @@ The import does not copy, move, rename or modify the original GPX files.
 
 ## User workflow
 
-1. Open the **Track** settings and expand **Advanced**.
+1. Open **Track → Advanced** or **Location → Fix location AUTOMATIC** and expand **GPX → DB**.
 2. Choose **Add all GPX tracks from folder to DB…**.
 3. Select the root folder to scan.
 4. LumaScope recursively searches that folder and its eligible subfolders for files with the `.gpx` extension.
-5. The database totals beside the button show the number of stored GPX files, track segments and track points.
+5. For automatic photo location correction, import the GPX folder from the same drive as the photo folder. The database totals beside the button show the number of stored GPX files, track segments and track points.
 
 The totals are counts for the selected drive's cache database, not just for the most recently selected folder. The folder picker can be cancelled without changing the database.
 
