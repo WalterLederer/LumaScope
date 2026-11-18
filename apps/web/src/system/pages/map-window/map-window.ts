@@ -2378,6 +2378,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoCoordinateLabel = signal('Photo: GPS coordinates unavailable');
   protected readonly mouseCoordinateLabel = signal('');
   protected readonly coordinatesAvailable = signal(false);
+  protected readonly currentImageHasGps = signal(false);
   protected readonly fixLocationEnabled = signal(false);
   protected readonly fixLocationSectionOpen = signal(true);
   protected readonly autoFixCheckOnly = signal(false);
@@ -2811,6 +2812,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
       this.coordinatesAvailable.set(true);
+      this.currentImageHasGps.set(true);
       this.currentLatitude = latitude; this.currentLongitude = longitude;
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
       this.photoCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, 'Photo: '));
@@ -2839,6 +2841,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const previousImagePath = this.currentImagePath;
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
+      this.currentImageHasGps.set(Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
+        && location.latitude! >= -90 && location.latitude! <= 90
+        && location.longitude! >= -180 && location.longitude! <= 180);
       void this.loadCurrentImagePreview(this.currentImagePath);
       this.applyCurrentPhotoVisibility();
       if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
@@ -3049,7 +3054,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.autoFixBusy.set(true);
     this.autoFixStatus.set('Selecting photo folder…');
     try {
-      const selection = await this.desktop.Dialogs.openFolder();
+      let initialFolder: string | undefined;
+      if (this.currentImagePath) {
+        try { initialFolder = await this.desktop.FileSystem.dirname(this.currentImagePath); }
+        catch (error) { console.warn('[Location] Could not determine the current photo folder:', error); }
+      }
+      const selection = await this.desktop.Dialogs.openFolder(initialFolder);
       if (!selection.success || !selection.data) {
         this.autoFixStatus.set('');
         return;
@@ -6856,7 +6866,7 @@ export class MapWindow implements OnInit, OnDestroy {
       : null;
     const withinTimeRange = !this.timeSliderActive() || currentPhoto == null
       || this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp);
-    const opacity = this.coordinatesAvailable() && this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
+    const opacity = this.coordinatesAvailable() && this.currentImageHasGps() && this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
     this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
   }
