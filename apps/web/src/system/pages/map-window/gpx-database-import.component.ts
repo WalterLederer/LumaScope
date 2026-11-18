@@ -15,10 +15,10 @@ import { Desktop } from 'internal-api';
         <div class="gpx-database-statistics-list" aria-live="polite">
           @for (item of databaseStats(); track item.key) {
             <span class="gpx-database-statistics" title="GPX data in this drive's cache database">
-              {{ item.key }}: {{ item.files.toLocaleString() }} GPX files · {{ item.segments.toLocaleString() }} segments · {{ item.points.toLocaleString() }} points
+              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · {{ item.cacheEntries.toLocaleString() }} cached photos · {{ item.files.toLocaleString() }} GPX files · {{ item.segments.toLocaleString() }} segments · {{ item.points.toLocaleString() }} points
             </span>
           } @empty {
-            <span class="gpx-database-statistics">No favorite-drive cache databases selected.</span>
+            <span class="gpx-database-statistics">No cache databases selected.</span>
           }
         </div>
         <button type="button" class="routing-help-button gpx-database-help" (click)="help.emit()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
@@ -37,7 +37,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
-  protected readonly databaseStats = signal<Array<{ key: string; files: number; segments: number; points: number }>>([]);
+  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; files: number; segments: number; points: number }>>([]);
   protected readonly busy = signal(false);
   protected readonly status = signal('');
 
@@ -57,7 +57,20 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
     if (!this.desktop) return;
     try {
       const keys = [...new Set([...(this.databaseKeys ?? []), this.effectiveDatabaseKey].filter((key): key is string => !!key && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))].sort();
-      const stats = await Promise.all(keys.map(async key => ({ key, ...await this.desktop!.CacheManager.getGpxDatabaseStats(key) })));
+      const stats = await Promise.all(keys.map(async key => {
+        const [gpx, summary] = await Promise.all([
+          this.desktop!.CacheManager.getGpxDatabaseStats(key),
+          this.desktop!.CacheManager.getCacheSummary(key)
+        ]);
+        const database = summary.databases.find(item => item.key === key);
+        return {
+          key,
+          path: database?.path ?? key + '\\\\.cache\\\\LumaScope.cache.sqlite',
+          databaseBytes: database?.bytes ?? 0,
+          cacheEntries: summary.total.entries,
+          ...gpx
+        };
+      }));
       this.databaseStats.set(stats);
     } catch (error) {
       this.status.set(error instanceof Error ? error.message : String(error));
