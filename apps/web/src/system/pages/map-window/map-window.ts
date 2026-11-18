@@ -5298,7 +5298,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.resetLastRenderCountsForViewport();
         this.refreshOfflineMapRendering();
       }
-      if (visibleHillshade.length) await this.setAllHillshadeDatabasesEnabled(enabled, true);
+      if (visibleHillshade.length) await this.setAllHillshadeDatabasesEnabled(enabled, visibleOnly);
     } catch (error) {
       console.error('[OfflineMap] Could not update Active state for offline files:', error);
     }
