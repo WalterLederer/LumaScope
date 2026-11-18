@@ -135,6 +135,7 @@ const api: Desktop = {
     resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => ipcRenderer.invoke('CacheManager.resolvePhotoLocation', sourceName, latitude, longitude),
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
     importGpxFiles: (filePaths: string[]) => ipcRenderer.invoke('CacheManager.importGpxFiles', filePaths),
+    exportGpxFileFromDatabase: (sourcePath: string, databaseKey?: string) => ipcRenderer.invoke('CacheManager.exportGpxFileFromDatabase', sourcePath, databaseKey),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     getGpxDatabaseTimeRange: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseTimeRange', databaseKey),
     getLatestGpxElevationProfile: (databaseKeys?: string[]) => ipcRenderer.invoke('CacheManager.getLatestGpxElevationProfile', databaseKeys),
