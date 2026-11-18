@@ -394,6 +394,48 @@ export class ImagesComponent {
     this.cacheAbortController?.abort();
   };
 
+  readonly cacheDisplayedFiles = (): void => {
+    void this.runCacheForImages(this.displayedImages());
+  };
+
+  readonly reCacheFile = (image: FileInfo): void => {
+    void this.reCacheImages([image]);
+  };
+
+  readonly reCacheDisplayedFiles = (): void => {
+    void this.reCacheImages(this.displayedImages());
+  };
+
+  private readonly reCacheImages = async (images: FileInfo[]): Promise<void> => {
+    if (this.cacheRunActive() || images.length === 0) return;
+    const controller = new AbortController();
+    this.cacheAbortController = controller;
+    this.cacheRunActive.set(true);
+    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheRunCurrentOperation.set('Removing existing cache entries...');
+    try {
+      for (let index = 0; index < images.length; index++) {
+        if (controller.signal.aborted) break;
+        const image = images[index];
+        this.cacheRunCurrentOperation.set(`Removing cache entries for file ${index + 1} / ${images.length}: ${image.name}`);
+        await this.cacheManager.deleteImage(image.path);
+        this.cacheRunProgress.set({ completed: index + 1, total: images.length });
+      }
+      if (!controller.signal.aborted) {
+        await this.runCacheForImages(images, true, controller.signal);
+      } else {
+        this.cacheRunCurrentOperation.set('Cache rebuild cancelled while removing existing entries.');
+      }
+    } catch (error) {
+      this.cacheRunCurrentOperation.set(`Cache rebuild failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Failed to remove existing gallery cache entries', error);
+    } finally {
+      if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      this.cacheRunActive.set(false);
+      this.cacheUpdated.emit('');
+    }
+  };
+
   readonly cacheAllImagesRecursive = async (directory?: string): Promise<void> => {
     if (this.cacheRunActive()) return;
     const rootPath = directory?.trim() || this.folderPath() || this.images()?.[0]?.parent || null;
