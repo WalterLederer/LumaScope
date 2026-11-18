@@ -1134,10 +1134,11 @@ export class ImageView {
     const timestampCandidates: Array<{ name: string; value: unknown; assumeUtc: boolean }> = [
       { name: 'EXIF:GPSDateTime', value: findTag('GPSDateTime'), assumeUtc: true },
       { name: 'XMP:GPSDateTime', value: findTag('XMP:GPSDateTime'), assumeUtc: true },
-      { name: 'Filename:YYYYMMDD_HHmmss', value: filenameTimestamp, assumeUtc: false },
       { name: 'EXIF:DateTimeOriginal', value: findTag('DateTimeOriginal'), assumeUtc: false },
       { name: 'XMP:DateCreated', value: findTag('XMP:DateCreated'), assumeUtc: false },
-      { name: 'EXIF:CreateDate', value: findTag('CreateDate'), assumeUtc: false }
+      { name: 'EXIF:CreateDate', value: findTag('CreateDate'), assumeUtc: false },
+      { name: 'Filename:YYYYMMDD_HHmmss', value: filenameTimestamp, assumeUtc: false },
+      { name: 'Filesystem:LastModified', value: findTag('FileModifyDate'), assumeUtc: false }
     ];
     const selectedTimestamp = timestampCandidates
       .map(candidate => ({ ...candidate, date: this.parseExifXmpDate(candidate.value, candidate.assumeUtc) }))
