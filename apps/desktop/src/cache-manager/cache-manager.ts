@@ -588,12 +588,13 @@ export class CacheManager {
     const counts = db.prepare(`SELECT
       (SELECT COUNT(*) FROM gpx_files) AS files,
       (SELECT COUNT(*) FROM gpx_track_segments) AS segments,
-      (SELECT COUNT(*) FROM gpx_track_points) AS points`).get() as { files: number; segments: number; points: number };
+      (SELECT COUNT(*) FROM gpx_track_points) AS points,
+      (SELECT COUNT(*) FROM gpx_track_points WHERE timestamp_ms IS NOT NULL) AS timestampedPoints`).get() as { files: number; segments: number; points: number; timestampedPoints: number };
     return { folder, ...counts, imported, unchanged, duplicates, errors, cancelled: false };
   };
 
   @IpcHandler({ name: 'CacheManager.getGpxDatabaseStats' })
-  readonly getGpxDatabaseStats = async (_event?: IpcMainInvokeEvent, databaseKey?: string): Promise<{ files: number; segments: number; points: number }> => {
+  readonly getGpxDatabaseStats = async (_event?: IpcMainInvokeEvent, databaseKey?: string): Promise<{ files: number; segments: number; points: number; timestampedPoints: number }> => {
     const key = databaseKey ?? this.activeDatabaseKey;
     if (!key || !/^[a-z]:$/i.test(key)) return { files: 0, segments: 0, points: 0 };
     const db = this.databases.get(key.toUpperCase()) ?? this.databaseForPath(key.toUpperCase() + '\\\\');
