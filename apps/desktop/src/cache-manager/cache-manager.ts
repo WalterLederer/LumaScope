@@ -826,7 +826,7 @@ export class CacheManager {
   ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
     if (!folder || !Number.isFinite(timestampMs) || !Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0) return null;
     const databaseKey = requestedDatabaseKey && /^[a-z]:$/i.test(requestedDatabaseKey) ? requestedDatabaseKey.toUpperCase() : this.databaseKeyForPath(folder);
-    const db = this.databaseForPath(databaseKey + '\\\\');
+    const db = this.databaseForPath(databaseKey + '\\');
     if (!requestedDatabaseKey) this.activeDatabaseKey = databaseKey;
     const diagnosticPointQuery = db.prepare(`SELECT p.timestamp_ms, p.latitude, p.longitude,
         s.id AS segment_id, f.file_name, f.relative_file_path
