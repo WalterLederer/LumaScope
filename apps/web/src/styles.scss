@@ -45,10 +45,10 @@ html body app-map-window .map-window .gpx-row-action-menu,
 html body app-map-window .map-window .offline-row-action-menu {
   box-sizing: border-box !important; display: flex !important; flex-direction: column !important;
   gap: 2px !important; width: max-content !important; min-width: 190px !important;
-  max-width: calc(100vw - 16px) !important; padding: 5px !important; overflow-x: hidden !important;
+  max-width: calc(100vw - 16px) !important; padding: 8px 12px !important; overflow-x: hidden !important;
   color: var(--color-content-default, #eee) !important;
-  background: var(--color-surface-default-high, #303238) !important;
-  background-color: var(--color-surface-default-high, #303238) !important;
+  background: var(--color-surface-default-highest, #303238) !important;
+  background-color: var(--color-surface-default-highest, #303238) !important;
   border: 1px solid var(--color-content-default-low, #666) !important;
   border-radius: 7px !important; box-shadow: 0 5px 16px rgba(0, 0, 0, .5) !important;
 }
@@ -60,7 +60,7 @@ html body app-map-window .map-window .gpx-row-action-menu button,
 html body app-map-window .map-window .offline-row-action-menu button {
   appearance: none !important; -webkit-appearance: none !important;
   display: flex !important; align-items: center !important; gap: 9px !important;
-  box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; align-self: stretch !important;
+  box-sizing: border-box !important; width: auto !important; max-width: none !important; min-width: 0 !important; flex: 0 0 auto !important; align-self: stretch !important;
   min-height: 32px !important; height: auto !important; margin: 0 !important; padding: 6px 9px !important;
   border: 0 !important; border-radius: 4px !important; outline: none !important;
   background: transparent !important; color: inherit !important; box-shadow: none !important;
