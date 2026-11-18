@@ -114,7 +114,7 @@ export interface FixPhotoLocationsProgress {
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
-  readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string) => Promise<ApiResponse<FixPhotoLocationsResult>>;
+  readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => Promise<ApiResponse<FixPhotoLocationsResult>>;
   readonly cancelFixFolderLocations: (operationId: string) => void;
   readonly onFixFolderLocationsProgress: (callback: (progress: FixPhotoLocationsProgress) => void) => () => void;
 }
@@ -155,7 +155,7 @@ export interface DesktopCacheManager {
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number }>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
-  readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
+  readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
