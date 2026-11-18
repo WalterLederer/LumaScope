@@ -4460,9 +4460,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly getAutoFixLogPaths = async (): Promise<{ file: string; folder: string }> => {
     if (!this.desktop) throw new Error('Desktop API is unavailable.');
     const paths = await this.desktop.ProcessManager.getSystemPaths();
-    const folder = await this.desktop.FileSystem.join(paths.userData, '..');
-    const logFolder = await this.desktop.FileSystem.join(paths.userData, 'gps-auto-fix-debug.log');
-    return { file: logFolder, folder: paths.userData };
+    const file = await this.desktop.FileSystem.join(paths.userData, 'gps-auto-fix-debug.log');
+    return { file, folder: paths.userData };
   };
 
   protected readonly openAutoFixLogFile = async (): Promise<void> => {
