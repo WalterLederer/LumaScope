@@ -699,9 +699,9 @@ export class CacheManager {
       if (pointXml) trackSegments.push(`<trkseg>${pointXml}</trkseg>`);
     }
     if (!pointCount) throw new Error('The selected GPX database entry contains no track points.');
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(file.file_name)}</name>${trackSegments.join('')}</trk></gpx>\\n`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(file.file_name)}</name>${trackSegments.join('')}</trk></gpx>\n`;
     const defaultName = file.file_name.toLowerCase().endsWith('.gpx')
-      ? file.file_name.replace(/\\.gpx$/i, '') + '.from-db.gpx' : file.file_name + '.from-db.gpx';
+      ? file.file_name.replace(/\.gpx$/i, '') + '.from-db.gpx' : file.file_name + '.from-db.gpx';
     const selection = await dialog.showSaveDialog({
       title: 'Export GPX track from cache database',
       defaultPath: join(app.getPath('documents'), defaultName),
