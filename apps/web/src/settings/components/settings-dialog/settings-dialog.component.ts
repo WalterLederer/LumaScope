@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats, formatOsDateTime } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ThemeService } from '../../../system/services/theme/theme.service';
@@ -10,7 +9,6 @@ import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
   selector: 'app-settings-panel',
   imports: [
     ByteSizePipe,
-    DatePipe
   ],
   templateUrl: './settings-dialog.component.html',
   styleUrl: './settings-dialog.component.scss',
