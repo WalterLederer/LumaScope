@@ -6098,6 +6098,7 @@ export class MapWindow implements OnInit, OnDestroy {
       for (const previous of this.gpxDatabaseTracks()) {
         this.gpxSegmentsByTrack.delete(previous.path);
         this.gpxPointDataByTrack.delete(previous.path);
+        this.gpxSpeedSegmentsCache.delete(previous.path);
       }
       const previousSettings = new Map(this.gpxDatabaseTracks().map(track => [track.databasePath || '', track]));
       const tracks: GpxTrackFile[] = results.map((file, index) => {
@@ -6168,6 +6169,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly deleteAllGpxTracks = async (): Promise<void> => {
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
+    this.gpxSpeedSegmentsCache.clear();
     this.gpxTracks.set([]);
     await this.persistGpxTracks([]);
     this.rebuildGpxSegments();
@@ -6270,6 +6272,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const valid: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
+    this.gpxSpeedSegmentsCache.clear();
     for (const track of this.gpxTracks()) {
       if (track.path.startsWith('memory:')) continue;
       const [result, metadata] = await Promise.all([
@@ -6423,6 +6426,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const available: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
+    this.gpxSpeedSegmentsCache.clear();
     for (const track of tracks) {
       const [result, metadata] = await Promise.all([
         this.desktop.FileSystem.readText(track.path),
