@@ -677,8 +677,8 @@ export class CacheManager {
     _event: IpcMainInvokeEvent, folder: string, timestampMs: number, maxDifferenceSeconds = 120, requestedDatabaseKey?: string
   ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
     if (!folder || !Number.isFinite(timestampMs) || !Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0) return null;
-    const databaseKey = this.databaseKeyForPath(folder);
-    const db = this.databaseForPath(folder);
+    const databaseKey = requestedDatabaseKey && /^[a-z]:$/i.test(requestedDatabaseKey) ? requestedDatabaseKey.toUpperCase() : this.databaseKeyForPath(folder);
+    const db = this.databaseForPath(databaseKey + '\\\\');
     this.activeDatabaseKey = databaseKey;
     const diagnosticPointQuery = db.prepare(`SELECT p.timestamp_ms, p.latitude, p.longitude,
         s.id AS segment_id, f.file_name, f.relative_file_path
