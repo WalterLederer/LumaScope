@@ -81,7 +81,7 @@ export class ThumbnailComponent implements OnDestroy {
     const gpsTimestamp = this.cacheStatus()?.gpsTimestamp;
     const modifiedAt = this.image().modifiedAt;
     if (gpsTimestamp === null || gpsTimestamp === undefined || !Number.isFinite(gpsTimestamp)
-      || !Number.isFinite(modifiedAt)) return false;
+      || modifiedAt === null || modifiedAt === undefined || !Number.isFinite(modifiedAt)) return false;
     // GPS timestamps are stored in whole seconds; compare at the same precision.
     return Math.floor(gpsTimestamp) !== Math.floor(modifiedAt / 1000);
   });
