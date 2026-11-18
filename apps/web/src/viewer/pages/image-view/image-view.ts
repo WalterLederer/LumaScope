@@ -622,7 +622,7 @@ export class ImageView {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
     const entries = Object.entries(record)
-      .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'));
+      .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && (key === 'file_name' || !key.endsWith('_name')));
     const relativeFolderEntry = entries.find(([key]) => key === 'relative_folder_path');
     const orderedEntries = entries.filter(([key]) => key !== 'relative_folder_path');
     const pathIdIndex = orderedEntries.findIndex(([key]) => key === 'path_id');
