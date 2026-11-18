@@ -635,7 +635,7 @@ export class ImageView {
           type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
           // Display SQLite TEXT values verbatim; JSON.stringify would escape backslashes.
           value: typeof value === 'string' ? value : JSON.stringify(value) ?? 'null',
-          isNull: value === null || value === undefined,
+          isNull: value === null || value === undefined || (typeof value === 'number' && value === 0),
           expanded: isTimestamp
             ? formatOsDateTime(timestampValue)
             : ['path_id', 'coordinate_source_id', 'location_name_id'].includes(key)
