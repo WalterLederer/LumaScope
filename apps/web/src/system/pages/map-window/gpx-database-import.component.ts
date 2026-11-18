@@ -6,7 +6,7 @@ import { Desktop } from 'internal-api';
   standalone: true,
   template: `
     <details class="gpx-database-section app-disclosure">
-      <summary>GPX → DB</summary>
+      <summary class="gpx-database-summary">GPX → DB<button type="button" class="routing-help-button gpx-database-help" (click)="$event.preventDefault(); help.emit()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button></summary>
       <div class="gpx-database-import-row">
         <button type="button" class="offline-map-add-button" (click)="importAllGpxTracks()" [disabled]="busy()">
           {{ busy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
@@ -22,7 +22,6 @@ import { Desktop } from 'internal-api';
             <span class="gpx-database-statistics">No favorite cache databases found.</span>
           }
         </div>
-        <button type="button" class="routing-help-button gpx-database-help" (click)="help.emit()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
       </div>
       @if (status()) {
         <span class="offline-map-status gpx-database-import-status" [class.gpx-database-import-progress]="busy()" role="status" aria-live="polite">{{ status() }}</span>
