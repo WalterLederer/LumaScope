@@ -629,6 +629,70 @@ export class CacheManager {
       (SELECT COUNT(*) FROM gpx_track_points WHERE timestamp_ms IS NOT NULL) AS timestampedPoints`).get() as { files: number; segments: number; points: number; timestampedPoints: number };
   };
 
+  @IpcHandler({ name: 'CacheManager.getLatestGpxElevationProfile' })
+  readonly getLatestGpxElevationProfile = async (
+    _event?: IpcMainInvokeEvent, requestedDatabaseKeys?: string[]
+  ): Promise<{
+    databaseKey: string; fileName: string; relativePath: string; importedAt: number;
+    pointCount: number; minElevationM: number; maxElevationM: number;
+    startTimestampMs: number; endTimestampMs: number;
+    points: Array<{ timestampMs: number; elevationM: number }>;
+  } | null> => {
+    const requestedKeys = Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [];
+    const keys = [...new Set([
+      ...requestedKeys,
+      ...this.databases.keys(),
+      ...(this.activeDatabaseKey ? [this.activeDatabaseKey] : [])
+    ].filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))];
+    let latest: {
+      databaseKey: string; fileId: number; fileName: string; relativePath: string; importedAt: number;
+    } | null = null;
+    for (const databaseKey of keys) {
+      const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
+      const file = db.prepare(`SELECT f.id, f.file_name, f.relative_file_path, f.imported_at
+        FROM gpx_files f
+        WHERE EXISTS (
+          SELECT 1 FROM gpx_track_segments s
+          JOIN gpx_track_points p ON p.segment_id = s.id
+          WHERE s.gpx_file_id = f.id AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL
+        )
+        ORDER BY f.imported_at DESC, f.id DESC LIMIT 1`).get() as {
+          id: number; file_name: string; relative_file_path: string; imported_at: number;
+        } | undefined;
+      if (file && (!latest || file.imported_at > latest.importedAt)) {
+        latest = {
+          databaseKey, fileId: file.id, fileName: file.file_name,
+          relativePath: file.relative_file_path, importedAt: file.imported_at
+        };
+      }
+    }
+    if (!latest) return null;
+    const db = this.databases.get(latest.databaseKey)!;
+    const rows = db.prepare(`SELECT p.timestamp_ms, p.elevation_m
+      FROM gpx_track_segments s
+      JOIN gpx_track_points p ON p.segment_id = s.id
+      WHERE s.gpx_file_id = :fileId
+        AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL
+      ORDER BY s.segment_index, p.point_index`).all({ fileId: latest.fileId }) as Array<{
+        timestamp_ms: number; elevation_m: number;
+      }>;
+    const validPoints = rows.filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.elevation_m));
+    if (!validPoints.length) return null;
+    const elevations = validPoints.map(point => point.elevation_m);
+    const maximumPoints = 1200;
+    const step = Math.max(1, Math.ceil(validPoints.length / maximumPoints));
+    const points = validPoints.filter((_, index) => index % step === 0);
+    const lastPoint = validPoints[validPoints.length - 1];
+    if (points[points.length - 1] !== lastPoint) points.push(lastPoint);
+    return {
+      databaseKey: latest.databaseKey, fileName: latest.fileName, relativePath: latest.relativePath,
+      importedAt: latest.importedAt, pointCount: validPoints.length,
+      minElevationM: Math.min(...elevations), maxElevationM: Math.max(...elevations),
+      startTimestampMs: validPoints[0].timestamp_ms, endTimestampMs: lastPoint.timestamp_ms,
+      points: points.map(point => ({ timestampMs: point.timestamp_ms, elevationM: point.elevation_m }))
+    };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGpxDatabaseTimeRange' })
   readonly getGpxDatabaseTimeRange = async (
     _event?: IpcMainInvokeEvent, databaseKey?: string
