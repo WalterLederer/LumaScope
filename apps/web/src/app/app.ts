@@ -50,9 +50,17 @@ export class App {
       if (event.code !== 'KeyL' && event.code !== 'KeyS') return;
       event.preventDefault();
       if (event.code === 'KeyL') {
+        // The map window may never have been opened before, so no previous
+        // location is guaranteed to exist. Still open the window without a
+        // starting position in that case.
         void window.desktop.MapWindow.getLocation().then(location =>
-          window.desktop.MapWindow.open(location.latitude, location.longitude, location.bearing ?? undefined, location.imagePath)
-        );
+          window.desktop.MapWindow.open(
+            location?.latitude ?? null,
+            location?.longitude ?? null,
+            location?.bearing ?? undefined,
+            location?.imagePath ?? null
+          )
+        ).catch(() => window.desktop.MapWindow.open(null, null));
       } else {
         void window.desktop.CapturePreviewWindow.open();
       }
