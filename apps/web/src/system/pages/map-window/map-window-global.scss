@@ -706,6 +706,24 @@ app-map-window .track-tab .gpx-file-list {
 }
 
 
+/* GPX elevation profile chart in the Track tab. */
+.gpx-elevation-profile-section{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0;padding:6px 10px;margin:8px 0;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:var(--color-background-secondary,#292a2d);color:var(--color-content-default,#e8eaed);box-sizing:border-box}
+.gpx-elevation-profile-section>summary{font-weight:700;font-size:13px;cursor:pointer}
+.gpx-elevation-profile-info{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 14px;min-width:0;font-size:12px}
+.gpx-elevation-profile-info>span{color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere}
+.gpx-elevation-chart{display:block;width:100%;height:auto;max-height:320px;overflow:visible}
+.gpx-elevation-axis{stroke:var(--color-content-default-medium,#999);stroke-width:1.2}
+.gpx-elevation-grid{stroke:var(--color-content-default-low,#555);stroke-width:1;stroke-dasharray:3 4}
+.gpx-elevation-line{fill:none;stroke:var(--color-accent,#65a9ff);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.gpx-elevation-tick,.gpx-elevation-axis-title{fill:var(--color-content-default-medium,#aaa);font-size:11px}
+.gpx-elevation-axis-title{font-size:12px;font-weight:600}
+.map-window.light-theme .gpx-elevation-profile-section{background:#fff;color:#202124;border-color:#c5c8ce}
+.map-window.light-theme .gpx-elevation-profile-info>span{color:#60656d}
+.map-window.light-theme .gpx-elevation-axis{stroke:#777}
+.map-window.light-theme .gpx-elevation-grid{stroke:#d6d9de}
+.map-window.light-theme .gpx-elevation-line{stroke:#1769aa}
+.map-window.light-theme .gpx-elevation-tick,.map-window.light-theme .gpx-elevation-axis-title{fill:#60656d}
+
 /* Keep the GPX database help action aligned at the top-right of its section. */
 .gpx-database-section>.gpx-database-summary{display:flex;align-items:center;gap:8px;list-style:none;}
 .gpx-database-section>.gpx-database-summary::-webkit-details-marker{display:none;}
