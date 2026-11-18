@@ -6,7 +6,7 @@
 
 LumaScope can import a large collection of GPX track files into the SQLite cache database associated with the drive containing the selected source folder. The database stores the source-file identity and the track geometry as structured records rather than repeatedly parsing every GPX XML file whenever track data is needed.
 
-This import is intended to establish the persistent data layer for later viewport-based track retrieval and time-based photo location enrichment. **The folder importer and database schema are implemented; querying tracks for a map viewport and interpolating photo coordinates from nearby track timestamps are separate follow-up features and are not performed by this import operation.**
+The imported data is used by viewport-based track retrieval and timestamp-based photo location enrichment. Importing GPX files populates the database; the automatic location workflow searches the selected photo drive first and then the drives referenced by Gallery favorites.
 
 ## Where the data is stored
 
@@ -24,9 +24,9 @@ The import does not copy, move, rename or modify the original GPX files.
 2. Choose **Add all GPX tracks from folder to DB…**.
 3. Select the root folder to scan.
 4. LumaScope recursively searches that folder and its eligible subfolders for files with the `.gpx` extension.
-5. For automatic photo location correction, import the GPX folder from the same drive as the photo folder. The database totals beside the button show the number of stored GPX files, track segments and track points.
+5. For automatic photo location correction, import GPX data into the photo folder's drive or any drive referenced by a Gallery favorite. The refresh control lists those cache database files and shows each file path, SQLite file size, cached photo count, and GPX file/segment/point totals.
 
-The totals are counts for the selected drive's cache database, not just for the most recently selected folder. The folder picker can be cancelled without changing the database.
+The GPX totals are counts for each listed drive's cache database, not just for the most recently selected folder. The folder picker can be cancelled without changing the database.
 
 ### Folder traversal
 
