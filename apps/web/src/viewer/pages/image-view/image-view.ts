@@ -1756,7 +1756,7 @@ export class ImageView {
   protected readonly copyLocation = async (): Promise<void> => {
     const coordinates = this.gpsCoordinates();
     if (!coordinates) return;
-    const value = `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`;
+    const value = formatGpsCoordinates(coordinates.latitude, coordinates.longitude);
     try {
       await this.document.defaultView?.navigator.clipboard.writeText(value);
       this.copyLocationStatus.set('Copied');
