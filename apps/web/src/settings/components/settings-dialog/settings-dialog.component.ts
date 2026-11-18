@@ -80,7 +80,7 @@ export class SettingsPanelComponent {
         `Location names resolved: ${result.resolved}`,
         `Unresolved / provider returned no result: ${result.unresolved}`
       ].join('\n'));
-      await this.updateCacheSummary();
+      await this.updateCacheSummary(undefined, true);
     } catch (error) {
       this.locationLookupOutput.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -858,6 +858,7 @@ export class SettingsPanelComponent {
       this.isClearing.set(false);
       await this.updateCacheInfo(global ? undefined : directory || null, recursive);
       await this.updateBuildCacheInfo(this.cacheFolderPath().trim() || null, this.recursiveBuild());
+      await this.updateCacheSummary(undefined, true);
     }
   };
 
