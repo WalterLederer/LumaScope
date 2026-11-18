@@ -351,6 +351,17 @@ interface MapErrorEntry {
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
       <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
     </div>
+    @if (gpxSpeedLegendTracks().length > 0) {
+      <div class="gpx-speed-legends" aria-label="GPX speed color legends">
+        @for (track of gpxSpeedLegendTracks(); track track.path) {
+          <div class="gpx-speed-legend">
+            <strong>{{ track.name }}</strong>
+            <span class="gpx-speed-gradient" [class.cool-warm]="track.speedPalette === 'cool-warm'"></span>
+            <span>{{ track.speedMinKmh ?? 0 }} km/h</span><span>{{ track.speedMaxKmh ?? 120 }} km/h</span>
+          </div>
+        }
+      </div>
+    }
     @if (gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-database-table" role="table" aria-label="GPX tracks">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
@@ -2410,6 +2421,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
   private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
+  protected readonly gpxSpeedLegendTracks = computed(() => (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => track.active !== false && track.colorMode === 'speed'));
   protected readonly latestGpxElevationProfile = signal<GpxElevationProfile | null>(null);
   protected readonly latestGpxElevationProfileBusy = signal(false);
   protected readonly latestGpxElevationProfileError = signal('');
@@ -7972,8 +7984,8 @@ ${points}
       this.offlineRenderer.setTrack(activeTracks.map(track => {
         const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : [];
         const normalSegments = this.visibleGpxSegments(track);
-        const segments = speedSegments.length ? speedSegments.map(item => item.coordinates) : normalSegments;
-        const segmentColors = speedSegments.length ? speedSegments.map(item => item.color) : undefined;
+        const segments = track.colorMode === 'speed' ? speedSegments.map(item => item.coordinates) : normalSegments;
+        const segmentColors = track.colorMode === 'speed' ? speedSegments.map(item => item.color) : undefined;
         return { path: track.path, segments, segmentColors, color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' };
       }), .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
@@ -7985,11 +7997,11 @@ ${points}
     for (const track of activeTracks) {
       const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : [];
       const normalSegments = this.visibleGpxSegments(track);
-      const segments = speedSegments.length ? speedSegments.map(item => item.coordinates) : normalSegments;
+      const segments = track.colorMode === 'speed' ? speedSegments.map(item => item.coordinates) : normalSegments;
       for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
         const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
-        const color = speedSegments.length ? speedSegments[segmentIndex].color : (track.color || this.gpxColor());
+        const color = track.colorMode === 'speed' ? speedSegments[segmentIndex].color : (track.color || this.gpxColor());
         const lineStyle = track.lineStyle || 'solid';
         const trackLine = this.leaflet.polyline(segment, {
           color, weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
