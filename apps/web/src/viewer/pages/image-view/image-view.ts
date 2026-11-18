@@ -1013,8 +1013,13 @@ export class ImageView {
   };
   private readonly formatExifXmpDate = (value: unknown): string => {
     const date = this.parseExifXmpDate(value);
-    if (!date) return this.formatExifXmpValue('', value);
-    return formatOsDateTime(date);
+    if (!date) return '—';
+    const rawValue = typeof value === 'string' ? value : '';
+    if (!rawValue) return formatOsDateTime(date);
+    // EXIF stores calendar dates with colons; slashes are clearer and avoid
+    // confusing the date separator with the time separator.
+    const readableRaw = rawValue.replace(/^(\\d{4}):(\\d{2}):(\\d{2})(?=[ T])/, '$1/$2/$3');
+    return readableRaw + ' (' + formatOsDateTime(date) + ')';
   };
   private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
@@ -1022,9 +1027,9 @@ export class ImageView {
     if (typeof value === 'object') {
       const item = value as Record<string, unknown>;
       if (Number.isFinite(Number(item['year'])) && Number.isFinite(Number(item['month'])) && Number.isFinite(Number(item['day']))) {
-        const readable = this.formatExifXmpDate(value);
-        const raw = typeof item['rawValue'] === 'string' ? item['rawValue'] : JSON.stringify(value);
-        return readable !== '—' ? readable : raw;
+        const raw = typeof item['rawValue'] === 'string' ? item['rawValue'] : '';
+        const readable = this.formatExifXmpDate(raw || value);
+        return readable !== '—' ? readable : (raw || JSON.stringify(value));
       }
       const displayValue = String(value);
       if (displayValue !== '[object Object]') return displayValue;
