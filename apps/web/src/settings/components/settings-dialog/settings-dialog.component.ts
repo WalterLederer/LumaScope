@@ -4,6 +4,7 @@ import { CacheManager } from '../../../ipc/cache-manager';
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
+import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 
 @Component({
   selector: 'app-settings-panel',
@@ -132,6 +133,8 @@ export class SettingsPanelComponent {
 
   private readonly processManager = inject(ProcessManager);
 
+  private readonly galleryLocations = inject(GalleryLocations);
+
   /* State */
   protected readonly cacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
   protected readonly buildCacheInfo = signal<CacheInfo>({ entries: 0, bytes: 0, fullSize: { entries: 0, bytes: 0 }, thumbnails: { entries: 0, bytes: 0 } });
@@ -141,6 +144,7 @@ export class SettingsPanelComponent {
     gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
   });
   protected readonly selectedCacheDatabaseKey = signal<string | null>(null);
+  protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
   protected readonly selectCacheDatabase = (databaseKey: string): void => {
     if (!databaseKey || !this.cacheSummary().databases.some(database => database.key === databaseKey)) return;
     this.selectedCacheDatabaseKey.set(databaseKey);
@@ -457,6 +461,12 @@ export class SettingsPanelComponent {
     });
     const destroyRef = inject(DestroyRef);
     destroyRef.onDestroy(removeExternalProcessListener);
+    const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
+      const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
+      this.favoriteCacheDatabaseKeys.set(keys);
+      void this.loadFavoriteCacheDatabases(keys);
+    });
+    destroyRef.onDestroy(() => favoriteLocationsSubscription.unsubscribe());
     effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
     void this.refreshReverseGeocodingStatus();
     const reverseGeocodingTimer = setInterval(() => void this.refreshReverseGeocodingStatus(), 1000);
@@ -638,8 +648,40 @@ export class SettingsPanelComponent {
     }
   };
 
-  private readonly updateCacheSummary = async (databaseKey = this.selectedCacheDatabaseKey() ?? (/^[a-z]:/i.test(this.cacheFolderPath().trim()) ? this.cacheFolderPath().trim().slice(0, 2).toUpperCase() : undefined)): Promise<void> => {
+  private readonly loadFavoriteCacheDatabases = async (keys: string[]): Promise<void> => {
+    try {
+      // Open every database represented by a favorite folder so the summary
+      // selector can list them even when no image from that drive is open.
+      for (const key of keys) await this.cacheManager.getCacheSummary(key);
+      const folder = this.cacheFolderPath().trim();
+      const folderDrive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
+      const preferred = folderDrive ?? this.selectedCacheDatabaseKey() ?? keys[0] ?? null;
+      if (preferred) {
+        this.selectedCacheDatabaseKey.set(preferred);
+        await this.updateCacheSummary(preferred);
+      } else {
+        await this.updateCacheSummary();
+      }
+    } catch (error) {
+      this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  private readonly updateCacheSummary = async (requestedDatabaseKey?: string): Promise<void> => {
+    const folder = this.cacheFolderPath().trim();
+    const folderDrive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
+    const databaseKey = requestedDatabaseKey ?? this.selectedCacheDatabaseKey() ?? folderDrive ?? this.favoriteCacheDatabaseKeys()[0];
     const requestId = ++this.cacheSummaryRequestId;
+    if (!databaseKey) {
+      this.cacheSummary.set({
+        total: { entries: 0, bytes: 0 }, fullSize: { entries: 0, bytes: 0 },
+        thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
+        gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
+      });
+      this.cacheSummaryError.set(null);
+      this.cacheSummaryLoading.set(false);
+      return;
+    }
     this.cacheSummaryLoading.set(true);
     try {
       const summary = await this.cacheManager.getCacheSummary(databaseKey);
