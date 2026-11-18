@@ -14,7 +14,7 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
-import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions } from 'internal-api';
+import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -154,12 +154,7 @@ export class ImagesComponent {
       const height = Number(tags?.ImageHeight) || 0;
       return { width, height, area: width * height };
     }).filter(value => value.width > 0 && value.height > 0);
-    const formatOsDateTime = (value: number): string => {
-      const date = new Date(value);
-      const datePart = new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
-      const timePart = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(date);
-      return `${datePart} ${timePart}`;
-    };
+
     const minDate = dates.length ? formatOsDateTime(dates.reduce((min, value) => Math.min(min, value), Infinity)) : '—';
     const maxDate = dates.length ? formatOsDateTime(dates.reduce((max, value) => Math.max(max, value), -Infinity)) : '—';
     const formatSize = (bytes: number) => {
@@ -398,7 +393,7 @@ export class ImagesComponent {
     let fullSizeConversionsGenerated = 0;
     try {
       await this.cacheManager.resetBuildLog();
-      await this.cacheManager.appendBuildLog('Cache build started: ' + new Date().toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }));
+      await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       const statusPreparationStartedAt = performance.now();
       const statuses: CacheImageStatus[] = [];
