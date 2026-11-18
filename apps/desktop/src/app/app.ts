@@ -28,9 +28,6 @@ export default class App {
       mkdirSync(logDirectory, { recursive: true });
       const elapsedMs = App.shutdownStartedAt === null ? null : Date.now() - App.shutdownStartedAt;
       const now = new Date();
-      const offsetMinutes = -now.getTimezoneOffset();
-      const offsetSign = offsetMinutes >= 0 ? '+' : '-';
-      const offset = `${offsetSign}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
       const entry = {
         timestamp: now.toISOString(),
         timestampLocal: now.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }),
