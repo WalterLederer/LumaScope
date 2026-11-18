@@ -153,7 +153,7 @@ export interface BackgroundReverseGeocodingStatus {
 export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
-  readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number }>;
+  readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number; timestampedPoints: number }>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
   readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
