@@ -1225,6 +1225,15 @@ export class CacheManager {
     }
   };
 
+  readonly updatePhotoGpsTimestamp = async (sourceName: string, timestamp: number): Promise<void> => {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) throw new Error('A valid photo timestamp is required.');
+    const db = this.databaseForPath(sourceName);
+    const sourceStats = await stat(sourceName);
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
+    db.prepare('UPDATE photos SET gps_timestamp = :timestamp WHERE id = :id')
+      .run({ timestamp: Math.floor(timestamp), id: row.id });
+  };
+
   readonly usesSidecarStorage = (_sourceName: string): boolean => true;
 
   readonly exists = (sourceName: string, sourceTag: string): Record<string, SQLOutputValue> | null => {
