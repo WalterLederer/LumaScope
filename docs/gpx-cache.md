@@ -148,7 +148,7 @@ The importer reports:
 | `errors` | Files that could not be read, parsed into usable points or committed |
 | `cancelled` | Whether the folder picker was cancelled |
 
-The three database totals are also shown beside the import button in the Track Advanced settings.
+The GPX file, segment, total point and timestamped point counts are shown beside the import button in Track → Advanced and Location → Fix location AUTOMATIC. Refresh updates every favorite cache database in the list, not only the currently selected drive.
 
 ## Current implementation boundary
 
