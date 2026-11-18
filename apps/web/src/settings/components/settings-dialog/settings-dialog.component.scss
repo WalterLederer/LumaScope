@@ -914,6 +914,39 @@ section {
   min-width: 0;
 }
 
+.cache-summary-table-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.cache-summary-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+
+  th, td {
+    padding: var(--dim-small) var(--dim-medium);
+    border-bottom: 1px solid var(--color-content-default-low);
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+
+  thead th {
+    color: var(--color-content-default-high);
+    background: var(--color-surface-default-high);
+    font-weight: 700;
+  }
+
+  tbody th {
+    color: var(--color-content-default-medium);
+    font-weight: 500;
+  }
+
+  td { color: var(--color-content-default-high); }
+}
+
 .cache-summary-category {
   display: grid;
   gap: var(--dim-small);
