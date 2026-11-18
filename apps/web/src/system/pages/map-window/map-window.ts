@@ -127,6 +127,7 @@ interface MapErrorEntry {
         <section class="map-settings" aria-label="Map settings">
 <nav class="settings-tabs image-sidebar-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'fix'" [attr.aria-selected]="activeSettingsTab() === 'fix'" (click)="selectSettingsTab('fix')">Fix</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
@@ -139,11 +140,95 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
 <div class="settings-tab-panels" (toggle)="onDisclosureStateToggle($event)">
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
+<div class="settings-tab-panel" data-settings-tab="location" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
 <div class="settings-tab-content location-tab">
             
             <div class="location-settings-content">
-              <details class="fix-location-automatic-section app-disclosure">
+              
+              <details class="offline-address-search app-disclosure">
+                <summary class="settings-row-title">Offline address search</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
+                <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
+                  <div class="location-actions">
+                    <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
+                           placeholder="Street, house number, city or postcode…" autocomplete="off">
+                    <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
+                      {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
+                    </button>
+                   </div>
+                  @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
+                  @if (offlineAddressSearchResults().length > 0) {
+                    <div class="offline-address-results"><table aria-label="Offline address search results">
+                      <thead><tr><th scope="col">Address</th><th scope="col">Coordinates</th></tr></thead>
+                      <tbody>
+                        @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
+                          <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
+                            <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
+                            <td class="offline-address-result-coordinates">{{ formatGpsCoordinates(result.latitude, result.longitude) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table></div>
+                  }
+                  <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
+                </form>
+              </details>
+              <details class="location-tools-section app-disclosure">
+                <summary class="settings-row-title">Location tools</summary>
+                <div class="location-tools-content">
+                  <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+                  <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
+                  <div class="address-settings">
+                    <span class="settings-row-title">Address:</span>
+                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
+                  </div>
+                  <div class="location-actions">
+                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
+                    <label>Open location in
+                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                        <option value="">Select web app…</option>
+                        <option value="google-earth">Google Earth</option>
+                        <option value="google-maps">Google Maps</option>
+                        <option value="bing-maps">Bing Maps</option>
+                        <option value="openstreetmap">OpenStreetMap</option>
+                        <option value="apple-maps">Apple Maps</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="marker-current-appearance-settings">
+                <span>Location Icon:</span>
+                <label>Shape
+                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                  </select>
+                </label>
+                <label>Color</label>
+                <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                    <span>{{ selectedCurrentMarkerColorName() }}</span>
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (currentMarkerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                  </div>
+                </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+</div>
+<div class="settings-tab-panel" data-settings-tab="fix" role="tabpanel" [hidden]="activeSettingsTab() !== 'fix'">
+  <div class="settings-tab-content location-tab">
+    <div class="location-settings-content">
+<details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
@@ -227,87 +312,10 @@ interface MapErrorEntry {
                 </div>
                 <div class="fix-location-help offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
               </details>
-              <details class="offline-address-search app-disclosure">
-                <summary class="settings-row-title">Offline address search</summary>
-                <button type="button" class="routing-help-button location-section-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
-                <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
-                  <div class="location-actions">
-                    <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
-                           placeholder="Street, house number, city or postcode…" autocomplete="off">
-                    <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
-                      {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
-                    </button>
-                   </div>
-                  @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
-                  @if (offlineAddressSearchResults().length > 0) {
-                    <div class="offline-address-results"><table aria-label="Offline address search results">
-                      <thead><tr><th scope="col">Address</th><th scope="col">Coordinates</th></tr></thead>
-                      <tbody>
-                        @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
-                          <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
-                            <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
-                            <td class="offline-address-result-coordinates">{{ formatGpsCoordinates(result.latitude, result.longitude) }}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table></div>
-                  }
-                  <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
-                </form>
-              </details>
-              <details class="location-tools-section app-disclosure">
-                <summary class="settings-row-title">Location tools</summary>
-                <div class="location-tools-content">
-                  <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
-                  <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
-                  <div class="address-settings">
-                    <span class="settings-row-title">Address:</span>
-                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
-                  </div>
-                  <div class="location-actions">
-                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
-                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
-                    <label>Open location in
-                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
-                        <option value="">Select web app…</option>
-                        <option value="google-earth">Google Earth</option>
-                        <option value="google-maps">Google Maps</option>
-                        <option value="bing-maps">Bing Maps</option>
-                        <option value="openstreetmap">OpenStreetMap</option>
-                        <option value="apple-maps">Apple Maps</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="marker-current-appearance-settings">
-                <span>Location Icon:</span>
-                <label>Shape
-                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
-                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
-                  </select>
-                </label>
-                <label>Color</label>
-                <div class="color-picker">
-                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
-                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
-                    <span>{{ selectedCurrentMarkerColorName() }}</span>
-                    <span class="color-picker-chevron">▾</span>
-                  </button>
-                  @if (currentMarkerColorMenuOpen()) {
-                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
-                      @for (color of gpxColors; track color.value) {
-                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
-                      }
-                    </div>
-                  }
-                  </div>
-                </div>
-                </div>
-              </details>
-            </div>
-          </div>
-
+    </div>
+  </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
+<div class="settings-tab-panel" data-settings-tab="track" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
 <div class="settings-tab-content track-tab">
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
@@ -428,7 +436,7 @@ interface MapErrorEntry {
   </div>
 </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
+<div class="settings-tab-panel" data-settings-tab="routing" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
   <div class="settings-tab-content routing-tab">
     <div class="routing-toolbar">
       <div class="routing-calculate-row">
@@ -524,7 +532,7 @@ interface MapErrorEntry {
     </details>
   </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
+<div class="settings-tab-panel" data-settings-tab="timeSlider" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
   <div class="settings-tab-content time-slider-tab">
     <div class="time-slider-settings">
       @if (timeSliderHasData()) {
@@ -610,7 +618,7 @@ interface MapErrorEntry {
     </div>
   </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
+<div class="settings-tab-panel" data-settings-tab="marker" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
             <div class="marker-settings-content">
               <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label><button type="button" class="routing-help-button" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
@@ -667,7 +675,7 @@ interface MapErrorEntry {
           </div>
 
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
+<div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
   <div class="view-primary-controls">
   <div class="view-source-controls">
@@ -1033,7 +1041,7 @@ interface MapErrorEntry {
   </details>
     </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
+<div class="settings-tab-panel" data-settings-tab="offlineMaps" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
     <button type="button" class="routing-help-button offline-tab-help" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
@@ -1082,7 +1090,7 @@ interface MapErrorEntry {
   </div>
 </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
+<div class="settings-tab-panel" data-settings-tab="cache" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
       <div class="map-cache-heading">OsmAnd map tiles</div>
@@ -1102,7 +1110,7 @@ interface MapErrorEntry {
     </div>
   </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
+<div class="settings-tab-panel" data-settings-tab="memory" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
       <div class="map-cache-heading">Process memory</div>
@@ -1135,7 +1143,7 @@ interface MapErrorEntry {
     </div>
   </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
+<div class="settings-tab-panel" data-settings-tab="download" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
   <div class="settings-tab-content download-tab">
     <details class="map-cache-section download-section app-disclosure">
       <summary class="map-cache-heading">Download sources</summary>
@@ -1193,7 +1201,7 @@ interface MapErrorEntry {
 
   </div>
 </div>
-<div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
+<div class="settings-tab-panel" data-settings-tab="errors" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
   <div class="map-error-panel">
     <div class="map-cache-actions">
       <div>
@@ -1574,14 +1582,14 @@ export class MapWindow implements OnInit, OnDestroy {
   private timeSliderRangeInitialized = false;
   private readonly storagePrefix = 'mapWindow.';
   protected readonly offlineMapListMounted = signal(false);
-  protected readonly selectSettingsTab = (tab: 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
+  protected readonly selectSettingsTab = (tab: 'location' | 'fix' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
-  protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
+  protected readonly activeSettingsTab = signal<'location' | 'fix' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
   protected readonly renderVisualsEnabled = signal(this.readSetting('renderVisualsEnabled', 'true') === 'true');
   protected readonly renderWorkerCount = signal(this.readNumber('renderWorkerCount', 2, 1, 4));
   protected readonly photoPreviewSize = signal(this.readNumber('photoPreviewSize', 120, 60, 240));
@@ -1636,21 +1644,30 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly seenHillshadeTiles = new Set<string>();
   private readonly completedHillshadeTiles = new Set<string>();
   private disclosureStateKey(section: HTMLDetailsElement): string | null {
-    const panel = section.closest('.settings-tab-panel');
-    if (!panel) return null;
-    const panels = Array.from(document.querySelectorAll('.settings-tab-panels > .settings-tab-panel'));
-    const panelIndex = panels.indexOf(panel);
-    if (panelIndex < 0) return null;
+    const panel = section.closest<HTMLElement>('.settings-tab-panel');
+    const tab = panel?.dataset['settingsTab'];
+    if (!tab) return null;
     const sections = Array.from(panel.querySelectorAll('details'));
     const sectionIndex = sections.indexOf(section);
-    return sectionIndex < 0 ? null : panelIndex + ':' + sectionIndex;
+    return sectionIndex < 0 ? null : tab + ':' + sectionIndex;
   }
   private restoreDisclosureStates(states: Record<string, unknown>): void {
-    const panels = Array.from(document.querySelectorAll('.settings-tab-panels > .settings-tab-panel'));
+    const panels = Array.from(document.querySelectorAll<HTMLElement>('.settings-tab-panels > .settings-tab-panel'));
     panels.forEach((panel, panelIndex) => {
+      const tab = panel.dataset['settingsTab'];
+      if (!tab) return;
       Array.from(panel.querySelectorAll<HTMLDetailsElement>('details')).forEach((section, sectionIndex) => {
-        const value = states[panelIndex + ':' + sectionIndex];
-        if (typeof value === 'boolean') section.open = value;
+        const stableKey = tab + ':' + sectionIndex;
+        let value = states[stableKey];
+        if (typeof value !== 'boolean') {
+          const legacyPanelIndex = tab === 'fix' ? 0 : panelIndex > 1 ? panelIndex - 1 : panelIndex;
+          const legacySectionIndex = tab === 'fix' ? sectionIndex : tab === 'location' ? sectionIndex + 2 : sectionIndex;
+          value = states[legacyPanelIndex + ':' + legacySectionIndex];
+        }
+        if (typeof value === 'boolean') {
+          section.open = value;
+          if (tab === 'fix' && sectionIndex === 1) this.fixLocationSectionOpen.set(value);
+        }
       });
     });
   }
