@@ -1,6 +1,6 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
-import { CacheImageStatus, ExifTags } from 'internal-api';
+import { CacheImageStatus, ExifTags, formatOsDateTime } from 'internal-api';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 import { ImageDimensions } from '../../services/image-positioning/image-positioning.types';
 import { imageDynamicRangeDiagnostics } from '../../utils/image-dynamic-range';
@@ -8,7 +8,7 @@ import { CacheManager } from '../../../ipc/cache-manager';
 
 @Component({
   selector: 'app-exif-info',
-  imports: [ DatePipe, DecimalPipe, ByteSizePipe ],
+  imports: [ DecimalPipe, ByteSizePipe ],
   templateUrl: './exif-info.component.html',
   styleUrl: './exif-info.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -25,6 +25,8 @@ export class ExifInfoComponent {
   readonly bitDepth = input<string | null>(null);
 
   readonly modifiedAt = input<number | undefined>(undefined);
+
+  readonly formatModifiedAt = (value: number | undefined): string => formatOsDateTime(value);
 
   readonly decoderName = input<string | null>(null);
 
