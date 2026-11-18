@@ -8,7 +8,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } 
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation, ResolveLocationNamesResult } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation, ResolveLocationNamesResult, formatOsDateTime } from 'internal-api';
 import type { Exif } from '../exif/exif';
 import { abortReverseGeocoding, isReverseGeocodingPaused, lookupReverseGeocoding, pauseReverseGeocoding, resumeReverseGeocoding } from 'internal-api';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
@@ -63,7 +63,6 @@ interface PhotoRow {
 }
 
 
-const formatLocalDateTime = (date: Date): string => date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
 
 export class CacheManager {
   private readonly userData = app.getPath('userData');
@@ -701,7 +700,7 @@ export class CacheManager {
     const describePoint = (point: typeof diagnosticBefore) => point ? ({
       timestampMs: point.timestamp_ms,
       utc: new Date(point.timestamp_ms).toISOString(),
-      local: formatLocalDateTime(new Date(point.timestamp_ms)),
+      local: formatOsDateTime(new Date(point.timestamp_ms)),
       deltaSeconds: (point.timestamp_ms - timestampMs) / 1000,
       segmentId: point.segment_id,
       file: point.relative_file_path,
@@ -711,7 +710,7 @@ export class CacheManager {
     const gpxTimeDiagnostic = {
       photoTimestampMs: timestampMs,
       photoUtc: new Date(timestampMs).toISOString(),
-      photoLocal: formatLocalDateTime(new Date(timestampMs)),
+      photoLocal: formatOsDateTime(new Date(timestampMs)),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       localOffsetMinutes: new Date(timestampMs).getTimezoneOffset(),
       databaseKey,
@@ -722,7 +721,7 @@ export class CacheManager {
     };
     console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', gpxTimeDiagnostic);
     try {
-      await this.appendGpsAutoFixDebug(`[${formatLocalDateTime(new Date())}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
+      await this.appendGpsAutoFixDebug(`[${formatOsDateTime(new Date())}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
     } catch (error) {
       console.warn('[CacheManager] Could not write GPS Auto Fix debug log:', error);
     }
