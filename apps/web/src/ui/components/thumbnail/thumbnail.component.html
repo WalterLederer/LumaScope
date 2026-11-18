@@ -55,11 +55,11 @@
             title="File actions">☰</button>
     @if (rowActionMenuOpen()) {
       <div class="gpx-row-action-menu detail-row-action-menu" role="menu" [style.top.px]="rowActionMenuPosition().top" [style.left.px]="rowActionMenuPosition().left" (click)="$event.stopPropagation()">
-        <button type="button" role="menuitem" (click)="copyImagePath()">Copy path</button>
-        <button type="button" role="menuitem" (click)="openImagePath()">Open path</button>
-        <button type="button" role="menuitem" (click)="openImageFile()">Open file</button>
+        <button type="button" role="menuitem" (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
+        <button type="button" role="menuitem" (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
+        <button type="button" role="menuitem" (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
         <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()">Delete file</button>
+        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
       </div>
     }
   </div>
