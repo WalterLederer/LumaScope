@@ -451,7 +451,6 @@ export class CacheManager {
     imported: number; unchanged: number; duplicates: number; errors: number; cancelled: false;
   }> => {
     const db = this.databaseForPath(databaseKey + '\\');
-    this.activeDatabaseKey = databaseKey;
     const driveRoot = resolve(databaseKey + '\\');
     let imported = 0, unchanged = 0, duplicates = 0, errors = 0;
     const findByPath = db.prepare('SELECT id, content_hash, file_size, modified_at FROM gpx_files WHERE relative_file_path = :path COLLATE NOCASE');
@@ -612,6 +611,7 @@ export class CacheManager {
     }
     const folder = resolve(selection.filePaths[0]);
     const databaseKey = this.databaseKeyForPath(folder);
+    this.activeDatabaseKey = databaseKey;
     const candidates: string[] = [];
     const pending = [folder];
     while (pending.length) {
