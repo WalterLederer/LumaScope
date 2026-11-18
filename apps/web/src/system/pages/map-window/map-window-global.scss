@@ -506,6 +506,7 @@ app-map-window {
     .fix-location-report th,.fix-location-report td{padding:5px 7px;border:1px solid #555;text-align:left;vertical-align:top}
     .fix-location-report th{width:40%;font-weight:600;color:inherit;background:rgba(127,127,127,.12)}
     .fix-location-report td{overflow-wrap:anywhere}
+    .fix-location-report-row-matched th,.fix-location-report-row-matched td{background:rgba(46,160,90,.13);font-weight:700}
     html[data-theme='light'] & .fix-location-report th,html[data-theme='light'] & .fix-location-report td{border-color:#c5c8ce}
 
     html[data-theme='light'] & .fix-location-max-difference input{background:#fff;border-color:#aeb4bd;color:#202124}
