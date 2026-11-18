@@ -41,6 +41,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getGpxDatabaseTimeRange = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseTimeRange(databaseKey);
 
+  readonly getLatestGpxElevationProfile = (databaseKeys?: string[]) => window.desktop.CacheManager.getLatestGpxElevationProfile(databaseKeys);
+
   readonly getGpxFilesInBounds = (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => window.desktop.CacheManager.getGpxFilesInBounds(bounds, databaseKey);
 
   readonly getInterpolatedGpxPosition = (folder: string, timestampMs: number, maxDifferenceSeconds = 120, databaseKey?: string) =>
