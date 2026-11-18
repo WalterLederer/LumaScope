@@ -529,9 +529,12 @@ export class SettingsPanelComponent {
     });
     effect(() => {
       const buildActive = this.cacheBuildActive();
+      const progress = this.cacheBuildProgress().completed;
       const clearing = this.isClearing();
       this.cacheManager.cacheRevision();
-      if (!buildActive && !clearing) void this.updateCacheSummary();
+      if (!clearing) void this.updateCacheSummary();
+      // Refresh as the build writes new cache records, not only after it ends.
+      if (buildActive) void progress;
     });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
