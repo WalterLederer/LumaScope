@@ -621,19 +621,29 @@ export class ImageView {
     if (!record) return [];
     return Object.entries(record)
       .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
-      .map(([key, value]) => ({
-        key,
-        type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
-        // Display SQLite TEXT values verbatim; JSON.stringify would escape backslashes.
-        value: typeof value === 'string' ? value : JSON.stringify(value) ?? 'null',
-        expanded: ['path_id', 'coordinate_source_id', 'location_name_id'].includes(key)
-          && record[`${key}_expanded`] != null
-          ? String(record[`${key}_expanded`])
-          : null,
-        isExpandedId: false,
-        isTimestamp: false,
-        isFileSize: false
-      }));
+      .map(([key, value]) => {
+        const timestampValue = typeof value === 'number' && Number.isFinite(value)
+          ? key === 'gps_timestamp' ? value * 1000
+            : ['modified_at', 'location_lookup_attempted_at'].includes(key) ? value
+              : null
+          : null;
+        const isTimestamp = timestampValue !== null;
+        return {
+          key,
+          type: typeof record[`${key}_type`] === 'string' ? record[`${key}_type`] as string : null,
+          // Display SQLite TEXT values verbatim; JSON.stringify would escape backslashes.
+          value: typeof value === 'string' ? value : JSON.stringify(value) ?? 'null',
+          expanded: isTimestamp
+            ? formatOsDateTime(timestampValue)
+            : ['path_id', 'coordinate_source_id', 'location_name_id'].includes(key)
+              && record[`${key}_expanded`] != null
+              ? String(record[`${key}_expanded`])
+              : null,
+          isExpandedId: false,
+          isTimestamp,
+          isFileSize: false
+        };
+      });
   });
   protected readonly photoDatabaseRecordStatus = signal('Not loaded.');
   private photoDatabaseRecordRequest = 0;
