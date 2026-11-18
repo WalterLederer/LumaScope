@@ -10,7 +10,7 @@ html body app-map-window .map-window .offline-row-action-menu {
   box-sizing: border-box !important; display: flex !important; flex-direction: column !important;
   gap: 2px !important; width: max-content !important; min-width: 190px !important;
   max-width: calc(100vw - 16px) !important; padding: 8px 12px !important; overflow-x: hidden !important;
-  color: var(--color-content-default, #eee) !important;
+  color: inherit !important;
   background: var(--color-surface-default-highest, #303238) !important;
   background-color: var(--color-surface-default-highest, #303238) !important;
   border: 1px solid var(--color-content-default-low, #666) !important;
@@ -106,8 +106,6 @@ html body button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([rol
   cursor: pointer !important;
   opacity: 1 !important;
 }
-html:not([data-theme="dark"]) body button.file-row-menu-trigger { color: #111 !important; }
-html[data-theme="dark"] body button.file-row-menu-trigger { color: #f2f2f2 !important; }
 html body button.file-row-menu-trigger:hover,
 html body button.file-row-menu-trigger:focus-visible,
 html body button.file-row-menu-trigger[aria-expanded="true"] {
