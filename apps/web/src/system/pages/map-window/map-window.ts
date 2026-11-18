@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
+import { GpxDatabaseImportComponent } from './gpx-database-import.component';
 import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
@@ -104,7 +105,7 @@ interface MapErrorEntry {
 @Component({
   selector: 'app-map-window',
   standalone: true,
-  imports: [SliderComponent],
+  imports: [SliderComponent, GpxDatabaseImportComponent],
   host: { '[class.overlay-mode]': 'overlayMode' },
   template: `
     <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
@@ -144,6 +145,9 @@ interface MapErrorEntry {
               <details class="fix-location-automatic-section app-disclosure">
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
+                <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
+                <app-gpx-database-import [databaseKey]="currentImagePath?.slice(0, 2)" (help)="openGpxCacheHelp()" />
+                <div class="fix-location-step-title">STEP 2 - Add GPS info from GPX to photos</div>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
@@ -414,22 +418,7 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
-      <details class="gpx-database-section app-disclosure">
-        <summary>GPX -&gt; DB</summary>
-        <div class="gpx-database-import-row">
-          <button type="button" class="offline-map-add-button" (click)="importAllGpxTracksToDatabase()" [disabled]="gpxDatabaseImportBusy()">
-            {{ gpxDatabaseImportBusy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
-          </button>
-          <button type="button" class="routing-help-button" (click)="refreshGpxDatabaseStats()" [disabled]="gpxDatabaseImportBusy()" title="Refresh GPX database information" aria-label="Refresh GPX database information"><span aria-hidden="true">⟳</span></button>
-          <span class="gpx-database-statistics" title="Stored in the cache database for this drive">
-            Database: {{ gpxDatabaseStats().files.toLocaleString() }} GPX files · {{ gpxDatabaseStats().segments.toLocaleString() }} segments · {{ gpxDatabaseStats().points.toLocaleString() }} points
-          </span>
-          <button type="button" class="routing-help-button gpx-database-help" (click)="openGpxCacheHelp()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
-        </div>
-        @if (gpxDatabaseImportStatus()) {
-          <span class="offline-map-status gpx-database-import-status" [class.gpx-database-import-progress]="gpxDatabaseImportBusy()" role="status" aria-live="polite">{{ gpxDatabaseImportStatus() }}</span>
-        }
-      </details>
+      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" (help)="openGpxCacheHelp()" />
       <details class="gpx-database-section app-disclosure">
         <summary>Marker -&gt; GPX</summary>
         <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
@@ -2323,9 +2312,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseQueryStatus = signal('');
   private gpxDatabaseQueryGeneration = 0;
   private gpxDatabaseViewportRefreshTimer: number | null = null;
-  protected readonly gpxDatabaseStats = signal({ files: 0, segments: 0, points: 0 });
-  protected readonly gpxDatabaseImportBusy = signal(false);
-  protected readonly gpxDatabaseImportStatus = signal('');
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
   protected readonly routeWaypointMarkersVisible = signal(this.readSetting('routeWaypointMarkersVisible', 'true') !== 'false');
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
@@ -5831,33 +5817,9 @@ export class MapWindow implements OnInit, OnDestroy {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
   };
-  protected async refreshGpxDatabaseStats(): Promise<void> {
-    if (!this.desktop) return;
+  protected readonly trackGpxDatabaseKey = (): string | undefined => {
     const configuredPath = this.gpxTracks().find(track => /^[a-z]:[\\/]/i.test(track.path) && !track.path.startsWith('memory:'))?.path;
-    const databaseKey = configuredPath?.slice(0, 2);
-    try { this.gpxDatabaseStats.set(await this.desktop.CacheManager.getGpxDatabaseStats(databaseKey)); }
-    catch (error) { this.gpxDatabaseImportStatus.set(error instanceof Error ? error.message : String(error)); }
-  }
-
-  protected readonly importAllGpxTracksToDatabase = async (): Promise<void> => {
-    if (!this.desktop || this.gpxDatabaseImportBusy()) return;
-    this.gpxDatabaseImportBusy.set(true);
-    this.gpxDatabaseImportStatus.set('IMPORTING GPX TRACKS — PLEASE WAIT…');
-    try {
-      const result = await this.desktop.CacheManager.importGpxFolder();
-      if (result.cancelled) {
-        this.gpxDatabaseImportStatus.set('Import cancelled.');
-        return;
-      }
-      this.gpxDatabaseStats.set({ files: result.files, segments: result.segments, points: result.points });
-      this.gpxDatabaseImportStatus.set(
-        `Imported ${result.imported.toLocaleString()} · unchanged ${result.unchanged.toLocaleString()} · duplicates ${result.duplicates.toLocaleString()} · errors ${result.errors.toLocaleString()}`
-      );
-    } catch (error) {
-      this.gpxDatabaseImportStatus.set(error instanceof Error ? error.message : String(error));
-    } finally {
-      this.gpxDatabaseImportBusy.set(false);
-    }
+    return configuredPath?.slice(0, 2);
   };
 
   private scheduleGpxDatabaseViewportRefresh(): void {
