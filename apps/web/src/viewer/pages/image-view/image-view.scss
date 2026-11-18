@@ -2080,6 +2080,25 @@
   border-radius: 2px;
   padding: 0 2px;
 }
+
+/* NULL fields are intentionally de-emphasized as a complete row. */
+.image-controls-sidebar .image-database-record-row.is-null {
+  color: #a0a0a0;
+  background: transparent;
+  border-left-color: transparent;
+}
+
+.image-controls-sidebar .image-database-record-row.is-null .image-database-record-key,
+.image-controls-sidebar .image-database-record-row.is-null .image-database-record-key.is-path-table-key {
+  color: #a0a0a0;
+  background: transparent;
+}
+
+.image-controls-sidebar .image-database-record-row.is-null .image-database-record-value,
+.image-controls-sidebar .image-database-record-row.is-null .image-database-record-type,
+.image-controls-sidebar .image-database-record-row.is-null .image-database-record-expanded {
+  color: #a0a0a0;
+}
 .image-controls-sidebar .image-database-record-key.is-path-table-key {
   background: color-mix(in srgb, #d69b35 22%, transparent);
   color: var(--color-content-default);
