@@ -88,6 +88,8 @@ The Location tab connects image metadata to geographic context.
 - **Fix location MANUAL** is for correcting the currently selected photo when its position can be identified visually. Enable **Show crosshair**, move the map so the fixed centre crosshair is over the photo's actual location, optionally use **Show crosshair address** to inspect the place name, and choose **Save GPS position...**. LumaScope writes the crosshair latitude/longitude to that image's GPS EXIF fields. This is a deliberate, one-photo-at-a-time correction; it does not infer a position from a timestamp or modify other photos.
 - **Fix location AUTOMATIC** applies timestamp-based geotagging to a selected photo folder. It recursively scans the folder and matches photos without GPS coordinates against timestamped points in the GPX tracks imported into the drive-local cache database for that folder.
   - Matching requires a valid photo timestamp and a pair of bracketing GPX points from the **same GPX track segment**. The position is linearly interpolated between those points; points from separate segments are never joined.
+  - The photo timestamp priority is EXIF `GPSDateTime`, XMP `GPSDateTime`, camera timestamp in the filename (`YYYYMMDD_HHmmss`, for example `IMG_20261009_093728.jpg`), EXIF `DateTimeOriginal`, XMP `DateCreated`, then EXIF `CreateDate`. If none is usable, GPS Auto Fix falls back to filesystem last-modified time.
+  - Filename dates are validated and interpreted as camera-local time. This is important for Android/ADB transfers: Windows Created/Modified timestamps can represent the PC copy time instead of the original photo capture time, so a valid camera-generated filename timestamp is preferred over those filesystem values.
   - The nearest of the two bracketing GPX timestamps determines the candidate time deviation. The default **Maximum time difference** is **2 minutes**. Candidates whose deviation exceeds the configured limit are counted as **Ignored (time difference too high)** and are not written. The setting accepts 0–1440 minutes in 0.5-minute steps.
   - **Check only** runs the same scan and matching logic and reports the results without changing image files. In normal mode, accepted positions are written to the original image files' GPS EXIF metadata; existing GPS coordinates are never overwritten.
   - The status report includes the selected start folder, total folders and files processed, photo/GPS counts, accepted matches, unmatched photos, candidates rejected by the time limit, min/mean/max candidate deviation in seconds, updated-file count, errors and elapsed runtime. Deviation statistics include candidates rejected by the threshold, so the report shows how far rejected candidates were from the photo timestamps as well.
@@ -117,10 +119,12 @@ The timestamp used for a photo marker and the map time slider is selected in thi
 
 1. EXIF `GPSDateTime`.
 2. XMP `GPSDateTime`.
-3. EXIF `DateTimeOriginal`.
-4. XMP `DateCreated`.
-5. EXIF `CreateDate`.
-6. Source file's filesystem modification time as the final fallback.
+3. Camera timestamp in the filename (`YYYYMMDD_HHmmss`, e.g. `IMG_20261009_093728.jpg`).
+4. EXIF `DateTimeOriginal`.
+5. XMP `DateCreated`.
+6. EXIF `CreateDate`.
+
+For GPS Auto Fix only, if none of these values is available, the source file's filesystem last-modified time is used as the final fallback. Filename timestamps are interpreted as camera-local time and take precedence over Windows filesystem dates because Android/ADB copies can set those dates to the transfer time.
 
 GPS date/time values are treated as UTC. Embedded capture dates without timezone information are interpreted in the computer's local timezone. The selected timestamp is stored with the photo's location record and is used for map time filtering and playback. A photo without valid latitude and longitude cannot be shown as a location marker and therefore has no marker timestamp.
 
