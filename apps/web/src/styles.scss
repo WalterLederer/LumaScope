@@ -2,7 +2,8 @@
 @use "./system/pages/map-window/map-window-global.scss";
 
 /* Single shared hamburger button: use the real font glyph, never CSS-drawn bars. */
-.file-row-menu-trigger {
+.file-row-menu-trigger,
+html body app-map-window .map-window .file-row-menu-trigger {
   appearance: none !important; -webkit-appearance: none !important;
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
   box-sizing: border-box !important; flex: 0 0 22px !important;
@@ -18,7 +19,10 @@
 }
 .file-row-menu-trigger:hover,
 .file-row-menu-trigger:focus-visible,
-.file-row-menu-trigger[aria-expanded="true"] {
+.file-row-menu-trigger[aria-expanded="true"],
+html body app-map-window .map-window .file-row-menu-trigger:hover,
+html body app-map-window .map-window .file-row-menu-trigger:focus-visible,
+html body app-map-window .map-window .file-row-menu-trigger[aria-expanded="true"] {
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
   color: var(--color-content-default, #eee) !important;
@@ -27,7 +31,9 @@
 /* One popup surface and one item treatment for map, thumbnail and CDK menus. */
 html body .gpx-row-action-menu,
 html body .detail-row-action-menu,
-html body ui-popup-menu {
+html body ui-popup-menu,
+html body app-map-window .map-window .gpx-row-action-menu,
+html body app-map-window .map-window .offline-row-action-menu {
   box-sizing: border-box !important; display: flex !important; flex-direction: column !important;
   gap: 2px !important; width: max-content !important; min-width: 190px !important;
   max-width: calc(100vw - 16px) !important; padding: 5px !important; overflow-x: hidden !important;
