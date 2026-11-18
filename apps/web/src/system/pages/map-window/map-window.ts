@@ -148,6 +148,8 @@ interface MapErrorEntry {
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
                   <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
+                  <button type="button" class="map-toolbar-button fix-location-log-button" (click)="openAutoFixLogFile()" title="Open GPS Auto Fix diagnostic log">Open log file</button>
+                  <button type="button" class="map-toolbar-button fix-location-log-button" (click)="openAutoFixLogFolder()" title="Open folder containing the GPS Auto Fix diagnostic log">Open log folder</button>
                  </div>
                 @if (autoFixStatus()) {
                   <div class="fix-location-progress-row">
@@ -4453,6 +4455,36 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly openLocationFixManualHelp = (): void => {
     void this.desktop?.MapWindow.openHelpDocument('location-fix-manual.md');
+  };
+
+  private readonly getAutoFixLogPaths = async (): Promise<{ file: string; folder: string }> => {
+    if (!this.desktop) throw new Error('Desktop API is unavailable.');
+    const paths = await this.desktop.ProcessManager.getSystemPaths();
+    const folder = await this.desktop.FileSystem.join(paths.userData, '..');
+    const logFolder = await this.desktop.FileSystem.join(paths.userData, 'gps-auto-fix-debug.log');
+    return { file: logFolder, folder: paths.userData };
+  };
+
+  protected readonly openAutoFixLogFile = async (): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      const paths = await this.getAutoFixLogPaths();
+      const error = await this.desktop.ProcessManager.openPath(paths.file);
+      if (error) this.autoFixStatus.set('Could not open GPS Auto Fix log: ' + error);
+    } catch (error) {
+      this.autoFixStatus.set('Could not open GPS Auto Fix log: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  protected readonly openAutoFixLogFolder = async (): Promise<void> => {
+    if (!this.desktop) return;
+    try {
+      const paths = await this.getAutoFixLogPaths();
+      const error = await this.desktop.ProcessManager.openPath(paths.folder);
+      if (error) this.autoFixStatus.set('Could not open GPS Auto Fix log folder: ' + error);
+    } catch (error) {
+      this.autoFixStatus.set('Could not open GPS Auto Fix log folder: ' + (error instanceof Error ? error.message : String(error)));
+    }
   };
 
   protected readonly openLocationFixAutomaticHelp = (): void => {
