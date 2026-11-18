@@ -638,7 +638,7 @@ export class SettingsPanelComponent {
     }
   };
 
-  private readonly updateCacheSummary = async (databaseKey = this.selectedCacheDatabaseKey() ?? undefined): Promise<void> => {
+  private readonly updateCacheSummary = async (databaseKey = this.selectedCacheDatabaseKey() ?? (/^[a-z]:/i.test(this.cacheFolderPath().trim()) ? this.cacheFolderPath().trim().slice(0, 2).toUpperCase() : undefined)): Promise<void> => {
     const requestId = ++this.cacheSummaryRequestId;
     this.cacheSummaryLoading.set(true);
     try {
