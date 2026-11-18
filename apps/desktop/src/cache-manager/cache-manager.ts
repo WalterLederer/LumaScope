@@ -605,6 +605,20 @@ export class CacheManager {
       (SELECT COUNT(*) FROM gpx_track_points WHERE timestamp_ms IS NOT NULL) AS timestampedPoints`).get() as { files: number; segments: number; points: number; timestampedPoints: number };
   };
 
+  @IpcHandler({ name: 'CacheManager.getGpxDatabaseTimeRange' })
+  readonly getGpxDatabaseTimeRange = async (
+    _event?: IpcMainInvokeEvent, databaseKey?: string
+  ): Promise<{ from: number | null; to: number | null }> => {
+    const key = databaseKey ?? this.activeDatabaseKey;
+    if (!key || !/^[a-z]:$/i.test(key)) return { from: null, to: null };
+    const db = this.databases.get(key.toUpperCase()) ?? this.databaseForPath(key.toUpperCase() + '\\\\');
+    const range = db.prepare(`SELECT MIN(timestamp_ms) AS fromTimestamp, MAX(timestamp_ms) AS toTimestamp
+      FROM gpx_track_points WHERE timestamp_ms IS NOT NULL`).get() as {
+        fromTimestamp: number | null; toTimestamp: number | null;
+      };
+    return { from: range.fromTimestamp, to: range.toTimestamp };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGpxFilesInBounds' })
   readonly getGpxFilesInBounds = async (
     _event: IpcMainInvokeEvent,
