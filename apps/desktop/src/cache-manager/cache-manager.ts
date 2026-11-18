@@ -71,6 +71,26 @@ export class CacheManager {
   private activeDatabaseKey: string | null = null;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
   private readonly pendingLocationLookups = new Map<string, Promise<string | null>>();
+  // Keep background reverse-geocoding requests bounded while cache builds
+  // continue. Nominatim allows roughly one request per second, so queuing every
+  // image from a large folder can otherwise retain thousands of promises in V8.
+  private static readonly maxBackgroundLocationLookups = 20;
+  private backgroundLocationLookupReservations = 0;
+  private readonly backgroundLocationLookupWaiters: Array<() => void> = [];
+
+  private readonly acquireBackgroundLocationLookupSlot = async (): Promise<() => void> => {
+    if (this.backgroundLocationLookupReservations >= CacheManager.maxBackgroundLocationLookups) {
+      await new Promise<void>(resolve => this.backgroundLocationLookupWaiters.push(resolve));
+    }
+    this.backgroundLocationLookupReservations++;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.backgroundLocationLookupReservations = Math.max(0, this.backgroundLocationLookupReservations - 1);
+      this.backgroundLocationLookupWaiters.shift()?.();
+    };
+  };
   private locationLookupCancelled = false;
   private currentReverseGeocodingPath: string | null = null;
   private currentReverseGeocodingDisplayName: string | null = null;
@@ -1239,8 +1259,15 @@ export class CacheManager {
       });
     if (hasCoordinates) {
       const updated = this.getPhoto(sourceName);
-      // Resolve the location in the background so metadata and thumbnail work can continue immediately.
-      if (updated) void this.ensureLocationName(updated, db, false, false, false, this.databaseKeyForPath(sourceName));
+      // Resolve the location in the background, but apply backpressure to the
+      // cache builder. Nominatim is rate-limited to about one request per second;
+      // allowing every photo to enqueue at once retains an unbounded promise chain
+      // and can exhaust Electron's main-process V8 heap on large folders.
+      if (updated) {
+        const releaseSlot = await this.acquireBackgroundLocationLookupSlot();
+        void this.ensureLocationName(updated, db, false, false, false, this.databaseKeyForPath(sourceName))
+          .finally(releaseSlot);
+      }
     }
   };
 
