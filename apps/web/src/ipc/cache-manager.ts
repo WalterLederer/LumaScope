@@ -39,6 +39,9 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly importGpxFiles = (filePaths: string[]) => window.desktop.CacheManager.importGpxFiles(filePaths);
 
+  readonly exportGpxFileFromDatabase = (sourcePath: string, databaseKey?: string) =>
+    window.desktop.CacheManager.exportGpxFileFromDatabase(sourcePath, databaseKey);
+
   readonly getGpxDatabaseStats = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseStats(databaseKey);
 
   readonly getGpxDatabaseTimeRange = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseTimeRange(databaseKey);
