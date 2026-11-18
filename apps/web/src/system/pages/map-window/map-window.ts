@@ -66,7 +66,7 @@ interface RouteCalculationResult {
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed'; speedPalette?: 'spectrum' | 'cool-warm'; speedMinKmh?: number; speedMaxKmh?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface RenderTimingSummary {
   count: number;
@@ -378,17 +378,23 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
               <div class="color-picker gpx-track-color-picker" role="cell">
-                <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
-                  <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
-                </button>
-                @if (gpxTrackColorMenuOpen() === track.path) {
-                  <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
-                    @for (color of gpxColors; track color.value) {
-                      <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxListTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
-                        <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                      </button>
-                    }
-                  </div>
+                <select class="gpx-db-select gpx-color-mode-select" [value]="track.colorMode || 'fixed'" (change)="changeGpxListTrack(track.path, { colorMode: $any($event.target).value })" [attr.aria-label]="'Color mode for ' + track.name"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option></select>
+                @if (track.colorMode !== 'speed') {
+                  <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
+                    <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (gpxTrackColorMenuOpen() === track.path) {
+                    <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxListTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
+                          <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                } @else {
+                  <select class="gpx-db-select" [value]="track.speedPalette || 'spectrum'" (change)="changeGpxListTrack(track.path, { speedPalette: $any($event.target).value })" [attr.aria-label]="'Speed color palette for ' + track.name"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option></select>
+                  <div class="gpx-speed-range-controls"><label><span>Min</span><input type="number" min="0" max="299" step="5" [value]="track.speedMinKmh ?? 0" (change)="changeGpxListTrack(track.path, { speedMinKmh: +$any($event.target).value })" [attr.aria-label]="'Minimum speed for ' + track.name"></label><label><span>Max</span><input type="number" min="1" max="300" step="5" [value]="track.speedMaxKmh ?? 120" (change)="changeGpxListTrack(track.path, { speedMaxKmh: +$any($event.target).value })" [attr.aria-label]="'Maximum speed for ' + track.name"></label></div>
                 }
               </div>
               <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxListTrack(track.path, { lineStyle: $any($event.target).value })" [attr.aria-label]="'Line style for ' + track.name">
@@ -2403,7 +2409,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
-  private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
+  private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
   protected readonly latestGpxElevationProfile = signal<GpxElevationProfile | null>(null);
   protected readonly latestGpxElevationProfileBusy = signal(false);
   protected readonly latestGpxElevationProfileError = signal('');
@@ -6298,6 +6304,10 @@ export class MapWindow implements OnInit, OnDestroy {
       lastModified: Number.isFinite(track.lastModified) ? track.lastModified : 0,
       active: track.active !== false,
       color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(),
+      colorMode: track.colorMode === 'speed' ? 'speed' : 'fixed',
+      speedPalette: track.speedPalette === 'cool-warm' ? 'cool-warm' : 'spectrum',
+      speedMinKmh: Number.isFinite(track.speedMinKmh) ? Math.max(0, Math.min(299, track.speedMinKmh!)) : 0,
+      speedMaxKmh: Number.isFinite(track.speedMaxKmh) ? Math.max(1, Math.min(300, track.speedMaxKmh!)) : 120,
       lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid',
       lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth ?? 4 : 4,
       showDirection: track.showDirection === true,
@@ -7311,7 +7321,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly gpxListWaypointCount = (track: GpxTrackFile): number =>
     this.gpxListMode() === 'database' ? this.gpxVisibleWaypointCount(track) : this.gpxWaypointCount(track.path);
-  protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
+  protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     if (this.gpxListMode() === 'database') this.changeGpxDatabaseTrack(path, patch);
     else if (patch.active !== undefined) this.changeGpxTrackActive(path, patch.active);
     else this.updateGpxTrack(path, patch);
@@ -7915,45 +7925,98 @@ ${points}
     this.gpxHoverInfo.set('');
   }
 
+  private gpxSpeedColor(speedKmh: number, track: GpxTrackFile): string {
+    const minimum = Math.max(0, track.speedMinKmh ?? 0);
+    const maximum = Math.max(minimum + 1, track.speedMaxKmh ?? 120);
+    const t = Math.max(0, Math.min(1, (speedKmh - minimum) / (maximum - minimum)));
+    const stops = track.speedPalette === 'cool-warm'
+      ? [[0, 37, 115, 190], [0.5, 70, 190, 170], [1, 220, 70, 55]]
+      : [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]];
+    let lower = stops[0], upper = stops[stops.length - 1];
+    for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { lower = stops[i - 1]; upper = stops[i]; break; }
+    const fraction = (t - lower[0]) / Math.max(0.0001, upper[0] - lower[0]);
+    const rgb = [1, 2, 3].map(index => Math.round(lower[index] + (upper[index] - lower[index]) * fraction));
+    return '#' + rgb.map(value => value.toString(16).padStart(2, '0')).join('');
+  }
+
+  private gpxSpeedSegments(track: GpxTrackFile): Array<{ coordinates: [number, number][]; color: string }> {
+    const pointSegments = this.gpxPointDataByTrack.get(track.path) ?? [];
+    const result: Array<{ coordinates: [number, number][]; color: string }> = [];
+    const radians = Math.PI / 180;
+    const earthRadius = 6371000;
+    for (const points of pointSegments) {
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i];
+        if (a.inViewport === false || b.inViewport === false) continue;
+        const timeA = a.timestamp ? Date.parse(a.timestamp) : Number.NaN;
+        const timeB = b.timestamp ? Date.parse(b.timestamp) : Number.NaN;
+        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || timeB <= timeA) continue;
+        if (this.timeSliderActive() && (!this.isTimeSliderTimestampVisible(timeA / 1000) || !this.isTimeSliderTimestampVisible(timeB / 1000))) continue;
+        const lat1 = a.latitude * radians, lat2 = b.latitude * radians;
+        const dLat = lat2 - lat1, dLon = (b.longitude - a.longitude) * radians;
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        const distance = 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(h)));
+        const speedKmh = distance / ((timeB - timeA) / 1000) * 3.6;
+        // Ignore stationary duplicate points and implausible GPS jumps.
+        if (!Number.isFinite(speedKmh) || speedKmh < 0.5 || speedKmh > 300) continue;
+        result.push({ coordinates: [[a.latitude, a.longitude], [b.latitude, b.longitude]], color: this.gpxSpeedColor(speedKmh, track) });
+      }
+    }
+    return result;
+  }
+
   private applyGpxTrack(): void {
     const renderTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    const activeTracks = this.gpxVisible() ? renderTracks.filter(track => track.active !== false) : [];
     if (this.offlineRenderer) {
-      this.offlineRenderer.setTrack(this.gpxVisible() ? renderTracks.filter(track => track.active !== false).map(track => ({ path: track.path, segments: this.visibleGpxSegments(track), color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' })) : [], .92 * this.gpxOpacity() / 100);
+      this.offlineRenderer.setTrack(activeTracks.map(track => {
+        const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : [];
+        const normalSegments = this.visibleGpxSegments(track);
+        const segments = speedSegments.length ? speedSegments.map(item => item.coordinates) : normalSegments;
+        const segmentColors = speedSegments.length ? speedSegments.map(item => item.color) : undefined;
+        return { path: track.path, segments, segmentColors, color: track.color || this.gpxColor(), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' };
+      }), .92 * this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
-    for (const track of renderTracks.filter(item => item.active !== false)) {
-      for (const segment of this.visibleGpxSegments(track)) {
+    for (const track of activeTracks) {
+      const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : [];
+      const normalSegments = this.visibleGpxSegments(track);
+      const segments = speedSegments.length ? speedSegments.map(item => item.coordinates) : normalSegments;
+      for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+        const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
+        const color = speedSegments.length ? speedSegments[segmentIndex].color : (track.color || this.gpxColor());
         const lineStyle = track.lineStyle || 'solid';
         const trackLine = this.leaflet.polyline(segment, {
-          color: track.color || this.gpxColor(), weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
+          color, weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
           lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle)
         }).addTo(this.map);
         const hoverLine = this.leaflet.polyline(segment, {
-          color: track.color || this.gpxColor(), weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
+          color, weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
           lineCap: 'round', lineJoin: 'round'
         }).addTo(this.map);
         hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
         hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
         this.trackLayers.push(trackLine, hoverLine);
-        if (track.showDirection) {
-          const arrowStyles: Record<NonNullable<GpxTrackFile['directionStyle']>, { glyph: string; size: number }> = {
-            classic: { glyph: '➤', size: 16 }, chevron: { glyph: '❯', size: 16 }, triangle: { glyph: '▶', size: 16 }, thin: { glyph: '➜', size: 16 },
-            'large-classic': { glyph: '➤', size: 24 }, 'large-chevron': { glyph: '❯', size: 24 }, 'large-triangle': { glyph: '▶', size: 24 }
-          };
-          const arrowStyle = arrowStyles[track.directionStyle || 'classic'];
-          for (const arrow of this.gpxDirectionArrows(segment)) {
-            const icon = this.leaflet.divIcon({
-              className: 'gpx-direction-arrow-icon',
-              html: '<span class="gpx-direction-arrow" style="font-size:' + arrowStyle.size + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + arrowStyle.glyph + '</span>',
-              iconSize: [arrowStyle.size + 4, arrowStyle.size + 4], iconAnchor: [(arrowStyle.size + 4) / 2, (arrowStyle.size + 4) / 2]
-            });
-            this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
-          }
+      }
+      for (const segment of normalSegments) {
+        if (!track.showDirection || segment.length < 2) continue;
+        const arrowStyles: Record<NonNullable<GpxTrackFile['directionStyle']>, { glyph: string; size: number }> = {
+          classic: { glyph: '➤', size: 16 }, chevron: { glyph: '❯', size: 16 }, triangle: { glyph: '▶', size: 16 }, thin: { glyph: '➜', size: 16 },
+          'large-classic': { glyph: '➤', size: 24 }, 'large-chevron': { glyph: '❯', size: 24 }, 'large-triangle': { glyph: '▶', size: 24 }
+        };
+        const arrowStyle = arrowStyles[track.directionStyle || 'classic'];
+        for (const arrow of this.gpxDirectionArrows(segment)) {
+          const icon = this.leaflet.divIcon({
+            className: 'gpx-direction-arrow-icon',
+            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowStyle.size + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + arrowStyle.glyph + '</span>',
+            iconSize: [arrowStyle.size + 4, arrowStyle.size + 4], iconAnchor: [(arrowStyle.size + 4) / 2, (arrowStyle.size + 4) / 2]
+          });
+          this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
         }
       }
     }
