@@ -7,17 +7,18 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 
 ## Prerequisites
 
-- Import the relevant GPX files first using **Track → Advanced → GPX → DB** (the GPX folder import).
-- The imported GPX data must be available in the cache database associated with the drive containing the selected photo folder.
+- In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The same shared importer is also available under **Track → Advanced**.
+- Import the GPX folder from the same drive as the photo folder. GPX data is stored in the cache database associated with the drive containing the selected GPX folder, while Auto Fix searches the database associated with the selected photo folder.
 - GPX track points must have timestamps. Matching uses points within an individual GPX segment.
 
 ## Workflow
 
 1. Open **Location → Fix location AUTOMATIC**.
-2. Select **Check only** first to inspect the proposed results without changing any image files.
-3. Set **Maximum time difference (minutes)**. The default is **2 minutes**; the allowed range is 0–1440 minutes in 0.5-minute steps.
-4. Select **Select folder with photos to fix...** and choose the root folder. Its subfolders are scanned recursively.
-5. Review the status report. If the results are suitable, clear **Check only** and run the operation again to write the accepted GPS positions.
+2. Under **STEP 1 - Add GPX to search**, expand **GPX → DB** and import the GPX folder from the same drive as the photos. Check the database file, segment and point totals.
+3. Under **STEP 2 - Add GPS info from GPX to photos**, select **Check only** first to inspect the proposed results without changing any image files.
+4. Set **Maximum time difference (minutes)**. The default is **2 minutes**; the allowed range is 0–1440 minutes in 0.5-minute steps.
+5. Select **Select folder with photos to fix...** and choose the root folder. Its subfolders are scanned recursively.
+6. Review the status report. If the results are suitable, clear **Check only** and run the operation again to write the accepted GPS positions.
 
 ## Matching and interpolation
 
