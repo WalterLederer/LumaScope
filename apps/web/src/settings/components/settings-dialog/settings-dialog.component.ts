@@ -148,6 +148,13 @@ export class SettingsPanelComponent {
     summary: CacheSummary;
     gpx: { files: number; segments: number; points: number; timestampedPoints: number };
   }>>([]);
+  protected readonly cacheSummaryDatabaseFiles = computed(() => {
+    const files = new Map<string, { key: string; path: string; bytes: number }>();
+    for (const column of this.cacheSummaryColumns()) {
+      for (const database of column.summary.databases) files.set(database.key, database);
+    }
+    return [...files.values()].sort((left, right) => left.key.localeCompare(right.key));
+  });
   protected readonly cacheSummaryLoading = signal(false);
   protected readonly cacheSummaryLoadingDrives = signal<string[]>([]);
   protected readonly cacheSummaryError = signal<string | null>(null);
