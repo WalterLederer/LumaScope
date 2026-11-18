@@ -2386,6 +2386,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const total = this.autoFixProgress().total;
     return total > 0 ? Math.min(100, Math.max(0, count / total * 100)) : 0;
   };
+  protected readonly formatAutoFixTimestampRange = (from: number | null, to: number | null): string => {
+    if (from === null || to === null) return 'n/a';
+    return formatOsDateTime(new Date(from)) + ' – ' + formatOsDateTime(new Date(to));
+  };
   protected readonly createAutoFixLiveReport = (
     progress: FixPhotoLocationsProgress, checkOnly: boolean
   ): Array<{ label: string; value: string }> => {
@@ -2402,6 +2406,9 @@ export class MapWindow implements OnInit, OnDestroy {
       { label: 'Folders scanned (including subfolders)', value: this.formatAutoFixCount(progress.totalFoldersProcessed) },
       { label: 'All files scanned (photos and non-photos)', value: this.formatAutoFixCount(progress.totalFilesProcessed) },
       { label: 'Photo files checked', value: this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) },
+      { label: 'Cache databases searched', value: progress.databaseKeys.join(', ') || '—' },
+      { label: 'GPX timestamp range (all imported files)', value: this.formatAutoFixTimestampRange(progress.gpxFromTimestamp, progress.gpxToTimestamp) },
+      { label: 'Photo timestamp range (photos scanned so far)', value: this.formatAutoFixTimestampRange(progress.photoFromTimestamp, progress.photoToTimestamp) },
       { label: 'Runtime', value: elapsedText },
       { label: 'Result', value: checkOnly ? 'Checking — no files will be changed' : 'GPS correction in progress' },
       { label: 'Photos whose files already contain GPS coordinates', value: this.formatAutoFixCount(progress.withGps) },
@@ -3107,6 +3114,9 @@ export class MapWindow implements OnInit, OnDestroy {
         { label: 'Folders scanned (including subfolders)', value: this.formatAutoFixCount(result.totalFoldersProcessed) },
         { label: 'All files scanned (photos and non-photos)', value: this.formatAutoFixCount(result.totalFilesProcessed) },
         { label: 'Photo files checked', value: this.formatAutoFixCount(result.scanned) },
+        { label: 'Cache databases searched', value: result.databaseKeys.join(', ') || '—' },
+        { label: 'GPX timestamp range (all imported files)', value: this.formatAutoFixTimestampRange(result.gpxFromTimestamp, result.gpxToTimestamp) },
+        { label: 'Photo timestamp range (photos scanned)', value: this.formatAutoFixTimestampRange(result.photoFromTimestamp, result.photoToTimestamp) },
         { label: 'Runtime', value: elapsedText },
         { label: 'Result', value: result.aborted ? 'Aborted — partial results' : checkOnly ? 'Check only — no files changed' : 'GPS correction completed' },
         { label: 'Photos whose files already contain GPS coordinates', value: this.formatAutoFixCount(result.withGps) },
