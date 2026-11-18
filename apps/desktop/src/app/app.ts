@@ -522,10 +522,20 @@ export default class App {
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
       throw new Error('The map window received invalid GPS coordinates.');
     }
+    const previousLocation = App.mapWindowLocation;
+    const hasPreviousCoordinates = Number.isFinite(previousLocation.latitude)
+      && Number.isFinite(previousLocation.longitude)
+      && previousLocation.latitude! >= -90 && previousLocation.latitude! <= 90
+      && previousLocation.longitude! >= -180 && previousLocation.longitude! <= 180;
+    // Opening Location without a selected image must retain the last known map
+    // position instead of resetting the detached map to its default center.
     App.mapWindowLocation = hasCoordinates
       ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null }
-      : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
+      : hasPreviousCoordinates
+        ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null }
+        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
     const location = App.mapWindowLocation;
+    const hasResolvedCoordinates = Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
     if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
 
     if (App.isMapWindowOpen()) {
@@ -564,8 +574,8 @@ export default class App {
       App.logShutdown('window-close', { window: 'location' });
       void App.startupConfig.saveMapBounds(App.mapWindow.getNormalBounds());
     });
-    const hash = hasCoordinates
-      ? `/map?lat=${encodeURIComponent(latitude!)}&lon=${encodeURIComponent(longitude!)}${Number.isFinite(bearing) ? `&bearing=${encodeURIComponent(bearing!)}` : ''}${imagePath ? `&imagePath=${encodeURIComponent(imagePath)}` : ''}`
+    const hash = hasResolvedCoordinates
+      ? `/map?lat=${encodeURIComponent(location.latitude!)}&lon=${encodeURIComponent(location.longitude!)}${Number.isFinite(location.bearing) ? `&bearing=${encodeURIComponent(location.bearing!)}` : ''}${imagePath ? `&imagePath=${encodeURIComponent(imagePath)}` : ''}`
       : `/map${imagePath ? `?imagePath=${encodeURIComponent(imagePath)}` : ''}`;
     if (!App.application.isPackaged) {
       App.mapWindow.loadURL(`http://localhost:${rendererAppPort}/#${hash}`);
