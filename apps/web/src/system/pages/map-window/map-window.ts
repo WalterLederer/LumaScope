@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener,
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
 import { GpxDatabaseImportComponent } from './gpx-database-import.component';
+import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
@@ -146,7 +147,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
-                <app-gpx-database-import [databaseKey]="currentImagePath?.slice(0, 2)" (help)="openGpxCacheHelp()" />
+                <app-gpx-database-import [databaseKey]="currentImagePath?.slice(0, 2)" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
                 <div class="fix-location-step-title">STEP 2 - Add GPS info from GPX to photos</div>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
@@ -418,7 +419,7 @@ interface MapErrorEntry {
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
-      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" (help)="openGpxCacheHelp()" />
+      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
       <details class="gpx-database-section app-disclosure">
         <summary>Marker -&gt; GPX</summary>
         <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
@@ -1520,6 +1521,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineMapTypeLabels[type === 'obf' ? 'obf' : type === 'mapsforge' || type === 'map' ? 'mapsforge' : type === 'hillshade' ? 'hillshade' : 'mbtiles'];
 
   private readonly route = inject(ActivatedRoute);
+  private readonly galleryLocations = inject(GalleryLocations);
+  protected readonly favoriteGpxDatabaseKeys = signal<string[]>([]);
+  private favoriteLocationsUnsubscribe: (() => void) | null = null;
   protected readonly overlayMode = this.route.snapshot.queryParamMap.get('overlay') === '1';
   private overlayResizeStart: { edge: string; pointerX: number; pointerY: number; bounds: { x: number; y: number; width: number; height: number } } | null = null;
   protected readonly themeService = inject(ThemeService);
@@ -2540,6 +2544,11 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
+      const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
+      this.favoriteGpxDatabaseKeys.set(keys);
+    });
+    this.favoriteLocationsUnsubscribe = () => favoriteLocationsSubscription.unsubscribe();
     setOfflineRenderConcurrency(this.renderWorkerCount());
     this.offlineRenderStatusUnsubscribe = subscribeOfflineRenderStatus(tasks => this.offlineRenderTasks.set(tasks));
     if (this.desktop) {
@@ -2910,6 +2919,8 @@ export class MapWindow implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.offlineRenderStatusUnsubscribe?.();
     this.offlineRenderStatusUnsubscribe = null;
+    this.favoriteLocationsUnsubscribe?.();
+    this.favoriteLocationsUnsubscribe = null;
     if (this.memoryRefreshTimer) clearInterval(this.memoryRefreshTimer);
     this.memoryRefreshTimer = null;
     this.stopTimeSliderAnimation();
@@ -3073,7 +3084,7 @@ export class MapWindow implements OnInit, OnDestroy {
             + this.formatAutoFixCount(progress.scanned) + ' / ' + this.formatAutoFixCount(progress.total) + ' photos processed');
         }
       });
-      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60, operationId)
+      const response = await this.desktop.Exif.fixFolderLocations(selection.data, checkOnly, maxDifferenceMinutes * 60, operationId, this.favoriteGpxDatabaseKeys())
         .finally(() => {
           unsubscribeProgress();
           if (this.activeAutoFixOperationId === operationId) this.activeAutoFixOperationId = null;
