@@ -698,3 +698,10 @@ app-map-window .track-tab .gpx-file-list {
   min-height: 0 !important;
   max-height: none !important;
 }
+
+
+/* Keep the GPX database help action aligned at the top-right of its section. */
+.gpx-database-section>.gpx-database-summary{display:flex;align-items:center;gap:8px;list-style:none;}
+.gpx-database-section>.gpx-database-summary::-webkit-details-marker{display:none;}
+.gpx-database-section>.gpx-database-summary::after{content:' ';flex:1;order:0;}
+.gpx-database-section>.gpx-database-summary>.gpx-database-help{order:1;margin-left:auto;flex:0 0 auto;}
