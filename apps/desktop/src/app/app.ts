@@ -1,5 +1,5 @@
 import { BrowserWindow, globalShortcut, ipcMain, protocol, screen, shell } from 'electron';
-import { appProtocol, GlobalShortcutStatus } from 'internal-api';
+import { appProtocol, GlobalShortcutStatus, formatOsDateTime } from 'internal-api';
 import { join } from 'path';
 import { appendFileSync, mkdirSync, statSync } from 'node:fs';
 import { format } from 'url';
@@ -30,7 +30,7 @@ export default class App {
       const now = new Date();
       const entry = {
         timestamp: now.toISOString(),
-        timestampLocal: now.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }),
+        timestampLocal: formatOsDateTime(now),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         processId: process.pid,
         elapsedMs,
