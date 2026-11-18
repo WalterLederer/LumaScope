@@ -3,7 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
 import { GpxDatabaseImportComponent } from './gpx-database-import.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
-import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type GpxElevationProfile, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
@@ -430,10 +430,42 @@ interface MapErrorEntry {
     } @else {
       <div class="gpx-database-empty">No GPX tracks are loaded.</div>
     }
+    <details class="gpx-elevation-profile-section app-disclosure">
+      <summary>Elevation Profile</summary>
+      @if (latestGpxElevationProfileBusy()) {
+        <span class="offline-map-status">Loading the latest GPX elevation profile…</span>
+      } @else if (latestGpxElevationProfile(); as profile) {
+        <div class="gpx-elevation-profile-info">
+          <strong>{{ profile.fileName }}</strong>
+          <span>{{ profile.databaseKey }}: · {{ profile.pointCount.toLocaleString() }} elevation points · Min {{ profile.minElevationM.toFixed(0) }} m · Max {{ profile.maxElevationM.toFixed(0) }} m</span>
+        </div>
+        @if (gpxElevationChart(); as chart) {
+          <svg class="gpx-elevation-chart" viewBox="0 0 900 270" role="img" [attr.aria-label]="'Elevation profile for ' + profile.fileName + ', from ' + chart.startLabel + ' to ' + chart.endLabel">
+            <line class="gpx-elevation-axis" x1="70" y1="18" x2="70" y2="218" />
+            <line class="gpx-elevation-axis" x1="70" y1="218" x2="880" y2="218" />
+            <line class="gpx-elevation-grid" x1="70" y1="18" x2="880" y2="18" />
+            <line class="gpx-elevation-grid" x1="70" y1="118" x2="880" y2="118" />
+            <line class="gpx-elevation-grid" x1="70" y1="218" x2="880" y2="218" />
+            <text class="gpx-elevation-tick" x="60" y="22" text-anchor="end">{{ chart.maxLabel }}</text>
+            <text class="gpx-elevation-tick" x="60" y="122" text-anchor="end">{{ chart.midLabel }}</text>
+            <text class="gpx-elevation-tick" x="60" y="222" text-anchor="end">{{ chart.minLabel }}</text>
+            <polyline class="gpx-elevation-line" [attr.points]="chart.polyline" />
+            <text class="gpx-elevation-axis-title" x="18" y="118" text-anchor="middle" transform="rotate(-90 18 118)">Elevation (m)</text>
+            <text class="gpx-elevation-tick" x="70" y="242" text-anchor="start">{{ chart.startLabel }}</text>
+            <text class="gpx-elevation-tick" x="880" y="242" text-anchor="end">{{ chart.endLabel }}</text>
+            <text class="gpx-elevation-axis-title" x="475" y="265" text-anchor="middle">Track time</text>
+          </svg>
+        } @else {
+          <span class="offline-map-status">Not enough timestamped elevation points to draw a profile.</span>
+        }
+      } @else {
+        <span class="offline-map-status">{{ latestGpxElevationProfileError() || 'No imported GPX track with timestamped elevation data was found in the available cache databases.' }}</span>
+      }
+    </details>
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
-      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
+      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" (imported)="refreshLatestGpxElevationProfile($event)" />
       <details class="gpx-database-section app-disclosure">
         <summary>Marker -&gt; GPX</summary>
         <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
@@ -1590,6 +1622,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineMapListMounted = signal(false);
   protected readonly selectSettingsTab = (tab: 'location' | 'fix' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'): void => {
     this.activeSettingsTab.set(tab);
+    if (tab === 'track' && this.favoriteGpxDatabaseKeysReady()) void this.refreshLatestGpxElevationProfile();
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
@@ -2371,6 +2404,37 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
   private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
+  protected readonly latestGpxElevationProfile = signal<GpxElevationProfile | null>(null);
+  protected readonly latestGpxElevationProfileBusy = signal(false);
+  protected readonly latestGpxElevationProfileError = signal('');
+  private gpxElevationProfileRequestId = 0;
+  protected readonly gpxElevationChart = computed(() => {
+    const profile = this.latestGpxElevationProfile();
+    if (!profile || profile.points.length < 2) return null;
+    const width = 900, left = 70, right = 20, top = 18, bottom = 52;
+    const minTime = profile.points.reduce((value, point) => Math.min(value, point.timestampMs), Number.POSITIVE_INFINITY);
+    const maxTime = profile.points.reduce((value, point) => Math.max(value, point.timestampMs), Number.NEGATIVE_INFINITY);
+    const minElevation = profile.minElevationM;
+    const maxElevation = profile.maxElevationM;
+    const elevationRange = maxElevation - minElevation || 1;
+    const timeRange = maxTime - minTime || 1;
+    const polyline = profile.points.map(point => {
+      const x = left + (point.timestampMs - minTime) / timeRange * (width - left - right);
+      const y = top + (maxElevation - point.elevationM) / elevationRange * 200;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    const formatTime = (timestamp: number): string => new Date(timestamp).toLocaleString(undefined, {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+    return {
+      polyline,
+      minLabel: minElevation.toFixed(0),
+      midLabel: ((minElevation + maxElevation) / 2).toFixed(0),
+      maxLabel: maxElevation.toFixed(0),
+      startLabel: formatTime(minTime),
+      endLabel: formatTime(maxTime)
+    };
+  });
   protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
@@ -2644,6 +2708,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
       this.favoriteGpxDatabaseKeys.set(keys);
       this.favoriteGpxDatabaseKeysReady.set(true);
+      if (this.activeSettingsTab() === 'track') void this.refreshLatestGpxElevationProfile();
     });
     this.favoriteLocationsUnsubscribe = () => favoriteLocationsSubscription.unsubscribe();
     setOfflineRenderConcurrency(this.renderWorkerCount());
@@ -5933,6 +5998,30 @@ export class MapWindow implements OnInit, OnDestroy {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
   };
+  protected readonly refreshLatestGpxElevationProfile = async (importedDrive?: string): Promise<void> => {
+    if (!this.desktop) return;
+    const requestId = ++this.gpxElevationProfileRequestId;
+    const databaseKeys = [...new Set([
+      ...this.favoriteGpxDatabaseKeys(),
+      this.trackGpxDatabaseKey(),
+      importedDrive
+    ].filter((key): key is string => typeof key === 'string' && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))];
+    this.latestGpxElevationProfileBusy.set(true);
+    this.latestGpxElevationProfileError.set('');
+    try {
+      const profile = await this.desktop.CacheManager.getLatestGpxElevationProfile(databaseKeys);
+      if (requestId !== this.gpxElevationProfileRequestId) return;
+      this.latestGpxElevationProfile.set(profile);
+      if (!profile) this.latestGpxElevationProfileError.set('No imported GPX track with timestamped elevation data was found in the available cache databases.');
+    } catch (error) {
+      if (requestId !== this.gpxElevationProfileRequestId) return;
+      this.latestGpxElevationProfile.set(null);
+      this.latestGpxElevationProfileError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (requestId === this.gpxElevationProfileRequestId) this.latestGpxElevationProfileBusy.set(false);
+    }
+  };
+
   protected readonly trackGpxDatabaseKey = (): string | undefined => {
     const configuredPath = this.gpxTracks().find(track => /^[a-z]:[\\/]/i.test(track.path) && !track.path.startsWith('memory:'))?.path;
     return configuredPath?.slice(0, 2);
