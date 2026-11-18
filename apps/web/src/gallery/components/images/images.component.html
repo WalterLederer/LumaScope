@@ -78,6 +78,8 @@
     @for (image of sortedDetailImages(); track image.path) {
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [image]="image" [viewMode]="viewMode()"
                      [cacheStatus]="cacheStatuses().get(image.path) ?? null"
+                     [gpsDateDiffersFromModified]="gpsDateComparisons().get(image.path) === true"
+                     [gpsDateMatchesModified]="gpsDateComparisons().get(image.path) === false"
                      [cacheStatusLoading]="cacheStatusLoading()"
                      [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
                      [refreshToken]="thumbnailRefreshToken()"
