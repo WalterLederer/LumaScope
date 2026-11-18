@@ -724,6 +724,40 @@ export class CacheManager {
     return { cancelled: false, path: selection.filePath, points: pointCount, elevationPoints: elevationCount };
   };
 
+  @IpcHandler({ name: 'CacheManager.clearAllGpxDatabaseEntries' })
+  readonly clearAllGpxDatabaseEntries = async (): Promise<{ databases: number; files: number; segments: number; points: number }> => {
+    let databases = 0, files = 0, segments = 0, points = 0;
+    // Cache databases are stored under each drive's .cache directory. Inspect all
+    // drive letters, not only databases that happen to be open in this process.
+    for (let code = 65; code <= 90; code++) {
+      const databaseKey = String.fromCharCode(code) + ':';
+      const databasePath = join(databaseKey + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+      if (!existsSync(databasePath)) continue;
+      const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
+      const counts = db.prepare(`SELECT
+        (SELECT COUNT(*) FROM gpx_files) AS files,
+        (SELECT COUNT(*) FROM gpx_track_segments) AS segments,
+        (SELECT COUNT(*) FROM gpx_track_points) AS points`).get() as {
+          files: number; segments: number; points: number;
+        };
+      db.exec('BEGIN IMMEDIATE;');
+      try {
+        // ON DELETE CASCADE removes segments and points; the segment trigger
+        // also removes the corresponding R-tree bounds.
+        db.exec('DELETE FROM gpx_files;');
+        db.exec('COMMIT;');
+      } catch (error) {
+        try { db.exec('ROLLBACK;'); } catch { /* Preserve the original error. */ }
+        throw error;
+      }
+      databases++;
+      files += counts.files;
+      segments += counts.segments;
+      points += counts.points;
+    }
+    return { databases, files, segments, points };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGpxDatabaseStats' })
   readonly getGpxDatabaseStats = async (_event?: IpcMainInvokeEvent, databaseKey?: string): Promise<{ files: number; segments: number; points: number; timestampedPoints: number }> => {
     const key = databaseKey ?? this.activeDatabaseKey;
@@ -738,43 +772,33 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getLatestGpxElevationProfile' })
   readonly getLatestGpxElevationProfile = async (
-    _event?: IpcMainInvokeEvent, requestedDatabaseKeys?: string[]
+    _event?: IpcMainInvokeEvent, sourcePath?: string
   ): Promise<{
     databaseKey: string; fileName: string; relativePath: string; importedAt: number;
     pointCount: number; minElevationM: number; maxElevationM: number;
     startTimestampMs: number; endTimestampMs: number;
     points: Array<{ timestampMs: number; elevationM: number }>;
   } | null> => {
-    const requestedKeys = Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [];
-    const keys = [...new Set([
-      ...requestedKeys,
-      ...this.databases.keys(),
-      ...(this.activeDatabaseKey ? [this.activeDatabaseKey] : [])
-    ].filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))];
-    let latest: {
-      databaseKey: string; fileId: number; fileName: string; relativePath: string; importedAt: number;
-    } | null = null;
-    for (const databaseKey of keys) {
-      const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
-      const file = db.prepare(`SELECT f.id, f.file_name, f.relative_file_path, f.imported_at
-        FROM gpx_files f
-        WHERE EXISTS (
-          SELECT 1 FROM gpx_track_segments s
-          JOIN gpx_track_points p ON p.segment_id = s.id
-          WHERE s.gpx_file_id = f.id AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL
-        )
-        ORDER BY f.imported_at DESC, f.id DESC LIMIT 1`).get() as {
-          id: number; file_name: string; relative_file_path: string; imported_at: number;
-        } | undefined;
-      if (file && (!latest || file.imported_at > latest.importedAt)) {
-        latest = {
-          databaseKey, fileId: file.id, fileName: file.file_name,
-          relativePath: file.relative_file_path, importedAt: file.imported_at
-        };
-      }
-    }
-    if (!latest) return null;
-    const db = this.databases.get(latest.databaseKey)!;
+    // The profile must belong to the exact GPX file most recently displayed by the map.
+    // Never substitute another track merely because it has elevation data.
+    if (typeof sourcePath !== 'string' || !/^[a-z]:[\\/]/i.test(sourcePath)) return null;
+    const databaseKey = sourcePath.slice(0, 2).toUpperCase();
+    const databasePath = join(databaseKey + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+    if (!existsSync(databasePath)) return null;
+    const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
+    const relativePath = relative(resolve(databaseKey + '\\\\'), resolve(sourcePath)).replace(/[\\\\/]+/g, '/');
+    if (!relativePath || relativePath === '..' || relativePath.startsWith('../')) return null;
+    const file = db.prepare(`SELECT f.id, f.file_name, f.relative_file_path, f.imported_at
+      FROM gpx_files f
+      WHERE replace(f.relative_file_path, char(92), '/') = :path COLLATE NOCASE
+    `).get({ path: relativePath }) as {
+      id: number; file_name: string; relative_file_path: string; imported_at: number;
+    } | undefined;
+    if (!file) return null;
+    const latest = {
+      databaseKey, fileId: file.id, fileName: file.file_name,
+      relativePath: file.relative_file_path, importedAt: file.imported_at
+    };
     const summary = db.prepare(`SELECT COUNT(*) AS pointCount,
         MIN(p.elevation_m) AS minElevationM, MAX(p.elevation_m) AS maxElevationM,
         MIN(p.timestamp_ms) AS startTimestampMs, MAX(p.timestamp_ms) AS endTimestampMs
