@@ -310,6 +310,17 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    const normalizeDirectory = (value: string): string =>
+      value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+    const unsubscribeDirectoryLocations = this.cacheManager.onDirectoryPhotoLocationsChanged(changedDirectory => {
+      const currentDirectory = this.selectedLocation();
+      if (!currentDirectory || normalizeDirectory(changedDirectory) !== normalizeDirectory(currentDirectory)) return;
+      // Reverse geocoding can add location names while thumbnails are being
+      // brought into view. Refresh the aggregate header counters immediately.
+      void this.refreshDirectoryCacheStats();
+    });
+    this.destroyRef.onDestroy(unsubscribeDirectoryLocations);
+
     effect(onCleanup => {
       const images = this.imagesComponent();
       if (!images) return;
