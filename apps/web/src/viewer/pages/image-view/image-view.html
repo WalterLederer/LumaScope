@@ -6,6 +6,11 @@
 @let exif = exifState();
 @let isHdrImage = imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
 
+@if (activeImageSidebarTab() === 'cache') {
+  <!-- Keep the Browse cache-build controller mounted even when no image is selected. -->
+  <app-gallery [showFolderTree]="false" [showImageGrid]="true" [style.display]="'none'" />
+}
+
 @if (activeImageSidebarTab() === 'gallery') {
   <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="'grid'" [style.grid-template-columns]="sidebarOnLeft() ? ((controlsSidebarVisible() ? sidebarWidth() : 0) + 'px minmax(0, 1fr)') : ('minmax(0, 1fr) ' + (controlsSidebarVisible() ? sidebarWidth() : 0) + 'px')" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'" [style.overflow]="'hidden'">
     <app-gallery class="gallery-tab-content"
@@ -33,11 +38,6 @@
   }
   </div>
 } @else if (selected !== null) {
-  @if (activeImageSidebarTab() === 'cache') {
-    <!-- Keep the Browse cache-build controller mounted without replacing the displayed image. -->
-    <app-gallery [showFolderTree]="false" [showImageGrid]="true" [style.display]="'none'" />
-  }
-
   <app-image-renderer [url]="selected.url"
                       [style.margin-right.px]="!fullScreen && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
                       [style.margin-left.px]="!fullScreen && controlsSidebarVisible() && sidebarOnLeft() ? sidebarWidth() + 16 : 0"
