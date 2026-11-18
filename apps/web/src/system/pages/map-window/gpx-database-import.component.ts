@@ -13,10 +13,10 @@ import { Desktop } from 'internal-api';
         </button>
         <button type="button" class="routing-help-button" (click)="refreshStats()" [disabled]="busy()" title="Refresh all favorite cache database summaries" aria-label="Refresh all favorite cache database summaries"><span aria-hidden="true">⟳</span></button>
         <div class="gpx-database-statistics-list" aria-live="polite">
-          <strong class="gpx-database-statistics-heading">Favorite cache databases</strong>
+          <strong class="gpx-database-statistics-heading">Favorite cache databases and selected drive</strong>
           @for (item of databaseStats(); track item.key) {
             <span class="gpx-database-statistics" title="GPX data and cache summary for this favorite drive">
-              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · {{ item.cacheEntries.toLocaleString() }} cached photos · {{ item.files.toLocaleString() }} GPX files · {{ item.segments.toLocaleString() }} segments · {{ item.points.toLocaleString() }} points · {{ item.timestampedPoints.toLocaleString() }} timestamped
+              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · Cache {{ item.cacheEntries.toLocaleString() }} files / {{ item.cacheBytes.toLocaleString() }} bytes · Full-size {{ item.fullSizeEntries.toLocaleString() }} / {{ item.fullSizeBytes.toLocaleString() }} bytes · Thumbnails {{ item.thumbnailEntries.toLocaleString() }} / {{ item.thumbnailBytes.toLocaleString() }} bytes · Sidecar {{ item.sidecarEntries.toLocaleString() }} / {{ item.sidecarBytes.toLocaleString() }} bytes · GPS {{ item.gpsEntries.toLocaleString() }} · GPX {{ item.files.toLocaleString() }} files / {{ item.segments.toLocaleString() }} segments / {{ item.points.toLocaleString() }} points / {{ item.timestampedPoints.toLocaleString() }} timestamped
             </span>
           } @empty {
             <span class="gpx-database-statistics">No favorite cache databases found.</span>
@@ -38,7 +38,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
-  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
+  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; cacheBytes: number; fullSizeEntries: number; fullSizeBytes: number; thumbnailEntries: number; thumbnailBytes: number; sidecarEntries: number; sidecarBytes: number; gpsEntries: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
   protected readonly busy = signal(false);
   protected readonly status = signal('');
 
@@ -66,9 +66,17 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
         const database = summary.databases.find(item => item.key === key);
         return {
           key,
-          path: database?.path ?? key + '\\\\.cache\\\\LumaScope.cache.sqlite',
+          path: database?.path ?? key + '\\.cache\\LumaScope.cache.sqlite',
           databaseBytes: database?.bytes ?? 0,
           cacheEntries: summary.total.entries,
+          cacheBytes: summary.total.bytes,
+          fullSizeEntries: summary.fullSize.entries,
+          fullSizeBytes: summary.fullSize.bytes,
+          thumbnailEntries: summary.thumbnails.entries,
+          thumbnailBytes: summary.thumbnails.bytes,
+          sidecarEntries: summary.sidecar.entries,
+          sidecarBytes: summary.sidecar.bytes,
+          gpsEntries: summary.gps.entries,
           ...gpx
         };
       }));
