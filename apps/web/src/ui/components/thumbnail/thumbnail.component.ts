@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CaptionComponent } from '@light-matter/ui';
-import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions } from 'internal-api';
+import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatOsDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { GalleryViewMode } from '../../../gallery/components/images/images.component.types';
 import { distinctUntilChanged, Subscription } from 'rxjs';
@@ -56,10 +56,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
     if (value === null || value === undefined || !Number.isFinite(value instanceof Date ? value.getTime() : value)) return '—';
-    const date = value instanceof Date ? value : new Date(value);
-    const datePart = new Intl.DateTimeFormat('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
-    const timePart = new Intl.DateTimeFormat('de-AT', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(date);
-    return `${datePart}, ${timePart}`;
+    return formatOsDateTime(value);
   };
 
   readonly viewMode = input<GalleryViewMode>('thumbnails');
