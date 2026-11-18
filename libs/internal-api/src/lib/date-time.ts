@@ -5,12 +5,29 @@
  */
 export const formatOsDateTime = (
   value: Date | number | string | null | undefined,
-  fallback = '—'
+  fallback = '—',
+  style: 'regional' | 'compact' = 'regional'
 ): string => {
   if (value === null || value === undefined) return fallback;
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return fallback;
-  return date.toLocaleString();
+  if (style === 'regional') return date.toLocaleString();
+
+  // Keep the operating system's regional date-field order, but use a compact
+  // dotted date and a 24-hour time without the locale's comma separator.
+  const parts = new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+  const dateParts = parts.filter(part => part.type === 'day' || part.type === 'month' || part.type === 'year');
+  const timeParts = parts.filter(part => part.type === 'hour' || part.type === 'minute' || part.type === 'second');
+  if (dateParts.length !== 3 || timeParts.length !== 3) return date.toLocaleString();
+  return dateParts.map(part => part.value).join('.') + ' ' + timeParts.map(part => part.value).join(':');
 };
 
 /**
