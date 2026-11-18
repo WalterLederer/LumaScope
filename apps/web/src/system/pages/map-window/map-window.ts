@@ -2267,7 +2267,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (top + estimatedHeight > viewportHeight - 8) top = rect.top - estimatedHeight - 3;
     top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - Math.min(estimatedHeight, viewportHeight - 16) - 8)));
     const menuWidth = Math.min(width, Math.max(0, viewportWidth - 16));
-    const left = Math.max(8, Math.min(rect.right - menuWidth, viewportWidth - menuWidth - 8));
+    const anchorX = Number.isFinite(event.clientX) && event.clientX > 0 ? event.clientX : rect.right;
+    const left = Math.max(8, Math.min(anchorX - menuWidth, viewportWidth - menuWidth - 8));
     return { top, left };
   }
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
