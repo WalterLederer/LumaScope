@@ -1088,17 +1088,21 @@ export class ImageView {
       }) ?? '—'
     });
 
-    const exifLatitude = Number(findTag('GPSLatitude'));
-    const exifLongitude = Number(findTag('GPSLongitude'));
-    const xmpLatitude = Number(findTag('XMP:GPSLatitude'));
-    const xmpLongitude = Number(findTag('XMP:GPSLongitude'));
+    const exifLatitudeValue = findTag('GPSLatitude');
+    const exifLongitudeValue = findTag('GPSLongitude');
+    const xmpLatitudeValue = findTag('XMP:GPSLatitude');
+    const xmpLongitudeValue = findTag('XMP:GPSLongitude');
+    const exifLatitude = exifLatitudeValue === undefined ? NaN : Number(exifLatitudeValue);
+    const exifLongitude = exifLongitudeValue === undefined ? NaN : Number(exifLongitudeValue);
+    const xmpLatitude = xmpLatitudeValue === undefined ? NaN : Number(xmpLatitudeValue);
+    const xmpLongitude = xmpLongitudeValue === undefined ? NaN : Number(xmpLongitudeValue);
     const hasExifPosition = Number.isFinite(exifLatitude) && Number.isFinite(exifLongitude);
     const hasXmpPosition = Number.isFinite(xmpLatitude) && Number.isFinite(xmpLongitude);
     const useXmp = !hasExifPosition && hasXmpPosition;
-    const latitude = useXmp ? xmpLatitude : hasExifPosition ? exifLatitude : NaN;
-    const longitude = useXmp ? xmpLongitude : hasExifPosition ? exifLongitude : NaN;
-    const latitudeRef = String(findTag(useXmp ? 'XMP:GPSLatitudeRef' : 'GPSLatitudeRef', 'GPSLatitudeRef', 'XMP:GPSLatitudeRef') ?? '').toUpperCase();
-    const longitudeRef = String(findTag(useXmp ? 'XMP:GPSLongitudeRef' : 'GPSLongitudeRef', 'GPSLongitudeRef', 'XMP:GPSLongitudeRef') ?? '').toUpperCase();
+    const latitude = Number.isFinite(exifLatitude) ? exifLatitude : xmpLatitude;
+    const longitude = Number.isFinite(exifLongitude) ? exifLongitude : xmpLongitude;
+    const latitudeRef = String(findTag('GPSLatitudeRef', 'XMP:GPSLatitudeRef') ?? '').toUpperCase();
+    const longitudeRef = String(findTag('GPSLongitudeRef', 'XMP:GPSLongitudeRef') ?? '').toUpperCase();
     const signedLatitude = Number.isFinite(latitude) ? latitudeRef === 'S' ? -Math.abs(latitude) : latitudeRef === 'N' ? Math.abs(latitude) : latitude : NaN;
     const signedLongitude = Number.isFinite(longitude) ? longitudeRef === 'W' ? -Math.abs(longitude) : longitudeRef === 'E' ? Math.abs(longitude) : longitude : NaN;
     rows.push({
