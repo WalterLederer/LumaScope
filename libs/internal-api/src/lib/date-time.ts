@@ -10,8 +10,5 @@ export const formatOsDateTime = (
   if (value === null || value === undefined) return fallback;
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return fallback;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'short',
-    timeStyle: 'medium'
-  }).format(date);
+  return date.toLocaleString();
 };
