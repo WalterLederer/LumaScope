@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
-import { Desktop, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, formatGpsCoordinates, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
@@ -241,7 +241,7 @@ interface MapErrorEntry {
                         @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
                           <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
                             <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
-                            <td class="offline-address-result-coordinates">{{ result.latitude.toFixed(6) }}, {{ result.longitude.toFixed(6) }}</td>
+                            <td class="offline-address-result-coordinates">{{ formatGpsCoordinates(result.latitude, result.longitude) }}</td>
                           </tr>
                         }
                       </tbody>
@@ -3018,7 +3018,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const oldPosition = this.currentLatitude !== null && this.currentLongitude !== null
         ? this.formatCoordinates(this.currentLatitude, this.currentLongitude).replace(/^Coordinates: /, '')
         : 'the existing photo location';
-      const newPosition = center.lat.toFixed(6) + ', ' + center.lng.toFixed(6);
+      const newPosition = formatGpsCoordinates(center.lat, center.lng);
       const confirmed = window.confirm(
         'This image already contains GPS information.\n\n' +
         'Check both positions on the map before continuing:\n' +
@@ -3055,7 +3055,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const marker = this.marker?.getLatLng();
     const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
     if (latitude === null || longitude === null) return;
-    try { await navigator.clipboard.writeText(latitude.toFixed(6) + ', ' + longitude.toFixed(6)); }
+    try { await navigator.clipboard.writeText(formatGpsCoordinates(latitude, longitude)); }
     catch (error) { console.error('Failed to copy GPS coordinates', error); }
   };
   protected readonly searchOfflineAddresses = async (): Promise<void> => {
@@ -3115,7 +3115,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const dms = `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
     const latHemisphere = latitude < 0 ? 'S' : 'N';
     const lonHemisphere = longitude < 0 ? 'W' : 'E';
-    const decimal = `${Math.abs(latitude).toFixed(5)}° ${latHemisphere}, ${Math.abs(longitude).toFixed(5)}° ${lonHemisphere}`;
+    const decimal = formatGpsCoordinates(latitude, longitude, 5);
     return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
   }
 
