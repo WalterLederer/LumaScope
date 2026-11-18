@@ -50,6 +50,7 @@
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             (click)="toggleRowActionMenu($event)"
             [attr.aria-expanded]="rowActionMenuOpen()"
+            aria-haspopup="menu"
             [attr.aria-label]="'File actions for ' + image().name"
             title="File actions">☰</button>
     @if (rowActionMenuOpen()) {
