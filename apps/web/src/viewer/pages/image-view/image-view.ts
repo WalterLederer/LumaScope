@@ -1045,6 +1045,13 @@ export class ImageView {
   };
   private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
+    // SubSecTime* tags contain only the fractional-second digits, not a date.
+    // Prefix the digits with a decimal point instead of passing values such as
+    // "220" to Date.parse (which interprets them as a year).
+    if (/^SubSecTime(?:Original|Digitized)?$/i.test(key)) {
+      const fraction = String(value).trim().replace(/^\.+/, '');
+      return fraction ? '.' + fraction : '—';
+    }
     if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(key, item)).join(', ');
     if (typeof value === 'object') {
       const item = value as Record<string, unknown>;
