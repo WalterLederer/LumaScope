@@ -1031,6 +1031,10 @@ export class ImageView {
     if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(key, item)).join(', ');
     if (typeof value === 'object') {
       const item = value as Record<string, unknown>;
+      if (/date|time/i.test(key) && typeof item['rawValue'] === 'string') {
+        const readable = this.formatExifXmpDate(item['rawValue']);
+        if (readable !== '—') return readable;
+      }
       if (Number.isFinite(Number(item['year'])) && Number.isFinite(Number(item['month'])) && Number.isFinite(Number(item['day']))) {
         const raw = typeof item['rawValue'] === 'string' ? item['rawValue'] : '';
         const readable = this.formatExifXmpDate(raw || value);
