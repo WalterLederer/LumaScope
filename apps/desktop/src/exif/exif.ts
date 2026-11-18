@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { ApiResponse, ExifTags, FixPhotoLocationsResult, formatOsDateTime } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
@@ -171,9 +171,9 @@ export class Exif {
             continue;
           }
           result.withoutGps++;
-          // GPS-less photos often have no usable EXIF capture timestamp. Use the
-          // filesystem's last-modified time as a fallback so they can still be
-          // matched against the GPX track instead of being skipped outright.
+          // Prefer camera-generated filename timestamps over filesystem dates:
+          // Android/ADB copies can replace Created/Modified times with copy time.
+          // Filesystem last-modified remains the final fallback.
           let photoTimestamp = metadata.gpsTimestamp;
           let photoTimestampSource = metadata.gpsTimestampSource;
           let filesystemModifiedAt: string | null = null;
@@ -378,16 +378,41 @@ export class Exif {
           : new Date(text);
         return Number.isFinite(date.getTime()) ? Math.floor(date.getTime() / 1000) : null;
       };
+      // Samsung camera filenames such as IMG_20261009_093728.jpg retain the
+      // original capture time even when Android/ADB does not preserve the
+      // filesystem timestamps during copying. Interpret filename times locally,
+      // like EXIF DateTimeOriginal values without an explicit timezone.
+      const fileName = basename(path);
+      const fileNameDate = fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_-]?(\\d{2})(\\d{2})(\\d{2})(?=[^0-9]|$)/);
+      let fileNameTimestamp: Date | null = null;
+      if (fileNameDate) {
+        const [, year, month, day, hour, minute, second] = fileNameDate;
+        const parsed = new Date(
+          Number(year), Number(month) - 1, Number(day),
+          Number(hour), Number(minute), Number(second)
+        );
+        if (parsed.getFullYear() === Number(year)
+          && parsed.getMonth() === Number(month) - 1
+          && parsed.getDate() === Number(day)
+          && parsed.getHours() === Number(hour)
+          && parsed.getMinutes() === Number(minute)
+          && parsed.getSeconds() === Number(second)) {
+          fileNameTimestamp = parsed;
+        }
+      }
       const timestampTags: Array<{ tag: string; value: unknown; assumeUtc: boolean }> = [
         { tag: 'GPSDateTime', value: tags['GPSDateTime'], assumeUtc: true },
         { tag: 'XMP:GPSDateTime', value: tags['XMP:GPSDateTime'], assumeUtc: true },
+        { tag: 'Filename:YYYYMMDD_HHmmss', value: fileNameTimestamp, assumeUtc: false },
         { tag: 'DateTimeOriginal', value: tags['DateTimeOriginal'], assumeUtc: false },
         { tag: 'XMP:DateCreated', value: tags['XMP:DateCreated'], assumeUtc: false },
         { tag: 'CreateDate', value: tags['CreateDate'], assumeUtc: false }
       ];
       const gpsTimestampCandidates = timestampTags.map(candidate => ({
         tag: candidate.tag,
-        raw: candidate.value === undefined || candidate.value === null ? '' : String(candidate.value),
+        raw: candidate.tag === 'Filename:YYYYMMDD_HHmmss'
+          ? (fileNameDate?.[0]?.trim() ?? '')
+          : candidate.value === undefined || candidate.value === null ? '' : String(candidate.value),
         timestamp: toTimestamp(candidate.value, candidate.assumeUtc)
       }));
       const selectedTimestamp = gpsTimestampCandidates.find(candidate => candidate.timestamp !== null);
