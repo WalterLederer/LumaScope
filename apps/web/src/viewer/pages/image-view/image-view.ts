@@ -994,7 +994,7 @@ export class ImageView {
     }
     const text = value && typeof value === 'object' ? String(value) : String(value ?? '');
     if (!text || text === '[object Object]') return null;
-    const exifDate = text.match(/^(\\d{4}):(\\d{2}):(\\d{2})[ T](\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d+))?(Z|[+-]\\d{2}:?\\d{2})?$/i);
+    const exifDate = text.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:?\d{2})?$/i);
     if (exifDate) {
       const iso = exifDate[1] + '-' + exifDate[2] + '-' + exifDate[3] + 'T' + exifDate[4] + ':' + exifDate[5] + ':' + exifDate[6]
         + (exifDate[7] ? '.' + exifDate[7] : '')
@@ -1012,14 +1012,19 @@ export class ImageView {
     return Number.isFinite(parsed.getTime()) ? parsed : null;
   };
   private readonly formatExifXmpDate = (value: unknown): string => {
-    const date = this.parseExifXmpDate(value);
-    if (!date) return '—';
-    const rawValue = typeof value === 'string' ? value : '';
-    if (!rawValue) return formatOsDateTime(date);
-    // EXIF stores calendar dates with colons; slashes are clearer and avoid
-    // confusing the date separator with the time separator.
-    const readableRaw = rawValue.replace(/^(\\d{4}):(\\d{2}):(\\d{2})(?=[ T])/, '$1/$2/$3');
-    return readableRaw + ' (' + formatOsDateTime(date) + ')';
+    const rawValue = typeof value === 'string'
+      ? value
+      : value && typeof value === 'object' && typeof (value as Record<string, unknown>)['rawValue'] === 'string'
+        ? String((value as Record<string, unknown>)['rawValue'])
+        : '';
+    const date = this.parseExifXmpDate(rawValue || value);
+    if (!date) return rawValue
+      ? rawValue.replace(/^(\d{4}):(\d{2}):(\d{2})(?=[ T])/, '$1/$2/$3')
+      : '—';
+    // Normalize EXIF's colon-separated calendar date while preserving
+    // fractional seconds and timezone, then append the OS regional format.
+    const readableRaw = rawValue.replace(/^(\d{4}):(\d{2}):(\d{2})(?=[ T])/, '$1/$2/$3');
+    return readableRaw ? readableRaw + ' (' + formatOsDateTime(date) + ')' : formatOsDateTime(date);
   };
   private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
