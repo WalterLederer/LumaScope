@@ -180,6 +180,7 @@ export interface DesktopCacheManager {
   readonly exportGpxFileFromDatabase: (sourcePath: string, databaseKey?: string) => Promise<{ cancelled: boolean; path: string | null; points: number; elevationPoints: number }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number; timestampedPoints: number }>;
   readonly clearAllGpxDatabaseEntries: () => Promise<{ databases: number; files: number; segments: number; points: number }>;
+  readonly deleteGpxDatabaseEntriesForFile: (sourcePath: string, databaseKey?: string) => Promise<{ deleted: boolean; files: number; segments: number; points: number }>;
   readonly getGpxDatabaseTimeRange: (databaseKey?: string) => Promise<{ from: number | null; to: number | null }>;
   readonly getLatestGpxElevationProfile: (sourcePath?: string) => Promise<GpxElevationProfile | null>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
