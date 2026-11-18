@@ -383,7 +383,7 @@ export class Exif {
       // filesystem timestamps during copying. Interpret filename times locally,
       // like EXIF DateTimeOriginal values without an explicit timezone.
       const fileName = basename(path);
-      const fileNameDate = fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_-]?(\\d{2})(\\d{2})(\\d{2})(?=[^0-9]|$)/);
+      const fileNameDate = fileName.match(/(?:^|[^0-9])(\d{4})(\d{2})(\d{2})[_-]?(\d{2})(\d{2})(\d{2})(?=[^0-9]|$)/);
       let fileNameTimestamp: Date | null = null;
       if (fileNameDate) {
         const [, year, month, day, hour, minute, second] = fileNameDate;
