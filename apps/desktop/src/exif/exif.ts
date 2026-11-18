@@ -47,6 +47,20 @@ export class Exif {
       try {
         const injector = Injector.getInstance();
         const cacheManager = injector.inject('CacheManager');
+      const rootDrive = root.slice(0, 2).toUpperCase();
+      const databaseKeys = [...new Set([rootDrive, ...(Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [])]
+        .filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key))
+        .map(key => key.toUpperCase()))];
+      const gpxDatabaseStats = await Promise.all(databaseKeys.map(async databaseKey => ({
+        databaseKey,
+        stats: await cacheManager.getGpxDatabaseStats(undefined as never, databaseKey)
+      })));
+      const hasTimestampedGpxData = gpxDatabaseStats.some(({ stats }) =>
+        stats.files > 0 && stats.segments > 0 && stats.points > 0 && stats.timestampedPoints > 0
+      );
+      if (!hasTimestampedGpxData) {
+        throw new Error('No timestamped GPX track points were found in the cache databases for the selected photo drive and favorite folders. Import GPX tracks into a favorite folder first.');
+      }
         const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
         const gps = await this.readPhotoMetadata(path);
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
@@ -79,20 +93,6 @@ export class Exif {
       const root = resolve(folder);
       const rootInfo = await stat(root);
       if (!rootInfo.isDirectory()) throw new Error('The selected path is not a folder.');
-      const rootDrive = root.slice(0, 2).toUpperCase();
-      const databaseKeys = [...new Set([rootDrive, ...(Array.isArray(requestedDatabaseKeys) ? requestedDatabaseKeys : [])]
-        .filter(key => typeof key === 'string' && /^[a-z]:$/i.test(key))
-        .map(key => key.toUpperCase()))];
-      const gpxDatabaseStats = await Promise.all(databaseKeys.map(async databaseKey => ({
-        databaseKey,
-        stats: await cacheManager.getGpxDatabaseStats(undefined as never, databaseKey)
-      })));
-      const hasTimestampedGpxData = gpxDatabaseStats.some(({ stats }) =>
-        stats.files > 0 && stats.segments > 0 && stats.points > 0 && stats.timestampedPoints > 0
-      );
-      if (!hasTimestampedGpxData) {
-        throw new Error('No timestamped GPX track points were found in the cache databases for the selected photo drive and favorite folders. Import GPX tracks into a favorite folder first.');
-      }
       const imageExtensions = new Set([
         '.jpg', '.jpeg', '.tif', '.tiff', '.heic', '.heif', '.png', '.webp',
         '.dng', '.cr2', '.cr3', '.nef', '.arw', '.orf', '.rw2', '.raf', '.raw'
