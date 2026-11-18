@@ -515,6 +515,15 @@ export class CacheManager {
         if (existing?.content_hash === hash) {
           db.prepare('UPDATE gpx_files SET file_size = :size, modified_at = :modified WHERE id = :id')
             .run({ id: existing.id, size: info.size, modified: Math.trunc(info.mtimeMs) });
+          // Older imports may contain stale elevation values even when the source
+          // GPX has no <ele> elements (for example, LumaScope Photo Markers GPX).
+          // Reconcile that metadata even when the file content hash is unchanged.
+          const hasElevation = /<(?:[\\w.-]+:)?ele\\b[^>]*>\\s*[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?\\s*<\\/(?:[\\w.-]+:)?ele\\s*>/i.test(xml);
+          if (!hasElevation) {
+            db.prepare(`UPDATE gpx_track_points SET elevation_m = NULL
+              WHERE segment_id IN (SELECT id FROM gpx_track_segments WHERE gpx_file_id = :fileId)`)
+              .run({ fileId: existing.id });
+          }
           unchanged++;
           continue;
         }
