@@ -6,6 +6,13 @@ interface CacheBuildProgress {
   total: number;
 }
 
+interface GalleryCacheBuildActivity {
+  readonly active: Signal<boolean>;
+  readonly progress: Signal<CacheBuildProgress>;
+  readonly currentOperation: Signal<string>;
+  readonly cancel: () => void;
+}
+
 interface GalleryCacheBuildController {
   readonly cacheRunActive: Signal<boolean>;
   readonly cacheRunProgress: Signal<CacheBuildProgress>;
@@ -22,6 +29,7 @@ export class GalleryCacheBuild {
   private readonly controller = signal<GalleryCacheBuildController | null>(null);
   private readonly pendingController = signal<GalleryCacheBuildController | null>(null);
   private readonly retiredController = signal(false);
+  private readonly activity = signal<GalleryCacheBuildActivity | null>(null);
 
   private readonly readVerifyCacheFiles = (): boolean => {
     try { return this.document.defaultView?.localStorage.getItem('verifyCacheFiles') === 'true'; }
@@ -29,9 +37,18 @@ export class GalleryCacheBuild {
   };
 
   readonly verifyCacheFiles = signal(this.readVerifyCacheFiles());
-  readonly cacheRunActive = computed(() => this.controller()?.cacheRunActive() ?? false);
-  readonly cacheRunProgress = computed(() => this.controller()?.cacheRunProgress() ?? { completed: 0, total: 0 });
-  readonly cacheRunCurrentOperation = computed(() => this.controller()?.cacheRunCurrentOperation() ?? '');
+  readonly cacheRunActive = computed(() => {
+    const activity = this.activity();
+    return activity?.active() ?? this.controller()?.cacheRunActive() ?? false;
+  });
+  readonly cacheRunProgress = computed(() => {
+    const activity = this.activity();
+    return activity?.active() ? activity.progress() : this.controller()?.cacheRunProgress() ?? { completed: 0, total: 0 };
+  });
+  readonly cacheRunCurrentOperation = computed(() => {
+    const activity = this.activity();
+    return activity?.active() ? activity.currentOperation() : this.controller()?.cacheRunCurrentOperation() ?? '';
+  });
   readonly cacheRunErrorCount = computed(() => {
     const output = this.cacheRunCurrentOperation();
     const summary = output.match(/Failed files:\s*(\d+)/i);
@@ -67,7 +84,19 @@ export class GalleryCacheBuild {
 
   readonly startCacheBuild = (directory: string): void => this.controller()?.start(directory);
   readonly startRecursiveCacheBuild = (directory: string): void => this.controller()?.startRecursive(directory);
-  readonly cancelCacheBuild = (): void => this.controller()?.cancel();
+  readonly cancelCacheBuild = (): void => {
+    const activity = this.activity();
+    if (activity?.active()) activity.cancel();
+    else this.controller()?.cancel();
+  };
+
+  /** Expose cache work started by detail-list actions in the shared Cache tab. */
+  readonly trackActivity = (activity: GalleryCacheBuildActivity): (() => void) => {
+    this.activity.set(activity);
+    return () => {
+      if (this.activity() === activity) this.activity.set(null);
+    };
+  };
   readonly refreshDetailCacheStatus = (): void => this.controller()?.refreshDetailCacheStatus();
 
   readonly register = (controller: GalleryCacheBuildController): (() => void) => untracked(() => {
