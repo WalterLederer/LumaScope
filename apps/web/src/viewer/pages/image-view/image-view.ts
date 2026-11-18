@@ -976,19 +976,140 @@ export class ImageView {
     const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
     return Object.entries(tags)
       .filter(([key, value]) => relevantField.test(key) && value !== undefined && value !== null && value !== '')
-      .map(([key, value]) => ({ key, value: this.formatExifXmpValue(value) }))
+      .map(([key, value]) => ({ key, value: this.formatExifXmpValue(key, value) }))
       .sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
   });
-  private readonly formatExifXmpValue = (value: unknown): string => {
+  private readonly parseExifXmpDate = (value: unknown, assumeUtc = false): Date | null => {
+    if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : null;
+    if (value && typeof value === 'object' && 'year' in value && 'month' in value && 'day' in value) {
+      const item = value as { year: number; month: number; day: number; hour?: number; minute?: number; second?: number; tzoffsetMinutes?: number };
+      const wallClock = Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
+      const hasOffset = Number.isFinite(item.tzoffsetMinutes);
+      return new Date(wallClock - (hasOffset ? Number(item.tzoffsetMinutes) * 60000 : 0));
+    }
+    const text = value && typeof value === 'object' ? String(value) : String(value ?? '');
+    if (!text || text === '[object Object]') return null;
+    const exifDate = text.match(/^(\\d{4}):(\\d{2}):(\\d{2})[ T](\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d+))?(Z|[+-]\\d{2}:?\\d{2})?$/i);
+    if (exifDate) {
+      const iso = exifDate[1] + '-' + exifDate[2] + '-' + exifDate[3] + 'T' + exifDate[4] + ':' + exifDate[5] + ':' + exifDate[6]
+        + (exifDate[7] ? '.' + exifDate[7] : '')
+        + (exifDate[8] ? (exifDate[8].length === 5 && exifDate[8] !== 'Z' ? exifDate[8].slice(0, 3) + ':' + exifDate[8].slice(3) : exifDate[8]) : '');
+      if (exifDate[8]) {
+        const parsed = new Date(iso);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+      }
+      if (assumeUtc) {
+        return new Date(Date.UTC(Number(exifDate[1]), Number(exifDate[2]) - 1, Number(exifDate[3]), Number(exifDate[4]), Number(exifDate[5]), Number(exifDate[6])));
+      }
+      return new Date(Number(exifDate[1]), Number(exifDate[2]) - 1, Number(exifDate[3]), Number(exifDate[4]), Number(exifDate[5]), Number(exifDate[6]));
+    }
+    const parsed = new Date(text);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  };
+  private readonly formatExifXmpDate = (value: unknown): string => {
+    const date = this.parseExifXmpDate(value);
+    if (!date) return this.formatExifXmpValue('', value);
+    return date.toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  };
+  private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
-    if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(item)).join(', ');
+    if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(key, item)).join(', ');
     if (typeof value === 'object') {
+      const item = value as Record<string, unknown>;
+      if (Number.isFinite(Number(item.year)) && Number.isFinite(Number(item.month)) && Number.isFinite(Number(item.day))) {
+        const readable = this.formatExifXmpDate(value);
+        const raw = typeof item.rawValue === 'string' ? item.rawValue : JSON.stringify(value);
+        return readable ? raw + ' (' + readable + ')' : raw;
+      }
       const displayValue = String(value);
       if (displayValue !== '[object Object]') return displayValue;
       try { return JSON.stringify(value); } catch { return displayValue; }
     }
+    if (/date|time/i.test(key)) {
+      const readable = this.formatExifXmpDate(value);
+      if (readable !== '—' && readable !== String(value)) return String(value) + ' (' + readable + ')';
+    }
     return String(value);
   };
+  protected readonly exifXmpRows = computed(() => {
+    const tags = this.exifXmpTags();
+    const path = this.exifXmpPath();
+    if (!tags || !path) return [];
+    const rows: Array<{ source: string; name: string; value: string }> = [];
+    const findTag = (...names: string[]): unknown => {
+      for (const name of names) {
+        const key = Object.keys(tags).find(candidate => candidate.toLowerCase() === name.toLowerCase());
+        if (key && tags[key] !== undefined && tags[key] !== null) return tags[key];
+      }
+      return undefined;
+    };
+    const fileName = path.split(/[\\/]/).pop() || path;
+    rows.push({ source: 'Filesystem', name: 'File name', value: fileName });
+    rows.push({ source: 'Filesystem', name: 'File path', value: path });
+    for (const [name, keys] of [
+      ['FileAccessDate', ['FileAccessDate', 'File:FileAccessDate']],
+      ['FileCreateDate', ['FileCreateDate', 'File:FileCreateDate']],
+      ['FileModifyDate', ['FileModifyDate', 'File:FileModifyDate']]
+    ] as Array<[string, string[]]>) {
+      const value = findTag(...keys);
+      rows.push({ source: 'Filesystem', name, value: value === undefined ? '—' : this.formatExifXmpValue(name, value) });
+    }
+    const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
+    const metadataRows = Object.entries(tags)
+      .filter(([key, value]) => relevantField.test(key) && value !== undefined && value !== null && value !== '')
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    for (const [key, value] of metadataRows) {
+      rows.push({
+        source: /^XMP:/i.test(key) ? 'XMP' : 'EXIF',
+        name: key.replace(/^XMP:/i, ''),
+        value: this.formatExifXmpValue(key, value)
+      });
+    }
+
+    const timestampCandidates: Array<{ name: string; value: unknown; assumeUtc: boolean }> = [
+      { name: 'GPSDateTime', value: findTag('GPSDateTime'), assumeUtc: true },
+      { name: 'XMP:GPSDateTime', value: findTag('XMP:GPSDateTime'), assumeUtc: true },
+      { name: 'DateTimeOriginal', value: findTag('DateTimeOriginal'), assumeUtc: false },
+      { name: 'XMP:DateCreated', value: findTag('XMP:DateCreated'), assumeUtc: false },
+      { name: 'CreateDate', value: findTag('CreateDate'), assumeUtc: false }
+    ];
+    const selectedTimestamp = timestampCandidates
+      .map(candidate => ({ ...candidate, date: this.parseExifXmpDate(candidate.value, candidate.assumeUtc) }))
+      .find(candidate => candidate.date !== null);
+    rows.push({
+      source: 'App',
+      name: 'GPS Date',
+      value: selectedTimestamp?.date?.toLocaleString(undefined, {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      }) ?? '—'
+    });
+
+    const exifLatitude = Number(findTag('GPSLatitude'));
+    const exifLongitude = Number(findTag('GPSLongitude'));
+    const xmpLatitude = Number(findTag('XMP:GPSLatitude'));
+    const xmpLongitude = Number(findTag('XMP:GPSLongitude'));
+    const hasExifPosition = Number.isFinite(exifLatitude) && Number.isFinite(exifLongitude);
+    const hasXmpPosition = Number.isFinite(xmpLatitude) && Number.isFinite(xmpLongitude);
+    const useXmp = !hasExifPosition && hasXmpPosition;
+    const latitude = useXmp ? xmpLatitude : hasExifPosition ? exifLatitude : NaN;
+    const longitude = useXmp ? xmpLongitude : hasExifPosition ? exifLongitude : NaN;
+    const latitudeRef = String(findTag(useXmp ? 'XMP:GPSLatitudeRef' : 'GPSLatitudeRef', 'GPSLatitudeRef', 'XMP:GPSLatitudeRef') ?? '').toUpperCase();
+    const longitudeRef = String(findTag(useXmp ? 'XMP:GPSLongitudeRef' : 'GPSLongitudeRef', 'GPSLongitudeRef', 'XMP:GPSLongitudeRef') ?? '').toUpperCase();
+    const signedLatitude = Number.isFinite(latitude) ? latitudeRef === 'S' ? -Math.abs(latitude) : latitudeRef === 'N' ? Math.abs(latitude) : latitude : NaN;
+    const signedLongitude = Number.isFinite(longitude) ? longitudeRef === 'W' ? -Math.abs(longitude) : longitudeRef === 'E' ? Math.abs(longitude) : longitude : NaN;
+    rows.push({
+      source: 'App',
+      name: 'GPS Position',
+      value: Number.isFinite(signedLatitude) && Number.isFinite(signedLongitude)
+        ? signedLatitude.toFixed(6) + ', ' + signedLongitude.toFixed(6) + (useXmp ? ' (XMP)' : ' (EXIF)')
+        : '—'
+    });
+    return rows;
+  });
   protected readonly checkExifXmp = async (path: string): Promise<void> => {
     if (!path || this.exifXmpCheckRunning()) return;
     const request = ++this.exifXmpCheckRequest;
