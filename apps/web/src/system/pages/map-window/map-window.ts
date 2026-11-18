@@ -2466,10 +2466,25 @@ export class MapWindow implements OnInit, OnDestroy {
     progress: FixPhotoLocationsProgress, checkOnly: boolean
   ): Array<{ label: string; value: string }> => {
     const elapsedSeconds = progress.elapsedMilliseconds / 1000;
-    const roundedElapsedSeconds = Math.round(elapsedSeconds);
+    const formatDuration = (seconds: number): string => {
+      const roundedSeconds = Math.max(0, Math.round(seconds));
+      if (roundedSeconds < 60) return roundedSeconds + ' s';
+      const minutes = Math.floor(roundedSeconds / 60);
+      const remainingSeconds = roundedSeconds % 60;
+      if (minutes < 60) return minutes + ' min ' + remainingSeconds + ' s';
+      const hours = Math.floor(minutes / 60);
+      return hours + ' h ' + (minutes % 60) + ' min';
+    };
     const elapsedText = elapsedSeconds < 60
       ? elapsedSeconds.toFixed(1) + ' s'
-      : Math.floor(roundedElapsedSeconds / 60).toString() + ' min ' + (roundedElapsedSeconds % 60).toString() + ' s';
+      : formatDuration(elapsedSeconds);
+    const remainingPhotos = progress.total - progress.scanned;
+    const estimatedRemainingSeconds = progress.scanned >= 5 && remainingPhotos > 0
+      ? elapsedSeconds / progress.scanned * remainingPhotos
+      : null;
+    const runtimeText = estimatedRemainingSeconds === null
+      ? elapsedText
+      : elapsedText + ' · Estimated remaining: ~' + formatDuration(estimatedRemainingSeconds);
     const deviationStats = progress.minDeviationSeconds === null
       ? 'n/a'
       : progress.minDeviationSeconds.toFixed(1) + ' / ' + progress.meanDeviationSeconds!.toFixed(1) + ' / ' + progress.maxDeviationSeconds!.toFixed(1) + ' s';
@@ -2481,7 +2496,7 @@ export class MapWindow implements OnInit, OnDestroy {
       { label: 'Cache databases searched', value: progress.databaseKeys.join(', ') || '—' },
       { label: 'GPX timestamp range (all imported files)', value: this.formatAutoFixTimestampRange(progress.gpxFromTimestamp, progress.gpxToTimestamp) },
       { label: 'Photo timestamp range (photos scanned so far)', value: this.formatAutoFixTimestampRange(progress.photoFromTimestamp, progress.photoToTimestamp) },
-      { label: 'Runtime', value: elapsedText },
+      { label: 'Runtime', value: runtimeText },
       { label: 'Result', value: checkOnly ? 'Checking — no files will be changed' : 'GPS correction in progress' },
       { label: 'Photos whose files already contain GPS coordinates', value: this.formatAutoFixCount(progress.withGps) },
       { label: 'Photos missing GPS coordinates', value: this.formatAutoFixCount(progress.withoutGps) },
