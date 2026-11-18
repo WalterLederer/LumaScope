@@ -1207,12 +1207,13 @@ export class CacheManager {
         latitude: hasCoordinates ? gps.latitude : null,
         longitude: hasCoordinates ? gps.longitude : null,
         altitude: hasCoordinates ? gps.altitudeM : null,
-        // The EXIF reader applies GPSDateTime -> XMP:GPSDateTime ->
-        // DateTimeOriginal -> XMP:DateCreated -> CreateDate.
-        // File modification time is the final fallback for mapped photos.
-        gpsTimestamp: hasCoordinates
-          ? gps.gpsTimestamp ?? Math.floor(Number(sourceStats.mtimeMs) / 1000)
-          : null,
+        // Store the selected capture timestamp for every photo, including
+        // photos that do not yet have GPS coordinates. The EXIF reader applies
+        // GPSDateTime -> XMP:GPSDateTime -> camera filename timestamp ->
+        // DateTimeOriginal -> XMP:DateCreated -> CreateDate. Filesystem
+        // last-modified time is the final fallback (e.g. Android/ADB copies
+        // where a valid camera filename timestamp must win over copy time).
+        gpsTimestamp: gps.gpsTimestamp ?? Math.floor(Number(sourceStats.mtimeMs) / 1000),
         direction: hasCoordinates ? gps.directionDeg : null,
         sourceId: hasCoordinates ? gps.coordinateSourceId : null,
         id: row.id
