@@ -985,12 +985,12 @@ export class ImageView {
       const item = value as { year: number; month: number; day: number; hour?: number; minute?: number; second?: number; tzoffsetMinutes?: number };
       const hasOffset = Number.isFinite(item.tzoffsetMinutes);
       if (hasOffset) {
-        const wallClock = Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
+        const wallClock = Date.UTC(item['year'], item['month'] - 1, item['day'], item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
         return new Date(wallClock - Number(item.tzoffsetMinutes) * 60000);
       }
       return assumeUtc
-        ? new Date(Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0))
-        : new Date(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
+        ? new Date(Date.UTC(item['year'], item['month'] - 1, item['day'], item.hour ?? 0, item.minute ?? 0, item.second ?? 0))
+        : new Date(item['year'], item['month'] - 1, item['day'], item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
     }
     const text = value && typeof value === 'object' ? String(value) : String(value ?? '');
     if (!text || text === '[object Object]') return null;
@@ -1024,9 +1024,9 @@ export class ImageView {
     if (Array.isArray(value)) return value.map(item => this.formatExifXmpValue(key, item)).join(', ');
     if (typeof value === 'object') {
       const item = value as Record<string, unknown>;
-      if (Number.isFinite(Number(item.year)) && Number.isFinite(Number(item.month)) && Number.isFinite(Number(item.day))) {
+      if (Number.isFinite(Number(item['year'])) && Number.isFinite(Number(item['month'])) && Number.isFinite(Number(item['day']))) {
         const readable = this.formatExifXmpDate(value);
-        const raw = typeof item.rawValue === 'string' ? item.rawValue : JSON.stringify(value);
+        const raw = typeof item['rawValue'] === 'string' ? item['rawValue'] : JSON.stringify(value);
         return readable ? raw + ' (' + readable + ')' : raw;
       }
       const displayValue = String(value);
@@ -1044,10 +1044,11 @@ export class ImageView {
     const path = this.exifXmpPath();
     if (!tags || !path) return [];
     const rows: Array<{ source: string; name: string; value: string }> = [];
+    const tagValues = tags as unknown as Record<string, unknown>;
     const findTag = (...names: string[]): unknown => {
       for (const name of names) {
         const key = Object.keys(tags).find(candidate => candidate.toLowerCase() === name.toLowerCase());
-        if (key && tags[key] !== undefined && tags[key] !== null) return tags[key];
+        if (key && tagValues[key] !== undefined && tagValues[key] !== null) return tagValues[key];
       }
       return undefined;
     };
