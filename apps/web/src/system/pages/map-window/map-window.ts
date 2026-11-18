@@ -369,7 +369,7 @@ interface MapErrorEntry {
         </div>
         <div class="gpx-file-list gpx-database-file-list" role="rowgroup">
           @for (track of gpxDatabaseVisibleTracks(); track track.path) {
-            <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError">
+            <div class="gpx-file-row gpx-database-file-row" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path">
               <label class="gpx-active-toggle" role="cell" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></label>
               <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.name }}</span>
               @if (gpxDatabaseColumns().points) { <span class="gpx-waypoint-count" role="cell">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</span> }
