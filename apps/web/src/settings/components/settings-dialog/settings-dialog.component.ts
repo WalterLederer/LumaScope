@@ -143,6 +143,7 @@ export class SettingsPanelComponent {
     thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
     gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
   });
+  protected readonly gpxCacheSummary = signal<{ files: number; segments: number; points: number }>({ files: 0, segments: 0, points: 0 });
   protected readonly selectedCacheDatabaseKey = signal<string | null>(null);
   protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
   protected readonly selectCacheDatabase = (databaseKey: string): void => {
@@ -678,15 +679,20 @@ export class SettingsPanelComponent {
         thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
         gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
       });
+      this.gpxCacheSummary.set({ files: 0, segments: 0, points: 0 });
       this.cacheSummaryError.set(null);
       this.cacheSummaryLoading.set(false);
       return;
     }
     this.cacheSummaryLoading.set(true);
     try {
-      const summary = await this.cacheManager.getCacheSummary(databaseKey);
+      const [summary, gpxSummary] = await Promise.all([
+        this.cacheManager.getCacheSummary(databaseKey),
+        this.cacheManager.getGpxDatabaseStats(databaseKey)
+      ]);
       if (requestId === this.cacheSummaryRequestId) {
         this.cacheSummary.set(summary);
+        this.gpxCacheSummary.set(gpxSummary);
         if (!this.selectedCacheDatabaseKey() || !summary.databases.some(database => database.key === this.selectedCacheDatabaseKey())) {
           this.selectedCacheDatabaseKey.set(summary.selectedDatabaseKey);
         }
