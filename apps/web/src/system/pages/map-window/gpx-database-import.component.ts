@@ -16,7 +16,7 @@ import { Desktop } from 'internal-api';
           <strong class="gpx-database-statistics-heading">Favorite cache databases and selected drive</strong>
           @for (item of databaseStats(); track item.key) {
             <span class="gpx-database-statistics" title="GPX data and cache summary for this favorite drive">
-              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · Cache {{ item.cacheEntries.toLocaleString() }} files / {{ item.cacheBytes.toLocaleString() }} bytes · Full-size {{ item.fullSizeEntries.toLocaleString() }} / {{ item.fullSizeBytes.toLocaleString() }} bytes · Thumbnails {{ item.thumbnailEntries.toLocaleString() }} / {{ item.thumbnailBytes.toLocaleString() }} bytes · Sidecar {{ item.sidecarEntries.toLocaleString() }} / {{ item.sidecarBytes.toLocaleString() }} bytes · GPS {{ item.gpsEntries.toLocaleString() }} · GPX {{ item.files.toLocaleString() }} files / {{ item.segments.toLocaleString() }} segments / {{ item.points.toLocaleString() }} points / {{ item.timestampedPoints.toLocaleString() }} timestamped
+              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · Cache {{ item.cacheEntries.toLocaleString() }} files / {{ item.cacheBytes.toLocaleString() }} bytes · Full-size {{ item.fullSizeEntries.toLocaleString() }} / {{ item.fullSizeBytes.toLocaleString() }} bytes · Thumbnails {{ item.thumbnailEntries.toLocaleString() }} / {{ item.thumbnailBytes.toLocaleString() }} bytes · Sidecar {{ item.sidecarEntries.toLocaleString() }} / {{ item.sidecarBytes.toLocaleString() }} bytes · GPS {{ item.gpsEntries.toLocaleString() }} / {{ item.gpsBytes.toLocaleString() }} bytes · GPX {{ item.files.toLocaleString() }} files / {{ item.segments.toLocaleString() }} segments / {{ item.points.toLocaleString() }} points / {{ item.timestampedPoints.toLocaleString() }} timestamped
             </span>
           } @empty {
             <span class="gpx-database-statistics">No favorite cache databases found.</span>
@@ -38,7 +38,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
-  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; cacheBytes: number; fullSizeEntries: number; fullSizeBytes: number; thumbnailEntries: number; thumbnailBytes: number; sidecarEntries: number; sidecarBytes: number; gpsEntries: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
+  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; cacheBytes: number; fullSizeEntries: number; fullSizeBytes: number; thumbnailEntries: number; thumbnailBytes: number; sidecarEntries: number; sidecarBytes: number; gpsEntries: number; gpsBytes: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
   protected readonly busy = signal(false);
   protected readonly status = signal('');
 
@@ -77,6 +77,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
           sidecarEntries: summary.sidecar.entries,
           sidecarBytes: summary.sidecar.bytes,
           gpsEntries: summary.gps.entries,
+          gpsBytes: summary.gps.bytes,
           ...gpx
         };
       }));
