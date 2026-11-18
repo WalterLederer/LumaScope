@@ -80,15 +80,19 @@ export class CacheManager {
 
   private readonly acquireBackgroundLocationLookupSlot = async (): Promise<() => void> => {
     if (this.backgroundLocationLookupReservations >= CacheManager.maxBackgroundLocationLookups) {
+      // A released reservation is handed directly to the next waiter, so
+      // concurrent cache workers cannot briefly exceed the configured limit.
       await new Promise<void>(resolve => this.backgroundLocationLookupWaiters.push(resolve));
+    } else {
+      this.backgroundLocationLookupReservations++;
     }
-    this.backgroundLocationLookupReservations++;
     let released = false;
     return () => {
       if (released) return;
       released = true;
-      this.backgroundLocationLookupReservations = Math.max(0, this.backgroundLocationLookupReservations - 1);
-      this.backgroundLocationLookupWaiters.shift()?.();
+      const next = this.backgroundLocationLookupWaiters.shift();
+      if (next) next();
+      else this.backgroundLocationLookupReservations = Math.max(0, this.backgroundLocationLookupReservations - 1);
     };
   };
   private locationLookupCancelled = false;
