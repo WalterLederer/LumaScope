@@ -17,6 +17,10 @@ html body app-map-window .map-window .file-row-menu-trigger {
   font-size: 14px !important; font-weight: 400 !important; font-style: normal !important;
   line-height: 1 !important; text-indent: 0 !important; cursor: pointer !important; opacity: 1 !important;
 }
+/* Light themes need a dark glyph; dark themes retain the light glyph. */
+html:not([data-theme="dark"]) .file-row-menu-trigger { color: #111 !important; }
+html[data-theme="dark"] .file-row-menu-trigger { color: #f2f2f2 !important; }
+
 .file-row-menu-trigger:hover,
 .file-row-menu-trigger:focus-visible,
 .file-row-menu-trigger[aria-expanded="true"],
@@ -85,4 +89,16 @@ html body .gpx-row-action-menu-separator {
 html body .gpx-row-action-menu .gpx-row-action-delete-all { color: var(--color-status-danger, #ff6b6b) !important; }
 html body .gpx-row-action-menu .gpx-row-action-delete-all:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-status-danger, #ff6b6b) 14%, transparent) !important;
+}
+
+
+/* All row menus are viewport overlays: opening one must never change row layout. */
+html body .detail-row-action-menu,
+html body app-map-window .map-window .offline-row-action-menu {
+  position: fixed !important;
+  top: auto;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto;
+  z-index: 2147483005 !important;
 }
