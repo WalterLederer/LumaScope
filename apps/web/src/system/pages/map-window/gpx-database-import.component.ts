@@ -39,6 +39,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
   @Input() databaseKeys: string[] = [];
   @Input() databaseKeysReady = false;
   @Output() readonly help = new EventEmitter<void>();
+  @Output() readonly imported = new EventEmitter<string>();
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
@@ -113,6 +114,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
       }
       this.effectiveDatabaseKey = result.folder && /^[a-z]:[\\/]/i.test(result.folder)
         ? result.folder.slice(0, 2) : this.databaseKey;
+      if (this.effectiveDatabaseKey) this.imported.emit(this.effectiveDatabaseKey.toUpperCase());
       await this.refreshStats();
       this.status.set(
         `Imported ${result.imported.toLocaleString()} · unchanged ${result.unchanged.toLocaleString()} · duplicates ${result.duplicates.toLocaleString()} · errors ${result.errors.toLocaleString()}`
