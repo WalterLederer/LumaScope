@@ -419,6 +419,9 @@ interface MapErrorEntry {
             <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
             <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
                     [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⇩</span> Export from db</button>
+            <button type="button" role="menuitem" class="gpx-row-action-delete-all"
+                    (click)="deleteGpxDatabaseRecordsForFile(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
+                    [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⌫</span> Delete all db records for this file</button>
             @if (gpxListMode() === 'recent') {
               <button type="button" role="menuitem" (click)="openGpxTrack(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="actionTrack.missing || actionTrack.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
               <button type="button" role="menuitem" (click)="removeGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">×</span> Remove track</button>
@@ -2423,8 +2426,25 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
-    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 285 : 155, true));
+    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 325 : 195, true));
   };
+  protected readonly deleteGpxDatabaseRecordsForFile = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop || track.path.startsWith('memory:')) return;
+    const sourcePath = track.databasePath || track.path;
+    const databaseKey = /^[a-z]:[\\/]/i.test(sourcePath) ? sourcePath.slice(0, 2).toUpperCase()
+      : this.trackGpxDatabaseKey() ?? this.gpxTracks().find(item => /^[a-z]:[\\/]/i.test(item.path))?.path.slice(0, 2).toUpperCase();
+    if (!window.confirm(`Delete all database records for "${track.name}"?\\n\\nOnly this GPX file's database entry, segments and points will be deleted. The original GPX file and its favorite entry will remain unchanged.`)) return;
+    try {
+      const result = await this.desktop.CacheManager.deleteGpxDatabaseEntriesForFile(sourcePath, databaseKey);
+      this.gpxDatabaseQueryStatus.set(result.deleted
+        ? `Deleted records for ${track.name}: ${result.files} file, ${result.segments.toLocaleString()} segments and ${result.points.toLocaleString()} points.`
+        : `No database records were found for ${track.name}.`);
+      if (result.deleted && this.gpxTracks().at(-1)?.path === track.path) await this.refreshLatestGpxElevationProfile();
+    } catch (error) {
+      this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   protected readonly exportGpxFromDatabase = async (track: GpxTrackFile): Promise<void> => {
     if (!this.desktop || track.path.startsWith('memory:')) return;
     const sourcePath = track.databasePath || track.path;
