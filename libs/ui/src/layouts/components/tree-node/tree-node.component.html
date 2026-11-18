@@ -13,7 +13,18 @@
 
 <div class="spacer"></div>
 
-@if (inlineActions() && level() <= 1) {
+@if (inlineActions() && level() <= 1 && currentMenu !== null) {
+  <button type="button"
+          class="file-row-menu-trigger tree-inline-menu-trigger"
+          [cdkMenuTriggerFor]="currentMenu"
+          [cdkMenuTriggerData]="{ data: currentNode }"
+          [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
+          aria-haspopup="menu"
+          title="Actions"
+          uiStopPropagation>
+    <ui-icon icon="moreVertical" [inherit]="true" />
+  </button>
+} @else if (inlineActions() && level() <= 1) {
   <button type="button"
           class="tree-inline-action"
           [attr.aria-label]="isRootNode() ? 'Add location' : 'Remove favourite'"
