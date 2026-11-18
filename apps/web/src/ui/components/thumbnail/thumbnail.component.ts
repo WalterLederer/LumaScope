@@ -56,6 +56,11 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
     if (value === null || value === undefined || !Number.isFinite(value instanceof Date ? value.getTime() : value)) return '—';
+    return formatSystemDateTime(value);
+  };
+
+  readonly formatDetailDateTime = (value: number | Date | null | undefined): string => {
+    if (value === null || value === undefined || !Number.isFinite(value instanceof Date ? value.getTime() : value)) return '—';
     return formatSystemDateTime(value, '—', 'compact');
   };
 
@@ -69,7 +74,7 @@ export class ThumbnailComponent implements OnDestroy {
     const timestamp = this.cacheStatus()?.gpsTimestamp;
     return timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)
       ? '—'
-      : this.formatOsDateTime(timestamp * 1000);
+      : this.formatDetailDateTime(timestamp * 1000);
   });
 
   readonly gpsDateDiffersFromModified = computed(() => {
