@@ -47,5 +47,19 @@
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
     <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
     <span class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</span>
+    <button type="button" class="gpx-row-menu-trigger detail-row-menu-trigger"
+            (click)="toggleRowActionMenu($event)"
+            [attr.aria-expanded]="rowActionMenuOpen()"
+            [attr.aria-label]="'File actions for ' + image().name"
+            title="File actions">☰</button>
+    @if (rowActionMenuOpen()) {
+      <div class="detail-row-action-menu" role="menu" [style.top.px]="rowActionMenuPosition().top" [style.left.px]="rowActionMenuPosition().left" (click)="$event.stopPropagation()">
+        <button type="button" role="menuitem" (click)="copyImagePath()">Copy path</button>
+        <button type="button" role="menuitem" (click)="openImagePath()">Open path</button>
+        <button type="button" role="menuitem" (click)="openImageFile()">Open file</button>
+        <div class="gpx-row-action-menu-separator" role="separator"></div>
+        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()">Delete file</button>
+      </div>
+    }
   </div>
 }
