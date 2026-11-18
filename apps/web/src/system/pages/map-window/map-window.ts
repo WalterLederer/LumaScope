@@ -1028,10 +1028,11 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
 <div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
+    <button type="button" class="routing-help-button offline-tab-help" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
     <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
       <button type="button" class="offline-map-add-button resource-package-open-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
       <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Open the extracted resource package to discover offline maps and resources.' }}</span>
-      <button type="button" class="routing-help-button resource-package-help" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
+      
     </div>
     @if (resourcePackageScanFound()) {
       <div class="resource-package-scan-results" aria-live="polite">
