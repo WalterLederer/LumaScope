@@ -65,7 +65,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
         this.status.set('Import cancelled.');
         return;
       }
-      this.effectiveDatabaseKey = result.folder && /^[a-z]:[\\\\/]/i.test(result.folder)
+      this.effectiveDatabaseKey = result.folder && /^[a-z]:[\\/]/i.test(result.folder)
         ? result.folder.slice(0, 2) : this.databaseKey;
       this.stats.set({ files: result.files, segments: result.segments, points: result.points });
       this.status.set(
