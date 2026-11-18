@@ -682,3 +682,42 @@ app-map-window {
     }
 
 }
+
+
+/* Track-row hamburger must stay neutral and use the shared compact icon treatment. */
+app-map-window .map-window .gpx-row-actions > .file-row-menu-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 19px !important;
+  min-height: 19px !important;
+  padding: 0 !important;
+  border: 1px solid var(--color-content-default-low, #666) !important;
+  border-radius: 3px !important;
+  background: var(--color-surface-default-low, #252525) !important;
+  color: var(--color-content-default, #eee) !important;
+  box-shadow: none !important;
+  font: 400 13px/1 sans-serif !important;
+}
+app-map-window .map-window .gpx-row-actions > .file-row-menu-trigger:hover,
+app-map-window .map-window .gpx-row-actions > .file-row-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-default-medium, #444) !important;
+  border-color: var(--color-content-default-medium, #999) !important;
+}
+
+/* The recent-track list should occupy only the height its rows require. */
+app-map-window .track-tab .gpx-settings-content {
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: flex-start;
+}
+app-map-window .track-tab .gpx-file-list {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
