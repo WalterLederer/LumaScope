@@ -71,3 +71,46 @@ html body app-map-window .map-window .offline-row-action-menu {
   left: auto;
   z-index: 2147483005 !important;
 }
+
+/* Shared hamburger trigger. Keep this after the theme and map-window styles so
+   the selected global button style cannot flatten the trigger's boxed shape. */
+html body app-root button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 0 0 22px !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 0 1px !important;
+  border: 1px solid var(--color-content-default-low, #666) !important;
+  border-radius: 4px !important;
+  background: var(--color-surface-default-low, #252525) !important;
+  background-image: none !important;
+  color: var(--color-content-default, #eee) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+html:not([data-theme="dark"]) body app-root button.file-row-menu-trigger { color: #111 !important; }
+html[data-theme="dark"] body app-root button.file-row-menu-trigger { color: #f2f2f2 !important; }
+html body app-root button.file-row-menu-trigger:hover,
+html body app-root button.file-row-menu-trigger:focus-visible,
+html body app-root button.file-row-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-default-medium, #444) !important;
+  border-color: var(--color-content-default-medium, #999) !important;
+}
