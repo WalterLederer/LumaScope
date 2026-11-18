@@ -240,7 +240,7 @@ export class Exif {
               utcNow: new Date().toISOString()
             };
             console.info('[Exif GPX time debug] Photo has no usable EXIF or filesystem timestamp:', missingTimestampDetails);
-            await writeGpsDebug('No timestamp: ' + path, { source: photoTimestampSource || '—' });
+            await writeGpsDebug('No timestamp: ' + basename(path), { source: photoTimestampSource || '—' });
             result.unmatched++;
             continue;
           }
@@ -258,7 +258,7 @@ export class Exif {
             maxDifferenceSeconds
           };
           console.info('[Exif GPX time debug] Photo timestamp:', photoTimestampDetails);
-          await writeGpsDebug('Photo: ' + path, { time: photoTimestampDetails.timestampLocal, source: photoTimestampSource || '—' });
+          await writeGpsDebug('Photo: ' + basename(path), { time: photoTimestampDetails.timestampLocal, source: photoTimestampSource || '—' });
           let position: { latitude: number; longitude: number; deviationSeconds: number } | null = null;
           for (const databaseKey of databaseKeys) {
             const candidate = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey);
