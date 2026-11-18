@@ -60,7 +60,7 @@ html body app-map-window .map-window .gpx-row-action-menu button,
 html body app-map-window .map-window .offline-row-action-menu button {
   appearance: none !important; -webkit-appearance: none !important;
   display: flex !important; align-items: center !important; gap: 9px !important;
-  box-sizing: border-box !important; width: auto !important; min-width: 0 !important; align-self: stretch !important;
+  box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; align-self: stretch !important;
   min-height: 32px !important; height: auto !important; margin: 0 !important; padding: 6px 9px !important;
   border: 0 !important; border-radius: 4px !important; outline: none !important;
   background: transparent !important; color: inherit !important; box-shadow: none !important;
