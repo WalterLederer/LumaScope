@@ -2238,8 +2238,28 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
     if (this.offlineRowActionMenuOpen() === path) { this.offlineRowActionMenuOpen.set(null); return; }
+    const pointer = { x: event.clientX, y: event.clientY };
     this.offlineRowActionMenuOpen.set(path);
     this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 300, 270, true));
+    // Reposition after Angular has rendered the menu, using its real dimensions
+    // instead of a guessed height. This keeps the popup anchored to the click
+    // even when menu content or font metrics change.
+    requestAnimationFrame(() => {
+      if (this.offlineRowActionMenuOpen() !== path) return;
+      const menu = document.querySelector<HTMLElement>('.offline-row-action-menu');
+      if (!menu) return;
+      const width = menu.getBoundingClientRect().width;
+      const height = menu.getBoundingClientRect().height;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      let left = pointer.x + 4;
+      if (left + width > viewportWidth - 8) left = pointer.x - width - 4;
+      left = Math.max(8, Math.min(left, Math.max(8, viewportWidth - width - 8)));
+      let top = pointer.y + 4;
+      if (top + height > viewportHeight - 8) top = pointer.y - height - 4;
+      top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - height - 8)));
+      this.offlineRowActionMenuPosition.set({ top, left });
+    });
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly hasAllOfflineFiles = (): boolean => this.offlineMaps().some(map => map.available) || this.hillshadeDatabases().some(database => database.available);
