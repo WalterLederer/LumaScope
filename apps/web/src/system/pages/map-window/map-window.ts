@@ -147,7 +147,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
-                <app-gpx-database-import [databaseKey]="currentImageDatabaseKey" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
+                <app-gpx-database-import [databaseKey]="currentImageDatabaseKey" [databaseKeys]="favoriteGpxDatabaseKeys()" [databaseKeysReady]="favoriteGpxDatabaseKeysReady()" (help)="openGpxCacheHelp()" />
                 <div class="fix-location-step-title">STEP 2 - Add GPS info from GPX to photos</div>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
@@ -1523,6 +1523,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly galleryLocations = inject(GalleryLocations);
   protected readonly favoriteGpxDatabaseKeys = signal<string[]>([]);
+  protected readonly favoriteGpxDatabaseKeysReady = signal(false);
   private favoriteLocationsUnsubscribe: (() => void) | null = null;
   protected readonly overlayMode = this.route.snapshot.queryParamMap.get('overlay') === '1';
   private overlayResizeStart: { edge: string; pointerX: number; pointerY: number; bounds: { x: number; y: number; width: number; height: number } } | null = null;
@@ -2554,6 +2555,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
       const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
       this.favoriteGpxDatabaseKeys.set(keys);
+      this.favoriteGpxDatabaseKeysReady.set(true);
     });
     this.favoriteLocationsUnsubscribe = () => favoriteLocationsSubscription.unsubscribe();
     setOfflineRenderConcurrency(this.renderWorkerCount());
