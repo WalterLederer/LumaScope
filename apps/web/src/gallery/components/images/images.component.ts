@@ -288,6 +288,11 @@ export class ImagesComponent {
     this.selected.emit(image);
   };
 
+  protected readonly onDetailRowSelected = (image: FileInfo): void => {
+    this.activeSelectionPath.set(image.path);
+    (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
+  };
+
   protected startColumnResize(event: PointerEvent, columnIndex: number): void {
     if (event.button !== 0) return;
     event.preventDefault();
