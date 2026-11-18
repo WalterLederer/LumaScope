@@ -351,17 +351,6 @@ interface MapErrorEntry {
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
       <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
     </div>
-    @if (gpxSpeedLegendTracks().length > 0) {
-      <div class="gpx-speed-legends" aria-label="GPX speed color legends">
-        @for (track of gpxSpeedLegendTracks(); track track.path) {
-          <div class="gpx-speed-legend">
-            <strong>{{ track.name }}</strong>
-            <span class="gpx-speed-gradient" [class.cool-warm]="track.speedPalette === 'cool-warm'"></span>
-            <span>{{ track.speedMinKmh ?? 0 }} km/h</span><span>{{ track.speedMaxKmh ?? 120 }} km/h</span>
-          </div>
-        }
-      </div>
-    }
     @if (gpxDatabaseVisibleTracks().length > 0) {
       <div class="gpx-database-table" role="table" aria-label="GPX tracks">
         <div class="gpx-database-header" role="row" [style.grid-template-columns]="gpxDatabaseGridColumns()">
@@ -1558,6 +1547,17 @@ interface MapErrorEntry {
         }
         <div class="map-viewport" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'">
           <div #map class="map" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+          @if (gpxVisible() && gpxSpeedLegendTracks().length > 0) {
+            <div class="gpx-speed-map-legend" aria-label="GPX speed color legends">
+              @for (track of gpxSpeedLegendTracks(); track track.path) {
+                <div class="gpx-speed-legend">
+                  <strong>{{ track.name }}</strong>
+                  <span class="gpx-speed-gradient" [class.cool-warm]="track.speedPalette === 'cool-warm'"></span>
+                  <span>{{ track.speedMinKmh ?? 0 }}–{{ track.speedMaxKmh ?? 120 }} km/h</span>
+                </div>
+              }
+            </div>
+          }
           @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
         </div>
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
