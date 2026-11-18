@@ -496,7 +496,7 @@ app-map-window {
     .fix-location-counter-label{font-size:11px;color:color-mix(in srgb,CanvasText 82%,Canvas);margin-bottom:2px}
     .fix-location-counter .fix-location-progress-track{margin-top:0}
     .fix-location-current-folder{width:min(100%,760px);margin-top:6px;font-size:11px;color:color-mix(in srgb,CanvasText 72%,Canvas);overflow-wrap:anywhere}
-    .fix-location-report-wrap{width:min(100%,760px);max-width:100%;overflow-x:auto;margin-top:10px}
+    .fix-location-report-wrap{width:min(100%,760px);max-width:100%;max-height:320px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;margin-top:10px}
     .fix-location-report{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px;line-height:1.4}
     .fix-location-report th,.fix-location-report td{padding:5px 7px;border:1px solid #555;text-align:left;vertical-align:top}
     .fix-location-report th{width:40%;font-weight:600;color:inherit;background:rgba(127,127,127,.12)}
