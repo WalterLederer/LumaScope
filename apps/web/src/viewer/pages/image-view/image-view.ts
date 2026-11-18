@@ -1087,7 +1087,7 @@ export class ImageView {
     rows.push({
       source: 'App',
       name: 'GPS Date',
-      value: selectedTimestamp?.date ? date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '—'
+      value: selectedTimestamp?.date ? selectedTimestamp.date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '—'
     });
 
     const exifLatitudeValue = findTag('GPSLatitude');
