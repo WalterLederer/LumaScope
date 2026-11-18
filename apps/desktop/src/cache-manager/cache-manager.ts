@@ -772,7 +772,12 @@ export class CacheManager {
     };
     console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', gpxTimeDiagnostic);
     try {
-      await this.appendGpsAutoFixDebug(`[${formatOsDateTime(new Date())}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
+      const compactPoint = (point: typeof diagnosticBefore): string => point
+        ? `${formatOsDateTime(new Date(point.timestamp_ms))} (${((point.timestamp_ms - timestampMs) / 1000).toFixed(0)} s)`
+        : '—';
+      await this.appendGpsAutoFixDebug(
+        `[${formatOsDateTime(new Date())}] GPX ${databaseKey}: ${gpxTimeDiagnostic.importedGpxPointCount} points; before ${compactPoint(diagnosticBefore)}; after ${compactPoint(diagnosticAfter)}; same segment ${gpxTimeDiagnostic.sameSegment ? 'yes' : 'no'}`
+      );
     } catch (error) {
       console.warn('[CacheManager] Could not write GPS Auto Fix debug log:', error);
     }
