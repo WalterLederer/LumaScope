@@ -297,7 +297,7 @@ export class FileSystem {
   private readonly sortFiles = (sortBy: SortType, sortDir: SortDirection) => {
     switch (sortBy) {
       case 'date':
-        return sortDir === 'asc' ? this.sortByCreatedDateAsc : this.sortByCreatedDateDesc;
+        return sortDir === 'asc' ? this.sortByModifiedDateAsc : this.sortByModifiedDateDesc;
       case 'size':
         return sortDir === 'asc' ? this.sortBySizeAsc : this.sortBySizeDesc;
       case 'name':
@@ -329,9 +329,15 @@ export class FileSystem {
     return 0;
   };
 
-  private readonly sortByCreatedDateAsc = (a: FileInfo, b: FileInfo): number => a.createdAt - b.createdAt;
+  // The Browse date column displays the file modification time, not its creation time.
+  // Fall back to createdAt only when a modification timestamp is unavailable.
+  private readonly getFileDateForSorting = (file: FileInfo): number => file.modifiedAt ?? file.createdAt;
 
-  private readonly sortByCreatedDateDesc = (a: FileInfo, b: FileInfo): number => b.createdAt - a.createdAt;
+  private readonly sortByModifiedDateAsc = (a: FileInfo, b: FileInfo): number =>
+    this.getFileDateForSorting(a) - this.getFileDateForSorting(b);
+
+  private readonly sortByModifiedDateDesc = (a: FileInfo, b: FileInfo): number =>
+    this.getFileDateForSorting(b) - this.getFileDateForSorting(a);
 
   private readonly sortBySizeAsc = (a: FileInfo, b: FileInfo): number => a.size - b.size;
 
