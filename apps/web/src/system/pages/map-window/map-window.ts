@@ -3113,8 +3113,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private formatCoordinates(latitude: number, longitude: number): string {
     const dms = `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
-    const latHemisphere = latitude < 0 ? 'S' : 'N';
-    const lonHemisphere = longitude < 0 ? 'W' : 'E';
     const decimal = formatGpsCoordinates(latitude, longitude, 5);
     return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
   }
