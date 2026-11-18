@@ -112,7 +112,10 @@ export class Exif {
         elapsedMilliseconds: 0,
         scanned: 0, withGps: 0, withoutGps: 0, matched: 0, updated: 0, unmatched: 0,
         ignoredTooFar: 0, minDeviationSeconds: null, meanDeviationSeconds: null, maxDeviationSeconds: null, errors: 0,
-        aborted: false
+        aborted: false,
+        gpxFromTimestamp: null, gpxToTimestamp: null,
+        photoFromTimestamp: null, photoToTimestamp: null,
+        databaseKeys: []
       };
       const deviations: number[] = [];
       let lastProgressFolder = '';
@@ -130,7 +133,10 @@ export class Exif {
             meanDeviationSeconds: deviations.length ? deviations.reduce((sum, value) => sum + value, 0) / deviations.length : null,
             maxDeviationSeconds: deviations.length ? Math.max(...deviations) : null,
             elapsedMilliseconds: Date.now() - startedAt,
-            rootFolder: root, currentFolder
+            rootFolder: root, currentFolder,
+            gpxFromTimestamp: result.gpxFromTimestamp, gpxToTimestamp: result.gpxToTimestamp,
+            photoFromTimestamp: result.photoFromTimestamp, photoToTimestamp: result.photoToTimestamp,
+            databaseKeys: result.databaseKeys
           });
         } catch { /* The requesting window may have closed. */ }
       };
@@ -145,6 +151,15 @@ export class Exif {
         databaseKey,
         stats: await cacheManager.getGpxDatabaseStats(undefined as never, databaseKey)
       })));
+      result.databaseKeys = databaseKeys;
+      const gpxDatabaseRanges = await Promise.all(databaseKeys.map(databaseKey =>
+        cacheManager.getGpxDatabaseTimeRange(undefined as never, databaseKey)
+      ));
+      const gpxTimestamps = gpxDatabaseRanges.flatMap(range =>
+        [range.from, range.to].filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+      );
+      result.gpxFromTimestamp = gpxTimestamps.length ? Math.min(...gpxTimestamps) : null;
+      result.gpxToTimestamp = gpxTimestamps.length ? Math.max(...gpxTimestamps) : null;
       const hasTimestampedGpxData = gpxDatabaseStats.some(({ stats }) =>
         stats.files > 0 && stats.segments > 0 && stats.points > 0 && stats.timestampedPoints > 0
       );
@@ -193,6 +208,13 @@ export class Exif {
               photoTimestampSource = 'Filesystem:LastModified';
               filesystemModifiedAt = fileInfo.mtime.toISOString();
             }
+          }
+          if (photoTimestamp !== null && Number.isFinite(photoTimestamp)) {
+            const timestampMs = photoTimestamp * 1000;
+            result.photoFromTimestamp = result.photoFromTimestamp === null
+              ? timestampMs : Math.min(result.photoFromTimestamp, timestampMs);
+            result.photoToTimestamp = result.photoToTimestamp === null
+              ? timestampMs : Math.max(result.photoToTimestamp, timestampMs);
           }
           // Keep the selected capture timestamp in SQLite even when the photo
           // already has coordinates or no GPX match is found. Check-only runs
@@ -272,7 +294,7 @@ export class Exif {
           });
         } finally {
           const currentFolder = relative(root, dirname(path)) || '.';
-          if (result.scanned % 100 === 0 || currentFolder !== lastProgressFolder) sendProgress(path);
+          sendProgress(path);
           if (result.scanned % 25 === 0) await new Promise<void>(resolveYield => setImmediate(resolveYield));
         }
       }
