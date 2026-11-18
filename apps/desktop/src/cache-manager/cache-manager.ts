@@ -668,28 +668,37 @@ export class CacheManager {
     }
     if (!latest) return null;
     const db = this.databases.get(latest.databaseKey)!;
-    const rows = db.prepare(`SELECT p.timestamp_ms, p.elevation_m
+    const summary = db.prepare(`SELECT COUNT(*) AS pointCount,
+        MIN(p.elevation_m) AS minElevationM, MAX(p.elevation_m) AS maxElevationM,
+        MIN(p.timestamp_ms) AS startTimestampMs, MAX(p.timestamp_ms) AS endTimestampMs
       FROM gpx_track_segments s
       JOIN gpx_track_points p ON p.segment_id = s.id
       WHERE s.gpx_file_id = :fileId
-        AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL
-      ORDER BY s.segment_index, p.point_index`).all({ fileId: latest.fileId }) as Array<{
+        AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL`).get({ fileId: latest.fileId }) as {
+          pointCount: number; minElevationM: number | null; maxElevationM: number | null;
+          startTimestampMs: number | null; endTimestampMs: number | null;
+        };
+    if (!summary.pointCount || summary.minElevationM === null || summary.maxElevationM === null
+      || summary.startTimestampMs === null || summary.endTimestampMs === null) return null;
+    const step = Math.max(1, Math.ceil(summary.pointCount / 1200));
+    const rows = db.prepare(`SELECT timestamp_ms, elevation_m FROM (
+        SELECT p.timestamp_ms, p.elevation_m,
+          ROW_NUMBER() OVER (ORDER BY p.timestamp_ms, s.segment_index, p.point_index) AS sequence
+        FROM gpx_track_segments s
+        JOIN gpx_track_points p ON p.segment_id = s.id
+        WHERE s.gpx_file_id = :fileId
+          AND p.timestamp_ms IS NOT NULL AND p.elevation_m IS NOT NULL
+      )
+      WHERE sequence = 1 OR sequence = :pointCount OR sequence % :step = 0
+      ORDER BY sequence`).all({ fileId: latest.fileId, pointCount: summary.pointCount, step }) as Array<{
         timestamp_ms: number; elevation_m: number;
       }>;
-    const validPoints = rows.filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.elevation_m));
-    if (!validPoints.length) return null;
-    const elevations = validPoints.map(point => point.elevation_m);
-    const maximumPoints = 1200;
-    const step = Math.max(1, Math.ceil(validPoints.length / maximumPoints));
-    const points = validPoints.filter((_, index) => index % step === 0);
-    const lastPoint = validPoints[validPoints.length - 1];
-    if (points[points.length - 1] !== lastPoint) points.push(lastPoint);
     return {
       databaseKey: latest.databaseKey, fileName: latest.fileName, relativePath: latest.relativePath,
-      importedAt: latest.importedAt, pointCount: validPoints.length,
-      minElevationM: Math.min(...elevations), maxElevationM: Math.max(...elevations),
-      startTimestampMs: validPoints[0].timestamp_ms, endTimestampMs: lastPoint.timestamp_ms,
-      points: points.map(point => ({ timestampMs: point.timestamp_ms, elevationM: point.elevation_m }))
+      importedAt: latest.importedAt, pointCount: summary.pointCount,
+      minElevationM: summary.minElevationM, maxElevationM: summary.maxElevationM,
+      startTimestampMs: summary.startTimestampMs, endTimestampMs: summary.endTimestampMs,
+      points: rows.map(point => ({ timestampMs: point.timestamp_ms, elevationM: point.elevation_m }))
     };
   };
 
