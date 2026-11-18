@@ -228,8 +228,8 @@ export class Exif {
             .map(key => key.toUpperCase()))];
           let position: { latitude: number; longitude: number; deviationSeconds: number } | null = null;
           for (const databaseKey of databaseKeys) {
-            position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey);
-            if (position) break;
+            const candidate = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey);
+            if (candidate && (!position || candidate.deviationSeconds < position.deviationSeconds)) position = candidate;
           }
           if (!position) {
             result.unmatched++;
