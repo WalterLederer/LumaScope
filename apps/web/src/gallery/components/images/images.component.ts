@@ -18,6 +18,7 @@ import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
   allSortTypes,
@@ -60,6 +61,7 @@ export class ImagesComponent {
   private readonly exif = inject(ExifService);
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
+  private readonly galleryCacheBuild = inject(GalleryCacheBuild);
   private cacheStatusRequest = 0;
   private cacheAbortController: AbortController | null = null;
   private readonly cacheStatusPathRequests = new Map<string, number>();
@@ -402,16 +404,23 @@ export class ImagesComponent {
 
   readonly cacheDisplayedFiles = async (): Promise<void> => {
     const images = this.displayedImages();
-    if (this.cacheRunActive() || images.length === 0) return;
+    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || images.length === 0) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
+    const releaseActivity = this.galleryCacheBuild.trackActivity({
+      active: this.cacheRunActive,
+      progress: this.cacheRunProgress,
+      currentOperation: this.cacheRunCurrentOperation,
+      cancel: this.cancelCacheRun
+    });
     try {
       await this.runCacheForImages(images, true, controller.signal);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
+      releaseActivity();
       this.cacheUpdated.emit('');
     }
   };
@@ -425,12 +434,18 @@ export class ImagesComponent {
   };
 
   private readonly reCacheImages = async (images: FileInfo[]): Promise<void> => {
-    if (this.cacheRunActive() || images.length === 0) return;
+    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || images.length === 0) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: images.length });
     this.cacheRunCurrentOperation.set('Removing existing cache entries...');
+    const releaseActivity = this.galleryCacheBuild.trackActivity({
+      active: this.cacheRunActive,
+      progress: this.cacheRunProgress,
+      currentOperation: this.cacheRunCurrentOperation,
+      cancel: this.cancelCacheRun
+    });
     try {
       for (let index = 0; index < images.length; index++) {
         if (controller.signal.aborted) break;
@@ -450,6 +465,7 @@ export class ImagesComponent {
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
+      releaseActivity();
       this.cacheUpdated.emit('');
     }
   };
