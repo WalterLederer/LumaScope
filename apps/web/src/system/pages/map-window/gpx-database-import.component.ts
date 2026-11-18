@@ -6,7 +6,7 @@ import { Desktop } from 'internal-api';
   standalone: true,
   template: `
     <details class="gpx-database-section app-disclosure">
-      <summary>GPX -&gt; DB</summary>
+      <summary>GPX → DB</summary>
       <div class="gpx-database-import-row">
         <button type="button" class="offline-map-add-button" (click)="importAllGpxTracks()" [disabled]="busy()">
           {{ busy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
