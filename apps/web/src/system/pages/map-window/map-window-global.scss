@@ -678,7 +678,8 @@ app-map-window {
 
     /* Row action menus are viewport overlays: they must not be clipped by scrollable lists. */
     .gpx-row-action-menu-floating,
-    .offline-row-action-menu{position:fixed!important;top:auto;right:auto;left:auto;z-index:2147483005;max-height:calc(100vh - 16px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+    .offline-row-action-menu,
+    .gpx-track-color-menu-floating{position:fixed!important;top:auto;right:auto;left:auto;z-index:2147483005;max-height:calc(100vh - 16px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
     .gpx-toolbar{width:100%;min-width:0}
     .gpx-toolbar .gpx-toolbar-help{margin-left:auto!important;flex:0 0 30px!important}
     .time-slider-no-data-row{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
