@@ -153,6 +153,12 @@ export class ImagesComponent {
     else { this.detailSortColumn.set(column); this.detailSortDirection.set('asc'); }
   };
 
+  protected readonly detailSortIndicator = (column: DetailSortColumn): string =>
+    this.detailSortColumn() !== column ? '' : this.detailSortDirection() === 'asc' ? '▲' : '▼';
+
+  protected readonly detailSortAriaSort = (column: DetailSortColumn): 'ascending' | 'descending' | 'none' =>
+    this.detailSortColumn() !== column ? 'none' : this.detailSortDirection() === 'asc' ? 'ascending' : 'descending';
+
   /* Computed */
   readonly suffixFileCounts = computed(() => {
     const counts = new Map<string, number>();
