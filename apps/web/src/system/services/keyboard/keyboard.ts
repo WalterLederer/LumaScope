@@ -42,8 +42,8 @@ export class Keyboard {
     return path.some(item => isTextEntry(item));
   };
 
-  // Global shortcuts must not run while the user is entering text or choosing
-  // a value in a native form control. Keep capture-phase handling for all
+  // Global shortcuts must not run while the user is entering text. Native
+  // select controls remain eligible so application shortcuts also work in settings tabs. Keep capture-phase handling for all
   // other targets so shortcuts retain their existing priority.
   private readonly keydown$ = fromEvent<KeyboardEvent>(this.document, 'keydown', { capture: true })
     .pipe(filter(event => !this.isTextInputTarget(event)), share());
