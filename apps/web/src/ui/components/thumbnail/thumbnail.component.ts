@@ -56,7 +56,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
     if (value === null || value === undefined || !Number.isFinite(value instanceof Date ? value.getTime() : value)) return '—';
-    return formatSystemDateTime(value);
+    return formatSystemDateTime(value, '—', 'compact');
   };
 
   readonly viewMode = input<GalleryViewMode>('thumbnails');
@@ -70,6 +70,23 @@ export class ThumbnailComponent implements OnDestroy {
     return timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)
       ? '—'
       : this.formatOsDateTime(timestamp * 1000);
+  });
+
+  readonly gpsDateDiffersFromModified = computed(() => {
+    const gpsTimestamp = this.cacheStatus()?.gpsTimestamp;
+    const modifiedAt = this.image().modifiedAt ?? this.image().createdAt;
+    if (gpsTimestamp === null || gpsTimestamp === undefined || !Number.isFinite(gpsTimestamp)
+      || !Number.isFinite(modifiedAt)) return false;
+    // GPS timestamps are stored in whole seconds; compare at the same precision.
+    return Math.floor(gpsTimestamp) !== Math.floor(modifiedAt / 1000);
+  });
+
+  readonly gpsDateMatchesModified = computed(() => {
+    const gpsTimestamp = this.cacheStatus()?.gpsTimestamp;
+    const modifiedAt = this.image().modifiedAt ?? this.image().createdAt;
+    if (gpsTimestamp === null || gpsTimestamp === undefined || !Number.isFinite(gpsTimestamp)
+      || !Number.isFinite(modifiedAt)) return false;
+    return Math.floor(gpsTimestamp) === Math.floor(modifiedAt / 1000);
   });
 
   readonly gpsCoordinates = computed(() => {
