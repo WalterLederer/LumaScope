@@ -36,9 +36,7 @@
   <div class="detail-columns">
     <span class="detail-name" [title]="image().name">{{ image().name }}</span>
     <span>{{ formatDetailDateTime(image().modifiedAt) }}</span>
-    <span class="detail-gps-date"
-          [class.is-different]="gpsDateDiffersFromModified()"
-          [class.is-same]="gpsDateMatchesModified()">{{ gpsDateLabel() }}</span>
+    <span class="detail-gps-date">{{ gpsDateLabel() }}</span>
     <span [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</span>
     <span>{{ formattedFileSize() }}</span>
     <span>{{ imageSuffix() }}</span>
