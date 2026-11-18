@@ -149,7 +149,7 @@ export class FileSystem {
   @IpcHandler({ name: 'FileSystem.readDirectories' })
   readonly readDirectories = async (_: IpcMainInvokeEvent, path: string): Promise<ApiResponse<FileInfo[]>> => {
     const startedAt = Date.now();
-    console.log('[FileSystem.readDirectories] START', JSON.stringify({ path, startedAt: new Date(startedAt).toISOString() }));
+    console.log('[FileSystem.readDirectories] START', JSON.stringify({ path, startedAt: new Date(startedAt).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) }));
 
     try {
       const entries = (await readdir(path, { withFileTypes: true }))
