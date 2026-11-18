@@ -160,11 +160,25 @@ export interface BackgroundReverseGeocodingStatus {
   currentDisplayName: string | null;
 }
 
+export interface GpxElevationProfile {
+  databaseKey: string;
+  fileName: string;
+  relativePath: string;
+  importedAt: number;
+  pointCount: number;
+  minElevationM: number;
+  maxElevationM: number;
+  startTimestampMs: number;
+  endTimestampMs: number;
+  points: Array<{ timestampMs: number; elevationM: number }>;
+}
+
 export interface DesktopCacheManager {
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
   readonly getGpxDatabaseStats: (databaseKey?: string) => Promise<{ files: number; segments: number; points: number; timestampedPoints: number }>;
   readonly getGpxDatabaseTimeRange: (databaseKey?: string) => Promise<{ from: number | null; to: number | null }>;
+  readonly getLatestGpxElevationProfile: (databaseKeys?: string[]) => Promise<GpxElevationProfile | null>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
   readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
