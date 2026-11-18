@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats } from 'internal-api';
+import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats, formatOsDateTime } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { ProcessManager } from '../../../ipc/process-manager';
@@ -785,7 +785,7 @@ export class SettingsPanelComponent {
     this.lastClearResult.set(null);
     this.clearError.set(null);
     const startedAt = performance.now();
-    const started = new Date().toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    const started = formatOsDateTime(new Date());
     this.deleteCacheSummary.set(`${operation} started: ${started}\nScope: ${scope}\nWaiting for completion…`);
 
     try {
