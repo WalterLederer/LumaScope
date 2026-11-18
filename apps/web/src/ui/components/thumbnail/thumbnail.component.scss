@@ -168,8 +168,8 @@ button {
   }
 
   .detail-gps-date.is-same {
-    color: var(--color-content-default-medium, #aaa);
-    font-weight: 400;
+    color: var(--color-content-default-high, var(--color-content-primary-high));
+    font-weight: 500;
   }
 
   .detail-columns > .detail-dynamic-range {
