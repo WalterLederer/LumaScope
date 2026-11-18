@@ -143,6 +143,17 @@ export class ImagesComponent {
     const statuses = this.cacheStatuses();
     return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
   });
+  readonly gpsDateDifferenceCount = computed(() => {
+    const statuses = this.cacheStatuses();
+    return (this.images() ?? []).filter(image => {
+      const gpsTimestamp = statuses.get(image.path)?.gpsTimestamp;
+      const modifiedAt = image.modifiedAt;
+      return gpsTimestamp !== null && gpsTimestamp !== undefined && Number.isFinite(gpsTimestamp)
+        && modifiedAt !== null && modifiedAt !== undefined && Number.isFinite(modifiedAt)
+        && Math.floor(gpsTimestamp) !== Math.floor(modifiedAt / 1000);
+    }).length;
+  });
+
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
     const dates = images.map(image => image.modifiedAt ?? image.createdAt).filter(value => Number.isFinite(value));
