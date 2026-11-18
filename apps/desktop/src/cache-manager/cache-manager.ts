@@ -673,21 +673,17 @@ export class CacheManager {
     const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
     const findFile = db.prepare('SELECT id, file_name FROM gpx_files WHERE replace(relative_file_path, char(92), \'/\') = :path COLLATE NOCASE');
     const normalizedRelativePath = relativePath.replace(/[\\\\/]+/g, '/');
-    let file = findFile.get({ path: normalizedRelativePath }) as { id: number; file_name: string } | undefined;
-
-    // Recent/favorite GPX tracks may have been added before automatic DB import
-    // completed (or while an earlier import failed). Make Export from db self-healing:
-    // import this exact source file once, then export only the database records.
-    if (!file && /^[a-z]:[\\\\/]/i.test(sourcePath)) {
+    // Always reconcile an absolute source file before exporting. This is important
+    // even when the database row already exists: an unchanged GPX without <ele>
+    // elements may still have stale elevation_m values from an older import.
+    if (/^[a-z]:[\\/]/i.test(sourcePath)) {
       const absolute = resolve(sourcePath);
       const importResult = await this.importGpxFilePaths(databaseKey, [absolute], dirname(absolute));
-      file = findFile.get({ path: normalizedRelativePath }) as { id: number; file_name: string } | undefined;
-      if (!file) {
-        throw new Error(importResult.errors
-          ? 'The GPX track could not be imported into the cache database. Check that the source file is accessible and contains valid track points.'
-          : 'The GPX track is not present in the cache database after import.');
+      if (importResult.errors > 0) {
+        throw new Error('The GPX source file could not be reconciled with the cache database. Check that the file is accessible and contains valid track points.');
       }
     }
+    const file = findFile.get({ path: normalizedRelativePath }) as { id: number; file_name: string } | undefined;
     if (!file) throw new Error('The selected GPX track was not found in the cache database.');
     const segments = db.prepare(`SELECT s.id, s.segment_index FROM gpx_track_segments s
       WHERE s.gpx_file_id = :fileId ORDER BY s.segment_index`).all({ fileId: file.id }) as Array<{ id: number; segment_index: number }>;
