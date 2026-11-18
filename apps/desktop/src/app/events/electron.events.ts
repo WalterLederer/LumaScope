@@ -1013,10 +1013,17 @@ ipcMain.handle('Loupe.capture', async () => {
       }
     }
 
+    const captureGpuInfo = await app.getGPUInfo('complete').catch(error => ({ error: error instanceof Error ? error.message : String(error) }));
+    const monitorHdrModes = queryWindowsMonitorHdrModes();
+    const selectedMonitorDevice = String(monitorDiagnostics[monitorIndex - 1]?.deviceName ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
     console.info('[HDR Loupe] Capture diagnostics:', JSON.stringify({
+      timestamp: new Date().toISOString(),
       os: { version: os.version(), release: os.release(), arch: process.arch },
       electron: process.versions.electron,
       node: process.versions.node,
+      electronGpuInfo: captureGpuInfo,
+      monitorHdrModes,
+      selectedMonitorHdrMode: monitorHdrModes[selectedMonitorDevice] === undefined ? 'Unknown' : monitorHdrModes[selectedMonitorDevice] ? 'HDR' : 'SDR',
       captureApiSupport: captureApiSupport(),
       electronDisplays: displayDiagnostics,
       wgcMonitors: monitorDiagnostics,
