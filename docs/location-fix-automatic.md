@@ -7,7 +7,7 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 
 ## Prerequisites
 
-- In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The same shared importer is also available under **Track → Advanced**.
+- In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The section lists cache databases for favorite drives and shows each database file path, cache size/entries, and GPX file/segment/point totals. The same shared importer is also available under **Track → Advanced**.
 - Import the GPX folder from the same drive as the photo folder. GPX data is stored in the cache database associated with the drive containing the selected GPX folder, while Auto Fix searches the database associated with the selected photo folder.
 - GPX track points must have timestamps. Matching uses points within an individual GPX segment.
 
