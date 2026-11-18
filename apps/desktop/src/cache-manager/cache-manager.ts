@@ -630,11 +630,11 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.importGpxFiles' })
-  readonly importGpxFiles = async (_event?: IpcMainInvokeEvent, filePaths: string[] = []): Promise<{
+  readonly importGpxFiles = async (_event?: IpcMainInvokeEvent, filePaths?: string[]): Promise<{
     files: number; imported: number; unchanged: number; duplicates: number; errors: number;
   }> => {
     const grouped = new Map<string, string[]>();
-    for (const candidate of filePaths) {
+    for (const candidate of filePaths ?? []) {
       if (typeof candidate !== 'string' || !candidate || extname(candidate).toLowerCase() !== '.gpx') continue;
       const absolute = resolve(candidate);
       try { if (!(await stat(absolute)).isFile()) continue; } catch { continue; }
