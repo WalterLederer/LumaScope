@@ -196,6 +196,16 @@ export class Exif {
         result.scanned++;
         try {
           const metadata = await this.readPhotoMetadata(path);
+          if (!checkOnly) {
+            // Add every inspected source image to its drive's cache database.
+            // If the file already contains GPS coordinates, synchronize those too;
+            // keep existing database-only coordinates when the file has no GPS tags.
+            await cacheManager.registerPhotoFile(path);
+            if (metadata.latitude !== null && metadata.longitude !== null) {
+              const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+              await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, metadata);
+            }
+          }
           // Prefer camera-generated filename timestamps over filesystem dates:
           // Android/ADB copies can replace Created/Modified times with copy time.
           // Filesystem last-modified remains the final fallback.
