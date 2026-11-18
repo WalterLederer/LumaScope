@@ -26,7 +26,7 @@ export class ExifInfoComponent {
 
   readonly modifiedAt = input<number | undefined>(undefined);
 
-  readonly formatModifiedAt = (value: number | undefined): string => formatOsDateTime(value);
+  readonly formatModifiedAt = (value: number | undefined): string => formatOsDateTime(value, '—', 'compact');
 
   readonly decoderName = input<string | null>(null);
 
