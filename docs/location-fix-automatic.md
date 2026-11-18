@@ -46,6 +46,9 @@ The report includes:
 - Minimum, mean and maximum candidate deviation in seconds.
 - Number of files updated and any errors.
 - Total elapsed runtime.
+- Cache database drive letters searched (for example, `C:, D:`).
+- Earliest and latest timestamp across all timestamped points in all imported GPX files; this range is queried once before photo scanning.
+- Earliest and latest selected photo timestamps seen so far; this range is updated after every scanned photo.
 
 The min/mean/max deviation statistics include all usable GPX candidates, including candidates rejected by the configured time limit. This makes it possible to assess how close the rejected candidates were.
 
