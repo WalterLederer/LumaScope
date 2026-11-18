@@ -696,12 +696,16 @@ export class ImagesComponent {
       let active = true;
       void this.fileSystem.readDir(folder).then(entries => {
         if (!active || this.folderPath() !== folder) return;
+        const normalizeExtension = (extension: string): string => {
+          const normalized = extension.trim().toLowerCase();
+          return normalized.startsWith('.') ? normalized.slice(1) : normalized;
+        };
         const unsupported = entries.filter(entry =>
-          !entry.isDirectory && !supportedFileExtensions.includes(entry.ext.toLowerCase().replace(/^\\./, ''))
+          !entry.isDirectory && !supportedFileExtensions.includes(normalizeExtension(entry.ext))
         );
         this.unsupportedSuffixCount.set(unsupported.length);
         this.unsupportedSuffixes.set([...new Set(unsupported.map(entry =>
-          entry.ext.replace(/^\\./, '').toLowerCase() || '(no extension)'
+          normalizeExtension(entry.ext) || '(no extension)'
         ))].sort((a, b) => a.localeCompare(b)));
       }).catch(error => {
         if (!active || this.folderPath() !== folder) return;
