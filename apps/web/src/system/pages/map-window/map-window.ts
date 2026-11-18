@@ -238,8 +238,16 @@ interface MapErrorEntry {
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
                   <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
                   <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
-                  <button type="button" class="map-toolbar-button fix-location-log-button" (click)="openAutoFixLogFile()" title="Open GPS Auto Fix diagnostic log">Open log file</button>
-                  <button type="button" class="map-toolbar-button fix-location-log-button" (click)="openAutoFixLogFolder()" title="Open folder containing the GPS Auto Fix diagnostic log">Open log folder</button>
+                  <div class="fix-location-log-actions">
+                    <button type="button" class="file-row-menu-trigger" (click)="autoFixLogMenuOpen.set(!autoFixLogMenuOpen()); $event.stopPropagation()"
+                            [attr.aria-expanded]="autoFixLogMenuOpen()" aria-haspopup="menu" aria-label="GPS Auto Fix log actions" title="Log actions">☰</button>
+                    @if (autoFixLogMenuOpen()) {
+                      <div class="fix-location-log-menu" role="menu" (click)="$event.stopPropagation()">
+                        <button type="button" role="menuitem" (click)="openAutoFixLogFile(); autoFixLogMenuOpen.set(false)">Open log file</button>
+                        <button type="button" role="menuitem" (click)="openAutoFixLogFolder(); autoFixLogMenuOpen.set(false)">Open log folder</button>
+                      </div>
+                    }
+                  </div>
                  </div>
                 @if (autoFixStatus()) {
                   <div class="fix-location-progress-row">
@@ -2286,6 +2294,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
+  protected readonly autoFixLogMenuOpen = signal(false);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
@@ -2333,6 +2342,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly runRoutePointAction = (index: number, action: 'remove' | 'up' | 'down'): void => {
     this.routePointActionMenuOpen.set(null);
+    this.autoFixLogMenuOpen.set(false);
     if (action === 'remove') this.removeRouteWaypoint(index);
     else this.moveRouteWaypoint(index, action === 'up' ? -1 : 1);
   };
@@ -2542,6 +2552,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (target instanceof Element && target.closest('.gpx-row-actions')) return;
     if (target instanceof Element && target.closest('.offline-row-actions')) return;
     if (target instanceof Element && target.closest('.routing-point-actions')) return;
+    if (target instanceof Element && target.closest('.fix-location-log-actions')) return;
+    this.autoFixLogMenuOpen.set(false);
     this.routePointActionMenuOpen.set(null);
     this.gpxRowActionMenuOpen.set(null);
     this.gpxRowActionTrack.set(null);
