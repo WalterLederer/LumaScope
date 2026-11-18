@@ -62,6 +62,9 @@ interface PhotoRow {
   location_name_id: number | null;
 }
 
+
+const formatLocalDateTime = (date: Date): string => date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+
 export class CacheManager {
   private readonly userData = app.getPath('userData');
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
@@ -698,7 +701,7 @@ export class CacheManager {
     const describePoint = (point: typeof diagnosticBefore) => point ? ({
       timestampMs: point.timestamp_ms,
       utc: new Date(point.timestamp_ms).toISOString(),
-      local: new Date(point.timestamp_ms).toString(),
+      local: formatLocalDateTime(new Date(point.timestamp_ms)),
       deltaSeconds: (point.timestamp_ms - timestampMs) / 1000,
       segmentId: point.segment_id,
       file: point.relative_file_path,
@@ -708,7 +711,7 @@ export class CacheManager {
     const gpxTimeDiagnostic = {
       photoTimestampMs: timestampMs,
       photoUtc: new Date(timestampMs).toISOString(),
-      photoLocal: new Date(timestampMs).toString(),
+      photoLocal: formatLocalDateTime(new Date(timestampMs)),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       localOffsetMinutes: new Date(timestampMs).getTimezoneOffset(),
       databaseKey,
@@ -719,7 +722,7 @@ export class CacheManager {
     };
     console.info('[GPX time debug] Compare photo time with nearest imported GPX points:', gpxTimeDiagnostic);
     try {
-      await this.appendGpsAutoFixDebug(`[${new Date().toISOString()}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
+      await this.appendGpsAutoFixDebug(`[${formatLocalDateTime(new Date())}] GPX comparison ${JSON.stringify(gpxTimeDiagnostic)}`);
     } catch (error) {
       console.warn('[CacheManager] Could not write GPS Auto Fix debug log:', error);
     }
