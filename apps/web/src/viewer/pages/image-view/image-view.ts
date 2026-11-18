@@ -983,9 +983,14 @@ export class ImageView {
     if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : null;
     if (value && typeof value === 'object' && 'year' in value && 'month' in value && 'day' in value) {
       const item = value as { year: number; month: number; day: number; hour?: number; minute?: number; second?: number; tzoffsetMinutes?: number };
-      const wallClock = Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
       const hasOffset = Number.isFinite(item.tzoffsetMinutes);
-      return new Date(wallClock - (hasOffset ? Number(item.tzoffsetMinutes) * 60000 : 0));
+      if (hasOffset) {
+        const wallClock = Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
+        return new Date(wallClock - Number(item.tzoffsetMinutes) * 60000);
+      }
+      return assumeUtc
+        ? new Date(Date.UTC(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0))
+        : new Date(item.year, item.month - 1, item.day, item.hour ?? 0, item.minute ?? 0, item.second ?? 0);
     }
     const text = value && typeof value === 'object' ? String(value) : String(value ?? '');
     if (!text || text === '[object Object]') return null;
