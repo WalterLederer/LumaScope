@@ -8033,8 +8033,13 @@ ${points}
         const timeA = a.timestamp ? Date.parse(a.timestamp) : Number.NaN;
         const timeB = b.timestamp ? Date.parse(b.timestamp) : Number.NaN;
         const elapsedMs = timeB - timeA;
-        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || elapsedMs <= 0 || elapsedMs > 30 * 60 * 1000) {
-          if (!this.timeSliderActive()) appendPair(a, b, '#8a8a8a'); else flush();
+        if (!Number.isFinite(timeA) || !Number.isFinite(timeB)) {
+          appendPair(a, b, '#8a8a8a');
+          continue;
+        }
+        if (elapsedMs <= 0 || elapsedMs > 30 * 60 * 1000) {
+          if (!this.timeSliderActive() || (this.isTimeSliderTimestampVisible(timeA / 1000) && this.isTimeSliderTimestampVisible(timeB / 1000))) appendPair(a, b, '#8a8a8a');
+          else flush();
           continue;
         }
         if (this.timeSliderActive() && (!this.isTimeSliderTimestampVisible(timeA / 1000) || !this.isTimeSliderTimestampVisible(timeB / 1000))) { flush(); continue; }
