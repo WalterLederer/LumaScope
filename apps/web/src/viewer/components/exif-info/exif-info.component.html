@@ -9,26 +9,12 @@
   <details class="app-disclosure">
     <summary>File · Size {{ fileSize() | byteSize }} · Modified {{ timestamp === undefined ? '—' : formatModifiedAt(timestamp) }}</summary>
   <dl>
-    @if (exifData === false) {
-      <dt>Loading...</dt><dd></dd>
-    } @else {
-      <dt>File name</dt><dd>{{ exifData.FileName }}</dd>
-      @if (exifData.Directory !== undefined) { <dt>Directory</dt><dd>{{ exifData.Directory }}</dd> }
-      <dt>File size</dt><dd>{{ fileSize() | byteSize }}</dd>
-      <dt>Dimensions</dt><dd>{{ dims.width }} x {{ dims.height }}</dd>
-      @if (timestamp !== undefined) { <dt>Last modified</dt><dd>{{ formatModifiedAt(timestamp) }}</dd> }
-      <dt>Format</dt><dd>{{ exifData.FileType }}</dd>
-      <dt>MIME type</dt><dd>{{ exifData.MIMEType }}</dd>
-      @if (exifData.Comment !== undefined) { <dt>Comment</dt><dd>{{ exifData.Comment }}</dd> }
-      @if (exifData.GPSLatitude !== undefined && exifData.GPSLongitude !== undefined) { <dt>GPS coordinates</dt><dd>{{ exifData.GPSLatitude }} {{ exifData.GPSLongitude }}</dd> }
-      @if (exifData.Make !== undefined) { <dt>Camera make</dt><dd>{{ exifData.Make }}</dd> }
-      @if (exifData.Model !== undefined) { <dt>Camera model</dt><dd>{{ exifData.Model }}</dd> }
-      @if (exifData.LensID !== undefined) { <dt>Lens</dt><dd>{{ exifData.LensID }}</dd> }
-      @if (exifData.FocalLength !== undefined) { <dt>Focal length</dt><dd>{{ exifData.FocalLength }}</dd> }
-      @if (exifData.ApertureValue !== undefined) { <dt>Aperture</dt><dd>{{ exifData.ApertureValue }}</dd> }
-      @if (exifData.ShutterSpeedValue !== undefined) { <dt>Shutter speed</dt><dd>{{ exifData.ShutterSpeedValue }}</dd> }
-      @if (exifData.ISO !== undefined) { <dt>ISO</dt><dd>{{ exifData.ISO }}</dd> }
-    }
+    <dt>File name</dt><dd>{{ path().split(/[\\/]/).pop() || path() }}</dd>
+    <dt>File path</dt><dd>{{ path() }}</dd>
+    <dt>File size</dt><dd>{{ fileSize() | byteSize }}</dd>
+    <dt>Dimensions</dt><dd>{{ dims.width }} x {{ dims.height }}</dd>
+    @if (timestamp !== undefined) { <dt>Last modified</dt><dd>{{ formatModifiedAt(timestamp) }}</dd> }
+    <dt>Format</dt><dd>{{ path().split('.').pop()?.toUpperCase() ?? '—' }}</dd>
   </dl>
   </details>
 </section>
