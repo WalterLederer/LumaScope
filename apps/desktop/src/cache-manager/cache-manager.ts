@@ -724,6 +724,40 @@ export class CacheManager {
     return { cancelled: false, path: selection.filePath, points: pointCount, elevationPoints: elevationCount };
   };
 
+  @IpcHandler({ name: 'CacheManager.deleteGpxDatabaseEntriesForFile' })
+  readonly deleteGpxDatabaseEntriesForFile = async (_event?: IpcMainInvokeEvent, sourcePath?: string, requestedDatabaseKey?: string): Promise<{ deleted: boolean; files: number; segments: number; points: number }> => {
+    if (!sourcePath || typeof sourcePath !== 'string') throw new Error('A GPX source path is required.');
+    let databaseKey: string;
+    let relativePath: string;
+    if (/^[a-z]:[\\/]/i.test(sourcePath)) {
+      const absolute = resolve(sourcePath);
+      databaseKey = this.databaseKeyForPath(absolute);
+      relativePath = relative(resolve(databaseKey + '\\\\'), absolute);
+    } else {
+      databaseKey = (requestedDatabaseKey ?? this.activeDatabaseKey ?? '').toUpperCase();
+      relativePath = sourcePath;
+    }
+    if (!/^[A-Z]:$/.test(databaseKey) || !relativePath || relativePath === '..' || relativePath.startsWith('..' + sep) || isAbsolute(relativePath)) throw new Error('The GPX file path is not inside a cache database drive.');
+    const databasePath = join(databaseKey + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+    if (!existsSync(databasePath)) return { deleted: false, files: 0, segments: 0, points: 0 };
+    const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
+    const normalizedPath = relativePath.replace(/[\\\\/]+/g, '/');
+    const file = db.prepare(`SELECT id FROM gpx_files WHERE replace(relative_file_path, char(92), '/') = :path COLLATE NOCASE`).get({ path: normalizedPath }) as { id: number } | undefined;
+    if (!file) return { deleted: false, files: 0, segments: 0, points: 0 };
+    const counts = db.prepare(`SELECT
+      (SELECT COUNT(*) FROM gpx_track_segments WHERE gpx_file_id = :fileId) AS segments,
+      (SELECT COUNT(*) FROM gpx_track_points WHERE segment_id IN (SELECT id FROM gpx_track_segments WHERE gpx_file_id = :fileId)) AS points`).get({ fileId: file.id }) as { segments: number; points: number };
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      db.prepare('DELETE FROM gpx_files WHERE id = :fileId').run({ fileId: file.id });
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch { /* Preserve the original error. */ }
+      throw error;
+    }
+    return { deleted: true, files: 1, segments: counts.segments, points: counts.points };
+  };
+
   @IpcHandler({ name: 'CacheManager.clearAllGpxDatabaseEntries' })
   readonly clearAllGpxDatabaseEntries = async (): Promise<{ databases: number; files: number; segments: number; points: number }> => {
     let databases = 0, files = 0, segments = 0, points = 0;
