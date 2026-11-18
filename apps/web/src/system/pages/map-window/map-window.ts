@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
-import { Desktop, formatGpsCoordinates, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
@@ -3018,7 +3018,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const oldPosition = this.currentLatitude !== null && this.currentLongitude !== null
         ? this.formatCoordinates(this.currentLatitude, this.currentLongitude).replace(/^Coordinates: /, '')
         : 'the existing photo location';
-      const newPosition = formatGpsCoordinates(center.lat, center.lng);
+      const newPosition = formatSystemGpsCoordinates(center.lat, center.lng);
       const confirmed = window.confirm(
         'This image already contains GPS information.\n\n' +
         'Check both positions on the map before continuing:\n' +
@@ -3055,7 +3055,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const marker = this.marker?.getLatLng();
     const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
     if (latitude === null || longitude === null) return;
-    try { await navigator.clipboard.writeText(formatGpsCoordinates(latitude, longitude)); }
+    try { await navigator.clipboard.writeText(formatSystemGpsCoordinates(latitude, longitude)); }
     catch (error) { console.error('Failed to copy GPS coordinates', error); }
   };
   protected readonly searchOfflineAddresses = async (): Promise<void> => {
@@ -3101,6 +3101,8 @@ export class MapWindow implements OnInit, OnDestroy {
       } else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
     }
   };
+  protected readonly formatGpsCoordinates = formatSystemGpsCoordinates;
+
   private formatCoordinateDms(value: number, latitude: boolean): string {
     const hemisphere = latitude ? (value < 0 ? 'S' : 'N') : (value < 0 ? 'W' : 'E');
     const absolute = Math.abs(value);
@@ -3113,7 +3115,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private formatCoordinates(latitude: number, longitude: number): string {
     const dms = `${this.formatCoordinateDms(latitude, true)}, ${this.formatCoordinateDms(longitude, false)}`;
-    const decimal = formatGpsCoordinates(latitude, longitude, 5);
+    const decimal = formatSystemGpsCoordinates(latitude, longitude, 5);
     return `Coordinates: ${dms}  |  Decimal: ${decimal}`;
   }
 
