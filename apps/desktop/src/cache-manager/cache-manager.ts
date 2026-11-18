@@ -594,7 +594,6 @@ export class CacheManager {
       (SELECT COUNT(*) FROM gpx_track_points) AS points,
       (SELECT COUNT(*) FROM gpx_track_points WHERE timestamp_ms IS NOT NULL) AS timestampedPoints`).get() as { files: number; segments: number; points: number; timestampedPoints: number };
     return { folder, ...counts, imported, unchanged, duplicates, errors, cancelled: false };
-  }
   };
 
   @IpcHandler({ name: 'CacheManager.importGpxFolder' })
