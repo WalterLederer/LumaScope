@@ -973,7 +973,7 @@ export class ImageView {
   protected readonly exifXmpFields = computed(() => {
     const tags = this.exifXmpTags();
     if (!tags) return [];
-    const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
+    const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track|iso|shutter|aperture|fnumber|fstop|focal|exposure|flash|whitebalance|metering|orientation|compression|bitspersample|bitdepth|colorspace|colorprofile|profiledescription|imagewidth|imageheight|filesize|filetype|mimetype|encodingprocess|chromasubsampling|ycbcr)/i;
     return Object.entries(tags)
       .filter(([key, value]) => relevantField.test(key) && value !== undefined && value !== null && value !== '')
       .map(([key, value]) => ({ key, value: this.formatExifXmpValue(key, value) }))
