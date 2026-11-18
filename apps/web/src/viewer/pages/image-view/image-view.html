@@ -497,10 +497,10 @@
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
         <app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />
         <details class="image-exif-xmp-section app-disclosure">
-          <summary class="section-heading">EXIF/XMP</summary>
+          <summary class="section-heading">Detailed metadata report</summary>
           <div class="image-exif-xmp-content">
             <div class="image-exif-xmp-header">
-              <span class="image-exif-xmp-description">File, EXIF, XMP and application GPS values</span>
+              <span class="image-exif-xmp-description">Filesystem, EXIF, XMP and application metadata</span>
               <button type="button" class="image-exif-xmp-check" [disabled]="exifXmpCheckRunning()" (click)="checkExifXmp(selected.path)">{{exifXmpCheckRunning() ? 'Checking…' : 'Check'}}</button>
             </div>
             @if (exifXmpPath() === selected.path && exifXmpStatus()) {
@@ -508,7 +508,7 @@
             }
             @if (exifXmpPath() === selected.path && exifXmpRows().length) {
               <div class="image-exif-xmp-table-wrap">
-                <table class="image-exif-xmp-table" aria-label="Filesystem, EXIF, XMP and application GPS metadata">
+                <table class="image-exif-xmp-table" aria-label="Detailed filesystem, EXIF, XMP and application metadata">
                   <thead><tr><th>Source</th><th>Name</th><th>Value</th></tr></thead>
                   <tbody>
                     @for (field of exifXmpRows(); track field.source + ':' + field.name) {
