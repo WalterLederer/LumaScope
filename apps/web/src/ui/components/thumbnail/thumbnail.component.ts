@@ -87,14 +87,12 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly gpsDateLabel = computed(() => {
     const timestamp = this.cacheStatus()?.gpsTimestamp;
-    return timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)
-      ? '—'
-      : this.formatDetailDateTime(timestamp * 1000);
+    if (timestamp === null || timestamp === undefined || !Number.isFinite(timestamp)) return '—';
+    const modifiedAt = this.image().modifiedAt;
+    if (typeof modifiedAt === 'number' && Number.isFinite(modifiedAt)
+      && Math.floor(timestamp) === Math.floor(modifiedAt / 1000)) return '=';
+    return this.formatDetailDateTime(timestamp * 1000);
   });
-
-  readonly gpsDateDiffersFromModified = input(false);
-
-  readonly gpsDateMatchesModified = input(false);
 
   readonly gpsCoordinates = computed(() => {
     const status = this.cacheStatus();
@@ -307,7 +305,7 @@ export class ThumbnailComponent implements OnDestroy {
     if (this.cacheStatusLoading()) return 'Checking…';
     const status = this.cacheStatus();
     if (!status) return 'Unknown';
-    if (!status.fullSizeRequired) return 'Not required';
+    if (!status.fullSizeRequired) return '-';
     return this.cacheEntryLabel(status.fullSize ?? null);
   });
 
