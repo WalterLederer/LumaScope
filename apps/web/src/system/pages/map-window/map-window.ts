@@ -1632,6 +1632,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
   private readonly gpxPointDataByTrack = new Map<string, GpxTrackPoint[][]>();
+  private readonly gpxSpeedSegmentsCache = new Map<string, { points: GpxTrackPoint[][]; key: string; segments: Array<{ coordinates: [number, number][]; color: string }> }>();
   private directoryPhotoMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
   private directoryPhotoTimestampMarkers: Array<OfflinePhotoMarker & { gpsTimestamp?: number | null }> = [];
   private timeSliderRangeInitialized = false;
@@ -6243,6 +6244,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
     this.gpxPointDataByTrack.delete(path);
+    this.gpxSpeedSegmentsCache.delete(path);
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     await this.reloadGpxTracks();
@@ -8003,6 +8005,9 @@ ${points}
 
   private gpxSpeedSegments(track: GpxTrackFile): Array<{ coordinates: [number, number][]; color: string }> {
     const pointSegments = this.gpxPointDataByTrack.get(track.path) ?? [];
+    const cacheKey = [track.speedPalette ?? 'spectrum', track.speedMinKmh ?? 0, track.speedMaxKmh ?? 120, this.timeSliderActive(), this.timeSliderStart(), this.timeSliderEnd()].join('|');
+    const cached = this.gpxSpeedSegmentsCache.get(track.path);
+    if (cached?.points === pointSegments && cached.key === cacheKey) return cached.segments;
     const result: Array<{ coordinates: [number, number][]; color: string }> = [];
     const radians = Math.PI / 180;
     const earthRadius = 6371000;
@@ -8035,6 +8040,7 @@ ${points}
       }
       flush();
     }
+    this.gpxSpeedSegmentsCache.set(track.path, { points: pointSegments, key: cacheKey, segments: result });
     return result;
   }
 
