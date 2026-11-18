@@ -11,7 +11,7 @@ import { Desktop } from 'internal-api';
         <button type="button" class="offline-map-add-button" (click)="importAllGpxTracks()" [disabled]="busy()">
           {{ busy() ? 'Importing GPX tracks…' : 'Add all GPX tracks from folder to DB…' }}
         </button>
-        <button type="button" class="routing-help-button" (click)="refreshStats()" [disabled]="busy()" title="Refresh GPX database information" aria-label="Refresh GPX database information"><span aria-hidden="true">⟳</span></button>
+        <button type="button" class="routing-help-button" (click)="refreshStats()" [disabled]="busy()" title="Refresh all favorite cache database summaries" aria-label="Refresh all favorite cache database summaries"><span aria-hidden="true">⟳</span></button>
         <div class="gpx-database-statistics-list" aria-live="polite">
           <strong class="gpx-database-statistics-heading">Favorite cache databases</strong>
           @for (item of databaseStats(); track item.key) {
