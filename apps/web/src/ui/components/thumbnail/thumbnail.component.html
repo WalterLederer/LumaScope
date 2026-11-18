@@ -47,7 +47,7 @@
     <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
     <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
     <span class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</span>
-    <button type="button" class="gpx-row-menu-trigger detail-row-menu-trigger"
+    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             (click)="toggleRowActionMenu($event)"
             [attr.aria-expanded]="rowActionMenuOpen()"
             [attr.aria-label]="'File actions for ' + image().name"
