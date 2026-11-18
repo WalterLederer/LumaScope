@@ -74,7 +74,8 @@
                      [refreshToken]="thumbnailRefreshToken()"
                      (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
                      (hovered)="hovered.emit($event)"
-                     (rowSelected)="onDetailRowSelected($event)"\n                     (clicked)="selectThumbnail($event)" />
+                     (rowSelected)="onDetailRowSelected($event)"
+                     (clicked)="selectThumbnail($event)" />
     }
   </div>
   </div>
