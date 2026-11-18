@@ -2239,7 +2239,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
     if (this.offlineRowActionMenuOpen() === path) { this.offlineRowActionMenuOpen.set(null); return; }
     this.offlineRowActionMenuOpen.set(path);
-    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 300, 190, true));
+    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 300, 270, true));
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly hasAllOfflineFiles = (): boolean => this.offlineMaps().some(map => map.available) || this.hillshadeDatabases().some(database => database.available);
