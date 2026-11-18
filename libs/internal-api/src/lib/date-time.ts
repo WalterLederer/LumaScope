@@ -6,13 +6,13 @@
 export const formatOsDateTime = (
   value: Date | number | string | null | undefined,
   fallback = '—',
-  style: 'regional' | 'compact' = 'regional'
+  style: 'regional' | 'compact' = 'compact'
 ): string => {
   if (value === null || value === undefined) return fallback;
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime())) return fallback;
-  if (style === 'regional') return date.toLocaleString();
-
+  // Both styles use the locale's field order, but always render dotted dates
+  // and a 24-hour time without a comma separator.
   // Keep the operating system's regional date-field order, but use a compact
   // dotted date and a 24-hour time without the locale's comma separator.
   const parts = new Intl.DateTimeFormat(undefined, {
@@ -26,7 +26,7 @@ export const formatOsDateTime = (
   }).formatToParts(date);
   const dateParts = parts.filter(part => part.type === 'day' || part.type === 'month' || part.type === 'year');
   const timeParts = parts.filter(part => part.type === 'hour' || part.type === 'minute' || part.type === 'second');
-  if (dateParts.length !== 3 || timeParts.length !== 3) return date.toLocaleString();
+  if (dateParts.length !== 3 || timeParts.length !== 3) return date.toLocaleDateString() + ' ' + date.toLocaleTimeString(undefined, { hourCycle: 'h23' });
   return dateParts.map(part => part.value).join('.') + ' ' + timeParts.map(part => part.value).join(':');
 };
 
