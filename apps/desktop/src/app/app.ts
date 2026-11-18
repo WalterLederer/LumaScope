@@ -621,15 +621,26 @@ export default class App {
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
     if ((latitude !== null || longitude !== null) && !hasCoordinates) throw new Error('The map overlay received invalid GPS coordinates.');
-    App.mapWindowLocation = hasCoordinates
+    const previousLocation = App.mapWindowLocation;
+    const nextLocation = hasCoordinates
       ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null }
       : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null };
+    const locationChanged = previousLocation.latitude !== nextLocation.latitude
+      || previousLocation.longitude !== nextLocation.longitude
+      || previousLocation.bearing !== nextLocation.bearing
+      || previousLocation.imagePath !== nextLocation.imagePath;
+    App.mapWindowLocation = nextLocation;
     const location = App.mapWindowLocation;
-    if (App.isMapWindowOpen()) App.mapWindow.webContents.send('MapWindow.locationChanged', location);
+    if (locationChanged && App.isMapWindowOpen()) App.mapWindow.webContents.send('MapWindow.locationChanged', location);
     if (App.isMapOverlayWindowOpen()) {
-      App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
+      // Do not resend an unchanged location: offline map sources interpret every
+      // location event as a request to rebuild their renderer, even on a simple
+      // second click that only intends to show the existing overlay.
+      if (locationChanged && !App.mapOverlayWindow.webContents.isLoading()) {
+        App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
+      }
       if (App.mapOverlayWindow.isMinimized()) App.mapOverlayWindow.restore();
-      App.mapOverlayWindow.showInactive();
+      else if (!App.mapOverlayWindow.isVisible()) App.mapOverlayWindow.showInactive();
       return true;
     }
     const parentBounds = App.mainWindow.getBounds();
@@ -661,7 +672,6 @@ export default class App {
     if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.webContents.send('MapOverlayWindow.stateChanged', true);
     return true;
   }
-
   static closeMapOverlayWindow(): void { if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.close(); }
 
   static setMapOverlayWindowAlwaysOnTop(enabled: boolean): boolean {
