@@ -21,6 +21,7 @@
       <span class="detail-column-heading">
         <span>GPS Date</span>
         <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
+        <small class="column-count" [class.incomplete]="cacheStatusLoading()">{{ gpsDateDifferenceCount() }} different from modified</small>
       </span>
       <span class="detail-column-heading">
         <span>Dimensions</span>
