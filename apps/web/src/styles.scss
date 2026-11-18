@@ -31,3 +31,17 @@
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
 }
+
+
+/* Keep favourite popup actions on a single line with a comfortable hit target. */
+.gallery-location-menu-action {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 6px 12px !important;
+  white-space: nowrap !important;
+}
+.gallery-location-menu-action ui-text { white-space: nowrap !important; }
