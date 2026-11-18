@@ -58,7 +58,7 @@ function Write-ShutdownDiagnostic {
         [hashtable]$Details = @{}
     )
 
-    $timestamp = [DateTimeOffset]::Now.ToString("dd.MM.yyyy, HH:mm:ss.fff")
+    $timestamp = [DateTimeOffset]::Now.ToString("G", [Globalization.CultureInfo]::CurrentCulture)
     $record = [ordered]@{
         timestampLocal = $timestamp
         timezone = [TimeZoneInfo]::Local.Id
