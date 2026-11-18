@@ -394,8 +394,20 @@ export class ImagesComponent {
     this.cacheAbortController?.abort();
   };
 
-  readonly cacheDisplayedFiles = (): void => {
-    void this.runCacheForImages(this.displayedImages());
+  readonly cacheDisplayedFiles = async (): Promise<void> => {
+    const images = this.displayedImages();
+    if (this.cacheRunActive() || images.length === 0) return;
+    const controller = new AbortController();
+    this.cacheAbortController = controller;
+    this.cacheRunActive.set(true);
+    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    try {
+      await this.runCacheForImages(images, true, controller.signal);
+    } finally {
+      if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      this.cacheRunActive.set(false);
+      this.cacheUpdated.emit('');
+    }
   };
 
   readonly reCacheFile = (image: FileInfo): void => {
