@@ -35,7 +35,7 @@
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-columns">
     <span class="detail-name" [title]="image().name">{{ image().name }}</span>
-    <span>{{ formatOsDateTime(image().modifiedAt ?? image().createdAt) }}</span>
+    <span>{{ formatDetailDateTime(image().modifiedAt ?? image().createdAt) }}</span>
     <span class="detail-gps-date"
           [class.is-different]="gpsDateDiffersFromModified()"
           [class.is-same]="gpsDateMatchesModified()">{{ gpsDateLabel() }}</span>
