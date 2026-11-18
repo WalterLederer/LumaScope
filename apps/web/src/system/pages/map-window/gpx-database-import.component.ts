@@ -13,12 +13,13 @@ import { Desktop } from 'internal-api';
         </button>
         <button type="button" class="routing-help-button" (click)="refreshStats()" [disabled]="busy()" title="Refresh GPX database information" aria-label="Refresh GPX database information"><span aria-hidden="true">⟳</span></button>
         <div class="gpx-database-statistics-list" aria-live="polite">
+          <strong class="gpx-database-statistics-heading">Favorite cache databases</strong>
           @for (item of databaseStats(); track item.key) {
-            <span class="gpx-database-statistics" title="GPX data in this drive's cache database">
-              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · {{ item.cacheEntries.toLocaleString() }} cached photos · {{ item.files.toLocaleString() }} GPX files · {{ item.segments.toLocaleString() }} segments · {{ item.points.toLocaleString() }} points
+            <span class="gpx-database-statistics" title="GPX data and cache summary for this favorite drive">
+              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · {{ item.cacheEntries.toLocaleString() }} cached photos · {{ item.files.toLocaleString() }} GPX files · {{ item.segments.toLocaleString() }} segments · {{ item.points.toLocaleString() }} points · {{ item.timestampedPoints.toLocaleString() }} timestamped
             </span>
           } @empty {
-            <span class="gpx-database-statistics">No cache databases selected.</span>
+            <span class="gpx-database-statistics">No favorite cache databases found.</span>
           }
         </div>
         <button type="button" class="routing-help-button gpx-database-help" (click)="help.emit()" title="Open GPX cache documentation" aria-label="Open GPX cache documentation"><span aria-hidden="true">?</span></button>
@@ -37,7 +38,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
-  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; files: number; segments: number; points: number }>>([]);
+  protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
   protected readonly busy = signal(false);
   protected readonly status = signal('');
 
