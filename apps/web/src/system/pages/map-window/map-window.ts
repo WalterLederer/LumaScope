@@ -493,16 +493,26 @@ interface MapErrorEntry {
           <span class="routing-point-endpoint-column">@if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶</span> } @else if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■</span> }</span>
           <span class="routing-point-index">{{ i + 1 }}.</span>
           <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
-          <span class="routing-point-reorder">
-            <button type="button" class="routing-point-move-button" (click)="moveRouteWaypoint(i, -1)" [disabled]="i === 0" [attr.aria-label]="'Move route point ' + (i + 1) + ' up'" title="Move up">↑</button>
-            <button type="button" class="routing-point-move-button" (click)="moveRouteWaypoint(i, 1)" [disabled]="i === routeWaypoints().length - 1" [attr.aria-label]="'Move route point ' + (i + 1) + ' down'" title="Move down">↓</button>
-          </span>
-          <button type="button" class="offline-map-remove-button" (click)="removeRouteWaypoint(i)" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
+          <div class="routing-point-actions">
+            <button type="button" class="file-row-menu-trigger" (click)="toggleRoutePointActionMenu(i, $event); $event.stopPropagation()"
+                    [attr.aria-expanded]="routePointActionMenuOpen() === i" aria-haspopup="menu"
+                    [attr.aria-label]="'Actions for route point ' + (i + 1)" title="Point actions">☰</button>
+          </div>
         </div>
       }
     </div>
     } @else {
       <div class="routing-empty-message">No route points. Right-click the map while the Routing tab is active to add locations.</div>
+    }
+    @if (routePointActionMenuOpen() !== null) {
+      @let pointIndex = routePointActionMenuOpen()!;
+      <div class="gpx-row-action-menu gpx-row-action-menu-floating routing-point-action-menu" role="menu"
+           [style.top.px]="routePointActionMenuPosition().top" [style.left.px]="routePointActionMenuPosition().left"
+           (click)="$event.stopPropagation()">
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'remove')"><span aria-hidden="true">×</span> Remove point</button>
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'up')" [disabled]="pointIndex === 0"><span aria-hidden="true">↑</span> Move up</button>
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
+      </div>
     }
     @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     <details class="routing-advanced app-disclosure">
@@ -2208,6 +2218,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
+  protected readonly routePointActionMenuOpen = signal<number | null>(null);
+  protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
   protected readonly offlineRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
@@ -2221,6 +2233,16 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
     this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 245 : 115));
+  };
+  protected readonly toggleRoutePointActionMenu = (index: number, event: MouseEvent): void => {
+    if (this.routePointActionMenuOpen() === index) { this.routePointActionMenuOpen.set(null); return; }
+    this.routePointActionMenuOpen.set(index);
+    this.routePointActionMenuPosition.set(this.getRowActionMenuPosition(event, 190, 112));
+  };
+  protected readonly runRoutePointAction = (index: number, action: 'remove' | 'up' | 'down'): void => {
+    this.routePointActionMenuOpen.set(null);
+    if (action === 'remove') this.removeRouteWaypoint(index);
+    else this.moveRouteWaypoint(index, action === 'up' ? -1 : 1);
   };
   private getRowActionMenuPosition(event: MouseEvent, width: number, estimatedHeight: number): { top: number; left: number } {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -2412,6 +2434,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (target instanceof Element && target.closest('.map-source-picker')) return;
     if (target instanceof Element && target.closest('.gpx-row-actions')) return;
     if (target instanceof Element && target.closest('.offline-row-actions')) return;
+    if (target instanceof Element && target.closest('.routing-point-actions')) return;
+    this.routePointActionMenuOpen.set(null);
     this.gpxRowActionMenuOpen.set(null);
     this.gpxRowActionTrack.set(null);
     this.offlineRowActionMenuOpen.set(null);
@@ -2425,6 +2449,7 @@ export class MapWindow implements OnInit, OnDestroy {
   @HostListener('document:keydown', ['$event'])
   onDocumentKeydown(event: KeyboardEvent): void {
     if (event.key !== 'Escape') return;
+    this.routePointActionMenuOpen.set(null);
     if (this.mapSourceMenuOpen()) {
       event.preventDefault();
       this.mapSourceMenuOpen.set(false);
