@@ -435,6 +435,12 @@
     <details class="delete-cache-box app-disclosure" open>
       <summary>Delete cache</summary>
       <div class="cache-box-content">
+      @if (!deleteCacheGlobal()) {
+        <div class="build-cache-current-folder">
+          <span>Current folder</span>
+          <code [title]="cacheFolderPath()">{{ cacheFolderPath() || 'No folder selected' }}</code>
+        </div>
+      }
       <p class="cache-warning" role="note"><strong>Scope:</strong> By default, deletion affects only the current folder. Enable <strong>Recursive delete</strong> to include all subfolders, or enable <strong>Delete cache global</strong> to affect every registered folder throughout the application.</p>
       <div class="delete-cache-options">
         <label class="setting-toggle">
