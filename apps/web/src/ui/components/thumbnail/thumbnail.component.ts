@@ -193,15 +193,13 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   @HostListener('document:click')
-  protected closeRowActionMenu(): void {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+  protected closeRowActionMenuOnDocumentClick(): void {
+    this.closeRowActionMenu();
   }
 
   @HostListener('document:keydown.escape')
   protected closeRowActionMenuOnEscape(): void {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+    this.closeRowActionMenu();
   }
 
   /* State */
