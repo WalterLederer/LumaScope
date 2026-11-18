@@ -2142,7 +2142,7 @@ export class ImageView {
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
         this.setActiveImageSidebarTab(image ? 'image' : 'gallery');
-        if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'cache') void this.loadPhotoDatabaseRecord();
+        if (image && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
         this.processManager.setWindowTitle(this.makeWindowTitle(image?.path)).catch(() => undefined);
