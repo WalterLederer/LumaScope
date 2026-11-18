@@ -166,11 +166,6 @@ export class Exif {
         result.scanned++;
         try {
           const metadata = await this.readPhotoMetadata(path);
-          if (metadata.latitude !== null && metadata.longitude !== null) {
-            result.withGps++;
-            continue;
-          }
-          result.withoutGps++;
           // Prefer camera-generated filename timestamps over filesystem dates:
           // Android/ADB copies can replace Created/Modified times with copy time.
           // Filesystem last-modified remains the final fallback.
@@ -185,6 +180,17 @@ export class Exif {
               filesystemModifiedAt = fileInfo.mtime.toISOString();
             }
           }
+          // Keep the selected capture timestamp in SQLite even when the photo
+          // already has coordinates or no GPX match is found. Check-only runs
+          // remain read-only.
+          if (!checkOnly && photoTimestamp !== null) {
+            await cacheManager.updatePhotoGpsTimestamp(path, photoTimestamp);
+          }
+          if (metadata.latitude !== null && metadata.longitude !== null) {
+            result.withGps++;
+            continue;
+          }
+          result.withoutGps++;
           if (photoTimestamp === null) {
             const missingTimestampDetails = {
               photo: path,
