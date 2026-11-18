@@ -19,6 +19,9 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 ## Matching and interpolation
 
 - Photos that already contain GPS coordinates are counted but never overwritten.
+- The photo timestamp is selected in this priority order: EXIF `GPSDateTime`, XMP `GPSDateTime`, a camera timestamp in the filename, EXIF `DateTimeOriginal`, XMP `DateCreated`, and EXIF `CreateDate`. If none of these is usable, the filesystem last-modified timestamp is the final fallback.
+- Samsung-style filenames such as `IMG_20261009_093728.jpg` are recognized as `YYYYMMDD_HHmmss`. The date and time are validated (including calendar values) and interpreted as camera-local time in the computer's local timezone, like EXIF capture dates without an explicit timezone.
+- This filename fallback is particularly useful for photos copied from Android devices with `adb pull`: the Windows Created/Modified timestamps may reflect the copy time rather than the original capture time. In that case, the timestamp embedded in the camera-generated filename takes precedence over those filesystem dates.
 - A photo needs a usable capture timestamp and a pair of GPX points bracketing that timestamp in the **same track segment**.
 - The location is linearly interpolated between the bracketing points.
 - The candidate time deviation is the smaller absolute time distance from the photo timestamp to either bracketing GPX point.
@@ -51,7 +54,7 @@ The log contains detailed information about photo timestamps, EXIF date candidat
 
 ## Timestamp and timezone considerations
 
-Photo timestamps are read from the image metadata. EXIF capture timestamps without an explicit timezone are interpreted in the computer's local timezone. GPX timestamps are time-based track records; if the camera clock or timezone differs from the computer's interpretation of the photo timestamp, the calculated deviation may be large and a valid geographic match may be rejected. Check camera time, timezone and GPX timestamps before increasing the threshold.
+Photo timestamps are selected using the priority described above. Filename timestamps and EXIF capture timestamps without an explicit timezone are interpreted in the computer's local timezone. GPX timestamps are time-based track records; if the camera clock or timezone differs from the computer's interpretation of the photo timestamp, the calculated deviation may be large and a valid geographic match may be rejected. Check camera time, timezone and GPX timestamps before increasing the threshold.
 
 ## Safety and limitations
 
