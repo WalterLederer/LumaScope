@@ -248,12 +248,10 @@ interface MapErrorEntry {
                       </div>
                     }
                   </div>
+                  @if (autoFixOperationActive()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
+                  @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
                  </div>
                 @if (autoFixStatus()) {
-                  <div class="fix-location-progress-row">
-                    <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div>
-                    @if (autoFixOperationActive()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
-                  </div>
                   @if (autoFixOperationActive()) {
                     <div class="fix-location-progress-track" role="progressbar"
                       [attr.aria-valuenow]="autoFixProgressPercent()" aria-valuemin="0" aria-valuemax="100"
