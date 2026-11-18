@@ -2213,7 +2213,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
     if (this.offlineRowActionMenuOpen() === path) { this.offlineRowActionMenuOpen.set(null); return; }
     this.offlineRowActionMenuOpen.set(path);
-    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 220, 190));
+    this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 300, 190));
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
@@ -2229,7 +2229,8 @@ export class MapWindow implements OnInit, OnDestroy {
     let top = rect.bottom + 3;
     if (top + estimatedHeight > viewportHeight - 8) top = rect.top - estimatedHeight - 3;
     top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - Math.min(estimatedHeight, viewportHeight - 16) - 8)));
-    const left = Math.max(8, Math.min(rect.right - width, viewportWidth - width - 8));
+    const menuWidth = Math.min(width, Math.max(0, viewportWidth - 16));
+    const left = Math.max(8, Math.min(rect.right - menuWidth, viewportWidth - menuWidth - 8));
     return { top, left };
   }
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
