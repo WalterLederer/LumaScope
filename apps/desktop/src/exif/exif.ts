@@ -166,6 +166,7 @@ export class Exif {
       if (!hasTimestampedGpxData) {
         throw new Error('No timestamped GPX track points were found in the cache databases for the selected photo drive and favorite folders. Import GPX tracks into a favorite folder first.');
       }
+      sendProgress();
       try {
         await cacheManager.resetGpsAutoFixDebug([
           `GPS Auto Fix debug started: ${formatOsDateTime(new Date())}`,
