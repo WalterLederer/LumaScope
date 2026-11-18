@@ -716,12 +716,16 @@ export function createOsmAndMapStyle(): StyleSpecification {
 }
 
 
-export function buildPhotoMarkerPreviewHtml(path: string, fileName: string): string {
+export function buildPhotoMarkerPreviewHtml(path: string, fileName: string, width = 120): string {
   const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[character] ?? character);
-  const previewUrl = 'atom://app/thumbs?image=' + encodeURIComponent(path) + '&width=180&height=120';
-  return '<div class="folder-marker-preview"><img src="' + previewUrl + '" alt="" loading="lazy"><span>'
+  const size = Math.max(60, Math.min(240, Math.round(width / 10) * 10));
+  const height = Math.round(size * 2 / 3);
+  const previewUrl = 'atom://app/thumbs?image=' + encodeURIComponent(path) + '&width=' + size + '&height=' + height;
+  return '<div class="folder-marker-preview" style="display:flex;flex-direction:column;align-items:stretch;gap:4px;width:' + size + 'px;max-width:' + size + 'px">'
+    + '<img src="' + previewUrl + '" alt="" loading="lazy" style="display:block;width:' + size + 'px;height:' + height + 'px;max-width:' + size + 'px;object-fit:cover;border-radius:3px;background:#222">'
+    + '<span style="display:block;width:' + size + 'px;max-width:' + size + 'px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">'
     + escapeHtml(fileName) + '</span></div>';
 }
 
@@ -1018,6 +1022,8 @@ export class OfflineMapRenderer {
   private onPhotoSelected: ((path: string) => void) | null = null;
   private photoPreviewElement: HTMLDivElement | null = null;
   private activePhotoPreviewKey: string | null = null;
+  private activePhotoPreviewFileName: string | null = null;
+  private photoPreviewSize = 120;
   private activePhotoPreviewCoordinates: [number, number] | null = null;
   private clusterPreviewRequestId = 0;
   private lastMapError: string | null = null;
@@ -1824,11 +1830,19 @@ export class OfflineMapRenderer {
     return coordinates[coordinates.length - 1];
   }
 
+  setPhotoPreviewSize(value: number): void {
+    if (!Number.isFinite(value)) return;
+    this.photoPreviewSize = Math.max(60, Math.min(240, Math.round(value / 10) * 10));
+    if (this.activePhotoPreviewKey && this.activePhotoPreviewFileName && this.activePhotoPreviewCoordinates) {
+      this.showPhotoPreview(this.activePhotoPreviewKey, this.activePhotoPreviewFileName, this.activePhotoPreviewCoordinates);
+    }
+  }
+
   private showPhotoPreview(path: string, fileName: string, coordinates: [number, number]): void {
     this.clearPhotoPreview();
     const preview = document.createElement('div');
     preview.className = 'folder-marker-tooltip offline-photo-marker-preview';
-    preview.innerHTML = buildPhotoMarkerPreviewHtml(path, fileName);
+    preview.innerHTML = buildPhotoMarkerPreviewHtml(path, fileName, this.photoPreviewSize);
     preview.style.cssText = [
       'position:absolute',
       'z-index:10001',
@@ -1844,6 +1858,7 @@ export class OfflineMapRenderer {
     ].join(';');
     this.photoPreviewElement = preview;
     this.activePhotoPreviewKey = path;
+    this.activePhotoPreviewFileName = fileName;
     this.activePhotoPreviewCoordinates = coordinates;
     this.overlayElement.appendChild(preview);
     this.updatePhotoPreviewPosition();
@@ -1860,6 +1875,7 @@ export class OfflineMapRenderer {
     this.photoPreviewElement?.remove();
     this.photoPreviewElement = null;
     this.activePhotoPreviewKey = null;
+    this.activePhotoPreviewFileName = null;
     this.activePhotoPreviewCoordinates = null;
   }
 
