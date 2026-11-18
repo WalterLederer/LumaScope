@@ -1,5 +1,8 @@
 # Automatic photo location correction
 
+
+During a normal GPS Auto Fix run (not **Check only**), the selected timestamp is also written to the photo's `gps_timestamp` field in the drive's SQLite cache database. This database update is performed for every scanned photo, including photos that already have GPS coordinates or cannot be matched to a GPX track. The same timestamp priority applies: GPSDateTime, XMP GPSDateTime, camera filename timestamp, DateTimeOriginal, XMP DateCreated, CreateDate, then filesystem last-modified time.
+
 The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinates to photos by matching their capture timestamps against GPX track points stored in the drive-local LumaScope cache database.
 
 ## Prerequisites
