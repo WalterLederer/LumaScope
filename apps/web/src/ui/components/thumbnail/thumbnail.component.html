@@ -41,8 +41,8 @@
     <span>{{ formattedFileSize() }}</span>
     <span>{{ imageSuffix() }}</span>
     <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</span>
-    <span class="detail-thumb" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
-    <span class="detail-full-size">{{ fullSizeConversionLabel() }}</span>
+    <span class="detail-thumb" [class.cache-valid]="thumbCacheLabel() === '✓'" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
+    <span class="detail-full-size" [class.cache-valid]="fullSizeConversionLabel() === '✓'">{{ fullSizeConversionLabel() }}</span>
     <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
     <span class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</span>
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
