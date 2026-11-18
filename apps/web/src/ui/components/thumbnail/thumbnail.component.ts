@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CaptionComponent } from '@light-matter/ui';
-import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatOsDateTime as formatSystemDateTime } from 'internal-api';
+import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatGpsCoordinates, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { GalleryViewMode } from '../../../gallery/components/images/images.component.types';
 import { distinctUntilChanged, Subscription } from 'rxjs';
@@ -75,7 +75,7 @@ export class ThumbnailComponent implements OnDestroy {
   readonly gpsCoordinates = computed(() => {
     const status = this.cacheStatus();
     if (status?.latitude === null || status?.latitude === undefined || status.longitude === null || status.longitude === undefined) return '—';
-    return `${status.latitude.toFixed(6)}, ${status.longitude.toFixed(6)}`;
+    return formatGpsCoordinates(status.latitude, status.longitude);
   });
 
   readonly cacheStatusLoading = input(false);
