@@ -50,7 +50,7 @@
           <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
         }
       </span>
-      <div class="detail-actions-heading" aria-hidden="true"></div>
+      <div class="detail-actions-heading" style="grid-column:13;grid-row:1" aria-hidden="true"></div>
       <div class="column-resizer" style="grid-column: 1;" role="separator" aria-orientation="vertical" aria-label="Resize column" (pointerdown)="startColumnResize($event, 0)"></div>
       <div class="column-resizer" style="grid-column: 2;" role="separator" aria-orientation="vertical" aria-label="Resize column" (pointerdown)="startColumnResize($event, 1)"></div>
       <div class="column-resizer" style="grid-column: 3;" role="separator" aria-orientation="vertical" aria-label="Resize column" (pointerdown)="startColumnResize($event, 2)"></div>
