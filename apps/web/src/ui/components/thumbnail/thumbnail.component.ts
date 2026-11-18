@@ -305,6 +305,15 @@ export class ThumbnailComponent implements OnDestroy {
 
   private intersectionObserver: IntersectionObserver | null = null;
 
+  private readonly closeMenuOnPointerDown = (event: PointerEvent): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    // Keep the current detail menu open for clicks inside it or on another
+    // detail hamburger; all other row menus (including Favorites) replace it.
+    if (target?.closest('.detail-row-action-menu, .detail-row-menu-trigger')) return;
+    this.rowActionMenuOpen.set(false);
+    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+  };
+
   private readonly withTimeout = <T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> =>
     new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error(`${operation} timed out after ${Math.round(timeoutMs / 1000)} seconds.`)), timeoutMs);
@@ -316,6 +325,9 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Constructor */
   constructor() {
+    // Capture phase is intentional: other lists stop click propagation on
+    // their hamburger buttons, but must still close an open detail-row menu.
+    document.addEventListener('pointerdown', this.closeMenuOnPointerDown, true);
     const startupCount = ++ThumbnailComponent.startupConstructionCount;
     if (startupCount === 1 || startupCount % 50 === 0) {
       console.warn('[Thumbnail] CONSTRUCTOR PROGRESS', { count: startupCount });
@@ -427,6 +439,8 @@ export class ThumbnailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    document.removeEventListener('pointerdown', this.closeMenuOnPointerDown, true);
+    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
     this.infoRequest++;
     this.intersectionObserver?.disconnect();
     this.loaderSubscription?.unsubscribe();
