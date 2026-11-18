@@ -1955,9 +1955,13 @@
   overflow-wrap: anywhere;
 }
 .image-controls-sidebar .image-exif-xmp-table-wrap {
+  width: 100%;
   max-width: 100%;
-  max-height: 420px;
+  height: 320px;
+  min-height: 100px;
+  max-height: 70vh;
   overflow: auto;
+  resize: vertical;
   margin: 5px 0;
   border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
   border-radius: 4px;
