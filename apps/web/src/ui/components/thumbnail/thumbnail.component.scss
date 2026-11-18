@@ -257,7 +257,9 @@ button {
   background: transparent !important;
   color: var(--color-content-default, #eee) !important;
   box-shadow: none !important;
-  font: 12px/1.3 inherit !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
   text-align: left !important;
   white-space: nowrap !important;
   opacity: 1 !important;
