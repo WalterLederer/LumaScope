@@ -9,15 +9,15 @@ export class ImageFileActions {
   private readonly dialog = inject(Dialog);
   private readonly viewNavigator = inject(ViewNavigator);
 
-  readonly confirmAndDelete = async (path: string): Promise<boolean> => {
+  readonly confirmAndDelete = async (path: string): Promise<boolean | null> => {
     const confirmed = await firstValueFrom(
       ConfirmationDialogComponent.open(this.dialog, {
         title: 'Delete image?',
         description: `Do you want to permanently delete "${path}" from disk?`,
         defaultAction: 'cancel'
       }).pipe(map(() => true)),
-      { defaultValue: false }
+      { defaultValue: null }
     );
-    return confirmed ? this.viewNavigator.deleteImage(path) : false;
+    return confirmed === null ? null : this.viewNavigator.deleteImage(path);
   };
 }
