@@ -74,6 +74,9 @@
                      [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
                      [refreshToken]="thumbnailRefreshToken()"
                      (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
+                     (cacheFolderRequested)="cacheDisplayedFiles()"
+                     (reCacheFileRequested)="reCacheFile($event)"
+                     (reCacheFolderRequested)="reCacheDisplayedFiles()"
                      (hovered)="hovered.emit($event)"
                      (rowSelected)="onDetailRowSelected($event)"
                      (clicked)="selectThumbnail($event)" />
