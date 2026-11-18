@@ -536,16 +536,17 @@ export class SettingsPanelComponent {
       this.cacheFolderPath();
       void this.updateCacheSummary();
     });
-    let previousSummaryProgress = -1;
+    let previousSummaryBuildState: boolean | null = null;
     effect(() => {
       const buildActive = this.cacheBuildActive();
-      const progressBucket = Math.floor(this.cacheBuildProgress().completed / 100);
       const clearing = this.isClearing();
       if (clearing) return;
-      if (!buildActive || progressBucket !== previousSummaryProgress) {
-        previousSummaryProgress = progressBucket;
-        void this.updateCacheSummary(undefined, true);
-      }
+      const buildFinished = previousSummaryBuildState === true && !buildActive;
+      const firstSummaryPass = previousSummaryBuildState === null;
+      previousSummaryBuildState = buildActive;
+      // Do not rescan every drive while a build is progressing. Refresh once
+      // after completion so the comparison remains stable during the build.
+      if (firstSummaryPass || buildFinished) void this.updateCacheSummary(undefined, true);
     });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
