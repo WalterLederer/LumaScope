@@ -2383,6 +2383,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly hasAllOfflineFiles = (): boolean => this.offlineMaps().some(map => map.available) || this.hillshadeDatabases().some(database => database.available);
   protected readonly toggleGpxTrackColorMenu = (path: string, event: MouseEvent): void => {
     if (this.gpxTrackColorMenuOpen() === path) { this.gpxTrackColorMenuOpen.set(null); return; }
+    this.colorMenuOpen.set(false);
+    this.markerColorMenuOpen.set(false);
+    this.currentMarkerColorMenuOpen.set(false);
+    this.gpxTrackLineStyleMenuOpen.set(null);
+    this.gpxTrackDirectionMenuOpen.set(null);
     const pointer = { x: event.clientX, y: event.clientY };
     this.gpxTrackColorMenuOpen.set(path);
     this.gpxTrackColorMenuPosition.set(this.getRowActionMenuPosition(event, 190, 300, true));
@@ -3584,11 +3589,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.colorMenuOpen.set(open);
   };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
-  protected readonly toggleGpxTrackColorMenu = (path: string): void => {
-    const open = this.gpxTrackColorMenuOpen() === path ? null : path;
-    this.colorMenuOpen.set(false); this.markerColorMenuOpen.set(false); this.currentMarkerColorMenuOpen.set(false);
-    this.gpxTrackColorMenuOpen.set(open);
-  };
   protected readonly toggleGpxTrackLineStyleMenu = (path: string): void => {
     const open = this.gpxTrackLineStyleMenuOpen() === path ? null : path;
     this.gpxTrackColorMenuOpen.set(null); this.gpxTrackDirectionMenuOpen.set(null);
