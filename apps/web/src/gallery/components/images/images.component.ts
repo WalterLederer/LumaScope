@@ -143,16 +143,32 @@ export class ImagesComponent {
     const statuses = this.cacheStatuses();
     return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
   });
-  readonly gpsDateDifferenceCount = computed(() => {
-    const statuses = this.cacheStatuses();
-    return (this.images() ?? []).filter(image => {
+  readonly gpsDateComparisons = signal<Map<string, boolean | null>>(new Map());
+  readonly gpsDateDifferenceCount = computed(() =>
+    [...this.gpsDateComparisons().values()].filter(differs => differs === true).length
+  );
+
+  private createGpsDateComparisons(
+    images: FileInfo[],
+    statuses: Map<string, CacheImageStatus>
+  ): Map<string, boolean | null> {
+    const comparisons = new Map<string, boolean | null>();
+    for (const image of images) {
       const gpsTimestamp = statuses.get(image.path)?.gpsTimestamp;
       const modifiedAt = image.modifiedAt;
-      return gpsTimestamp !== null && gpsTimestamp !== undefined && Number.isFinite(gpsTimestamp)
-        && modifiedAt !== null && modifiedAt !== undefined && Number.isFinite(modifiedAt)
-        && Math.floor(gpsTimestamp) !== Math.floor(modifiedAt / 1000);
-    }).length;
-  });
+      if (gpsTimestamp === null || gpsTimestamp === undefined || !Number.isFinite(gpsTimestamp)
+        || typeof modifiedAt !== 'number' || !Number.isFinite(modifiedAt)) {
+        comparisons.set(image.path, null);
+        continue;
+      }
+      // GPS timestamps are stored in whole seconds; compare at the same precision.
+      comparisons.set(image.path, Math.floor(gpsTimestamp) !== Math.floor(modifiedAt / 1000));
+    }
+    return comparisons;
+  }
+
+  private cacheStatusFolderKey = '';
+  private cacheStatusImageKey = '';
 
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
@@ -634,35 +650,46 @@ export class ImagesComponent {
     });
 
     effect(() => {
+      const folder = this.folderPath() ?? '';
       const images = this.images() ?? [];
-      this.thumbnailRefreshToken();
+      const imagePaths = images.map(image => image.path).sort((a, b) => a.localeCompare(b));
+      const imageKey = imagePaths.join('\\0');
+
+      // Ignore view-mode changes and list reordering. Refresh only for a new
+      // folder or a changed set of files (for example, after deleting files).
+      if (folder === this.cacheStatusFolderKey && imageKey === this.cacheStatusImageKey) return;
+      this.cacheStatusFolderKey = folder;
+      this.cacheStatusImageKey = imageKey;
+
       const request = ++this.cacheStatusRequest;
-      if ((this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') || images.length === 0) {
+      if (!folder || images.length === 0) {
         this.cacheStatuses.set(new Map());
+        this.gpsDateComparisons.set(new Map());
         this.cacheStatusLoading.set(false);
-      } else {
-        this.cacheStatusLoading.set(true);
-        const pathRequestVersions = new Map(this.cacheStatusPathRequests);
-        void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
-          if (request !== this.cacheStatusRequest) return;
-          this.cacheStatuses.update(current => {
-            const updated = new Map(statuses.map(status => [status.sourceName, status]));
-            for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
-              if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && current.has(sourceName)) {
-                const currentStatus = current.get(sourceName);
-                if (currentStatus) updated.set(sourceName, currentStatus);
-              }
-            }
-            return updated;
-          });
-        }).catch(error => {
-          if (request !== this.cacheStatusRequest) return;
-          console.error('Failed to retrieve gallery cache statuses', error);
-          this.cacheStatuses.set(new Map());
-        }).finally(() => {
-          if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
-        });
+        return;
       }
+
+      this.cacheStatusLoading.set(true);
+      const pathRequestVersions = new Map(this.cacheStatusPathRequests);
+      void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
+        if (request !== this.cacheStatusRequest) return;
+        const updated = new Map(statuses.map(status => [status.sourceName, status]));
+        for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
+          if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && updated.has(sourceName)) {
+            const currentStatus = this.cacheStatuses().get(sourceName);
+            if (currentStatus) updated.set(sourceName, currentStatus);
+          }
+        }
+        this.cacheStatuses.set(updated);
+        this.gpsDateComparisons.set(this.createGpsDateComparisons(images, updated));
+      }).catch(error => {
+        if (request !== this.cacheStatusRequest) return;
+        console.error('Failed to retrieve gallery cache statuses', error);
+        this.cacheStatuses.set(new Map());
+        this.gpsDateComparisons.set(new Map());
+      }).finally(() => {
+        if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
+      });
     });
 
     effect(() => {
