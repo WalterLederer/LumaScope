@@ -147,7 +147,7 @@ interface MapErrorEntry {
                 <summary class="settings-row-title">Fix location AUTOMATIC</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
                 <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
-                <app-gpx-database-import [databaseKey]="currentImagePath?.slice(0, 2)" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
+                <app-gpx-database-import [databaseKey]="currentImageDatabaseKey" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" />
                 <div class="fix-location-step-title">STEP 2 - Add GPS info from GPX to photos</div>
                 <div class="location-actions fix-location-automatic-actions">
                   <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
@@ -1538,6 +1538,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
+  get currentImageDatabaseKey(): string | undefined { return this.currentImagePath?.slice(0, 2); }
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
   private leaflet: LeafletMapApi | null = null;
@@ -1570,7 +1571,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
     if (tab === 'memory') void this.refreshProcessMemory();
-    if (tab === 'track') void this.refreshGpxDatabaseStats();
   };
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
