@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener,
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, SliderComponent } from '@light-matter/ui';
-import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatOsDateTime } from 'internal-api';
+import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
@@ -1068,7 +1068,7 @@ export class ImageView {
     const relevantField = /(date|time|camera|model|make|lens|gps|latitude|longitude|altitude|direction|position|coordinates|speed|track)/i;
     const metadataRows = Object.entries(tags)
       .filter(([key, value]) => relevantField.test(key)
-        && !/^File(?:Access|Create|Modify)Date$/i.test(key)
+        && !/^(?:File:)?File(?:Access|Create|Modify)Date$/i.test(key)
         && value !== undefined && value !== null && value !== '')
       .sort(([a], [b]) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     for (const [key, value] of metadataRows) {
@@ -1115,8 +1115,8 @@ export class ImageView {
     rows.push({
       source: 'App',
       name: 'GPS Position',
-      value: Number.isFinite(signedLatitude) && Number.isFinite(signedLongitude)
-        ? signedLatitude.toFixed(6) + ', ' + signedLongitude.toFixed(6) + (useXmp ? ' (XMP)' : ' (EXIF)')
+      value: formatGpsCoordinates(signedLatitude, signedLongitude) !== '—'
+        ? formatGpsCoordinates(signedLatitude, signedLongitude) + (useXmp ? ' (XMP)' : ' (EXIF)')
         : '—'
     });
     return rows;
@@ -1719,7 +1719,7 @@ export class ImageView {
   };
 
   protected readonly formatGpsCoordinate = (value: number, positiveDirection: string, negativeDirection: string): string =>
-    `${Math.abs(value).toFixed(6)}° ${value >= 0 ? positiveDirection : negativeDirection}`;
+    formatSystemGpsCoordinate(value, positiveDirection, negativeDirection);
 
   protected readonly gpsCoordinates = computed(() => {
     const tags = this.imageTags() as (Record<string, unknown> | null);
