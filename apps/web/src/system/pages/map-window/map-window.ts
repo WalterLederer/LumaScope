@@ -2797,8 +2797,23 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.lookupLocationAddress(latitude, longitude);
       void this.initialize(latitude, longitude);
     } else {
-      this.locationAddress.set('');
-      void this.initialize(48.2082, 16.3738);
+      const savedLatitude = Number(this.readSetting('lastLatitude', ''));
+      const savedLongitude = Number(this.readSetting('lastLongitude', ''));
+      const hasSavedPosition = Number.isFinite(savedLatitude) && Number.isFinite(savedLongitude)
+        && savedLatitude >= -90 && savedLatitude <= 90
+        && savedLongitude >= -180 && savedLongitude <= 180;
+      if (hasSavedPosition) {
+        this.currentLatitude = savedLatitude;
+        this.currentLongitude = savedLongitude;
+        this.coordinatesAvailable.set(true);
+        this.coordinateLabel.set(this.formatCoordinates(savedLatitude, savedLongitude));
+        this.photoCoordinateLabel.set(this.formatCoordinates(savedLatitude, savedLongitude).replace(/^Coordinates: /, 'Photo: '));
+        void this.lookupLocationAddress(savedLatitude, savedLongitude);
+        void this.initialize(savedLatitude, savedLongitude);
+      } else {
+        this.locationAddress.set('');
+        void this.initialize(48.2082, 16.3738);
+      }
     }
     const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
@@ -2824,6 +2839,8 @@ export class MapWindow implements OnInit, OnDestroy {
         return;
       }
       this.coordinatesAvailable.set(true);
+      this.saveSetting('lastLatitude', nextLatitude!);
+      this.saveSetting('lastLongitude', nextLongitude!);
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
