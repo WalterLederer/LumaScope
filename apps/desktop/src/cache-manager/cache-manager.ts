@@ -436,8 +436,8 @@ export class CacheManager {
     }
 
     const folder = resolve(selection.filePaths[0]);
-    const databaseKey = this.databaseKeyForPath(folder);
-    const db = this.databaseForPath(folder);
+    const databaseKey = requestedDatabaseKey && /^[a-z]:$/i.test(requestedDatabaseKey) ? requestedDatabaseKey.toUpperCase() : this.databaseKeyForPath(folder);
+    const db = this.databaseForPath(databaseKey + '\\\\');
     this.activeDatabaseKey = databaseKey;
     const driveRoot = resolve(databaseKey + '\\\\');
     const candidates: string[] = [];
@@ -674,7 +674,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getInterpolatedGpxPosition' })
   readonly getInterpolatedGpxPosition = async (
-    _event: IpcMainInvokeEvent, folder: string, timestampMs: number, maxDifferenceSeconds = 120
+    _event: IpcMainInvokeEvent, folder: string, timestampMs: number, maxDifferenceSeconds = 120, requestedDatabaseKey?: string
   ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
     if (!folder || !Number.isFinite(timestampMs) || !Number.isFinite(maxDifferenceSeconds) || maxDifferenceSeconds < 0) return null;
     const databaseKey = this.databaseKeyForPath(folder);
