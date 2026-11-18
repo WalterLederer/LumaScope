@@ -838,7 +838,10 @@ export class CacheManager {
     summary.total.entries = summary.fullSize.entries + summary.thumbnails.entries;
     summary.total.bytes = summary.fullSize.bytes + summary.thumbnails.bytes;
 
-    for (const key of this.databases.keys()) {
+    // Always include the selected database, even if it was not previously
+    // opened by gallery navigation (for example, a background cache build).
+    const summaryDatabaseKeys = new Set([...this.databases.keys(), selectedDatabaseKey]);
+    for (const key of summaryDatabaseKeys) {
       const databasePath = join(key + '\\', '.cache', 'LumaScope.cache.sqlite');
       try { const info = await stat(databasePath); summary.databases.push({ key, path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
     }
