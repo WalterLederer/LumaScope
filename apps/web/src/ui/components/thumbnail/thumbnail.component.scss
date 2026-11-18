@@ -162,6 +162,16 @@ button {
     font-weight: 600;
   }
 
+  .detail-gps-date.is-different {
+    color: var(--color-content-default-high);
+    font-weight: 700;
+  }
+
+  .detail-gps-date.is-same {
+    color: var(--color-content-default-low, #888);
+    font-weight: 400;
+  }
+
   .detail-columns > .detail-dynamic-range {
     /* Use the same cell layout and vertical centering as every other detail value. */
     color: var(--color-content-default-medium);
