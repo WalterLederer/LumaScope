@@ -446,42 +446,13 @@ export class CacheManager {
       currentDisplayName: this.currentReverseGeocodingDatabaseKey === this.activeDatabaseKey ? this.currentReverseGeocodingDisplayName : null };
   };
 
-  @IpcHandler({ name: 'CacheManager.importGpxFolder' })
-  readonly importGpxFolder = async (): Promise<{
-    folder: string | null; files: number; segments: number; points: number;
-    imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean;
+  private readonly importGpxFilePaths = async (databaseKey: string, candidates: string[], folder: string): Promise<{
+    folder: string; files: number; segments: number; points: number; timestampedPoints: number;
+    imported: number; unchanged: number; duplicates: number; errors: number; cancelled: false;
   }> => {
-    const selection = await dialog.showOpenDialog({
-      title: 'Add all GPX tracks from folder to cache database',
-      properties: ['openDirectory']
-    });
-    if (selection.canceled || !selection.filePaths[0]) {
-      return { folder: null, files: 0, segments: 0, points: 0, imported: 0, unchanged: 0, duplicates: 0, errors: 0, cancelled: true };
-    }
-
-    const folder = resolve(selection.filePaths[0]);
-    const databaseKey = this.databaseKeyForPath(folder);
-    const db = this.databaseForPath(databaseKey + '\\\\');
+    const db = this.databaseForPath(databaseKey + '\\\\\\\\');
     this.activeDatabaseKey = databaseKey;
-    const driveRoot = resolve(databaseKey + '\\\\');
-    const candidates: string[] = [];
-    const pending = [folder];
-    while (pending.length) {
-      const directory = pending.pop()!;
-      let entries;
-      try { entries = await readdir(directory, { withFileTypes: true }); }
-      catch { continue; }
-      for (const entry of entries) {
-        if (entry.isSymbolicLink()) continue;
-        const fullPath = join(directory, entry.name);
-        if (entry.isDirectory()) {
-          if (!['.cache', '$RECYCLE.BIN', 'System Volume Information', 'node_modules', '.git'].includes(entry.name)) pending.push(fullPath);
-        } else if (entry.isFile() && extname(entry.name).toLowerCase() === '.gpx') {
-          candidates.push(fullPath);
-        }
-      }
-    }
-
+    const driveRoot = resolve(databaseKey + '\\\\\\\\');
     let imported = 0, unchanged = 0, duplicates = 0, errors = 0;
     const findByPath = db.prepare('SELECT id, content_hash, file_size, modified_at FROM gpx_files WHERE relative_file_path = :path COLLATE NOCASE');
     const findByHash = db.prepare('SELECT id, relative_file_path FROM gpx_files WHERE content_hash = :hash');
@@ -624,6 +595,61 @@ export class CacheManager {
       (SELECT COUNT(*) FROM gpx_track_points) AS points,
       (SELECT COUNT(*) FROM gpx_track_points WHERE timestamp_ms IS NOT NULL) AS timestampedPoints`).get() as { files: number; segments: number; points: number; timestampedPoints: number };
     return { folder, ...counts, imported, unchanged, duplicates, errors, cancelled: false };
+  }
+  };
+
+  @IpcHandler({ name: 'CacheManager.importGpxFolder' })
+  readonly importGpxFolder = async (): Promise<{
+    folder: string | null; files: number; segments: number; points: number;
+    imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean;
+  }> => {
+    const selection = await dialog.showOpenDialog({
+      title: 'Add all GPX tracks from folder to cache database',
+      properties: ['openDirectory']
+    });
+    if (selection.canceled || !selection.filePaths[0]) {
+      return { folder: null, files: 0, segments: 0, points: 0, imported: 0, unchanged: 0, duplicates: 0, errors: 0, cancelled: true };
+    }
+    const folder = resolve(selection.filePaths[0]);
+    const databaseKey = this.databaseKeyForPath(folder);
+    const candidates: string[] = [];
+    const pending = [folder];
+    while (pending.length) {
+      const directory = pending.pop()!;
+      let entries;
+      try { entries = await readdir(directory, { withFileTypes: true }); } catch { continue; }
+      for (const entry of entries) {
+        if (entry.isSymbolicLink()) continue;
+        const fullPath = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (!['.cache', '$RECYCLE.BIN', 'System Volume Information', 'node_modules', '.git'].includes(entry.name)) pending.push(fullPath);
+        } else if (entry.isFile() && extname(entry.name).toLowerCase() === '.gpx') candidates.push(fullPath);
+      }
+    }
+    return this.importGpxFilePaths(databaseKey, candidates, folder);
+  };
+
+  @IpcHandler({ name: 'CacheManager.importGpxFiles' })
+  readonly importGpxFiles = async (_event?: IpcMainInvokeEvent, filePaths: string[] = []): Promise<{
+    files: number; imported: number; unchanged: number; duplicates: number; errors: number;
+  }> => {
+    const grouped = new Map<string, string[]>();
+    for (const candidate of filePaths) {
+      if (typeof candidate !== 'string' || !candidate || extname(candidate).toLowerCase() !== '.gpx') continue;
+      const absolute = resolve(candidate);
+      try { if (!(await stat(absolute)).isFile()) continue; } catch { continue; }
+      const key = this.databaseKeyForPath(absolute);
+      const group = grouped.get(key) ?? [];
+      if (!group.some(path => path.toLowerCase() === absolute.toLowerCase())) group.push(absolute);
+      grouped.set(key, group);
+    }
+    let files = 0, imported = 0, unchanged = 0, duplicates = 0, errors = 0;
+    for (const [key, paths] of grouped) {
+      const result = await this.importGpxFilePaths(key, paths, dirname(paths[0]));
+      files += result.files; imported += result.imported; unchanged += result.unchanged;
+      duplicates += result.duplicates; errors += result.errors;
+    }
+    return { files, imported, unchanged, duplicates, errors };
   };
 
   @IpcHandler({ name: 'CacheManager.getGpxDatabaseStats' })
