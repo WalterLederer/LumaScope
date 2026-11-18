@@ -169,6 +169,16 @@
     }
   }
 
+  .sort-indicator {
+    display: inline-block;
+    min-width: 10px;
+    margin-left: 4px;
+    color: var(--color-content-primary-high);
+    font-size: 10px;
+    line-height: 1;
+    vertical-align: 1px;
+  }
+
   .without-thumbnails & > span:first-child {
     visibility: hidden;
   }
