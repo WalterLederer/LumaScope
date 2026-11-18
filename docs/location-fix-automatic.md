@@ -14,7 +14,7 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 ## Workflow
 
 1. Open **Location → Fix location AUTOMATIC**.
-2. Under **STEP 1 - Add GPX to search**, expand **GPX → DB** and import the GPX folder from the same drive as the photos. Check the database file, segment and point totals.
+2. Under **STEP 1 - Add GPX to search**, expand **GPX → DB** and import the GPX folder into a drive referenced by the selected photo folder or a Gallery favorite. Check the database file, segment and point totals.
 3. Under **STEP 2 - Add GPS info from GPX to photos**, select **Check only** first to inspect the proposed results without changing any image files.
 4. Set **Maximum time difference (minutes)**. The default is **2 minutes**; the allowed range is 0–1440 minutes in 0.5-minute steps.
 5. Select **Select folder with photos to fix...** and choose the root folder. Its subfolders are scanned recursively.
