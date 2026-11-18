@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent } from '@light-matter/ui';
-import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
+import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
@@ -4886,10 +4886,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
     }
   };
-  protected readonly formatOfflineMapDate = (timestamp: number): string => {
-    if (!Number.isFinite(timestamp) || timestamp <= 0) return '—';
-    return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(timestamp));
-  };
+  protected readonly formatOfflineMapDate = (timestamp: number): string =>
+    Number.isFinite(timestamp) && timestamp > 0 ? formatOsDateTime(timestamp) : '—';
   protected readonly changeOfflineMapPreset = async (value: string): Promise<void> => {
     if (!this.mapPresetOptions().some(preset => preset.id === value)) return;
     if (this.desktop) {
@@ -5436,7 +5434,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly hillshadeDatabaseFileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
   protected readonly formatHillshadeLastModified = (timestamp: number | null): string =>
-    timestamp === null || !Number.isFinite(timestamp) ? '—' : new Date(timestamp).toLocaleString(this.locale);
+    timestamp === null || !Number.isFinite(timestamp) ? '—' : formatOsDateTime(timestamp);
   private hillshadeDatabaseMatchesPreset(database: OsmAndHillshadeDatabase, preset: string): boolean {
     if (!database.available || preset === 'none') return false;
     if (preset === 'all') return true;
@@ -5682,7 +5680,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyGpxTrack();
   };
   protected readonly formatGpxDate = (timestamp: number): string =>
-    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp).toLocaleString(this.locale) : '—';
+    Number.isFinite(timestamp) && timestamp > 0 ? formatOsDateTime(timestamp) : '—';
   protected readonly gpxTrackTimeRange = (path: string): string => {
     const timestamps = (this.gpxPointDataByTrack.get(path) ?? []).flat()
       .map(point => point.timestamp ? Date.parse(point.timestamp) : Number.NaN)
@@ -6346,7 +6344,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly formatTimeSliderDate = (timestamp: number): string =>
-    Number.isFinite(timestamp) && timestamp > 0 ? new Date(timestamp * 1000).toLocaleString(this.locale) : '–';
+    Number.isFinite(timestamp) && timestamp > 0 ? formatOsDateTime(timestamp * 1000) : '–';
 
   protected readonly formatTimeSliderDuration = (start: number, end: number): string => {
     const totalMinutes = Math.max(0, Math.floor((end - start) / 60));
