@@ -138,7 +138,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
-<div class="settings-tab-panels">
+<div class="settings-tab-panels" (toggle)="onDisclosureStateToggle($event)">
 <div class="settings-tab-panel" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
 <div class="settings-tab-content location-tab">
             
@@ -1627,6 +1627,35 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly activeHillshadeTiles = new Set<string>();
   private readonly seenHillshadeTiles = new Set<string>();
   private readonly completedHillshadeTiles = new Set<string>();
+  private disclosureStateKey(section: HTMLDetailsElement): string | null {
+    const panel = section.closest('.settings-tab-panel');
+    if (!panel) return null;
+    const panels = Array.from(document.querySelectorAll('.settings-tab-panels > .settings-tab-panel'));
+    const panelIndex = panels.indexOf(panel);
+    if (panelIndex < 0) return null;
+    const sections = Array.from(panel.querySelectorAll('details'));
+    const sectionIndex = sections.indexOf(section);
+    return sectionIndex < 0 ? null : panelIndex + ':' + sectionIndex;
+  }
+  private restoreDisclosureStates(states: Record<string, unknown>): void {
+    const panels = Array.from(document.querySelectorAll('.settings-tab-panels > .settings-tab-panel'));
+    panels.forEach((panel, panelIndex) => {
+      Array.from(panel.querySelectorAll<HTMLDetailsElement>('details')).forEach((section, sectionIndex) => {
+        const value = states[panelIndex + ':' + sectionIndex];
+        if (typeof value === 'boolean') section.open = value;
+      });
+    });
+  }
+  protected readonly onDisclosureStateToggle = (event: Event): void => {
+    const section = event.target;
+    if (!(section instanceof HTMLDetailsElement)) return;
+    const key = this.disclosureStateKey(section);
+    if (!key) return;
+    const current = this.disclosureStates;
+    current[key] = section.open;
+    this.persistLocationUiState({ disclosureStates: { ...current } });
+  };
+  private disclosureStates: Record<string, boolean> = {};
   private readonly persistLocationUiState = (patch: Record<string, unknown>): void => {
     void this.desktop?.ProcessManager.setAppSettingsSection('mapWindow', patch)
       .catch(error => console.warn('[Location] Could not persist window UI state:', error));
@@ -2620,6 +2649,11 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       }
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
+      const savedDisclosureStates = saved?.['disclosureStates'];
+      if (savedDisclosureStates && typeof savedDisclosureStates === 'object' && !Array.isArray(savedDisclosureStates)) {
+        this.disclosureStates = Object.fromEntries(Object.entries(savedDisclosureStates).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
+        this.restoreDisclosureStates(savedDisclosureStates as Record<string, unknown>);
+      }
       const savedSymbolSettings = saved?.['timeSliderSymbolSettings']
         && typeof saved['timeSliderSymbolSettings'] === 'object'
         && !Array.isArray(saved['timeSliderSymbolSettings'])
