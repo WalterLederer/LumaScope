@@ -58,3 +58,40 @@
   background: var(--color-surface-default-highest);
 }
 
+
+
+/* Favourite-list hamburger uses the same boxed trigger as every other list. */
+:host .tree-inline-menu-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 0 0 22px !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 0 1px !important;
+  border: 1px solid var(--color-content-default-low, #666) !important;
+  border-radius: 4px !important;
+  background: var(--color-surface-default-low, #252525) !important;
+  background-image: none !important;
+  color: var(--color-content-default, #eee) !important;
+  box-shadow: none !important;
+  font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+}
+:host .tree-inline-menu-trigger:hover,
+:host .tree-inline-menu-trigger:focus-visible,
+:host .tree-inline-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-default-medium, #444) !important;
+  border-color: var(--color-content-default-medium, #999) !important;
+}
