@@ -2421,6 +2421,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
   private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>>();
+  private gpxDatabaseTrackSettingsLoaded = false;
+  private gpxDatabaseSettingsWriteQueue: Promise<void> = Promise.resolve();
   protected readonly gpxSpeedLegendTracks = computed(() => (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => track.active !== false && track.colorMode === 'speed'));
   protected readonly latestGpxElevationProfile = signal<GpxElevationProfile | null>(null);
   protected readonly latestGpxElevationProfileBusy = signal(false);
@@ -6066,6 +6068,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const queryGeneration = ++this.gpxDatabaseQueryGeneration;
     const desktop = this.desktop;
     if (!desktop) { this.gpxDatabaseQueryBusy.set(false); this.gpxDatabaseQueryStatus.set('The desktop GPX database service is unavailable.'); return; }
+    await this.ensureGpxDatabaseTrackSettingsLoaded();
     const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
     if (!mapBounds) {
       this.gpxDatabaseQueryBusy.set(false);
@@ -7338,9 +7341,38 @@ export class MapWindow implements OnInit, OnDestroy {
     else if (patch.active !== undefined) this.changeGpxTrackActive(path, patch.active);
     else this.updateGpxTrack(path, patch);
   };
+  private async ensureGpxDatabaseTrackSettingsLoaded(): Promise<void> {
+    if (this.gpxDatabaseTrackSettingsLoaded || !this.desktop) return;
+    try {
+      const settings = await this.desktop.ProcessManager.getAppSettings();
+      const gpx = settings['gpx'] && typeof settings['gpx'] === 'object' ? settings['gpx'] as Record<string, unknown> : {};
+      const saved = gpx['databaseTrackSettings'];
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+        for (const [path, value] of Object.entries(saved as Record<string, unknown>)) {
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            this.gpxDatabaseTrackSettings.set(path, value as Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>);
+          }
+        }
+      }
+      this.gpxDatabaseTrackSettingsLoaded = true;
+    } catch (error) {
+      console.warn('[GPX] Could not restore database track settings:', error);
+    }
+  }
+
+  private persistGpxDatabaseTrackSettings(): void {
+    if (!this.desktop) return;
+    const snapshot = Object.fromEntries(this.gpxDatabaseTrackSettings);
+    const operation = this.gpxDatabaseSettingsWriteQueue.then(async () => {
+      await this.desktop!.ProcessManager.setAppSettingsSection('gpx', { databaseTrackSettings: snapshot });
+    });
+    this.gpxDatabaseSettingsWriteQueue = operation.catch(error => console.error('[GPX] Could not save database track settings:', error));
+  }
+
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
     if (databasePath) this.gpxDatabaseTrackSettings.set(databasePath, { ...this.gpxDatabaseTrackSettings.get(databasePath), ...patch });
+    if (databasePath) this.persistGpxDatabaseTrackSettings();
     const tracks = this.gpxDatabaseTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxDatabaseTracks.set(tracks);
     this.rebuildGpxSegments();
