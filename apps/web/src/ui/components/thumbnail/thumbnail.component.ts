@@ -14,6 +14,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { CaptionComponent } from '@light-matter/ui';
 import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatGpsCoordinates, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
+import { FileSystem } from '../../../ipc/file-system';
+import { ProcessManager } from '../../../ipc/process-manager';
+import { ImageFileActions } from '../../../viewer/services/view-navigator/image-file-actions';
 import { GalleryViewMode } from '../../../gallery/components/images/images.component.types';
 import { distinctUntilChanged, Subscription } from 'rxjs';
 import { DevicePixelRatioService } from '../../../system/services/device-pixel-ratio/device-pixel-ratio.service';
@@ -50,6 +53,16 @@ export class ThumbnailComponent implements OnDestroy {
   private readonly elementRef = inject(ElementRef);
 
   private readonly exif = inject(ExifService);
+
+  private readonly fileSystem = inject(FileSystem);
+
+  private readonly processManager = inject(ProcessManager);
+
+  private readonly imageFileActions = inject(ImageFileActions);
+
+  readonly rowActionMenuOpen = signal(false);
+
+  readonly rowActionMenuPosition = signal({ top: 8, left: 8 });
 
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
@@ -98,6 +111,51 @@ export class ThumbnailComponent implements OnDestroy {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
+
+  readonly toggleRowActionMenu = (event: MouseEvent): void => {
+    event.stopPropagation();
+    if (this.rowActionMenuOpen()) {
+      this.rowActionMenuOpen.set(false);
+      return;
+    }
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const width = Math.min(190, window.innerWidth - 16);
+    const height = 142;
+    const top = rect.bottom + height + 8 > window.innerHeight
+      ? Math.max(8, rect.top - height - 3)
+      : rect.bottom + 3;
+    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+    this.rowActionMenuPosition.set({ top, left });
+    this.rowActionMenuOpen.set(true);
+  };
+
+  readonly copyImagePath = async (): Promise<void> => {
+    this.rowActionMenuOpen.set(false);
+    try {
+      await navigator.clipboard.writeText(this.image().path);
+    } catch (error) {
+      console.error('Could not copy image path:', error);
+    }
+  };
+
+  readonly openImagePath = async (): Promise<void> => {
+    this.rowActionMenuOpen.set(false);
+    const folder = await this.fileSystem.dirname(this.image().path);
+    const error = await this.processManager.openPath(folder);
+    if (error) window.alert(error);
+  };
+
+  readonly openImageFile = async (): Promise<void> => {
+    this.rowActionMenuOpen.set(false);
+    const error = await this.processManager.openPath(this.image().path);
+    if (error) window.alert(error);
+  };
+
+  readonly deleteImageFile = async (): Promise<void> => {
+    this.rowActionMenuOpen.set(false);
+    const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
+    if (!deleted) return;
+  };
 
   /* State */
   private readonly pixelRatio = toSignal(
