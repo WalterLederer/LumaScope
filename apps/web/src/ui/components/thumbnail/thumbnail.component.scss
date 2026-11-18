@@ -200,8 +200,8 @@ button {
   flex-direction: column;
   gap: 2px;
   width: max-content;
-  min-width: 170px;
-  max-width: calc(100vw - 16px);
+  min-width: 170px !important;
+  max-width: calc(100vw - 16px) !important;
   box-sizing: border-box;
   padding: 5px;
   overflow-x: hidden;
