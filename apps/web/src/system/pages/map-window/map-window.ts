@@ -2731,8 +2731,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (saved['activeSettingsTab'] === 'offlineMaps' || saved['activeSettingsTab'] === 'hillshade') {
         this.activeSettingsTab.set('offlineMaps');
         this.offlineMapListMounted.set(true);
-      } else if (typeof saved['activeSettingsTab'] === 'string' && ['location','track','routing','timeSlider','marker','view','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) {
-        this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'cache' | 'memory' | 'download' | 'errors');
+      } else if (typeof saved['activeSettingsTab'] === 'string' && ['location','fix','track','routing','timeSlider','marker','view','cache','memory','download','errors'].includes(saved['activeSettingsTab'])) {
+        this.activeSettingsTab.set(saved['activeSettingsTab'] as 'location' | 'fix' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'cache' | 'memory' | 'download' | 'errors');
       }
       if (typeof saved['renderVisualsEnabled'] === 'boolean') {
         this.renderVisualsEnabled.set(saved['renderVisualsEnabled']);
