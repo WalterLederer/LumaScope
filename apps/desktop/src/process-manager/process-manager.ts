@@ -1,7 +1,7 @@
 import { app, BrowserWindow, IpcMainInvokeEvent, shell } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { ProcessMemorySnapshot, SystemPathMapping } from 'internal-api';
+import { ProcessMemorySnapshot, SystemPathMapping, formatOsDateTime } from 'internal-api';
 import * as fs from 'node:fs/promises';
 import { stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
@@ -204,7 +204,7 @@ export class ProcessManager {
   readonly getAppVersion = async (): Promise<string> => {
     try {
       const { mtime } = await stat(process.execPath);
-      return `${environment.version} ${mtime.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })}`;
+      return `${environment.version} ${formatOsDateTime(mtime)}`;
     } catch (_) {
       return environment.version;
     }
