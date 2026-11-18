@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  HostListener,
   effect,
   ElementRef,
   inject,
@@ -154,8 +155,18 @@ export class ThumbnailComponent implements OnDestroy {
   readonly deleteImageFile = async (): Promise<void> => {
     this.rowActionMenuOpen.set(false);
     const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
-    if (!deleted) return;
+    if (deleted === false) window.alert('The image could not be deleted.');
   };
+
+  @HostListener('document:click')
+  protected closeRowActionMenu(): void {
+    this.rowActionMenuOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeRowActionMenuOnEscape(): void {
+    this.rowActionMenuOpen.set(false);
+  }
 
   /* State */
   private readonly pixelRatio = toSignal(
