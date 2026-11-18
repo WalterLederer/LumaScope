@@ -1263,6 +1263,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1289,6 +1291,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1316,6 +1320,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1342,6 +1348,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1369,6 +1377,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1393,6 +1403,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -1419,6 +1431,8 @@ interface MapErrorEntry {
                               <div class="gpx-row-action-menu-separator" role="separator"></div>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
                               <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
                             </div>
                           }
                         </td>
@@ -2228,6 +2242,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 300, 190));
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
+  protected readonly hasAllOfflineFiles = (): boolean => this.offlineMaps().some(map => map.available) || this.hillshadeDatabases().some(database => database.available);
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
@@ -5266,11 +5281,12 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly setAllOfflineEnabled = async (enabled: boolean): Promise<void> => {
+  protected readonly setAllOfflineEnabled = async (enabled: boolean, visibleOnly = true): Promise<void> => {
     if (!this.desktop) return;
     this.obfBoundsPreview.set(null);
-    const visibleMaps = this.filteredOffline().filter(map => map.available);
-    const visibleHillshade = this.filteredHillshadeDatabases();
+    const targetMaps = visibleOnly ? this.filteredOffline() : this.offlineMaps();
+    const visibleMaps = targetMaps.filter(map => map.available);
+    const visibleHillshade = visibleOnly ? this.filteredHillshadeDatabases() : this.hillshadeDatabases();
     if (visibleMaps.length === 0 && visibleHillshade.length === 0) return;
     try {
       if (visibleMaps.length) {
@@ -5284,7 +5300,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       if (visibleHillshade.length) await this.setAllHillshadeDatabasesEnabled(enabled, true);
     } catch (error) {
-      console.error('[OfflineMap] Could not update Active state for visible files:', error);
+      console.error('[OfflineMap] Could not update Active state for offline files:', error);
     }
   };
   protected readonly removeVisibleOffline = async (): Promise<void> => {
