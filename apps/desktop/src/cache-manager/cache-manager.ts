@@ -1311,6 +1311,15 @@ export class CacheManager {
   };
 
 
+  // Register every image inspected by GPS Auto Fix, even when it has no usable timestamp or GPS data.
+  // ensurePhoto also refreshes the stored file fingerprint and invalidates stale cache metadata if the source changed.
+  readonly registerPhotoFile = async (sourceName: string): Promise<void> => {
+    const db = this.databaseForPath(sourceName);
+    const sourceStats = await stat(sourceName);
+    if (!sourceStats.isFile()) throw new Error('The selected image file is not available.');
+    this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
+  };
+
   readonly updatePhotoMetadata = async (sourceName: string, isHdr: boolean, gps: Awaited<ReturnType<Exif['readPhotoMetadata']>>): Promise<void> => {
     const db = this.databaseForPath(sourceName);
     const sourceStats = await stat(sourceName);
