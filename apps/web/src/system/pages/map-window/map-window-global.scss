@@ -575,6 +575,8 @@ app-map-window {
     .routing-key-row input{width:min(420px,45vw);min-width:180px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit}
     .routing-points-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
     .routing-point-row{display:flex;align-items:center;gap:8px;min-height:30px;padding:2px 6px;border-bottom:1px solid var(--color-content-default-low,#555)}
+    .routing-point-actions{display:flex;align-items:center;justify-content:center;flex:0 0 28px;min-width:28px}
+    .routing-point-action-menu{min-width:170px;width:170px}
     .routing-point-active{width:14px;height:14px;flex:0 0 14px;margin:0;accent-color:var(--theme-button-color,#287fc4);cursor:pointer}
     .routing-point-row.inactive .routing-point-location{opacity:.48}
     .routing-point-row.inactive .routing-point-index{opacity:.5}
