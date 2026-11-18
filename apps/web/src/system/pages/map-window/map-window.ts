@@ -1154,6 +1154,15 @@ interface MapErrorEntry {
         </button>
       </div>
     </div>
+    <div class="map-cache-section">
+      <div class="map-cache-heading">GPX database entries</div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ gpxDatabaseClearStatus() || 'Deletes imported GPX files, track segments and track points from every drive cache database. Original GPX files and favorites are not affected.' }}</span>
+        <button type="button" class="danger" (click)="clearAllGpxDatabaseEntries()" [disabled]="gpxDatabaseClearBusy()">
+          {{ gpxDatabaseClearBusy() ? 'Deleting…' : 'Delete all GPX database entries' }}
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 <div class="settings-tab-panel" data-settings-tab="memory" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
@@ -2268,6 +2277,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly osmAndTileCacheBusy = signal(false);
   protected readonly osmAndTileCacheStatus = signal('');
+  protected readonly gpxDatabaseClearBusy = signal(false);
+  protected readonly gpxDatabaseClearStatus = signal('');
   protected readonly rerenderVisibleTilesBusy = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
@@ -5129,6 +5140,29 @@ export class MapWindow implements OnInit, OnDestroy {
       }));
     }
   };
+  protected readonly clearAllGpxDatabaseEntries = async (): Promise<void> => {
+    if (!this.desktop || this.gpxDatabaseClearBusy()) return;
+    const confirmed = window.confirm(
+      'Delete all imported GPX database entries from every drive cache database?\\n\\nThis permanently deletes GPX database files, segments and points from all drives. Original GPX files and the GPX favorites list will remain unchanged.'
+    );
+    if (!confirmed) return;
+    this.gpxDatabaseClearBusy.set(true);
+    this.gpxDatabaseClearStatus.set('');
+    try {
+      const result = await this.desktop.CacheManager.clearAllGpxDatabaseEntries();
+      this.gpxDatabaseClearStatus.set(
+        `Deleted ${result.files.toLocaleString(this.locale)} GPX file(s), ${result.segments.toLocaleString(this.locale)} segment(s) and ${result.points.toLocaleString(this.locale)} point(s) from ${result.databases.toLocaleString(this.locale)} cache database(s).`
+      );
+      this.latestGpxElevationProfile.set(null);
+      this.latestGpxElevationProfileError.set('No GPX database entries remain. Add a GPX track again to display its elevation profile.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.gpxDatabaseClearStatus.set('Deleting GPX database entries failed: ' + message);
+      this.recordMapError('Delete all GPX database entries', message);
+    } finally {
+      this.gpxDatabaseClearBusy.set(false);
+    }
+  };
   protected readonly refreshOsmAndTileCache = async (): Promise<void> => {
     if (!this.desktop) return;
     try {
@@ -6061,21 +6095,27 @@ export class MapWindow implements OnInit, OnDestroy {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unit]}`;
   };
-  protected readonly refreshLatestGpxElevationProfile = async (importedDrive?: string): Promise<void> => {
+  protected readonly refreshLatestGpxElevationProfile = async (_importedDrive?: string): Promise<void> => {
     if (!this.desktop) return;
     const requestId = ++this.gpxElevationProfileRequestId;
-    const databaseKeys = [...new Set([
-      ...this.favoriteGpxDatabaseKeys(),
-      this.trackGpxDatabaseKey(),
-      importedDrive
-    ].filter((key): key is string => typeof key === 'string' && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))];
-    this.latestGpxElevationProfileBusy.set(true);
-    this.latestGpxElevationProfileError.set('');
+    // GPX files are appended when added to the map. The final entry is therefore
+    // the most recently displayed track; the database lookup is restricted to it.
+    const lastDisplayedTrack = this.gpxTracks().at(-1);
+    const sourcePath = lastDisplayedTrack && !lastDisplayedTrack.path.startsWith('memory:')
+      ? lastDisplayedTrack.path : undefined;
+    this.latestGpxElevationProfileBusy.set(!!sourcePath);
+    this.latestGpxElevationProfileError.set(sourcePath
+      ? '' : lastDisplayedTrack ? 'The last displayed GPX track is not stored in a cache database.' : 'No GPX track has been displayed yet.');
+    this.latestGpxElevationProfile.set(null);
+    if (!sourcePath) {
+      this.latestGpxElevationProfileBusy.set(false);
+      return;
+    }
     try {
-      const profile = await this.desktop.CacheManager.getLatestGpxElevationProfile(databaseKeys);
+      const profile = await this.desktop.CacheManager.getLatestGpxElevationProfile(sourcePath);
       if (requestId !== this.gpxElevationProfileRequestId) return;
       this.latestGpxElevationProfile.set(profile);
-      if (!profile) this.latestGpxElevationProfileError.set('No imported GPX track with timestamped elevation data was found in the available cache databases.');
+      if (!profile) this.latestGpxElevationProfileError.set('The last displayed GPX track has no timestamped elevation data in its cache database.');
     } catch (error) {
       if (requestId !== this.gpxElevationProfileRequestId) return;
       this.latestGpxElevationProfile.set(null);
