@@ -138,6 +138,7 @@ const api: Desktop = {
     exportGpxFileFromDatabase: (sourcePath: string, databaseKey?: string) => ipcRenderer.invoke('CacheManager.exportGpxFileFromDatabase', sourcePath, databaseKey),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     clearAllGpxDatabaseEntries: () => ipcRenderer.invoke('CacheManager.clearAllGpxDatabaseEntries'),
+    deleteGpxDatabaseEntriesForFile: (sourcePath: string, databaseKey?: string) => ipcRenderer.invoke('CacheManager.deleteGpxDatabaseEntriesForFile', sourcePath, databaseKey),
     getGpxDatabaseTimeRange: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseTimeRange', databaseKey),
     getLatestGpxElevationProfile: (sourcePath?: string) => ipcRenderer.invoke('CacheManager.getLatestGpxElevationProfile', sourcePath),
     getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxFilesInBounds', bounds, databaseKey),
