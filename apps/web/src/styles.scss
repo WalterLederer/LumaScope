@@ -21,10 +21,25 @@
   background: var(--color-surface-default-low, #252525) !important;
   color: var(--color-content-default, #eee) !important;
   box-shadow: none !important;
-  font-size: 13px !important;
+  /* The icon is drawn with CSS bars, not a font glyph, so it remains visible
+     even when component button typography rules are applied. */
+  font-size: 0 !important;
   font-weight: 400 !important;
-  line-height: 1 !important;
+  line-height: 0 !important;
+  text-indent: 0 !important;
   cursor: pointer;
+  position: relative !important;
+}
+.file-row-menu-trigger::before {
+  content: "" !important;
+  display: block !important;
+  width: 11px !important;
+  height: 2px !important;
+  flex: 0 0 2px !important;
+  background: currentColor !important;
+  box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 .file-row-menu-trigger:hover,
 .file-row-menu-trigger[aria-expanded="true"] {
@@ -72,7 +87,19 @@ app-map-window .map-window .file-row-menu-trigger {
   background: var(--color-surface-default-low, #252525) !important;
   color: var(--color-content-default, #eee) !important;
   box-shadow: none !important;
-  font: 400 13px/1 sans-serif !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+app-map-window .map-window .file-row-menu-trigger::before {
+  content: "" !important;
+  display: block !important;
+  width: 11px !important;
+  height: 2px !important;
+  flex: 0 0 2px !important;
+  background: currentColor !important;
+  box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 app-map-window .map-window .file-row-menu-trigger:hover,
 app-map-window .map-window .file-row-menu-trigger[aria-expanded="true"] {
