@@ -143,17 +143,17 @@ export class SettingsPanelComponent {
     thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
     gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
   });
-  protected readonly gpxCacheSummary = signal<{ files: number; segments: number; points: number }>({ files: 0, segments: 0, points: 0 });
-  protected readonly selectedCacheDatabaseKey = signal<string | null>(null);
-  protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
-  protected readonly selectCacheDatabase = (databaseKey: string): void => {
-    if (!databaseKey || !this.cacheSummary().databases.some(database => database.key === databaseKey)) return;
-    this.selectedCacheDatabaseKey.set(databaseKey);
-    void this.updateCacheSummary(databaseKey);
-  };
+  protected readonly cacheSummaryColumns = signal<Array<{
+    key: string;
+    summary: CacheSummary;
+    gpx: { files: number; segments: number; points: number; timestampedPoints: number };
+  }>>([]);
   protected readonly cacheSummaryLoading = signal(false);
+  protected readonly cacheSummaryLoadingDrives = signal<string[]>([]);
   protected readonly cacheSummaryError = signal<string | null>(null);
+  protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
   private cacheSummaryRequestId = 0;
+  private cacheSummaryLoadedKey = '';
 
   private cacheInfoRequestId = 0;
   private buildCacheInfoRequestId = 0;
@@ -529,23 +529,20 @@ export class SettingsPanelComponent {
         void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
       }
     });
-    let previousSummaryDrive: string | null = null;
     effect(() => {
-      const folder = this.cacheFolderPath().trim();
-      const drive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
-      if (!drive || drive === previousSummaryDrive) return;
-      previousSummaryDrive = drive;
-      this.selectedCacheDatabaseKey.set(drive);
-      void this.updateCacheSummary(drive);
+      this.cacheFolderPath();
+      void this.updateCacheSummary();
     });
+    let previousSummaryProgress = -1;
     effect(() => {
       const buildActive = this.cacheBuildActive();
-      const progress = this.cacheBuildProgress().completed;
+      const progressBucket = Math.floor(this.cacheBuildProgress().completed / 100);
       const clearing = this.isClearing();
-      this.cacheManager.cacheRevision();
-      if (!clearing) void this.updateCacheSummary();
-      // Refresh as the build writes new cache records, not only after it ends.
-      if (buildActive) void progress;
+      if (clearing) return;
+      if (!buildActive || progressBucket !== previousSummaryProgress) {
+        previousSummaryProgress = progressBucket;
+        void this.updateCacheSummary(undefined, true);
+      }
     });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
     this.loadDevToolsSetting().then();
@@ -650,60 +647,53 @@ export class SettingsPanelComponent {
   };
 
   private readonly loadFavoriteCacheDatabases = async (keys: string[]): Promise<void> => {
-    try {
-      // Open every database represented by a favorite folder so the summary
-      // selector can list them even when no image from that drive is open.
-      for (const key of keys) await this.cacheManager.getCacheSummary(key);
-      const folder = this.cacheFolderPath().trim();
-      const folderDrive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
-      const preferred = folderDrive ?? this.selectedCacheDatabaseKey() ?? keys[0] ?? null;
-      if (preferred) {
-        this.selectedCacheDatabaseKey.set(preferred);
-        await this.updateCacheSummary(preferred);
-      } else {
-        await this.updateCacheSummary();
-      }
-    } catch (error) {
-      this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
-    }
+    await this.updateCacheSummary(keys);
   };
 
-  private readonly updateCacheSummary = async (requestedDatabaseKey?: string): Promise<void> => {
+  private readonly updateCacheSummary = async (requestedKeys?: string[], force = false): Promise<void> => {
     const folder = this.cacheFolderPath().trim();
     const folderDrive = /^[a-z]:/i.test(folder) ? folder.slice(0, 2).toUpperCase() : null;
-    const databaseKey = requestedDatabaseKey ?? this.selectedCacheDatabaseKey() ?? folderDrive ?? this.favoriteCacheDatabaseKeys()[0];
+    const keys = [...new Set([...(requestedKeys ?? this.favoriteCacheDatabaseKeys()), folderDrive]
+      .filter((key): key is string => !!key && /^[A-Z]:$/.test(key)))].sort();
+    const signature = keys.join('|');
+    if (!force && signature === this.cacheSummaryLoadedKey && this.cacheSummaryColumns().length === keys.length) return;
+
     const requestId = ++this.cacheSummaryRequestId;
-    if (!databaseKey) {
-      this.cacheSummary.set({
-        total: { entries: 0, bytes: 0 }, fullSize: { entries: 0, bytes: 0 },
-        thumbnails: { entries: 0, bytes: 0 }, sidecar: { entries: 0, bytes: 0 },
-        gps: { entries: 0, bytes: 0 }, selectedDatabaseKey: null, databases: []
-      });
-      this.gpxCacheSummary.set({ files: 0, segments: 0, points: 0 });
-      this.cacheSummaryError.set(null);
+    this.cacheSummaryLoading.set(keys.length > 0);
+    this.cacheSummaryLoadingDrives.set(keys);
+    this.cacheSummaryError.set(null);
+    if (!keys.length) {
+      this.cacheSummaryColumns.set([]);
       this.cacheSummaryLoading.set(false);
+      this.cacheSummaryLoadedKey = '';
       return;
     }
-    this.cacheSummaryLoading.set(true);
+
     try {
-      const [summary, gpxSummary] = await Promise.all([
-        this.cacheManager.getCacheSummary(databaseKey),
-        this.cacheManager.getGpxDatabaseStats(databaseKey)
-      ]);
+      // Load every drive once and keep the results side by side. Changing the
+      // visible comparison no longer starts another expensive filesystem scan.
+      const columns = await Promise.all(keys.map(async key => {
+        const [summary, gpx] = await Promise.all([
+          this.cacheManager.getCacheSummary(key),
+          this.cacheManager.getGpxDatabaseStats(key)
+        ]);
+        return { key, summary, gpx };
+      }));
       if (requestId === this.cacheSummaryRequestId) {
-        this.cacheSummary.set(summary);
-        this.gpxCacheSummary.set(gpxSummary);
-        if (!this.selectedCacheDatabaseKey() || !summary.databases.some(database => database.key === this.selectedCacheDatabaseKey())) {
-          this.selectedCacheDatabaseKey.set(summary.selectedDatabaseKey);
-        }
+        this.cacheSummaryColumns.set(columns);
+        this.cacheSummaryLoadedKey = signature;
         this.cacheSummaryError.set(null);
       }
     } catch (error) {
       if (requestId === this.cacheSummaryRequestId) {
         this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
+        this.cacheSummaryLoadedKey = '';
       }
     } finally {
-      if (requestId === this.cacheSummaryRequestId) this.cacheSummaryLoading.set(false);
+      if (requestId === this.cacheSummaryRequestId) {
+        this.cacheSummaryLoading.set(false);
+        this.cacheSummaryLoadingDrives.set([]);
+      }
     }
   };
 
