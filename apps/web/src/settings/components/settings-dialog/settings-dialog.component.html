@@ -10,49 +10,68 @@
         <summary>Summary</summary>
         <div class="cache-summary-content">
           @if (cacheSummaryLoading()) {
-            <p class="cache-status" role="status">Updating cache summary…</p>
+            <p class="cache-status" role="status">Updating cache summary… ({{ cacheSummaryLoadingDrives().join(', ') }})</p>
           }
           @if (cacheSummaryError()) {
             <p class="cache-status error" role="alert">Could not load cache summary: {{ cacheSummaryError() }}</p>
           }
-          <label class="cache-summary-database-select">
-            <span>Cache database</span>
-            <select [value]="selectedCacheDatabaseKey() ?? ''" (change)="selectCacheDatabase($any($event.target).value)"
-                    [disabled]="cacheSummaryLoading() || cacheSummary().databases.length === 0">
-              @for (database of cacheSummary().databases; track database.key) {
-                <option [value]="database.key">{{ database.key }} · {{ database.path }}</option>
-              } @empty {
-                <option value="">No cache databases found</option>
-              }
-            </select>
-          </label>
-          <div class="cache-summary-category">
-            <span>Total cache entries</span>
-            <strong>{{ cacheSummary().total.entries }} files · {{ cacheSummary().total.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Full-size conversions</span>
-            <strong>{{ cacheSummary().fullSize.entries }} files · {{ cacheSummary().fullSize.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Thumbnail files</span>
-            <strong>{{ cacheSummary().thumbnails.entries }} files · {{ cacheSummary().thumbnails.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Sidecar cache</span>
-            <strong>{{ cacheSummary().sidecar.entries }} files · {{ cacheSummary().sidecar.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>Entries with valid GPS coordinates (source files)</span>
-            <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
-          </div>
-          <div class="cache-summary-category">
-            <span>GPX track data</span>
-            <strong>{{ gpxCacheSummary().files }} files · {{ gpxCacheSummary().segments }} segments · {{ gpxCacheSummary().points }} points</strong>
-          </div>
+          @if (cacheSummaryColumns().length) {
+            <div class="cache-summary-table-scroll">
+              <table class="cache-summary-comparison">
+                <thead>
+                  <tr>
+                    <th scope="col">Metric</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <th scope="col">{{ column.key }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Total cache entries</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td><strong>{{ column.summary.total.entries }} files · {{ column.summary.total.bytes | byteSize }}</strong></td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">Full-size conversions</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.fullSize.entries }} files · {{ column.summary.fullSize.bytes | byteSize }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">Thumbnail files</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.thumbnails.entries }} files · {{ column.summary.thumbnails.bytes | byteSize }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">Sidecar cache</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.sidecar.entries }} files · {{ column.summary.sidecar.bytes | byteSize }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">Entries with valid GPS coordinates</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.gps.entries }} files · {{ column.summary.gps.bytes | byteSize }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">GPX track data</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.gpx.files }} files · {{ column.gpx.segments }} segments · {{ column.gpx.points }} points</td>
+                    }
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          } @else if (!cacheSummaryLoading()) {
+            <p class="cache-status">No cache databases found in the selected or favorite drives.</p>
+          }
           <div class="cache-summary-databases">
             <strong>SQLite database files</strong>
-            @for (database of cacheSummary().databases; track database.path) {
+            @for (database of cacheSummaryDatabaseFiles(); track database.path) {
               <div class="cache-summary-database">
                 <code>{{ database.path }}</code>
                 <span>{{ database.bytes | byteSize }}</span>
