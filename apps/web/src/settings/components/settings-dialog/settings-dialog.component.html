@@ -46,6 +46,10 @@
             <span>Entries with valid GPS coordinates (source files)</span>
             <strong>{{ cacheSummary().gps.entries }} files · {{ cacheSummary().gps.bytes | byteSize }}</strong>
           </div>
+          <div class="cache-summary-category">
+            <span>GPX track data</span>
+            <strong>{{ gpxCacheSummary().files }} files · {{ gpxCacheSummary().segments }} segments · {{ gpxCacheSummary().points }} points</strong>
+          </div>
           <div class="cache-summary-databases">
             <strong>SQLite database files</strong>
             @for (database of cacheSummary().databases; track database.path) {
