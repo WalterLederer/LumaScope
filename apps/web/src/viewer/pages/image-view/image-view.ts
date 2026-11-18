@@ -621,9 +621,13 @@ export class ImageView {
   protected readonly photoDatabaseRecordEntries = computed(() => {
     const record = this.photoDatabaseRecord();
     if (!record) return [];
-    return Object.entries(record)
-      .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'))
-      .map(([key, value]) => {
+    const entries = Object.entries(record)
+      .filter(([key]) => key !== 'database_path' && key !== 'location_name_display' && !key.endsWith('_expanded') && !key.endsWith('_type') && !key.endsWith('_name'));
+    const relativeFolderEntry = entries.find(([key]) => key === 'relative_folder_path');
+    const orderedEntries = entries.filter(([key]) => key !== 'relative_folder_path');
+    const pathIdIndex = orderedEntries.findIndex(([key]) => key === 'path_id');
+    if (relativeFolderEntry) orderedEntries.splice(pathIdIndex >= 0 ? pathIdIndex + 1 : 0, 0, relativeFolderEntry);
+    return orderedEntries.map(([key, value]) => {
         const timestampValue = typeof value === 'number' && Number.isFinite(value)
           ? key === 'gps_timestamp' ? value * 1000
             : ['modified_at', 'location_lookup_attempted_at', 'captured_at_ms'].includes(key) ? value
