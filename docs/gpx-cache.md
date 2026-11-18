@@ -26,7 +26,7 @@ The import does not copy, move, rename or modify the original GPX files.
 4. LumaScope recursively searches that folder and its eligible subfolders for files with the `.gpx` extension.
 5. For automatic photo location correction, import GPX data into the photo folder's drive or any drive referenced by a Gallery favorite. The refresh control lists those cache database files and shows each file path, SQLite file size, cached photo count, and GPX file/segment/point totals.
 
-The GPX totals are counts for each listed drive's cache database, not just for the most recently selected folder. The folder picker can be cancelled without changing the database.
+The GPX totals are counts for each listed drive's cache database, not just for the most recently selected folder. The summary also distinguishes all stored points from timestamped points, which are required for automatic photo location matching. The folder picker can be cancelled without changing the database.
 
 ### Folder traversal
 
