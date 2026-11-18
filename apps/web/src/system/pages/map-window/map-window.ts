@@ -6491,7 +6491,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return arrows;
   }
-  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle' | 'active'>>): void {
+  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
@@ -7338,7 +7338,7 @@ export class MapWindow implements OnInit, OnDestroy {
     else if (patch.active !== undefined) this.changeGpxTrackActive(path, patch.active);
     else this.updateGpxTrack(path, patch);
   };
-  protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
+  protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
     if (databasePath) this.gpxDatabaseTrackSettings.set(databasePath, { ...this.gpxDatabaseTrackSettings.get(databasePath), ...patch });
     const tracks = this.gpxDatabaseTracks().map(track => track.path === path ? { ...track, ...patch } : track);
