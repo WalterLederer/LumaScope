@@ -1114,7 +1114,7 @@ export class ImageView {
 
     // Match the timestamp priority used by GPS Auto Fix, including camera
     // timestamps embedded in filenames (important for Android/ADB copies).
-    const filenameDateMatch = fileName.match(/(?:^|[^0-9])(\\d{4})(\\d{2})(\\d{2})[_-]?(\\d{2})(\\d{2})(\\d{2})(?=[^0-9]|$)/);
+    const filenameDateMatch = fileName.match(/(?:^|[^0-9])(\d{4})(\d{2})(\d{2})[_-]?(\d{2})(\d{2})(\d{2})(?=[^0-9]|$)/);
     let filenameTimestamp: Date | null = null;
     if (filenameDateMatch) {
       const [, year, month, day, hour, minute, second] = filenameDateMatch;
