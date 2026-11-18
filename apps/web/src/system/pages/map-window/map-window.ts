@@ -285,7 +285,7 @@ interface MapErrorEntry {
                     <table class="fix-location-report">
                       <tbody>
                         @for (item of autoFixReport(); track item.label) {
-                          <tr><th scope="row">{{ item.label }}</th><td>{{ item.value }}</td></tr>
+                          <tr [class.fix-location-report-row-matched]="item.label === 'Photos matched to GPX within the time limit' && item.value !== '0'"><th scope="row">{{ item.label }}</th><td>{{ item.value }}</td></tr>
                         }
                       </tbody>
                     </table>
