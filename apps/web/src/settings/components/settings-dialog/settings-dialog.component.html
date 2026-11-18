@@ -175,7 +175,7 @@
           @if (reverseGeocodingStatus().paused) {
             <p class="reverse-geocoding-note">Paused. Pending lookups will resume only after you press Resume. No provider request is currently being processed.</p>
           } @else if (reverseGeocodingStatus().status === 'running') {
-            <p class="reverse-geocoding-note">Running. The current request and queued provider requests are being processed. Remaining pending images are not automatically queued.</p>
+            <p class="reverse-geocoding-note">Running. The current request and queued provider requests are being processed. Remaining pending images are not automatically queued. Use Build cache to process pending entries.</p>
           } @else if (reverseGeocodingStatus().pending > 0) {
             <p class="reverse-geocoding-note">Idle - {{ reverseGeocodingStatus().pending }} images are unresolved but are not currently queued. They will not start automatically; use Resolve locations to process them, or browse images to trigger individual lookups.</p>
           } @else if (reverseGeocodingStatus().status === 'completed') {
