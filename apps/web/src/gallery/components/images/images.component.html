@@ -9,53 +9,42 @@
         <span>Thumb</span>
         <small>{{ dimensions().width }} × {{ dimensions().height }} px</small>
       </span>
-      <span class="detail-column-heading">
-        <span>Name</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('name')">Name</button>
         <small class="column-count">{{ cacheStats().total }}</small>
         <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
       </span>
-      <span class="detail-column-heading">
-        <span>Date</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('date')">Date</button>
         <small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small>
       </span>
-      <span class="detail-column-heading">
-        <span>GPS Date</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('gpsDate')">GPS Date</button>
         <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
         <small class="column-summary">Different: {{ cacheStatusLoading() ? "…" : gpsDateDifferenceCount() }}</small>
       </span>
-      <span class="detail-column-heading">
-        <span>Dimensions</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('dimensions')">Dimensions</button>
         <small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small>
       </span>
-      <span class="detail-column-heading">
-        <span>File size</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('size')">File size</button>
         <small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small>
       </span>
-      <span class="detail-column-heading">
-        <span>Suffix</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('suffix')">Suffix</button>
         <small class="column-count">{{ distinctSuffixCount() }}</small>
       </span>
-      <span class="detail-column-heading">
-        <span>HDR</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('hdr')">HDR</button>
         <small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small>
       </span>
-      <span class="detail-column-heading">
-        <span>Thumb</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('thumb')">Thumb</button>
         <small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small>
       </span>
-      <span class="detail-column-heading">
-        <span>Full-Size Conversion</span>
+      <span class="detail-column-heading"><button type="button" (click)="sortDetailBy('fullSize')">Full-Size Conversion</button>
         <small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small>
       </span>
-      <span class="count-heading">
-        <span>GPS coordinates</span>
+      <span class="count-heading"><button type="button" (click)="sortDetailBy('gps')">GPS coordinates</button>
         <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
         @if (cacheRunActive()) {
           <small class="worker-progress" aria-live="polite">Running: {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
         }
       </span>
-      <span class="count-heading">
-        <span>Location</span>
+      <span class="count-heading"><button type="button" (click)="sortDetailBy('location')">Location</button>
         <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
         @if (reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused) {
           <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
