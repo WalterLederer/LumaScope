@@ -785,7 +785,7 @@ export class SettingsPanelComponent {
     this.lastClearResult.set(null);
     this.clearError.set(null);
     const startedAt = performance.now();
-    const started = new Date().toLocaleString();
+    const started = new Date().toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
     this.deleteCacheSummary.set(`${operation} started: ${started}\nScope: ${scope}\nWaiting for completion…`);
 
     try {
