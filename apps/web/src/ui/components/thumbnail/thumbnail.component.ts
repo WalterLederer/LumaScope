@@ -114,6 +114,33 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly cacheUpdated = output<string>();
 
+  readonly cacheFolderRequested = output<void>();
+
+  readonly reCacheFileRequested = output<FileInfo>();
+
+  readonly reCacheFolderRequested = output<void>();
+
+  private closeRowActionMenu = (): void => {
+    this.rowActionMenuOpen.set(false);
+    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+  };
+
+  readonly requestCacheFolder = (): void => {
+    this.closeRowActionMenu();
+    this.cacheFolderRequested.emit();
+  };
+
+  readonly requestReCacheFile = (): void => {
+    const image = this.image();
+    this.closeRowActionMenu();
+    this.reCacheFileRequested.emit(image);
+  };
+
+  readonly requestReCacheFolder = (): void => {
+    this.closeRowActionMenu();
+    this.reCacheFolderRequested.emit();
+  };
+
   readonly toggleRowActionMenu = (event: MouseEvent): void => {
     event.stopPropagation();
     if (this.rowActionMenuOpen()) {
@@ -127,7 +154,7 @@ export class ThumbnailComponent implements OnDestroy {
     ThumbnailComponent.activeRowActionMenu = this;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const width = Math.min(190, window.innerWidth - 16);
-    const height = 142;
+    const height = 260;
     const top = rect.bottom + height + 8 > window.innerHeight
       ? Math.max(8, rect.top - height - 3)
       : rect.bottom + 3;
@@ -138,8 +165,7 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly copyImagePath = async (): Promise<void> => {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+    this.closeRowActionMenu();
     try {
       await navigator.clipboard.writeText(this.image().path);
     } catch (error) {
@@ -148,23 +174,20 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly openImagePath = async (): Promise<void> => {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+    this.closeRowActionMenu();
     const folder = await this.fileSystem.dirname(this.image().path);
     const error = await this.processManager.openPath(folder);
     if (error) window.alert(error);
   };
 
   readonly openImageFile = async (): Promise<void> => {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+    this.closeRowActionMenu();
     const error = await this.processManager.openPath(this.image().path);
     if (error) window.alert(error);
   };
 
   readonly deleteImageFile = async (): Promise<void> => {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
+    this.closeRowActionMenu();
     const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
     if (deleted === false) window.alert('The image could not be deleted.');
   };
