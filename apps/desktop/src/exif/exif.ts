@@ -171,36 +171,52 @@ export class Exif {
             continue;
           }
           result.withoutGps++;
-          if (metadata.gpsTimestamp === null) {
+          // GPS-less photos often have no usable EXIF capture timestamp. Use the
+          // filesystem's last-modified time as a fallback so they can still be
+          // matched against the GPX track instead of being skipped outright.
+          let photoTimestamp = metadata.gpsTimestamp;
+          let photoTimestampSource = metadata.gpsTimestampSource;
+          let filesystemModifiedAt: string | null = null;
+          if (photoTimestamp === null) {
+            const fileInfo = await stat(path);
+            if (Number.isFinite(fileInfo.mtimeMs) && fileInfo.mtimeMs > 0) {
+              photoTimestamp = Math.floor(fileInfo.mtimeMs / 1000);
+              photoTimestampSource = 'Filesystem:LastModified';
+              filesystemModifiedAt = fileInfo.mtime.toISOString();
+            }
+          }
+          if (photoTimestamp === null) {
             const missingTimestampDetails = {
               photo: path,
               selectedExifTag: metadata.gpsTimestampSource,
               selectedExifRaw: metadata.gpsTimestampRaw,
               allExifTimestampCandidates: metadata.gpsTimestampCandidates,
+              filesystemModifiedAt,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
               localNow: formatOsDateTime(new Date()),
               utcNow: new Date().toISOString()
             };
-            console.info('[Exif GPX time debug] Photo has no usable timestamp:', missingTimestampDetails);
-            await writeGpsDebug('Photo has no usable timestamp:', missingTimestampDetails);
+            console.info('[Exif GPX time debug] Photo has no usable EXIF or filesystem timestamp:', missingTimestampDetails);
+            await writeGpsDebug('Photo has no usable EXIF or filesystem timestamp:', missingTimestampDetails);
             result.unmatched++;
             continue;
           }
           const photoTimestampDetails = {
             photo: path,
-            timestampSeconds: metadata.gpsTimestamp,
-            timestampUtc: new Date(metadata.gpsTimestamp * 1000).toISOString(),
-            timestampLocal: formatOsDateTime(new Date(metadata.gpsTimestamp * 1000)),
-            selectedExifTag: metadata.gpsTimestampSource,
+            timestampSeconds: photoTimestamp,
+            timestampUtc: new Date(photoTimestamp * 1000).toISOString(),
+            timestampLocal: formatOsDateTime(new Date(photoTimestamp * 1000)),
+            selectedExifTag: photoTimestampSource,
             selectedExifRaw: metadata.gpsTimestampRaw,
+            filesystemModifiedAt,
             allExifTimestampCandidates: metadata.gpsTimestampCandidates,
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            localOffsetMinutes: new Date(metadata.gpsTimestamp * 1000).getTimezoneOffset(),
+            localOffsetMinutes: new Date(photoTimestamp * 1000).getTimezoneOffset(),
             maxDifferenceSeconds
           };
           console.info('[Exif GPX time debug] Photo timestamp:', photoTimestampDetails);
           await writeGpsDebug('Photo timestamp:', photoTimestampDetails);
-          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, metadata.gpsTimestamp * 1000, maxDifferenceSeconds);
+          const position = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds);
           if (!position) {
             result.unmatched++;
             continue;
