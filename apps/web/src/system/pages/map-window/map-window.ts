@@ -1553,7 +1553,7 @@ interface MapErrorEntry {
                 <div class="gpx-speed-legend">
                   <strong>{{ track.name }}</strong>
                   <span class="gpx-speed-gradient" [class.cool-warm]="track.speedPalette === 'cool-warm'"></span>
-                  <span>{{ track.speedMinKmh ?? 0 }}–{{ track.speedMaxKmh ?? 120 }} km/h</span>
+                  <span>{{ track.speedMinKmh ?? 0 }}–{{ track.speedMaxKmh ?? 120 }} km/h</span><span class="gpx-speed-no-data" title="Segments without usable timestamps">No time</span>
                 </div>
               }
             </div>
@@ -8018,13 +8018,25 @@ ${points}
     for (const points of pointSegments) {
       let current: { coordinates: [number, number][]; color: string } | null = null;
       const flush = (): void => { if (current && current.coordinates.length >= 2) result.push(current); current = null; };
+      const appendPair = (a: GpxTrackPoint, b: GpxTrackPoint, color: string): void => {
+        const previous = current?.coordinates[current.coordinates.length - 1];
+        if (current && current.color === color && previous?.[0] === a.latitude && previous?.[1] === a.longitude) {
+          current.coordinates.push([b.latitude, b.longitude]);
+        } else {
+          flush();
+          current = { coordinates: [[a.latitude, a.longitude], [b.latitude, b.longitude]], color };
+        }
+      };
       for (let i = 1; i < points.length; i++) {
         const a = points[i - 1], b = points[i];
         if (a.inViewport === false || b.inViewport === false) { flush(); continue; }
         const timeA = a.timestamp ? Date.parse(a.timestamp) : Number.NaN;
         const timeB = b.timestamp ? Date.parse(b.timestamp) : Number.NaN;
         const elapsedMs = timeB - timeA;
-        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || elapsedMs <= 0 || elapsedMs > 30 * 60 * 1000) { flush(); continue; }
+        if (!Number.isFinite(timeA) || !Number.isFinite(timeB) || elapsedMs <= 0 || elapsedMs > 30 * 60 * 1000) {
+          if (!this.timeSliderActive()) appendPair(a, b, '#8a8a8a'); else flush();
+          continue;
+        }
         if (this.timeSliderActive() && (!this.isTimeSliderTimestampVisible(timeA / 1000) || !this.isTimeSliderTimestampVisible(timeB / 1000))) { flush(); continue; }
         const lat1 = a.latitude * radians, lat2 = b.latitude * radians;
         const dLat = lat2 - lat1, dLon = (b.longitude - a.longitude) * radians;
@@ -8033,14 +8045,7 @@ ${points}
         if (!Number.isFinite(distance) || distance < 0.5) { flush(); continue; }
         const speedKmh = distance / (elapsedMs / 1000) * 3.6;
         if (!Number.isFinite(speedKmh) || speedKmh > 300) { flush(); continue; }
-        const color = this.gpxSpeedColor(speedKmh, track);
-        const previous = current?.coordinates[current.coordinates.length - 1];
-        if (current && current.color === color && previous?.[0] === a.latitude && previous?.[1] === a.longitude) {
-          current.coordinates.push([b.latitude, b.longitude]);
-        } else {
-          flush();
-          current = { coordinates: [[a.latitude, a.longitude], [b.latitude, b.longitude]], color };
-        }
+        appendPair(a, b, this.gpxSpeedColor(speedKmh, track));
       }
       flush();
     }
