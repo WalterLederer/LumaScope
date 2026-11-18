@@ -540,9 +540,9 @@ app-map-window {
     & ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
     & ::ng-deep .leaflet-marker-icon.lumascope-marker-cluster{opacity:var(--marker-opacity,1)!important;transition:opacity .12s ease}
     & ::ng-deep .folder-marker-tooltip .leaflet-tooltip-content{margin:0}
-    & ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;gap:4px;max-width:190px}
-    & ::ng-deep .folder-marker-preview img{display:block;width:180px;height:120px;object-fit:cover;border-radius:3px;background:#222}
-    & ::ng-deep .folder-marker-preview span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+    & ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;align-items:stretch;gap:4px;max-width:240px}
+    & ::ng-deep .folder-marker-preview img{display:block;object-fit:cover;border-radius:3px;background:#222}
+    & ::ng-deep .folder-marker-preview span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
     & ::ng-deep .maplibregl-popup.folder-marker-tooltip .maplibregl-popup-content{padding:5px 7px;background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008}
     & ::ng-deep .maplibregl-popup.folder-marker-tooltip .maplibregl-popup-tip{border-top-color:var(--color-surface-default-high,#303238)}
     & ::ng-deep .leaflet-control-attribution{opacity:.28;transition:opacity .18s ease}
