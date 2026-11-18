@@ -80,12 +80,16 @@
     @if (data.id === '') {
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onAddLocation()">
         <ui-icon icon="folderAdd" [inherit]="true" />
-        <ui-text [inherit]="true">Add new location</ui-text>
+        <ui-text [inherit]="true">Add</ui-text>
       </button>
     } @else {
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onRemoveLocation(data)">
         <ui-icon icon="folderProhibited" [inherit]="true" />
-        <ui-text [inherit]="true">Remove</ui-text>
+        <ui-text [inherit]="true">Remove favorite</ui-text>
+      </button>
+      <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onOpenLocationPath(data)">
+        <ui-icon icon="folderOpenFilled" [inherit]="true" />
+        <ui-text [inherit]="true">Open path</ui-text>
       </button>
     }
   </ui-popup-menu>
