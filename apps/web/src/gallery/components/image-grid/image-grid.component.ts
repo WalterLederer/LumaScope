@@ -14,7 +14,7 @@ import {
   TitleComponent,
   ToolbarComponent
 } from '@light-matter/ui';
-import { CacheDirectoryStats, ExifTags, formatOsDateTime } from 'internal-api';
+import { CacheDirectoryStats, ExifTags, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import {
   allSortDirections,
   allSortTypes,
@@ -134,7 +134,7 @@ export class ImageGridComponent {
     return [image.path, modified, size, dimensions, range, gps, location].filter(Boolean).join('  ·  ');
   });
 
-  protected readonly formatOsDateTime = (value: number | Date): string => formatOsDateTime(value);
+  protected readonly formatOsDateTime = (value: number | Date): string => formatSystemDateTime(value);
 
   private readonly formatFileSize = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes < 0) return '';
