@@ -125,6 +125,7 @@ export class ThumbnailComponent implements OnDestroy {
     const top = rect.bottom + height + 8 > window.innerHeight
       ? Math.max(8, rect.top - height - 3)
       : rect.bottom + 3;
+    // Align the popup's right edge with the hamburger at the far-right column.
     const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
     this.rowActionMenuPosition.set({ top, left });
     this.rowActionMenuOpen.set(true);
