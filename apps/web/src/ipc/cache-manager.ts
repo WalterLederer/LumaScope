@@ -46,6 +46,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly clearAllGpxDatabaseEntries = () => window.desktop.CacheManager.clearAllGpxDatabaseEntries();
 
+  readonly deleteGpxDatabaseEntriesForFile = (sourcePath: string, databaseKey?: string) => window.desktop.CacheManager.deleteGpxDatabaseEntriesForFile(sourcePath, databaseKey);
+
   readonly getGpxDatabaseTimeRange = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseTimeRange(databaseKey);
 
   readonly getLatestGpxElevationProfile = (sourcePath?: string) => window.desktop.CacheManager.getLatestGpxElevationProfile(sourcePath);
