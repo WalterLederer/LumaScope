@@ -624,7 +624,7 @@ export class ImageView {
       .map(([key, value]) => {
         const timestampValue = typeof value === 'number' && Number.isFinite(value)
           ? key === 'gps_timestamp' ? value * 1000
-            : ['modified_at', 'location_lookup_attempted_at'].includes(key) ? value
+            : ['modified_at', 'location_lookup_attempted_at', 'captured_at_ms'].includes(key) ? value
               : null
           : null;
         const isTimestamp = timestampValue !== null;
