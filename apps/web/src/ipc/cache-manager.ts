@@ -41,8 +41,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly getGpxFilesInBounds = (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => window.desktop.CacheManager.getGpxFilesInBounds(bounds, databaseKey);
 
-  readonly getInterpolatedGpxPosition = (folder: string, timestampMs: number, maxDifferenceSeconds = 120) =>
-    window.desktop.CacheManager.getInterpolatedGpxPosition(folder, timestampMs, maxDifferenceSeconds);
+  readonly getInterpolatedGpxPosition = (folder: string, timestampMs: number, maxDifferenceSeconds = 120, databaseKey?: string) =>
+    window.desktop.CacheManager.getInterpolatedGpxPosition(folder, timestampMs, maxDifferenceSeconds, databaseKey);
 
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
