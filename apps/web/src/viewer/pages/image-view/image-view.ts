@@ -1014,10 +1014,7 @@ export class ImageView {
   private readonly formatExifXmpDate = (value: unknown): string => {
     const date = this.parseExifXmpDate(value);
     if (!date) return this.formatExifXmpValue('', value);
-    return date.toLocaleString(undefined, {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
+    return date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   };
   private readonly formatExifXmpValue = (key: string, value: unknown): string => {
     if (value === null || value === undefined) return '—';
@@ -1027,7 +1024,7 @@ export class ImageView {
       if (Number.isFinite(Number(item['year'])) && Number.isFinite(Number(item['month'])) && Number.isFinite(Number(item['day']))) {
         const readable = this.formatExifXmpDate(value);
         const raw = typeof item['rawValue'] === 'string' ? item['rawValue'] : JSON.stringify(value);
-        return readable ? raw + ' (' + readable + ')' : raw;
+        return readable !== '—' ? readable : raw;
       }
       const displayValue = String(value);
       if (displayValue !== '[object Object]') return displayValue;
@@ -1035,7 +1032,7 @@ export class ImageView {
     }
     if (/date|time/i.test(key)) {
       const readable = this.formatExifXmpDate(value);
-      if (readable !== '—' && readable !== String(value)) return String(value) + ' (' + readable + ')';
+      if (readable !== '—') return readable;
     }
     return String(value);
   };
@@ -1090,10 +1087,7 @@ export class ImageView {
     rows.push({
       source: 'App',
       name: 'GPS Date',
-      value: selectedTimestamp?.date?.toLocaleString(undefined, {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-      }) ?? '—'
+      value: selectedTimestamp?.date ? date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '—'
     });
 
     const exifLatitudeValue = findTag('GPSLatitude');
