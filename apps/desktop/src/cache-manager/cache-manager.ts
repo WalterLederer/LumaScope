@@ -436,7 +436,7 @@ export class CacheManager {
     }
 
     const folder = resolve(selection.filePaths[0]);
-    const databaseKey = requestedDatabaseKey && /^[a-z]:$/i.test(requestedDatabaseKey) ? requestedDatabaseKey.toUpperCase() : this.databaseKeyForPath(folder);
+    const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(databaseKey + '\\\\');
     this.activeDatabaseKey = databaseKey;
     const driveRoot = resolve(databaseKey + '\\\\');
