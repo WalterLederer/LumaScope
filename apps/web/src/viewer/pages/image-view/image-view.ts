@@ -3495,7 +3495,11 @@ export class ImageView {
     const image = await this.selectedImage$.pipe(take(1)).toPromise();
     if (!image) return;
     const deleted = await this.imageFileActions.confirmAndDelete(image.path);
-    if (!deleted) return;
+    if (deleted === null) return;
+    if (!deleted) {
+      this.document.defaultView?.alert('The image could not be deleted.');
+      return;
+    }
     await this.refreshSourceFileCount(image.path, true);
   };
 
