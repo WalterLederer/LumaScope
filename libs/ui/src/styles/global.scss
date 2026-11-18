@@ -919,11 +919,12 @@ input[type="checkbox"] {
 .ui-checkbox::before,
 input[type="checkbox"]::before {
   content: "";
-  width: 6px;
-  height: 9px;
-  border: solid currentColor;
-  border-width: 0 2px 2px 0;
-  transform: translateY(-1px) rotate(45deg) scale(0);
+  display: block;
+  width: 9px;
+  height: 7px;
+  background: currentColor;
+  clip-path: polygon(0 43%, 13% 29%, 37% 58%, 86% 0, 100% 15%, 39% 100%);
+  transform: translateY(-1px) scale(0);
   transform-origin: center;
   transition: transform 100ms ease;
 }
@@ -937,7 +938,7 @@ input[type="checkbox"]:checked {
 
 .ui-checkbox:checked::before,
 input[type="checkbox"]:checked::before {
-  transform: translateY(-1px) rotate(45deg) scale(1);
+  transform: translateY(-1px) scale(1);
 }
 
 .ui-checkbox:indeterminate,
