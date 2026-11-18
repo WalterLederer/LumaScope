@@ -14,12 +14,16 @@ import { Desktop } from 'internal-api';
         <button type="button" class="routing-help-button" (click)="refreshStats()" [disabled]="busy()" title="Refresh all favorite cache database summaries" aria-label="Refresh all favorite cache database summaries"><span aria-hidden="true">⟳</span></button>
         <div class="gpx-database-statistics-list" aria-live="polite">
           <strong class="gpx-database-statistics-heading">Favorite cache databases and selected drive</strong>
+          @if (statsLoading()) {
+            <span class="gpx-database-statistics">Loading favorite cache databases…</span>
+          } @else {
           @for (item of databaseStats(); track item.key) {
             <span class="gpx-database-statistics" title="GPX data and cache summary for this favorite drive">
               {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · Cache {{ item.cacheEntries.toLocaleString() }} files / {{ item.cacheBytes.toLocaleString() }} bytes · Full-size {{ item.fullSizeEntries.toLocaleString() }} / {{ item.fullSizeBytes.toLocaleString() }} bytes · Thumbnails {{ item.thumbnailEntries.toLocaleString() }} / {{ item.thumbnailBytes.toLocaleString() }} bytes · Sidecar {{ item.sidecarEntries.toLocaleString() }} / {{ item.sidecarBytes.toLocaleString() }} bytes · GPS {{ item.gpsEntries.toLocaleString() }} / {{ item.gpsBytes.toLocaleString() }} bytes · GPX {{ item.files.toLocaleString() }} files / {{ item.segments.toLocaleString() }} segments / {{ item.points.toLocaleString() }} points / {{ item.timestampedPoints.toLocaleString() }} timestamped
             </span>
           } @empty {
             <span class="gpx-database-statistics">No favorite cache databases found.</span>
+          }
           }
         </div>
       </div>
@@ -33,30 +37,39 @@ import { Desktop } from 'internal-api';
 export class GpxDatabaseImportComponent implements OnInit, OnChanges {
   @Input() databaseKey: string | undefined;
   @Input() databaseKeys: string[] = [];
+  @Input() databaseKeysReady = false;
   @Output() readonly help = new EventEmitter<void>();
 
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private effectiveDatabaseKey: string | undefined;
   protected readonly databaseStats = signal<Array<{ key: string; path: string; databaseBytes: number; cacheEntries: number; cacheBytes: number; fullSizeEntries: number; fullSizeBytes: number; thumbnailEntries: number; thumbnailBytes: number; sidecarEntries: number; sidecarBytes: number; gpsEntries: number; gpsBytes: number; files: number; segments: number; points: number; timestampedPoints: number }>>([]);
   protected readonly busy = signal(false);
+  protected readonly statsLoading = signal(false);
+  private statsRequestId = 0;
   protected readonly status = signal('');
 
   ngOnInit(): void {
     this.effectiveDatabaseKey = this.databaseKey;
-    void this.refreshStats();
+    if (this.databaseKeysReady) void this.refreshStats();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['databaseKey'] && !changes['databaseKey'].firstChange) || (changes['databaseKeys'] && !changes['databaseKeys'].firstChange)) {
+    if (changes['databaseKey'] || changes['databaseKeys'] || changes['databaseKeysReady']) {
       this.effectiveDatabaseKey = this.databaseKey;
-      void this.refreshStats();
+      if (this.databaseKeysReady) void this.refreshStats();
     }
   }
 
   protected readonly refreshStats = async (): Promise<void> => {
-    if (!this.desktop) return;
+    if (!this.desktop || !this.databaseKeysReady) return;
+    const requestId = ++this.statsRequestId;
+    this.statsLoading.set(true);
     try {
       const keys = [...new Set([...(this.databaseKeys ?? []), this.effectiveDatabaseKey].filter((key): key is string => !!key && /^[a-z]:$/i.test(key)).map(key => key.toUpperCase()))].sort();
+      if (keys.length === 0) {
+        if (requestId === this.statsRequestId) this.databaseStats.set([]);
+        return;
+      }
       const stats = await Promise.all(keys.map(async key => {
         const [gpx, summary] = await Promise.all([
           this.desktop!.CacheManager.getGpxDatabaseStats(key),
@@ -80,9 +93,11 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
           ...gpx
         };
       }));
-      this.databaseStats.set(stats);
+      if (requestId === this.statsRequestId) this.databaseStats.set(stats);
     } catch (error) {
-      this.status.set(error instanceof Error ? error.message : String(error));
+      if (requestId === this.statsRequestId) this.status.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (requestId === this.statsRequestId) this.statsLoading.set(false);
     }
   };
 
