@@ -52,6 +52,14 @@ The report includes:
 
 The min/mean/max deviation statistics include all usable GPX candidates, including candidates rejected by the configured time limit. This makes it possible to assess how close the rejected candidates were.
 
+### Interpreting GPS availability and match results
+
+**GPS availability** refers only to coordinates embedded directly in the photo file's metadata (EXIF/XMP). It does not refer to GPS records stored in the LumaScope cache database. Photos whose files already contain GPS coordinates are counted separately and skipped; their coordinates are not overwritten.
+
+A usable GPX match requires track points both before and after the photo timestamp, with both points belonging to the same track segment. **No usable GPX match** means that no such bracketing pair was found within the candidate search window. **Rejected by the time limit** counts candidates for which a valid pair was found, but whose nearest track point was farther from the photo timestamp than the configured maximum time difference.
+
+**Check only** reports the scan and matching results without writing changes to photo files. EXIF timestamps that do not contain an explicit timezone are interpreted in the computer's local timezone.
+
 ## GPS Auto Fix log file
 
 In addition to the on-screen status report, GPS Auto Fix writes its diagnostic information to:
