@@ -464,7 +464,7 @@ export class SettingsPanelComponent {
     const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
       const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
       this.favoriteCacheDatabaseKeys.set(keys);
-      void this.loadFavoriteCacheDatabases(keys);
+      if (this.mode() === 'cache') void this.loadFavoriteCacheDatabases(keys);
     });
     destroyRef.onDestroy(() => favoriteLocationsSubscription.unsubscribe());
     effect(() => this.cacheFolderPath.set(this.currentFolderPath()));
