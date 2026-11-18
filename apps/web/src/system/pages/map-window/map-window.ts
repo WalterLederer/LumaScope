@@ -405,7 +405,7 @@ interface MapErrorEntry {
                   }
                 } @else {
                   <select class="gpx-db-select" [value]="track.speedPalette || 'spectrum'" (change)="changeGpxListTrack(track.path, { speedPalette: $any($event.target).value })" [attr.aria-label]="'Speed color palette for ' + track.name"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option></select>
-                  <div class="gpx-speed-range-controls"><label><span>Min</span><input type="number" min="0" max="299" step="5" [value]="track.speedMinKmh ?? 0" (change)="changeGpxListTrack(track.path, { speedMinKmh: +$any($event.target).value })" [attr.aria-label]="'Minimum speed for ' + track.name"></label><label><span>Max</span><input type="number" min="1" max="300" step="5" [value]="track.speedMaxKmh ?? 120" (change)="changeGpxListTrack(track.path, { speedMaxKmh: +$any($event.target).value })" [attr.aria-label]="'Maximum speed for ' + track.name"></label></div>
+                  <div class="gpx-speed-range-controls"><label><span>Min</span><input type="number" min="0" max="299" step="5" [value]="track.speedMinKmh ?? 0" (change)="changeGpxSpeedRange(track.path, 'min', $any($event.target).value)" [attr.aria-label]="'Minimum speed for ' + track.name"></label><label><span>Max</span><input type="number" min="1" max="300" step="5" [value]="track.speedMaxKmh ?? 120" (change)="changeGpxSpeedRange(track.path, 'max', $any($event.target).value)" [attr.aria-label]="'Maximum speed for ' + track.name"></label></div>
                 }
               </div>
               <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxListTrack(track.path, { lineStyle: $any($event.target).value })" [attr.aria-label]="'Line style for ' + track.name">
@@ -7368,6 +7368,23 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     this.gpxDatabaseSettingsWriteQueue = operation.catch(error => console.error('[GPX] Could not save database track settings:', error));
   }
+
+  protected readonly changeGpxSpeedRange = (path: string, bound: 'min' | 'max', value: string): void => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return;
+    const tracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    const track = tracks.find(item => item.path === path);
+    if (!track) return;
+    const currentMin = track.speedMinKmh ?? 0;
+    const currentMax = track.speedMaxKmh ?? 120;
+    if (bound === 'min') {
+      const speedMinKmh = Math.max(0, Math.min(299, Math.round(numeric)));
+      this.changeGpxListTrack(path, { speedMinKmh, speedMaxKmh: Math.max(currentMax, speedMinKmh + 1) });
+    } else {
+      const speedMaxKmh = Math.max(1, Math.min(300, Math.round(numeric)));
+      this.changeGpxListTrack(path, { speedMaxKmh, speedMinKmh: Math.min(currentMin, speedMaxKmh - 1) });
+    }
+  };
 
   protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'speedMinKmh' | 'speedMaxKmh' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
