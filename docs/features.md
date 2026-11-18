@@ -62,6 +62,7 @@ The Image section is divided into focused sub-tabs:
 - Image dimensions and loading/conversion timing information.
 - EXIF and other supported metadata.
 - GPS coordinates and location-related metadata.
+- The **Detailed Metadata Report** includes the resolved **GPS Date** and a **GPS Date Source** row. Its source priority is EXIF `GPSDateTime`, XMP `GPSDateTime`, EXIF `DateTimeOriginal`, XMP `DateCreated`, EXIF `CreateDate`, a validated camera timestamp in the filename (`YYYYMMDD_HHmmss`), and finally the filesystem last-modified timestamp (`FileModifyDate`). Filename timestamps are interpreted as camera-local time. The first valid timestamp is selected.
 - SQLite photo-record inspection and refresh.
 - Cache status for thumbnails and full-size conversions.
 
