@@ -2,12 +2,10 @@ import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { dirname, extname, join, relative, resolve } from 'node:path';
-import { ApiResponse, ExifTags, FixPhotoLocationsResult } from 'internal-api';
+import { ApiResponse, ExifTags, FixPhotoLocationsResult, formatOsDateTime } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
-
-const formatLocalDateTime = (date: Date): string => date.toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
 
 export class Exif {
   private readonly cancelledLocationFixes = new Set<string>();
@@ -141,7 +139,7 @@ export class Exif {
       const cacheManager = injector.inject('CacheManager');
       try {
         await cacheManager.resetGpsAutoFixDebug([
-          `GPS Auto Fix debug started: ${formatLocalDateTime(new Date())}`,
+          `GPS Auto Fix debug started: ${formatOsDateTime(new Date())}`,
           `Folder: ${root}`,
           `Check only: ${checkOnly}`,
           `Maximum time difference: ${maxDifferenceSeconds} seconds`,
@@ -155,7 +153,7 @@ export class Exif {
       }
       const writeGpsDebug = async (label: string, details: unknown): Promise<void> => {
         try {
-          await cacheManager.appendGpsAutoFixDebug(`[${formatLocalDateTime(new Date())}] ${label} ${JSON.stringify(details)}`);
+          await cacheManager.appendGpsAutoFixDebug(`[${formatOsDateTime(new Date())}] ${label} ${JSON.stringify(details)}`);
         } catch (logError) {
           console.warn('[Exif] Could not write GPS Auto Fix debug log:', logError);
         }
@@ -180,7 +178,7 @@ export class Exif {
               selectedExifRaw: metadata.gpsTimestampRaw,
               allExifTimestampCandidates: metadata.gpsTimestampCandidates,
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              localNow: formatLocalDateTime(new Date()),
+              localNow: formatOsDateTime(new Date()),
               utcNow: new Date().toISOString()
             };
             console.info('[Exif GPX time debug] Photo has no usable timestamp:', missingTimestampDetails);
@@ -192,7 +190,7 @@ export class Exif {
             photo: path,
             timestampSeconds: metadata.gpsTimestamp,
             timestampUtc: new Date(metadata.gpsTimestamp * 1000).toISOString(),
-            timestampLocal: formatLocalDateTime(new Date(metadata.gpsTimestamp * 1000)),
+            timestampLocal: formatOsDateTime(new Date(metadata.gpsTimestamp * 1000)),
             selectedExifTag: metadata.gpsTimestampSource,
             selectedExifRaw: metadata.gpsTimestampRaw,
             allExifTimestampCandidates: metadata.gpsTimestampCandidates,
