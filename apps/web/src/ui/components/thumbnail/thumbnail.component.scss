@@ -157,6 +157,11 @@
     padding-left: 0;
   }
 
+  .detail-columns > .cache-valid {
+    color: #2e9d50;
+    font-weight: 600;
+  }
+
   .detail-name {
     color: var(--color-content-primary-high);
     font-weight: 600;
