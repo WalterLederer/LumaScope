@@ -152,9 +152,15 @@ export class ImagesComponent {
   };
 
   /* Computed */
-  readonly distinctSuffixCount = computed(() => new Set(
+  readonly distinctSuffixes = computed(() => [...new Set(
     (this.images() ?? []).map(image => this.getSuffix(image.name)).filter(suffix => suffix.length > 0)
-  ).size);
+  )].sort((left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' })));
+  readonly distinctSuffixCount = computed(() => this.distinctSuffixes().length);
+  readonly distinctSuffixTooltip = computed(() => {
+    const suffixes = this.distinctSuffixes();
+    const count = suffixes.length;
+    return `${count} suffix${count === 1 ? '' : 'es'} found: ${suffixes.join(', ')}`;
+  });
   readonly unsupportedSuffixCount = signal(0);
   readonly unsupportedSuffixes = signal<string[]>([]);
   private getSuffix(name: string): string {
