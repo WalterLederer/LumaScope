@@ -6243,6 +6243,21 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.fitGpxTrack();
+
+    // Keep the per-drive GPX cache in sync with tracks added directly from files.
+    const cachePaths = added.map(track => track.path).filter(path => !path.startsWith('memory:'));
+    if (this.desktop && cachePaths.length > 0) {
+      try {
+        const result = await this.desktop.CacheManager.importGpxFiles(cachePaths);
+        if (result.errors > 0) {
+          this.gpxError.set(`GPX cache import completed with ${result.errors} error(s).`);
+        }
+        const importedDrives = [...new Set(cachePaths.map(path => path.slice(0, 2).toUpperCase()))];
+        await this.refreshLatestGpxElevationProfile(importedDrives[0]);
+      } catch (error) {
+        this.gpxError.set(`Could not update the GPX cache: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }
 
   protected readonly openGpxTrack = async (track: GpxTrackFile): Promise<void> => {
