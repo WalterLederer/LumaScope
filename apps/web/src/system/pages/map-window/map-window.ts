@@ -380,11 +380,11 @@ interface MapErrorEntry {
               <div class="color-picker gpx-track-color-picker" role="cell">
                 <select class="gpx-db-select gpx-color-mode-select" [value]="track.colorMode || 'fixed'" (change)="changeGpxListTrack(track.path, { colorMode: $any($event.target).value })" [attr.aria-label]="'Color mode for ' + track.name"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option></select>
                 @if (track.colorMode !== 'speed') {
-                  <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
+                  <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path, $event)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
                     <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
                   </button>
                   @if (gpxTrackColorMenuOpen() === track.path) {
-                    <div class="color-picker-menu" role="listbox" [attr.aria-label]="'Colors for ' + track.name">
+                    <div class="color-picker-menu gpx-track-color-menu-floating" role="listbox" [attr.aria-label]="'Colors for ' + track.name" [style.top.px]="gpxTrackColorMenuPosition().top" [style.left.px]="gpxTrackColorMenuPosition().left">
                       @for (color of gpxColors; track color.value) {
                         <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxListTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
                           <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
@@ -2343,6 +2343,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerColorMenuOpen = signal(false);
   protected readonly currentMarkerColorMenuOpen = signal(false);
   protected readonly gpxTrackColorMenuOpen = signal<string | null>(null);
+  protected readonly gpxTrackColorMenuPosition = signal({ top: 8, left: 8 });
   protected readonly autoFixLogMenuOpen = signal(false);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
@@ -2378,6 +2379,28 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly hasVisibleOfflineFiles = (): boolean => this.filteredOffline().some(map => map.available) || this.filteredHillshadeDatabases().some(database => database.available);
   protected readonly hasAllOfflineFiles = (): boolean => this.offlineMaps().some(map => map.available) || this.hillshadeDatabases().some(database => database.available);
+  protected readonly toggleGpxTrackColorMenu = (path: string, event: MouseEvent): void => {
+    if (this.gpxTrackColorMenuOpen() === path) { this.gpxTrackColorMenuOpen.set(null); return; }
+    const pointer = { x: event.clientX, y: event.clientY };
+    this.gpxTrackColorMenuOpen.set(path);
+    this.gpxTrackColorMenuPosition.set(this.getRowActionMenuPosition(event, 190, 300, true));
+    // Render as a viewport-level overlay so the scrollable GPX list cannot clip it.
+    requestAnimationFrame(() => {
+      if (this.gpxTrackColorMenuOpen() !== path) return;
+      const menu = document.querySelector<HTMLElement>('.gpx-track-color-menu-floating');
+      if (!menu) return;
+      const rect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      let left = pointer.x + 4;
+      if (left + rect.width > viewportWidth - 8) left = pointer.x - rect.width - 4;
+      left = Math.max(8, Math.min(left, Math.max(8, viewportWidth - rect.width - 8)));
+      let top = pointer.y + 4;
+      if (top + rect.height > viewportHeight - 8) top = pointer.y - rect.height - 4;
+      top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - rect.height - 8)));
+      this.gpxTrackColorMenuPosition.set({ top, left });
+    });
+  };
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
