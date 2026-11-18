@@ -1022,6 +1022,7 @@ ipcMain.handle('Loupe.capture', async () => {
       electron: process.versions.electron,
       node: process.versions.node,
       electronGpuInfo: captureGpuInfo,
+      electronGpuFeatureStatus: app.getGPUFeatureStatus(),
       monitorHdrModes,
       selectedMonitorHdrMode: monitorHdrModes[selectedMonitorDevice] === undefined ? 'Unknown' : monitorHdrModes[selectedMonitorDevice] ? 'HDR' : 'SDR',
       captureApiSupport: captureApiSupport(),
