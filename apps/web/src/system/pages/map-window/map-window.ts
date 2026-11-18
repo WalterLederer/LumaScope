@@ -417,6 +417,8 @@ interface MapErrorEntry {
           <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
                [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
+            <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
+                    [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⇩</span> Export from db</button>
             @if (gpxListMode() === 'recent') {
               <button type="button" role="menuitem" (click)="openGpxTrack(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="actionTrack.missing || actionTrack.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
               <button type="button" role="menuitem" (click)="removeGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">×</span> Remove track</button>
@@ -2405,7 +2407,24 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
-    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 245 : 115, true));
+    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 285 : 155, true));
+  };
+  protected readonly exportGpxFromDatabase = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop || track.path.startsWith('memory:')) return;
+    const sourcePath = track.databasePath || track.path;
+    const absolutePath = /^[a-z]:[\\/]/i.test(sourcePath);
+    const databaseKey = absolutePath
+      ? sourcePath.slice(0, 2).toUpperCase()
+      : this.trackGpxDatabaseKey()
+        ?? this.gpxTracks().find(item => /^[a-z]:[\\/]/i.test(item.path))?.path.slice(0, 2).toUpperCase();
+    try {
+      const result = await this.desktop.CacheManager.exportGpxFileFromDatabase(sourcePath, databaseKey);
+      if (!result.cancelled && result.path) {
+        this.gpxDatabaseQueryStatus.set(`Exported ${result.points.toLocaleString()} points (${result.elevationPoints.toLocaleString()} elevation values) to ${result.path}`);
+      }
+    } catch (error) {
+      this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
   };
   protected readonly toggleRoutePointActionMenu = (index: number, event: MouseEvent): void => {
     if (this.routePointActionMenuOpen() === index) { this.routePointActionMenuOpen.set(null); return; }
