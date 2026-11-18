@@ -211,6 +211,18 @@ app-map-window {
      .gpx-list-action-button:hover:not(:disabled){background:var(--color-surface-default-medium,#444);border-color:var(--color-content-default-medium,#999)}
      .gpx-list-action-button:disabled{opacity:.4;cursor:default}
      .gpx-file-row.gpx-database-file-row{gap:8px;min-width:0}
+    .gpx-track-color-picker{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0}
+    .gpx-track-color-picker>.color-picker-trigger{width:100%;min-width:0}
+    .gpx-color-mode-select{width:100%;min-width:0}
+    .gpx-speed-range-controls{display:flex;align-items:center;gap:5px;min-width:0}
+    .gpx-speed-range-controls label{display:flex;align-items:center;gap:3px;min-width:0;font-size:10px;color:var(--color-content-default-medium,#aaa)}
+    .gpx-speed-range-controls input{width:48px;min-width:0;padding:3px 2px;border:1px solid var(--color-content-default-low,#666);border-radius:4px;background:var(--color-surface-default,#303030);color:inherit;font-size:11px}
+    .gpx-speed-legends{display:flex;flex-direction:column;gap:4px;padding:5px 8px;margin:2px 0 6px;border:1px solid var(--color-content-default-low,#555);border-radius:5px;background:color-mix(in srgb,CanvasText 4%,Canvas)}
+    .gpx-speed-legend{display:flex;align-items:center;gap:8px;min-width:0;font-size:11px;font-variant-numeric:tabular-nums}
+    .gpx-speed-legend strong{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gpx-speed-gradient{display:block;flex:1 1 100px;min-width:55px;height:9px;border-radius:5px;background:linear-gradient(90deg,#285ae0 0%,#00bedc 25%,#28be5a 50%,#ffd200 75%,#eb2d23 100%)}
+    .gpx-speed-gradient.cool-warm{background:linear-gradient(90deg,#2573be 0%,#46bea9 50%,#dc4637 100%)}
+
      .gpx-database-file-row>span,.gpx-database-file-row>button,.gpx-database-file-row>label,.gpx-database-file-row>select{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
      .gpx-db-mode-toggle{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer}.gpx-db-mode-toggle input{margin:0;accent-color:var(--theme-button-color,#287fc4)}
      .gpx-database-table{width:100%;min-width:0;overflow-x:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
