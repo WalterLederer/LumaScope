@@ -106,14 +106,17 @@ export class ImagesComponent {
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
 
-  // Detail view sorting is local to this table and does not alter the gallery's global sort.
+  // Detail headers expose the current gallery sort initially, then own sorting after a header is clicked.
   readonly detailSortColumn = signal<DetailSortColumn | null>(null);
   readonly detailSortDirection = signal<'asc' | 'desc'>('asc');
+  readonly activeDetailSortColumn = computed<DetailSortColumn>(() => this.detailSortColumn() ?? this.sortBy());
+  readonly activeDetailSortDirection = computed<'asc' | 'desc'>(() =>
+    this.detailSortColumn() === null ? this.sortDirection() : this.detailSortDirection()
+  );
   readonly sortedDetailImages = computed(() => {
     const images = [...(this.images() ?? [])];
-    const column = this.detailSortColumn();
-    if (!column) return images;
-    const direction = this.detailSortDirection() === 'asc' ? 1 : -1;
+    const column = this.activeDetailSortColumn();
+    const direction = this.activeDetailSortDirection() === 'asc' ? 1 : -1;
     const valueFor = (image: FileInfo): string | number | null => {
       const status = this.cacheStatuses().get(image.path);
       const tags = this.metadata().get(image.path);
@@ -149,15 +152,19 @@ export class ImagesComponent {
   });
 
   protected readonly sortDetailBy = (column: DetailSortColumn): void => {
-    if (this.detailSortColumn() === column) this.detailSortDirection.update(direction => direction === 'asc' ? 'desc' : 'asc');
-    else { this.detailSortColumn.set(column); this.detailSortDirection.set('asc'); }
+    const currentColumn = this.activeDetailSortColumn();
+    const currentDirection = this.activeDetailSortDirection();
+    this.detailSortColumn.set(column);
+    this.detailSortDirection.set(currentColumn === column
+      ? currentDirection === 'asc' ? 'desc' : 'asc'
+      : 'asc');
   };
 
   protected readonly detailSortIndicator = (column: DetailSortColumn): string =>
-    this.detailSortColumn() !== column ? '' : this.detailSortDirection() === 'asc' ? '▲' : '▼';
+    this.activeDetailSortColumn() !== column ? '' : this.activeDetailSortDirection() === 'asc' ? '▲' : '▼';
 
   protected readonly detailSortAriaSort = (column: DetailSortColumn): 'ascending' | 'descending' | 'none' =>
-    this.detailSortColumn() !== column ? 'none' : this.detailSortDirection() === 'asc' ? 'ascending' : 'descending';
+    this.activeDetailSortColumn() !== column ? 'none' : this.activeDetailSortDirection() === 'asc' ? 'ascending' : 'descending';
 
   /* Computed */
   readonly suffixFileCounts = computed(() => {
