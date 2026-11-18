@@ -74,7 +74,7 @@ html body app-map-window .map-window .offline-row-action-menu {
 
 /* Shared hamburger trigger. Keep this after the theme and map-window styles so
    the selected global button style cannot flatten the trigger's boxed shape. */
-html body app-root button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
+html body button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
   appearance: none !important;
   -webkit-appearance: none !important;
   display: inline-flex !important;
@@ -106,11 +106,11 @@ html body app-root button.file-row-menu-trigger:not(:disabled):not([role="tab"])
   cursor: pointer !important;
   opacity: 1 !important;
 }
-html:not([data-theme="dark"]) body app-root button.file-row-menu-trigger { color: #111 !important; }
-html[data-theme="dark"] body app-root button.file-row-menu-trigger { color: #f2f2f2 !important; }
-html body app-root button.file-row-menu-trigger:hover,
-html body app-root button.file-row-menu-trigger:focus-visible,
-html body app-root button.file-row-menu-trigger[aria-expanded="true"] {
+html:not([data-theme="dark"]) body button.file-row-menu-trigger { color: #111 !important; }
+html[data-theme="dark"] body button.file-row-menu-trigger { color: #f2f2f2 !important; }
+html body button.file-row-menu-trigger:hover,
+html body button.file-row-menu-trigger:focus-visible,
+html body button.file-row-menu-trigger[aria-expanded="true"] {
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
 }
