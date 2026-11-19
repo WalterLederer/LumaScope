@@ -976,3 +976,28 @@ app-map-window {
 .gpx-database-native-table tr.gpx-file-row.gpx-database-file-row { display: table-row; min-width: 0; gap: 0; }
 .gpx-database-native-table tr.gpx-database-file-row > td { display: table-cell; }
 .gpx-database-native-table .gpx-row-actions { display: table-cell; }
+
+    /* Keep the View tab's icon-only map action glyphs geometrically centered
+       inside their fixed-size buttons, independent of inherited span styles. */
+    .opacity-content .opacity-fit-button,
+    .opacity-content .routing-help-button.opacity-fit-button {
+      box-sizing: border-box !important;
+      padding: 0 !important;
+      overflow: hidden;
+      text-align: center !important;
+    }
+    .opacity-content .opacity-fit-button > span {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      height: 100% !important;
+      min-width: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+      text-align: center !important;
+      transform: none !important;
+      box-sizing: border-box !important;
+    }
