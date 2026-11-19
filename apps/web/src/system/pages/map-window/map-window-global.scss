@@ -770,6 +770,6 @@ app-map-window {
 }
 
 
-/* Keep the marker summary's source folder readable even for deeply nested paths. */
-.marker-summary-source{min-width:0;overflow-wrap:anywhere;white-space:normal;color:var(--text-secondary,#aaa)}
-.marker-summary-source strong{color:var(--text-primary,#eee)}
+/* Keep the marker summary folder label readable on both light and dark surfaces. */
+.marker-summary-source{min-width:0;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#555)}
+.marker-summary-source strong{color:CanvasText}
