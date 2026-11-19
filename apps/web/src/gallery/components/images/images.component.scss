@@ -333,16 +333,43 @@
   box-sizing: border-box;
 }
 .detail-native-table {
-  /* Keep the table at the sum of its column widths. A 100% minimum width
-     makes fixed-layout browsers redistribute spare width into other columns. */
+  /* Header and every thumbnail row use the exact same explicit grid tracks.
+     Avoid native table auto-layout, which previously reassigned resize deltas
+     to the Name column and ignored the thumbnail zoom width. */
+  --detail-grid-columns:
+    max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
+    var(--detail-col-1-width, 210px)
+    var(--detail-col-2-width, 150px)
+    var(--detail-col-3-width, 150px)
+    var(--detail-col-4-width, 130px)
+    var(--detail-col-5-width, 100px)
+    var(--detail-col-6-width, 75px)
+    var(--detail-col-7-width, 65px)
+    var(--detail-col-8-width, 65px)
+    var(--detail-col-9-width, 150px)
+    var(--detail-col-10-width, 150px)
+    var(--detail-col-11-width, 240px)
+    28px;
+  display: block;
   width: max-content;
-  min-width: max-content;
-  table-layout: fixed;
-  /* Separate cell borders keep the divider between the two sticky header rows solid. */
+  min-width: 0;
+  table-layout: auto;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 12px;
   color: var(--color-content-default-medium);
+}
+.detail-native-table > colgroup { display: none; }
+.detail-native-table > thead,
+.detail-native-table > tbody.images.details-list {
+  display: block;
+}
+.detail-native-table > thead > tr,
+.detail-native-table > tbody.images.details-list > tr {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  width: max-content;
+  min-width: 100%;
 }
 
 .detail-native-table th,
@@ -631,13 +658,22 @@
 .detail-native-table .detail-gps,
 .detail-native-table .detail-location { overflow: hidden; text-overflow: ellipsis; }
 
-.detail-native-table .detail-header { display: table-row; position: static; }
-.detail-native-table > tbody.images.details-list { display: table-row-group; }
-.detail-table.without-thumbnails .thumb-column-heading { visibility: hidden; }
-
-.detail-table .detail-native-table thead tr.detail-header > th:not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
-  display: table-cell;
-  align-self: auto;
-  height: auto;
-  min-height: 0;
+.detail-native-table .detail-header {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  position: relative;
 }
+.detail-native-table > tbody.images.details-list { display: block; }
+.detail-native-table > tbody.images.details-list > tr {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  width: max-content;
+  min-width: 100%;
+}
+.detail-native-table > thead > tr > th {
+  display: flex;
+  min-width: 0;
+  align-self: stretch;
+  height: auto;
+}
+.detail-table.without-thumbnails .thumb-column-heading { visibility: hidden; }
