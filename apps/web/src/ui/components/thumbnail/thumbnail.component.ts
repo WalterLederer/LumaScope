@@ -26,7 +26,7 @@ import { thumbUrl } from '../../../viewer/utils/image-url';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 
 @Component({
-  selector: 'app-thumbnail',
+  selector: 'app-thumbnail, tr[app-thumbnail]',
   imports: [
     CaptionComponent
   ],
