@@ -342,16 +342,6 @@ interface MapErrorEntry {
       } @else {
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
-      <details class="gpx-database-columns app-disclosure">
-        <summary>Columns</summary>
-        <div class="gpx-database-column-options">
-          <label><input type="checkbox" [checked]="gpxDatabaseColumns().points" (change)="setGpxDatabaseColumn('points', $any($event.target).checked)"> Points</label>
-          <label><input type="checkbox" [checked]="gpxDatabaseColumns().time" (change)="setGpxDatabaseColumn('time', $any($event.target).checked)"> Track time</label>
-          <label><input type="checkbox" [checked]="gpxDatabaseColumns().size" (change)="setGpxDatabaseColumn('size', $any($event.target).checked)"> File size</label>
-          <label><input type="checkbox" [checked]="gpxDatabaseColumns().modified" (change)="setGpxDatabaseColumn('modified', $any($event.target).checked)"> Date</label>
-          <label><input type="checkbox" [checked]="gpxDatabaseColumns().path" (change)="setGpxDatabaseColumn('path', $any($event.target).checked)"> Path</label>
-        </div>
-      </details>
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
