@@ -1479,7 +1479,7 @@ export class OfflineMapRenderer {
         'text-rotation-alignment': 'map', 'text-keep-upright': false,
         'text-allow-overlap': true, 'text-ignore-placement': true
       },
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.5, 'text-opacity': 0.92 }
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#111111', 'text-halo-width': 1.5, 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {

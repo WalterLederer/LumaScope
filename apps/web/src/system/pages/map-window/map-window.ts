@@ -2725,11 +2725,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseColumns = signal({ points: true, time: true, size: true, modified: true, path: true });
   protected readonly gpxDatabaseSort = signal<{ key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'; direction: 'asc' | 'desc' }>({ key: 'time', direction: 'asc' });
   protected readonly gpxDatabaseColumnWidths = signal<Record<string, number>>((() => {
-    const defaults = { actions: 42, active: 54, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
+    const defaults = { actions: 42, active: 76, name: 210, points: 76, time: 190, size: 88, modified: 135, path: 260, color: 130, line: 112, width: 76, arrows: 130 };
     try {
       const saved = JSON.parse(this.readSetting('gpxDatabaseColumnWidths', '{}')) as Record<string, number>;
       for (const key of Object.keys(defaults) as Array<keyof typeof defaults>) {
-        if (Number.isFinite(saved[key]) && saved[key] >= 42 && saved[key] <= 900) defaults[key] = saved[key];
+        if (Number.isFinite(saved[key]) && saved[key] >= (key === 'active' ? 76 : 42) && saved[key] <= 900) defaults[key] = saved[key];
       }
     } catch { /* Keep the default column widths. */ }
     return defaults;
@@ -7673,7 +7673,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const startX = event.clientX;
     const startWidth = this.gpxDatabaseColumnWidths()[key] ?? 100;
     const move = (moveEvent: PointerEvent): void => {
-      const width = Math.max(42, Math.min(900, startWidth + moveEvent.clientX - startX));
+      const width = Math.max(key === 'active' ? 76 : 42, Math.min(900, startWidth + moveEvent.clientX - startX));
       this.gpxDatabaseColumnWidths.update(current => ({ ...current, [key]: width }));
     };
     const up = (): void => {
