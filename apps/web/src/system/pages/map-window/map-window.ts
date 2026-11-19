@@ -439,7 +439,7 @@ interface MapErrorEntry {
             <div class="gpx-track-settings-divider" role="separator"></div>
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
-              <label>Color<select [value]="gpxTrackSettingsDraft().color" [style.color]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              <label>Color<select [value]="gpxTrackSettingsDraft().color" [style.color]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> } @if (!gpxColors.some(color => color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase())) { <option [value]="gpxTrackSettingsDraft().color" [style.color]="gpxTrackSettingsDraft().color">■ {{ gpxTrackSettingsDraft().color.toLowerCase() === '#ff3b30' ? 'Orange' : 'Custom' }} ({{ gpxTrackSettingsDraft().color }})</option> }</select></label>
             } @else if (gpxTrackSettingsDraft().colorMode === 'speed') {
               <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
               @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
@@ -2522,9 +2522,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxTrackSettingsFavoriteName.set('');
     this.gpxTrackSettingsFavoriteSelection.set('');
     this.gpxTrackSettingsTrack.set(track);
-    // Older saved tracks used #ff3b30 while the palette label already said Red.
-    // Normalize that legacy orange-red value to the actual pure-red palette color.
-    const selectedColor = (track.color || this.gpxColor()).toLowerCase() === '#ff3b30' ? '#ff0000' : (track.color || this.gpxColor());
+    // Keep the stored color unchanged. Older tracks may contain #ff3b30,
+    // which is not one of the current palette values and needs its own select option.
+    const selectedColor = track.color || this.gpxColor();
     this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: selectedColor, speedPalette: track.speedPalette || 'spectrum', customColor1: track.customColor1 || '#2878ff', customColor2: track.customColor2 || '#18c99a', customColor3: track.customColor3 || '#f04444', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, elevationMinM: track.elevationMinM ?? 0, elevationMaxM: track.elevationMaxM ?? 3000, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16), directionStyle: track.directionStyle || 'classic' });
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.gpx-track-settings-dialog .gpx-track-settings-ok')?.focus());
   };
