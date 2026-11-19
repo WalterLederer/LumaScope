@@ -195,3 +195,45 @@
   justify-self: center;
   align-self: center;
 }
+
+
+/* ThumbnailComponent uses its host tr as the native details-table row. */
+:host(.view-details),
+:host(.view-details-no-thumbnails) {
+  display: table-row;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  background: transparent !important;
+}
+:host(.view-details) > td,
+:host(.view-details-no-thumbnails) > td {
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  border-right: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+  border-bottom: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 25%)));
+  padding: 5px 8px 5px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:host(.view-details) > .thumbnail-preview {
+  width: var(--detail-thumb-width, 36px);
+  min-width: 36px;
+  padding: 2px;
+  text-align: center;
+  background: var(--color-surface-default-medium);
+}
+:host(.view-details) > .thumbnail-preview .message { min-height: var(--detail-thumb-height, 27px); }
+:host(.view-details) > .thumbnail-preview button { width: 100%; height: var(--detail-thumb-height, 27px); }
+:host(.view-details) > .thumbnail-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+:host(.view-details-no-thumbnails) > .detail-thumb-empty { width: var(--detail-thumb-width, 36px); min-width: 36px; padding: 0; }
+:host(.view-details) > .detail-actions,
+:host(.view-details-no-thumbnails) > .detail-actions { position: relative; width: 28px; padding: 2px; overflow: visible; text-align: center; }
+:host(.view-details) > .detail-actions .detail-row-action-menu,
+:host(.view-details-no-thumbnails) > .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
+:host(.view-details) > .detail-actions .detail-row-menu-trigger,
+:host(.view-details-no-thumbnails) > .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
