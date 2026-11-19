@@ -484,13 +484,13 @@ interface MapErrorEntry {
       <summary>Elevation Profile</summary>
       @if (latestGpxElevationProfileBusy()) {
         <span class="offline-map-status">Loading the latest GPX elevation profile…</span>
-      } @else if (latestGpxElevationProfile(); as profile) {
-        <div class="gpx-elevation-profile-info">
-          <strong>{{ profile.fileName }}</strong>
-          <span>{{ profile.databaseKey }}: · {{ profile.pointCount.toLocaleString() }} elevation points · Min {{ profile.minElevationM.toFixed(0) }} m · Max {{ profile.maxElevationM.toFixed(0) }} m</span>
-        </div>
+      } @else if (gpxElevationProfiles().length > 0) {
         @if (gpxElevationChart(); as chart) {
-          <svg class="gpx-elevation-chart" viewBox="0 0 900 270" role="img" [attr.aria-label]="'Elevation profile for ' + profile.fileName + ', from ' + chart.startLabel + ' to ' + chart.endLabel">
+          <div class="gpx-elevation-profile-info">
+            <strong>{{ gpxElevationProfiles().length }} active GPX track(s)</strong>
+            <span>Combined elevation range: {{ chart.minLabel }}–{{ chart.maxLabel }} m · Shared time axis</span>
+          </div>
+          <svg class="gpx-elevation-chart" viewBox="0 0 900 270" role="img" [attr.aria-label]="'Elevation profiles for ' + gpxElevationProfiles().length + ' active GPX tracks, from ' + chart.startLabel + ' to ' + chart.endLabel">
             <line class="gpx-elevation-axis" x1="70" y1="18" x2="70" y2="218" />
             <line class="gpx-elevation-axis" x1="70" y1="218" x2="880" y2="218" />
             <line class="gpx-elevation-grid" x1="70" y1="18" x2="880" y2="18" />
@@ -499,14 +499,25 @@ interface MapErrorEntry {
             <text class="gpx-elevation-tick" x="60" y="22" text-anchor="end">{{ chart.maxLabel }}</text>
             <text class="gpx-elevation-tick" x="60" y="122" text-anchor="end">{{ chart.midLabel }}</text>
             <text class="gpx-elevation-tick" x="60" y="222" text-anchor="end">{{ chart.minLabel }}</text>
-            <polyline class="gpx-elevation-line" [attr.points]="chart.polyline" />
+            @for (series of chart.series; track series.key) {
+              <polyline class="gpx-elevation-line" [attr.points]="series.polyline" [attr.stroke]="series.color" [attr.stroke-width]="series.lineWidth" [attr.stroke-dasharray]="series.dash" />
+              @for (arrow of series.arrows; track $index) {
+                <path [attr.d]="series.arrowPath" [attr.fill]="series.arrowFilled ? series.color : 'none'" [attr.stroke]="series.color" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + series.arrowScale + ')'" />
+              }
+            }
             <text class="gpx-elevation-axis-title" x="18" y="118" text-anchor="middle" transform="rotate(-90 18 118)">Elevation (m)</text>
             <text class="gpx-elevation-tick" x="70" y="242" text-anchor="start">{{ chart.startLabel }}</text>
             <text class="gpx-elevation-tick" x="880" y="242" text-anchor="end">{{ chart.endLabel }}</text>
             <text class="gpx-elevation-axis-title" x="475" y="265" text-anchor="middle">Track time</text>
           </svg>
-        } @else {
-          <span class="offline-map-status">Not enough timestamped elevation points to draw a profile.</span>
+          <div class="gpx-elevation-profile-legend">
+            @for (series of chart.series; track series.key) {
+              <div class="gpx-elevation-profile-legend-item">
+                <svg viewBox="0 0 72 16" aria-hidden="true"><line x1="2" y1="8" x2="70" y2="8" [attr.stroke]="series.color" [attr.stroke-width]="series.lineWidth" [attr.stroke-dasharray]="series.dash" /></svg>
+                <div><strong>{{ series.name }}</strong><span>{{ series.colorMode }} · {{ series.lineStyle }} · {{ series.lineWidth }} px · {{ series.directionLabel }}</span></div>
+              </div>
+            }
+          </div>
         }
       } @else {
         <span class="offline-map-status">{{ latestGpxElevationProfileError() || 'No imported GPX track with timestamped elevation data was found in the available cache databases.' }}</span>
@@ -2634,35 +2645,62 @@ export class MapWindow implements OnInit, OnDestroy {
   private gpxDatabaseTrackSettingsLoaded = false;
   private gpxDatabaseSettingsWriteQueue: Promise<void> = Promise.resolve();
   protected readonly gpxSpeedLegendTracks = computed(() => (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => track.active !== false && (track.colorMode === 'speed' || track.colorMode === 'elevation')));
-  protected readonly latestGpxElevationProfile = signal<GpxElevationProfile | null>(null);
+  protected readonly gpxElevationProfiles = signal<Array<{ track: GpxTrackFile; profile: GpxElevationProfile }>>([]);
   protected readonly latestGpxElevationProfileBusy = signal(false);
   protected readonly latestGpxElevationProfileError = signal('');
   private gpxElevationProfileRequestId = 0;
   protected readonly gpxElevationChart = computed(() => {
-    const profile = this.latestGpxElevationProfile();
-    if (!profile || profile.points.length < 2) return null;
-    const width = 900, left = 70, right = 20, top = 18, bottom = 52;
-    const minTime = profile.points.reduce((value, point) => Math.min(value, point.timestampMs), Number.POSITIVE_INFINITY);
-    const maxTime = profile.points.reduce((value, point) => Math.max(value, point.timestampMs), Number.NEGATIVE_INFINITY);
-    const minElevation = profile.minElevationM;
-    const maxElevation = profile.maxElevationM;
+    const entries = this.gpxElevationProfiles().filter(entry => entry.profile.points.length >= 2);
+    if (!entries.length) return null;
+    const width = 900, left = 70, right = 20, top = 18, plotHeight = 200;
+    const allPoints = entries.flatMap(entry => entry.profile.points);
+    const minTime = allPoints.reduce((value, point) => Math.min(value, point.timestampMs), Number.POSITIVE_INFINITY);
+    const maxTime = allPoints.reduce((value, point) => Math.max(value, point.timestampMs), Number.NEGATIVE_INFINITY);
+    const minElevation = allPoints.reduce((value, point) => Math.min(value, point.elevationM), Number.POSITIVE_INFINITY);
+    const maxElevation = allPoints.reduce((value, point) => Math.max(value, point.elevationM), Number.NEGATIVE_INFINITY);
     const elevationRange = maxElevation - minElevation || 1;
     const timeRange = maxTime - minTime || 1;
-    const polyline = profile.points.map(point => {
-      const x = left + (point.timestampMs - minTime) / timeRange * (width - left - right);
-      const y = top + (maxElevation - point.elevationM) / elevationRange * 200;
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
     const formatTime = (timestamp: number): string => new Date(timestamp).toLocaleString(undefined, {
       month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
     });
+    const series = entries.map(({ track, profile }) => {
+      const points = profile.points.map(point => ({
+        x: left + (point.timestampMs - minTime) / timeRange * (width - left - right),
+        y: top + (maxElevation - point.elevationM) / elevationRange * plotHeight
+      }));
+      const polyline = points.map(point => point.x.toFixed(1) + ',' + point.y.toFixed(1)).join(' ');
+      const arrows: Array<{ x: number; y: number; angle: number }> = [];
+      if (track.showDirection && points.length > 1) {
+        const interval = Math.max(30, Math.min(500, track.directionIntervalPx ?? 120));
+        let nextArrowAt = interval, travelled = 0;
+        for (let index = 1; index < points.length; index++) {
+          const a = points[index - 1], b = points[index];
+          const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
+          if (!length) continue;
+          while (travelled + length >= nextArrowAt) {
+            const fraction = (nextArrowAt - travelled) / length;
+            arrows.push({ x: a.x + dx * fraction, y: a.y + dy * fraction, angle: Math.atan2(dy, dx) * 180 / Math.PI });
+            nextArrowAt += interval;
+          }
+          travelled += length;
+        }
+      }
+      return {
+        key: track.path, name: track.name, color: track.color || this.gpxColor(),
+        lineWidth: track.lineWidth ?? 3, dash: this.gpxPreviewDash(track.lineStyle),
+        polyline, arrows, arrowPath: this.gpxPreviewArrow(track.directionStyle),
+        arrowFilled: this.gpxPreviewArrowFilled(track.directionStyle),
+        arrowScale: (track.directionArrowSizePx ?? 16) / 16,
+        lineStyle: this.gpxLineStyleName(track.lineStyle ?? 'solid'),
+        colorMode: track.colorMode === 'speed' ? 'Speed-based' : track.colorMode === 'elevation' ? 'Elevation-based' : 'Fixed color',
+        palette: track.speedPalette ?? 'spectrum',
+        directionLabel: track.showDirection ? `${this.gpxDirectionName(track.directionStyle ?? 'classic')} · every ${track.directionIntervalPx ?? 120} px · ${track.directionArrowSizePx ?? 16} px` : 'Direction arrows off'
+      };
+    });
     return {
-      polyline,
-      minLabel: minElevation.toFixed(0),
+      series, minLabel: minElevation.toFixed(0),
       midLabel: ((minElevation + maxElevation) / 2).toFixed(0),
-      maxLabel: maxElevation.toFixed(0),
-      startLabel: formatTime(minTime),
-      endLabel: formatTime(maxTime)
+      maxLabel: maxElevation.toFixed(0), startLabel: formatTime(minTime), endLabel: formatTime(maxTime)
     };
   });
   protected readonly gpxListMode = signal<'recent' | 'database'>('recent');
@@ -6262,27 +6300,26 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly refreshLatestGpxElevationProfile = async (_importedDrive?: string): Promise<void> => {
     if (!this.desktop) return;
     const requestId = ++this.gpxElevationProfileRequestId;
-    // GPX files are appended when added to the map. The final entry is therefore
-    // the most recently displayed track; the database lookup is restricted to it.
-    const lastDisplayedTrack = this.gpxTracks().at(-1);
-    const sourcePath = lastDisplayedTrack && !lastDisplayedTrack.path.startsWith('memory:')
-      ? lastDisplayedTrack.path : undefined;
-    this.latestGpxElevationProfileBusy.set(!!sourcePath);
-    this.latestGpxElevationProfileError.set(sourcePath
-      ? '' : lastDisplayedTrack ? 'The last displayed GPX track is not stored in a cache database.' : 'No GPX track has been displayed yet.');
-    this.latestGpxElevationProfile.set(null);
-    if (!sourcePath) {
-      this.latestGpxElevationProfileBusy.set(false);
-      return;
-    }
+    const tracks = (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks())
+      .filter(track => track.active !== false && !track.missing && !track.readError)
+      .map(track => ({ track, sourcePath: track.databasePath || track.path }))
+      .filter(entry => /^[a-z]:[\\/]/i.test(entry.sourcePath));
+    this.latestGpxElevationProfileBusy.set(tracks.length > 0);
+    this.latestGpxElevationProfileError.set(tracks.length ? '' : 'No active GPX tracks with local cache paths are available.');
+    this.gpxElevationProfiles.set([]);
+    if (!tracks.length) { this.latestGpxElevationProfileBusy.set(false); return; }
     try {
-      const profile = await this.desktop.CacheManager.getLatestGpxElevationProfile(sourcePath);
+      const results = await Promise.all(tracks.map(async ({ track, sourcePath }) => ({
+        track, profile: await this.desktop!.CacheManager.getLatestGpxElevationProfile(sourcePath)
+      })));
       if (requestId !== this.gpxElevationProfileRequestId) return;
-      this.latestGpxElevationProfile.set(profile);
-      if (!profile) this.latestGpxElevationProfileError.set('The last displayed GPX track has no timestamped elevation data in its cache database.');
+      const available = results.filter((entry): entry is { track: GpxTrackFile; profile: GpxElevationProfile } => !!entry.profile);
+      this.gpxElevationProfiles.set(available);
+      if (!available.length) this.latestGpxElevationProfileError.set('None of the active GPX tracks has timestamped elevation data in its cache database.');
+      else if (available.length < tracks.length) this.latestGpxElevationProfileError.set(`${tracks.length - available.length} active GPX track(s) have no timestamped elevation data and were skipped.`);
     } catch (error) {
       if (requestId !== this.gpxElevationProfileRequestId) return;
-      this.latestGpxElevationProfile.set(null);
+      this.gpxElevationProfiles.set([]);
       this.latestGpxElevationProfileError.set(error instanceof Error ? error.message : String(error));
     } finally {
       if (requestId === this.gpxElevationProfileRequestId) this.latestGpxElevationProfileBusy.set(false);
@@ -6781,6 +6818,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    void this.refreshLatestGpxElevationProfile();
   };
 
   private rebuildGpxSegments(): void {
@@ -7668,6 +7706,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxDatabaseTracks.set(tracks);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    if (patch.active !== undefined) void this.refreshLatestGpxElevationProfile();
   };
 
   protected readonly changeRouteWaypointMarkersVisible = (visible: boolean): void => {
