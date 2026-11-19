@@ -411,7 +411,8 @@ export class ImagesComponent {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
-  private readonly importGpxFilesFoundDuringCacheBuild = async (filePaths: string[], signal: AbortSignal): Promise<void> => {
+  private readonly importGpxFilesFoundDuringCacheBuild = async (filePaths: string[], signal: AbortSignal, enabled: boolean): Promise<void> => {
+    if (!enabled) return;
     const uniquePaths = [...new Map(filePaths.map(path => [path.toLocaleLowerCase(), path])).values()];
     if (uniquePaths.length === 0 || signal.aborted) return;
 
@@ -432,7 +433,7 @@ export class ImagesComponent {
     }
   };
 
-  readonly cacheAllImages = async (directory?: string): Promise<void> => {
+  readonly cacheAllImages = async (directory?: string, importGpx = true): Promise<void> => {
     if (this.cacheRunActive()) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
@@ -463,7 +464,7 @@ export class ImagesComponent {
       if (folder && this.verifyCacheFiles() && !controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
       }
-      await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal);
+      await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, importGpx);
     } catch (error) {
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -545,7 +546,7 @@ export class ImagesComponent {
     }
   };
 
-  readonly cacheAllImagesRecursive = async (directory?: string): Promise<void> => {
+  readonly cacheAllImagesRecursive = async (directory?: string, importGpx = true): Promise<void> => {
     if (this.cacheRunActive()) return;
     const rootPath = directory?.trim() || this.folderPath() || this.images()?.[0]?.parent || null;
     if (!rootPath) return;
@@ -566,29 +567,30 @@ export class ImagesComponent {
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directory = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Enumerating files and subfolders in ${directory}`);
+        let entries: FileInfo[];
         try {
-          const entries = await this.fileSystem.readDir(directory);
-          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+          // This is the folder enumeration used by the recursive build: collect
+          // GPX files and child folders from the same directory listing.
+          entries = await this.fileSystem.readDir(directory);
         } catch (error) {
-          console.warn('Failed to scan GPX files in gallery folder', directory, error);
-          enumerationComplete = false;
-        }
-        const directoriesResult = await this.fileSystem.readDirectories(directory);
-        if (controller.signal.aborted) break;
-        if (!directoriesResult.success) {
-          console.warn('Failed to enumerate gallery subfolders', directory, directoriesResult.errorMessage);
+          console.warn('Failed to enumerate gallery folder', directory, error);
           enumerationComplete = false;
           continue;
         }
+        if (importGpx) {
+          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+        }
+        if (controller.signal.aborted) break;
+        const childDirectories = entries.filter(entry => entry.isDirectory && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase()));
 
-        for (const child of directoriesResult.data) {
+        for (const child of childDirectories) {
           if (!visitedDirectories.has(child.path)) {
             visitedDirectories.add(child.path);
             pendingDirectories.push(child.path);
           }
         }
 
-        for (const child of directoriesResult.data) {
+        for (const child of childDirectories) {
           if (controller.signal.aborted) break;
           const imagesResult = await this.fileSystem.readImages(child.path, this.sortBy(), this.sortDirection());
           if (controller.signal.aborted) break;
@@ -613,7 +615,7 @@ export class ImagesComponent {
         if (reconciledRecords !== null && !controller.signal.aborted) {
           await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
         }
-        await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal);
+        await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, importGpx);
       }
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
