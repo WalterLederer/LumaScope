@@ -31,6 +31,9 @@
             <button type="button" (click)="sortDetailBy('name')">Name<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('name') }}</span></button>
             <small class="column-count">{{ cacheStats().total }}</small>
             <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
+            @if (cacheRunActive()) {
+              <small class="worker-progress" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
+            }
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('date')">
@@ -77,9 +80,6 @@
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gps')">
             <button type="button" (click)="sortDetailBy('gps')">GPS coordinates<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gps') }}</span></button>
             <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
-            @if (cacheRunActive()) {
-              <small class="worker-progress" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
-            }
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS column" (pointerdown)="startColumnResize($event, 10)"></span>
           </th>
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('location')">
