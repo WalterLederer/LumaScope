@@ -5,7 +5,7 @@
   @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
   } @else {
-    <td class="thumbnail-preview detail-thumb">
+    <td class="thumbnail-preview detail-thumb" [title]="image().name" (click)="$event.stopPropagation(); clicked.emit(image())">
       @if (loading) {
         <div class="message">
           <ui-caption [title]="thumbnailError() ?? ''">{{ !isCacheStatusReady() ? 'Checking...' : thumbnailError() ? 'Check failed' : (isCaching() ? 'Caching...' : 'Loading...') }}</ui-caption>
@@ -17,10 +17,7 @@
         </div>
       }
       @if (!loading && !error) {
-        <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
-                (click)="$event.stopPropagation(); clicked.emit(image())">
-          <img loading="lazy" [alt]="image().name" [src]="url()" />
-        </button>
+        <img class="detail-thumbnail-image" loading="lazy" [alt]="image().name" [src]="url()" />
       }
     </td>
   }
