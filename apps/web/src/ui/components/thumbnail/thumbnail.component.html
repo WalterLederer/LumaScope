@@ -1,50 +1,41 @@
 @let loading = isLoading();
 @let error = hasError();
 
-@if (viewMode() !== 'details-no-thumbnails') {
-<div class="thumbnail-preview">
-  @if (loading) {
-    <div class="message">
-      <ui-caption [title]="thumbnailError() ?? ''">{{ !isCacheStatusReady() ? 'Checking...' : thumbnailError() ? 'Check failed' : (isCaching() ? 'Caching...' : 'Loading...') }}</ui-caption>
-    </div>
+@if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
+  @if (viewMode() === 'details-no-thumbnails') {
+    <td class="detail-thumb-empty" aria-hidden="true"></td>
+  } @else {
+    <td class="thumbnail-preview detail-thumb">
+      @if (loading) {
+        <div class="message">
+          <ui-caption [title]="thumbnailError() ?? ''">{{ !isCacheStatusReady() ? 'Checking...' : thumbnailError() ? 'Check failed' : (isCaching() ? 'Caching...' : 'Loading...') }}</ui-caption>
+        </div>
+      }
+      @if (error) {
+        <div class="message">
+          <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
+        </div>
+      }
+      @if (!loading && !error) {
+        <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
+                (click)="$event.stopPropagation(); clicked.emit(image())">
+          <img loading="lazy" [alt]="image().name" [src]="url()" />
+        </button>
+      }
+    </td>
   }
-
-  @if (error) {
-    <div class="message">
-      <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
-    </div>
-  }
-
-  @if (!loading && !error) {
-    <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
-            (click)="$event.stopPropagation(); clicked.emit(image())">
-      <img loading="lazy"
-           [alt]="image().name"
-           [src]="url()" />
-    </button>
-  }
-</div>
-}
-
-@if (viewMode() === 'tiles') {
-  <div class="thumbnail-info">
-    <div class="thumbnail-name" [title]="image().name">{{ image().name }}</div>
-    <div>{{ formatOsDateTime(image().modifiedAt) }}</div>
-    <div>{{ imageFileInfo() }}</div>
-  </div>
-} @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-  <div class="detail-columns">
-    <span class="detail-name" [title]="image().name">{{ image().name }}</span>
-    <span>{{ formatDetailDateTime(image().modifiedAt) }}</span>
-    <span class="detail-gps-date">{{ gpsDateLabel() }}</span>
-    <span [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</span>
-    <span>{{ formattedFileSize() }}</span>
-    <span>{{ imageSuffix() }}</span>
-    <span class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</span>
-    <span class="detail-thumb" [class.cache-valid]="thumbCacheLabel() === '✓'" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</span>
-    <span class="detail-full-size" [class.cache-valid]="fullSizeConversionLabel() === '✓'">{{ fullSizeConversionLabel() }}</span>
-    <span class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</span>
-    <span class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</span>
+  <td class="detail-name" [title]="image().name">{{ image().name }}</td>
+  <td>{{ formatDetailDateTime(image().modifiedAt) }}</td>
+  <td class="detail-gps-date">{{ gpsDateLabel() }}</td>
+  <td [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
+  <td>{{ formattedFileSize() }}</td>
+  <td class="detail-suffix">{{ imageSuffix() }}</td>
+  <td class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</td>
+  <td class="detail-thumb-status" [class.cache-valid]="thumbCacheLabel() === '✓'" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</td>
+  <td class="detail-full-size" [class.cache-valid]="fullSizeConversionLabel() === '✓'">{{ fullSizeConversionLabel() }}</td>
+  <td class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</td>
+  <td class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</td>
+  <td class="detail-actions">
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             (click)="toggleRowActionMenu($event)"
             [attr.aria-expanded]="rowActionMenuOpen()"
@@ -64,5 +55,33 @@
         <button type="button" role="menuitem" (click)="requestReCacheFolder()"><span aria-hidden="true">⟳</span> Re-Cache folder</button>
       </div>
     }
-  </div>
+  </td>
+} @else {
+  @if (viewMode() !== 'details-no-thumbnails') {
+    <div class="thumbnail-preview">
+      @if (loading) {
+        <div class="message">
+          <ui-caption [title]="thumbnailError() ?? ''">{{ !isCacheStatusReady() ? 'Checking...' : thumbnailError() ? 'Check failed' : (isCaching() ? 'Caching...' : 'Loading...') }}</ui-caption>
+        </div>
+      }
+      @if (error) {
+        <div class="message">
+          <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
+        </div>
+      }
+      @if (!loading && !error) {
+        <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
+                (click)="$event.stopPropagation(); clicked.emit(image())">
+          <img loading="lazy" [alt]="image().name" [src]="url()" />
+        </button>
+      }
+    </div>
+  }
+  @if (viewMode() === 'tiles') {
+    <div class="thumbnail-info">
+      <div class="thumbnail-name" [title]="image().name">{{ image().name }}</div>
+      <div>{{ formatOsDateTime(image().modifiedAt) }}</div>
+      <div>{{ imageFileInfo() }}</div>
+    </div>
+  }
 }
