@@ -754,6 +754,7 @@ app-map-window {
   .gpx-track-style-preview{display:flex;align-items:center;gap:8px;width:100%;min-width:0;padding:3px 8px;border:0;border-radius:0;background:transparent;color:var(--color-content-default-high,#eee);text-align:left}
   .gpx-track-style-preview svg{display:block;flex:1 1 auto;width:100%;height:24px;min-width:80px;overflow:visible}
   .gpx-track-style-preview span{flex:0 0 auto;font-size:10px;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
+  .gpx-track-settings-preview{margin:4px 0 10px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-medium,#303236)}
   .gpx-track-edit-button{width:28px;height:27px;margin-right:3px;border:1px solid var(--color-content-default-low,#555);border-radius:4px;background:var(--color-surface-default-medium,#454545);color:var(--color-content-default-high,#eee);cursor:pointer}
   .gpx-track-settings-backdrop{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.58)}
   .gpx-track-settings-dialog{width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;padding:16px;border:1px solid var(--color-content-default-low,#666);border-radius:9px;background:var(--color-surface-default-low,#252629);color:var(--color-content-default-high,#eee);box-shadow:0 12px 42px rgba(0,0,0,.5)}
