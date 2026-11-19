@@ -185,6 +185,8 @@ export class SettingsPanelComponent {
   private cacheCheckRequestId = 0;
 
   protected readonly isClearing = signal(false);
+  protected readonly gpxDatabaseClearBusy = signal(false);
+  protected readonly gpxDatabaseClearSummary = signal('');
 
   protected readonly deleteCacheGlobal = signal(false);
 
@@ -798,6 +800,25 @@ export class SettingsPanelComponent {
     (directory, recursive, operationId) => this.cacheManager.clearThumbnails(directory, recursive, operationId),
     'Delete thumbnail files from the chosen scope? This cannot be undone.'
   );
+
+  protected readonly clearAllGpxDatabaseEntries = async (): Promise<void> => {
+    if (this.gpxDatabaseClearBusy()) return;
+    if (!window.confirm('Delete all imported GPX database entries from every drive cache database? Original GPX files and favorites will not be affected. This cannot be undone.')) return;
+
+    this.gpxDatabaseClearBusy.set(true);
+    this.gpxDatabaseClearSummary.set('Deleting GPX database entries…');
+    try {
+      const result = await this.cacheManager.clearAllGpxDatabaseEntries();
+      this.gpxDatabaseClearSummary.set(
+        `Deleted from ${result.databases} databases · ${result.files} GPX files · ${result.segments} segments · ${result.points} track points.`
+      );
+      await this.updateCacheSummary(undefined, true);
+    } catch (error) {
+      this.gpxDatabaseClearSummary.set(`GPX database deletion failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      this.gpxDatabaseClearBusy.set(false);
+    }
+  };
 
   private readonly clearCache = async (
     operation: string,

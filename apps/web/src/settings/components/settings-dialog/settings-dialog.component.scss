@@ -238,6 +238,19 @@ section {
   gap: var(--dim-small);
 }
 
+.gpx-database-delete {
+  border-top: 1px solid var(--color-content-default-low);
+
+  > div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gpx-database-clear-summary {
+    overflow-wrap: anywhere;
+  }
+}
+
 .cache-actions {
   display: flex;
   flex-wrap: wrap;

@@ -510,6 +510,19 @@
                       (click)="deleteCache()">Delete all cache files</button>
             </aside>
           </div>
+          <div class="cache-category gpx-database-delete">
+            <div>
+              <span>Deletes imported GPX files, track segments and track points from every drive cache database. Original GPX files and favorites are not affected.</span>
+              @if (gpxDatabaseClearSummary()) {
+                <strong class="gpx-database-clear-summary" role="status">{{ gpxDatabaseClearSummary() }}</strong>
+              }
+            </div>
+            <button class="cache-button warning" type="button"
+                    [disabled]="gpxDatabaseClearBusy()"
+                    (click)="clearAllGpxDatabaseEntries()">
+              {{ gpxDatabaseClearBusy() ? 'Deleting…' : 'Delete all GPX database entries' }}
+            </button>
+          </div>
         </div>
         <p class="format-note">Cache files are stored in each photo folder's hidden .cache subfolder. Parallel JPG files in the adjacent jpg folder are detected but never deleted by cache cleanup.</p>
       </div>
