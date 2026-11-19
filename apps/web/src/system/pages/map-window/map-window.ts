@@ -417,7 +417,7 @@ interface MapErrorEntry {
     }
     @if (gpxTrackSettingsTrack(); as settingsTrack) {
       <div class="gpx-track-settings-backdrop" role="presentation" (click)="cancelGpxTrackSettings()">
-        <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation()">
+        <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation(); onGpxTrackSettingsDialogClick($event)">
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
           <div class="gpx-track-style-preview gpx-track-settings-preview">
             <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-settings-preview-' + gpxPreviewId(settingsTrack.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(gpxSettingsPreviewTrack(settingsTrack)); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="gpxTrackSettingsDraft().colorMode === 'speed' || gpxTrackSettingsDraft().colorMode === 'elevation' ? 'url(#gpx-settings-preview-' + gpxPreviewId(settingsTrack.path) + ')' : gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth || 4" [attr.stroke-opacity]=".92 * gpxOpacity() / 100" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>@if (gpxTrackSettingsDraft().showDirection) { @for (arrow of gpxPreviewArrowPositions(gpxTrackSettingsDraft().directionIntervalPx); track $index) { <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="gpxDirectionArrowSize(gpxTrackSettingsDraft().directionArrowSizePx, gpxTrackSettingsDraft().directionStyle)" [attr.fill]="gpxTrackSettingsDraft().color" [attr.opacity]=".92 * gpxOpacity() / 100" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ gpxDirectionGlyph(gpxTrackSettingsDraft().directionStyle) }}</text> } }</svg>
@@ -429,7 +429,7 @@ interface MapErrorEntry {
             <div class="gpx-track-settings-divider" role="separator"></div>
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
-              <label>Color<select [value]="gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value.toLowerCase()" [style.color]="color.value" [style.background-color]="'#ffffff'">■ {{ color.name }} ({{ color.value }})</option> } @if (!gpxColors.some(color => color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase())) { <option [value]="gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="gpxTrackSettingsDraft().color" [style.background-color]="'#ffffff'" selected>■ {{ gpxTrackSettingsDraft().color.toLowerCase() === '#ff3b30' ? 'Orange' : 'Custom' }} ({{ gpxTrackSettingsDraft().color }})</option> }</select></label>
+              <label>Color<select [value]="gpxTrackSettingsDraft().color.toLowerCase()" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value.toLowerCase()" [selected]="color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> } @if (!gpxColors.some(color => color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase())) { <option [value]="gpxTrackSettingsDraft().color.toLowerCase()" selected>■ {{ gpxTrackSettingsDraft().color.toLowerCase() === '#ff3b30' ? 'Orange' : 'Custom' }} ({{ gpxTrackSettingsDraft().color }})</option> }</select></label>>
             } @else if (gpxTrackSettingsDraft().colorMode === 'speed') {
               <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
               @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
@@ -458,7 +458,7 @@ interface MapErrorEntry {
               <label>Maximum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMaxM" (change)="updateGpxTrackSettingsDraft({ elevationMaxM: +$any($event.target).value })"></label>
             }
             <div class="gpx-track-settings-divider" role="separator"></div>
-            <label>Line style<details class="gpx-settings-choice"><summary><span class="gpx-settings-choice-sample">{{ gpxLineStyleSample(gpxTrackSettingsDraft().lineStyle) }}</span><span>{{ gpxLineStyleName(gpxTrackSettingsDraft().lineStyle) }}</span></summary><div class="gpx-settings-choice-options" role="listbox" aria-label="Line style">
+            <label>Line style<details class="gpx-settings-choice" name="gpx-track-settings-choice"><summary><span class="gpx-settings-choice-sample">{{ gpxLineStyleSample(gpxTrackSettingsDraft().lineStyle) }}</span><span>{{ gpxLineStyleName(gpxTrackSettingsDraft().lineStyle) }}</span></summary><div class="gpx-settings-choice-options" role="listbox" aria-label="Line style">
 <button type="button" role="option" (click)="selectGpxTrackLineStyleFromDialog('solid', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === 'solid'"><span class="gpx-settings-choice-sample">━━━━━━━━━</span><span>Solid</span></button>
 <button type="button" role="option" (click)="selectGpxTrackLineStyleFromDialog('dashed', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === 'dashed'"><span class="gpx-settings-choice-sample">━ ━ ━ ━</span><span>Dashed</span></button>
 <button type="button" role="option" (click)="selectGpxTrackLineStyleFromDialog('dotted', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === 'dotted'"><span class="gpx-settings-choice-sample">· · · · ·</span><span>Dotted</span></button>
@@ -467,8 +467,8 @@ interface MapErrorEntry {
 <button type="button" role="option" (click)="selectGpxTrackLineStyleFromDialog('dash-dot', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === 'dash-dot'"><span class="gpx-settings-choice-sample">━ · ━ · ━</span><span>Dash-dot</span></button>
 <button type="button" role="option" (click)="selectGpxTrackLineStyleFromDialog('dash-dot-dot', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === 'dash-dot-dot'"><span class="gpx-settings-choice-sample">━ · · ━ · ·</span><span>Dash-dot-dot</span></button>
 </div></details></label>
-            <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
-            <label>Direction arrows<details class="gpx-settings-choice"><summary><span class="gpx-settings-choice-sample">{{ gpxDirectionSample(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') }}</span><span>{{ gpxTrackSettingsDraft().showDirection ? gpxDirectionName(gpxTrackSettingsDraft().directionStyle) : 'Off' }}</span></summary><div class="gpx-settings-choice-options" role="listbox" aria-label="Direction arrows">
+            <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width" [selected]="width === gpxTrackSettingsDraft().lineWidth">{{ width }} px</option> }</select></label>
+            <label>Direction arrows<details class="gpx-settings-choice" name="gpx-track-settings-choice"><summary><span class="gpx-settings-choice-sample">{{ gpxDirectionSample(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') }}</span><span>{{ gpxTrackSettingsDraft().showDirection ? gpxDirectionName(gpxTrackSettingsDraft().directionStyle) : 'Off' }}</span></summary><div class="gpx-settings-choice-options" role="listbox" aria-label="Direction arrows">
 <button type="button" role="option" (click)="selectGpxTrackDirectionFromDialog('off', $event)" [attr.aria-selected]="!gpxTrackSettingsDraft().showDirection"><span class="gpx-settings-choice-sample">—</span><span>Off</span></button>
 <button type="button" role="option" (click)="selectGpxTrackDirectionFromDialog('classic', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().showDirection && gpxTrackSettingsDraft().directionStyle === 'classic'"><span class="gpx-settings-choice-sample">➤</span><span>Classic</span></button>
 <button type="button" role="option" (click)="selectGpxTrackDirectionFromDialog('chevron', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().showDirection && gpxTrackSettingsDraft().directionStyle === 'chevron'"><span class="gpx-settings-choice-sample">❯</span><span>Chevron</span></button>
@@ -2524,22 +2524,50 @@ export class MapWindow implements OnInit, OnDestroy {
     return result;
   };
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '10 7' : style === 'dotted' ? '2 7' : style === 'long-dashed' ? '18 7' : style === 'short-dashed' ? '5 5' : style === 'dash-dot' ? '12 5 2 5' : style === 'dash-dot-dot' ? '12 4 2 4 2 4' : '';
-  protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
+  protected readonly openGpxTrackSettings = async (track: GpxTrackFile): Promise<void> => {
+    await this.ensureGpxDatabaseTrackSettingsLoaded();
     this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as unknown as GpxTrackSettingsFavorite[]));
     this.gpxTrackSettingsFavoriteName.set('');
     this.gpxTrackSettingsFavoriteSelection.set('');
     this.gpxTrackSettingsTrack.set(track);
-    // Keep the stored color unchanged. Older tracks may contain #ff3b30,
-    // which is not one of the current palette values and needs its own select option.
     const settingsKey = track.databasePath || track.path;
     const latestTrackSettings = this.gpxDatabaseTrackSettings.get(settingsKey) ?? {};
-    const selectedColor = String(latestTrackSettings.color ?? track.color ?? this.gpxColor()).trim().toLowerCase();
-    this.gpxTrackSettingsDraft.set({ colorMode: latestTrackSettings.colorMode ?? track.colorMode ?? 'fixed', color: selectedColor, speedPalette: track.speedPalette || 'spectrum', customColor1: track.customColor1 || '#2878ff', customColor2: track.customColor2 || '#18c99a', customColor3: track.customColor3 || '#f04444', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, elevationMinM: track.elevationMinM ?? 0, elevationMaxM: track.elevationMaxM ?? 3000, lineStyle: latestTrackSettings.lineStyle ?? track.lineStyle ?? 'solid', lineWidth: latestTrackSettings.lineWidth ?? track.lineWidth ?? 4, showDirection: track.showDirection ?? false, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16), directionStyle: track.directionStyle || 'classic' });
+    // The track row is the live source of truth; persisted settings are fallback
+    // values only, so an older cached value cannot override the current row.
+    const rawColor = String(track.color ?? latestTrackSettings.color ?? this.gpxColor()).trim().toLowerCase();
+    const selectedColor = this.gpxColors.find(color =>
+      color.value.toLowerCase() === rawColor || color.name.toLowerCase() === rawColor
+    )?.value.toLowerCase() ?? rawColor;
+    this.gpxTrackSettingsDraft.set({
+      colorMode: track.colorMode ?? latestTrackSettings.colorMode ?? 'fixed',
+      color: selectedColor,
+      speedPalette: track.speedPalette ?? latestTrackSettings.speedPalette ?? 'spectrum',
+      customColor1: track.customColor1 ?? latestTrackSettings.customColor1 ?? '#2878ff',
+      customColor2: track.customColor2 ?? latestTrackSettings.customColor2 ?? '#18c99a',
+      customColor3: track.customColor3 ?? latestTrackSettings.customColor3 ?? '#f04444',
+      speedMinKmh: track.speedMinKmh ?? latestTrackSettings.speedMinKmh ?? 0,
+      speedMaxKmh: track.speedMaxKmh ?? latestTrackSettings.speedMaxKmh ?? 120,
+      elevationMinM: track.elevationMinM ?? latestTrackSettings.elevationMinM ?? 0,
+      elevationMaxM: track.elevationMaxM ?? latestTrackSettings.elevationMaxM ?? 3000,
+      lineStyle: track.lineStyle ?? latestTrackSettings.lineStyle ?? 'solid',
+      lineWidth: track.lineWidth ?? latestTrackSettings.lineWidth ?? 4,
+      showDirection: track.showDirection ?? latestTrackSettings.showDirection ?? false,
+      directionIntervalPx: track.directionIntervalPx ?? latestTrackSettings.directionIntervalPx ?? 120,
+      directionArrowSizePx: track.directionArrowSizePx ?? latestTrackSettings.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16),
+      directionStyle: track.directionStyle ?? latestTrackSettings.directionStyle ?? 'classic'
+    });
     requestAnimationFrame(() => {
       const dialog = document.querySelector<HTMLElement>('.gpx-track-settings-dialog');
       const okButton = dialog?.querySelector<HTMLButtonElement>('.gpx-track-settings-ok');
       okButton?.focus();
     });
+  };
+  protected readonly onGpxTrackSettingsDialogClick = (event: MouseEvent): void => {
+    const dialog = event.currentTarget as HTMLElement;
+    const clickedChoice = (event.target as HTMLElement | null)?.closest('details.gpx-settings-choice') ?? null;
+    for (const choice of dialog.querySelectorAll<HTMLDetailsElement>('details.gpx-settings-choice')) {
+      if (choice !== clickedChoice) choice.removeAttribute('open');
+    }
   };
   protected readonly onGpxTrackSettingsFooterKeydown = (event: KeyboardEvent): void => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -3346,6 +3374,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
       this.currentFolderPath = location.folderPath ?? null;
+      if (this.currentFolderPath) this.markerSourceFolder.set(this.currentFolderPath);
       this.currentImageHasGps.set(Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
         && location.latitude! >= -90 && location.latitude! <= 90
         && location.longitude! >= -180 && location.longitude! <= 180);
