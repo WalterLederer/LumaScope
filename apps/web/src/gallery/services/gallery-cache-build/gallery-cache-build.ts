@@ -108,13 +108,13 @@ export class GalleryCacheBuild {
 
   readonly startCacheBuild = async (directory: string, importGpx = true): Promise<void> => {
     const controller = this.controller();
-    if (!controller) throw new Error('The Cache folder action is not available. Please try again from the Cache tab.');
-
     const normalizedDirectory = this.normalizeDirectory(directory);
     if (this.activeDirectory && this.normalizeDirectory(this.activeDirectory) === normalizedDirectory) return;
     if (this.pendingStarts.some(item => this.normalizeDirectory(item.directory) === normalizedDirectory)) return;
 
-    if (this.cacheRunActive()) {
+    // Startup can restore a folder before ImageGrid has mounted and registered
+    // its controller. Queue the request instead of silently losing the build.
+    if (!controller || this.cacheRunActive()) {
       this.pendingStarts.push({ directory, importGpx });
       return;
     }
