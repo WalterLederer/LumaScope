@@ -45,6 +45,7 @@
 
     <div class="thumbnail-size-control" title="Thumbnail size">
       <div class="thumbnail-zoom-box">
+        <span class="zoom-label">Thumb size</span>
         <button class="zoom-step-button"
                 type="button"
                 title="Smaller thumbnails (-)"
@@ -61,6 +62,18 @@
                 (click)="adjustThumbnailSize(1)">+</button>
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
+      @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
+        <div class="thumbnail-zoom-box font-size-zoom-box" title="Table font size">
+          <span class="zoom-label">Font size</span>
+          <button class="zoom-step-button" type="button" title="Smaller font size" aria-label="Smaller font size"
+                  (click)="adjustDetailFontSize(-1)">−</button>
+          <ui-slider class="zoom-purpose-slider" [formControl]="detailFontSizeSlider"
+                     [min]="detailFontSizeMin" [max]="detailFontSizeMax" aria-label="Table font size" />
+          <button class="zoom-step-button" type="button" title="Larger font size" aria-label="Larger font size"
+                  (click)="adjustDetailFontSize(1)">+</button>
+          <span class="zoom-factor" aria-live="polite">{{ detailFontSize() }} px</span>
+        </div>
+      }
       <span class="file-row-menu-trigger folder-path-menu-trigger"
             [cdkMenuTriggerFor]="folderPathMenu"
             role="button"
@@ -83,6 +96,7 @@
               [sortDirection]="sortDirection()"
               [thumbSize]="thumbSize()"
               [viewMode]="viewMode()"
+              [style.--detail-font-size.px]="detailFontSize()"
               [verifyCacheFiles]="verifyCacheFiles()"
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
