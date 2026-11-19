@@ -91,6 +91,7 @@ export class ImageGridComponent {
 
   /* Outputs */
   readonly selected = output<FileInfo>();
+  readonly folderRefreshRequested = output<string>();
 
   readonly sortByChanged = output<SortType>();
 

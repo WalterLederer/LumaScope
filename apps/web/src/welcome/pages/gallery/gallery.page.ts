@@ -321,6 +321,10 @@ export class GalleryPage {
     this.tree()?.updateNode(node);
   };
 
+  protected readonly refreshSelectedFolder = (path: string): void => {
+    this.galleryState.navigateTo(path).subscribe(() => void this.galleryCacheBuild.refreshDetailCacheStatus());
+  };
+
   protected readonly selectLocation = (node: TreeNode<string>) =>
     this.galleryState
       .navigateTo(node.id)

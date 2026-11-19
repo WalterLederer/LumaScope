@@ -82,6 +82,7 @@ export class ImagesComponent {
   };
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
+  readonly folderRefreshRequested = output<string>();
   readonly refreshGallery = async (): Promise<void> => {
     const folder = this.folderPath();
     if (folder) {
@@ -95,6 +96,7 @@ export class ImagesComponent {
       }
     }
     this.manualRefresh.update(value => value + 1);
+    if (folder && this.folderPath() === folder) this.folderRefreshRequested.emit(folder);
     this.cacheUpdated.emit('');
   };
   private observer: IntersectionObserver | null = null;
