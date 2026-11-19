@@ -21,7 +21,7 @@
         <col style="width:28px">
       </colgroup>
       <thead>
-        <tr class="detail-header">
+        <tr class="detail-header" [class.cache-build-active]="cacheRunActive()">
           <th class="thumb-column-heading" scope="col">
             <span>Thumb</span>
             <small>{{ dimensions().width }} × {{ dimensions().height }} px</small>
@@ -90,7 +90,7 @@
             }
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)"></span>
           </th>
-          <th class="detail-actions-heading" scope="col" aria-label="Actions"></th>
+          <th class="detail-actions-heading" scope="col" aria-label="Actions"></th>\n          @if (cacheRunActive()) {\n            <th class="cache-run-banner" colspan="13" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</th>\n          }
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
