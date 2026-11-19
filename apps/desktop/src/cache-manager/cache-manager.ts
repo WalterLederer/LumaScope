@@ -1352,9 +1352,68 @@ export class CacheManager {
     return true;
   };
 
+  private readonly reconcilePhotoRecordsInScope = (directory: string, sourceNames: string[], recursive: boolean): number => {
+    const root = resolve(directory);
+    const databaseKey = this.databaseKeyForPath(root);
+    const db = this.databaseForPath(root);
+    const existingPaths = new Set<string>();
+    for (const sourceName of sourceNames) {
+      const absolute = resolve(sourceName);
+      const relativePath = relative(root, absolute);
+      if (relativePath === '..' || relativePath.startsWith('..' + sep) || isAbsolute(relativePath)) {
+        throw new Error(`A verified image path is outside the selected folder: ${sourceName}`);
+      }
+      existingPaths.add(absolute.toLowerCase());
+    }
+
+    const rows = db.prepare(`SELECT photos.id, photos.file_name, paths.relative_folder_path
+      FROM photos JOIN paths ON paths.id = photos.path_id`)
+      .all() as Array<{ id: number; file_name: string; relative_folder_path: string }>;
+    const staleIds = rows.filter(row => {
+      const folder = resolve(this.resolveStoredFolderPath(row.relative_folder_path, databaseKey));
+      const relativeFolder = relative(root, folder);
+      const inScope = relativeFolder === ''
+        || (recursive && relativeFolder !== '..' && !relativeFolder.startsWith('..' + sep) && !isAbsolute(relativeFolder));
+      return inScope && !existingPaths.has(resolve(folder, row.file_name).toLowerCase());
+    }).map(row => row.id);
+
+    if (!staleIds.length) return 0;
+    const deletePhoto = db.prepare('DELETE FROM photos WHERE id = :id');
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      for (const id of staleIds) deletePhoto.run({ id });
+      db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch { /* Preserve the database error. */ }
+      throw error;
+    }
+    return staleIds.length;
+  };
+
+  @IpcHandler({ name: 'CacheManager.reconcilePhotoRecords' })
+  readonly reconcilePhotoRecords = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    sourceNames: string[],
+    recursive = false
+  ): Promise<number> => {
+    if (typeof directory !== 'string' || !directory.trim()
+      || !Array.isArray(sourceNames) || sourceNames.length > 500000
+      || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
+      throw new Error('A valid folder and complete list of image paths are required.');
+    }
+    return this.reconcilePhotoRecordsInScope(directory, sourceNames, recursive);
+  };
+
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
   readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
+    const entries = await readdir(directory, { withFileTypes: true });
+    const sourceNames = entries
+      .filter(entry => entry.isFile() || entry.isSymbolicLink())
+      .map(entry => join(directory, entry.name));
+    this.reconcilePhotoRecordsInScope(directory, sourceNames, false);
     const db = this.databaseForPath(directory);
     this.activeDatabaseKey = this.databaseKeyForPath(directory);
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
