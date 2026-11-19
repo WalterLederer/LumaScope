@@ -1221,13 +1221,23 @@
       <div class="map-error-list">
         @for (error of mapErrors(); track error.id) {
           <article class="map-error-entry">
-            <div class="map-error-entry-heading"><strong>{{ error.source }}</strong><time>{{ error.timestamp }}</time>@if (error.occurrences > 1) { <span>{{ error.occurrences }} occurrences</span> }</div>
-            <div class="map-error-context"><span>Renderer: <strong>{{ error.renderer }}</strong></span><span>Style: <strong>{{ error.style }}</strong></span></div>
+            <div class="map-error-entry-heading">
+              <strong>{{ error.source }}</strong>
+              <time>{{ error.timestamp }}</time>
+              @if (error.occurrences > 1) {
+                <span>{{ error.occurrences }} occurrences</span>
+              }
+            </div>
+            <div class="map-error-context">
+              <span>Renderer: <strong>{{ error.renderer }}</strong></span>
+              <span>Style: <strong>{{ error.style }}</strong></span>
+            </div>
             <pre>{{ error.message }}</pre>
           </article>
         }
       </div>
-    } @else {
+    }
+    @if (mapErrors().length === 0) {
       <span class="offline-map-status">No errors recorded.</span>
     }
   </div>
