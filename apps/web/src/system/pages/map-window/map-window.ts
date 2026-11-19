@@ -727,8 +727,8 @@ interface MapErrorEntry {
 <div class="settings-tab-panel" data-settings-tab="marker" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
             <div class="marker-settings-content">
-              <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show marker</label><button type="button" class="map-toolbar-button marker-fit-images-button" (click)="fitMapToImages()" [disabled]="!directoryMarkersEnabled()" title="Fit map to all images with GPS coordinates"><span aria-hidden="true">⤢</span> Fit map to images</button><button type="button" class="routing-help-button marker-tab-help" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
-              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all photos in DB</label>
+              <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show images</label><button type="button" class="map-toolbar-button marker-fit-images-button" (click)="fitMapToImages()" [disabled]="!directoryMarkersEnabled()" title="Fit map to all images with GPS coordinates"><span aria-hidden="true">⤢</span> Fit map to images</button><button type="button" class="routing-help-button marker-tab-help" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
+              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all images in DB</label>
               <div class="marker-appearance-settings">
                 <div class="marker-setting-row">
                   <span>Cluster Icons:</span>
@@ -760,24 +760,22 @@ interface MapErrorEntry {
                   </div>
                 </div>
               </div>
-              @if (directoryMarkersEnabled()) {
-                <details class="marker-summary-section app-disclosure">
-                  <summary>Summary</summary>
-                  <div class="marker-summary-content">
-                    <div class="marker-progress-row">
-                      <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
-                      <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
-                    </div>
-                    <div class="marker-summary-source"><strong>Folder:</strong> {{ markerSourceFolder() }}</div>
-                    <div class="marker-statistics"><span>GPS COORDINATE(s) found: <strong>{{ markerCount() }}</strong></span></div>
-                    <div class="marker-time-range">
-                      <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
-                      <span>Maximum timestamp: <strong>{{ markerTimestampRange().maximum }}</strong></span>
-                    </div>
-                    <div class="marker-status" role="status">{{ markerStatus() }}</div>
+              <details class="marker-summary-section app-disclosure">
+                <summary>Summary</summary>
+                <div class="marker-summary-content">
+                  <div class="marker-progress-row">
+                    <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                    <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                   </div>
-                </details>
-              }
+                  <div class="marker-summary-source"><strong>Folder:</strong> {{ markerSourceFolder() }}</div>
+                  <div class="marker-statistics"><span>GPS COORDINATE(s) found: <strong>{{ markerCount() }}</strong></span></div>
+                  <div class="marker-time-range">
+                    <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
+                    <span>Maximum timestamp: <strong>{{ markerTimestampRange().maximum }}</strong></span>
+                  </div>
+                  <div class="marker-status" role="status">{{ markerStatus() }}</div>
+                </div>
+              </details>
             </div>
           </div>
 
