@@ -79,7 +79,9 @@
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
-    background: transparent !important;
+    /* Keep the sortable heading cells opaque; only the inner sort button is transparent. */
+    background: var(--color-surface-default-low) !important;
+    background-image: none !important;
     box-shadow: none !important;
     color: inherit !important;
     text-shadow: none !important;
