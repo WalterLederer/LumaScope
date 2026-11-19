@@ -387,6 +387,12 @@
   background-image: none !important;
   color: var(--color-content-on-accent, #fff) !important;
 }
+/* Explicit child colors on summaries, counts and progress labels must not
+   override the readable foreground while the cache-running header is active. */
+.detail-native-table thead tr.detail-header.cache-build-active > th,
+.detail-native-table thead tr.detail-header.cache-build-active > th *:not(.column-resizer) {
+  color: var(--color-content-on-accent, #fff) !important;
+}
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
 .detail-native-table th > button {
