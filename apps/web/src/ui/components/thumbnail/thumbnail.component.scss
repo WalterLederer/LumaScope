@@ -110,8 +110,12 @@
   .thumbnail-preview {
     grid-column: 1;
     width: var(--detail-thumb-width, 36px);
-    height: var(--detail-thumb-height, 27px);
+    height: 100%;
+    min-height: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
     justify-self: center;
+    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
     border-radius: 3px;
     background: var(--color-surface-default-medium);
   }
@@ -146,7 +150,8 @@
     height: 100%;
     min-height: 100%;
     box-sizing: border-box;
-    border-left: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+    border-left: 0;
+    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
     padding-left: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -154,8 +159,8 @@
   }
 
   &.view-details-no-thumbnails .detail-columns > span:first-child {
-    border-left: 0;
-    padding-left: 0;
+    border-left: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+    padding-left: 12px;
   }
 
   .detail-columns > .cache-valid {
