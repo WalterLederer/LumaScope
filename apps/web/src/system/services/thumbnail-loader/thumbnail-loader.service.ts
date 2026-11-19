@@ -7,7 +7,7 @@ export class ThumbnailLoaderService {
   private activeCount = 0;
   private readonly pendingTasks: Array<() => void> = [];
 
-  readonly add = (url: string): Observable<boolean> => {
+  readonly add = (url: string, onStarted?: () => void): Observable<boolean> => {
     return new Observable<boolean>(observer => {
       let status: 'pending' | 'active' | 'completed' | 'aborted' = 'pending';
       let image: HTMLImageElement | null = null;
@@ -19,6 +19,7 @@ export class ThumbnailLoaderService {
         }
         status = 'active';
         this.activeCount++;
+        onStarted?.();
 
         image = new Image();
 
