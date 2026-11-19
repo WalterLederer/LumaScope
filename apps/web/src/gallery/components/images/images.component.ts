@@ -406,11 +406,17 @@ export class ImagesComponent {
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
       let images = this.images() ?? [];
-      if (directory?.trim()) {
-        this.cacheRunCurrentOperation.set(`Reading images in ${directory.trim()}`);
-        const result = await this.fileSystem.readImages(directory.trim(), this.sortBy(), this.sortDirection());
-        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${directory}`);
+      const folder = directory?.trim() || this.folderPath();
+      if (folder) {
+        this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
+        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
+        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
         images = result.data;
+        if (this.verifyCacheFiles()) {
+          this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
+          const removed = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
+          await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${removed} stale records in ${folder}`);
+        }
       }
       await this.runCacheForImages(images, true, controller.signal);
     } catch (error) {
@@ -509,6 +515,7 @@ export class ImagesComponent {
       const allImages: FileInfo[] = [...rootImages.data];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
+      let enumerationComplete = true;
 
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directory = pendingDirectories.shift()!;
@@ -517,6 +524,7 @@ export class ImagesComponent {
         if (controller.signal.aborted) break;
         if (!directoriesResult.success) {
           console.warn('Failed to enumerate gallery subfolders', directory, directoriesResult.errorMessage);
+          enumerationComplete = false;
           continue;
         }
 
@@ -532,12 +540,22 @@ export class ImagesComponent {
           const imagesResult = await this.fileSystem.readImages(child.path, this.sortBy(), this.sortDirection());
           if (controller.signal.aborted) break;
           if (imagesResult.success) allImages.push(...imagesResult.data);
-          else console.warn('Failed to read images in gallery subfolder', child.path, imagesResult.errorMessage);
+          else {
+            console.warn('Failed to read images in gallery subfolder', child.path, imagesResult.errorMessage);
+            enumerationComplete = false;
+          }
         }
       }
 
       if (!controller.signal.aborted) {
         const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
+        if (this.verifyCacheFiles() && enumerationComplete) {
+          this.cacheRunCurrentOperation.set(`Removing stale photo database records under ${rootPath}`);
+          const removed = await this.cacheManager.reconcilePhotoRecords(rootPath, uniqueImages.map(image => image.path), true);
+          await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removed} stale records under ${rootPath}`);
+        } else if (this.verifyCacheFiles() && !enumerationComplete) {
+          await this.cacheManager.appendBuildLog('Recursive photo database reconciliation skipped because one or more folders could not be fully enumerated.');
+        }
         await this.runCacheForImages(uniqueImages, true, controller.signal);
       }
     } catch (error) {
