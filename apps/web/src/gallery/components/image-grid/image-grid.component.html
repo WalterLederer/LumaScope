@@ -75,7 +75,8 @@
               [verifyCacheFiles]="verifyCacheFiles()"
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
-              (selected)="selected.emit($event)" />
+              (selected)="selected.emit($event)"  (folderRefreshRequested)="folderRefreshRequested.emit($event)"
+              />
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
