@@ -347,34 +347,35 @@ export class ImagesComponent {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+
     const handle = event.currentTarget as HTMLElement;
-    const header = handle.closest('.detail-header') as HTMLElement | null;
-    const table = header?.closest('.detail-native-table') as HTMLTableElement | null;
-    const cell = header?.children.item(columnIndex) as HTMLElement | null;
+    const cell = handle.closest('th') as HTMLElement | null;
+    const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
     if (!table || !cell) return;
+
     const startX = event.clientX;
     const startWidth = cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
-    handle.setPointerCapture(pointerId);
+    const document = table.ownerDocument;
+
     const onMove = (moveEvent: PointerEvent): void => {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
-      table.style.setProperty("--detail-col-" + columnIndex + "-width", width + "px");
+      table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
     };
     const cleanup = (): void => {
-      handle.removeEventListener('pointermove', onMove);
-      handle.removeEventListener('pointerup', onUp);
-      handle.removeEventListener('pointercancel', onUp);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
     };
     const onUp = (upEvent: PointerEvent): void => {
-      if (upEvent.pointerId !== pointerId) return;
-      cleanup();
-      if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+      if (upEvent.pointerId === pointerId) cleanup();
     };
-    handle.addEventListener('pointermove', onMove);
-    handle.addEventListener('pointerup', onUp);
-    handle.addEventListener('pointercancel', onUp);
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
   }
   @HostListener('document:keydown', ['$event'])
   protected onThumbnailListKeydown(event: KeyboardEvent): void {
