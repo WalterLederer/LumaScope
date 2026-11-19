@@ -89,12 +89,14 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  align-self: start;
+  align-self: stretch;
+  height: 100%;
+  box-sizing: border-box;
   background: var(--color-surface-default-low);
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
-  align-items: start;
+  align-items: stretch;
   gap: 0;
   padding: 7px 0;
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
@@ -105,7 +107,10 @@
   > :nth-child(n + 2):not(.detail-actions-heading):not(.column-resizer) {
     display: flex;
     align-self: stretch;
+    height: 100%;
+    min-height: 100%;
     min-width: 0;
+    box-sizing: border-box;
     border-left: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
     padding-left: 12px;
   }
