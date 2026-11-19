@@ -17,7 +17,7 @@ interface GalleryCacheBuildController {
   readonly cacheRunActive: Signal<boolean>;
   readonly cacheRunProgress: Signal<CacheBuildProgress>;
   readonly cacheRunCurrentOperation: Signal<string>;
-  readonly start: (directory: string) => void;
+  readonly start: (directory: string) => Promise<void>;
   readonly startRecursive: (directory: string) => void;
   readonly cancel: () => void;
   readonly refreshDetailCacheStatus: () => void;
@@ -82,7 +82,11 @@ export class GalleryCacheBuild {
     catch { /* Keep the session setting. */ }
   };
 
-  readonly startCacheBuild = (directory: string): void => this.controller()?.start(directory);
+  readonly startCacheBuild = async (directory: string): Promise<void> => {
+    const controller = this.controller();
+    if (!controller) throw new Error('The Cache folder action is not available. Please try again from the Cache tab.');
+    await controller.start(directory);
+  };
   readonly startRecursiveCacheBuild = (directory: string): void => this.controller()?.startRecursive(directory);
   readonly cancelCacheBuild = (): void => {
     const activity = this.activity();
