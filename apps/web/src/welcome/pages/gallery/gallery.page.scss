@@ -376,3 +376,18 @@ ui-side-panel {
   filter: none !important;
   transform: none !important;
 }
+
+
+:host ::ng-deep .gallery-location-menu-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+:host ::ng-deep .gallery-location-menu-checkbox input {
+  margin: 0;
+  flex: 0 0 auto;
+}
