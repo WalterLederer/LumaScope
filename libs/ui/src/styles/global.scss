@@ -1034,3 +1034,37 @@ details,
 .app-disclosure {
   margin-bottom: 6px !important;
 }
+
+
+/* The shared disclosure preference also controls the expand markers in ui-tree. */
+ui-tree-node .expand-indicator { font-size: 0 !important; line-height: 1 !important; transform: none !important; }
+ui-tree-node .expand-indicator::before { content: ''; display: block; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid rgb(190 105 105 / 78%); transform-origin: 2px 5px; }
+ui-tree-node .expand-indicator.expanded::before { border-left-color: rgb(105 170 125 / 78%); transform: rotate(90deg); }
+html[data-disclosure-style='plain-triangle'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='plain-triangle'] ui-tree-node .expand-indicator.expanded::before { border-left-color: currentColor; }
+html[data-disclosure-style='chevron'] ui-tree-node .expand-indicator::before { content: '›'; width: 12px; height: 14px; border: 0; font: 600 21px/14px Arial,sans-serif; color: currentColor; transform: none; }
+html[data-disclosure-style='chevron'] ui-tree-node .expand-indicator.expanded::before { content: '⌄'; }
+html[data-disclosure-style='plus-minus'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='square'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='circle'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='arrow'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='caret'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='bracket'] ui-tree-node .expand-indicator::before,
+html[data-disclosure-style='none'] ui-tree-node .expand-indicator::before { width: 14px; height: 14px; border: 0; color: currentColor; font: 600 16px/14px Arial,sans-serif; text-align: center; transform: none; }
+html[data-disclosure-style='plus-minus'] ui-tree-node .expand-indicator::before { content: '+'; }
+html[data-disclosure-style='plus-minus'] ui-tree-node .expand-indicator.expanded::before { content: '−'; }
+html[data-disclosure-style='square'] ui-tree-node .expand-indicator::before { content: '⊞'; }
+html[data-disclosure-style='square'] ui-tree-node .expand-indicator.expanded::before { content: '⊟'; }
+html[data-disclosure-style='circle'] ui-tree-node .expand-indicator::before { content: '⊕'; }
+html[data-disclosure-style='circle'] ui-tree-node .expand-indicator.expanded::before { content: '⊖'; }
+html[data-disclosure-style='arrow'] ui-tree-node .expand-indicator::before { content: '➜'; font-size: 13px; }
+html[data-disclosure-style='arrow'] ui-tree-node .expand-indicator.expanded::before { content: '⬇'; }
+html[data-disclosure-style='caret'] ui-tree-node .expand-indicator::before { content: '▸'; }
+html[data-disclosure-style='caret'] ui-tree-node .expand-indicator.expanded::before { content: '▾'; }
+html[data-disclosure-style='bracket'] ui-tree-node .expand-indicator::before { content: '[+]'; width: 20px; font-size: 11px; }
+html[data-disclosure-style='bracket'] ui-tree-node .expand-indicator.expanded::before { content: '[−]'; }
+html[data-disclosure-style='none'] ui-tree-node .expand-indicator { flex-basis: 0; width: 0; }
+html[data-disclosure-style='none'] ui-tree-node .expand-indicator::before { content: none; }
+
+/* The My PC popup is rendered in the CDK overlay, outside the gallery component tree. */
+.gallery-location-menu-separator { display: block !important; flex: 0 0 1px !important; align-self: stretch !important; width: auto !important; height: 1px !important; min-height: 1px !important; margin: 7px 8px !important; padding: 0 !important; border: 0 !important; background: color-mix(in srgb, currentColor 42%, transparent) !important; }

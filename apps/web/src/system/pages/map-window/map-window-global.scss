@@ -763,7 +763,7 @@ app-map-window {
   .gpx-track-settings-dialog header span{font-size:12px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere}
   .gpx-track-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .gpx-track-settings-grid .gpx-track-settings-divider:first-child{margin:0 0 2px}
-  .gpx-line-style-select{font-family:Consolas,'Courier New',monospace;letter-spacing:.15px}
+  .gpx-line-style-select,.gpx-direction-style-select{font-family:Consolas,'Courier New',monospace;letter-spacing:.15px}
   .gpx-track-settings-divider{grid-column:1 / -1;height:1px;margin:2px 0;background:var(--color-content-default-low,#666)}
   .gpx-track-settings-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px;color:var(--color-content-default-medium,#bbb)}
   .gpx-track-settings-grid select,.gpx-track-settings-grid input{width:100%;min-width:0;box-sizing:border-box;padding:7px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-medium,#454545);color:var(--color-content-default-high,#eee);font:inherit}

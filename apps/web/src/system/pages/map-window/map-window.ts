@@ -378,7 +378,7 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
               <div class="gpx-track-style-preview" role="cell">
                 <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-speed-preview-' + gpxPreviewId(track.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(track); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' || track.colorMode === 'elevation' ? 'url(#gpx-speed-preview-' + gpxPreviewId(track.path) + ')' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 3" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
-                  @if (track.showDirection) { <path [attr.d]="gpxPreviewArrow(track.directionStyle)" [attr.fill]="track.directionStyle === 'triangle' || track.directionStyle === 'large-triangle' ? (track.color || gpxColor()) : 'none'" [attr.stroke]="track.color || gpxColor()" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/> }</svg>
+                  @if (track.showDirection) { @for (arrow of gpxPreviewArrowPositions(track.directionIntervalPx ?? 120); track $index) { <path [attr.d]="gpxPreviewArrow(track.directionStyle)" [attr.fill]="gpxPreviewArrowFilled(track.directionStyle) ? (track.color || gpxColor()) : 'none'" [attr.stroke]="track.color || gpxColor()" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + ((track.directionArrowSizePx ?? 16) / 16) + ')'"/> } }</svg>
                 <span>{{ track.colorMode === 'speed' ? ('Speed ' + (track.speedMinKmh ?? 0) + '–' + (track.speedMaxKmh ?? 120) + ' km/h') : track.colorMode === 'elevation' ? ('Elevation ' + (track.elevationMinM ?? 0) + '–' + (track.elevationMaxM ?? 3000) + ' m') : (track.color || gpxColor()) }} · {{ track.lineWidth || 3 }} px</span>
               </div>
               <div class="gpx-row-actions" role="cell">
@@ -426,7 +426,7 @@ interface MapErrorEntry {
         <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation()">
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
           <div class="gpx-track-style-preview gpx-track-settings-preview">
-            <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-settings-preview-' + gpxPreviewId(settingsTrack.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(gpxSettingsPreviewTrack(settingsTrack)); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="gpxTrackSettingsDraft().colorMode === 'speed' || gpxTrackSettingsDraft().colorMode === 'elevation' ? 'url(#gpx-settings-preview-' + gpxPreviewId(settingsTrack.path) + ')' : gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>@if (gpxTrackSettingsDraft().showDirection) { <path [attr.d]="gpxPreviewArrow(gpxTrackSettingsDraft().directionStyle)" [attr.fill]="gpxTrackSettingsDraft().directionStyle === 'triangle' || gpxTrackSettingsDraft().directionStyle === 'large-triangle' ? gpxTrackSettingsDraft().color : 'none'" [attr.stroke]="gpxTrackSettingsDraft().color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(75 12) scale(' + (gpxTrackSettingsDraft().directionArrowSizePx / 16) + ') translate(-75 -12)'"/> }</svg>
+            <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-settings-preview-' + gpxPreviewId(settingsTrack.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(gpxSettingsPreviewTrack(settingsTrack)); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="gpxTrackSettingsDraft().colorMode === 'speed' || gpxTrackSettingsDraft().colorMode === 'elevation' ? 'url(#gpx-settings-preview-' + gpxPreviewId(settingsTrack.path) + ')' : gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>@if (gpxTrackSettingsDraft().showDirection) { @for (arrow of gpxPreviewArrowPositions(gpxTrackSettingsDraft().directionIntervalPx); track $index) { <path [attr.d]="gpxPreviewArrow(gpxTrackSettingsDraft().directionStyle)" [attr.fill]="gpxPreviewArrowFilled(gpxTrackSettingsDraft().directionStyle) ? gpxTrackSettingsDraft().color : 'none'" [attr.stroke]="gpxTrackSettingsDraft().color" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + (gpxTrackSettingsDraft().directionArrowSizePx / 16) + ')'"/> } }</svg>
             <span>{{ gpxTrackSettingsDraft().colorMode === 'speed' ? ('Speed ' + gpxTrackSettingsDraft().speedMinKmh + '–' + gpxTrackSettingsDraft().speedMaxKmh + ' km/h') : gpxTrackSettingsDraft().colorMode === 'elevation' ? ('Elevation ' + gpxTrackSettingsDraft().elevationMinM + '–' + gpxTrackSettingsDraft().elevationMaxM + ' m') : gpxTrackSettingsDraft().color }} · {{ gpxTrackSettingsDraft().lineWidth }} px</span>
           </div>
           <div class="gpx-track-settings-grid">
@@ -462,9 +462,9 @@ interface MapErrorEntry {
               <label>Maximum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMaxM" (change)="updateGpxTrackSettingsDraft({ elevationMaxM: +$any($event.target).value })"></label>
             }
             <div class="gpx-track-settings-divider" role="separator"></div>
-            <label>Line style<select class="gpx-line-style-select" [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">━━━━━━ Solid</option><option value="dashed">━ ━ ━ Dashed</option><option value="dotted">· · · · Dotted</option><option value="long-dashed">━━━━ ━ Long dash</option><option value="short-dashed">━ ━ Short dash</option><option value="dash-dot">━ · ━ · Dash-dot</option><option value="dash-dot-dot">━ · · ━ Dash-dot-dot</option></select></label>
+            <label>Line style<select class="gpx-line-style-select" [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">━━━━━━    Solid</option><option value="dashed">━ ━ ━     Dashed</option><option value="dotted">······    Dotted</option><option value="long-dashed">━━━━ ━    Long dash</option><option value="short-dashed">━ ━ ━     Short dash</option><option value="dash-dot">━ · ━ ·   Dash-dot</option><option value="dash-dot-dot">━ · · ━   Dash-dot-dot</option></select></label>
             <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
-            <label>Direction arrows<select [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">Off</option><option value="classic">➤ Classic</option><option value="chevron">❯ Chevron</option><option value="triangle">▶ Triangle</option><option value="thin">➜ Thin</option><option value="large-classic">➤ Large classic</option><option value="large-chevron">❯ Large chevron</option><option value="large-triangle">▶ Large triangle</option></select></label>
+            <label>Direction arrows<select class="gpx-direction-style-select" [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">        Off</option><option value="classic">➤       Classic</option><option value="chevron">❯       Chevron</option><option value="triangle">▶       Triangle</option><option value="thin">➜       Thin</option><option value="large-classic">➤       Large classic</option><option value="large-chevron">❯       Large chevron</option><option value="large-triangle">▶       Large triangle</option></select></label>
             @if (gpxTrackSettingsDraft().showDirection) {
               <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="30" [max]="500" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
               <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
@@ -2468,7 +2468,33 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
-  protected readonly gpxPreviewArrow = (style?: GpxTrackFile['directionStyle']): string => style === 'triangle' || style === 'large-triangle' ? 'M73 7 L84 12 L73 17 Z' : style === 'thin' ? 'M75 8 L83 12 L75 16' : style === 'large-chevron' ? 'M72 6 L84 12 L72 18 M77 6 L89 12 L77 18' : style === 'large-classic' ? 'M70 7 L84 12 L70 17 L74 12 Z' : 'M73 7 L83 12 L73 17';
+  protected readonly gpxPreviewArrow = (style?: GpxTrackFile['directionStyle']): string =>
+    style === 'triangle' || style === 'large-triangle' ? 'M-6 -5 L6 0 L-6 5 Z'
+      : style === 'classic' || style === 'large-classic' ? 'M-6 -5 L6 0 L-6 5 L-3 0 Z'
+      : style === 'chevron' || style === 'large-chevron' ? 'M-4 -6 L4 0 L-4 6'
+      : 'M-6 -4 L6 0 L-6 4';
+  protected readonly gpxPreviewArrowFilled = (style?: GpxTrackFile['directionStyle']): boolean =>
+    style === 'classic' || style === 'large-classic' || style === 'triangle' || style === 'large-triangle';
+  protected readonly gpxPreviewArrowPositions = (intervalPx = 120): Array<{ x: number; y: number; angle: number }> => {
+    const points: Array<[number, number]> = [[3, 17], [22, 6], [42, 14], [62, 5], [82, 16], [102, 7], [122, 15], [147, 5]];
+    const total = points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point[0] - points[index][0], point[1] - points[index][1]), 0);
+    const spacing = 18 + (Math.max(30, Math.min(500, intervalPx)) - 30) / 470 * 82;
+    const result: Array<{ x: number; y: number; angle: number }> = [];
+    for (let distance = spacing / 2; distance < total - 2; distance += spacing) {
+      let remaining = distance;
+      for (let i = 1; i < points.length; i++) {
+        const start = points[i - 1], end = points[i];
+        const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+        if (remaining <= length) {
+          const fraction = remaining / length;
+          result.push({ x: start[0] + (end[0] - start[0]) * fraction, y: start[1] + (end[1] - start[1]) * fraction, angle: Math.atan2(end[1] - start[1], end[0] - start[0]) * 180 / Math.PI });
+          break;
+        }
+        remaining -= length;
+      }
+    }
+    return result;
+  };
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
   protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
     this.gpxTrackSettingsTrack.set(track);
@@ -2765,7 +2791,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors: ReadonlyArray<{ name: string; value: string; textColor?: string }> = [
-    { name: 'Red', value: '#ff3b30' }, { name: 'Orange', value: '#ff9500' },
+    { name: 'Red', value: '#ff0000' }, { name: 'Orange', value: '#ff9500' },
     { name: 'Amber', value: '#ffb000' }, { name: 'Yellow', value: '#ffd60a' },
     { name: 'Lime', value: '#a8d600' }, { name: 'Green', value: '#34c759' },
     { name: 'Forest green', value: '#16834a' }, { name: 'Teal', value: '#30b7a5' },

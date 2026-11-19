@@ -2,7 +2,7 @@
 @let currentMenu = menu();
 
 @if (currentNode.hasChildren === true) {
-  <span class="expand-indicator" [class.expanded]="currentNode.isOpen === true">›</span>
+  <span class="expand-indicator" [class.expanded]="currentNode.isOpen === true" aria-hidden="true"></span>
 } @else {
   <span class="expand-placeholder"></span>
 }
