@@ -2764,7 +2764,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineAddressSearchError = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
-  protected readonly gpxColors: Array<{ name: string; value: string; textColor?: string }> = [
+  protected readonly gpxColors: ReadonlyArray<{ name: string; value: string; textColor?: string }> = [
     { name: 'Red', value: '#ff3b30' }, { name: 'Orange', value: '#ff9500' },
     { name: 'Amber', value: '#ffb000' }, { name: 'Yellow', value: '#ffd60a' },
     { name: 'Lime', value: '#a8d600' }, { name: 'Green', value: '#34c759' },
