@@ -38,7 +38,7 @@
           (click)="onAction($event)"
           uiStopPropagation>{{ isRootNode() ? '+' : 'x' }}</button>
 } @else if (currentMenu !== null && currentNode.hideMenu !== true) {
-  <ui-action-button class="action"
+  <ui-action-button class="action file-row-menu-trigger"
                     [cdkMenuTriggerFor]="currentMenu"
                     [cdkMenuTriggerData]="{ data: currentNode }"
                     uiStopPropagation>
