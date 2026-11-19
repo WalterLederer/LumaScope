@@ -20,6 +20,7 @@ import { TreeNode } from './tree-node.component.types';
   host: {
     '[style.--level-offset]': 'offset()',
     '[class.selected]': 'isSelected()',
+    '[class.group-start]': 'node().groupStart === true',
     '(click)': 'onClick()',
     '(mouseenter)': 'hovered.emit(node())',
     '(mouseleave)': 'hovered.emit(null)'
