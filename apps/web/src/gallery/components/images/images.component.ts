@@ -351,18 +351,25 @@ export class ImagesComponent {
     const handle = event.currentTarget as HTMLElement;
     const cell = handle.closest('th') as HTMLElement | null;
     const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
-    if (!table || !cell) return;
+    const column = table?.querySelectorAll<HTMLTableColElement>('colgroup col').item(columnIndex) ?? null;
+    if (!table || !cell || !column) return;
 
     const startX = event.clientX;
-    const startWidth = cell.getBoundingClientRect().width;
+    const startWidth = column.getBoundingClientRect().width || cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
+    const initialThumbWidth = this.detailThumbnailWidth();
 
     const onMove = (moveEvent: PointerEvent): void => {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
-      table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
+      if (columnIndex === 0) {
+        // Preserve the zoom-derived base width; manual resizing adds an offset to it.
+        table.style.setProperty('--detail-col-0-delta', `${width - Math.max(84, initialThumbWidth + 16)}px`);
+      } else {
+        table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
+      }
     };
     const cleanup = (): void => {
       document.removeEventListener('pointermove', onMove);
