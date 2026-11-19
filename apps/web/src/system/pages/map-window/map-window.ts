@@ -715,6 +715,8 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" data-settings-tab="marker" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
+            <div class="photo-database-gate" role="status" aria-live="polite">{{ photoDatabaseMessage() }}</div>
+            <fieldset class="marker-database-controls" [disabled]="!photoDatabaseReady() || photoDatabaseCheckBusy()">
             <div class="marker-settings-content">
               <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show images</label><button type="button" class="map-toolbar-button marker-fit-images-button" (click)="fitMapToImages()" [disabled]="!directoryMarkersEnabled()" title="Fit map to all images with GPS coordinates"><span aria-hidden="true">⤢</span> Fit map to images</button><button type="button" class="routing-help-button marker-tab-help" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
               <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all images in DB</label>
@@ -775,6 +777,7 @@ interface MapErrorEntry {
     <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from images</button>
     @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
   </details>
+            </fieldset>
 </div>
 <div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
@@ -2899,6 +2902,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerFilesTotal = signal(0);
   protected readonly markerCount = signal(0);
   protected readonly markerStatus = signal('');
+  protected readonly photoDatabaseReady = signal(false);
+  protected readonly photoDatabaseCheckBusy = signal(false);
+  protected readonly photoDatabaseMessage = signal('Select an image folder to verify its photo database.');
+  private photoDatabaseCheckGeneration = 0;
   protected readonly markerSourceFolder = signal('Not loaded.');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
   protected readonly photoCoordinateLabel = signal('Photo: GPS coordinates unavailable');
@@ -3442,7 +3449,15 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
       this.currentFolderPath = location.folderPath ?? null;
-      if (this.currentFolderPath) this.markerSourceFolder.set(this.currentFolderPath);
+      if (this.currentFolderPath) {
+        this.markerSourceFolder.set(this.currentFolderPath);
+        if (previousFolderPath?.toLowerCase() !== this.currentFolderPath.toLowerCase()) void this.validateCurrentPhotoDatabase(this.currentFolderPath);
+      } else {
+        this.photoDatabaseCheckGeneration++;
+        this.photoDatabaseReady.set(false);
+        this.photoDatabaseCheckBusy.set(false);
+        this.photoDatabaseMessage.set('Select an image folder to verify its photo database.');
+      }
       this.currentImageHasGps.set(Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
         && location.latitude! >= -90 && location.latitude! <= 90
         && location.longitude! >= -180 && location.longitude! <= 180);
@@ -4081,7 +4096,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.saveSetting('markerSectionOpen', section.open);
     this.persistLocationUiState({ markerSectionOpen: section.open });
   };
-  protected readonly changeDirectoryMarkersEnabled = (enabled: boolean): void => {
+  protected readonly changeDirectoryMarkersEnabled = async (enabled: boolean): Promise<void> => {
+    if (enabled && !(await this.validateCurrentPhotoDatabase(this.currentFolderPath ?? (this.currentImagePath ? await this.desktop?.FileSystem.dirname(this.currentImagePath) : '')))) return;
     this.directoryMarkersEnabled.set(enabled);
     this.saveSetting('directoryMarkersEnabled', enabled);
     if (enabled) {
@@ -4188,6 +4204,44 @@ export class MapWindow implements OnInit, OnDestroy {
       this.directoryMarkers.push(marker);
       this.directoryMarkerGroup?.addLayer(marker);
       this.markerCount.update(value => value + 1);
+    }
+  }
+
+  private async validateCurrentPhotoDatabase(directory: string): Promise<boolean> {
+    const generation = ++this.photoDatabaseCheckGeneration;
+    this.photoDatabaseReady.set(false);
+    this.photoDatabaseCheckBusy.set(true);
+    this.photoDatabaseMessage.set('Checking photo database completeness…');
+    try {
+      const completeness = await this.checkPhotoDatabaseCompleteness(directory);
+      if (generation !== this.photoDatabaseCheckGeneration) return false;
+      const ready = completeness.missing.length === 0;
+      this.photoDatabaseReady.set(ready);
+      this.photoDatabaseMessage.set(ready
+        ? `Photo database complete: all ${completeness.total} images in the selected folder have current database records.`
+        : `Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder are missing database records or have changed since caching. Open the thumbnail view and use the hamburger menu → Cache folder, or run Build Cache for this folder. The Images tab is disabled until the cache is complete.`);
+      if (!ready) {
+        this.directoryMarkersEnabled.set(false);
+        this.saveSetting('directoryMarkersEnabled', false);
+        this.useAllPhotosInDb.set(false);
+        this.saveSetting('useAllPhotosInDb', false);
+        this.markerScanGeneration++;
+        this.clearDirectoryMarkers();
+      }
+      return ready;
+    } catch (error) {
+      if (generation !== this.photoDatabaseCheckGeneration) return false;
+      this.photoDatabaseReady.set(false);
+      this.photoDatabaseMessage.set('Could not verify photo database completeness. Open the thumbnail view and use the hamburger menu → Cache folder, or run Build Cache for this folder. ' + (error instanceof Error ? error.message : String(error)));
+      this.directoryMarkersEnabled.set(false);
+      this.saveSetting('directoryMarkersEnabled', false);
+      this.useAllPhotosInDb.set(false);
+      this.saveSetting('useAllPhotosInDb', false);
+      this.markerScanGeneration++;
+      this.clearDirectoryMarkers();
+      return false;
+    } finally {
+      if (generation === this.photoDatabaseCheckGeneration) this.photoDatabaseCheckBusy.set(false);
     }
   }
 
@@ -8146,6 +8200,10 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly generateGpxFromMarkers = async (): Promise<void> => {
+    if (!this.photoDatabaseReady() || this.photoDatabaseCheckBusy()) {
+      this.gpxError.set('The Images tab is disabled because the photo database is incomplete. Open the thumbnail view and use the hamburger menu → Cache folder, or run Build Cache for this folder.');
+      return;
+    }
     const desktop = this.desktop;
     const markers = this.directoryPhotoTimestampMarkers.length ? this.directoryPhotoTimestampMarkers : this.directoryPhotoMarkers;
     if (!desktop) {
@@ -8310,6 +8368,7 @@ ${points}
   }
 
   protected readonly fitMapToImages = (): void => {
+    if (!this.photoDatabaseReady() || this.photoDatabaseCheckBusy()) return;
     const points = this.directoryPhotoMarkers
       .filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude)
         && marker.latitude >= -90 && marker.latitude <= 90
