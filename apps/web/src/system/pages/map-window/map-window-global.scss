@@ -778,3 +778,10 @@ app-map-window {
 /* Keep the marker summary folder label readable on both light and dark surfaces. */
 .marker-summary-source{min-width:0;overflow-wrap:anywhere;white-space:normal;color:var(--color-content-default-medium,#555)}
 .marker-summary-source strong{color:CanvasText}
+
+.gpx-elevation-profile-legend{display:flex;flex-direction:column;gap:6px;min-width:0;margin-top:4px}
+.gpx-elevation-profile-legend-item{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:8px;min-width:0;font-size:11px}
+.gpx-elevation-profile-legend-item>svg{display:block;width:72px;height:16px;overflow:visible}
+.gpx-elevation-profile-legend-item>div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.gpx-elevation-profile-legend-item strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-primary-high)}
+.gpx-elevation-profile-legend-item span{color:var(--color-content-default-medium);overflow-wrap:anywhere}

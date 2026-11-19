@@ -500,7 +500,7 @@ interface MapErrorEntry {
             <text class="gpx-elevation-tick" x="60" y="122" text-anchor="end">{{ chart.midLabel }}</text>
             <text class="gpx-elevation-tick" x="60" y="222" text-anchor="end">{{ chart.minLabel }}</text>
             @for (series of chart.series; track series.key) {
-              <polyline class="gpx-elevation-line" [attr.points]="series.polyline" [attr.stroke]="series.color" [attr.stroke-width]="series.lineWidth" [attr.stroke-dasharray]="series.dash" />
+              <polyline class="gpx-elevation-line" [attr.points]="series.polyline" [style.stroke]="series.color" [style.strokeWidth]="series.lineWidth" [style.strokeDasharray]="series.dash" />
               @for (arrow of series.arrows; track $index) {
                 <path [attr.d]="series.arrowPath" [attr.fill]="series.arrowFilled ? series.color : 'none'" [attr.stroke]="series.color" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + series.arrowScale + ')'" />
               }
@@ -514,7 +514,7 @@ interface MapErrorEntry {
             @for (series of chart.series; track series.key) {
               <div class="gpx-elevation-profile-legend-item">
                 <svg viewBox="0 0 72 16" aria-hidden="true"><line x1="2" y1="8" x2="70" y2="8" [attr.stroke]="series.color" [attr.stroke-width]="series.lineWidth" [attr.stroke-dasharray]="series.dash" /></svg>
-                <div><strong>{{ series.name }}</strong><span>{{ series.colorMode }} · {{ series.lineStyle }} · {{ series.lineWidth }} px · {{ series.directionLabel }}</span></div>
+                <div><strong>{{ series.name }}</strong><span>{{ series.modeDetails }} · Line: {{ series.lineStyle }} · {{ series.lineWidth }} px · {{ series.directionLabel }}@if (series.customColors) { · Custom: {{ series.customColors }} }</span></div>
               </div>
             }
           </div>
@@ -2694,6 +2694,12 @@ export class MapWindow implements OnInit, OnDestroy {
         lineStyle: this.gpxLineStyleName(track.lineStyle ?? 'solid'),
         colorMode: track.colorMode === 'speed' ? 'Speed-based' : track.colorMode === 'elevation' ? 'Elevation-based' : 'Fixed color',
         palette: track.speedPalette ?? 'spectrum',
+        modeDetails: track.colorMode === 'speed'
+          ? `Speed ${track.speedMinKmh ?? 0}–${track.speedMaxKmh ?? 30} km/h · ${track.speedPalette ?? 'spectrum'} palette`
+          : track.colorMode === 'elevation'
+            ? `Elevation ${track.elevationMinM ?? 0}–${track.elevationMaxM ?? 3000} m · ${track.speedPalette ?? 'spectrum'} palette`
+            : `Fixed color ${track.color || this.gpxColor()}`,
+        customColors: [track.customColor1, track.customColor2, track.customColor3].filter((value): value is string => !!value).join(' / '),
         directionLabel: track.showDirection ? `${this.gpxDirectionName(track.directionStyle ?? 'classic')} · every ${track.directionIntervalPx ?? 120} px · ${track.directionArrowSizePx ?? 16} px` : 'Direction arrows off'
       };
     });
