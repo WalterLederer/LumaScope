@@ -3,6 +3,7 @@
 @let images = images$ | async;
 @let sorting = sortMode$ | async | default:defaultSortMode;
 @let thumbSize = thumbSize$ | async | default:defaultThumbnailSize;
+@let autoSortFavorites = autoSortFavorites$ | async;
 
 @if (showFolderTree() && showImageGrid()) {
   <ui-side-panel>
@@ -89,6 +90,10 @@
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onSortFavoritesByPath()">
         <ui-text [inherit]="true">Sort favorites by full path</ui-text>
       </button>
+      <label class="gallery-location-menu-checkbox">
+        <input type="checkbox" [checked]="autoSortFavorites ?? true" (change)="onAutoSortFavoritesChange($event)" />
+        <ui-text [inherit]="true">Auto sort</ui-text>
+      </label>
     } @else {
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onRemoveLocation(data)">
         <ui-icon icon="folderProhibited" [inherit]="true" />
