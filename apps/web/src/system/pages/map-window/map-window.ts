@@ -887,7 +887,7 @@ interface MapErrorEntry {
         <span class="range-value">{{ mapOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <div class="opacity-row-label"><label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedTracksToMap()" [disabled]="!hasActiveTrackPoints()" title="Fit selected tracks to map" aria-label="Fit selected tracks to map"><span aria-hidden="true">⤢</span></button></div>
+        <div class="opacity-row-label"><label class="visibility-toggle">Tracks <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show tracks"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedTracksToMap()" [disabled]="!hasActiveTrackPoints()" title="Fit selected tracks to map" aria-label="Fit selected tracks to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeGpxOpacity($event)" />
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
