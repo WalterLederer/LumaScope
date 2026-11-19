@@ -257,13 +257,13 @@ export class ImageGridComponent {
     this.imagesComponent()?.refreshGallery();
   };
 
-  readonly cacheAllImages = async (directory: string): Promise<void> => {
+  readonly cacheAllImages = async (directory: string, importGpx: boolean): Promise<void> => {
     const images = this.imagesComponent();
-    if (images) await images.cacheAllImages(directory);
+    if (images) await images.cacheAllImages(directory, importGpx);
   };
 
-  readonly cacheAllImagesRecursive = (directory: string): void => {
-    void this.imagesComponent()?.cacheAllImagesRecursive(directory);
+  readonly cacheAllImagesRecursive = (directory: string, importGpx: boolean): void => {
+    void this.imagesComponent()?.cacheAllImagesRecursive(directory, importGpx);
   };
 
   readonly refreshDetailCacheStatus = (): void => {
@@ -331,8 +331,8 @@ export class ImageGridComponent {
         cacheRunActive: images.cacheRunActive,
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        start: directory => images.cacheAllImages(directory),
-        startRecursive: directory => { void images.cacheAllImagesRecursive(directory); },
+        start: (directory, importGpx) => images.cacheAllImages(directory, importGpx),
+        startRecursive: (directory, importGpx) => { void images.cacheAllImagesRecursive(directory, importGpx); },
         cancel: () => images.cancelCacheRun(),
         refreshDetailCacheStatus: () => {
           if (this.viewMode() === 'details') images.refreshGallery();
