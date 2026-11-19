@@ -1699,8 +1699,8 @@ ipcMain.handle('MapOverlayWindow.setAlwaysOnTop', (_event, enabled: boolean): bo
 ipcMain.handle('MapOverlayWindow.getBounds', (): Electron.Rectangle | null => App.getMapOverlayWindowBounds());
 ipcMain.handle('MapOverlayWindow.setBounds', (_event, bounds: Electron.Rectangle): boolean => App.setMapOverlayWindowBounds(bounds));
 
-ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null): boolean =>
-  App.openMapWindow(latitude, longitude, bearing, imagePath)
+ipcMain.handle('MapWindow.open', (_event, latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null): boolean =>
+  App.openMapWindow(latitude, longitude, bearing, imagePath, folderPath)
 );
 ipcMain.handle('MapWindow.getLocation', () => App.mapWindowLocation);
 ipcMain.handle('MapWindow.getImagePreview', (_event, imagePath: string): string | null => {

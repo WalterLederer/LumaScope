@@ -249,8 +249,8 @@ const api: Desktop = {
   MapWindow: {
     getZoom: () => ipcRenderer.invoke('MapWindow.getZoom') as Promise<number>,
     setZoom: (zoom: number) => ipcRenderer.invoke('MapWindow.setZoom', zoom) as Promise<void>,
-    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath),
-    getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null }>,
+    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath, folderPath),
+    getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null }>,
     getImagePreview: (imagePath: string) => ipcRenderer.invoke('MapWindow.getImagePreview', imagePath) as Promise<string | null>,
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
@@ -275,8 +275,8 @@ const api: Desktop = {
       ipcRenderer.on('MapWindow.stateChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
     },
-    onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }) => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => callback(location);
+    onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }): void => callback(location);
       ipcRenderer.on('MapWindow.locationChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.locationChanged', listener);
     }

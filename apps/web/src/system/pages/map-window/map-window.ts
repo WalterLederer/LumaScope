@@ -137,7 +137,7 @@ interface MapErrorEntry {
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
-  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">FotoMarker</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Images</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group settings-tab-right-start" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">Offline@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
@@ -544,10 +544,6 @@ interface MapErrorEntry {
     <details class="gpx-advanced-section app-disclosure">
       <summary>Advanced</summary>
       <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" (imported)="refreshLatestGpxElevationProfile($event)" />
-      <details class="gpx-database-section app-disclosure">
-        <summary>Marker -&gt; GPX</summary>
-        <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from Markers</button>
-      </details>
     </details>
   </div>
 </div>
@@ -791,6 +787,10 @@ interface MapErrorEntry {
             </div>
           </div>
 
+  <details class="gpx-database-section app-disclosure">
+    <summary>Images -&gt; GPX</summary>
+    <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from images</button>
+  </details>
 </div>
 <div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
@@ -3210,6 +3210,7 @@ export class MapWindow implements OnInit, OnDestroy {
     document.documentElement.style.colorScheme = this.themeService.current();
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
+    this.currentFolderPath = this.route.snapshot.queryParamMap.get('folderPath');
     if (this.fixLocationEnabled() && !this.coordinatesAvailable()) {
       void this.initializeFixLocationMap();
     }
@@ -3348,16 +3349,18 @@ export class MapWindow implements OnInit, OnDestroy {
         void this.initialize(48.2082, 16.3738);
       }
     }
-    const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null }): void => {
+    const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
+      const previousFolderPath = this.currentFolderPath;
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
+      this.currentFolderPath = location.folderPath ?? null;
       this.currentImageHasGps.set(Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
         && location.latitude! >= -90 && location.latitude! <= 90
         && location.longitude! >= -180 && location.longitude! <= 180);
       void this.loadCurrentImagePreview(this.currentImagePath);
       this.applyCurrentPhotoVisibility();
-      if (this.directoryMarkersEnabled() && previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase()) void this.scanDirectoryMarkers();
+      if (this.directoryMarkersEnabled() && (previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase() || previousFolderPath?.toLowerCase() !== this.currentFolderPath?.toLowerCase())) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
@@ -4074,8 +4077,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async scanDirectoryMarkers(): Promise<void> {
-    const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, desktop = this.desktop;
-    if (!imagePath || !desktop || (!this.directoryMarkerGroup && !this.offlineRenderer)) {
+    const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, selectedFolderPath = this.currentFolderPath, desktop = this.desktop;
+    if ((!imagePath && !selectedFolderPath) || !desktop || (!this.directoryMarkerGroup && !this.offlineRenderer)) {
       this.clearDirectoryMarkers();
       this.markerStatus.set('No image folder is available.');
       return;
@@ -4102,7 +4105,8 @@ export class MapWindow implements OnInit, OnDestroy {
           this.markerStatus.set('The current map viewport crosses the date line; this query is not supported yet.');
           return;
         }
-        const databaseKey = /^[a-z]:[\\/]/i.test(imagePath) ? imagePath.slice(0, 2) : '';
+        const databasePath = selectedFolderPath ?? imagePath ?? '';
+        const databaseKey = /^[a-z]:[\\/]/i.test(databasePath) ? databasePath.slice(0, 2) : '';
         if (!databaseKey) {
           this.markerSourceFolder.set('All photos in DB · unsupported image drive');
           this.markerStatus.set('The current image is not on a supported cache database drive.');
@@ -4111,7 +4115,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.markerSourceFolder.set('All photos in DB · ' + databaseKey + ' · current map viewport');
         records = await desktop.CacheManager.getPhotoLocationsInBounds(bounds, databaseKey);
       } else {
-        const directory = await desktop.FileSystem.dirname(imagePath);
+        const directory = selectedFolderPath ?? await desktop.FileSystem.dirname(imagePath!);
         if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
         this.markerSourceFolder.set(directory);
         [records, imageFiles] = await Promise.all([

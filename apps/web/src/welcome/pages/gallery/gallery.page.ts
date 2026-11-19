@@ -16,7 +16,7 @@ import {
   VerticalStackComponent
 } from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
-import { combineLatest, map, shareReplay, switchMap } from 'rxjs';
+import { combineLatest, map, shareReplay, switchMap, take } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
@@ -104,7 +104,9 @@ export class GalleryPage {
     if (event.code === 'KeyL') {
       const api = this.desktopApi?.MapWindow;
       if (!api) return;
-      void api.isOpen().then(isOpen => isOpen ? api.focus() : api.open(null, null));
+      this.galleryState.selectedLocation().pipe(take(1)).subscribe(folderPath => {
+        void api.open(null, null, undefined, null, folderPath);
+      });
     } else {
       void this.openCaptureWindow();
     }
