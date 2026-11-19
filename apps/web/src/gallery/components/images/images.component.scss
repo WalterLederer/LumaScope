@@ -393,6 +393,21 @@
 .detail-native-table thead tr.detail-header.cache-build-active > th *:not(.column-resizer) {
   color: var(--color-content-on-accent, #fff) !important;
 }
+/* Keep count badges distinct from the active header background. The dark
+   translucent badge makes white values readable in every column; red
+   incomplete/error badges retain their existing warning treatment. */
+.detail-native-table thead tr.detail-header.cache-build-active .column-count:not(.incomplete):not(.worker-error) {
+  color: #fff !important;
+  background: rgb(0 0 0 / 38%) !important;
+  font-weight: 700 !important;
+  border: 1px solid rgb(255 255 255 / 35%);
+}
+.detail-native-table thead th .column-count,
+.detail-native-table thead th .column-summary,
+.detail-native-table thead th .worker-progress,
+.detail-native-table thead th small {
+  font-weight: 700;
+}
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
 .detail-native-table th > button {
