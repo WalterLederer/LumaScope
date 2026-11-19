@@ -1470,18 +1470,25 @@ export class OfflineMapRenderer {
       });
       this.map.on('mouseleave', layerId, () => this.trackHoverHandler?.('', Number.NaN, Number.NaN));
     }
+    const directionArrowLayout = {
+      'symbol-placement': 'line' as const, 'symbol-spacing': 23,
+      'text-field': ['match', ['get', 'directionStyle'], 'chevron', '❯', 'triangle', '▶', 'thin', '➜', 'large-classic', '➤', 'large-chevron', '❯', 'large-triangle', '▶', '➤'] as unknown as string,
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
+      'text-size': ['match', ['get', 'directionStyle'], 'large-classic', 24, 'large-chevron', 24, 'large-triangle', 24, 18] as unknown as number,
+      'text-rotation-alignment': 'map' as const, 'text-keep-upright': false,
+      'text-allow-overlap': true, 'text-ignore-placement': true
+    };
+    this.map.addLayer({
+      id: 'gpx-track-direction-arrows-shadow', type: 'symbol', source: 'gpx-track',
+      filter: ['==', ['get', 'showDirection'], true],
+      layout: { ...directionArrowLayout, 'text-translate': [1, 1] },
+      paint: { 'text-color': '#000000', 'text-opacity': ['get', 'arrowShadow'] }
+    });
     this.map.addLayer({
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
-      layout: {
-        'symbol-placement': 'line', 'symbol-spacing': 23,
-        'text-field': ['match', ['get', 'directionStyle'], 'chevron', '❯', 'triangle', '▶', 'thin', '➜', 'large-classic', '➤', 'large-chevron', '❯', 'large-triangle', '▶', '➤'],
-        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
-        'text-size': ['match', ['get', 'directionStyle'], 'large-classic', 24, 'large-chevron', 24, 'large-triangle', 24, 18],
-        'text-rotation-alignment': 'map', 'text-keep-upright': false,
-        'text-allow-overlap': true, 'text-ignore-placement': true
-      },
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000000', 'text-halo-width': 1.5, 'text-halo-blur': 1, 'text-halo-opacity': ['get', 'arrowShadow'], 'text-opacity': 0.92 }
+      layout: directionArrowLayout,
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000000', 'text-halo-width': 1.5, 'text-halo-blur': 1, 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
@@ -2477,6 +2484,7 @@ export class OfflineMapRenderer {
       this.map.setPaintProperty('gpx-track-hit-' + line, 'line-opacity', opacity > 0 ? 0.01 : 0);
     }
     this.map.setPaintProperty('gpx-track-direction-arrows', 'text-opacity', opacity);
+    this.map.setPaintProperty('gpx-track-direction-arrows-shadow', 'text-opacity', ['*', ['get', 'arrowShadow'], opacity]);
   }
 
   refreshVisibleTiles(): void {
