@@ -103,6 +103,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> =>
     window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles);
 
+  readonly reconcilePhotoRecords = (directory: string, sourceNames: string[], recursive = false): Promise<number> =>
+    window.desktop.CacheManager.reconcilePhotoRecords(directory, sourceNames, recursive);
+
   readonly selectDatabaseForDirectory = (directory: string): Promise<boolean> =>
     window.desktop.CacheManager.selectDatabaseForDirectory(directory);
 
