@@ -445,15 +445,17 @@ export class ImagesComponent {
       const gpxFiles: string[] = [];
       const folder = directory?.trim() || this.folderPath();
       if (folder) {
-        this.cacheRunCurrentOperation.set(`Reading images and GPX files in ${folder}`);
+        this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
         const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
         if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
         images = result.data;
-        try {
-          const entries = await this.fileSystem.readDir(folder);
-          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
-        } catch (error) {
-          await this.cacheManager.appendBuildLog(`GPX scan skipped for ${folder}: ${error instanceof Error ? error.message : String(error)}`);
+        if (importGpx) {
+          try {
+            const entries = await this.fileSystem.readDir(folder);
+            gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+          } catch (error) {
+            await this.cacheManager.appendBuildLog(`GPX enumeration skipped for ${folder}: ${error instanceof Error ? error.message : String(error)}`);
+          }
         }
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
