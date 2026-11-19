@@ -585,18 +585,31 @@
 .detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 14px; font-weight: 900; line-height: 1; vertical-align: 0; }
 .detail-native-table .detail-actions-heading { width: 28px; }
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
-/* Give every cell in the thumbnail detail list a consistently light,
-   opaque grey surface instead of inheriting the darker theme surface. */
+/* Use near-white opaque surfaces on every detail-list cell. The row host
+   and cell backgrounds are both set because the thumbnail component is a
+   custom table-row host with its own surface styling. */
+.detail-native-table > tbody.images.details-list > tr {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+.detail-native-table > tbody.images.details-list > tr:nth-child(even) {
+  background: #f5f5f5 !important;
+  background-color: #f5f5f5 !important;
+}
 .detail-native-table > tbody.images.details-list > tr > td {
-  background-color: #e6e6e6 !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
   background-image: none !important;
-  color: #252525;
+  color: #202020 !important;
 }
 .detail-native-table > tbody.images.details-list > tr:nth-child(even) > td {
-  background-color: #eeeeee !important;
+  background: #f5f5f5 !important;
+  background-color: #f5f5f5 !important;
 }
+.detail-native-table > tbody.images.details-list > tr.selected-image,
 .detail-native-table > tbody.images.details-list > tr.selected-image > td {
-  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #eeeeee) !important;
+  background: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
 }
 .detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 22%, var(--color-surface-default-low)) !important; }
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 75%, transparent); }
