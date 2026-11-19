@@ -461,6 +461,10 @@ app-map-window {
     .location-settings>summary,.map-source-settings>summary,.opacity-settings>summary,.gpx-settings>summary{font-size:13px;font-weight:700;line-height:1.4}
     .marker-settings summary .marker-description{display:block;margin:0;color:var(--color-content-default-medium,#aaa);font-size:12px;font-weight:400;text-align:left}
     .marker-settings-content{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:8px;width:100%;min-width:0;text-align:left}
+    .marker-database-controls{display:block;min-width:0;width:100%;margin:0;padding:0;border:0;color:inherit}
+    .photo-database-gate{width:100%;margin:0 0 10px;padding:9px 11px;border:1px solid var(--color-content-default-low,#777);border-radius:4px;background:var(--color-content-default-lowest,transparent);color:var(--color-content-default-high,#eee);font-size:12px;line-height:1.45}
+    .marker-database-controls:disabled{opacity:.58}
+    .marker-database-controls:disabled button,.marker-database-controls:disabled input,.marker-database-controls:disabled select{cursor:not-allowed}
     .marker-setting-row{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-width:0;text-align:left}
     .marker-appearance-settings{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px 22px;width:100%;min-width:0}
      .marker-appearance-settings>.marker-setting-row{display:flex;flex:0 0 auto;align-items:center;gap:8px;width:auto;min-width:0}
