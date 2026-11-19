@@ -333,8 +333,10 @@
   box-sizing: border-box;
 }
 .detail-native-table {
+  /* Keep the table at the sum of its column widths. A 100% minimum width
+     makes fixed-layout browsers redistribute spare width into other columns. */
   width: max-content;
-  min-width: 100%;
+  min-width: max-content;
   table-layout: fixed;
   /* Separate cell borders keep the divider between the two sticky header rows solid. */
   border-collapse: separate;
@@ -345,7 +347,7 @@
 
 /* The first column follows thumbnail zoom unless the user manually resizes it. */
 .detail-native-table > colgroup > col:first-child {
-  width: var(--detail-col-0-width, max(84px, calc(var(--detail-thumb-width, 36px) + 16px))) !important;
+  width: max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px))) !important;
 }
 .detail-native-table th,
 .detail-native-table td {
