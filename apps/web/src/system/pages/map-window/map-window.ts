@@ -391,11 +391,11 @@ interface MapErrorEntry {
           <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
                [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
-            @if (actionTrack.path.startsWith('memory:')) {
+            @if (gpxListMode() === 'recent') {
               <button type="button" role="menuitem" (click)="exportGpxFromMemory(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from memory</button>
-            } @else {
-            <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
-                    [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⇩</span> Export from db</button>
+            }
+            @if (!actionTrack.path.startsWith('memory:')) {
+              <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from db</button>
             }
             <button type="button" role="menuitem" class="gpx-row-action-delete-all"
                     (click)="deleteGpxDatabaseRecordsForFile(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
@@ -2441,8 +2441,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxTrackSettingsTrack.set(null);
   };
   protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
-    if (!this.desktop || !track.path.startsWith('memory:')) return;
+    if (!this.desktop) return;
     const segments = this.gpxPointDataByTrack.get(track.path) ?? [];
+    if (!segments.some(segment => segment.length > 0)) {
+      this.gpxError.set('No GPX points are available in the in-memory buffer for this track.');
+      return;
+    }
     try {
       const result = await this.desktop.CacheManager.exportGpxTrackFromMemory(track.name, segments.map(segment => segment.map(point => ({ latitude: point.latitude, longitude: point.longitude, elevation: point.elevation, timestamp: point.timestamp }))));
       if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + result.points.toLocaleString() + ' points (' + result.elevationPoints.toLocaleString() + ' elevation values) to ' + result.path);
