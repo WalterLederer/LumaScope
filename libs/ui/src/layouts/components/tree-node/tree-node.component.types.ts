@@ -15,4 +15,6 @@ export interface TreeNode<T> {
   title?: string;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  /** Marks the first favorite belonging to a different drive/root. */
+  groupStart?: boolean;
 }
