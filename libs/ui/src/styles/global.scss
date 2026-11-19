@@ -23,6 +23,12 @@ body {
   box-sizing: border-box;
 }
 
+/* Keep column labels consistently centered across native tables and accessible grid/list headers. */
+th,
+[role='columnheader'] {
+  text-align: center !important;
+}
+
 html, body {
   padding: 0;
   margin: 0;
