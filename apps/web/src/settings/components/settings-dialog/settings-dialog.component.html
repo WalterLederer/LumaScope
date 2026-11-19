@@ -135,6 +135,10 @@
             <input type="checkbox" [checked]="recursiveBuild()" (change)="recursiveBuild.set(($any($event.target)).checked)" />
             <span>Recursive build</span>
           </label>
+          <label class="setting-toggle build-cache-import-gpx">
+            <input type="checkbox" [checked]="importGpx()" (change)="importGpx.set(($any($event.target)).checked)" />
+            <span>Import GPX</span>
+          </label>
         </div>
         <div class="build-cache-current-operation">
           <textarea readonly rows="6"
