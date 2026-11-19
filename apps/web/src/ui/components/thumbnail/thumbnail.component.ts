@@ -424,7 +424,17 @@ export class ThumbnailComponent implements OnDestroy {
 
         this.isCaching.set(!cached);
         this.isCacheStatusReady.set(true);
-        this.loaderSubscription = this.thumbnailLoader.add(imageUrl).subscribe({
+        this.loaderSubscription = this.thumbnailLoader.add(imageUrl, () => {
+          // Queue wait time is not image-loading time; start the timeout only
+          // when one of the loader's four concurrent slots is actually available.
+          loadTimer = setTimeout(() => {
+            if (cancelled || !this.isLoading()) return;
+            this.thumbnailError.set('Thumbnail image loading timed out after 120 seconds.');
+            this.hasError.set(true);
+            this.isLoading.set(false);
+            this.loaderSubscription?.unsubscribe();
+          }, 120000);
+        }).subscribe({
           next: success => {
             this.hasError.set(!success);
             if (!success) this.thumbnailError.set('Thumbnail image request failed (image load error).');
@@ -435,13 +445,6 @@ export class ThumbnailComponent implements OnDestroy {
             this.isLoading.set(false);
           }
         });
-        loadTimer = setTimeout(() => {
-          if (cancelled || !this.isLoading()) return;
-          this.thumbnailError.set('Thumbnail image loading timed out after 30 seconds.');
-          this.hasError.set(true);
-          this.isLoading.set(false);
-          this.loaderSubscription?.unsubscribe();
-        }, 30000);
       })();
     });
 
