@@ -419,6 +419,9 @@
   margin-top: 3px;
 }
 .detail-native-table thead .detail-header-statistics .cache-folder-action-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 5px;
 }
 /* The native table header has an opaque Canvas background by default. Override it
