@@ -3955,12 +3955,12 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly selectedGpxColorName = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.name ?? 'Red';
   protected readonly toggleGpxTrackLineStyleMenu = (path: string): void => {
-    const open = this.gpxTrackSettingsLineStyleMenuVisible() === path ? null : path;
+    const open = this.gpxTrackLineStyleMenuOpen() === path ? null : path;
     this.gpxTrackColorMenuOpen.set(null); this.gpxTrackDirectionMenuOpen.set(null);
     this.gpxTrackLineStyleMenuOpen.set(open);
   };
   protected readonly toggleGpxTrackDirectionMenu = (path: string): void => {
-    const open = this.gpxTrackSettingsDirectionMenuVisible() === path ? null : path;
+    const open = this.gpxTrackDirectionMenuOpen() === path ? null : path;
     this.gpxTrackColorMenuOpen.set(null); this.gpxTrackLineStyleMenuOpen.set(null);
     this.gpxTrackDirectionMenuOpen.set(open);
   };
