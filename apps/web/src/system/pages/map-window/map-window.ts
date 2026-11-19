@@ -465,7 +465,7 @@ interface MapErrorEntry {
               <label>Maximum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMaxM" (change)="updateGpxTrackSettingsDraft({ elevationMaxM: +$any($event.target).value })"></label>
             }
             <div class="gpx-track-settings-divider" role="separator"></div>
-            <label>Line style<select [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option></select></label>
+            <div class="gpx-settings-choice-field"><details class="gpx-settings-choice"><summary><span>Line style</span><strong>{{ gpxTrackSettingsHoveredLineStyle() ?? gpxTrackSettingsDraft().lineStyle | gpxLineStyleLabel }}</strong></summary><div class="gpx-settings-choice-options">@for (option of gpxTrackLineStyleOptions; track option.value) { <button type="button" [class.active]="gpxTrackSettingsDraft().lineStyle === option.value" (mouseenter)="previewGpxTrackLineStyle(option.value)" (focus)="previewGpxTrackLineStyle(option.value)" (click)="selectGpxTrackLineStyle(option.value)">{{ option.label }}</button> }</div></details></div>
             <label class="gpx-direction-density-control"><span>Line width</span><strong>{{ gpxTrackSettingsDraft().lineWidth }} px</strong><ui-slider [min]="1" [max]="10" [step]="1" [value]="gpxTrackSettingsDraft().lineWidth" (valueChange)="updateGpxTrackSettingsDraft({ lineWidth: $event })" [color]="themeService.sliderColor()" aria-label="Track line width" /></label>
             <label class="gpx-direction-density-control"><span>Track outline strength</span><strong>{{ gpxTrackSettingsDraft().trackOutlineStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().trackOutlineStrength" (valueChange)="updateGpxTrackSettingsDraft({ trackOutlineStrength: $event })" [color]="themeService.sliderColor()" aria-label="Track outline strength" /></label>
             <label class="gpx-direction-density-control"><span>Track shadow strength</span><strong>{{ gpxTrackSettingsDraft().trackShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().trackShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ trackShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Track shadow strength" /></label>
@@ -474,7 +474,7 @@ interface MapErrorEntry {
             <details class="gpx-track-settings-section">
               <summary>Arrows</summary>
               <div class="gpx-track-settings-section-grid">
-            <label>Direction arrows<select [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="onGpxTrackDirectionSelectChange($any($event.target).value)"><option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option></select></label>
+            <div class="gpx-settings-choice-field"><details class="gpx-settings-choice"><summary><span>Direction arrow</span><strong>{{ gpxTrackSettingsHoveredDirection() ?? (gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') | gpxDirectionStyleLabel }}</strong></summary><div class="gpx-settings-choice-options">@for (option of gpxTrackDirectionStyleOptions; track option.value) { <button type="button" [class.active]="(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') === option.value" (mouseenter)="previewGpxTrackDirection(option.value)" (focus)="previewGpxTrackDirection(option.value)" (click)="selectGpxTrackDirection(option.value)">{{ option.label }}</button> }</div></details></div>
             <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="20" [max]="200" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
             <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
             <label class="gpx-direction-density-control"><span>Arrow outline width</span><strong>{{ gpxTrackSettingsDraft().directionArrowOutlineWidthPx }} px</strong><ui-slider [min]="0" [max]="6" [step]="0.5" [value]="gpxTrackSettingsDraft().directionArrowOutlineWidthPx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowOutlineWidthPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow outline width" /></label>
@@ -2426,6 +2426,21 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxTrackSettingsFavorites = signal<GpxTrackSettingsFavorite[]>([]);
+  protected readonly gpxTrackSettingsHoveredLineStyle = signal<NonNullable<GpxTrackFile['lineStyle']> | null>(null);
+  protected readonly gpxTrackSettingsHoveredDirection = signal<'off' | NonNullable<GpxTrackFile['directionStyle']> | null>(null);
+  protected readonly gpxTrackLineStyleOptions = [
+    { value: 'solid', label: 'Solid' }, { value: 'dashed', label: 'Dashed' }, { value: 'dotted', label: 'Dotted' },
+    { value: 'long-dashed', label: 'Long dash' }, { value: 'short-dashed', label: 'Short dash' },
+    { value: 'dash-dot', label: 'Dash-dot' }, { value: 'dash-dot-dot', label: 'Dash-dot-dot' }
+  ] as const;
+  protected readonly gpxTrackDirectionStyleOptions = [
+    { value: 'off', label: 'Off' }, { value: 'classic', label: 'Classic' }, { value: 'chevron', label: 'Chevron' },
+    { value: 'triangle', label: 'Triangle' }, { value: 'thin', label: 'Thin' }, { value: 'large-classic', label: 'Large classic' },
+    { value: 'large-chevron', label: 'Large chevron' }, { value: 'large-triangle', label: 'Large triangle' }
+  ] as const;
+  protected readonly gpxLineStyleLabel = (value: string): string => this.gpxTrackLineStyleOptions.find(option => option.value === value)?.label ?? value;
+  protected readonly gpxDirectionStyleLabel = (value: string): string => this.gpxTrackDirectionStyleOptions.find(option => option.value === value)?.label ?? value;
+
   protected readonly gpxTrackSettingsFavoriteName = signal('');
   protected readonly gpxTrackSettingsFavoriteSelection = signal('');
   protected readonly gpxTrackSettingsDraft = signal<GpxTrackSettingsDraft>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionArrowOutlineWidthPx: 2, trackShadowStrength: 0, arrowShadowStrength: 0, trackOutlineStrength: 0, directionStyle: 'classic' });
@@ -2499,7 +2514,7 @@ export class MapWindow implements OnInit, OnDestroy {
           terrain: [{ offset: '0%', color: '#183a8f' }, { offset: '25%', color: '#27a9c2' }, { offset: '50%', color: '#4caf50' }, { offset: '75%', color: '#d8c66a' }, { offset: '100%', color: '#8c4b2d' }],
           spectrum: [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]
         } as Record<string, Array<{ offset: string; color: string }>>)[track.speedPalette ?? 'spectrum'] ?? [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }];
-  protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
+  protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft(), lineStyle: this.gpxTrackSettingsHoveredLineStyle() ?? this.gpxTrackSettingsDraft().lineStyle, showDirection: (this.gpxTrackSettingsHoveredDirection() ?? (this.gpxTrackSettingsDraft().showDirection ? this.gpxTrackSettingsDraft().directionStyle : 'off')) !== 'off', directionStyle: (this.gpxTrackSettingsHoveredDirection() && this.gpxTrackSettingsHoveredDirection() !== 'off' ? this.gpxTrackSettingsHoveredDirection() : this.gpxTrackSettingsDraft().directionStyle) });
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
   protected readonly gpxDirectionGlyph = (style?: GpxTrackFile['directionStyle']): string =>
@@ -2534,6 +2549,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as unknown as GpxTrackSettingsFavorite[]));
     this.gpxTrackSettingsFavoriteName.set('');
     this.gpxTrackSettingsFavoriteSelection.set('');
+    this.gpxTrackSettingsHoveredLineStyle.set(null);
+    this.gpxTrackSettingsHoveredDirection.set(null);
     this.gpxTrackSettingsTrack.set(track);
     const settingsKey = track.databasePath || track.path;
     const latestTrackSettings = this.gpxDatabaseTrackSettings.get(settingsKey) ?? {};
@@ -2588,20 +2605,18 @@ export class MapWindow implements OnInit, OnDestroy {
     event.stopPropagation();
     buttons[event.key === 'ArrowRight' ? Math.min(buttons.length - 1, index + 1) : Math.max(0, index - 1)].focus();
   };
-  protected readonly selectGpxTrackLineStyleFromDialog = (style: NonNullable<GpxTrackFile['lineStyle']>, event: MouseEvent): void => {
+  protected readonly previewGpxTrackLineStyle = (style: NonNullable<GpxTrackFile['lineStyle']>): void => this.gpxTrackSettingsHoveredLineStyle.set(style);
+  protected readonly previewGpxTrackDirection = (style: 'off' | NonNullable<GpxTrackFile['directionStyle']>): void => this.gpxTrackSettingsHoveredDirection.set(style);
+  protected readonly selectGpxTrackLineStyle = (style: NonNullable<GpxTrackFile['lineStyle']>): void => {
     this.updateGpxTrackSettingsDraft({ lineStyle: style });
-    (event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
+    this.gpxTrackSettingsHoveredLineStyle.set(null);
   };
-  protected readonly selectGpxTrackDirectionFromDialog = (style: 'off' | NonNullable<GpxTrackFile['directionStyle']>, event: MouseEvent): void => {
+  protected readonly selectGpxTrackDirection = (style: 'off' | NonNullable<GpxTrackFile['directionStyle']>): void => {
     this.updateGpxTrackSettingsDraft({ showDirection: style !== 'off', ...(style === 'off' ? {} : { directionStyle: style }) });
-    (event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
-  };
-  protected readonly onGpxTrackDirectionSelectChange = (value: string): void => {
-    const style = value as 'off' | NonNullable<GpxTrackFile['directionStyle']>;
-    this.updateGpxTrackSettingsDraft({ showDirection: style !== 'off', ...(style === 'off' ? {} : { directionStyle: style }) });
+    this.gpxTrackSettingsHoveredDirection.set(null);
   };
   protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'viridis' | 'plasma' | 'inferno' | 'terrain' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionArrowOutlineWidthPx: number; trackShadowStrength: number; arrowShadowStrength: number; trackOutlineStrength: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
-  protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
+  protected readonly cancelGpxTrackSettings = (): void => { this.gpxTrackSettingsHoveredLineStyle.set(null); this.gpxTrackSettingsHoveredDirection.set(null); this.gpxTrackSettingsTrack.set(null); };
   protected readonly applyGpxTrackSettingsFavorite = (name: string): void => {
     this.gpxTrackSettingsFavoriteSelection.set(name);
     const favorite = this.gpxTrackSettingsFavorites().find(item => item.name === name);
@@ -2627,6 +2642,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.configuration.updateSystemConfig({ gpxTrackSettingsFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
   };
   protected readonly saveGpxTrackSettings = (): void => {
+    this.gpxTrackSettingsHoveredLineStyle.set(null);
+    this.gpxTrackSettingsHoveredDirection.set(null);
     const track = this.gpxTrackSettingsTrack(); if (!track) return;
     const draft = this.gpxTrackSettingsDraft();
     const min = Math.max(0, Math.min(299, Math.round(Number(draft.speedMinKmh) || 0)));
