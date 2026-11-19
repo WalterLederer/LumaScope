@@ -351,8 +351,9 @@ export class ImagesComponent {
     const handle = event.currentTarget as HTMLElement;
     const cell = handle.closest('th') as HTMLElement | null;
     const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
-    const column = table?.querySelectorAll<HTMLTableColElement>('colgroup col').item(columnIndex) ?? null;
-    if (!table || !cell || !column) return;
+    const columns = table?.querySelectorAll<HTMLTableColElement>('colgroup col') ?? null;
+    const column = columns?.item(columnIndex) ?? null;
+    if (!table || !cell || !columns || !column) return;
 
     const startX = event.clientX;
     const startWidth = column.getBoundingClientRect().width || cell.getBoundingClientRect().width;
@@ -365,11 +366,14 @@ export class ImagesComponent {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
       if (columnIndex === 0) {
-        // Preserve the zoom-derived base width; manual resizing adds an offset to it.
+        // The thumb column keeps a live zoom-based width plus the user's resize offset.
         table.style.setProperty('--detail-col-0-delta', `${width - Math.max(84, initialThumbWidth + 16)}px`);
       } else {
-        table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
+        // Set the actual COL width, not a table-level variable that the table layout
+        // algorithm may redistribute to a different column.
+        column.style.setProperty('width', `${width}px`, 'important');
       }
+      table.style.width = 'max-content';
     };
     const cleanup = (): void => {
       document.removeEventListener('pointermove', onMove);
