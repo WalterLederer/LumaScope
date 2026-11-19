@@ -4096,10 +4096,37 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerStatus.set('');
     this.markerSourceFolder.set('Not loaded.');
   };
-  protected readonly changeUseAllPhotosInDb = (enabled: boolean): void => {
-    this.useAllPhotosInDb.set(enabled);
-    this.saveSetting('useAllPhotosInDb', enabled);
-    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+  protected readonly changeUseAllPhotosInDb = async (enabled: boolean): Promise<void> => {
+    if (!enabled) {
+      this.useAllPhotosInDb.set(false);
+      this.saveSetting('useAllPhotosInDb', false);
+      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+      return;
+    }
+    const desktop = this.desktop;
+    const imagePath = this.currentImagePath;
+    const directory = this.currentFolderPath ?? (imagePath ? await desktop?.FileSystem.dirname(imagePath) : '');
+    if (!desktop || !directory) {
+      this.markerStatus.set('Cannot enable “Use all images in DB”: no image folder is selected.');
+      return;
+    }
+    this.markerStatus.set('Checking photo database completeness…');
+    try {
+      const completeness = await this.checkPhotoDatabaseCompleteness(directory);
+      if (completeness.missing.length > 0) {
+        this.useAllPhotosInDb.set(false);
+        this.saveSetting('useAllPhotosInDb', false);
+        this.markerStatus.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. Run Build Cache for this folder first.`);
+        return;
+      }
+      this.useAllPhotosInDb.set(true);
+      this.saveSetting('useAllPhotosInDb', true);
+      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers(true);
+    } catch (error) {
+      this.useAllPhotosInDb.set(false);
+      this.saveSetting('useAllPhotosInDb', false);
+      this.markerStatus.set('Could not verify photo database completeness: ' + (error instanceof Error ? error.message : String(error)));
+    }
   };
   private clearDirectoryMarkers(): void {
     this.directoryMarkerGroup?.clearLayers();
@@ -4163,7 +4190,24 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private async scanDirectoryMarkers(): Promise<void> {
+  private async checkPhotoDatabaseCompleteness(directory: string): Promise<{ total: number; missing: string[] }> {
+    const desktop = this.desktop;
+    if (!desktop) throw new Error('The desktop file system is unavailable.');
+    const result = await desktop.FileSystem.readImages(directory, 'name', 'asc');
+    if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
+    const images = result.data.filter(image => !image.isDirectory);
+    const missing: string[] = [];
+    for (let offset = 0; offset < images.length; offset += 100) {
+      const batch = images.slice(offset, offset + 100);
+      const records = await Promise.all(batch.map(image => desktop.CacheManager.getPhotoDatabaseRecord(image.path)));
+      records.forEach((record, index) => {
+        if (!record) missing.push(batch[index].name);
+      });
+    }
+    return { total: images.length, missing };
+  }
+
+  private async scanDirectoryMarkers(validateDatabase = false): Promise<void> {
     const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, selectedFolderPath = this.currentFolderPath, desktop = this.desktop;
     if ((!imagePath && !selectedFolderPath) || !desktop || (!this.directoryMarkerGroup && !this.offlineRenderer)) {
       this.clearDirectoryMarkers();
@@ -4177,6 +4221,24 @@ export class MapWindow implements OnInit, OnDestroy {
       let records: Awaited<ReturnType<Desktop['CacheManager']['getDirectoryPhotoLocations']>>;
       let imageFiles: Awaited<ReturnType<Desktop['FileSystem']['readImages']>> | null = null;
       if (this.useAllPhotosInDb()) {
+        const directory = selectedFolderPath ?? (imagePath ? await desktop.FileSystem.dirname(imagePath) : '');
+        if (!directory) {
+          this.useAllPhotosInDb.set(false);
+          this.saveSetting('useAllPhotosInDb', false);
+          this.markerStatus.set('Cannot use all images in DB: no image folder is selected.');
+          return;
+        }
+        if (!validateDatabase) {
+          this.markerStatus.set('Checking photo database completeness in the selected folder…');
+          const completeness = await this.checkPhotoDatabaseCompleteness(directory);
+          if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+          if (completeness.missing.length > 0) {
+            this.useAllPhotosInDb.set(false);
+            this.saveSetting('useAllPhotosInDb', false);
+            this.markerStatus.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. Run Build Cache for this folder first.`);
+            return;
+          }
+        }
         const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
         if (!mapBounds) {
           this.markerStatus.set('The map is not ready yet.');
@@ -8085,6 +8147,18 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     try {
+      const directory = this.currentFolderPath ?? (this.currentImagePath ? await desktop.FileSystem.dirname(this.currentImagePath) : '');
+      if (!directory) {
+        this.gpxError.set('Cannot generate GPX: no image folder is selected.');
+        return;
+      }
+      this.gpxError.set('Checking photo database completeness…');
+      const completeness = await this.checkPhotoDatabaseCompleteness(directory);
+      if (completeness.missing.length > 0) {
+        this.gpxError.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. GPX generation was cancelled. Run Build Cache for this folder first.`);
+        return;
+      }
+      this.gpxError.set('');
       const defaultName = 'Photo-Markers-' + new Date().toISOString().slice(0, 10) + '.gpx';
       const lastAddedTrack = [...this.gpxTracks()].reverse().find(track => !track.path.startsWith('memory:'));
       const initialFolder = lastAddedTrack
