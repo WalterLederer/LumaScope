@@ -136,6 +136,7 @@ const api: Desktop = {
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
     importGpxFiles: (filePaths: string[]) => ipcRenderer.invoke('CacheManager.importGpxFiles', filePaths),
     exportGpxFileFromDatabase: (sourcePath: string, databaseKey?: string) => ipcRenderer.invoke('CacheManager.exportGpxFileFromDatabase', sourcePath, databaseKey),
+    exportGpxTrackFromMemory: (trackName: string, segments: Array<Array<{ latitude: number; longitude: number; elevation: number | null; timestamp: string | null }>>) => ipcRenderer.invoke('CacheManager.exportGpxTrackFromMemory', trackName, segments),
     getGpxDatabaseStats: (databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxDatabaseStats', databaseKey),
     clearAllGpxDatabaseEntries: () => ipcRenderer.invoke('CacheManager.clearAllGpxDatabaseEntries'),
     deleteGpxDatabaseEntriesForFile: (sourcePath: string, databaseKey?: string) => ipcRenderer.invoke('CacheManager.deleteGpxDatabaseEntriesForFile', sourcePath, databaseKey),
