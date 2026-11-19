@@ -823,3 +823,10 @@ app-map-window {
 .gpx-settings-choice-options{display:flex;flex-direction:column;gap:2px;margin-top:5px;padding:4px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-high,#303238);box-shadow:0 4px 12px rgba(0,0,0,.28)}
 .gpx-settings-choice-options>button{width:100%;padding:6px 8px;border:0;border-radius:3px;background:transparent;color:var(--color-content-default-high,#eee);font:inherit;text-align:left;cursor:pointer}
 .gpx-settings-choice-options>button:hover,.gpx-settings-choice-options>button:focus-visible,.gpx-settings-choice-options>button.active{background:#245f9e;color:#fff;outline:0}
+
+/* Track Settings: native dropdowns with compact visual samples beside their labels. */
+.gpx-style-select-field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.gpx-style-select-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:20px;color:var(--color-content-default-medium,#555);font-size:12px}
+.gpx-style-select-preview{display:block;flex:0 0 64px;width:64px;height:16px;overflow:visible}
+.gpx-style-select-arrow-preview{display:flex;align-items:center;justify-content:center;flex:0 0 64px;width:64px;min-height:20px;font-weight:700;line-height:1;text-shadow:0 0 1px rgba(0,0,0,.55)}
+.gpx-style-select-field>select{width:100%;min-width:0}
