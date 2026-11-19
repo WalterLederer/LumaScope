@@ -59,6 +59,13 @@
               aria-label="Larger thumbnails"
               (click)="adjustThumbnailSize(1)">+</button>
       <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
+      <ui-action-button class="action folder-path-menu-trigger"
+                        title="Folder path actions"
+                        aria-label="Folder path actions"
+                        [cdkMenuTriggerFor]="folderPathMenu"
+                        uiStopPropagation>
+        <ui-icon icon="menu" [inherit]="true" />
+      </ui-action-button>
     </div>
 
   </aside>
@@ -88,6 +95,23 @@
   </div>
   <ui-text [title]="hoverStatusText()">{{ hoverStatusText() }}</ui-text>
 </ui-toolbar>
+
+<ng-template #folderPathMenu>
+  <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
+    <button type="button" class="gallery-menu-item" cdkMenuItem
+            [disabled]="!selectedLocation()"
+            (click)="$event.stopPropagation(); openSelectedFolderPath()">
+      <ui-icon icon="folder" [inherit]="true" />
+      <ui-text [inherit]="true">Open path</ui-text>
+    </button>
+    <button type="button" class="gallery-menu-item" cdkMenuItem
+            [disabled]="!selectedLocation()"
+            (click)="$event.stopPropagation(); copySelectedFolderPath()">
+      <ui-icon icon="copy" [inherit]="true" />
+      <ui-text [inherit]="true">Copy path</ui-text>
+    </button>
+  </ui-popup-menu>
+</ng-template>
 
 <ng-template #viewModeMenu>
   <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
