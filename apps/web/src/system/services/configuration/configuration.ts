@@ -130,6 +130,7 @@ export class Configuration {
       version: 1,
       gallery: {
         locations: [ paths.pictures ],
+        autoSortFavorites: true,
         thumbWidth: defaultThumbWidth,
         thumbHeight: defaultThumbHeight
       },
