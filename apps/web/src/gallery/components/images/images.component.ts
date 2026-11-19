@@ -174,7 +174,7 @@ export class ImagesComponent {
   };
 
   protected readonly detailSortIndicator = (column: DetailSortColumn): string =>
-    this.activeDetailSortColumn() !== column ? '' : this.activeDetailSortDirection() === 'asc' ? '▲' : '▼';
+    this.activeDetailSortColumn() !== column ? '↕' : this.activeDetailSortDirection() === 'asc' ? '▲' : '▼';
 
   protected readonly detailSortAriaSort = (column: DetailSortColumn): 'ascending' | 'descending' | 'none' =>
     this.activeDetailSortColumn() !== column ? 'none' : this.activeDetailSortDirection() === 'asc' ? 'ascending' : 'descending';
