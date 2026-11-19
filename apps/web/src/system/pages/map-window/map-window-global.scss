@@ -792,8 +792,9 @@ app-map-window {
   .gpx-track-settings-grid select,.gpx-track-settings-grid input{width:100%;min-width:0;box-sizing:border-box;padding:7px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-medium,#454545);color:var(--color-content-default-high,#eee);font:inherit}
   .gpx-track-settings-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
   .gpx-track-settings-dialog footer button{min-width:84px;padding:7px 14px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-medium,#454545);color:var(--color-content-default-high,#eee);cursor:pointer}
-  .gpx-track-settings-dialog footer .gpx-track-settings-ok{background:var(--color-accent,#2878d0);border:2px solid #fff;color:white;font-weight:800;box-shadow:0 0 0 2px var(--color-accent,#2878d0),0 3px 8px rgba(0,0,0,.35);outline:2px solid var(--color-accent,#2878d0);outline-offset:3px}
-  .gpx-track-settings-dialog footer .gpx-track-settings-ok:focus-visible{outline:3px solid #fff;outline-offset:4px;box-shadow:0 0 0 6px var(--color-accent,#2878d0),0 3px 8px rgba(0,0,0,.4)}
+  .gpx-track-settings-dialog footer .gpx-track-settings-ok{background:var(--color-accent,#2878d0);border:1px solid var(--color-accent,#2878d0);color:white;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.35);outline:0}
+  .gpx-track-settings-dialog footer button:focus-visible{outline:3px solid var(--color-accent,#2878d0);outline-offset:3px;box-shadow:0 0 0 2px var(--color-surface-default-high,#303238),0 3px 8px rgba(0,0,0,.4)}
+  .gpx-track-settings-dialog footer .gpx-track-settings-ok:focus-visible{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 5px var(--color-accent,#2878d0),0 3px 8px rgba(0,0,0,.4)}
   @media(max-width:560px){.gpx-track-settings-grid{grid-template-columns:minmax(0,1fr)}}
 }
 
