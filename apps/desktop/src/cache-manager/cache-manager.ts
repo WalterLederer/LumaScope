@@ -651,6 +651,31 @@ export class CacheManager {
     return { files, imported, unchanged, duplicates, errors };
   };
 
+  @IpcHandler({ name: 'CacheManager.exportGpxTrackFromMemory' })
+  readonly exportGpxTrackFromMemory = async (_event?: IpcMainInvokeEvent, trackName?: string, sourceSegments?: Array<Array<{ latitude: number; longitude: number; elevation: number | null; timestamp: string | null }>>): Promise<{ cancelled: boolean; path: string | null; points: number; elevationPoints: number }> => {
+    if (typeof trackName !== 'string' || !trackName.trim() || !Array.isArray(sourceSegments)) throw new Error('An in-memory GPX track and its points are required.');
+    const escapeXml = (value: string): string => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[character] ?? character);
+    let pointCount = 0, elevationCount = 0;
+    const segments = sourceSegments.map(segment => {
+      if (!Array.isArray(segment)) return '';
+      const points = segment.map(point => {
+        if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude) || Math.abs(point.latitude) > 90 || Math.abs(point.longitude) > 180) return '';
+        pointCount++;
+        const elevation = point.elevation !== null && Number.isFinite(point.elevation) ? (elevationCount++, `<ele>${point.elevation}</ele>`) : '';
+        const parsedTime = typeof point.timestamp === 'string' ? Date.parse(point.timestamp) : Number.NaN;
+        const timestamp = Number.isFinite(parsedTime) ? `<time>${new Date(parsedTime).toISOString()}</time>` : '';
+        return `<trkpt lat="${point.latitude}" lon="${point.longitude}">${elevation}${timestamp}</trkpt>`;
+      }).join('');
+      return points ? `<trkseg>${points}</trkseg>` : '';
+    }).filter(Boolean);
+    if (!pointCount) throw new Error('The in-memory GPX track contains no valid track points.');
+    const defaultName = trackName.replace(/\.[^.]+$/, '').trim() + '.from-memory.gpx';
+    const selection = await dialog.showSaveDialog({ title: 'Export GPX track from memory', defaultPath: join(app.getPath('documents'), defaultName), filters: [{ name: 'GPX files', extensions: ['gpx'] }] });
+    if (selection.canceled || !selection.filePath) return { cancelled: true, path: null, points: pointCount, elevationPoints: elevationCount };
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="LumaScope" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(trackName)}</name>${segments.join('')}</trk></gpx>\n`;
+    await writeFile(selection.filePath, xml, 'utf8');
+    return { cancelled: false, path: selection.filePath, points: pointCount, elevationPoints: elevationCount };
+  };
   @IpcHandler({ name: 'CacheManager.exportGpxFileFromDatabase' })
   readonly exportGpxFileFromDatabase = async (
     _event?: IpcMainInvokeEvent, sourcePath?: string, requestedDatabaseKey?: string
