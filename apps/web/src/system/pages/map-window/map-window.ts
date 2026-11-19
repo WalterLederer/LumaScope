@@ -361,10 +361,7 @@ interface MapErrorEntry {
           @if (gpxDatabaseColumns().time) { <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span> }
           @if (gpxDatabaseColumns().size) { <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span> }
           @if (gpxDatabaseColumns().path) { <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span> }
-          <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('color')">Color {{ gpxDatabaseSortIndicator('color') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'color')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
-          <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('line')">Line {{ gpxDatabaseSortIndicator('line') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'line')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
-          <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('width')">Width {{ gpxDatabaseSortIndicator('width') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'width')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
-          <span class="gpx-db-sort-button" role="columnheader" (click)="sortGpxDatabase('arrows')">Arrows {{ gpxDatabaseSortIndicator('arrows') }}<span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'arrows')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></span>
+          <span role="columnheader">Track preview</span>
           <span role="columnheader">Actions</span>
         </div>
         <div class="gpx-file-list gpx-database-file-list" role="rowgroup">
@@ -377,36 +374,13 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</span> }
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
-              <div class="color-picker gpx-track-color-picker" role="cell">
-                <select class="gpx-db-select gpx-color-mode-select" [value]="track.colorMode || 'fixed'" (change)="changeGpxListTrack(track.path, { colorMode: $any($event.target).value })" [attr.aria-label]="'Color mode for ' + track.name"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option></select>
-                @if (track.colorMode !== 'speed') {
-                  <button type="button" class="color-picker-trigger" (click)="toggleGpxTrackColorMenu(track.path, $event)" [attr.aria-expanded]="gpxTrackColorMenuOpen() === track.path" [attr.aria-label]="'Color for ' + track.name">
-                    <span class="color-swatch" [style.background]="track.color || gpxColor()" [style.color]="selectedGpxTrackTextColor(track)">{{ track.color || gpxColor() }}</span><span>{{ selectedGpxTrackColorName(track) }}</span><span class="color-picker-chevron">▾</span>
-                  </button>
-                  @if (gpxTrackColorMenuOpen() === track.path) {
-                    <div class="color-picker-menu gpx-track-color-menu-floating" role="listbox" [attr.aria-label]="'Colors for ' + track.name" [style.top.px]="gpxTrackColorMenuPosition().top" [style.left.px]="gpxTrackColorMenuPosition().left">
-                      @for (color of gpxColors; track color.value) {
-                        <button type="button" class="color-option" role="option" [attr.aria-selected]="(track.color || gpxColor()) === color.value" (click)="changeGpxListTrack(track.path, { color: color.value }); gpxTrackColorMenuOpen.set(null)">
-                          <span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span>
-                        </button>
-                      }
-                    </div>
-                  }
-                } @else {
-                  <select class="gpx-db-select" [value]="track.speedPalette || 'spectrum'" (change)="changeGpxListTrack(track.path, { speedPalette: $any($event.target).value })" [attr.aria-label]="'Speed color palette for ' + track.name"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option></select>
-                  <div class="gpx-speed-range-controls"><label><span>Min</span><input type="number" min="0" max="299" step="5" [value]="track.speedMinKmh ?? 0" (change)="changeGpxSpeedRange(track.path, 'min', $any($event.target).value)" [attr.aria-label]="'Minimum speed for ' + track.name"></label><label><span>Max</span><input type="number" min="1" max="300" step="5" [value]="track.speedMaxKmh ?? 120" (change)="changeGpxSpeedRange(track.path, 'max', $any($event.target).value)" [attr.aria-label]="'Maximum speed for ' + track.name"></label></div>
-                }
-              </div>
-              <select class="gpx-db-select" [value]="track.lineStyle || 'solid'" (change)="changeGpxListTrack(track.path, { lineStyle: $any($event.target).value })" [attr.aria-label]="'Line style for ' + track.name">
-                <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option>
-              </select>
-              <select class="gpx-db-select" [value]="track.lineWidth || 3" (change)="changeGpxListTrack(track.path, { lineWidth: +$any($event.target).value })" [attr.aria-label]="'Line width for ' + track.name">
-                @for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }
-              </select>
-              <select class="gpx-db-select" [value]="track.showDirection ? (track.directionStyle || 'classic') : 'off'" (change)="changeGpxListTrack(track.path, { showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? (track.directionStyle || 'classic') : $any($event.target).value })" [attr.aria-label]="'Direction arrows for ' + track.name">
-                <option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option>
-              </select>
+              <button type="button" class="gpx-track-style-preview" role="cell" (click)="openGpxTrackSettings(track)" title="Track Settings">
+                <svg viewBox="0 0 150 24" aria-hidden="true"><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' ? 'url(#gpx-speed-preview)' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 3" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
+                  @if (track.showDirection) { <path d="M75 8 L82 12 L75 16" fill="none" [attr.stroke]="track.color || gpxColor()" stroke-width="2"/> }</svg>
+                <span>{{ track.colorMode === 'speed' ? 'Speed-based' : (track.color || gpxColor()) }} · {{ track.lineWidth || 3 }} px</span>
+              </button>
               <div class="gpx-row-actions" role="cell">
+                <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
                               <button type="button" class="file-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
                             </div>
               
@@ -417,8 +391,12 @@ interface MapErrorEntry {
           <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
                [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
+            @if (actionTrack.path.startsWith('memory:')) {
+              <button type="button" role="menuitem" (click)="exportGpxFromMemory(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from memory</button>
+            } @else {
             <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
                     [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⇩</span> Export from db</button>
+            }
             <button type="button" role="menuitem" class="gpx-row-action-delete-all"
                     (click)="deleteGpxDatabaseRecordsForFile(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
                     [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⌫</span> Delete all db records for this file</button>
@@ -440,6 +418,27 @@ interface MapErrorEntry {
       <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
     } @else {
       <div class="gpx-database-empty">No GPX tracks are loaded.</div>
+    }
+    @if (gpxTrackSettingsTrack(); as settingsTrack) {
+      <div class="gpx-track-settings-backdrop" role="presentation" (click)="cancelGpxTrackSettings()">
+        <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation()">
+          <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
+          <div class="gpx-track-settings-grid">
+            <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option></select></label>
+            @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
+              <label>Color<select [value]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value">{{ color.name }} ({{ color.value }})</option> }</select></label>
+            } @else {
+              <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option></select></label>
+              <label>Minimum speed (km/h)<input type="number" min="0" max="299" [value]="gpxTrackSettingsDraft().speedMinKmh" (change)="updateGpxTrackSettingsDraft({ speedMinKmh: +$any($event.target).value })"></label>
+              <label>Maximum speed (km/h)<input type="number" min="1" max="300" [value]="gpxTrackSettingsDraft().speedMaxKmh" (change)="updateGpxTrackSettingsDraft({ speedMaxKmh: +$any($event.target).value })"></label>
+            }
+            <label>Line style<select [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option></select></label>
+            <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
+            <label>Direction arrows<select [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">Off</option><option value="classic">Classic</option><option value="chevron">Chevron</option><option value="triangle">Triangle</option><option value="thin">Thin</option><option value="large-classic">Large classic</option><option value="large-chevron">Large chevron</option><option value="large-triangle">Large triangle</option></select></label>
+          </div>
+          <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()">OK</button></footer>
+        </section>
+      </div>
     }
     <details class="gpx-elevation-profile-section app-disclosure">
       <summary>Elevation Profile</summary>
@@ -2364,6 +2363,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
+  protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
+  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed'; color: string; speedPalette: 'spectrum' | 'cool-warm'; speedMinKmh: number; speedMaxKmh: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionStyle: NonNullable<GpxTrackFile['directionStyle'] }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', speedMinKmh: 0, speedMaxKmh: 120, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionStyle: 'classic' });
   protected readonly routePointActionMenuOpen = signal<number | null>(null);
   protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
@@ -2421,6 +2422,29 @@ export class MapWindow implements OnInit, OnDestroy {
       top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - rect.height - 8)));
       this.gpxTrackColorMenuPosition.set({ top, left });
     });
+  };
+  protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
+  protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
+    this.gpxTrackSettingsTrack.set(track);
+    this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: track.color || this.gpxColor(), speedPalette: track.speedPalette || 'spectrum', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionStyle: track.directionStyle || 'classic' });
+  };
+  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<ReturnType<typeof this.gpxTrackSettingsDraft>>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
+  protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
+  protected readonly saveGpxTrackSettings = (): void => {
+    const track = this.gpxTrackSettingsTrack(); if (!track) return;
+    const draft = this.gpxTrackSettingsDraft();
+    const min = Math.max(0, Math.min(299, Math.round(Number(draft.speedMinKmh) || 0)));
+    const max = Math.max(min + 1, Math.min(300, Math.round(Number(draft.speedMaxKmh) || 120)));
+    this.changeGpxListTrack(track.path, { ...draft, speedMinKmh: min, speedMaxKmh: max, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) });
+    this.gpxTrackSettingsTrack.set(null);
+  };
+  protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop || !track.path.startsWith('memory:')) return;
+    const segments = this.gpxPointDataByTrack.get(track.path) ?? [];
+    try {
+      const result = await this.desktop.CacheManager.exportGpxTrackFromMemory(track.name, segments.map(segment => segment.map(point => ({ latitude: point.latitude, longitude: point.longitude, elevation: point.elevation, timestamp: point.timestamp }))));
+      if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + result.points.toLocaleString() + ' points (' + result.elevationPoints.toLocaleString() + ' elevation values) to ' + result.path);
+    } catch (error) { this.gpxError.set(error instanceof Error ? error.message : String(error)); }
   };
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
@@ -7434,7 +7458,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ...(columns.time ? [widths['time'] + 'px'] : []),
       ...(columns.size ? [widths['size'] + 'px'] : []),
       ...(columns.path ? [widths['path'] + 'px'] : []),
-      widths['color'] + 'px', widths['line'] + 'px', widths['width'] + 'px', widths['arrows'] + 'px', widths['actions'] + 'px'
+      'minmax(150px, 1fr)', widths['actions'] + 'px'
     ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
