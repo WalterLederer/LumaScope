@@ -44,21 +44,23 @@
     </div>
 
     <div class="thumbnail-size-control" title="Thumbnail size">
-      <button class="zoom-step-button"
-              type="button"
-              title="Smaller thumbnails (-)"
-              aria-label="Smaller thumbnails"
-              (click)="adjustThumbnailSize(-1)">−</button>
-      <ui-slider class="zoom-purpose-slider" [formControl]="thumbSizeSlider"
-                 [min]="0"
-                 [max]="thumbnailSliderMax"
-                 aria-label="Thumbnail size" />
-      <button class="zoom-step-button"
-              type="button"
-              title="Larger thumbnails (+)"
-              aria-label="Larger thumbnails"
-              (click)="adjustThumbnailSize(1)">+</button>
-      <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
+      <div class="thumbnail-zoom-box">
+        <button class="zoom-step-button"
+                type="button"
+                title="Smaller thumbnails (-)"
+                aria-label="Smaller thumbnails"
+                (click)="adjustThumbnailSize(-1)">−</button>
+        <ui-slider class="zoom-purpose-slider" [formControl]="thumbSizeSlider"
+                   [min]="0"
+                   [max]="thumbnailSliderMax"
+                   aria-label="Thumbnail size" />
+        <button class="zoom-step-button"
+                type="button"
+                title="Larger thumbnails (+)"
+                aria-label="Larger thumbnails"
+                (click)="adjustThumbnailSize(1)">+</button>
+        <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
+      </div>
       <span class="file-row-menu-trigger folder-path-menu-trigger"
             [cdkMenuTriggerFor]="folderPathMenu"
             role="button"
