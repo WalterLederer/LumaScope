@@ -295,19 +295,11 @@
     }
 
     app-thumbnail {
-      display: flex;
-      align-self: stretch;
-      min-width: 0;
       width: auto;
       height: auto;
       min-height: calc(var(--detail-thumb-height, 27px) + 10px);
       border-radius: 0;
       border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
-
-      &:not(:nth-child(13n + 1)) {
-        border-left: 1px solid var(--color-border-default, rgb(128 128 128 / 42%));
-        padding-left: 12px;
-      }
     }
   }
 }
