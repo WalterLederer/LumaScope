@@ -71,3 +71,18 @@
 
 /* Allow long favourite paths to shrink without pushing the row actions out of view. */
 :host ui-text { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+
+/* Visually separate favourite groups when the drive/root changes. */
+:host(.group-start) {
+  position: relative;
+  margin-top: 7px;
+}
+:host(.group-start)::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: var(--dim-medium);
+  right: var(--dim-medium);
+  border-top: 2px solid color-mix(in srgb, var(--color-content-default-medium, currentColor) 55%, transparent);
+}
