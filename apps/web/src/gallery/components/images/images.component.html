@@ -21,76 +21,85 @@
         <col style="width:28px">
       </colgroup>
       <thead>
-        <tr class="detail-header" [class.cache-build-active]="cacheRunActive()">
+        <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()">
           <th class="thumb-column-heading" scope="col">
             <span>Thumb</span>
-            <small>{{ dimensions().width }} × {{ dimensions().height }} px</small>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail column" (pointerdown)="startColumnResize($event, 0)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('name')">
             <button type="button" (click)="sortDetailBy('name')">Name<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('name') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('date')">
+            <button type="button" (click)="sortDetailBy('date')">Date<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('date') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize date column" (pointerdown)="startColumnResize($event, 2)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gpsDate')">
+            <button type="button" (click)="sortDetailBy('gpsDate')">GPS Date<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gpsDate') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS date column" (pointerdown)="startColumnResize($event, 3)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('dimensions')">
+            <button type="button" (click)="sortDetailBy('dimensions')">Dimensions<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('dimensions') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize dimensions column" (pointerdown)="startColumnResize($event, 4)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('size')">
+            <button type="button" (click)="sortDetailBy('size')">File size<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('size') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file size column" (pointerdown)="startColumnResize($event, 5)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.title]="distinctSuffixTooltip()" [attr.aria-sort]="detailSortAriaSort('suffix')">
+            <button type="button" (click)="sortDetailBy('suffix')">Suffix<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('suffix') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize suffix column" (pointerdown)="startColumnResize($event, 6)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('hdr')">
+            <button type="button" (click)="sortDetailBy('hdr')">HDR<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('hdr') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize HDR column" (pointerdown)="startColumnResize($event, 7)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('thumb')">
+            <button type="button" (click)="sortDetailBy('thumb')">Thumb<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('thumb') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail status column" (pointerdown)="startColumnResize($event, 8)"></span>
+          </th>
+          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('fullSize')">
+            <button type="button" (click)="sortDetailBy('fullSize')">Full-Size Conversion<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('fullSize') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize full-size column" (pointerdown)="startColumnResize($event, 9)"></span>
+          </th>
+          <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gps')">
+            <button type="button" (click)="sortDetailBy('gps')">GPS coordinates<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gps') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS column" (pointerdown)="startColumnResize($event, 10)"></span>
+          </th>
+          <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('location')">
+            <button type="button" (click)="sortDetailBy('location')">Location<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('location') }}</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)"></span>
+          </th>
+          <th class="detail-actions-heading" scope="col" aria-label="Actions"></th>
+        </tr>
+        <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
+          <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }} px</small></th>
+          <th scope="col">
             <small class="column-count">{{ cacheStats().total }}</small>
             <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
             @if (cacheRunActive()) {
               <small class="worker-progress cache-folder-action-progress" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
             }
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)"></span>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('date')">
-            <button type="button" (click)="sortDetailBy('date')">Date<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('date') }}</span></button>
-            <small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize date column" (pointerdown)="startColumnResize($event, 2)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gpsDate')">
-            <button type="button" (click)="sortDetailBy('gpsDate')">GPS Date<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gpsDate') }}</span></button>
+          <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
+          <th scope="col">
             <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
             <small class="column-summary">Different: {{ cacheStatusLoading() ? "…" : gpsDateDifferenceCount() }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS date column" (pointerdown)="startColumnResize($event, 3)"></span>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('dimensions')">
-            <button type="button" (click)="sortDetailBy('dimensions')">Dimensions<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('dimensions') }}</span></button>
-            <small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize dimensions column" (pointerdown)="startColumnResize($event, 4)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('size')">
-            <button type="button" (click)="sortDetailBy('size')">File size<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('size') }}</span></button>
-            <small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file size column" (pointerdown)="startColumnResize($event, 5)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.title]="distinctSuffixTooltip()" [attr.aria-sort]="detailSortAriaSort('suffix')">
-            <button type="button" (click)="sortDetailBy('suffix')">Suffix<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('suffix') }}</span></button>
-            <small class="column-count">{{ distinctSuffixCount() }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize suffix column" (pointerdown)="startColumnResize($event, 6)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('hdr')">
-            <button type="button" (click)="sortDetailBy('hdr')">HDR<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('hdr') }}</span></button>
-            <small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize HDR column" (pointerdown)="startColumnResize($event, 7)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('thumb')">
-            <button type="button" (click)="sortDetailBy('thumb')">Thumb<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('thumb') }}</span></button>
-            <small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail status column" (pointerdown)="startColumnResize($event, 8)"></span>
-          </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('fullSize')">
-            <button type="button" (click)="sortDetailBy('fullSize')">Full-Size Conversion<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('fullSize') }}</span></button>
-            <small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize full-size column" (pointerdown)="startColumnResize($event, 9)"></span>
-          </th>
-          <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gps')">
-            <button type="button" (click)="sortDetailBy('gps')">GPS coordinates<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gps') }}</span></button>
-            <small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS column" (pointerdown)="startColumnResize($event, 10)"></span>
-          </th>
-          <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('location')">
-            <button type="button" (click)="sortDetailBy('location')">Location<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('location') }}</span></button>
+          <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small></th>
+          <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small></th>
+          <th scope="col"><small class="column-count">{{ distinctSuffixCount() }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small></th>
+          <th scope="col">
             <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
             @if (reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused) {
               <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
             }
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)"></span>
           </th>
-          <th class="detail-actions-heading" scope="col" aria-label="Actions"></th>
+          <th class="detail-actions-statistics" scope="col"></th>
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
