@@ -2054,7 +2054,7 @@ export class ImageView {
       const coordinates = this.gpsCoordinates();
       const imagePath = this.debugSelectedImagePath === 'unknown' || this.debugSelectedImagePath === 'none' ? null : this.debugSelectedImagePath;
       if (this.detachedMapWindowOpen()) {
-        void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath);
+        void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath, this.gallerySelectedLocation() ?? null);
       }
     });
 
