@@ -225,6 +225,10 @@ export class ImageGridComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly thumbSizeSlider = new FormControl(0, { nonNullable: true });
+  protected readonly detailFontSizeSlider = new FormControl(12, { nonNullable: true });
+  readonly detailFontSize = signal(12);
+  protected readonly detailFontSizeMin = 10;
+  protected readonly detailFontSizeMax = 24;
 
   protected readonly thumbnailSliderMax = allThumbnailSizes.length - 1;
 
@@ -329,6 +333,11 @@ export class ImageGridComponent {
     this.thumbSizeSlider.setValue(next);
   };
 
+  protected readonly adjustDetailFontSize = (direction: -1 | 1): void => {
+    const next = Math.max(this.detailFontSizeMin, Math.min(this.detailFontSizeMax, this.detailFontSizeSlider.value + direction));
+    this.detailFontSizeSlider.setValue(next);
+  };
+
   /* Constructor */
   constructor() {
     const normalizeDirectory = (value: string): string =>
@@ -382,6 +391,19 @@ export class ImageGridComponent {
           event.preventDefault();
           this.adjustThumbnailSize(-1);
         }
+      });
+
+    this.detailFontSizeSlider.valueChanges
+      .pipe(
+        map(value => Math.max(this.detailFontSizeMin, Math.min(this.detailFontSizeMax, Math.round(value)))),
+        distinctUntilChanged(),
+        takeUntilDestroyed()
+      )
+      .subscribe(value => {
+        if (this.detailFontSizeSlider.value !== value) {
+          this.detailFontSizeSlider.setValue(value, { emitEvent: false });
+        }
+        this.detailFontSize.set(value);
       });
 
     this.thumbSizeSlider.valueChanges
