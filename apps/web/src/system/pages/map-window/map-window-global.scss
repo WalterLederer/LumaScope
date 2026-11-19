@@ -778,6 +778,7 @@ app-map-window {
    .gpx-track-settings-section>summary::-webkit-details-marker{display:none}
    .gpx-track-settings-section[open]>summary{border-bottom:1px solid var(--color-content-default-low,#666)}
    .gpx-track-settings-section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+   .gpx-track-settings-section-grid>label{min-width:0}.gpx-track-settings-section-grid select{font-variant-ligatures:none}
    .gpx-track-settings-section-grid>.gpx-track-settings-favorite-add{grid-column:1/-1}
    @media(max-width:560px){.gpx-track-settings-section-grid{grid-template-columns:minmax(0,1fr)}}
   .gpx-track-settings-grid .gpx-track-settings-divider:first-child{margin:0 0 2px}
