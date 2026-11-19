@@ -322,7 +322,7 @@ export class GalleryPage {
   };
 
   protected readonly refreshSelectedFolder = (path: string): void => {
-    this.galleryState.navigateTo(path).subscribe(() => void this.galleryCacheBuild.refreshDetailCacheStatus());
+    this.galleryState.navigateTo(path).subscribe();
   };
 
   protected readonly selectLocation = (node: TreeNode<string>) =>
