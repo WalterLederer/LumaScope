@@ -103,7 +103,7 @@
   gap: 0;
   height: auto;
   min-height: calc(var(--detail-thumb-height, 27px) + 10px);
-  padding: 5px 0;
+  padding: 0;
   box-sizing: border-box;
   background: transparent !important;
 
@@ -125,8 +125,8 @@
     grid-template-columns: subgrid;
     min-height: 0;
     height: auto;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    padding-top: 0;
+    padding-bottom: 0;
 
     .detail-name {
       grid-column: 2;
@@ -151,8 +151,8 @@
     min-height: 100%;
     box-sizing: border-box;
     border-left: 0;
-    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
-    padding-left: 12px;
+    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%))) !important;
+    padding: 5px 0 5px 12px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
