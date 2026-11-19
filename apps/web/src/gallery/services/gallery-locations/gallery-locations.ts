@@ -14,13 +14,27 @@ export class GalleryLocations {
 
   readonly locations = () => this.locations$;
 
-  readonly addLocation = (location: string) =>
-    this.locations$
-      .pipe(
-        take(1),
-        map(locations => new Set(locations).add(location))
-      )
-      .subscribe(this.updateLocations);
+  readonly autoSortFavorites = () => this.configuration.config().pipe(
+    map(config => config.gallery.autoSortFavorites ?? true),
+    distinctUntilChanged()
+  );
+
+  readonly setAutoSortFavorites = (enabled: boolean): void => {
+    this.configuration.updateGalleryConfig({ autoSortFavorites: enabled });
+    if (enabled) this.sortLocationsByPath();
+  };
+
+  readonly addLocation = (location: string): void => {
+    this.configuration.config().pipe(take(1)).subscribe(config => {
+      const locations = new Set(config.gallery.locations);
+      locations.add(location);
+      const ordered = [...locations];
+      if (config.gallery.autoSortFavorites ?? true) {
+        ordered.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+      }
+      this.updateLocations(new Set(ordered));
+    });
+  };
 
   readonly removeLocation = (location: string) =>
     this.locations$
