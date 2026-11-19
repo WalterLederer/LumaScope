@@ -401,3 +401,23 @@ ui-side-panel {
   margin: 7px 8px;
   background: color-mix(in srgb, var(--color-content-default-high, currentColor) 38%, transparent);
 }
+
+/* High-contrast selection and hover states for the Browse favourites tree. */
+:host ::ng-deep .gallery-folder-tree ui-tree-node:hover {
+  background-color: #dceaf7 !important;
+  color: #202124 !important;
+}
+:host ::ng-deep .gallery-folder-tree ui-tree-node.selected,
+:host ::ng-deep .gallery-folder-tree ui-tree-node.selected:hover {
+  background-color: #175b91 !important;
+  color: #fff !important;
+}
+:host-context(html[data-theme='dark']) ::ng-deep .gallery-folder-tree ui-tree-node:hover {
+  background-color: #394b60 !important;
+  color: #fff !important;
+}
+:host-context(html[data-theme='dark']) ::ng-deep .gallery-folder-tree ui-tree-node.selected,
+:host-context(html[data-theme='dark']) ::ng-deep .gallery-folder-tree ui-tree-node.selected:hover {
+  background-color: #17649b !important;
+  color: #fff !important;
+}
