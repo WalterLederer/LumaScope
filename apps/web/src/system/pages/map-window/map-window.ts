@@ -773,6 +773,7 @@ interface MapErrorEntry {
   <details class="gpx-database-section app-disclosure">
     <summary>Images -&gt; GPX</summary>
     <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from images</button>
+    @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
   </details>
 </div>
 <div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
@@ -8142,8 +8143,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly generateGpxFromMarkers = async (): Promise<void> => {
     const desktop = this.desktop;
     const markers = this.directoryPhotoTimestampMarkers.length ? this.directoryPhotoTimestampMarkers : this.directoryPhotoMarkers;
-    if (!desktop || !markers.length) {
-      this.gpxError.set('No displayed photo markers with GPS coordinates are available.');
+    if (!desktop) {
+      this.gpxError.set('The desktop file system is unavailable.');
       return;
     }
     try {
@@ -8156,6 +8157,10 @@ export class MapWindow implements OnInit, OnDestroy {
       const completeness = await this.checkPhotoDatabaseCompleteness(directory);
       if (completeness.missing.length > 0) {
         this.gpxError.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. GPX generation was cancelled. Run Build Cache for this folder first.`);
+        return;
+      }
+      if (!markers.length) {
+        this.gpxError.set('No displayed photo markers with GPS coordinates are available.');
         return;
       }
       this.gpxError.set('');
