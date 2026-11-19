@@ -674,6 +674,7 @@
   </details>
             </fieldset>
 </div>
+</div>
 <div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
 <div class="settings-tab-content view-tab">
   <div class="view-primary-controls">
@@ -791,7 +792,7 @@
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button></div>
+        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
