@@ -10,6 +10,7 @@ import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { FileSystem } from '../../../ipc/file-system';
 import { SettingsPanelComponent } from '../../../settings/components/settings-dialog/settings-dialog.component';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { ThemeService } from '../../../system/services/theme/theme.service';
@@ -169,12 +170,81 @@ export class ImageView {
     this.overlayMapWindowOpen.set(true);
   };
 
+  private readonly checkLocationPhotoDatabase = async (directory: string): Promise<{ total: number; missing: string[] }> => {
+    const result = await this.fileSystem.readImages(directory, 'name', 'asc');
+    if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
+    const images = result.data.filter(image => !image.isDirectory);
+    const missing: string[] = [];
+    for (let offset = 0; offset < images.length; offset += 100) {
+      const batch = images.slice(offset, offset + 100);
+      const records = await Promise.all(batch.map(image => this.cacheManager.getPhotoDatabaseRecord(image.path)));
+      records.forEach((record, index) => {
+        const image = batch[index];
+        const modifiedAt = image.modifiedAt ?? image.createdAt;
+        if (!record || Number(record['file_size']) !== image.size
+          || (Number.isFinite(modifiedAt) && Number(record['modified_at']) !== modifiedAt)) {
+          missing.push(image.name);
+        }
+      });
+    }
+    return { total: images.length, missing };
+  };
+
+  private readonly openLocationWindowAfterCache = async (directory: string, previousTab: string): Promise<void> => {
+    try {
+      this.controlsSidebarVisible.set(true);
+      this.setActiveImageSidebarTab('cache');
+      // Let Angular mount the hidden Gallery/Cache controller before starting its registered action.
+      await new Promise<void>(resolve => this.document.defaultView?.setTimeout(resolve, 0) ?? resolve());
+      await this.galleryCacheBuild.startCacheBuild(directory);
+      const completeness = await this.checkLocationPhotoDatabase(directory);
+      if (completeness.missing.length > 0) {
+        this.document.defaultView?.alert(
+          `The photo database is still incomplete: ${completeness.missing.length} of ${completeness.total} images are missing current records. The Location window was not opened.`
+        );
+        return;
+      }
+      this.setActiveImageSidebarTab(previousTab);
+      await this.setDetachedMapWindowOpen(true);
+    } catch (error) {
+      this.document.defaultView?.alert(
+        `Could not complete Cache folder for this location: ${error instanceof Error ? error.message : String(error)}. The Location window was not opened.`
+      );
+    }
+  };
+
   protected readonly openLocationWindow = async (): Promise<void> => {
     const api = this.desktopApi?.MapWindow;
     if (!api) return;
     if (this.detachedMapWindowOpen()) {
       await api.focus();
       return;
+    }
+
+    const selectedImage = await this.selectedImage$.pipe(take(1)).toPromise();
+    const directory = this.gallerySelectedLocation() || (selectedImage ? await this.fileSystem.dirname(selectedImage.path) : '');
+    if (directory) {
+      try {
+        const completeness = await this.checkLocationPhotoDatabase(directory);
+        if (completeness.missing.length > 0) {
+          const previousTab = this.activeImageSidebarTab();
+          ConfirmationDialogComponent.open(this.dialog, {
+            title: 'Photo database incomplete',
+            description: `${completeness.missing.length} of ${completeness.total} images in the current folder are missing database records or have changed since caching. Run “Cache folder” now before opening the Location window?`,
+            confirmLabel: 'Cache folder',
+            cancelLabel: 'Cancel',
+            defaultAction: 'confirm'
+          }).pipe(take(1)).subscribe(() => {
+            void this.openLocationWindowAfterCache(directory, previousTab);
+          });
+          return;
+        }
+      } catch (error) {
+        this.document.defaultView?.alert(
+          `Could not verify the photo database for the current folder: ${error instanceof Error ? error.message : String(error)}. The Location window was not opened.`
+        );
+        return;
+      }
     }
     await this.setDetachedMapWindowOpen(true);
   };
@@ -230,6 +300,8 @@ export class ImageView {
   private readonly processManager = inject(ProcessManager);
 
   private readonly cacheManager = inject(CacheManager);
+
+  private readonly fileSystem = inject(FileSystem);
 
 
   private readonly imagePositioningService = inject(ImagePositioningService);
