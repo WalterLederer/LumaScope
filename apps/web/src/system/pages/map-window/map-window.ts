@@ -770,7 +770,6 @@ interface MapErrorEntry {
                 </div>
               </details>
             </div>
-          </div>
 
   <details class="gpx-database-section app-disclosure">
     <summary>Images -&gt; GPX</summary>
@@ -4097,7 +4096,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ markerSectionOpen: section.open });
   };
   protected readonly changeDirectoryMarkersEnabled = async (enabled: boolean): Promise<void> => {
-    if (enabled && !(await this.validateCurrentPhotoDatabase(this.currentFolderPath ?? (this.currentImagePath ? await this.desktop?.FileSystem.dirname(this.currentImagePath) : '')))) return;
+    if (enabled) {
+      const directory = this.currentFolderPath || (this.currentImagePath && this.desktop
+        ? await this.desktop.FileSystem.dirname(this.currentImagePath)
+        : '');
+      if (!directory || !(await this.validateCurrentPhotoDatabase(directory))) return;
+    }
     this.directoryMarkersEnabled.set(enabled);
     this.saveSetting('directoryMarkersEnabled', enabled);
     if (enabled) {
