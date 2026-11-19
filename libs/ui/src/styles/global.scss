@@ -625,6 +625,12 @@ html:not([data-disclosure-style]) .app-disclosure-heading.expanded::before {
   font-weight: 700 !important;
 }
 
+/* Keep the spacing of the Help detail sections consistent in one shared rule. */
+.settings-panel .format-details,
+.settings-panel .shortcut-details {
+  margin-block-start: var(--dim-small);
+}
+
 /* Every nested disclosure keeps the shared frame and fill, with one indentation step. */
 details details,
 details .app-disclosure,
