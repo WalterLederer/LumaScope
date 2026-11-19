@@ -2430,7 +2430,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxTrackSettingsTrack.set(track);
     this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: track.color || this.gpxColor(), speedPalette: track.speedPalette || 'spectrum', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionStyle: track.directionStyle || 'classic' });
   };
-  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<ReturnType<typeof this.gpxTrackSettingsDraft>>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
+  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed'; color: string; speedPalette: 'spectrum' | 'cool-warm'; speedMinKmh: number; speedMaxKmh: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
   protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
   protected readonly saveGpxTrackSettings = (): void => {
     const track = this.gpxTrackSettingsTrack(); if (!track) return;
