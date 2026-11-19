@@ -1067,4 +1067,4 @@ html[data-disclosure-style='none'] ui-tree-node .expand-indicator { flex-basis: 
 html[data-disclosure-style='none'] ui-tree-node .expand-indicator::before { content: none; }
 
 /* The My PC popup is rendered in the CDK overlay, outside the gallery component tree. */
-.gallery-location-menu-separator { display: block !important; flex: 0 0 1px !important; align-self: stretch !important; width: auto !important; height: 1px !important; min-height: 1px !important; margin: 7px 8px !important; padding: 0 !important; border: 0 !important; background: color-mix(in srgb, currentColor 42%, transparent) !important; }
+.gallery-location-menu-separator { display: block !important; flex: 0 0 1px !important; align-self: stretch !important; width: auto !important; height: 1px !important; min-height: 1px !important; margin: 7px 8px !important; padding: 0 !important; border: 0 !important; background: #858585 !important; box-shadow: 0 1px 0 rgb(0 0 0 / 22%) !important; }
