@@ -362,9 +362,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.detail-native-table thead th {
+.detail-native-table thead {
   position: sticky;
   top: 0;
+  z-index: 20;
+}
+.detail-native-table thead th {
   z-index: 20;
   height: 100%;
   min-height: 42px;
@@ -378,7 +381,42 @@
   font-weight: 700;
   vertical-align: top;
 }
-.detail-native-table thead tr { height: 100%; }
+.detail-native-table thead tr { height: auto; }
+.detail-native-table thead .detail-header-labels th {
+  height: 34px;
+  padding: 7px 8px 6px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 55%)));
+}
+.detail-native-table thead .detail-header-statistics th {
+  height: auto;
+  min-height: 30px;
+  padding: 5px 8px 7px 12px;
+  vertical-align: top;
+  border-top: 0;
+  border-bottom: 2px solid var(--color-border-default, rgb(128 128 128 / 45%));
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.detail-native-table thead .detail-header-statistics th small {
+  margin-top: 0;
+}
+.detail-native-table thead .detail-header-statistics .column-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.detail-native-table thead .detail-header-statistics .column-count {
+  margin: 0 auto 3px;
+}
+.detail-native-table thead .detail-header-statistics .worker-progress {
+  margin-top: 3px;
+}
+.detail-native-table thead .detail-header-statistics .cache-folder-action-progress {
+  margin-top: 5px;
+}
 /* The native table header has an opaque Canvas background by default. Override it
    explicitly while a folder cache run is active so every header cell is highlighted. */
 .detail-native-table thead tr.detail-header.cache-build-active > th {
@@ -412,19 +450,23 @@
 .detail-native-table td:last-child { border-right: 0; }
 /* Keep the column title on its own visual line and separate it from
    the statistics row beneath it. */
-.detail-native-table thead th > button {
+.detail-native-table thead tr.detail-header-labels th > button {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 0 5px;
-  margin: 0 0 5px;
-  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
 }
-.detail-native-table thead th.thumb-column-heading > span:first-child {
+.detail-native-table thead tr.detail-header-labels .thumb-column-heading > span:first-child {
   display: block;
-  padding-bottom: 5px;
-  margin-bottom: 5px;
-  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 .detail-native-table th > button {
   min-width: 0;
