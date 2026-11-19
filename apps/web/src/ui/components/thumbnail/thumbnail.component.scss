@@ -212,6 +212,8 @@
 }
 :host(.view-details) > td,
 :host(.view-details-no-thumbnails) > td {
+  font-size: var(--detail-font-size, 12px);
+  line-height: 1.25;
   height: auto;
   min-height: 0;
   box-sizing: border-box;
