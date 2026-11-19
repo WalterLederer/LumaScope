@@ -711,7 +711,7 @@ interface MapErrorEntry {
                       <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                     </div>
                     <div class="marker-summary-source"><strong>Folder:</strong> {{ markerSourceFolder() }}</div>
-                    <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
+                    <div class="marker-statistics"><span>GPS COORDINATE(s) found: <strong>{{ markerCount() }}</strong></span></div>
                     <div class="marker-time-range">
                       <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
                       <span>Maximum timestamp: <strong>{{ markerTimestampRange().maximum }}</strong></span>
@@ -3929,7 +3929,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer) this.offlineRenderer.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
       this.markerStatus.set(this.useAllPhotosInDb()
         ? 'Loaded ' + records.length + ' photo location(s) from the cache database in the current map viewport.'
-        : 'Loaded ' + records.length + ' database records; ' + markers.length + ' GPS locations found.');
+        : 'Loaded ' + records.length + ' database records; ' + markers.length + ' GPS location NAME(s) found.');
     } catch (error) {
       if (generation === this.markerScanGeneration) this.markerStatus.set(error instanceof Error ? error.message : 'Location database query failed.');
     }
