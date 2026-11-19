@@ -4202,7 +4202,12 @@ export class MapWindow implements OnInit, OnDestroy {
       const batch = images.slice(offset, offset + 100);
       const records = await Promise.all(batch.map(image => desktop.CacheManager.getPhotoDatabaseRecord(image.path)));
       records.forEach((record, index) => {
-        if (!record) missing.push(batch[index].name);
+        const image = batch[index];
+        const modifiedAt = image.modifiedAt ?? image.createdAt;
+        if (!record || Number(record['file_size']) !== image.size
+          || (Number.isFinite(modifiedAt) && Number(record['modified_at']) !== modifiedAt)) {
+          missing.push(image.name);
+        }
       });
     }
     return { total: images.length, missing };
