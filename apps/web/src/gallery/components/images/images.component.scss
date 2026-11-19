@@ -459,6 +459,10 @@
   gap: 1px;
   text-align: center;
 }
+.detail-native-table .column-summary > span {
+  display: block;
+  white-space: nowrap;
+}
 .detail-native-table .worker-progress {
   display: block;
   font-size: 14px;
