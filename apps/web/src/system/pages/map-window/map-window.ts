@@ -715,7 +715,7 @@ interface MapErrorEntry {
 </div>
 <div class="settings-tab-panel" data-settings-tab="marker" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
 <div class="settings-tab-content marker-tab">
-            <div class="photo-database-gate" role="status" aria-live="polite">{{ photoDatabaseMessage() }}</div>
+            <div class="photo-database-gate" role="status" aria-live="polite"><span>{{ photoDatabaseMessage() }}</span><button type="button" class="map-toolbar-button" (click)="recheckPhotoDatabase()" [disabled]="photoDatabaseCheckBusy() || (!currentFolderPath && !currentImagePath)">Recheck database</button></div>
             <fieldset class="marker-database-controls" [disabled]="!photoDatabaseReady() || photoDatabaseCheckBusy()">
             <div class="marker-settings-content">
               <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show images</label><button type="button" class="map-toolbar-button marker-fit-images-button" (click)="fitMapToImages()" [disabled]="!directoryMarkersEnabled()" title="Fit map to all images with GPS coordinates"><span aria-hidden="true">⤢</span> Fit map to images</button><button type="button" class="routing-help-button marker-tab-help" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
@@ -4208,6 +4208,17 @@ export class MapWindow implements OnInit, OnDestroy {
       this.markerCount.update(value => value + 1);
     }
   }
+
+  protected readonly recheckPhotoDatabase = async (): Promise<void> => {
+    const desktop = this.desktop;
+    const directory = this.currentFolderPath ?? (this.currentImagePath ? await desktop?.FileSystem.dirname(this.currentImagePath) : '');
+    if (!desktop || !directory) {
+      this.photoDatabaseReady.set(false);
+      this.photoDatabaseMessage.set('Select an image folder to verify its photo database.');
+      return;
+    }
+    await this.validateCurrentPhotoDatabase(directory);
+  };
 
   private async validateCurrentPhotoDatabase(directory: string): Promise<boolean> {
     const generation = ++this.photoDatabaseCheckGeneration;
