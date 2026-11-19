@@ -810,3 +810,15 @@ app-map-window {
 
 .gpx-track-settings-favorite-add .gpx-track-settings-favorite-remove{background:var(--color-surface-secondary,#e8e8e8);border:1px solid var(--color-border-default,#999);color:var(--color-content-primary-high,#222)}
 .gpx-track-settings-favorite-add .gpx-track-settings-favorite-remove:disabled{opacity:.45;cursor:not-allowed}
+
+
+/* Track Settings: live style previews for the line and direction selectors. */
+.gpx-settings-choice-field{min-width:0}
+.gpx-settings-choice{position:relative;min-width:0;color:var(--color-content-default-medium,#bbb);font-size:12px}
+.gpx-settings-choice>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:18px;cursor:pointer;list-style:none}
+.gpx-settings-choice>summary::-webkit-details-marker{display:none}
+.gpx-settings-choice>summary>span{min-width:0}
+.gpx-settings-choice>summary>strong{color:var(--color-content-default-high,#eee);font-size:12px;text-align:right;white-space:nowrap}
+.gpx-settings-choice-options{display:flex;flex-direction:column;gap:2px;margin-top:5px;padding:4px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-high,#303238);box-shadow:0 4px 12px rgba(0,0,0,.28)}
+.gpx-settings-choice-options>button{width:100%;padding:6px 8px;border:0;border-radius:3px;background:transparent;color:var(--color-content-default-high,#eee);font:inherit;text-align:left;cursor:pointer}
+.gpx-settings-choice-options>button:hover,.gpx-settings-choice-options>button:focus-visible,.gpx-settings-choice-options>button.active{background:#245f9e;color:#fff;outline:0}
