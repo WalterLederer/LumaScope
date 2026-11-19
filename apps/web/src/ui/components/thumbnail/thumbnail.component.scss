@@ -145,7 +145,7 @@
     align-self: stretch;
     min-height: 100%;
     box-sizing: border-box;
-    border-left: 1px solid var(--color-border-default, rgb(128 128 128 / 42%));
+    border-left: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
     padding-left: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
