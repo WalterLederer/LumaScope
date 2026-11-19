@@ -117,27 +117,6 @@
       color: var(--color-content-on-accent, #fff) !important;
     }
 
-    > .cache-run-banner {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      z-index: 15;
-      display: table-cell;
-      width: max-content;
-      max-width: calc(100% - 32px);
-      transform: translate(-50%, -50%);
-      padding: 4px 12px;
-      border: 1px solid currentColor;
-      border-radius: 4px;
-      background: var(--color-surface-default-high, #252525) !important;
-      color: var(--color-content-default-high, #fff) !important;
-      font-size: 12px;
-      font-weight: 700;
-      line-height: 1.3;
-      text-align: center;
-      white-space: nowrap;
-      pointer-events: none;
-    }
   }
 
   > :not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
