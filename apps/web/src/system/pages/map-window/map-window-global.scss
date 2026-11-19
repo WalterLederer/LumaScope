@@ -102,6 +102,7 @@ app-map-window {
     .settings-tab-content.track-tab,.settings-tab-content.marker-tab,.settings-tab-content.view-tab{width:100%}
     .settings-tab-content.offlineMaps-tab{width:100%}
      .cache-tab{width:100%}
+     .settings-tab-content.cache-tab>.map-cache-section+.map-cache-section{margin-block-start:8px}
      .map-cache-section{display:flex;flex-direction:column;gap:7px;max-width:900px;padding:5px 0}
      .map-cache-heading{font-weight:700;font-size:13px}
      .map-cache-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:start;padding:4px 0;border-bottom:1px solid var(--color-content-default-low,#454545)}
