@@ -59,13 +59,15 @@
               aria-label="Larger thumbnails"
               (click)="adjustThumbnailSize(1)">+</button>
       <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
-      <ui-action-button class="action folder-path-menu-trigger"
-                        title="Folder path actions"
-                        aria-label="Folder path actions"
-                        [cdkMenuTriggerFor]="folderPathMenu"
-                        uiStopPropagation>
+      <span class="folder-path-menu-trigger"
+            [cdkMenuTriggerFor]="folderPathMenu"
+            role="button"
+            tabindex="0"
+            aria-label="Folder path actions"
+            title="Folder path actions"
+            uiStopPropagation>
         <ui-icon icon="moreVertical" [inherit]="true" />
-      </ui-action-button>
+      </span>
     </div>
 
   </aside>
