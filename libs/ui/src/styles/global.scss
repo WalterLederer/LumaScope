@@ -900,14 +900,14 @@ input[type="checkbox"] {
   -webkit-appearance: none;
   display: inline-grid;
   place-content: center;
-  width: 19px;
-  height: 19px;
-  min-width: 19px;
-  min-height: 19px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
   box-sizing: border-box;
   margin: 0 3px 0 0;
   vertical-align: middle;
-  flex: 0 0 19px;
+  flex: 0 0 22px;
   border: 1px solid var(--button-border, #4b9fe0);
   border-radius: 5px;
   background: #fff;
@@ -921,8 +921,8 @@ input[type="checkbox"] {
 input[type="checkbox"]::before {
   content: "";
   display: block;
-  width: 11px;
-  height: 8px;
+  width: 13px;
+  height: 10px;
   background: currentColor;
   clip-path: polygon(0 43%, 13% 29%, 37% 58%, 86% 0, 100% 15%, 39% 100%);
   transform: translateY(-1px) scale(0);
