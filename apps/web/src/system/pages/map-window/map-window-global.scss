@@ -768,3 +768,8 @@ app-map-window {
   .gpx-track-settings-dialog footer .gpx-track-settings-ok{background:var(--color-accent,#2878d0);border-color:var(--color-accent,#2878d0);color:white}
   @media(max-width:560px){.gpx-track-settings-grid{grid-template-columns:minmax(0,1fr)}}
 }
+
+
+/* Keep the marker summary's source folder readable even for deeply nested paths. */
+.marker-summary-source{min-width:0;overflow-wrap:anywhere;white-space:normal;color:var(--text-secondary,#aaa)}
+.marker-summary-source strong{color:var(--text-primary,#eee)}
