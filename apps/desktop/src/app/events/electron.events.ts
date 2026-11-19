@@ -333,10 +333,9 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
     // Windows 10 build 19045 does not expose IsBorderRequired. Leave the
     // optional setting untouched there and keep the system-default border.
     ...(captureCapabilities.borderSettings ? { drawBorder: false } : {}),
-    minimumUpdateIntervalMs: 0
+    // Windows 10 build 19045 does not support this optional WGC setting.
+    ...(captureCapabilities.minimumUpdateInterval ? { minimumUpdateIntervalMs: 0 } : {})
   });
-  if (!captureCapabilities.borderSettings) {
-  }
   let phase = 'initialize capture';
   const logPhase = (nextPhase: string): void => {
     phase = nextPhase;
