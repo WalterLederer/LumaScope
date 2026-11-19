@@ -115,8 +115,7 @@ interface MapErrorEntry {
   standalone: true,
   imports: [SliderComponent, GpxDatabaseImportComponent, GpxTrackPreviewComponent],
   host: { '[class.overlay-mode]': 'overlayMode' },
-  templateUrl: './map-window.html'
-
+  templateUrl: './map-window.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MapWindow implements OnInit, OnDestroy {
