@@ -4144,7 +4144,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
       this.directoryPhotoTimestampMarkers = markers.map(item => ({ ...item }));
-      this.directoryPhotoMarkers = markers.filter(item => item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
+      this.directoryPhotoMarkers = markers.filter(item => !imagePath || item.path.toLowerCase() !== imagePath.toLowerCase()).map(item => ({ ...item }));
       this.updateTimeSliderBounds();
       this.applyDirectoryPhotoMarkers();
       this.applyCurrentPhotoVisibility();
