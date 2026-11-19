@@ -530,10 +530,10 @@ export default class App {
     // Opening Location without a selected image must retain the last known map
     // position instead of resetting the detached map to its default center.
     App.mapWindowLocation = hasCoordinates
-      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: folderPath ?? null }
+      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath }
       : hasPreviousCoordinates
-        ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath ?? null }
-        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath ?? null };
+        ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath }
+        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath };
     const location = App.mapWindowLocation;
     const hasResolvedCoordinates = Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
     if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
