@@ -350,12 +350,15 @@
 .detail-native-table thead th {
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: 20;
   height: 100%;
   min-height: 42px;
   padding: 7px 8px 7px 12px;
-  background: var(--color-surface-default-low);
-  color: var(--color-content-default-medium);
+  /* Use the opaque system canvas surface so scrolled rows cannot show through the sticky header. */
+  background: Canvas !important;
+  background-color: Canvas !important;
+  background-image: none !important;
+  color: CanvasText;
   font-size: 14px;
   font-weight: 700;
   vertical-align: top;
