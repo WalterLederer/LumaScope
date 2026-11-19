@@ -82,7 +82,18 @@ export class ImagesComponent {
   };
   private readonly manualRefresh = signal(0);
   readonly thumbnailRefreshToken = computed(() => this.cacheManager.cacheRevision() + this.manualRefresh());
-  readonly refreshGallery = (): void => {
+  readonly refreshGallery = async (): Promise<void> => {
+    const folder = this.folderPath();
+    if (folder) {
+      try {
+        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
+        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
+        if (this.folderPath() !== folder) return;
+        await this.cacheManager.reconcilePhotoRecords(folder, result.data.map(image => image.path), false);
+      } catch (error) {
+        console.error('Failed to reconcile Browse photo database before refreshing thumbnails', folder, error);
+      }
+    }
     this.manualRefresh.update(value => value + 1);
     this.cacheUpdated.emit('');
   };
