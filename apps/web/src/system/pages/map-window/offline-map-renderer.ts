@@ -1441,6 +1441,7 @@ export class OfflineMapRenderer {
       { id: 'gpx-track-line-dash-dot-dot', style: 'dash-dot-dot', dash: [4, 2, 1, 2, 1, 2] }
     ];
     for (const line of gpxLineStyles) {
+      this.map.addLayer({ id: line.id + '-shadow', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#000000', 'line-width': ['+', ['get', 'width'], 4], 'line-blur': 2, 'line-opacity': ['*', ['get', 'trackShadow'], 0.8], ...(line.dash ? { 'line-dasharray': line.dash } : {}) } });
       this.map.addLayer({
         id: line.id, type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -1479,7 +1480,7 @@ export class OfflineMapRenderer {
         'text-rotation-alignment': 'map', 'text-keep-upright': false,
         'text-allow-overlap': true, 'text-ignore-placement': true
       },
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#111111', 'text-halo-width': 1.5, 'text-opacity': 0.92 }
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000000', 'text-halo-width': 1.5, 'text-halo-blur': 1, 'text-halo-opacity': ['get', 'arrowShadow'], 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
@@ -2451,7 +2452,7 @@ export class OfflineMapRenderer {
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number) => void) | null): void { this.trackHoverHandler = handler; }
 
-  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; showDirection?: boolean; directionStyle?: string }>, opacity: number): void {
+  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; showDirection?: boolean; directionStyle?: string }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -2459,10 +2460,10 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
+        properties: { path: track.path, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
       })))
     });
-    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
+    for (const layerId of ['gpx-track-line-shadow', 'gpx-track-line-dashed-shadow', 'gpx-track-line-dotted-shadow', 'gpx-track-line-long-dashed-shadow', 'gpx-track-line-short-dashed-shadow', 'gpx-track-line-dash-dot-shadow', 'gpx-track-line-dash-dot-dot-shadow', 'gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
     for (const line of ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot']) {
