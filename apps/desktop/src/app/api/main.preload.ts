@@ -128,6 +128,7 @@ const api: Desktop = {
     resetBuildLog: () => ipcRenderer.invoke('CacheManager.resetBuildLog'),
     appendBuildLog: (line: string) => ipcRenderer.invoke('CacheManager.appendBuildLog', line),
     getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles),
+    reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => ipcRenderer.invoke('CacheManager.reconcilePhotoRecords', directory, sourceNames, recursive),
     selectDatabaseForDirectory: (directory: string) => ipcRenderer.invoke('CacheManager.selectDatabaseForDirectory', directory),
     getDirectoryPhotoLocations: (directory: string) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory),
     getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => ipcRenderer.invoke('CacheManager.getPhotoLocationsInBounds', bounds, databaseKey),
