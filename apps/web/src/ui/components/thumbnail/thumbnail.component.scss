@@ -220,9 +220,11 @@
   border-right: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
   border-bottom: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 25%)));
   padding: 5px 8px 5px 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 :host(.view-details) > .thumbnail-preview {
   width: var(--detail-thumb-width, 36px);
