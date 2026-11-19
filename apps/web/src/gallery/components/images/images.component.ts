@@ -411,6 +411,28 @@ export class ImagesComponent {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
+  private readonly importGpxFilesFoundDuringCacheBuild = async (filePaths: string[], signal: AbortSignal): Promise<void> => {
+    const uniquePaths = [...new Set(filePaths.map(path => path.toLocaleLowerCase()).map((key, index) => ({ key, path: filePaths[index] }))
+      .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index)
+      .map(item => item.path)];
+    if (uniquePaths.length === 0 || signal.aborted) return;
+
+    this.cacheRunCurrentOperation.set(`Importing ${uniquePaths.length} GPX files into the cache database…`);
+    await this.cacheManager.appendBuildLog(`GPX database import started: ${uniquePaths.length} file(s) found during cache build.`);
+    try {
+      // Reuse the same importer as “Add all GPX tracks from folder to DB…”.
+      const result = await this.cacheManager.importGpxFiles(uniquePaths);
+      const summary = `GPX database import completed: imported ${result.imported}, unchanged ${result.unchanged}, duplicates ${result.duplicates}, errors ${result.errors}.`;
+      await this.cacheManager.appendBuildLog(summary);
+      this.cacheRunCurrentOperation.set(summary);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const summary = `GPX database import failed: ${message}`;
+      await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
+      this.cacheRunCurrentOperation.set(summary);
+    }
+  };
+
   readonly cacheAllImages = async (directory?: string): Promise<void> => {
     if (this.cacheRunActive()) return;
     const controller = new AbortController();
@@ -420,12 +442,19 @@ export class ImagesComponent {
     try {
       let images = this.images() ?? [];
       let reconciledRecords = 0;
+      const gpxFiles: string[] = [];
       const folder = directory?.trim() || this.folderPath();
       if (folder) {
-        this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
+        this.cacheRunCurrentOperation.set(`Reading images and GPX files in ${folder}`);
         const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
         if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
         images = result.data;
+        try {
+          const entries = await this.fileSystem.readDir(folder);
+          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+        } catch (error) {
+          await this.cacheManager.appendBuildLog(`GPX scan skipped for ${folder}: ${error instanceof Error ? error.message : String(error)}`);
+        }
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
           reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
@@ -435,6 +464,7 @@ export class ImagesComponent {
       if (folder && this.verifyCacheFiles() && !controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
       }
+      await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal);
     } catch (error) {
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -529,13 +559,21 @@ export class ImagesComponent {
       const rootImages = await this.fileSystem.readImages(rootPath, this.sortBy(), this.sortDirection());
       if (!rootImages.success) throw new Error(rootImages.errorMessage || `Could not read folder: ${rootPath}`);
       const allImages: FileInfo[] = [...rootImages.data];
+      const gpxFiles: string[] = [];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
       let enumerationComplete = true;
 
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directory = pendingDirectories.shift()!;
-        this.cacheRunCurrentOperation.set(`Enumerating subfolders in ${directory}`);
+        this.cacheRunCurrentOperation.set(`Enumerating files and subfolders in ${directory}`);
+        try {
+          const entries = await this.fileSystem.readDir(directory);
+          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+        } catch (error) {
+          console.warn('Failed to scan GPX files in gallery folder', directory, error);
+          enumerationComplete = false;
+        }
         const directoriesResult = await this.fileSystem.readDirectories(directory);
         if (controller.signal.aborted) break;
         if (!directoriesResult.success) {
@@ -576,6 +614,7 @@ export class ImagesComponent {
         if (reconciledRecords !== null && !controller.signal.aborted) {
           await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
         }
+        await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal);
       }
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
