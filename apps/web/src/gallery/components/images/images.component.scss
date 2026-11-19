@@ -816,3 +816,24 @@
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   padding: 0 !important;
 }
+
+
+/* Keep sort glyphs visibly legible regardless of the global button/span typography. */
+.detail-native-table > thead > tr.detail-header-labels > th > button > .sort-indicator {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  min-width: 24px;
+  height: 26px;
+  margin-left: 6px;
+  color: var(--color-content-primary-high) !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 25px !important;
+  font-weight: 900 !important;
+  line-height: 26px !important;
+  vertical-align: middle;
+  opacity: 1 !important;
+  transform: none !important;
+}
