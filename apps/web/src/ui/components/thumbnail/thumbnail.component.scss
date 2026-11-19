@@ -197,13 +197,15 @@
 }
 
 
-/* ThumbnailComponent uses its host tr as the native details-table row. */
+/* ThumbnailComponent host rows share the parent table's explicit grid tracks. */
 :host(.view-details),
 :host(.view-details-no-thumbnails) {
-  display: table-row;
-  width: auto;
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  grid-column: 1 / -1;
+  width: max-content;
+  min-width: 100%;
   height: auto;
-  min-width: 0;
   min-height: 0;
   padding: 0;
   background: transparent !important;
