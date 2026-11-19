@@ -4131,6 +4131,8 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const completeness = await this.checkPhotoDatabaseCompleteness(directory);
       if (completeness.missing.length > 0) {
+        this.photoDatabaseReady.set(false);
+        this.photoDatabaseMessage.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder are missing database records or have changed since caching. Open the thumbnail view and use the hamburger menu → Cache folder, or run Build Cache for this folder.`);
         this.useAllPhotosInDb.set(false);
         this.saveSetting('useAllPhotosInDb', false);
         this.markerStatus.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. Run Build Cache for this folder first.`);
@@ -4211,6 +4213,12 @@ export class MapWindow implements OnInit, OnDestroy {
     const generation = ++this.photoDatabaseCheckGeneration;
     this.photoDatabaseReady.set(false);
     this.photoDatabaseCheckBusy.set(true);
+    this.directoryMarkersEnabled.set(false);
+    this.saveSetting('directoryMarkersEnabled', false);
+    this.useAllPhotosInDb.set(false);
+    this.saveSetting('useAllPhotosInDb', false);
+    this.markerScanGeneration++;
+    this.clearDirectoryMarkers();
     this.photoDatabaseMessage.set('Checking photo database completeness…');
     try {
       const completeness = await this.checkPhotoDatabaseCompleteness(directory);
@@ -8219,6 +8227,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxError.set('Checking photo database completeness…');
       const completeness = await this.checkPhotoDatabaseCompleteness(directory);
       if (completeness.missing.length > 0) {
+        this.photoDatabaseReady.set(false);
+        this.photoDatabaseMessage.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder are missing database records or have changed since caching. Open the thumbnail view and use the hamburger menu → Cache folder, or run Build Cache for this folder.`);
         this.gpxError.set(`Photo database incomplete: ${completeness.missing.length} of ${completeness.total} images in the selected folder have no database record. GPX generation was cancelled. Run Build Cache for this folder first.`);
         return;
       }
