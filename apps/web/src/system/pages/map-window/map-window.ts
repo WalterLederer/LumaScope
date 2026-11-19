@@ -797,11 +797,11 @@ interface MapErrorEntry {
             <table class="map-source-picker-table">
               <thead><tr><th>Type</th><th>Suffix</th><th>Online/Offline</th></tr></thead>
               <tbody>
-                <tr><td><button type="button" (click)="selectMapSource('online')">Online map</button></td><td>—</td><td>Online</td></tr>
-                <tr><td><button type="button" (click)="selectMapSource('offline')">MBTiles</button></td><td>.mbtiles</td><td>Offline</td></tr>
-                <tr><td><button type="button" (click)="selectMapSource('osmand')">OsmAnd (no labels)</button></td><td>.obf</td><td>Offline</td></tr>
-                <tr><td><button type="button" (click)="selectMapSource('osmand-atlas')">OsmAnd Atlas</button></td><td>.obf</td><td>Offline</td></tr>
-                <tr><td><button type="button" (click)="selectMapSource('mapsforge')">Mapsforge</button></td><td>.map</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'online'" (click)="selectMapSource('online')" (keydown.enter)="selectMapSource('online')" (keydown.space)="$event.preventDefault(); selectMapSource('online')"><td>Online map</td><td>—</td><td>Online</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'offline'" (click)="selectMapSource('offline')" (keydown.enter)="selectMapSource('offline')" (keydown.space)="$event.preventDefault(); selectMapSource('offline')"><td>MBTiles</td><td>.mbtiles</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'osmand'" (click)="selectMapSource('osmand')" (keydown.enter)="selectMapSource('osmand')" (keydown.space)="$event.preventDefault(); selectMapSource('osmand')"><td>OsmAnd (no labels)</td><td>.obf</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'osmand-atlas'" (click)="selectMapSource('osmand-atlas')" (keydown.enter)="selectMapSource('osmand-atlas')" (keydown.space)="$event.preventDefault(); selectMapSource('osmand-atlas')"><td>OsmAnd Atlas</td><td>.obf</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'mapsforge'" (click)="selectMapSource('mapsforge')" (keydown.enter)="selectMapSource('mapsforge')" (keydown.space)="$event.preventDefault(); selectMapSource('mapsforge')"><td>Mapsforge</td><td>.map</td><td>Offline</td></tr>
               </tbody>
             </table>
           </div>
