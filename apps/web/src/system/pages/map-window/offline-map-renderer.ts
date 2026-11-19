@@ -2463,8 +2463,11 @@ export class OfflineMapRenderer {
         properties: { path: track.path, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
       })))
     });
-    for (const layerId of ['gpx-track-line-shadow', 'gpx-track-line-dashed-shadow', 'gpx-track-line-dotted-shadow', 'gpx-track-line-long-dashed-shadow', 'gpx-track-line-short-dashed-shadow', 'gpx-track-line-dash-dot-shadow', 'gpx-track-line-dash-dot-dot-shadow', 'gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
+    for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
+    }
+    for (const layerId of ['gpx-track-line-shadow', 'gpx-track-line-dashed-shadow', 'gpx-track-line-dotted-shadow', 'gpx-track-line-long-dashed-shadow', 'gpx-track-line-short-dashed-shadow', 'gpx-track-line-dash-dot-shadow', 'gpx-track-line-dash-dot-dot-shadow']) {
+      this.map.setPaintProperty(layerId, 'line-opacity', ['*', ['get', 'trackShadow'], opacity * 0.8]);
     }
     for (const line of ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot']) {
       this.map.setPaintProperty('gpx-track-hit-' + line, 'line-opacity', opacity > 0 ? 0.01 : 0);
