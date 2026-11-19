@@ -26,11 +26,12 @@ export class SettingsPanelComponent {
   readonly cacheFolderPath = signal('');
   readonly verifyCacheFiles = input(false);
   readonly verifyCacheFilesChange = output<boolean>();
-  readonly startCacheBuild = input<((directory: string) => void) | null>(null);
-  readonly startRecursiveCacheBuild = input<((directory: string) => void) | null>(null);
+  readonly startCacheBuild = input<((directory: string, importGpx: boolean) => void) | null>(null);
+  readonly startRecursiveCacheBuild = input<((directory: string, importGpx: boolean) => void) | null>(null);
   readonly cancelCacheBuild = input<(() => void) | null>(null);
   protected readonly cacheBuildLogPath = signal('');
   protected readonly recursiveBuild = signal(false);
+  protected readonly importGpx = signal(true);
   protected readonly cacheOutputMode = signal<'build' | 'check' | 'locations'>('build');
   protected readonly locationLookupActive = signal(false);
   protected readonly locationLookupCancelRequested = signal(false);
@@ -49,9 +50,9 @@ export class SettingsPanelComponent {
     this.cacheCheckResult.set(null);
     this.cacheCheckError.set(null);
     if (this.recursiveBuild()) {
-      this.startRecursiveCacheBuild()?.(this.cacheFolderPath().trim());
+      this.startRecursiveCacheBuild()?.(this.cacheFolderPath().trim(), this.importGpx());
     } else {
-      this.startCacheBuild()?.(this.cacheFolderPath().trim());
+      this.startCacheBuild()?.(this.cacheFolderPath().trim(), this.importGpx());
     }
   };
   protected readonly stopCacheBuild = (): void => this.cancelCacheBuild()?.();
