@@ -29,6 +29,7 @@ import {
 import { ImagesComponent } from '../images/images.component';
 import { ExifService } from '../../../ipc/exif';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { ProcessManager } from '../../../ipc/process-manager';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { GalleryViewMode } from '../images/images.component.types';
@@ -162,6 +163,7 @@ export class ImageGridComponent {
   private readonly exif = inject(ExifService);
 
   private readonly cacheManager = inject(CacheManager);
+  private readonly processManager = inject(ProcessManager);
 
   readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
 
@@ -255,6 +257,23 @@ export class ImageGridComponent {
 
   readonly refreshGallery = (): void => {
     this.imagesComponent()?.refreshGallery();
+  };
+
+  readonly openSelectedFolderPath = async (): Promise<void> => {
+    const folder = this.selectedLocation()?.trim();
+    if (!folder) return;
+    const error = await this.processManager.openPath(folder);
+    if (error) this.document.defaultView?.alert(error);
+  };
+
+  readonly copySelectedFolderPath = async (): Promise<void> => {
+    const folder = this.selectedLocation()?.trim();
+    if (!folder) return;
+    try {
+      await navigator.clipboard.writeText(folder);
+    } catch (error) {
+      console.error('Could not copy selected folder path:', error);
+    }
   };
 
   readonly cacheAllImages = async (directory: string, importGpx: boolean): Promise<void> => {
