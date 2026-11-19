@@ -7472,7 +7472,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ...(columns.time ? [widths['time'] + 'px'] : []),
       ...(columns.size ? [widths['size'] + 'px'] : []),
       ...(columns.path ? [widths['path'] + 'px'] : []),
-      'minmax(150px, 1fr)', '74px'
+      '250px', '74px'
     ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
