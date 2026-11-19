@@ -56,8 +56,19 @@ export class GalleryState {
       map(locations => {
         const root = galleryRoot();
         const selectedLocation = this.selectedLocation$.value ?? locations[0] ?? null;
+        const driveRoot = (path: string): string => {
+          const normalized = path.replace(/\\/g, '/');
+          const drive = normalized.match(/^([a-z]:)/i);
+          if (drive) return drive[1].toLocaleUpperCase();
+          if (normalized.startsWith('//')) return normalized.split('/').slice(0, 4).join('/').toLocaleLowerCase();
+          return normalized.startsWith('/') ? '/' : (normalized.split('/')[0] ?? '').toLocaleLowerCase();
+        };
+        let previousDriveRoot: string | null = null;
         root.children = locations.map((location, index) => {
+          const currentDriveRoot = driveRoot(location);
           const node = treeNode(location, false);
+          node.groupStart = index > 0 && currentDriveRoot !== previousDriveRoot;
+          previousDriveRoot = currentDriveRoot;
           node.label = formatCompactPath(location);
           node.title = location;
           node.canMoveUp = index > 0;
