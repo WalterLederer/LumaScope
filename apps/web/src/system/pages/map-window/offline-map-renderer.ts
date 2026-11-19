@@ -1481,7 +1481,7 @@ export class OfflineMapRenderer {
     this.map.addLayer({
       id: 'gpx-track-direction-arrows-shadow', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
-      layout: { ...directionArrowLayout, 'text-translate': [1, 1] },
+      layout: { ...directionArrowLayout, 'text-offset': [0.08, 0.08] },
       paint: { 'text-color': '#000000', 'text-opacity': ['get', 'arrowShadow'] }
     });
     this.map.addLayer({
