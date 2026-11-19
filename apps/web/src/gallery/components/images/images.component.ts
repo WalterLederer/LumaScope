@@ -351,12 +351,13 @@ export class ImagesComponent {
     const handle = event.currentTarget as HTMLElement;
     const cell = handle.closest('th') as HTMLElement | null;
     const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
-    const columns = table?.querySelectorAll<HTMLTableColElement>('colgroup col') ?? null;
-    const column = columns?.item(columnIndex) ?? null;
-    if (!table || !cell || !columns || !column) return;
+    if (!table || !cell) return;
 
+    // Header and body now share one CSS Grid track definition. Resize that track
+    // directly instead of relying on native table COL sizing (which browsers may
+    // redistribute between cells when the table is intrinsically sized).
     const startX = event.clientX;
-    const startWidth = column.getBoundingClientRect().width || cell.getBoundingClientRect().width;
+    const startWidth = cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
@@ -366,14 +367,10 @@ export class ImagesComponent {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
       if (columnIndex === 0) {
-        // The thumb column keeps a live zoom-based width plus the user's resize offset.
         table.style.setProperty('--detail-col-0-delta', `${width - Math.max(84, initialThumbWidth + 16)}px`);
       } else {
-        // Set the actual COL width, not a table-level variable that the table layout
-        // algorithm may redistribute to a different column.
-        column.style.setProperty('width', `${width}px`, 'important');
+        table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
       }
-      table.style.width = 'max-content';
     };
     const cleanup = (): void => {
       document.removeEventListener('pointermove', onMove);
