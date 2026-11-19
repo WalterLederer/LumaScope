@@ -371,7 +371,7 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</span> }
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="gpxTrackDirectoryPath(track)">{{ gpxTrackDirectoryPath(track) }}</span> }
-              <app-gpx-track-preview role="cell" [track]="track" [opacity]="gpxOpacity()" variant="list" />
+              <app-gpx-track-preview role="cell" [track]="track" variant="list" />
               <div class="gpx-row-actions" role="cell">
                 <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
                               <button type="button" class="file-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
