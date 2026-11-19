@@ -68,3 +68,6 @@
 }
 .tree-reorder-action:hover:not(:disabled) { background: var(--color-surface-default-highest) !important; }
 .tree-reorder-action:disabled { opacity: .3; cursor: default; }
+
+/* Allow long favourite paths to shrink without pushing the row actions out of view. */
+:host ui-text { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
