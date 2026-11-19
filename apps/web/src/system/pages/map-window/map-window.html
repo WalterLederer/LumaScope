@@ -1169,7 +1169,17 @@
                 <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
                 <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
                 <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" class="gpx-open-button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)" title="Open download source" aria-label="Open download source">↗</button><button type="button" class="mbtiles-remove-button" (click)="removeDownloadSource(i)" aria-label="Remove download source" title="Remove download source">×</button></td>
+                <td class="offline-row-actions download-source-row-actions">
+                  <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('download-source:' + i, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'download-source:' + i" [attr.aria-label]="'Actions for download source ' + (i + 1)" title="Download source actions">☰</button>
+                  @if (offlineRowActionMenuOpen() === 'download-source:' + i) {
+                    <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                      <button type="button" role="menuitem" (click)="copyFilePath(source.url); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy URL</button>
+                      <button type="button" role="menuitem" (click)="openDownloadSource(source.url); offlineRowActionMenuOpen.set(null)" [disabled]="!isValidDownloadUrl(source.url)"><span aria-hidden="true">↗</span> Open download source</button>
+                      <div class="gpx-row-action-menu-separator" role="separator"></div>
+                      <button type="button" role="menuitem" (click)="removeDownloadSource(i); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">×</span> Remove download source</button>
+                    </div>
+                  }
+                </td>
               </tr>
             }
           </tbody>
@@ -1196,7 +1206,15 @@
                   <td>{{ file.fileType.toUpperCase() }}</td>
                   <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
                   <td>{{ file.source }}</td>
-                  <td><button type="button" (click)="openDownloadSource(file.url)">Open</button></td>
+                  <td class="offline-row-actions offline-catalogue-row-actions">
+                    <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('catalogue:' + file.url, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'catalogue:' + file.url" [attr.aria-label]="'Actions for ' + file.fileName" title="Update file actions">☰</button>
+                    @if (offlineRowActionMenuOpen() === 'catalogue:' + file.url) {
+                      <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                        <button type="button" role="menuitem" (click)="copyFilePath(offlineCatalogueLocalFilePath(file)); offlineRowActionMenuOpen.set(null)" [disabled]="!offlineCatalogueLocalFilePath(file)"><span aria-hidden="true">⧉</span> Copy path</button>
+                        <button type="button" role="menuitem" (click)="openOfflineFolder(offlineCatalogueLocalFilePath(file), false); offlineRowActionMenuOpen.set(null)" [disabled]="!offlineCatalogueLocalFilePath(file)"><span aria-hidden="true">📂</span> Open folder</button>
+                      </div>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
