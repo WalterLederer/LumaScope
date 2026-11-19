@@ -944,3 +944,16 @@ app-map-window {
 .gpx-database-native-table .gpx-time-range { overflow: hidden; text-overflow: ellipsis; }
 .gpx-database-native-table tbody tr.gpx-hovered { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 13%, transparent); }
 .gpx-database-native-table tbody tr.gpx-missing { opacity: .62; }
+
+.gpx-database-native-table > tbody.gpx-database-file-list {
+  display: table-row-group;
+  height: auto;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  resize: none;
+  position: static;
+}
+.gpx-database-native-table tr.gpx-file-row.gpx-database-file-row { display: table-row; min-width: 0; gap: 0; }
+.gpx-database-native-table tr.gpx-database-file-row > td { display: table-cell; }
+.gpx-database-native-table .gpx-row-actions { display: table-cell; }
