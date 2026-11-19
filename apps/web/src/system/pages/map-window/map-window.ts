@@ -901,7 +901,7 @@ interface MapErrorEntry {
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <label class="visibility-toggle">Markers <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show markers"></label>
+        <label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
