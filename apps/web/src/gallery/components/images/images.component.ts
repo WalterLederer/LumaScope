@@ -637,6 +637,27 @@ export class ImagesComponent {
     }
   };
 
+  private readonly fetchCacheResource = async (url: string, buildSignal?: AbortSignal): Promise<Response> => {
+    const requestController = new AbortController();
+    let timedOut = false;
+    const abortFromBuild = (): void => requestController.abort();
+    if (buildSignal?.aborted) abortFromBuild();
+    else buildSignal?.addEventListener('abort', abortFromBuild, { once: true });
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      requestController.abort();
+    }, 120000);
+    try {
+      return await fetch(url, { cache: 'no-store', signal: requestController.signal });
+    } catch (error) {
+      if (timedOut) throw new Error('Cache request timed out after 120 seconds.');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      buildSignal?.removeEventListener('abort', abortFromBuild);
+    }
+  };
+
   private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false, signal?: AbortSignal): Promise<void> => {
     if (images.length === 0) {
       this.cacheRunCurrentOperation.set('No images found to cache.');
@@ -713,7 +734,7 @@ export class ImagesComponent {
               if (!thumbnailValid) {
                 this.setCacheWorkerOperation(workerId, `Thumbnail generation for file ${image.path}`);
                 await appendLog(`[${index + 1}/${images.length}] THUMBNAIL: ${image.path}`);
-                const thumbnailResponse = await fetch(thumbUrl(image.path, 512, 512), { cache: 'no-store', signal });
+                const thumbnailResponse = await this.fetchCacheResource(thumbUrl(image.path, 512, 512), signal);
                 if (!thumbnailResponse.ok) {
                   const responseDetails = (await thumbnailResponse.text()).trim();
                   throw new Error(`Thumbnail generation failed (HTTP ${thumbnailResponse.status}${responseDetails ? `: ${responseDetails}` : ''})`);
@@ -724,7 +745,7 @@ export class ImagesComponent {
               if (!signal?.aborted && status?.fullSizeRequired && !fullSizeValid) {
                 this.setCacheWorkerOperation(workerId, `Full-Size conversion for file ${image.path}`);
                 await appendLog(`[${index + 1}/${images.length}] FULL-SIZE: ${image.path}`);
-                const fullSizeResponse = await fetch(imageUrl(image.path), { cache: 'no-store', signal });
+                const fullSizeResponse = await this.fetchCacheResource(imageUrl(image.path), signal);
                 if (!fullSizeResponse.ok) {
                   const responseDetails = (await fullSizeResponse.text()).trim();
                   throw new Error(responseDetails
