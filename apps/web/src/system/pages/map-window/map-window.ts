@@ -418,14 +418,14 @@ interface MapErrorEntry {
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
           <app-gpx-track-preview [track]="gpxSettingsPreviewTrack(settingsTrack)" variant="settings" />
           <section class="gpx-track-settings-grid">
-            <details class="gpx-track-settings-section">
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().favorites" (toggle)="onGpxTrackSettingsSectionToggle('favorites', $event)">
               <summary>Favorites</summary>
               <div class="gpx-track-settings-section-grid">
                 <label>Settings favorites<select [value]="gpxTrackSettingsFavoriteSelection()" (change)="applyGpxTrackSettingsFavorite($any($event.target).value)"><option value="">Select favorite…</option>@for (favorite of gpxTrackSettingsFavorites(); track favorite.name) { <option [value]="favorite.name">{{ favorite.name }}</option> }</select></label>
                 <div class="gpx-track-settings-favorite-add"><input type="text" maxlength="60" placeholder="Favorite name" [value]="gpxTrackSettingsFavoriteName()" (input)="gpxTrackSettingsFavoriteName.set($any($event.target).value)"><button type="button" (click)="addGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteName().trim()">Add settings to favorites</button><button type="button" class="gpx-track-settings-favorite-remove" (click)="removeGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteSelection()">Remove favorite</button></div>
               </div>
             </details>
-            <details class="gpx-track-settings-section">
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().track" (toggle)="onGpxTrackSettingsSectionToggle('track', $event)">
               <summary>Track</summary>
               <div class="gpx-track-settings-section-grid">
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
@@ -465,7 +465,7 @@ interface MapErrorEntry {
             <label class="gpx-direction-density-control"><span>Track shadow strength</span><strong>{{ gpxTrackSettingsDraft().trackShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().trackShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ trackShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Track shadow strength" /></label>
               </div>
             </details>
-            <details class="gpx-track-settings-section">
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().arrows" (toggle)="onGpxTrackSettingsSectionToggle('arrows', $event)">
               <summary>Arrows</summary>
               <div class="gpx-track-settings-section-grid">
             <div class="gpx-settings-choice-field"><details class="gpx-settings-choice" (mouseleave)="clearGpxTrackSettingsHover()"><summary><span>Direction arrow</span><strong>{{ gpxDirectionStyleLabel(gpxTrackSettingsHoveredDirection() ?? (gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off')) }}</strong></summary><div class="gpx-settings-choice-options">@for (option of gpxTrackDirectionStyleOptions; track option.value) { <button type="button" [class.active]="(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') === option.value" (mouseenter)="previewGpxTrackDirection(option.value)" (focus)="previewGpxTrackDirection(option.value)" (click)="selectGpxTrackDirection(option.value)">{{ option.label }}</button> }</div></details></div>
@@ -2418,6 +2418,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
+  protected readonly gpxTrackSettingsSections = signal({ favorites: false, track: false, arrows: false });
   protected readonly gpxTrackSettingsFavorites = signal<GpxTrackSettingsFavorite[]>([]);
   protected readonly gpxTrackSettingsHoveredLineStyle = signal<NonNullable<GpxTrackFile['lineStyle']> | null>(null);
   protected readonly gpxTrackSettingsHoveredDirection = signal<'off' | NonNullable<GpxTrackFile['directionStyle']> | null>(null);
@@ -2549,6 +2550,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '10 7' : style === 'dotted' ? '2 7' : style === 'long-dashed' ? '18 7' : style === 'short-dashed' ? '5 5' : style === 'dash-dot' ? '12 5 2 5' : style === 'dash-dot-dot' ? '12 4 2 4 2 4' : '';
   protected readonly openGpxTrackSettings = async (track: GpxTrackFile): Promise<void> => {
+    await this.mapWindowConfigRestore;
     await this.ensureGpxDatabaseTrackSettingsLoaded();
     this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as unknown as GpxTrackSettingsFavorite[]));
     this.gpxTrackSettingsFavoriteName.set('');
@@ -2591,6 +2593,13 @@ export class MapWindow implements OnInit, OnDestroy {
       const okButton = dialog?.querySelector<HTMLButtonElement>('.gpx-track-settings-ok');
       okButton?.focus();
     });
+  };
+  protected readonly onGpxTrackSettingsSectionToggle = (section: 'favorites' | 'track' | 'arrows', event: Event): void => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement)) return;
+    const next = { ...this.gpxTrackSettingsSections(), [section]: details.open };
+    this.gpxTrackSettingsSections.set(next);
+    this.persistLocationUiState({ gpxTrackSettingsSections: next });
   };
   protected readonly onGpxTrackSettingsDialogClick = (event: MouseEvent): void => {
     const dialog = event.currentTarget as HTMLElement;
@@ -3182,6 +3191,15 @@ export class MapWindow implements OnInit, OnDestroy {
         }
       }
       const saved = settings['mapWindow'] as Record<string, unknown> | undefined;
+      const savedGpxTrackSettingsSections = saved?.['gpxTrackSettingsSections'];
+      if (savedGpxTrackSettingsSections && typeof savedGpxTrackSettingsSections === 'object' && !Array.isArray(savedGpxTrackSettingsSections)) {
+        const sections = savedGpxTrackSettingsSections as Record<string, unknown>;
+        this.gpxTrackSettingsSections.set({
+          favorites: typeof sections['favorites'] === 'boolean' ? sections['favorites'] : false,
+          track: typeof sections['track'] === 'boolean' ? sections['track'] : false,
+          arrows: typeof sections['arrows'] === 'boolean' ? sections['arrows'] : false
+        });
+      }
       const savedDisclosureStates = saved?.['disclosureStates'];
       if (savedDisclosureStates && typeof savedDisclosureStates === 'object' && !Array.isArray(savedDisclosureStates)) {
         this.disclosureStates = Object.fromEntries(Object.entries(savedDisclosureStates).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
