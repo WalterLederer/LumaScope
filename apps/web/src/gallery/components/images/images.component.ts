@@ -70,6 +70,10 @@ export class ImagesComponent {
   readonly cacheRunActive = signal(false);
   readonly cacheRunProgress = signal({ completed: 0, total: 0 });
   readonly cacheRunCurrentOperation = signal('');
+  readonly cacheFolderActionActive = computed(() => this.cacheRunActive() || this.galleryCacheBuild.cacheRunActive());
+  readonly cacheFolderActionProgress = computed(() =>
+    this.cacheRunActive() ? this.cacheRunProgress() : this.galleryCacheBuild.cacheRunProgress()
+  );
   readonly stopCacheFolderAction = (): void => this.galleryCacheBuild.cancelCacheBuild();
   readonly verifyCacheFiles = input(false);
   private readonly cacheWorkerOperations = new Map<number, string>();
