@@ -584,6 +584,19 @@
 .detail-native-table .sort-indicator { display: inline-block; min-width: 10px; margin-left: 4px; font-size: 10px; }
 .detail-native-table .detail-actions-heading { width: 28px; }
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
+/* Give every cell in the thumbnail detail list a consistently light,
+   opaque grey surface instead of inheriting the darker theme surface. */
+.detail-native-table > tbody.images.details-list > tr > td {
+  background-color: #e6e6e6 !important;
+  background-image: none !important;
+  color: #252525;
+}
+.detail-native-table > tbody.images.details-list > tr:nth-child(even) > td {
+  background-color: #eeeeee !important;
+}
+.detail-native-table > tbody.images.details-list > tr.selected-image > td {
+  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #eeeeee) !important;
+}
 .detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 22%, var(--color-surface-default-low)) !important; }
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
