@@ -480,8 +480,7 @@ interface MapErrorEntry {
             <label class="gpx-direction-density-control"><span>Arrow outline width</span><strong>{{ gpxTrackSettingsDraft().directionArrowOutlineWidthPx }} px</strong><ui-slider [min]="0" [max]="6" [step]="0.5" [value]="gpxTrackSettingsDraft().directionArrowOutlineWidthPx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowOutlineWidthPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow outline width" /></label>
             <label class="gpx-direction-density-control"><span>Arrow shadow strength</span><strong>{{ gpxTrackSettingsDraft().arrowShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().arrowShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ arrowShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Arrow shadow strength" /></label>
               </div>
-          
-
+            </details>
           </div>
           <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button></footer>
         </section>
@@ -2514,7 +2513,18 @@ export class MapWindow implements OnInit, OnDestroy {
           terrain: [{ offset: '0%', color: '#183a8f' }, { offset: '25%', color: '#27a9c2' }, { offset: '50%', color: '#4caf50' }, { offset: '75%', color: '#d8c66a' }, { offset: '100%', color: '#8c4b2d' }],
           spectrum: [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]
         } as Record<string, Array<{ offset: string; color: string }>>)[track.speedPalette ?? 'spectrum'] ?? [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }];
-  protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft(), lineStyle: this.gpxTrackSettingsHoveredLineStyle() ?? this.gpxTrackSettingsDraft().lineStyle, showDirection: (this.gpxTrackSettingsHoveredDirection() ?? (this.gpxTrackSettingsDraft().showDirection ? this.gpxTrackSettingsDraft().directionStyle : 'off')) !== 'off', directionStyle: (this.gpxTrackSettingsHoveredDirection() && this.gpxTrackSettingsHoveredDirection() !== 'off' ? this.gpxTrackSettingsHoveredDirection() : this.gpxTrackSettingsDraft().directionStyle) });
+  protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => {
+    const draft = this.gpxTrackSettingsDraft();
+    const hoveredDirection = this.gpxTrackSettingsHoveredDirection();
+    const directionStyle = hoveredDirection && hoveredDirection !== 'off' ? hoveredDirection : draft.directionStyle;
+    return {
+      ...track,
+      ...draft,
+      lineStyle: this.gpxTrackSettingsHoveredLineStyle() ?? draft.lineStyle,
+      showDirection: (hoveredDirection ?? (draft.showDirection ? draft.directionStyle : 'off')) !== 'off',
+      directionStyle
+    };
+  };
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
   protected readonly gpxDirectionGlyph = (style?: GpxTrackFile['directionStyle']): string =>
