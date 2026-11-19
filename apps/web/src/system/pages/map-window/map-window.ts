@@ -416,7 +416,7 @@ interface MapErrorEntry {
       <div class="gpx-track-settings-backdrop" role="presentation" (click)="cancelGpxTrackSettings()">
         <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation(); onGpxTrackSettingsDialogClick($event)">
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
-          <app-gpx-track-preview [track]="gpxSettingsPreviewTrack(settingsTrack)" [opacity]="gpxOpacity()" variant="settings" />
+          <app-gpx-track-preview [track]="gpxSettingsPreviewTrack(settingsTrack)" variant="settings" />
           <section class="gpx-track-settings-grid">
             <details class="gpx-track-settings-section">
               <summary>Favorites</summary>
