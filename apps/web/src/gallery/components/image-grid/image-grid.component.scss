@@ -89,10 +89,23 @@ ui-toolbar {
     box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
   }
 
+  .zoom-label {
+    flex: 0 0 auto;
+    color: var(--color-content-default-medium);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
   ui-slider {
     width: 220px;
     min-width: 220px;
     flex: 0 0 220px;
+  }
+
+  .font-size-zoom-box ui-slider {
+    width: 160px;
+    min-width: 160px;
+    flex-basis: 160px;
   }
 
   .zoom-factor {
