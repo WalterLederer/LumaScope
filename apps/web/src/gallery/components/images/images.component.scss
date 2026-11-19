@@ -104,14 +104,15 @@
   font-size: 14px;
   font-weight: 700;
 
-  > :nth-child(n + 2):not(.detail-actions-heading):not(.column-resizer) {
+  > :not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
     display: flex;
     align-self: stretch;
     height: 100%;
     min-height: 100%;
     min-width: 0;
     box-sizing: border-box;
-    border-left: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+    border-left: 0;
+    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
     padding-left: 12px;
   }
 
