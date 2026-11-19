@@ -73,9 +73,9 @@ export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: 
     // but its published TypeScript union omits this accepted format.
     colorFormat: 'rgba16F' as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
     cursorCapture: false,
-    // Match the standalone FP16 prototype: request frames without an artificial
-    // minimum interval so the first WGC frame is delivered as soon as available.
-    minimumUpdateIntervalMs: 0,
+    // Windows 10 build 19045 reports that MinimumUpdateInterval is unsupported.
+    // Only pass the option on systems where the capture API advertises support.
+    ...(captureApiSupport().minimumUpdateInterval ? { minimumUpdateIntervalMs: 0 } : {}),
     ...(drawBorder === undefined ? {} : { drawBorder })
   });
 
@@ -103,7 +103,7 @@ export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: 
     monitorIndex,
     requestedColorFormat: 'rgba16F',
     cursorCapture: false,
-    minimumUpdateIntervalMs: 0,
+    minimumUpdateIntervalRequested: captureApiSupport().minimumUpdateInterval,
     borderSettingRequested: false
   }, null, 2));
   try {
