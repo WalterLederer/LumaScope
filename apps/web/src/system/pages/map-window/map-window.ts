@@ -1594,7 +1594,7 @@ interface MapErrorEntry {
               @for (track of gpxSpeedLegendTracks(); track track.path) {
                 <div class="gpx-speed-legend">
                   <strong>{{ track.name }}</strong>
-                  <span class="gpx-speed-gradient" [class.cool-warm]="track.speedPalette === 'cool-warm'"></span>
+                  <span class="gpx-speed-gradient" [style.background]="gpxPreviewGradient(track)"></span>
                   <span>{{ track.colorMode === 'elevation' ? (track.elevationMinM ?? 0) + '–' + (track.elevationMaxM ?? 3000) + ' m' : (track.speedMinKmh ?? 0) + '–' + (track.speedMaxKmh ?? 120) + ' km/h' }}</span><span class="gpx-speed-no-data" [title]="track.colorMode === 'elevation' ? 'Segments without elevation data' : 'Segments without usable timestamps'">{{ track.colorMode === 'elevation' ? 'No elevation' : 'No time' }}</span>
                 </div>
               }
@@ -2460,6 +2460,7 @@ export class MapWindow implements OnInit, OnDestroy {
         ? [{ offset: '0%', color: '#2573be' }, { offset: '50%', color: '#46beaa' }, { offset: '100%', color: '#dc4637' }]
         : [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }];
   protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
+  protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
   protected readonly gpxPreviewArrow = (style?: GpxTrackFile['directionStyle']): string => style === 'triangle' || style === 'large-triangle' ? 'M73 7 L84 12 L73 17 Z' : style === 'thin' ? 'M75 8 L83 12 L75 16' : style === 'large-chevron' ? 'M72 6 L84 12 L72 18 M77 6 L89 12 L77 18' : style === 'large-classic' ? 'M70 7 L84 12 L70 17 L74 12 Z' : 'M73 7 L83 12 L73 17';
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
