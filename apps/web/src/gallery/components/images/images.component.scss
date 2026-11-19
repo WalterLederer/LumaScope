@@ -447,3 +447,7 @@
 .detail-native-table .detail-suffix { margin-left: 0; }
 .detail-native-table .detail-gps,
 .detail-native-table .detail-location { overflow: hidden; text-overflow: ellipsis; }
+
+.detail-native-table .detail-header { display: table-row; position: static; }
+.detail-native-table > tbody.images.details-list { display: table-row-group; }
+.detail-table.without-thumbnails .thumb-column-heading { visibility: hidden; }
