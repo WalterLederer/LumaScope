@@ -914,7 +914,7 @@ app-map-window {
 }
 .gpx-database-native-table th:last-child,
 .gpx-database-native-table td:last-child { border-right: 0; }
-.gpx-database-native-table .gpx-db-sort-button {
+.gpx-database-native-table .gpx-db-sort-label {
   display: block;
   width: 100%;
   min-width: 0;
@@ -929,7 +929,7 @@ app-map-window {
   text-overflow: ellipsis;
   cursor: pointer;
 }
-.gpx-database-native-table .gpx-db-sort-button:hover {
+.gpx-database-native-table .gpx-db-sort-label:hover {
   color: var(--color-content-default-high, #fff);
   text-decoration: underline;
 }
