@@ -369,7 +369,7 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().modified) { <span role="cell">{{ track.missing || track.readError ? (track.missing ? 'Missing' : 'Read error') : formatGpxDate(track.lastModified) }}</span> }
               @if (gpxDatabaseColumns().time) { <span class="gpx-time-range" role="cell" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</span> }
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
-              @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
+              @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="gpxTrackDirectoryPath(track)">{{ gpxTrackDirectoryPath(track) }}</span> }
               <div class="gpx-track-style-preview" role="cell">
                 <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-speed-preview-' + gpxPreviewId(track.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(track); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' || track.colorMode === 'elevation' ? 'url(#gpx-speed-preview-' + gpxPreviewId(track.path) + ')' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 4" [attr.stroke-opacity]=".92 * gpxOpacity() / 100" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
                   @if (track.showDirection) { @for (arrow of gpxPreviewArrowPositions(track.directionIntervalPx ?? 120); track $index) { <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="gpxDirectionArrowSize(track.directionArrowSizePx, track.directionStyle)" [attr.fill]="track.color || gpxColor()" [attr.opacity]=".92 * gpxOpacity() / 100" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ gpxDirectionGlyph(track.directionStyle) }}</text> } }</svg>
@@ -7648,6 +7648,12 @@ export class MapWindow implements OnInit, OnDestroy {
       return !this.timeSliderActive() || !Number.isFinite(timestamp)
         || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd());
     }).length;
+  };
+
+  protected readonly gpxTrackDirectoryPath = (track: GpxTrackFile): string => {
+    const filePath = track.databasePath || track.path;
+    const separatorIndex = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+    return separatorIndex >= 0 ? filePath.slice(0, separatorIndex + 1) : '';
   };
 
   protected readonly gpxDatabaseVisibleTracks = computed(() => {
