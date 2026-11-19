@@ -16,10 +16,12 @@ export class TreeComponent<T> {
   readonly enableLoading = input(false);
   readonly menu = input<TemplateRef<unknown> | null>(null);
   readonly inlineActions = input(false);
+  readonly reorderActions = input(false);
   readonly selected = output<TreeNode<T>>();
   readonly hovered = output<TreeNode<T> | null>();
   readonly loadRequested = output<TreeLoadRequest<T>>();
   readonly action = output<TreeNode<T>>();
+  readonly move = output<{ node: TreeNode<T>; direction: 'up' | 'down' }>();
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
 
   constructor() {

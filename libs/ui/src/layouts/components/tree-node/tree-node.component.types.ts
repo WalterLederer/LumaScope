@@ -12,4 +12,7 @@ export interface TreeNode<T> {
   isLoading?: boolean;
   hasChildren?: boolean;
   hideMenu?: boolean;
+  title?: string;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }

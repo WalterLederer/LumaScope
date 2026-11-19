@@ -57,3 +57,14 @@
 .tree-inline-action:hover {
   background: var(--color-surface-default-highest);
 }
+
+.tree-reorder-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 20px; width: 20px; height: 22px;
+  margin: 0 !important; padding: 0 !important;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent) !important;
+  border-radius: 4px !important; background: transparent !important; color: inherit !important;
+  box-shadow: none !important; text-shadow: none !important; font: inherit; line-height: 1; cursor: pointer;
+}
+.tree-reorder-action:hover:not(:disabled) { background: var(--color-surface-default-highest) !important; }
+.tree-reorder-action:disabled { opacity: .3; cursor: default; }
