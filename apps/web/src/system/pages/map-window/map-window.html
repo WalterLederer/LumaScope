@@ -1027,7 +1027,8 @@
                 <tbody>
                   @for (map of viewportObfMaps(); track map.id) {
                     <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
-                  } @empty {
+                  }
+                  @if (viewportObfMaps().length === 0) {
                     <tr><td colspan="2">No matching OBF maps</td></tr>
                   }
                 </tbody>
