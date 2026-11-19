@@ -48,21 +48,13 @@
   padding: var(--dim-small) 0;
 }
 
- .detail-table {
-  display: grid;
-  /* Each column can be resized from its header, like Windows Explorer. */
-  grid-template-columns: minmax(84px, var(--detail-col-0-width, max-content)) minmax(40px, var(--detail-col-1-width, max-content)) minmax(40px, var(--detail-col-2-width, max-content)) minmax(40px, var(--detail-col-3-width, max-content)) minmax(40px, var(--detail-col-4-width, max-content)) minmax(40px, var(--detail-col-5-width, max-content)) minmax(40px, var(--detail-col-6-width, max-content)) minmax(40px, var(--detail-col-7-width, max-content)) minmax(40px, var(--detail-col-8-width, max-content)) minmax(40px, var(--detail-col-9-width, max-content)) minmax(80px, var(--detail-col-10-width, max-content)) minmax(80px, var(--detail-col-11-width, 1fr)) 28px;
-  column-gap: 0;
-  row-gap: 0;
+.detail-table {
+  display: block;
   width: 100%;
   max-width: none;
-  min-width: 100%;
+  min-width: 0;
   padding: 0 12px;
   box-sizing: border-box;
-
-  &.without-thumbnails {
-    /* Keep the thumbnail slot reserved so every detail column stays aligned. */
-  }
 }
 
 .detail-header {
@@ -343,7 +335,7 @@
 .detail-native-table {
   width: max-content;
   min-width: 100%;
-  table-layout: fixed;
+  table-layout: auto;
   /* Keep the thumbnail column tied to the zoomed thumbnail size.
    !important is needed because the first <col> also has an inline fallback width. */
 .detail-native-table > colgroup > col:first-child {
@@ -588,7 +580,7 @@
   touch-action: none;
 }
 .detail-native-table .column-resizer:hover { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 35%, transparent); }
-.detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 14px; font-weight: 900; line-height: 1; vertical-align: 0; }
+.detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 17px; font-weight: 900; line-height: 1; vertical-align: -1px; }
 .detail-native-table .detail-actions-heading { width: 28px; }
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
 /* Use near-white opaque surfaces on every detail-list cell. The row host
