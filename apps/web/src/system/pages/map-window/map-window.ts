@@ -5,6 +5,8 @@ import { GpxDatabaseImportComponent } from './gpx-database-import.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type GpxElevationProfile, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
+import { Configuration } from '../../services/configuration/configuration';
+import { take } from 'rxjs';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
@@ -68,6 +70,8 @@ interface RouteCalculationResult {
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
+interface GpxTrackSettingsDraft { colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }
+interface GpxTrackSettingsFavorite { name: string; settings: GpxTrackSettingsDraft; }
 interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed' | 'elevation'; speedPalette?: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1?: string; customColor2?: string; customColor3?: string; speedMinKmh?: number; speedMaxKmh?: number; elevationMinM?: number; elevationMaxM?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionIntervalPx?: number; directionArrowSizePx?: number; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface RenderTimingSummary {
@@ -430,6 +434,8 @@ interface MapErrorEntry {
             <span>{{ gpxTrackSettingsDraft().colorMode === 'speed' ? ('Speed ' + gpxTrackSettingsDraft().speedMinKmh + '–' + gpxTrackSettingsDraft().speedMaxKmh + ' km/h') : gpxTrackSettingsDraft().colorMode === 'elevation' ? ('Elevation ' + gpxTrackSettingsDraft().elevationMinM + '–' + gpxTrackSettingsDraft().elevationMaxM + ' m') : gpxTrackSettingsDraft().color }} · {{ gpxTrackSettingsDraft().lineWidth }} px</span>
           </div>
           <div class="gpx-track-settings-grid">
+            <label>Settings favorites<select [value]="gpxTrackSettingsFavoriteSelection()" (change)="applyGpxTrackSettingsFavorite($any($event.target).value)"><option value="">Select favorite…</option>@for (favorite of gpxTrackSettingsFavorites(); track favorite.name) { <option [value]="favorite.name">{{ favorite.name }}</option> }</select></label>
+            <div class="gpx-track-settings-favorite-add"><input type="text" maxlength="60" placeholder="Favorite name" [value]="gpxTrackSettingsFavoriteName()" (input)="gpxTrackSettingsFavoriteName.set($any($event.target).value)"><button type="button" (click)="addGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteName().trim()">Add settings to favorites</button></div>
             <div class="gpx-track-settings-divider" role="separator"></div>
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
@@ -1664,6 +1670,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private leafletHillshadeLayer: LeafletGridLayer | null = null;
   private leafletHillshadePane: HTMLElement | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
+  private readonly configuration = inject(Configuration);
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
   private locationLookupVersion = 0;
@@ -2399,7 +2406,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
-  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionStyle: 'classic' });
+  protected readonly gpxTrackSettingsFavorites = signal<GpxTrackSettingsFavorite[]>([]);
+  protected readonly gpxTrackSettingsFavoriteName = signal('');
+  protected readonly gpxTrackSettingsFavoriteSelection = signal('');
+  protected readonly gpxTrackSettingsDraft = signal<GpxTrackSettingsDraft>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionStyle: 'classic' });
   protected readonly routePointActionMenuOpen = signal<number | null>(null);
   protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
@@ -2497,11 +2507,30 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
   protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
+    this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as GpxTrackSettingsFavorite[]));
+    this.gpxTrackSettingsFavoriteName.set('');
+    this.gpxTrackSettingsFavoriteSelection.set('');
     this.gpxTrackSettingsTrack.set(track);
     this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: track.color || this.gpxColor(), speedPalette: track.speedPalette || 'spectrum', customColor1: track.customColor1 || '#2878ff', customColor2: track.customColor2 || '#18c99a', customColor3: track.customColor3 || '#f04444', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, elevationMinM: track.elevationMinM ?? 0, elevationMaxM: track.elevationMaxM ?? 3000, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16), directionStyle: track.directionStyle || 'classic' });
   };
   protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
   protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
+  protected readonly applyGpxTrackSettingsFavorite = (name: string): void => {
+    this.gpxTrackSettingsFavoriteSelection.set(name);
+    const favorite = this.gpxTrackSettingsFavorites().find(item => item.name === name);
+    if (favorite) this.gpxTrackSettingsDraft.set({ ...favorite.settings });
+  };
+  protected readonly addGpxTrackSettingsFavorite = (): void => {
+    const name = this.gpxTrackSettingsFavoriteName().trim();
+    if (!name) return;
+    const favorite: GpxTrackSettingsFavorite = { name, settings: { ...this.gpxTrackSettingsDraft() } };
+    const favorites = [...this.gpxTrackSettingsFavorites()];
+    const existingIndex = favorites.findIndex(item => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (existingIndex >= 0) favorites[existingIndex] = favorite; else favorites.push(favorite);
+    this.gpxTrackSettingsFavorites.set(favorites);
+    this.gpxTrackSettingsFavoriteSelection.set(name);
+    this.configuration.updateSystemConfig({ gpxTrackSettingsFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
+  };
   protected readonly saveGpxTrackSettings = (): void => {
     const track = this.gpxTrackSettingsTrack(); if (!track) return;
     const draft = this.gpxTrackSettingsDraft();

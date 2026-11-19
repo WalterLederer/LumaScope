@@ -114,6 +114,8 @@ export interface AppConfigV1System {
   gallerySidebarSections?: Record<string, boolean>;
   /** Expanded/collapsed sections in the image-view controls sidebar. */
   imageSidebarSections?: Record<string, boolean>;
+  /** Reusable GPX track appearance presets shown in the Track Settings dialog. */
+  gpxTrackSettingsFavorites?: Array<{ name: string; settings: Record<string, unknown> }>;
   bounds?: {
     x: number;
     y: number;
@@ -148,6 +150,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.comparisonSplit || 'number' === typeof input.comparisonSplit && input.comparisonSplit >= 1 && input.comparisonSplit <= 99)
     && (undefined === input.gallerySidebarSections || 'object' === typeof input.gallerySidebarSections && null !== input.gallerySidebarSections && Object.values(input.gallerySidebarSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.imageSidebarSections || 'object' === typeof input.imageSidebarSections && null !== input.imageSidebarSections && Object.values(input.imageSidebarSections).every((elem: any) => 'boolean' === typeof elem))
+    && (undefined === input.gpxTrackSettingsFavorites || Array.isArray(input.gpxTrackSettingsFavorites) && input.gpxTrackSettingsFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
     && (undefined === input.bounds || 'object' === typeof input.bounds && null !== input.bounds && _io3(input.bounds));
   const _io3 = (input: any): boolean =>
     'number' === typeof input.x && 'number' === typeof input.y && 'number' === typeof input.width
