@@ -1233,14 +1233,27 @@ export class OfflineMapRenderer {
     const scaleContainer = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-bottom-left');
     const scaleControl = scaleContainer?.querySelector<HTMLElement>('.maplibregl-ctrl-scale');
     if (scaleControl) {
-      // Detach the scale from MapLibre's control stacking context. The map's
-      // geographic marker overlay can otherwise cover it even with raised z-indexes.
+      // Keep the scale above Mapsforge/OBF geographic overlays and readable on pale raster themes.
       scaleControl.style.position = 'absolute';
       scaleControl.style.left = '10px';
       scaleControl.style.bottom = '10px';
       scaleControl.style.margin = '0';
-      scaleControl.style.zIndex = '10000';
-      scaleControl.style.pointerEvents = 'auto';
+      scaleControl.style.zIndex = '1000000';
+      scaleControl.style.pointerEvents = 'none';
+      scaleControl.style.boxSizing = 'content-box';
+      scaleControl.style.padding = '4px 7px 3px';
+      scaleControl.style.background = 'rgba(0, 0, 0, 0.82)';
+      scaleControl.style.color = '#fff';
+      scaleControl.style.fontSize = '12px';
+      scaleControl.style.fontWeight = '800';
+      scaleControl.style.lineHeight = '1.2';
+      scaleControl.style.textShadow = '0 1px 2px #000';
+      scaleControl.style.border = '0';
+      scaleControl.style.borderLeft = '3px solid #fff';
+      scaleControl.style.borderRight = '3px solid #fff';
+      scaleControl.style.borderBottom = '4px solid #fff';
+      scaleControl.style.outline = '1px solid #000';
+      scaleControl.style.boxShadow = '0 2px 5px rgba(0,0,0,.75)';
       this.map.getContainer().appendChild(scaleControl);
     }
     this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
