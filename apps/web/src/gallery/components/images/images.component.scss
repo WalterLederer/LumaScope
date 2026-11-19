@@ -451,3 +451,10 @@
 .detail-native-table .detail-header { display: table-row; position: static; }
 .detail-native-table > tbody.images.details-list { display: table-row-group; }
 .detail-table.without-thumbnails .thumb-column-heading { visibility: hidden; }
+
+.detail-table .detail-native-table thead tr.detail-header > th:not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
+  display: table-cell;
+  align-self: auto;
+  height: auto;
+  min-height: 0;
+}
