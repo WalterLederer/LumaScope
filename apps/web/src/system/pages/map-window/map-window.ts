@@ -381,8 +381,8 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
               <div class="gpx-track-style-preview" role="cell">
-                <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-speed-preview-' + gpxPreviewId(track.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(track); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' || track.colorMode === 'elevation' ? 'url(#gpx-speed-preview-' + gpxPreviewId(track.path) + ')' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 3" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
-                  @if (track.showDirection) { @for (arrow of gpxPreviewArrowPositions(track.directionIntervalPx ?? 120); track $index) { <path [attr.d]="gpxPreviewArrow(track.directionStyle)" [attr.fill]="gpxPreviewArrowFilled(track.directionStyle) ? (track.color || gpxColor()) : 'none'" [attr.stroke]="track.color || gpxColor()" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + ((track.directionArrowSizePx ?? 16) / 16) + ')'"/> } }</svg>
+                <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-speed-preview-' + gpxPreviewId(track.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(track); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' || track.colorMode === 'elevation' ? 'url(#gpx-speed-preview-' + gpxPreviewId(track.path) + ')' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 4" [attr.stroke-opacity]=".92 * gpxOpacity() / 100" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
+                  @if (track.showDirection) { @for (arrow of gpxPreviewArrowPositions(track.directionIntervalPx ?? 120); track $index) { <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="gpxDirectionArrowSize(track.directionArrowSizePx)" [attr.fill]="track.color || gpxColor()" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ gpxDirectionGlyph(track.directionStyle) }}</text> } }</svg>
                 <span>{{ track.colorMode === 'speed' ? ('Speed ' + (track.speedMinKmh ?? 0) + '–' + (track.speedMaxKmh ?? 120) + ' km/h') : track.colorMode === 'elevation' ? ('Elevation ' + (track.elevationMinM ?? 0) + '–' + (track.elevationMaxM ?? 3000) + ' m') : (track.color || gpxColor()) }} · {{ track.lineWidth || 3 }} px</span>
               </div>
               <div class="gpx-row-actions" role="cell">
@@ -430,7 +430,7 @@ interface MapErrorEntry {
         <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation()">
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
           <div class="gpx-track-style-preview gpx-track-settings-preview">
-            <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-settings-preview-' + gpxPreviewId(settingsTrack.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(gpxSettingsPreviewTrack(settingsTrack)); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="gpxTrackSettingsDraft().colorMode === 'speed' || gpxTrackSettingsDraft().colorMode === 'elevation' ? 'url(#gpx-settings-preview-' + gpxPreviewId(settingsTrack.path) + ')' : gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>@if (gpxTrackSettingsDraft().showDirection) { @for (arrow of gpxPreviewArrowPositions(gpxTrackSettingsDraft().directionIntervalPx); track $index) { <path [attr.d]="gpxPreviewArrow(gpxTrackSettingsDraft().directionStyle)" fill="none" stroke="#080808" [attr.stroke-width]="5.5" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + (gpxTrackSettingsDraft().directionArrowSizePx / 16) + ')'"/><path [attr.d]="gpxPreviewArrow(gpxTrackSettingsDraft().directionStyle)" [attr.fill]="gpxPreviewArrowFilled(gpxTrackSettingsDraft().directionStyle) ? gpxTrackSettingsDraft().color : 'none'" [attr.stroke]="gpxTrackSettingsDraft().color" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + (gpxTrackSettingsDraft().directionArrowSizePx / 16) + ')'"/> } }</svg>
+            <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-settings-preview-' + gpxPreviewId(settingsTrack.path)" x1="0" y1="0" x2="1" y2="0">@for (stop of gpxPreviewStops(gpxSettingsPreviewTrack(settingsTrack)); track stop.offset) { <stop [attr.offset]="stop.offset" [attr.stop-color]="stop.color"/> }</linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="gpxTrackSettingsDraft().colorMode === 'speed' || gpxTrackSettingsDraft().colorMode === 'elevation' ? 'url(#gpx-settings-preview-' + gpxPreviewId(settingsTrack.path) + ')' : gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth || 4" [attr.stroke-opacity]=".92 * gpxOpacity() / 100" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>@if (gpxTrackSettingsDraft().showDirection) { @for (arrow of gpxPreviewArrowPositions(gpxTrackSettingsDraft().directionIntervalPx); track $index) { <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="gpxDirectionArrowSize(gpxTrackSettingsDraft().directionArrowSizePx)" [attr.fill]="gpxTrackSettingsDraft().color" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ gpxDirectionGlyph(gpxTrackSettingsDraft().directionStyle) }}</text> } }</svg>
             <span>{{ gpxTrackSettingsDraft().colorMode === 'speed' ? ('Speed ' + gpxTrackSettingsDraft().speedMinKmh + '–' + gpxTrackSettingsDraft().speedMaxKmh + ' km/h') : gpxTrackSettingsDraft().colorMode === 'elevation' ? ('Elevation ' + gpxTrackSettingsDraft().elevationMinM + '–' + gpxTrackSettingsDraft().elevationMaxM + ' m') : gpxTrackSettingsDraft().color }} · {{ gpxTrackSettingsDraft().lineWidth }} px</span>
           </div>
           <div class="gpx-track-settings-grid">
@@ -2506,19 +2506,18 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
-  protected readonly gpxPreviewArrow = (style?: GpxTrackFile['directionStyle']): string =>
-    style === 'triangle' || style === 'large-triangle' ? 'M-6 -5 L6 0 L-6 5 Z'
-      : style === 'classic' || style === 'large-classic' ? 'M-6 -5 L6 0 L-6 5 L-3 0 Z'
-      : style === 'chevron' || style === 'large-chevron' ? 'M-4 -6 L4 0 L-4 6'
-      : 'M-6 -4 L6 0 L-6 4';
-  protected readonly gpxPreviewArrowFilled = (style?: GpxTrackFile['directionStyle']): boolean =>
-    style === 'classic' || style === 'large-classic' || style === 'triangle' || style === 'large-triangle';
+  protected readonly gpxDirectionGlyph = (style?: GpxTrackFile['directionStyle']): string =>
+    style === 'chevron' || style === 'large-chevron' ? '❯'
+      : style === 'triangle' || style === 'large-triangle' ? '▶'
+      : style === 'thin' ? '➜'
+      : '➤';
+  protected readonly gpxDirectionArrowSize = (size?: number): number => Math.max(8, Math.min(40, size ?? 16));
   protected readonly gpxPreviewArrowPositions = (intervalPx = 120): Array<{ x: number; y: number; angle: number }> => {
     const points: Array<[number, number]> = [[3, 17], [22, 6], [42, 14], [62, 5], [82, 16], [102, 7], [122, 15], [147, 5]];
     const total = points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point[0] - points[index][0], point[1] - points[index][1]), 0);
-    const spacing = 18 + (Math.max(30, Math.min(500, intervalPx)) - 30) / 470 * 82;
+    const spacing = Math.max(30, Math.min(500, intervalPx));
     const result: Array<{ x: number; y: number; angle: number }> = [];
-    for (let distance = spacing / 2; distance < total - 2; distance += spacing) {
+    for (let distance = spacing; distance < total - 2; distance += spacing) {
       let remaining = distance;
       for (let i = 1; i < points.length; i++) {
         const start = points[i - 1], end = points[i];
@@ -2533,7 +2532,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return result;
   };
-  protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
+  protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '10 7' : style === 'dotted' ? '2 7' : style === 'long-dashed' ? '18 7' : style === 'short-dashed' ? '5 5' : style === 'dash-dot' ? '12 5 2 5' : style === 'dash-dot-dot' ? '12 4 2 4 2 4' : '';
   protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
     this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as unknown as GpxTrackSettingsFavorite[]));
     this.gpxTrackSettingsFavoriteName.set('');
@@ -8534,16 +8533,11 @@ ${points}
       }
       for (const segment of normalSegments) {
         if (!track.showDirection || segment.length < 2) continue;
-        const arrowStyles: Record<NonNullable<GpxTrackFile['directionStyle']>, { glyph: string; size: number }> = {
-          classic: { glyph: '➤', size: 16 }, chevron: { glyph: '❯', size: 16 }, triangle: { glyph: '▶', size: 16 }, thin: { glyph: '➜', size: 16 },
-          'large-classic': { glyph: '➤', size: 24 }, 'large-chevron': { glyph: '❯', size: 24 }, 'large-triangle': { glyph: '▶', size: 24 }
-        };
-        const arrowStyle = arrowStyles[track.directionStyle || 'classic'];
-        const arrowSize = Math.max(8, Math.min(40, track.directionArrowSizePx ?? arrowStyle.size));
+        const arrowSize = this.gpxDirectionArrowSize(track.directionArrowSizePx);
         for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalPx ?? 120)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
-            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + arrowStyle.glyph + '</span>',
+            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + this.gpxDirectionGlyph(track.directionStyle) + '</span>',
             iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
           });
           this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
