@@ -375,8 +375,8 @@ interface MapErrorEntry {
               @if (gpxDatabaseColumns().size) { <span role="cell">{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</span> }
               @if (gpxDatabaseColumns().path) { <span class="gpx-file-name" role="cell" [title]="track.databasePath || track.path">{{ track.databasePath || track.path }}</span> }
               <button type="button" class="gpx-track-style-preview" role="cell" (click)="openGpxTrackSettings(track)" title="Track Settings">
-                <svg viewBox="0 0 150 24" aria-hidden="true"><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' ? 'url(#gpx-speed-preview)' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 3" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
-                  @if (track.showDirection) { <path d="M75 8 L82 12 L75 16" fill="none" [attr.stroke]="track.color || gpxColor()" stroke-width="2"/> }</svg>
+                <svg viewBox="0 0 150 24" aria-hidden="true"><defs><linearGradient [attr.id]="'gpx-speed-preview-' + gpxPreviewId(track.path)" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" [attr.stop-color]="track.speedPalette === 'cool-warm' ? '#2878ff' : '#2878ff'"/><stop offset="50%" [attr.stop-color]="track.speedPalette === 'cool-warm' ? '#f0c040' : '#18c99a'"/><stop offset="100%" [attr.stop-color]="track.speedPalette === 'cool-warm' ? '#f04444' : '#f04444'"/></linearGradient></defs><path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5" fill="none" [attr.stroke]="track.colorMode === 'speed' ? 'url(#gpx-speed-preview-' + gpxPreviewId(track.path) + ')' : (track.color || gpxColor())" [attr.stroke-width]="track.lineWidth || 3" [attr.stroke-dasharray]="gpxPreviewDash(track.lineStyle)" stroke-linecap="round" stroke-linejoin="round"/>
+                  @if (track.showDirection) { <path [attr.d]="gpxPreviewArrow(track.directionStyle)" [attr.fill]="track.directionStyle === 'triangle' || track.directionStyle === 'large-triangle' ? (track.color || gpxColor()) : 'none'" [attr.stroke]="track.color || gpxColor()" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/> }</svg>
                 <span>{{ track.colorMode === 'speed' ? 'Speed-based' : (track.color || gpxColor()) }} · {{ track.lineWidth || 3 }} px</span>
               </button>
               <div class="gpx-row-actions" role="cell">
@@ -2423,6 +2423,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxTrackColorMenuPosition.set({ top, left });
     });
   };
+  protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
+  protected readonly gpxPreviewArrow = (style?: GpxTrackFile['directionStyle']): string => style === 'triangle' || style === 'large-triangle' ? 'M73 7 L84 12 L73 17 Z' : style === 'thin' ? 'M75 8 L83 12 L75 16' : style === 'large-chevron' ? 'M72 6 L84 12 L72 18 M77 6 L89 12 L77 18' : style === 'large-classic' ? 'M70 7 L84 12 L70 17 L74 12 Z' : 'M73 7 L83 12 L73 17';
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
   protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
     this.gpxTrackSettingsTrack.set(track);
@@ -7458,7 +7460,7 @@ export class MapWindow implements OnInit, OnDestroy {
       ...(columns.time ? [widths['time'] + 'px'] : []),
       ...(columns.size ? [widths['size'] + 'px'] : []),
       ...(columns.path ? [widths['path'] + 'px'] : []),
-      'minmax(150px, 1fr)', widths['actions'] + 'px'
+      'minmax(150px, 1fr)', '74px'
     ].join(' ');
   };
   protected readonly setGpxDatabaseColumn = (key: 'points' | 'time' | 'size' | 'modified' | 'path', visible: boolean): void => this.gpxDatabaseColumns.update(columns => ({ ...columns, [key]: visible }));
