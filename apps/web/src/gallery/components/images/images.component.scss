@@ -677,3 +677,14 @@
   height: auto;
 }
 .detail-table.without-thumbnails .thumb-column-heading { visibility: hidden; }
+
+/* Wrap long detail values inside their own cells and let the grid row grow
+   to fit the tallest cell without changing the shared column tracks. */
+.detail-native-table > tbody.images.details-list > tr > td:not(.detail-thumb):not(.detail-actions) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  min-width: 0;
+  height: auto;
+}
