@@ -125,6 +125,8 @@ export class GalleryPage {
   /* State */
   readonly selectedLocation$ = this.galleryState.selectedLocation();
 
+  readonly autoSortFavorites$ = this.galleryLocations.autoSortFavorites();
+
   readonly galleryRoot$ = combineLatest([
     this.galleryState.galleryRoot(),
     this.selectedLocation$
@@ -258,6 +260,10 @@ export class GalleryPage {
 
   protected readonly onSortFavoritesByPath = (): void => {
     this.galleryLocations.sortLocationsByPath();
+  };
+
+  protected readonly onAutoSortFavoritesChange = (event: Event): void => {
+    this.galleryLocations.setAutoSortFavorites((event.target as HTMLInputElement).checked);
   };
 
   protected readonly onAddLocation = async () => {
