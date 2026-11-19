@@ -345,10 +345,6 @@
   color: var(--color-content-default-medium);
 }
 
-/* The first column follows thumbnail zoom unless the user manually resizes it. */
-.detail-native-table > colgroup > col:first-child {
-  width: max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px))) !important;
-}
 .detail-native-table th,
 .detail-native-table td {
   position: relative;
