@@ -12,8 +12,7 @@
           <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
         }
       </header>
-      @if (settingsOpen()) {
-        <div class="map-settings" role="region" aria-label="Map settings">
+      <div class="map-settings" role="region" aria-label="Map settings" [hidden]="!settingsOpen()">
 <nav class="settings-tabs image-sidebar-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'fix'" [attr.aria-selected]="activeSettingsTab() === 'fix'" (click)="selectSettingsTab('fix')">Fix</button>
@@ -1243,8 +1242,6 @@
   </div>
 </div>
 </div>
-        </div>
-      }
       <div class="map-content">
         @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-display-notice" role="alert">
