@@ -1081,3 +1081,47 @@ html[data-disclosure-style='none'] ui-tree-node .expand-indicator::before { cont
 
 /* The My PC popup is rendered in the CDK overlay, outside the gallery component tree. */
 .gallery-location-menu-separator { display: block !important; flex: 0 0 1px !important; align-self: stretch !important; width: auto !important; height: 1px !important; min-height: 1px !important; margin: 7px 8px !important; padding: 0 !important; border: 0 !important; background: #858585 !important; box-shadow: 0 1px 0 rgb(0 0 0 / 22%) !important; }
+
+
+/* Central table-header typography, surfaces and sorting indicators. Keep every
+   native table consistent, including sticky headers inside independently scrolling lists. */
+:root {
+  --lumascope-table-header-font-size: 14px;
+  --lumascope-table-header-font-weight: 700;
+  --lumascope-table-sort-font-size: 10px;
+}
+.detail-native-table thead th,
+.gpx-database-native-table thead th,
+.map-window .mbtiles-map-table thead th {
+  background-color: var(--color-surface-default-low, #202124) !important;
+  background-image: none !important;
+  color: var(--color-content-default-medium, #aaa) !important;
+  font-size: var(--lumascope-table-header-font-size) !important;
+  font-weight: var(--lumascope-table-header-font-weight) !important;
+  opacity: 1 !important;
+}
+.detail-native-table thead th,
+.gpx-database-native-table thead th,
+.map-window .mbtiles-map-table thead th {
+  isolation: isolate;
+}
+.detail-native-table thead th > button,
+.gpx-database-native-table thead th > .gpx-db-sort-label,
+.map-window .mbtiles-map-table thead th .table-sort-button {
+  color: inherit !important;
+  font: inherit !important;
+  font-weight: inherit !important;
+  text-decoration: none;
+  cursor: pointer;
+}
+.detail-native-table .sort-indicator,
+.table-sort-indicator {
+  display: inline-block;
+  min-width: 10px;
+  margin-left: 4px;
+  color: var(--color-content-primary-high, var(--color-content-default-high, #eee));
+  font-size: var(--lumascope-table-sort-font-size) !important;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}
