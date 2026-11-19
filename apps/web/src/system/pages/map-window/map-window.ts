@@ -710,6 +710,7 @@ interface MapErrorEntry {
                       <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
                       <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                     </div>
+                    <div class="marker-summary-source"><strong>Folder:</strong> {{ markerSourceFolder() }}</div>
                     <div class="marker-statistics"><span>GPS markers found: <strong>{{ markerCount() }}</strong></span></div>
                     <div class="marker-time-range">
                       <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
@@ -2629,6 +2630,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly markerFilesTotal = signal(0);
   protected readonly markerCount = signal(0);
   protected readonly markerStatus = signal('');
+  protected readonly markerSourceFolder = signal('Not loaded.');
   protected readonly coordinateLabel = signal('GPS coordinates unavailable');
   protected readonly photoCoordinateLabel = signal('Photo: GPS coordinates unavailable');
   protected readonly mouseCoordinateLabel = signal('');
@@ -3784,6 +3786,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerFilesChecked.set(0);
     this.markerFilesTotal.set(0);
     this.markerStatus.set('');
+    this.markerSourceFolder.set('Not loaded.');
   };
   protected readonly changeUseAllPhotosInDb = (enabled: boolean): void => {
     this.useAllPhotosInDb.set(enabled);
@@ -3861,6 +3864,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.clearDirectoryMarkers();
     this.markerStatus.set(this.useAllPhotosInDb() ? 'Reading photo locations in the current map viewport…' : 'Reading location database…');
+    this.markerSourceFolder.set(this.useAllPhotosInDb() ? 'All photos in DB · current map viewport' : 'Resolving current image folder…');
     try {
       let records: Awaited<ReturnType<Desktop['CacheManager']['getDirectoryPhotoLocations']>>;
       let imageFiles: Awaited<ReturnType<Desktop['FileSystem']['readImages']>> | null = null;
@@ -3882,13 +3886,16 @@ export class MapWindow implements OnInit, OnDestroy {
         }
         const databaseKey = /^[a-z]:[\\/]/i.test(imagePath) ? imagePath.slice(0, 2) : '';
         if (!databaseKey) {
+          this.markerSourceFolder.set('All photos in DB · unsupported image drive');
           this.markerStatus.set('The current image is not on a supported cache database drive.');
           return;
         }
+        this.markerSourceFolder.set('All photos in DB · ' + databaseKey + ' · current map viewport');
         records = await desktop.CacheManager.getPhotoLocationsInBounds(bounds, databaseKey);
       } else {
         const directory = await desktop.FileSystem.dirname(imagePath);
         if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
+        this.markerSourceFolder.set(directory);
         [records, imageFiles] = await Promise.all([
           desktop.CacheManager.getDirectoryPhotoLocations(directory),
           desktop.FileSystem.readImages(directory, 'name', 'asc')
