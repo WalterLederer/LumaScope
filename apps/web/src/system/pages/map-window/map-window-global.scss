@@ -849,3 +849,98 @@ app-map-window {
 /* Keep Offline table column dividers visible through both sticky headings and data rows. */
 .map-window .mbtiles-map-table>thead>tr>th,.map-window .mbtiles-map-table>tbody>tr>td{border-right:var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color,var(--color-content-default-low,#454545))!important;border-bottom:var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color,var(--color-content-default-low,#454545))!important;}
 .map-window .mbtiles-map-table>thead>tr>th:last-child,.map-window .mbtiles-map-table>tbody>tr>td:last-child{border-right:0!important;}
+
+
+/* Native GPX track table */
+.gpx-database-table {
+  width: 100%;
+  max-height: 325px;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  position: relative;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-content-default-low, #454545));
+}
+.gpx-database-native-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: inherit;
+  font-size: 12px;
+}
+.gpx-database-native-table th,
+.gpx-database-native-table td {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 34px;
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-content-default-low, #454545));
+  border-bottom: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-content-default-low, #454545));
+}
+.gpx-database-native-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 34px;
+  background: var(--color-surface-default-low, #202124);
+  color: var(--color-content-default-medium, #aaa);
+  font-weight: 700;
+}
+.gpx-database-native-table th:last-child,
+.gpx-database-native-table td:last-child { border-right: 0; }
+.gpx-database-native-table .gpx-db-sort-button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 8px 2px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.gpx-database-native-table .gpx-db-sort-button:hover {
+  color: var(--color-content-default-high, #fff);
+  text-decoration: underline;
+}
+.gpx-database-native-table .gpx-column-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 4;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.gpx-database-native-table .gpx-column-resizer:hover {
+  background: color-mix(in srgb, #2688e8 55%, transparent);
+}
+.gpx-database-native-table .gpx-active-toggle { text-align: center; }
+.gpx-database-native-table .gpx-active-toggle input { margin: 0; }
+.gpx-database-native-table .gpx-waypoint-count { text-align: center; font-variant-numeric: tabular-nums; }
+.gpx-database-native-table .gpx-track-preview-cell { padding: 2px 6px; }
+.gpx-database-native-table .gpx-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 4px;
+}
+.gpx-database-native-table .gpx-file-name,
+.gpx-database-native-table .gpx-time-range { overflow: hidden; text-overflow: ellipsis; }
+.gpx-database-native-table tbody tr.gpx-hovered { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 13%, transparent); }
+.gpx-database-native-table tbody tr.gpx-missing { opacity: .62; }
