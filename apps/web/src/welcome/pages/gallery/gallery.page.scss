@@ -395,7 +395,9 @@ ui-side-panel {
 
 /* Separate the Add action from the remaining My PC favourite options. */
 :host ::ng-deep .gallery-folder-tree .gallery-location-menu-separator {
+  display: block;
+  flex: 0 0 1px;
   height: 1px;
-  margin: 5px 8px;
-  background: var(--color-content-default-low, rgb(128 128 128 / 45%));
+  margin: 7px 8px;
+  background: color-mix(in srgb, var(--color-content-default-high, currentColor) 38%, transparent);
 }
