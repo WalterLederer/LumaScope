@@ -767,13 +767,15 @@ interface MapErrorEntry {
                     <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
                     <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
                   </div>
-                  <div class="marker-summary-source"><strong>Folder:</strong> {{ markerSourceFolder() }}</div>
-                  <div class="marker-statistics"><span>GPS COORDINATE(s) found: <strong>{{ markerCount() }}</strong></span></div>
-                  <div class="marker-time-range">
-                    <span>Minimum timestamp: <strong>{{ markerTimestampRange().minimum }}</strong></span>
-                    <span>Maximum timestamp: <strong>{{ markerTimestampRange().maximum }}</strong></span>
-                  </div>
-                  <div class="marker-status" role="status">{{ markerStatus() }}</div>
+                  <table class="marker-summary-table">
+                    <tbody>
+                      <tr><th scope="row">Folder</th><td>{{ markerSourceFolder() }}</td></tr>
+                      <tr><th scope="row">GPS coordinates found</th><td>{{ markerCount() }}</td></tr>
+                      <tr><th scope="row">Minimum timestamp</th><td>{{ markerTimestampRange().minimum }}</td></tr>
+                      <tr><th scope="row">Maximum timestamp</th><td>{{ markerTimestampRange().maximum }}</td></tr>
+                      <tr><th scope="row">Database status</th><td role="status">{{ markerStatus() }}</td></tr>
+                    </tbody>
+                  </table>
                 </div>
               </details>
             </div>
