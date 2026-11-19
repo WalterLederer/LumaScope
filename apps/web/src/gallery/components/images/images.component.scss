@@ -688,3 +688,131 @@
   min-width: 0;
   height: auto;
 }
+
+/* Keep every detail column visually consistent, including columns whose
+   values are not especially useful for sorting. The two header rows use
+   shared row heights and continuous separators instead of per-cell borders. */
+.detail-native-table .detail-gps,
+.detail-native-table .detail-location {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  min-width: 0;
+}
+
+.detail-native-table > thead > tr.detail-header-labels {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  grid-auto-rows: 46px;
+  align-items: stretch;
+  height: 46px;
+  min-height: 46px;
+  border-bottom: 0 !important;
+  position: relative;
+}
+
+.detail-native-table > thead > tr.detail-header-labels::after {
+  content: "";
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%)));
+  pointer-events: none;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch;
+  width: auto;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px;
+  box-sizing: border-box;
+  padding: 5px 8px !important;
+  margin: 0;
+  border-bottom: 0 !important;
+  text-align: center !important;
+  vertical-align: middle;
+  white-space: normal;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th > button,
+.detail-native-table > thead > tr.detail-header-labels > th.thumb-column-heading > span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
+  padding: 0 !important;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  align-items: stretch;
+  border-bottom: 0 !important;
+  position: relative;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics::after {
+  content: "";
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-border-default, rgb(128 128 128 / 45%));
+  pointer-events: none;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics > th {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: flex-start;
+  align-self: stretch;
+  width: auto;
+  height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 8px 7px !important;
+  border-bottom: 0 !important;
+  text-align: center !important;
+  white-space: normal;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics > th > small,
+.detail-native-table > thead > tr.detail-header-statistics > th > .column-summary,
+.detail-native-table > thead > tr.detail-header-statistics > th > .worker-progress {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics > th .column-summary > span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  padding: 0 !important;
+}
