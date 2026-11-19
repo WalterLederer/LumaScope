@@ -6,6 +6,19 @@ import { Configuration } from '../../../system/services/configuration/configurat
 export class GalleryLocations {
   private readonly configuration = inject(Configuration);
 
+  constructor() {
+    // Apply the persisted auto-sort preference to favorites loaded from the config file.
+    this.configuration.config().pipe(take(1)).subscribe(config => {
+      if (!(config.gallery.autoSortFavorites ?? true)) return;
+      const sorted = [...config.gallery.locations].sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      if (sorted.some((location, index) => location !== config.gallery.locations[index])) {
+        this.updateLocations(new Set(sorted));
+      }
+    });
+  }
+
   private readonly locations$ = this.configuration.config().pipe(
     map(config => config.gallery.locations),
     distinctUntilChanged((previous, current) => previous.length === current.length && previous.every((path, index) => path === current[index])),
