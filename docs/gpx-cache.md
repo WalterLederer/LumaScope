@@ -28,6 +28,14 @@ The import does not copy, move, rename or modify the original GPX files.
 
 The GPX totals are counts for each listed drive's cache database, not just for the most recently selected folder. The summary also distinguishes all stored points from timestamped points, which are required for automatic photo location matching. The folder picker can be cancelled without changing the database.
 
+### Exporting GPX tracks
+
+The Track tab's GPX list provides two distinct export sources:
+
+- **Export from memory** writes the track points currently held in the map window's in-memory GPX buffer. It preserves segment boundaries, timestamps and available elevation values. It does not read the original file or query the cache database, so it can export the current loaded track even when no database record exists.
+- **Export from db** writes the stored track points from the drive-local SQLite cache database. This export uses the database's indexed elevation and timestamp values and reconciles an absolute source file with the database before writing.
+
+Track appearance is configured separately in the **Track Settings** dialog. The row preview reflects the selected color mode, palette, line style, width and direction arrows. Changes are applied with **OK**; **Cancel** discards the dialog edits.
 ### Folder traversal
 
 The scan is recursive. Symbolic links are skipped. The following directory names are excluded from traversal to avoid scanning generated caches, system folders and development dependencies:
