@@ -7770,7 +7770,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly gpxListWaypointCount = (track: GpxTrackFile): number =>
     this.gpxListMode() === 'database' ? this.gpxVisibleWaypointCount(track) : this.gpxWaypointCount(track.path);
-  protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'directionStyle'>>): void => {
+  protected readonly changeGpxListTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle'>>): void => {
     if (this.gpxListMode() === 'database') this.changeGpxDatabaseTrack(path, patch);
     else if (patch.active !== undefined) this.changeGpxTrackActive(path, patch.active);
     else this.updateGpxTrack(path, patch);
@@ -7784,7 +7784,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
         for (const [path, value] of Object.entries(saved as Record<string, unknown>)) {
           if (value && typeof value === 'object' && !Array.isArray(value)) {
-            this.gpxDatabaseTrackSettings.set(path, value as Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'directionStyle'>>);
+            this.gpxDatabaseTrackSettings.set(path, value as Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle'>>);
           }
         }
       }
