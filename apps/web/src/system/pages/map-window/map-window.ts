@@ -147,8 +147,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private walkingMapLibreMarker: MapLibreMarker | null = null;
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private readonly directoryMarkers: MapMarker[] = [];
-  private currentImagePath: string | null = null;
-  private currentFolderPath: string | null = null;
+  protected currentImagePath: string | null = null;
+  protected currentFolderPath: string | null = null;
   get currentImageDatabaseKey(): string | undefined { return (this.currentImagePath ?? this.currentFolderPath)?.slice(0, 2); }
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
