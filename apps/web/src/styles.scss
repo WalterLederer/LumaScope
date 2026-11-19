@@ -119,3 +119,25 @@ html body button.file-row-menu-trigger[aria-expanded="true"] {
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
 }
+
+
+/* Shared table grid: the Offline list is the reference for every data table. */
+:root {
+  --lumascope-table-line-width: 1px;
+  --lumascope-table-line-color: var(--color-content-default-low, #454545);
+}
+
+html body table:not([role="presentation"]) {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+html body table:not([role="presentation"]) > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+  border-right: var(--lumascope-table-line-width) solid var(--lumascope-table-line-color);
+  border-bottom: var(--lumascope-table-line-width) solid var(--lumascope-table-line-color);
+}
+html body table:not([role="presentation"]) > :is(thead, tbody, tfoot) > tr > :last-child {
+  border-right: 0;
+}
+html body table:not([role="presentation"]) > :is(thead, tbody, tfoot) > tr:last-child > :is(th, td) {
+  border-bottom: 0;
+}
