@@ -72,9 +72,9 @@ html body app-map-window .map-window .offline-row-action-menu {
   z-index: 2147483005 !important;
 }
 
-/* Shared hamburger trigger. Keep this after the theme and map-window styles so
-   the selected global button style cannot flatten the trigger's boxed shape. */
-html body button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
+/* Shared hamburger menu trigger. Apply the same compact, theme-aware icon
+   surface to native buttons, plain span triggers and ui-action-button hosts. */
+html body :is(button, span, ui-action-button).file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
   appearance: none !important;
   -webkit-appearance: none !important;
   display: inline-flex !important;
@@ -107,15 +107,9 @@ html body button.file-row-menu-trigger:not(:disabled):not([role="tab"]):not([rol
   cursor: pointer !important;
   opacity: 1 !important;
 }
-/* Use the active theme's high-contrast content token for both text paint
-   and WebKit's text fill; button color alone can be overridden by themed controls. */
-html body button.file-row-menu-trigger {
-  color: var(--color-content-default-high, #111) !important;
-  -webkit-text-fill-color: var(--color-content-default-high, #111) !important;
-}
-html body button.file-row-menu-trigger:hover,
-html body button.file-row-menu-trigger:focus-visible,
-html body button.file-row-menu-trigger[aria-expanded="true"] {
+html body :is(button, span, ui-action-button).file-row-menu-trigger:hover,
+html body :is(button, span, ui-action-button).file-row-menu-trigger:focus-visible,
+html body :is(button, span, ui-action-button).file-row-menu-trigger[aria-expanded="true"] {
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
 }
