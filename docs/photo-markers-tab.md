@@ -9,7 +9,7 @@ Enable **Show marker** to display the available photo markers. Disable it to hid
 The Summary disclosure (when markers are enabled) reports:
 - The folder used for the photo-location query (or the active database/viewport scope when **Use all photos in DB** is enabled).
 - The number of database records checked and the total record count.
-- The number of GPS markers found.
+- The number of GPS coordinates found.
 - The minimum and maximum photo timestamps.
 - The current marker-loading status.
 
