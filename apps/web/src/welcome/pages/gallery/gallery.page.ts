@@ -331,7 +331,6 @@ export class GalleryPage {
     this.galleryState
       .navigateTo(node.id)
       .subscribe(() => {
-        this.locationSelected.emit();
         // Automatically cache every image in the selected favorite folder.
         void this.galleryCacheBuild.startCacheBuild(node.id, true).catch(error => {
           const message = error instanceof Error ? error.message : String(error);
