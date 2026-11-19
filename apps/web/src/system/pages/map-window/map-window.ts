@@ -5388,7 +5388,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxDatabaseClearStatus.set(
         `Deleted ${result.files.toLocaleString(this.locale)} GPX file(s), ${result.segments.toLocaleString(this.locale)} segment(s) and ${result.points.toLocaleString(this.locale)} point(s) from ${result.databases.toLocaleString(this.locale)} cache database(s).`
       );
-      this.latestGpxElevationProfile.set(null);
+      this.gpxElevationProfileRequestId++;
+      this.gpxElevationProfiles.set([]);
+      this.latestGpxElevationProfileBusy.set(false);
       this.latestGpxElevationProfileError.set('No GPX database entries remain. Add a GPX track again to display its elevation profile.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
