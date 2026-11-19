@@ -131,7 +131,7 @@ interface MapErrorEntry {
         }
       </header>
       @if (settingsOpen()) {
-        <section class="map-settings" aria-label="Map settings">
+        <div class="map-settings" role="region" aria-label="Map settings">
 <nav class="settings-tabs image-sidebar-tabs" role="tablist" aria-label="Location settings">
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
   <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'fix'" [attr.aria-selected]="activeSettingsTab() === 'fix'" (click)="selectSettingsTab('fix')">Fix</button>
@@ -475,7 +475,7 @@ interface MapErrorEntry {
             <label class="gpx-direction-density-control"><span>Arrow shadow strength</span><strong>{{ gpxTrackSettingsDraft().arrowShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().arrowShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ arrowShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Arrow shadow strength" /></label>
               </div>
             </details>
-          </section>
+          </div>
           <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button></footer>
         </section>
       </div>
