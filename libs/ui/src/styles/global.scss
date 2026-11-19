@@ -945,10 +945,14 @@ input[type="checkbox"]:indeterminate {
 input[type="checkbox"]:checked {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5 6.5 12 13 4.5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"),
-    var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%));
-  background-repeat: no-repeat, no-repeat;
-  background-position: center, center;
-  background-size: 15px 15px, cover;
+    var(--button-gradient, linear-gradient(145deg, #42b8ff 0%, #1677d2 48%, #5948bd 100%)) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-position: center, center !important;
+  background-size: 15px 15px, cover !important;
+}
+.ui-checkbox:checked::before,
+input[type="checkbox"]:checked::before {
+  display: none !important;
 }
 
 .ui-checkbox:checked::before,
