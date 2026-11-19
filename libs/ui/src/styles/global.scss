@@ -988,3 +988,10 @@ input[type="checkbox"]:disabled:checked {
     transition: none;
   }
 }
+
+/* Keep a small, consistent vertical gap between disclosure sections
+   throughout the application, independent of their individual component styles. */
+details,
+.app-disclosure {
+  margin-bottom: 6px !important;
+}
