@@ -412,24 +412,23 @@ export class ImagesComponent {
 
   readonly cacheUpdated = output<string>();
   private readonly importGpxFilesFoundDuringCacheBuild = async (filePaths: string[], signal: AbortSignal): Promise<void> => {
-    const uniquePaths = [...new Set(filePaths.map(path => path.toLocaleLowerCase()).map((key, index) => ({ key, path: filePaths[index] }))
-      .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index)
-      .map(item => item.path)];
+    const uniquePaths = [...new Map(filePaths.map(path => [path.toLocaleLowerCase(), path])).values()];
     if (uniquePaths.length === 0 || signal.aborted) return;
 
+    const cacheSummary = this.cacheRunCurrentOperation();
     this.cacheRunCurrentOperation.set(`Importing ${uniquePaths.length} GPX files into the cache database…`);
-    await this.cacheManager.appendBuildLog(`GPX database import started: ${uniquePaths.length} file(s) found during cache build.`);
     try {
+      await this.cacheManager.appendBuildLog(`GPX database import started: ${uniquePaths.length} file(s) found during cache build.`).catch(() => undefined);
       // Reuse the same importer as “Add all GPX tracks from folder to DB…”.
       const result = await this.cacheManager.importGpxFiles(uniquePaths);
       const summary = `GPX database import completed: imported ${result.imported}, unchanged ${result.unchanged}, duplicates ${result.duplicates}, errors ${result.errors}.`;
-      await this.cacheManager.appendBuildLog(summary);
-      this.cacheRunCurrentOperation.set(summary);
+      await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
+      this.cacheRunCurrentOperation.set([cacheSummary, summary].filter(Boolean).join('\n'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const summary = `GPX database import failed: ${message}`;
       await this.cacheManager.appendBuildLog(summary).catch(() => undefined);
-      this.cacheRunCurrentOperation.set(summary);
+      this.cacheRunCurrentOperation.set([cacheSummary, summary].filter(Boolean).join('\n'));
     }
   };
 
