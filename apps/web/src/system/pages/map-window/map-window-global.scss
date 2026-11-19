@@ -73,6 +73,7 @@ app-map-window {
     .settings-tab-content>summary{display:none}
     /* Disclosure appearance and summary markers are provided by the shared global component styles. */
     .settings-tab-content details,.settings-tab-content .app-disclosure{margin-bottom:0!important;background:transparent!important}
+    .settings-tab-content>details+details,.settings-tab-content>.app-disclosure+.app-disclosure{margin-block-start:6px!important}
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
