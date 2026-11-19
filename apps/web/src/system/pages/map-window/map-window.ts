@@ -1352,6 +1352,8 @@ interface MapErrorEntry {
   </div>
 </div>
 </div>
+        </div>
+      }
       <div class="map-content">
         @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="map-display-notice" role="alert">
