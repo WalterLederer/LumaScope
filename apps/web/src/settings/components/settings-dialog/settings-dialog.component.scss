@@ -657,7 +657,6 @@ section {
 }
 
 .format-details {
-  margin-top: var(--dim-large);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -665,10 +664,6 @@ section {
   > details > summary {
     cursor: pointer;
     font-weight: 700;
-  }
-
-  > details[open] > summary {
-    margin-bottom: var(--dim-medium);
   }
 }
 
@@ -814,7 +809,6 @@ section {
 
 
 .shortcut-details {
-  margin-top: var(--dim-large);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -822,10 +816,6 @@ section {
   > details > summary {
     cursor: pointer;
     font-weight: 700;
-  }
-
-  > details[open] > summary {
-    margin-bottom: var(--dim-medium);
   }
 }
 
