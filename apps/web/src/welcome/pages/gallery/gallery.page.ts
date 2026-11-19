@@ -173,7 +173,16 @@ export class GalleryPage {
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
       // Selecting a gallery folder also selects its drive-local cache database.
-      if (location) void this.desktopApi?.CacheManager.selectDatabaseForDirectory(location).catch(() => undefined);
+      if (location) {
+        void this.desktopApi?.CacheManager.selectDatabaseForDirectory(location).catch(() => undefined);
+        // The restored favorite folder must receive the same automatic cache build
+        // as a folder selected manually. The service queues this until ImageGrid
+        // has registered its cache-build controller after the first render.
+        void this.galleryCacheBuild.startCacheBuild(location, true).catch(error => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
+        });
+      }
     });
 
     if (this.showImageGrid()) afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
@@ -328,15 +337,7 @@ export class GalleryPage {
   };
 
   protected readonly selectLocation = (node: TreeNode<string>) =>
-    this.galleryState
-      .navigateTo(node.id)
-      .subscribe(() => {
-        // Automatically cache every image in the selected favorite folder.
-        void this.galleryCacheBuild.startCacheBuild(node.id, true).catch(error => {
-          const message = error instanceof Error ? error.message : String(error);
-          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
-        });
-      });
+    this.galleryState.navigateTo(node.id).subscribe();
 
   protected readonly onImageSelected = (file: FileInfo) => {
     console.trace('[GalleryNavigationTrace] GalleryPage received thumbnail selection:', file.path);
