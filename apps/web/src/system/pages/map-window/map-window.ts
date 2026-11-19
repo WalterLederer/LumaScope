@@ -896,12 +896,12 @@ interface MapErrorEntry {
         <span class="range-value">{{ mapOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label>
+        <div class="opacity-row-label"><label class="visibility-toggle">Track <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show track"></label><button type="button" class="opacity-fit-button" (click)="fitSelectedTracksToMap()" [disabled]="!hasActiveTrackPoints()" title="Fit selected tracks to map" aria-label="Fit selected tracks to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeGpxOpacity($event)" />
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label>
+        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
@@ -8195,6 +8195,46 @@ ${points}
       this.saveSetting('zoom', this.map.getZoom());
     }
   };
+
+  protected readonly hasActiveTrackPoints = (): boolean => this.gpxTracks().some(track => track.active !== false && (this.gpxSegmentsByTrack.get(track.path) ?? []).some(segment => segment.length > 0));
+
+  protected readonly fitSelectedTracksToMap = (): void => {
+    const points = this.gpxTracks()
+      .filter(track => track.active !== false)
+      .flatMap(track => (this.gpxSegmentsByTrack.get(track.path) ?? []).flat());
+    this.fitMapToCoordinates(points, 24, 16);
+  };
+
+  protected readonly fitSelectedImagesToMap = (): void => {
+    const points = this.directoryPhotoMarkers
+      .filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude)
+        && marker.latitude >= -90 && marker.latitude <= 90
+        && marker.longitude >= -180 && marker.longitude <= 180)
+      .map(marker => [marker.latitude, marker.longitude] as [number, number]);
+    this.fitMapToCoordinates(points, 32, 16);
+  };
+
+  private fitMapToCoordinates(points: [number, number][], padding: number, maxZoom: number): void {
+    if (!points.length) return;
+    const targetZoom = points.length === 1 ? Math.min(maxZoom, 15) : maxZoom;
+    if (this.offlineRenderer) {
+      const longitudes = points.map(point => point[1]), latitudes = points.map(point => point[0]);
+      this.offlineRenderer.map.fitBounds(
+        [[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]],
+        { padding, maxZoom: targetZoom, duration: 0 }
+      );
+      this.zoomLevel.set(this.offlineRenderer.map.getZoom());
+      this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
+    } else if (this.map) {
+      const bounds: [[number, number], [number, number]] = [
+        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
+        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))]
+      ];
+      this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom: targetZoom, animate: false });
+      this.zoomLevel.set(this.map.getZoom());
+      this.saveSetting('zoom', this.map.getZoom());
+    }
+  }
 
   protected readonly fitGpxTrack = (path?: string): void => {
     const points = (path ? this.gpxSegmentsByTrack.get(path) ?? [] : this.gpxSegments).flat();
