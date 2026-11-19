@@ -56,6 +56,8 @@ export interface AppConfigV1 {
 }
 export interface AppConfigV1Gallery {
   locations: string[];
+  /** Automatically sort favorite folders by full path when adding one. Defaults to true. */
+  autoSortFavorites?: boolean;
   thumbWidth?: number;
   thumbHeight?: number;
   sortBy?: 'date' | 'name' | 'size';
@@ -129,6 +131,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.preferences || 'object' === typeof input.preferences && null !== input.preferences && _io4(input.preferences));
   const _io1 = (input: any): boolean =>
     Array.isArray(input.locations) && input.locations.every((elem: any) => 'string' === typeof elem)
+    && (undefined === input.autoSortFavorites || 'boolean' === typeof input.autoSortFavorites)
     && (undefined === input.thumbWidth || 'number' === typeof input.thumbWidth)
     && (undefined === input.thumbHeight || 'number' === typeof input.thumbHeight)
     && (undefined === input.sortBy || 'date' === input.sortBy || 'name' === input.sortBy || 'size' === input.sortBy)
