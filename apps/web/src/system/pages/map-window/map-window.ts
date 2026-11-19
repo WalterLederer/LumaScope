@@ -70,9 +70,9 @@ interface RouteCalculationResult {
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
-interface GpxTrackSettingsDraft { colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionArrowOutlineWidthPx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }
+interface GpxTrackSettingsDraft { colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'viridis' | 'plasma' | 'inferno' | 'terrain' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionArrowOutlineWidthPx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }
 interface GpxTrackSettingsFavorite { name: string; settings: GpxTrackSettingsDraft; }
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed' | 'elevation'; speedPalette?: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1?: string; customColor2?: string; customColor3?: string; speedMinKmh?: number; speedMaxKmh?: number; elevationMinM?: number; elevationMaxM?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed' | 'elevation'; speedPalette?: 'spectrum' | 'cool-warm' | 'viridis' | 'plasma' | 'inferno' | 'terrain' | 'custom-2' | 'custom-3'; customColor1?: string; customColor2?: string; customColor3?: string; speedMinKmh?: number; speedMaxKmh?: number; elevationMinM?: number; elevationMaxM?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface RenderTimingSummary {
   count: number;
@@ -431,7 +431,7 @@ interface MapErrorEntry {
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
               <label>Color<select [value]="gpxTrackSettingsDraft().color.toLowerCase()" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value.toLowerCase()" [selected]="color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> } @if (!gpxTrackSettingsColors.some(color => color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase())) { <option [value]="gpxTrackSettingsDraft().color.toLowerCase()" selected>■ {{ gpxTrackSettingsDraft().color.toLowerCase() === '#ff3b30' ? 'Orange' : 'Custom' }} ({{ gpxTrackSettingsDraft().color }})</option> }</select></label>
             } @else if (gpxTrackSettingsDraft().colorMode === 'speed') {
-              <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
+              <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="viridis">Viridis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="terrain">Terrain</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
               @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
                 <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
                 <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
@@ -444,7 +444,7 @@ interface MapErrorEntry {
               <label>Minimum speed (km/h)<input type="number" min="0" max="299" [value]="gpxTrackSettingsDraft().speedMinKmh" (change)="updateGpxTrackSettingsDraft({ speedMinKmh: +$any($event.target).value })"></label>
               <label>Maximum speed (km/h)<input type="number" min="1" max="300" [value]="gpxTrackSettingsDraft().speedMaxKmh" (change)="updateGpxTrackSettingsDraft({ speedMaxKmh: +$any($event.target).value })"></label>
             } @else {
-              <label>Elevation palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
+              <label>Elevation palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="viridis">Viridis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="terrain">Terrain</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
               @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
                 <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
                 <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
@@ -2492,9 +2492,14 @@ export class MapWindow implements OnInit, OnDestroy {
     ? [{ offset: '0%', color: track.customColor1 || '#2878ff' }, { offset: '100%', color: track.customColor3 || '#f04444' }]
     : track.speedPalette === 'custom-3'
       ? [{ offset: '0%', color: track.customColor1 || '#2878ff' }, { offset: '50%', color: track.customColor2 || '#18c99a' }, { offset: '100%', color: track.customColor3 || '#f04444' }]
-      : track.speedPalette === 'cool-warm'
-        ? [{ offset: '0%', color: '#2573be' }, { offset: '50%', color: '#46beaa' }, { offset: '100%', color: '#dc4637' }]
-        : [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }];
+      : ({
+          'cool-warm': [{ offset: '0%', color: '#2573be' }, { offset: '50%', color: '#46beaa' }, { offset: '100%', color: '#dc4637' }],
+          viridis: [{ offset: '0%', color: '#440154' }, { offset: '25%', color: '#3b528b' }, { offset: '50%', color: '#21918c' }, { offset: '75%', color: '#5ec962' }, { offset: '100%', color: '#fde725' }],
+          plasma: [{ offset: '0%', color: '#0d0887' }, { offset: '25%', color: '#7e03a8' }, { offset: '50%', color: '#cc4778' }, { offset: '75%', color: '#f89540' }, { offset: '100%', color: '#f0f921' }],
+          inferno: [{ offset: '0%', color: '#000004' }, { offset: '25%', color: '#57106e' }, { offset: '50%', color: '#bc3754' }, { offset: '75%', color: '#f98e09' }, { offset: '100%', color: '#fcffa4' }],
+          terrain: [{ offset: '0%', color: '#183a8f' }, { offset: '25%', color: '#27a9c2' }, { offset: '50%', color: '#4caf50' }, { offset: '75%', color: '#d8c66a' }, { offset: '100%', color: '#8c4b2d' }],
+          spectrum: [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]
+        } as Record<string, Array<{ offset: string; color: string }>>)[track.speedPalette ?? 'spectrum'] ?? [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]);
   protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
@@ -2589,7 +2594,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateGpxTrackSettingsDraft({ showDirection: style !== 'off', ...(style === 'off' ? {} : { directionStyle: style }) });
     (event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
   };
-  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionArrowOutlineWidthPx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
+  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'viridis' | 'plasma' | 'inferno' | 'terrain' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionArrowOutlineWidthPx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
   protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
   protected readonly applyGpxTrackSettingsFavorite = (name: string): void => {
     this.gpxTrackSettingsFavoriteSelection.set(name);
@@ -6730,7 +6735,7 @@ export class MapWindow implements OnInit, OnDestroy {
       active: track.active !== false,
       color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(),
       colorMode: track.colorMode === 'speed' || track.colorMode === 'elevation' ? track.colorMode : 'fixed',
-      speedPalette: track.speedPalette === 'cool-warm' ? 'cool-warm' : 'spectrum',
+      speedPalette: ['cool-warm', 'viridis', 'plasma', 'inferno', 'terrain', 'custom-2', 'custom-3'].includes(track.speedPalette ?? '') ? track.speedPalette : 'spectrum',
       speedMinKmh: Number.isFinite(track.speedMinKmh) ? Math.max(0, Math.min(299, track.speedMinKmh!)) : 0,
       speedMaxKmh: Number.isFinite(track.speedMaxKmh) ? Math.max(1, Math.min(300, track.speedMaxKmh!)) : 120,
       elevationMinM: Number.isFinite(track.elevationMinM) ? Math.max(-12000, Math.min(100000, track.elevationMinM!)) : 0,
@@ -8428,9 +8433,14 @@ ${points}
     };
     const stops: Array<[number, number, number, number]> = customStops
       ? customStops.map(([position, color]) => [position, ...parseHex(color)])
-      : track.speedPalette === 'cool-warm'
-        ? [[0, 37, 115, 190], [0.5, 70, 190, 170], [1, 220, 70, 55]]
-        : [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]];
+      : ({
+          'cool-warm': [[0, 37, 115, 190], [0.5, 70, 190, 170], [1, 220, 70, 55]],
+          viridis: [[0, 68, 1, 84], [0.25, 59, 82, 139], [0.5, 33, 145, 140], [0.75, 94, 201, 98], [1, 253, 231, 37]],
+          plasma: [[0, 13, 8, 135], [0.25, 126, 3, 168], [0.5, 204, 71, 120], [0.75, 248, 149, 64], [1, 240, 249, 33]],
+          inferno: [[0, 0, 0, 4], [0.25, 87, 16, 110], [0.5, 188, 55, 84], [0.75, 249, 142, 9], [1, 252, 255, 164]],
+          terrain: [[0, 24, 58, 143], [0.25, 39, 169, 194], [0.5, 76, 175, 80], [0.75, 216, 198, 106], [1, 140, 75, 45]],
+          spectrum: [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]]
+        } as Record<string, Array<[number, number, number, number]>>)[track.speedPalette ?? 'spectrum'] ?? [[0, 40, 90, 220], [0.25, 0, 190, 220], [0.5, 40, 190, 90], [0.75, 255, 210, 0], [1, 235, 45, 35]];
     let lower = stops[0]!, upper = stops[stops.length - 1]!;
     for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { lower = stops[i - 1]; upper = stops[i]; break; }
     const fraction = (t - lower[0]) / Math.max(0.0001, upper[0] - lower[0]);
