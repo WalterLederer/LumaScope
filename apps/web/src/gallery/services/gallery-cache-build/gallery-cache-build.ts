@@ -30,6 +30,23 @@ export class GalleryCacheBuild {
   private readonly pendingController = signal<GalleryCacheBuildController | null>(null);
   private readonly retiredController = signal(false);
   private readonly activity = signal<GalleryCacheBuildActivity | null>(null);
+  private readonly pendingStarts: Array<{ directory: string; importGpx: boolean }> = [];
+  private activeDirectory: string | null = null;
+
+  private readonly normalizeDirectory = (directory: string): string =>
+    directory.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+
+  private readonly executeBuild = async (
+    controller: GalleryCacheBuildController,
+    request: { directory: string; importGpx: boolean }
+  ): Promise<void> => {
+    this.activeDirectory = request.directory;
+    try {
+      await controller.start(request.directory, request.importGpx);
+    } finally {
+      if (this.activeDirectory === request.directory) this.activeDirectory = null;
+    }
+  };
 
   private readonly readVerifyCacheFiles = (): boolean => {
     try { return this.document.defaultView?.localStorage.getItem('verifyCacheFiles') === 'true'; }
@@ -62,17 +79,24 @@ export class GalleryCacheBuild {
     // then hand control to the currently mounted Gallery instance.
     effect(() => {
       const current = this.controller();
-      if (!current || current.cacheRunActive()) return;
+      if (!current || this.cacheRunActive()) return;
 
       const pending = this.pendingController();
       if (pending) {
         this.controller.set(pending);
         this.pendingController.set(null);
         this.retiredController.set(false);
-      } else if (this.retiredController()) {
+      } else if (this.retiredController() && this.pendingStarts.length === 0) {
         this.controller.set(null);
         this.retiredController.set(false);
       }
+
+      const ready = this.controller();
+      if (!ready || this.cacheRunActive() || this.pendingStarts.length === 0) return;
+      const next = this.pendingStarts.shift()!;
+      void this.executeBuild(ready, next).catch(error =>
+        console.error('Queued favorite-folder cache build failed', next.directory, error)
+      );
     });
   }
 
@@ -85,10 +109,21 @@ export class GalleryCacheBuild {
   readonly startCacheBuild = async (directory: string, importGpx = true): Promise<void> => {
     const controller = this.controller();
     if (!controller) throw new Error('The Cache folder action is not available. Please try again from the Cache tab.');
-    await controller.start(directory, importGpx);
+
+    const normalizedDirectory = this.normalizeDirectory(directory);
+    if (this.activeDirectory && this.normalizeDirectory(this.activeDirectory) === normalizedDirectory) return;
+    if (this.pendingStarts.some(item => this.normalizeDirectory(item.directory) === normalizedDirectory)) return;
+
+    if (this.cacheRunActive()) {
+      this.pendingStarts.push({ directory, importGpx });
+      return;
+    }
+
+    await this.executeBuild(controller, { directory, importGpx });
   };
   readonly startRecursiveCacheBuild = (directory: string, importGpx: boolean): void => this.controller()?.startRecursive(directory, importGpx);
   readonly cancelCacheBuild = (): void => {
+    this.pendingStarts.length = 0;
     const activity = this.activity();
     if (activity?.active()) activity.cancel();
     else this.controller()?.cancel();
