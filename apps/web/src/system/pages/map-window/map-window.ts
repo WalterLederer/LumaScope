@@ -424,16 +424,17 @@ interface MapErrorEntry {
         <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation()">
           <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
           <div class="gpx-track-settings-grid">
+            <div class="gpx-track-settings-divider" role="separator"></div>
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option></select></label>
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
-              <label>Color<select [value]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              <label>Color<select [value]="gpxTrackSettingsDraft().color" [style.color]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
             } @else {
               <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option></select></label>
               <label>Minimum speed (km/h)<input type="number" min="0" max="299" [value]="gpxTrackSettingsDraft().speedMinKmh" (change)="updateGpxTrackSettingsDraft({ speedMinKmh: +$any($event.target).value })"></label>
               <label>Maximum speed (km/h)<input type="number" min="1" max="300" [value]="gpxTrackSettingsDraft().speedMaxKmh" (change)="updateGpxTrackSettingsDraft({ speedMaxKmh: +$any($event.target).value })"></label>
             }
             <div class="gpx-track-settings-divider" role="separator"></div>
-            <label>Line style<select [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="long-dashed">Long dash</option><option value="short-dashed">Short dash</option><option value="dash-dot">Dash-dot</option><option value="dash-dot-dot">Dash-dot-dot</option></select></label>
+            <label>Line style<select class="gpx-line-style-select" [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">━━━━━━ Solid</option><option value="dashed">━ ━ ━ Dashed</option><option value="dotted">· · · · Dotted</option><option value="long-dashed">━━━━ ━ Long dash</option><option value="short-dashed">━ ━ Short dash</option><option value="dash-dot">━ · ━ · Dash-dot</option><option value="dash-dot-dot">━ · · ━ Dash-dot-dot</option></select></label>
             <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
             <label>Direction arrows<select [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">Off</option><option value="classic">➤ Classic</option><option value="chevron">❯ Chevron</option><option value="triangle">▶ Triangle</option><option value="thin">➜ Thin</option><option value="large-classic">➤ Large classic</option><option value="large-chevron">❯ Large chevron</option><option value="large-triangle">▶ Large triangle</option></select></label>
           </div>
@@ -2721,9 +2722,16 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors = [
-    { name: 'Red', value: '#ff3b30', textColor: '#ffffff' }, { name: 'Orange', value: '#ff9500', textColor: '#171717' },
-    { name: 'Yellow', value: '#ffd60a', textColor: '#171717' }, { name: 'Green', value: '#34c759', textColor: '#102014' },
-    { name: 'Blue', value: '#0a84ff', textColor: '#ffffff' }, { name: 'Magenta', value: '#bf5af2', textColor: '#ffffff' }
+    { name: 'Red', value: '#ff3b30' }, { name: 'Orange', value: '#ff9500' },
+    { name: 'Amber', value: '#ffb000' }, { name: 'Yellow', value: '#ffd60a' },
+    { name: 'Lime', value: '#a8d600' }, { name: 'Green', value: '#34c759' },
+    { name: 'Forest green', value: '#16834a' }, { name: 'Teal', value: '#30b7a5' },
+    { name: 'Cyan', value: '#32c7e8' }, { name: 'Sky blue', value: '#64aaf5' },
+    { name: 'Blue', value: '#0a84ff' }, { name: 'Navy', value: '#244a9b' },
+    { name: 'Purple', value: '#8e5bd9' }, { name: 'Magenta', value: '#bf5af2' },
+    { name: 'Pink', value: '#ff6fae' }, { name: 'Brown', value: '#9b6544' },
+    { name: 'Gray', value: '#8e8e93' }, { name: 'White', value: '#ffffff' },
+    { name: 'Black', value: '#171717' }
   ] as const;
 
   @HostListener('document:mousemove', ['$event'])
