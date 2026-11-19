@@ -98,7 +98,7 @@
   grid-template-columns: subgrid;
   align-items: stretch;
   gap: 0;
-  padding: 7px 0;
+  padding: 0;
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
   color: var(--color-content-default-medium);
   font-size: 14px;
@@ -112,8 +112,8 @@
     min-width: 0;
     box-sizing: border-box;
     border-left: 0;
-    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
-    padding-left: 12px;
+    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%))) !important;
+    padding: 7px 0 7px 12px;
   }
 
   .thumb-column-heading {
