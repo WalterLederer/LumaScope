@@ -42,6 +42,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly exportGpxFileFromDatabase = (sourcePath: string, databaseKey?: string) =>
     window.desktop.CacheManager.exportGpxFileFromDatabase(sourcePath, databaseKey);
 
+  readonly exportGpxTrackFromMemory = (trackName: string, segments: Array<Array<{ latitude: number; longitude: number; elevation: number | null; timestamp: string | null }>>) =>
+    window.desktop.CacheManager.exportGpxTrackFromMemory(trackName, segments);
+
   readonly getGpxDatabaseStats = (databaseKey?: string) => window.desktop.CacheManager.getGpxDatabaseStats(databaseKey);
 
   readonly clearAllGpxDatabaseEntries = () => window.desktop.CacheManager.clearAllGpxDatabaseEntries();
