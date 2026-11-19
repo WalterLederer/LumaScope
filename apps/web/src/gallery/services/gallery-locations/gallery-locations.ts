@@ -34,6 +34,25 @@ export class GalleryLocations {
       )
       .subscribe(this.updateLocations);
 
+  readonly moveLocation = (location: string, direction: 'up' | 'down') =>
+    this.locations$
+      .pipe(take(1))
+      .subscribe(locations => {
+        const reordered = [...locations];
+        const index = reordered.indexOf(location);
+        const targetIndex = index + (direction === 'up' ? -1 : 1);
+        if (index < 0 || targetIndex < 0 || targetIndex >= reordered.length) return;
+        [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+        this.updateLocations(new Set(reordered));
+      });
+
+  readonly sortLocationsByPath = () =>
+    this.locations$
+      .pipe(take(1))
+      .subscribe(locations => this.updateLocations(new Set(
+        [...locations].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+      )));
+
   private readonly updateLocations = (locations: Set<string>) =>
     this.configuration.updateGalleryConfig({ locations: Array.from(locations) });
 }

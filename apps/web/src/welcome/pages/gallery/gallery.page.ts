@@ -252,6 +252,14 @@ export class GalleryPage {
     else void this.onRemoveLocation(node);
   };
 
+  protected readonly onMoveFavorite = (event: { node: TreeNode<string>; direction: 'up' | 'down' }): void => {
+    this.galleryLocations.moveLocation(event.node.id, event.direction);
+  };
+
+  protected readonly onSortFavoritesByPath = (): void => {
+    this.galleryLocations.sortLocationsByPath();
+  };
+
   protected readonly onAddLocation = async () => {
     this.galleryLocationError.set(null);
     const result = await this.dialogs.openFolder();

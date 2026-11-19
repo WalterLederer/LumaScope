@@ -14,10 +14,12 @@
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
                      [inlineActions]="true"
+                     [reorderActions]="true"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
                      (selected)="selectLocation($event)"
                      (action)="onTreeAction($event)"
+                     (move)="onMoveFavorite($event)"
                      (locationSelected)="locationSelected.emit()"
                      (hovered)="onTreeNodeHovered($event)" />
           }
@@ -46,10 +48,12 @@
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
                      [inlineActions]="true"
+                     [reorderActions]="true"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
                      (selected)="selectLocation($event)"
                      (action)="onTreeAction($event)"
+                     (move)="onMoveFavorite($event)"
                      (hovered)="onTreeNodeHovered($event)" />
           }
         </section>
@@ -81,6 +85,9 @@
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onAddLocation()">
         <ui-icon icon="folderAdd" [inherit]="true" />
         <ui-text [inherit]="true">Add</ui-text>
+      </button>
+      <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onSortFavoritesByPath()">
+        <ui-text [inherit]="true">Sort favorites by full path</ui-text>
       </button>
     } @else {
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onRemoveLocation(data)">

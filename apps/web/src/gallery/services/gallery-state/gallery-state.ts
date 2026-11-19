@@ -5,7 +5,7 @@ import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, 
 import { FileSystem } from '../../../ipc/file-system';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { GalleryLocations } from '../gallery-locations/gallery-locations';
-import { defaultSortMode, galleryRoot, SortMode, treeNode } from './gallery-state.types';
+import { defaultSortMode, formatCompactPath, galleryRoot, SortMode, treeNode } from './gallery-state.types';
 
 @Injectable({ providedIn: 'root' })
 export class GalleryState {
@@ -56,10 +56,13 @@ export class GalleryState {
       map(locations => {
         const root = galleryRoot();
         const selectedLocation = this.selectedLocation$.value ?? locations[0] ?? null;
-        root.children = locations.map(location => {
+        root.children = locations.map((location, index) => {
           const node = treeNode(location, false);
+          node.label = formatCompactPath(location);
+          node.title = location;
+          node.canMoveUp = index > 0;
+          node.canMoveDown = index < locations.length - 1;
           node.isSelected = location === selectedLocation;
-
           return node;
         });
 
