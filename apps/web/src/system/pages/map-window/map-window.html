@@ -1,0 +1,1542 @@
+    <main class="map-window" [class.light-theme]="themeService.current() === 'light'">
+      <header class="map-titlebar">
+        <button type="button" class="settings-toggle app-disclosure-heading" [class.active]="settingsOpen()" [class.expanded]="settingsOpen()" (click)="toggleSettings()"
+                [attr.aria-expanded]="settingsOpen()" title="Show or hide map settings" aria-label="Map settings">Settings</button>
+        <label class="always-on-top-setting titlebar-always-on-top" title="Keep the map window above the main window">
+          <input type="checkbox" [checked]="alwaysOnTop()" (change)="changeAlwaysOnTop($any($event.target).checked)">
+          <span>Always on top</span>
+        </label>
+        <div class="titlebar-mouse-coordinate" title="Current mouse position on the map">Mouse: {{ mouseCoordinateLabel() || '—' }}</div>
+        <div class="map-title"><span class="map-title-icon">⌖</span></div>
+        @if (overlayMode) {
+          <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
+        }
+      </header>
+      @if (settingsOpen()) {
+        <div class="map-settings" role="region" aria-label="Map settings">
+<nav class="settings-tabs image-sidebar-tabs" role="tablist" aria-label="Location settings">
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'location'" [attr.aria-selected]="activeSettingsTab() === 'location'" (click)="selectSettingsTab('location')">Location</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'fix'" [attr.aria-selected]="activeSettingsTab() === 'fix'" (click)="selectSettingsTab('fix')">Fix</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'track'" [attr.aria-selected]="activeSettingsTab() === 'track'" (click)="selectSettingsTab('track')">Track</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'routing'" [attr.aria-selected]="activeSettingsTab() === 'routing'" (click)="selectSettingsTab('routing')">Routing</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'timeSlider'" [attr.aria-selected]="activeSettingsTab() === 'timeSlider'" (click)="selectSettingsTab('timeSlider')">Time Slider</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'marker'" [attr.aria-selected]="activeSettingsTab() === 'marker'" (click)="selectSettingsTab('marker')">Images</button>
+  <button type="button" role="tab" class="settings-tab" [class.active]="activeSettingsTab() === 'view'" [attr.aria-selected]="activeSettingsTab() === 'view'" (click)="selectSettingsTab('view')">View</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group settings-tab-right-start" [class.active]="activeSettingsTab() === 'offlineMaps'" [attr.aria-selected]="activeSettingsTab() === 'offlineMaps'" [class.has-errors]="offlineMapTabErrorCount() > 0" [class.has-warning]="offlineMapTabErrorCount() === 0 && offlineMapHasUnselectedFiles()" (click)="selectSettingsTab('offlineMaps')">Offline@if (offlineMapTabErrorCount() > 0) { <span class="settings-tab-error-count">{{ offlineMapTabErrorCount() }}</span> } @else if (offlineMapHasUnselectedFiles()) { <span class="settings-tab-warning-count">{{ offlineMapUnselectedCount() }}</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'cache'" [attr.aria-selected]="activeSettingsTab() === 'cache'" (click)="selectSettingsTab('cache')">Cache</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'memory'" [attr.aria-selected]="activeSettingsTab() === 'memory'" (click)="selectSettingsTab('memory')">Memory</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
+  <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
+</nav>
+<div class="settings-tab-panels" (toggle)="onDisclosureStateToggle($event)">
+<div class="settings-tab-panel" data-settings-tab="location" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
+<div class="settings-tab-content location-tab">
+            
+            <div class="location-settings-content">
+              
+              <details class="offline-address-search app-disclosure">
+                <summary class="settings-row-title">Offline address search</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
+                <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
+                  <div class="location-actions">
+                    <input id="offline-address-query" type="search" [value]="offlineAddressQuery()" (input)="offlineAddressQuery.set($any($event.target).value)"
+                           placeholder="Street, house number, city or postcode…" autocomplete="off">
+                    <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
+                      {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
+                    </button>
+                   </div>
+                  @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
+                  @if (offlineAddressSearchResults().length > 0) {
+                    <div class="offline-address-results"><table aria-label="Offline address search results">
+                      <thead><tr><th scope="col">Address</th><th scope="col">Coordinates</th></tr></thead>
+                      <tbody>
+                        @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
+                          <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
+                            <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
+                            <td class="offline-address-result-coordinates">{{ formatGpsCoordinates(result.latitude, result.longitude) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table></div>
+                  }
+                  <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
+                </form>
+              </details>
+              <details class="location-tools-section app-disclosure">
+                <summary class="settings-row-title">Location tools</summary>
+                <div class="location-tools-content">
+                  <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
+                  <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
+                  <div class="address-settings">
+                    <span class="settings-row-title">Address:</span>
+                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
+                  </div>
+                  <div class="location-actions">
+                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
+                    <label>Open location in
+                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                        <option value="">Select web app…</option>
+                        <option value="google-earth">Google Earth</option>
+                        <option value="google-maps">Google Maps</option>
+                        <option value="bing-maps">Bing Maps</option>
+                        <option value="openstreetmap">OpenStreetMap</option>
+                        <option value="apple-maps">Apple Maps</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="marker-current-appearance-settings">
+                <span>Location Icon:</span>
+                <label>Shape
+                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                  </select>
+                </label>
+                <label>Color</label>
+                <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                    <span>{{ selectedCurrentMarkerColorName() }}</span>
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (currentMarkerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                  </div>
+                </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+</div>
+<div class="settings-tab-panel" data-settings-tab="fix" role="tabpanel" [hidden]="activeSettingsTab() !== 'fix'">
+  <div class="settings-tab-content location-tab">
+    <div class="location-settings-content">
+<details class="fix-location-automatic-section app-disclosure">
+                <summary class="settings-row-title">Fix location AUTOMATIC</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixAutomaticHelp()" title="Open automatic photo location correction help" aria-label="Open automatic photo location correction help"><span aria-hidden="true">?</span></button>
+                <div class="fix-location-step-title">STEP 1 - Add GPX to search</div>
+                <app-gpx-database-import [databaseKey]="currentImageDatabaseKey" [databaseKeys]="favoriteGpxDatabaseKeys()" [databaseKeysReady]="favoriteGpxDatabaseKeysReady()" (help)="openGpxCacheHelp()" />
+                <div class="fix-location-step-title">STEP 2 - Add GPS info from GPX to photos</div>
+                <div class="location-actions fix-location-automatic-actions">
+                  <button type="button" class="offline-map-add-button" (click)="fixLocationAutomatic()" [disabled]="autoFixBusy()">{{ autoFixBusy() ? 'Processing…' : 'Select folder with photos to fix...' }}</button>
+                  <div class="time-slider-control-card fix-location-check-only-panel"><label class="fix-location-check-only"><input type="checkbox" [checked]="autoFixCheckOnly()" (change)="autoFixCheckOnly.set($any($event.target).checked)"> Check only</label></div>
+                  <div class="time-slider-control-card fix-location-check-only-panel fix-location-max-difference-panel"><label class="fix-location-max-difference">Maximum time difference (minutes) <input type="number" min="0" max="1440" step="0.5" [value]="autoFixMaxDifferenceMinutes()" (input)="setAutoFixMaxDifference($any($event.target).value)"></label></div>
+                  <div class="fix-location-log-actions">
+                    <button type="button" class="file-row-menu-trigger" (click)="autoFixLogMenuOpen.set(!autoFixLogMenuOpen()); $event.stopPropagation()"
+                            [attr.aria-expanded]="autoFixLogMenuOpen()" aria-haspopup="menu" aria-label="GPS Auto Fix log actions" title="Log actions">☰</button>
+                    @if (autoFixLogMenuOpen()) {
+                      <div class="fix-location-log-menu" role="menu" (click)="$event.stopPropagation()">
+                        <button type="button" role="menuitem" (click)="openAutoFixLogFile(); autoFixLogMenuOpen.set(false)">Open log file</button>
+                        <button type="button" role="menuitem" (click)="openAutoFixLogFolder(); autoFixLogMenuOpen.set(false)">Open log folder</button>
+                      </div>
+                    }
+                  </div>
+                  @if (autoFixOperationActive()) { <button type="button" class="map-toolbar-button fix-location-abort-button" (click)="abortAutomaticLocationFix()">Abort</button> }
+                  @if (autoFixStatus()) { <div class="offline-map-status fix-location-automatic-status" role="status">{{ autoFixStatus() }}</div> }
+                 </div>
+                @if (autoFixStatus()) {
+                  @if (autoFixOperationActive()) {
+                    <div class="fix-location-progress-track" role="progressbar"
+                      [attr.aria-valuenow]="autoFixProgressPercent()" aria-valuemin="0" aria-valuemax="100"
+                      [attr.aria-label]="autoFixProgress().scanned + ' of ' + autoFixProgress().total + ' photos checked'">
+                      <div class="fix-location-progress-fill" [style.width.%]="autoFixProgressPercent()"></div>
+                    </div>
+                    <div class="fix-location-progress-count">{{ formatAutoFixCount(autoFixProgress().scanned) }} / {{ formatAutoFixCount(autoFixProgress().total) }} photos checked</div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos without GPS found: {{ formatAutoFixCount(autoFixProgress().withoutGps) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().withoutGps)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos without GPS found">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().withoutGps)"></div>
+                      </div>
+                    </div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos with GPS found: {{ formatAutoFixCount(autoFixProgress().withGps) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().withGps)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos with GPS found">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().withGps)"></div>
+                      </div>
+                    </div>
+                    <div class="fix-location-counter">
+                      <div class="fix-location-counter-label">Photos without GPS that can be fixed: {{ formatAutoFixCount(autoFixProgress().matched) }} / {{ formatAutoFixCount(autoFixProgress().total) }}</div>
+                      <div class="fix-location-progress-track" role="progressbar" [attr.aria-valuenow]="autoFixCountPercent(autoFixProgress().matched)" aria-valuemin="0" aria-valuemax="100" aria-label="Photos without GPS that can be fixed">
+                        <div class="fix-location-progress-fill" [style.width.%]="autoFixCountPercent(autoFixProgress().matched)"></div>
+                      </div>
+                    </div>
+                    <div class="fix-location-current-folder">Current folder: {{ autoFixProgress().currentFolder === '.' ? 'Selected start folder' : autoFixProgress().currentFolder }}</div>
+                  }
+                }
+                @if (autoFixReport().length) {
+                  <div class="fix-location-report-wrap">
+                    <table class="fix-location-report">
+                      <tbody>
+                        @for (item of autoFixReport(); track item.label) {
+                          <tr [class.fix-location-report-row-matched]="item.label === 'Photos matched to GPX within the time limit' && item.value !== '0'"><th scope="row">{{ item.label }}</th><td>{{ item.value }}</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+                <div class="fix-location-help offline-map-status">GPS availability here refers to coordinates embedded in the photo files themselves (EXIF/XMP), not GPS records in the LumaScope cache database. Photos whose files already contain GPS coordinates are counted separately and skipped. A GPX match requires track points before and after the photo time in the same track segment. “No usable GPX match” means no such pair was found within the search window. “Rejected by the time limit” counts candidates that were found but whose nearest track point was farther away than the configured maximum time difference. Check only reports results without writing to files. EXIF timestamps without an explicit timezone are interpreted in the computer's local timezone.</div>
+              </details>
+              <details class="fix-location-section app-disclosure" [open]="fixLocationSectionOpen()" (toggle)="fixLocationSectionOpen.set($any($event.target).open)">
+                <summary class="settings-row-title">Fix location MANUAL</summary>
+                <button type="button" class="routing-help-button location-section-help" (click)="openLocationFixManualHelp()" title="Open manual photo location correction help" aria-label="Open manual photo location correction help"><span aria-hidden="true">?</span></button>
+                <div class="fix-location-layout">
+                  <div class="fix-location-controls">
+                    <div class="fix-location-crosshair-row"><div class="time-slider-control-card fix-location-check-only-panel fix-location-crosshair-panel"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show crosshair address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span> </div>
+                    <div class="location-actions">
+                      <button type="button" class="map-toolbar-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
+                      @if (gpsSaveStatus()) { <span class="offline-map-status" role="status">{{ gpsSaveStatus() }}</span> }
+                    </div>
+                      </div>
+                  <div class="fix-photo-preview">
+                    @if (currentImagePreview()) {
+                      <img [src]="currentImagePreview()" [alt]="currentImageName()" />
+                    } @else {
+                      <div class="fix-photo-preview-empty">Photo preview unavailable</div>
+                    }
+                    <div class="fix-photo-preview-info">
+                      <strong>{{ currentImageName() || 'No photo selected' }}</strong>
+                      <span>{{ coordinatesAvailable() ? 'GPS coordinates already available' : 'No GPS coordinates in this photo' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fix-location-help offline-map-status">The currently selected map source is used. Move the map until the crosshair marks the photo location, then save the GPS position to the image file.</div>
+              </details>
+    </div>
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="track" role="tabpanel" [hidden]="activeSettingsTab() !== 'track'">
+<div class="settings-tab-content track-tab">
+  <div class="gpx-settings-content">
+    <div class="gpx-toolbar">
+      <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
+      <label class="gpx-db-mode-toggle" title="Use GPX files stored in the cache database that intersect the current map viewport">
+        <input type="checkbox" [checked]="gpxListMode() === 'database'" (change)="$any($event.target).checked ? showGpxFilesVisibleOnMap() : showRecentGpxFiles()" [disabled]="gpxDatabaseQueryBusy()">
+        Use GPX files from DB
+      </label>
+      @if (gpxListMode() === 'database') {
+        <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
+        <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
+      } @else {
+        <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+      }
+      @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
+      @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
+      @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
+      <button type="button" class="routing-help-button gpx-toolbar-help" (click)="openTrackTabHelp()" title="Open track tab help" aria-label="Open track tab help"><span aria-hidden="true">?</span></button>
+    </div>
+    @if (gpxDatabaseVisibleTracks().length > 0) {
+      <div class="gpx-database-table" aria-label="GPX tracks">
+        <table class="gpx-database-native-table">
+          <colgroup>
+            <col [style.width.px]="gpxDatabaseColumnWidths()['active']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['name']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['points']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['modified']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['time']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['size']">
+            <col [style.width.px]="gpxDatabaseColumnWidths()['path']">
+            <col style="width:250px">
+            <col style="width:74px">
+          </colgroup>
+          <thead>
+            <tr class="gpx-database-header">
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('active')">Active {{ gpxDatabaseSortIndicator('active') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('name')">File {{ gpxDatabaseSortIndicator('name') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('points')">Points {{ gpxDatabaseSortIndicator('points') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('modified')">Date {{ gpxDatabaseSortIndicator('modified') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('time')">Track time {{ gpxDatabaseSortIndicator('time') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('size')">Size {{ gpxDatabaseSortIndicator('size') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col"><button type="button" class="gpx-db-sort-button" (click)="sortGpxDatabase('path')">Path {{ gpxDatabaseSortIndicator('path') }}</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col">Track preview</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="gpx-database-file-list">
+            @for (track of gpxDatabaseVisibleTracks(); track track.path) {
+              <tr class="gpx-file-row gpx-database-file-row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path">
+                <td class="gpx-active-toggle" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></td>
+                <td class="gpx-file-name" [title]="track.databasePath || track.path">{{ track.name }}</td>
+                <td class="gpx-waypoint-count">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</td>
+                <td>{{ track.missing || track.readError ? (track.missing ? 'Missing' : 'Read error') : formatGpxDate(track.lastModified) }}</td>
+                <td class="gpx-time-range" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</td>
+                <td>{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</td>
+                <td class="gpx-file-name" [title]="gpxTrackDirectoryPath(track)">{{ gpxTrackDirectoryPath(track) }}</td>
+                <td class="gpx-track-preview-cell"><app-gpx-track-preview [track]="track" variant="list" /></td>
+                <td class="gpx-row-actions">
+                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
+                  <button type="button" class="file-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (gpxRowActionTrack(); as actionTrack) {
+          <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
+               [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+            <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
+            @if (gpxListMode() === 'recent') {
+              <button type="button" role="menuitem" (click)="exportGpxFromMemory(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from memory</button>
+            }
+            @if (!actionTrack.path.startsWith('memory:')) {
+              <button type="button" role="menuitem" (click)="exportGpxFromDatabase(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from db</button>
+            }
+            <button type="button" role="menuitem" class="gpx-row-action-delete-all"
+                    (click)="deleteGpxDatabaseRecordsForFile(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"
+                    [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">⌫</span> Delete all db records for this file</button>
+            @if (gpxListMode() === 'recent') {
+              <button type="button" role="menuitem" (click)="openGpxTrack(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="actionTrack.missing || actionTrack.path.startsWith('memory:')"><span aria-hidden="true">↗</span> Open in GPX editor</button>
+              <button type="button" role="menuitem" (click)="removeGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">×</span> Remove track</button>
+            }
+            <button type="button" role="menuitem" (click)="copyFilePath(actionTrack.databasePath || actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⧉</span> Copy full file path</button>
+            @if (gpxListMode() === 'recent') {
+              <div class="gpx-row-action-menu-separator" role="separator"></div>
+              <button type="button" role="menuitem" (click)="selectAllGpxTracks(); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="gpxTracks().length === 0"><span aria-hidden="true">☑</span> Select all</button>
+              <button type="button" role="menuitem" (click)="deselectAllGpxTracks(); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="gpxTracks().length === 0"><span aria-hidden="true">□</span> Deselect all</button>
+              <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteAllGpxTracks(); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="gpxTracks().length === 0"><span aria-hidden="true">⌫</span> Delete All</button>
+            }
+          </div>
+        }
+      </div>
+    } @else if (gpxListMode() === 'database') {
+      <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
+    } @else {
+      <div class="gpx-database-empty">No GPX tracks are loaded.</div>
+    }
+    @if (gpxTrackSettingsTrack(); as settingsTrack) {
+      <div class="gpx-track-settings-backdrop" role="presentation" (click)="cancelGpxTrackSettings()">
+        <section class="gpx-track-settings-dialog" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="'Track Settings: ' + settingsTrack.name" (click)="$event.stopPropagation(); onGpxTrackSettingsDialogClick($event)">
+          <header><strong>Track Settings</strong><span>{{ settingsTrack.name }}</span></header>
+          <app-gpx-track-preview [track]="gpxSettingsPreviewTrack(settingsTrack)" variant="settings" />
+          <section class="gpx-track-settings-grid">
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().favorites" (toggle)="onGpxTrackSettingsSectionToggle('favorites', $event)">
+              <summary>Favorites</summary>
+              <div class="gpx-track-settings-section-grid">
+                <label>Settings favorites<select [value]="gpxTrackSettingsFavoriteSelection()" (change)="applyGpxTrackSettingsFavorite($any($event.target).value)"><option value="">Select favorite…</option>@for (favorite of gpxTrackSettingsFavorites(); track favorite.name) { <option [value]="favorite.name">{{ favorite.name }}</option> }</select></label>
+                <div class="gpx-track-settings-favorite-add"><input type="text" maxlength="60" placeholder="Favorite name" [value]="gpxTrackSettingsFavoriteName()" (input)="gpxTrackSettingsFavoriteName.set($any($event.target).value)"><button type="button" (click)="addGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteName().trim()">Add settings to favorites</button><button type="button" class="gpx-track-settings-favorite-remove" (click)="removeGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteSelection()">Remove favorite</button></div>
+              </div>
+            </details>
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().track" (toggle)="onGpxTrackSettingsSectionToggle('track', $event)">
+              <summary>Track</summary>
+              <div class="gpx-track-settings-section-grid">
+            <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
+            @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
+              <label>Color<select [value]="gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="gpxTrackSettingsDraft().color" (change)="updateGpxTrackSettingsDraft({ color: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value.toLowerCase()" [selected]="color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase()" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> } @if (!gpxTrackSettingsColors.some(color => color.value.toLowerCase() === gpxTrackSettingsDraft().color.toLowerCase())) { <option [value]="gpxTrackSettingsDraft().color.toLowerCase()" selected>■ {{ gpxTrackSettingsDraft().color.toLowerCase() === '#ff3b30' ? 'Orange' : 'Custom' }} ({{ gpxTrackSettingsDraft().color }})</option> }</select></label>
+            } @else if (gpxTrackSettingsDraft().colorMode === 'speed') {
+              <label>Speed palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="viridis">Viridis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="terrain">Terrain</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
+              @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
+                <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              }
+              @if (gpxTrackSettingsDraft().speedPalette === "custom-3") {
+                <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>Middle color<select [value]="gpxTrackSettingsDraft().customColor2" [style.color]="gpxTrackSettingsDraft().customColor2" (change)="updateGpxTrackSettingsDraft({ customColor2: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              }
+              <label>Minimum speed (km/h)<input type="number" min="0" max="299" [value]="gpxTrackSettingsDraft().speedMinKmh" (change)="updateGpxTrackSettingsDraft({ speedMinKmh: +$any($event.target).value })"></label>
+              <label>Maximum speed (km/h)<input type="number" min="1" max="300" [value]="gpxTrackSettingsDraft().speedMaxKmh" (change)="updateGpxTrackSettingsDraft({ speedMaxKmh: +$any($event.target).value })"></label>
+            } @else {
+              <label>Elevation palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="viridis">Viridis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="terrain">Terrain</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
+              @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
+                <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              }
+              @if (gpxTrackSettingsDraft().speedPalette === "custom-3") {
+                <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>Middle color<select [value]="gpxTrackSettingsDraft().customColor2" [style.color]="gpxTrackSettingsDraft().customColor2" (change)="updateGpxTrackSettingsDraft({ customColor2: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+                <label>End color<select [value]="gpxTrackSettingsDraft().customColor3" [style.color]="gpxTrackSettingsDraft().customColor3" (change)="updateGpxTrackSettingsDraft({ customColor3: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
+              }
+              <label>Minimum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMinM" (change)="updateGpxTrackSettingsDraft({ elevationMinM: +$any($event.target).value })"></label>
+              <label>Maximum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMaxM" (change)="updateGpxTrackSettingsDraft({ elevationMaxM: +$any($event.target).value })"></label>
+            }
+            <div class="gpx-track-settings-divider" role="separator"></div>
+            <div class="gpx-style-select-field" (click)="$event.stopPropagation()"><div class="gpx-style-select-heading"><span>Line style</span><svg class="gpx-style-select-preview" viewBox="0 0 64 16" aria-hidden="true"><line x1="2" y1="8" x2="62" y2="8" [attr.stroke]="gpxTrackSettingsDraft().color" [attr.stroke-width]="gpxTrackSettingsDraft().lineWidth" [attr.stroke-dasharray]="gpxPreviewDash(gpxTrackSettingsHoveredLineStyle() ?? gpxTrackSettingsDraft().lineStyle)" stroke-linecap="round" /></svg></div><button type="button" class="gpx-style-select-trigger" aria-haspopup="listbox" [attr.aria-expanded]="gpxTrackSettingsLineStyleMenuVisible()" (click)="gpxTrackSettingsDirectionMenuVisible.set(false); gpxTrackSettingsLineStyleMenuVisible.update(value => !value); gpxTrackSettingsHoveredLineStyle.set(null)">{{ gpxLineStyleLabel(gpxTrackSettingsDraft().lineStyle) }}<span aria-hidden="true">▾</span></button>@if (gpxTrackSettingsLineStyleMenuVisible()) { <div class="gpx-style-select-menu" role="listbox" aria-label="Line style" (mouseleave)="gpxTrackSettingsHoveredLineStyle.set(null)">@for (option of gpxTrackLineStyleOptions; track option.value) { <button type="button" role="option" [attr.aria-selected]="gpxTrackSettingsDraft().lineStyle === option.value" (mouseenter)="gpxTrackSettingsHoveredLineStyle.set(option.value)" (focus)="gpxTrackSettingsHoveredLineStyle.set(option.value)" (click)="selectGpxTrackLineStyle(option.value)">{{ option.label }}</button> }</div> }</div>
+            <label class="gpx-direction-density-control"><span>Line width</span><strong>{{ gpxTrackSettingsDraft().lineWidth }} px</strong><ui-slider [min]="1" [max]="10" [step]="1" [value]="gpxTrackSettingsDraft().lineWidth" (valueChange)="updateGpxTrackSettingsDraft({ lineWidth: $event })" [color]="themeService.sliderColor()" aria-label="Track line width" /></label>
+            <label class="gpx-direction-density-control"><span>Track outline strength</span><strong>{{ gpxTrackSettingsDraft().trackOutlineStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().trackOutlineStrength" (valueChange)="updateGpxTrackSettingsDraft({ trackOutlineStrength: $event })" [color]="themeService.sliderColor()" aria-label="Track outline strength" /></label>
+            <label class="gpx-direction-density-control"><span>Track shadow strength</span><strong>{{ gpxTrackSettingsDraft().trackShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().trackShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ trackShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Track shadow strength" /></label>
+              </div>
+            </details>
+            <details class="gpx-track-settings-section" [open]="gpxTrackSettingsSections().arrows" (toggle)="onGpxTrackSettingsSectionToggle('arrows', $event)">
+              <summary>Arrows</summary>
+              <div class="gpx-track-settings-section-grid">
+            <div class="gpx-style-select-field" (click)="$event.stopPropagation()">@let previewDirection = gpxTrackSettingsHoveredDirection() ?? (gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off');<div class="gpx-style-select-heading"><span>Direction arrow</span><span class="gpx-style-select-arrow-preview" [style.color]="gpxTrackSettingsDraft().color" [style.font-size]="gpxTrackSettingsDraft().directionArrowSizePx + 'px'">{{ previewDirection === 'off' ? '—' : gpxDirectionGlyph(previewDirection) }}</span></div><button type="button" class="gpx-style-select-trigger" aria-haspopup="listbox" [attr.aria-expanded]="gpxTrackSettingsDirectionMenuVisible()" (click)="gpxTrackSettingsLineStyleMenuVisible.set(false); gpxTrackSettingsDirectionMenuVisible.update(value => !value); gpxTrackSettingsHoveredDirection.set(null)">{{ gpxDirectionStyleLabel(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') }}<span aria-hidden="true">▾</span></button>@if (gpxTrackSettingsDirectionMenuVisible()) { <div class="gpx-style-select-menu" role="listbox" aria-label="Direction arrow" (mouseleave)="gpxTrackSettingsHoveredDirection.set(null)">@for (option of gpxTrackDirectionStyleOptions; track option.value) { <button type="button" role="option" [attr.aria-selected]="(gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off') === option.value" (mouseenter)="gpxTrackSettingsHoveredDirection.set(option.value)" (focus)="gpxTrackSettingsHoveredDirection.set(option.value)" (click)="selectGpxTrackDirection(option.value)">{{ option.label }}</button> }</div> }</div>
+            <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="20" [max]="200" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
+            <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
+            <label class="gpx-direction-density-control"><span>Arrow outline width</span><strong>{{ gpxTrackSettingsDraft().directionArrowOutlineWidthPx }} px</strong><ui-slider [min]="0" [max]="6" [step]="0.5" [value]="gpxTrackSettingsDraft().directionArrowOutlineWidthPx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowOutlineWidthPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow outline width" /></label>
+            <label class="gpx-direction-density-control"><span>Arrow shadow strength</span><strong>{{ gpxTrackSettingsDraft().arrowShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().arrowShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ arrowShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Arrow shadow strength" /></label>
+              </div>
+            </details>
+          </section>
+          <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button></footer>
+        </section>
+      </div>
+    }
+    <details class="gpx-elevation-profile-section app-disclosure">
+      <summary>Elevation Profile</summary>
+      @if (latestGpxElevationProfileBusy()) {
+        <span class="offline-map-status">Loading the latest GPX elevation profile…</span>
+      } @else if (gpxElevationProfiles().length > 0) {
+        @if (gpxElevationChart(); as chart) {
+          <div class="gpx-elevation-profile-info">
+            <strong>{{ gpxElevationProfiles().length }} active GPX track(s)</strong>
+            <span>Combined elevation range: {{ chart.minLabel }}–{{ chart.maxLabel }} m · Shared time axis</span>
+          </div>
+          <svg class="gpx-elevation-chart" viewBox="0 0 900 270" role="img" [attr.aria-label]="'Elevation profiles for ' + gpxElevationProfiles().length + ' active GPX tracks, from ' + chart.startLabel + ' to ' + chart.endLabel">
+            <line class="gpx-elevation-axis" x1="70" y1="18" x2="70" y2="218" />
+            <line class="gpx-elevation-axis" x1="70" y1="218" x2="880" y2="218" />
+            <line class="gpx-elevation-grid" x1="70" y1="18" x2="880" y2="18" />
+            <line class="gpx-elevation-grid" x1="70" y1="118" x2="880" y2="118" />
+            <line class="gpx-elevation-grid" x1="70" y1="218" x2="880" y2="218" />
+            <text class="gpx-elevation-tick" x="60" y="22" text-anchor="end">{{ chart.maxLabel }}</text>
+            <text class="gpx-elevation-tick" x="60" y="122" text-anchor="end">{{ chart.midLabel }}</text>
+            <text class="gpx-elevation-tick" x="60" y="222" text-anchor="end">{{ chart.minLabel }}</text>
+            @for (series of chart.series; track series.key) {
+              <polyline class="gpx-elevation-line" [attr.points]="series.polyline" [style.stroke]="series.color" [style.strokeWidth]="series.lineWidth" [style.strokeDasharray]="series.dash" />
+              @for (arrow of series.arrows; track $index) {
+                <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="series.arrowSize" [attr.fill]="series.color" [attr.opacity]=".92 * gpxOpacity() / 100" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ series.arrowGlyph }}</text>
+              }
+            }
+            <text class="gpx-elevation-axis-title" x="18" y="118" text-anchor="middle" transform="rotate(-90 18 118)">Elevation (m)</text>
+            <text class="gpx-elevation-tick" x="70" y="242" text-anchor="start">{{ chart.startLabel }}</text>
+            <text class="gpx-elevation-tick" x="880" y="242" text-anchor="end">{{ chart.endLabel }}</text>
+            <text class="gpx-elevation-axis-title" x="475" y="265" text-anchor="middle">Track time</text>
+          </svg>
+          <div class="gpx-elevation-profile-legend">
+            @for (series of chart.series; track series.key) {
+              <div class="gpx-elevation-profile-legend-item">
+                <svg viewBox="0 0 72 16" aria-hidden="true"><line x1="2" y1="8" x2="70" y2="8" [attr.stroke]="series.color" [attr.stroke-width]="series.lineWidth" [attr.stroke-dasharray]="series.dash" /></svg>
+                <div><strong>{{ series.name }}</strong><span>{{ series.modeDetails }} · Line: {{ series.lineStyle }} · {{ series.lineWidth }} px · {{ series.directionLabel }}@if (series.customColors) { · Custom: {{ series.customColors }} }</span></div>
+              </div>
+            }
+          </div>
+        }
+      } @else {
+        <span class="offline-map-status">{{ latestGpxElevationProfileError() || 'No imported GPX track with timestamped elevation data was found in the available cache databases.' }}</span>
+      }
+    </details>
+    @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
+    <details class="gpx-advanced-section app-disclosure">
+      <summary>Advanced</summary>
+      <app-gpx-database-import [databaseKey]="trackGpxDatabaseKey()" [databaseKeys]="favoriteGpxDatabaseKeys()" (help)="openGpxCacheHelp()" (imported)="refreshLatestGpxElevationProfile($event)" />
+    </details>
+  </div>
+</div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="routing" role="tabpanel" [hidden]="activeSettingsTab() !== 'routing'">
+  <div class="settings-tab-content routing-tab">
+    <div class="routing-toolbar">
+      <div class="routing-calculate-row">
+        <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
+          <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
+        </label>
+        <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
+      </div>
+      <div class="routing-name-card">
+        <label class="routing-name-label" for="routing-name-input">Route name</label>
+        <input id="routing-name-input" class="routing-name-input" type="text" [value]="routeName()" (input)="changeRouteName($any($event.target).value)" placeholder="Route name">
+      </div>
+     <div class="routing-travel-mode-card">
+        <label class="routing-travel-mode-label">Travel mode</label>
+        <span class="routing-travel-mode-control">
+          <select [value]="routeProfile()" (change)="routeProfile.set($any($event.target).value)">
+            <option value="driving-car">Car</option><option value="cycling-regular">Bicycle</option><option value="foot-walking">Walking</option>
+          </select>
+          <span class="routing-travel-mode-icon" [attr.title]="routeProfile() === 'driving-car' ? 'Car' : routeProfile() === 'cycling-regular' ? 'Bicycle' : 'Walking'" aria-hidden="true">{{ routeProfile() === 'driving-car' ? '🚗' : routeProfile() === 'cycling-regular' ? '🚲' : '🚶' }}</span>
+        </span>
+      </div>
+      <div class="routing-save-location-card">
+        <button type="button" class="offline-map-add-button" (click)="chooseRouteSaveLocation()" [disabled]="routeBusy()">Select save location...</button>
+        <span class="routing-save-location" [title]="routeSaveDirectory()">{{ routeSaveDirectory() || 'No save location selected' }}</span>
+      </div>
+      <div class="routing-toolbar-actions">
+        <button type="button" class="offline-map-add-button routing-remove-all-button" (click)="clearRouteWaypoints()" [disabled]="routeWaypoints().length === 0 || routeBusy()">× All</button>
+        <button type="button" class="routing-help-button" (click)="openRoutingHelp()" title="Open routing documentation" aria-label="Open routing documentation"><span aria-hidden="true">?</span></button>
+      </div>
+    </div>
+    @if (routeProvider() === 'openrouteservice') {
+      <div class="routing-key-row">
+        <label for="ors-api-key">openrouteservice API key</label>
+        <input id="ors-api-key" type="password" autocomplete="off" [value]="routeApiKey()" (input)="changeRouteApiKey($any($event.target).value)" placeholder="Paste your personal API key">
+        <a href="https://account.heigit.org/" target="_blank" rel="noreferrer">Get API key</a>
+      </div>
+    }
+    <div class="routing-actions">
+      <span class="offline-map-status">{{ routeStatus() }}</span>
+      @if (lastSavedRouteGpxPath()) {
+        <button type="button" class="offline-map-remove-button" (click)="deleteLastSavedRouteGpx()" [disabled]="routeBusy()" title="Delete the last saved GPX file and remove it from the Track list" aria-label="Delete last saved GPX file">×</button>
+      }
+    </div>
+    @if (activeRouteWaypointCount() > 50) { <span class="gpx-error">openrouteservice supports at most 50 active waypoints per request.</span> }
+    @if (routeWaypoints().length > 0) {
+    <div class="routing-points-list">
+      @for (point of routeWaypoints(); track $index; let i = $index) {
+        <div class="routing-point-row" [class.inactive]="point.active === false">
+          <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
+                 (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
+                 [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
+          <span class="routing-point-endpoint-column">@if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶</span> } @else if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■</span> }</span>
+          <span class="routing-point-index">{{ i + 1 }}.</span>
+          <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
+          <div class="routing-point-actions">
+            <button type="button" class="file-row-menu-trigger" (click)="toggleRoutePointActionMenu(i, $event); $event.stopPropagation()"
+                    [attr.aria-expanded]="routePointActionMenuOpen() === i" aria-haspopup="menu"
+                    [attr.aria-label]="'Actions for route point ' + (i + 1)" title="Point actions">☰</button>
+          </div>
+        </div>
+      }
+    </div>
+    } @else {
+      <div class="routing-empty-message">No route points. Right-click the map while the Routing tab is active to add locations.</div>
+    }
+    @if (routePointActionMenuOpen() !== null) {
+      @let pointIndex = routePointActionMenuOpen()!;
+      <div class="gpx-row-action-menu gpx-row-action-menu-floating routing-point-action-menu" role="menu"
+           [style.top.px]="routePointActionMenuPosition().top" [style.left.px]="routePointActionMenuPosition().left"
+           (click)="$event.stopPropagation()">
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'remove')"><span aria-hidden="true">×</span> Remove point</button>
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'up')" [disabled]="pointIndex === 0"><span aria-hidden="true">↑</span> Move up</button>
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
+      </div>
+    }
+    @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
+    <details class="routing-advanced app-disclosure">
+      <summary>Advanced</summary>
+      <div class="routing-provider-row">
+        <div class="routing-provider-card">
+          <label class="routing-provider-label">Routing provider
+          <select class="routing-provider-select" [value]="routeProviderSelection()" (change)="changeRouteProviderSelection($any($event.target).value)">
+            @for (configuration of valhallaConfigurations(); track configuration.path) {
+              <option [value]="'offline-valhalla|' + configuration.path" [disabled]="!configuration.available">Offline Valhalla — {{ configuration.name }}</option>
+            }
+            @if (valhallaConfigurations().length === 0) { <option value="offline-valhalla|">Offline Valhalla (no configuration)</option> }
+            <option value="openrouteservice">openrouteservice</option>
+          </select>
+          </label>
+        </div>
+        <button type="button" class="offline-map-add-button routing-gpx-read-button" (click)="readRoutingWaypointsFromGpx()" [disabled]="routeBusy() || routeConfigBusy()" title="Reads saved points, names and active states from the most recently loaded GPX containing LumaScope routing metadata. Replaces the current list.">Read routing waypoints from GPX</button>
+      </div>
+    </details>
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="timeSlider" role="tabpanel" [hidden]="activeSettingsTab() !== 'timeSlider'">
+  <div class="settings-tab-content time-slider-tab">
+    <div class="time-slider-settings">
+      @if (timeSliderHasData()) {
+        <div class="time-slider-readouts">
+          <span class="time-slider-min"><strong>Start:</strong> {{ formatTimeSliderDate(timeSliderStart()) }}</span>
+          <span class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderStart(), timeSliderEnd()) }}</span>
+          <span class="time-slider-max"><strong>End:</strong> {{ formatTimeSliderDate(timeSliderEnd()) }}</span>
+          <button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button>
+        </div>
+        <div class="time-slider-control-row">
+          <label class="time-slider-activate" title="Activate or deactivate time filtering"><input type="checkbox" aria-label="Activate Time Slider" [checked]="timeSliderActive()" (change)="changeTimeSliderActive($any($event.target).checked)"></label>
+          <div class="time-slider-range" [class.disabled]="!timeSliderActive()">
+          <div class="time-slider-range-track"></div>
+          <div class="time-slider-range-selection" [style.left.%]="timeSliderStartPercent()" [style.width.%]="timeSliderWidthPercent()"></div>
+          <input aria-label="Time range start" class="time-slider-range-input time-slider-range-start" type="range"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderStart()"
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderStart($any($event.target))">
+          <input aria-label="Time range end" class="time-slider-range-input time-slider-range-end" type="range"
+            [min]="timeSliderMinimum()" [max]="timeSliderMaximum()" step="1" [value]="timeSliderEnd()"
+            [disabled]="!timeSliderActive()" (input)="changeTimeSliderEnd($any($event.target))">
+          </div>
+        </div>
+        <details class="time-slider-animate-section app-disclosure" [open]="timeSliderAnimationSectionOpen()" (toggle)="changeTimeSliderAnimationSectionOpen($any($event.target).open)">
+          <summary>Animate</summary>
+          <div class="time-slider-animate-options">
+            <button type="button" class="time-slider-animate-button time-slider-play-button" [class.is-playing]="timeSliderAnimating()" [disabled]="!timeSliderActive() || !timeSliderHasData() || (!timeSliderAnimating() && timeSliderEnd() >= timeSliderMaximum())"
+              (click)="toggleTimeSliderAnimation()"><span class="time-slider-animate-icon" aria-hidden="true">{{ timeSliderAnimating() ? '■' : '▶' }}</span> {{ timeSliderAnimating() ? 'Stop' : 'Play' }}</button>
+            <section class="time-slider-animation-panel time-slider-play-panel">
+              <h4>Speed</h4>
+              <div class="time-slider-play-speed-row">
+                <label class="time-slider-speed-control time-slider-animation-speed time-slider-control-card"><span>Animation</span><strong>{{ timeSliderAnimationSpeed() }}×</strong><ui-slider [min]="0.1" [max]="10" [step]="0.1" [value]="timeSliderAnimationSpeed()" (valueChange)="changeTimeSliderAnimationSpeed($event)" [color]="themeService.sliderColor()" aria-label="Animation speed" /></label>
+                <label class="time-slider-speed-control time-slider-walking-speed time-slider-control-card"><span>Walking animation</span><strong>{{ walkingFigureAnimationSpeed() }}×</strong><ui-slider [min]="0.2" [max]="3" [step]="0.1" [value]="walkingFigureAnimationSpeed()" (valueChange)="changeWalkingFigureAnimationSpeed($event)" [isDisabled]="walkingFigureType() !== 'walker'" [color]="themeService.sliderColor()" aria-label="Walking animation speed" /></label>
+              </div>
+            </section>
+            <section class="time-slider-animation-panel time-slider-symbol-panel">
+              <h4 class="time-slider-symbol-heading"><label class="time-slider-walker-toggle time-slider-symbol-visibility"><input type="checkbox" [checked]="timeSliderWalkerVisible()" (change)="changeTimeSliderWalkerVisibility($any($event.target).checked)"> Symbol</label></h4>
+              <div class="time-slider-symbol-controls-row">
+                <div class="time-slider-symbol-preview-row time-slider-symbol-preview-card">
+                  <div class="time-slider-symbol-preview-box" aria-label="Selected symbol preview">
+                    @if (walkingFigureType() === 'walker') {
+                      <span [style.transform]="walkingFigurePreviewTransform()"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></span>
+                    } @else {
+                      <span [innerHTML]="walkingFigurePreviewHtml()" [style.transform]="walkingFigurePreviewTransform()"></span>
+                    }
+                  </div>
+                  <span class="time-slider-symbol-front">Front</span>
+                </div>
+                <label class="time-slider-symbol-select"><select [value]="walkingFigureType()" (change)="changeWalkingFigureType($any($event.target).value)"><option value="walker">Walking person</option><option value="car">Car (PKW)</option><option value="carFront">Car (front)</option><option value="suv">SUV</option><option value="taxi">Taxi</option><option value="taxiFront">Taxi (front)</option><option value="racecar">Race car</option><option value="van">Van</option><option value="pickup">Pickup</option><option value="ambulance">Ambulance</option><option value="police">Police car</option><option value="policeFront">Police car (front)</option><option value="firetruck">Fire engine</option><option value="bus">Bus</option><option value="busFront">Bus (front)</option><option value="trolleybus">Trolleybus</option><option value="truck">Truck</option><option value="delivery">Delivery truck</option><option value="plane">Airplane</option><option value="helicopter">Helicopter</option><option value="train">Train</option><option value="bicycle">Bicycle</option><option value="motorcycle">Motorcycle</option><option value="scooter">Scooter</option><option value="tractor">Tractor</option><option value="boat">Motorboat</option><option value="ship">Ship</option><option value="sailboat">Sailboat</option><option value="cableCar">Cable car</option><option value="autoRickshaw">Auto rickshaw</option><option value="rocket">Rocket</option><option value="smallPlane">Small airplane</option><option value="flyingSaucer">Flying saucer</option><option value="locomotive">Steam locomotive</option><option value="railCar">Rail car</option><option value="tram">Tram</option><option value="mountainRailway">Mountain railway</option><option value="monorail">Monorail</option><option value="highSpeedTrain">High-speed train</option><option value="bulletTrain">Bullet train</option><option value="lightRail">Light rail</option><option value="metro">Metro</option><option value="motorYacht">Motor yacht</option><option value="ferry">Ferry</option><option value="cruiseShip">Cruise ship</option><option value="canoe">Canoe</option></select></label>
+                <label class="time-slider-symbol-size time-slider-control-card"><span>Size</span><strong>{{ walkingFigureSize().toFixed(1) }}×</strong><ui-slider class="zoom-purpose-slider" [min]="0.5" [max]="3" [step]="0.1" [value]="walkingFigureSize()" (valueChange)="changeWalkingFigureSize($event)" aria-label="Walking figure size" /></label>
+                <div class="time-slider-symbol-orientation-controls">
+                  <label class="time-slider-symbol-rotation time-slider-control-card"><span>Rotation</span><strong>{{ selectedWalkingFigureSymbolSettings().rotation }}°</strong><ui-slider [min]="0" [max]="359" [step]="1" [value]="selectedWalkingFigureSymbolSettings().rotation" (valueChange)="changeWalkingFigureRotation($event)" (valueCommit)="persistWalkingFigureRotation()" [color]="themeService.sliderColor()" aria-label="Rotation" /></label>
+                  <div class="time-slider-symbol-orientation-actions">
+                    <button type="button" class="time-slider-symbol-snap" (click)="snapWalkingFigureRotation()" title="Snap to the nearest 0°, 90°, 180° or 270°">Snap 90°</button>
+                    <label class="time-slider-symbol-flip"><input type="checkbox" [checked]="selectedWalkingFigureSymbolSettings().flipHorizontal" (change)="changeWalkingFigureFlipHorizontal($any($event.target).checked)"><span>Flip horizontal</span></label>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </details>
+        <details class="time-slider-minmax-section app-disclosure">
+          <summary>MinMax</summary>
+          <div class="time-slider-minmax-content">
+            <div class="time-slider-boundary-box">
+              <div class="time-slider-boundary-column time-slider-min">
+                <div class="time-slider-boundary-value"><strong>Min:</strong> {{ formatTimeSliderDate(timeSliderMinimum()) }}</div>
+                <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMinimum()) }}</div>
+              </div>
+              <div class="time-slider-boundary-column time-slider-duration-column">
+                <div class="time-slider-duration">{{ formatTimeSliderDuration(timeSliderMinimum(), timeSliderMaximum()) }}</div>
+              </div>
+              <div class="time-slider-boundary-column time-slider-max">
+                <div class="time-slider-boundary-value"><strong>Max:</strong> {{ formatTimeSliderDate(timeSliderMaximum()) }}</div>
+                <div class="time-slider-boundary-source"><strong>Source:</strong> {{ timeSliderBoundarySource(timeSliderMaximum()) }}</div>
+              </div>
+            </div>
+            <span class="time-slider-help">{{ timeSliderHelpText() }}</span>
+          </div>
+        </details>
+      } @else {
+        <div class="time-slider-no-data-row"><span class="time-slider-help">{{ timeSliderNoDataHelpText() }}</span><button type="button" class="routing-help-button time-slider-inline-help" (click)="openTimeSliderHelp()" title="Open time slider help" aria-label="Open time slider help"><span aria-hidden="true">?</span></button></div>
+      }
+    </div>
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="marker" role="tabpanel" [hidden]="activeSettingsTab() !== 'marker'">
+<div class="settings-tab-content marker-tab">
+            <div class="photo-database-gate" role="status" aria-live="polite"><span>{{ photoDatabaseMessage() }}</span><button type="button" class="map-toolbar-button" (click)="recheckPhotoDatabase()" [disabled]="photoDatabaseCheckBusy() || (!currentFolderPath && !currentImagePath)">Recheck database</button></div>
+            <fieldset class="marker-database-controls" [disabled]="!photoDatabaseReady() || photoDatabaseCheckBusy()">
+            <div class="marker-settings-content">
+              <div class="marker-setting-row marker-first-row"><label class="marker-enable-toggle"><input type="checkbox" [checked]="directoryMarkersEnabled()" (change)="changeDirectoryMarkersEnabled($any($event.target).checked)"> Show images</label><button type="button" class="map-toolbar-button marker-fit-images-button" (click)="fitMapToImages()" [disabled]="!directoryMarkersEnabled()" title="Fit map to all images with GPS coordinates"><span aria-hidden="true">⤢</span> Fit map to images</button><button type="button" class="routing-help-button marker-tab-help" (click)="openPhotoMarkersTabHelp()" title="Open photo markers tab help" aria-label="Open photo markers tab help"><span aria-hidden="true">?</span></button></div>
+              <label class="marker-enable-toggle marker-setting-row"><input type="checkbox" [checked]="useAllPhotosInDb()" (change)="changeUseAllPhotosInDb($any($event.target).checked)"> Use all images in DB</label>
+              <div class="marker-appearance-settings">
+                <div class="marker-setting-row">
+                  <span>Cluster Icons:</span>
+                  <label>Shape
+                    <select [value]="markerShape()" (change)="changeMarkerShape($any($event.target).value)">
+                      <option value="double-circle">Double circles</option><option value="hexagon">Hexagon</option><option value="circle">Circle</option><option value="square">Square</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="marker-setting-row">
+                  <label>Color</label>
+                  <div class="color-picker">
+                  <button type="button" class="color-picker-trigger" (click)="toggleMarkerColorMenu()" [attr.aria-expanded]="markerColorMenuOpen()" aria-label="Folder marker color and visibility">
+                    @if (markerColorVisible()) {
+                      <span class="color-swatch" [style.background]="markerColor() === 'dynamic' ? 'linear-gradient(90deg,#34c759 0 33%,#ffd60a 33% 66%,#ff3b30 66%)' : markerColor()" [style.color]="markerColor() === 'dynamic' ? '#171717' : selectedMarkerTextColor()">{{ markerColor() === 'dynamic' ? 'Dynamic' : markerColor() }}</span>
+                      <span>{{ selectedMarkerColorName() }}</span>
+                    } @else { <span>Off</span> }
+                    <span class="color-picker-chevron">▾</span>
+                  </button>
+                  @if (markerColorMenuOpen()) {
+                    <div class="color-picker-menu" role="listbox" aria-label="Folder marker colors">
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="!markerColorVisible()" (click)="changeMarkerColor('off')"><span class="color-swatch color-swatch-off">—</span><span>Off</span></button>
+                      <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === 'dynamic' && markerColorVisible()" (click)="changeMarkerColor('dynamic')"><span class="color-swatch" style="background:linear-gradient(90deg,#34c759 0 33%,#ffd60a 33% 66%,#ff3b30 66%);color:#171717">↗</span><span>Dynamic</span></button>
+                      @for (color of gpxColors; track color.value) {
+                        <button type="button" class="color-option" role="option" [attr.aria-selected]="markerColor() === color.value && markerColorVisible()" (click)="changeMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                      }
+                    </div>
+                  }
+                  </div>
+                </div>
+              </div>
+              <details class="marker-summary-section app-disclosure">
+                <summary>Summary</summary>
+                <div class="marker-summary-content">
+                  <div class="marker-progress-row">
+                    <div class="marker-progress-text">Database records: <strong>{{ markerFilesChecked() }} / {{ markerFilesTotal() }}</strong></div>
+                    <progress class="marker-progress" [max]="markerFilesTotal() || 1" [value]="markerFilesChecked()"></progress>
+                  </div>
+                  <table class="marker-summary-table">
+                    <tbody>
+                      <tr><th scope="row">Folder</th><td>{{ markerSourceFolder() }}</td></tr>
+                      <tr><th scope="row">GPS coordinates found</th><td>{{ markerCount() }}</td></tr>
+                      <tr><th scope="row">Minimum timestamp</th><td>{{ markerTimestampRange().minimum }}</td></tr>
+                      <tr><th scope="row">Maximum timestamp</th><td>{{ markerTimestampRange().maximum }}</td></tr>
+                      <tr><th scope="row">Database status</th><td role="status">{{ markerStatus() }}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </div>
+
+  <details class="gpx-database-section app-disclosure">
+    <summary>Images -&gt; GPX</summary>
+    <button type="button" class="offline-map-add-button" (click)="generateGpxFromMarkers()" [disabled]="!hasDirectoryPhotoMarkers()">Generate GPX from images</button>
+    @if (gpxError()) { <span class="gpx-error" role="alert">{{ gpxError() }}</span> }
+  </details>
+            </fieldset>
+</div>
+<div class="settings-tab-panel" data-settings-tab="view" role="tabpanel" [hidden]="activeSettingsTab() !== 'view'">
+<div class="settings-tab-content view-tab">
+  <div class="view-primary-controls">
+  <div class="view-source-controls">
+    <div class="map-source-content">
+      <div class="map-source-picker">
+        <span class="map-source-picker-label">Source</span>
+        <button type="button" class="map-source-picker-trigger" [attr.aria-expanded]="mapSourceMenuOpen()" aria-haspopup="true" (click)="mapSourceMenuOpen.update(open => !open)">
+          {{ selectedMapSourceType() }}
+        </button>
+        @if (mapSourceMenuOpen()) {
+          <div class="map-source-picker-menu" role="dialog" aria-label="Select map source">
+            <table class="map-source-picker-table">
+              <thead><tr><th>Type</th><th>Suffix</th><th>Online/Offline</th></tr></thead>
+              <tbody>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'online'" (click)="selectMapSource('online')" (keydown.enter)="selectMapSource('online')" (keydown.space)="$event.preventDefault(); selectMapSource('online')"><td>Online map</td><td>—</td><td>Online</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'offline'" (click)="selectMapSource('offline')" (keydown.enter)="selectMapSource('offline')" (keydown.space)="$event.preventDefault(); selectMapSource('offline')"><td>MBTiles</td><td>.mbtiles</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'osmand'" (click)="selectMapSource('osmand')" (keydown.enter)="selectMapSource('osmand')" (keydown.space)="$event.preventDefault(); selectMapSource('osmand')"><td>OsmAnd (no labels)</td><td>.obf</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'osmand-atlas'" (click)="selectMapSource('osmand-atlas')" (keydown.enter)="selectMapSource('osmand-atlas')" (keydown.space)="$event.preventDefault(); selectMapSource('osmand-atlas')"><td>OsmAnd Atlas</td><td>.obf</td><td>Offline</td></tr>
+                <tr role="option" tabindex="0" [attr.aria-selected]="mapSource() === 'mapsforge'" (click)="selectMapSource('mapsforge')" (keydown.enter)="selectMapSource('mapsforge')" (keydown.space)="$event.preventDefault(); selectMapSource('mapsforge')"><td>Mapsforge</td><td>.map</td><td>Offline</td></tr>
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+      @if (mapSource() === 'online') {
+        <label class="online-map-style-control"><span>Style</span>
+          <select [value]="mapStyle()" (change)="changeMapStyle($any($event.target).value)">
+            <option value="standard">Standard</option><option value="satellite">Satellite</option>
+            <option value="cycling">Cycling (CyclOSM)</option><option value="topographic">Topographic</option>
+            <option value="humanitarian">Humanitarian (HOT)</option>
+          </select>
+        </label>
+      }
+    </div>
+  </div>
+  <div class="view-style-controls">
+    @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+      <label class="offline-style-control"><span>OsmAnd Style</span>
+        <select (change)="changeOsmAndStyle($any($event.target).value)" [disabled]="osmAndStyles().length === 0">
+          @for (style of osmAndStyles(); track style.fileName) {
+            <option [value]="style.fileName" [selected]="style.fileName === osmAndStyle()">{{ style.label }}</option>
+          }
+        </select>
+      </label>
+    }
+    @if (mapSource() === 'offline') {
+      <label class="offline-style-control"><span>MBTiles Style</span>
+        <select [value]="offlineMapStyle()" (change)="changeOfflineMapStyle($any($event.target).value)">
+          <option value="lumascope">LumaScope</option>
+          <option value="versatiles-colorful">VersaTiles Colorful</option>
+          <option value="versatiles-neutrino">VersaTiles Neutrino</option>
+        </select>
+      </label>
+    }
+    @if (mapSource() === 'mapsforge' && hasActiveMapsforgeMaps()) {
+      <label class="offline-style-control"><span>Mapsforge Theme</span>
+        <select [value]="mapsforgeThemePath()" (change)="changeMapsforgeTheme($any($event.target).value)">
+          <option value="">Default (built-in)</option>
+          @for (theme of mapsforgeThemes(); track theme.path) {
+            <option [value]="theme.path">{{ theme.relativePath }}</option>
+          }
+        </select>
+      </label>
+    }
+  </div>
+  <label class="view-map-color"><span>Color</span>
+    <select [value]="mapColor()" (change)="changeMapColor($any($event.target).value)">
+      <option value="original">Original</option><option value="light">Light</option>
+      <option value="extra-light">Extra light</option><option value="ultra-light">Ultra light</option>
+      <option value="dark">Dark</option><option value="grayscale">Grayscale</option>
+      <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
+    </select>
+  </label>
+  </div>
+  <details class="zoom-settings-section app-disclosure">
+    <summary>
+      <span>Zoom</span>
+      <span class="zoom-summary-control">
+        <span class="zoom-buttons">
+          <button type="button" class="zoom-step" (click)="adjustZoom(-1)" aria-label="Zoom out">−</button>
+          <button type="button" class="zoom-step" (click)="adjustZoom(1)" aria-label="Zoom in">+</button>
+        </span>
+        <ui-slider class="zoom-purpose-slider" [min]="1" [max]="20" [step]="1" [value]="zoomLevel()" (valueChange)="changeZoom($event)" aria-label="Map zoom" />
+        <span class="zoom-value">{{ zoomLevel() }}</span>
+      </span>
+    </summary>
+    <div class="atlas-density-zoom-row">
+      <div class="range-setting atlas-density-setting" [class.setting-unavailable]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'">
+        <label for="map-display-density">Display density factor</label>
+        <input id="map-display-density" type="range" min="1" max="3" step="0.05"
+          [value]="displayDensityFactor()"
+          (input)="previewDisplayDensity($any($event.target).value)"
+          (change)="changeDisplayDensity($any($event.target).value)"
+          [disabled]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'"
+          aria-label="Map display density">
+        <span class="range-value">{{ displayDensityFactor() }}×</span>
+        <button type="button" class="map-toolbar-button" (click)="resetDisplayDensity()" [disabled]="mapSource() !== 'osmand-atlas' && mapSource() !== 'mapsforge'" title="Reset to Windows display scaling">Windows</button>
+      </div>
+    </div>
+  </details>
+  <details class="opacity-settings app-disclosure" [open]="opacitySectionOpen()" (toggle)="onLocationDetailsToggle($event)">
+    <summary>
+      <span>Opacity</span>
+    </summary>
+    <div class="opacity-content">
+      <div class="range-setting">
+        <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMapOpacity($event)" />
+        <span class="range-value">{{ mapOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <div class="opacity-row-label"><label class="visibility-toggle">Tracks <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show tracks"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedTracksToMap()" [disabled]="!hasActiveTrackPoints()" title="Fit selected tracks to map" aria-label="Fit selected tracks to map"><span aria-hidden="true">⤢</span></button></div>
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeGpxOpacity($event)" />
+        <span class="range-value">{{ gpxOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button></div>
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
+        <span class="range-value">{{ markerOpacity() }}%</span>
+      </div>
+      <div class="range-setting">
+        <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
+        <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
+        <span class="range-value">{{ locationOpacity() }}%</span>
+      </div>
+      <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
+        <label for="overlay-opacity">Window</label>
+        <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
+        <span class="range-value">{{ overlayOpacity() }}%</span>
+      </div>
+      <div class="range-setting" [class.setting-unavailable]="mapSource() !== 'offline' && mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+        <label class="visibility-toggle">Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="mapSource() === 'online'" aria-label="Show labels"></label>
+        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="mapSource() === 'osmand' || mapSource() === 'osmand-atlas'" aria-label="Map label opacity" />
+        <span class="range-value">{{ labelOpacity() }}%</span>
+      </div>
+      <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
+        <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
+        <ui-slider id="hillshade-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="hillshadeOpacity()" (valueChange)="changeHillshadeOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity" />
+        <span class="range-value">{{ hillshadeOpacity() }}%</span>
+      </div>
+    </div>
+  </details>
+  <details class="view-rerender-section app-disclosure"
+    [open]="renderSectionOpen()"
+    (toggle)="onLocationDetailsToggle($event)"
+    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()"
+    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
+    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
+    <summary>
+      <span>Render</span>
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()">
+        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()) {
+          <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
+        }
+        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()) {
+          <span>Rendering inactive</span>
+        } @else {
+          <span>
+            @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
+            @if (hillshadeActiveCount() > 0 || hillshadeDisplayPending()) {
+              @if (renderActiveCount() > 0) { · }
+              @if (hillshadeActiveCount() > 0) { Hillshade: {{ hillshadeCompletedCount() }}/{{ hillshadeTotalCount() }} tiles · {{ hillshadeActiveCount() }} active }
+              @else { Hillshade: Display }
+              <progress class="hillshade-active-progress" [value]="hillshadeProgressValue()" [max]="hillshadeProgressMaximum()" aria-label="Hillshade rendering progress"></progress>
+            }
+            @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0) { Display }
+            @else if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
+          </span>
+        }
+      </span>
+    </summary>
+    <div class="view-rerender-layout">
+      <div class="map-cache-actions view-rerender-actions">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" (click)="refreshVisibleTiles()" title="Reloads the visible tiles from the existing disk cache without forcing a new native render." [disabled]="(mapSource() !== 'osmand-atlas' && mapSource() !== 'osmand') || rerenderVisibleTilesBusy()">
+            Refresh
+          </button>
+          <button type="button" (click)="rerenderVisibleTiles()" title="Forces a fresh native render of the visible tiles instead of using the cached tile images." [disabled]="!canRerenderVisibleTiles() || rerenderVisibleTilesBusy()">
+            {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
+          </button>
+          <button type="button" class="danger" (click)="cancelMapRendering()" title="Cancels the active visible-tile rerender." [disabled]="!rerenderVisibleTilesBusy()">
+            Cancel
+          </button>
+        </div>
+        @if (rerenderVisibleTilesStatus()) {
+          <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
+        }
+      </div>
+      <details class="render-helper-activity-section app-disclosure">
+        <summary>Render helper</summary>
+        <div class="render-statistics-content">
+          <div class="range-setting render-worker-setting">
+            <label for="render-worker-count">Parallel render helper processes</label>
+            <ui-slider id="render-worker-count" class="opacity-slider" [min]="1" [max]="4" [step]="1"
+              [value]="renderWorkerCount()" (valueChange)="changeRenderWorkerCount($event)"
+              [color]="themeService.sliderColor()" aria-label="Number of parallel render helper processes" />
+            <span class="range-value">{{ renderWorkerCount() }}</span>
+          </div>
+          <section class="render-helper-activity" aria-label="Active render helpers">
+            <div class="render-helper-activity-heading">
+              <span>{{ offlineRenderTasks().filter(task => task.state === 'Running').length }} active · {{ offlineRenderTasks().filter(task => task.state === 'Queued').length }} queued</span>
+            </div>
+            <div class="render-helper-activity-list" role="list" aria-live="polite">
+              @if (offlineRenderTasks().length) {
+                @for (task of offlineRenderTasks(); track task.id) {
+                  <div class="render-helper-activity-row" role="listitem" [class.queued]="task.state === 'Queued'">
+                    <span class="render-helper-activity-state">{{ task.state === 'Running' ? 'Active' : 'Queued' }}</span>
+                    <strong>{{ task.helper }}</strong>
+                    <span class="render-helper-activity-description" [title]="task.description">{{ task.description }}</span>
+                  </div>
+                }
+              } @else {
+                <div class="render-helper-activity-empty">No render helper tasks are active or queued.</div>
+              }
+            </div>
+          </section>
+        </div>
+      </details>
+      <details class="render-statistics-section app-disclosure view-settings-section">
+        <summary>View settings</summary>
+        <div class="render-statistics-content">
+          <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
+          <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
+          <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
+          <div class="range-setting photo-preview-size-setting">
+            <label for="photo-preview-size">Photo marker preview width</label>
+            <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
+              [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
+              [color]="themeService.sliderColor()" aria-label="Photo marker preview width" />
+            <span class="range-value">{{ photoPreviewSize() }} px</span>
+          </div>
+        </div>
+      </details>
+      <details class="render-statistics-section app-disclosure">
+        <summary>Statistics</summary>
+        <div class="render-statistics-content">
+      <div class="render-tile-statistics-box">
+      <table class="render-tile-statistics" aria-live="polite">
+        
+        <colgroup>
+          <col class="render-stat-label-column">
+          <col class="render-stat-value-column">
+          <col class="render-stat-value-column">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col" class="render-counter-heading">Map tiles · Active OBF maps (#{{ activeOsmandMapCount() }})</th>
+            <th scope="col">Total</th>
+            <th scope="col">Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Rendered</th>
+            <td>{{ totalRenderTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().rendered.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">From cache</th>
+            <td>{{ totalRenderTileCounts().cached.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().cached.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Errors</th>
+            <td>{{ totalRenderTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row" title="End-to-end time from Atlas IPC submission until the RGBA tile is ready, including renderer queue wait.">Avg. total time</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Median total time</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Min / max</th>
+            <td>{{ totalRenderTiming().count ? totalRenderTiming().minMs.toFixed(1) + ' / ' + totalRenderTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderTiming().count ? lastRenderTiming().minMs.toFixed(1) + ' / ' + lastRenderTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Timing samples</th>
+            <td>{{ totalRenderTiming().count.toLocaleString(locale) }}</td>
+            <td>{{ lastRenderTiming().count.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row" title="Time spent waiting in the selected Atlas worker queue before native rendering can start.">Avg. queue wait</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().averageMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Median queue wait</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().medianMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Queue min / max</th>
+            <td>{{ totalRenderQueueTiming().count ? totalRenderQueueTiming().minMs.toFixed(1) + ' / ' + totalRenderQueueTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+            <td>{{ lastRenderQueueTiming().count ? lastRenderQueueTiming().minMs.toFixed(1) + ' / ' + lastRenderQueueTiming().maxMs.toFixed(1) + ' ms' : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="render-tile-statistics hillshade-render-statistics" aria-live="polite">
+        <colgroup>
+          <col class="render-stat-label-column">
+          <col class="render-stat-value-column">
+          <col class="render-stat-value-column">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col" class="render-counter-heading">Hillshade (#{{ activeHillshadeDatabaseCount() }})</th>
+            <th scope="col">Total</th>
+            <th scope="col">Last</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Rendered</th>
+            <td>{{ totalHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ lastHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">From cache</th>
+            <td>–</td>
+            <td>–</td>
+          </tr>
+          <tr>
+            <th scope="row">Errors</th>
+            <td>{{ totalHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ lastHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
+          </tr>
+        </tbody>
+      </table>
+        </div>
+        </div>
+      </details>
+      <details class="render-statistics-section app-disclosure optimize-obf-rendering-section">
+        <summary>Optimize OsmAnd .obf rendering</summary>
+        <div class="render-statistics-content">
+          <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+            <input type="checkbox" [checked]="optimizedObfSelectionEnabled()" (change)="changeOptimizedObfSelectionEnabled($any($event.target).checked)" [disabled]="mapSource() !== 'osmand' && mapSource() !== 'osmand-atlas'">
+            Optimize OBF selection by bounds
+          </label>
+          @if (mapSource() === 'osmand' || mapSource() === 'osmand-atlas') {
+            <div class="active-obf-list-box">
+              <table class="active-obf-list" aria-live="polite">
+                <thead><tr><th colspan="2">Viewport OBF maps ({{ viewportObfMaps().length }})</th></tr></thead>
+                <tbody>
+                  @for (map of viewportObfMaps(); track map.id) {
+                    <tr><td>{{ map.name }}</td><td>{{ map.minZoom }}–{{ map.maxZoom }}</td></tr>
+                  } @empty {
+                    <tr><td colspan="2">No matching OBF maps</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </details>
+      </div>
+  </details>
+    </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="offlineMaps" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
+<div class="settings-tab-content offline-maps-tab-content" [class.resource-section-warning]="offlineMapHasUnselectedFiles() && offlineMapTabErrorCount() === 0">
+    <button type="button" class="routing-help-button offline-tab-help" (click)="openResourcePackageHelp()" title="Open resource package documentation" aria-label="Open resource package documentation"><span aria-hidden="true">?</span></button>
+    <div class="mbtiles-selection offline-map-toolbar resource-package-scan-toolbar">
+      <button type="button" class="offline-map-add-button resource-package-open-button" (click)="scanResourcePackage()" [disabled]="resourcePackageScanBusy() || offlineFilesCheckBusy()">{{ resourcePackageScanBusy() ? 'Opening package…' : 'Open resource package…' }}</button>
+      <span class="offline-map-status" role="status">{{ resourcePackageScanStatus() || 'Open the extracted resource package to discover offline maps and resources.' }}</span>
+      
+    </div>
+    @if (resourcePackageScanFound()) {
+      <div class="resource-package-scan-results" aria-live="polite">
+        <table class="resource-package-scan-table">
+          <tbody>
+            <tr>
+              <th scope="row">Found</th>
+              @for (item of resourcePackageScanFound().split(' · '); track $index) {
+                <td>{{ item }}</td>
+              }
+            </tr>
+            <tr>
+              <th scope="row">Changed</th>
+              @for (item of resourcePackageScanChanged().split(' · '); track $index) {
+                <td>{{ item }}</td>
+              }
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    }
+    @if (resourcePackageScanError()) {
+      <details class="map-cache-section offline-map-filter-section app-disclosure">
+        <summary class="map-cache-heading">Scan details / warnings</summary>
+        <pre class="offline-map-import-errors">{{ resourcePackageScanError() }}</pre>
+      </details>
+    }
+
+  <div class="mbtiles-selection offline-map-toolbar">
+    <label class="offline-map-preset-control">Preset:
+      <select [value]="offlineMapPreset()" (change)="changeOfflineMapPreset($any($event.target).value)">
+        @for (preset of mapPresetOptions(); track preset.id) { <option [value]="preset.id">{{ preset.name }}</option> }
+      </select>
+    </label>
+    <label class="offline-map-list-filter">Filter:
+       <select [value]="offlineMapListFilter()" (change)="offlineMapListFilter.set($any($event.target).value)">
+         <option value="all">All</option><option value="mbtiles" class="mbtiles-filter-option">{{ offlineMapTypeLabels.mbtiles }}</option><option value="obf" class="obf-filter-option">{{ offlineMapTypeLabels.obf }}</option><option value="map" class="mapsforge-filter-option">{{ offlineMapTypeLabels.mapsforge }}</option><option value="hillshade" class="hillshade-filter-option">{{ offlineMapTypeLabels.hillshade }}</option><option value="valhalla" class="resource-valhalla-filter-option">Valhalla (offline routing)</option><option value="osmandResources" class="resource-osmand-filter-option">OsmAnd resources (rendering)</option><option value="mapsforgeTheme" class="resource-mapsforge-filter-option">Mapsforge XML theme</option><option value="inUse">InUse</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="missing">Missing</option><option value="updates">Updates</option><option value="current">Current (no update needed)</option><option value="noMatch">No matching download</option>
+       </select>
+     </label>
+  </div>
+</div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="cache" role="tabpanel" [hidden]="activeSettingsTab() !== 'cache'">
+  <div class="settings-tab-content cache-tab">
+    <div class="map-cache-section">
+      <div class="map-cache-heading">OsmAnd map tiles</div>
+      <div class="map-cache-row"><span>Location</span><code>{{ osmAndTileCache().path }}</code></div>
+      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>Storage used</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
+        <button type="button" (click)="refreshOsmAndTileCache()">Refresh</button>
+      </div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ osmAndTileCacheStatus() || 'Stores cached PNG tiles for OsmAnd and OsmAnd Atlas.' }}</span>
+        <button type="button" class="danger" (click)="clearOsmAndTileCache()" [disabled]="osmAndTileCacheBusy()">
+          {{ osmAndTileCacheBusy() ? 'Clearing…' : 'Clear cache' }}
+        </button>
+      </div>
+    </div>
+    <div class="map-cache-section">
+      <div class="map-cache-heading">GPX database entries</div>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">{{ gpxDatabaseClearStatus() || 'Deletes imported GPX files, track segments and track points from every drive cache database. Original GPX files and favorites are not affected.' }}</span>
+        <button type="button" class="danger" (click)="clearAllGpxDatabaseEntries()" [disabled]="gpxDatabaseClearBusy()">
+          {{ gpxDatabaseClearBusy() ? 'Deleting…' : 'Delete all GPX database entries' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="memory" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
+  <div class="settings-tab-content cache-tab">
+    <div class="map-cache-section">
+      <div class="map-cache-heading">Process memory</div>
+      <div class="map-cache-row"><span>Total (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
+      <div class="map-cache-row"><span>Last updated</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
+      <table class="offline-maps-table memory-process-table">
+        <colgroup><col style="width:42%"><col style="width:14%"><col style="width:24%"><col style="width:20%"></colgroup>
+        <thead><tr><th>Process</th><th>PID</th><th>Working Set</th><th>Private</th></tr></thead>
+        <tbody>
+          @for (entry of processMemory().processes; track entry.pid) {
+            <tr>
+              <td>{{ entry.name }}</td>
+              <td>{{ entry.pid }}</td>
+              <td>{{ formatOfflineMapSize(entry.workingSetBytes) }}</td>
+              <td>{{ entry.privateBytes === null ? '—' : formatOfflineMapSize(entry.privateBytes) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (processMemory().processes.length === 1) {
+        <span class="offline-map-status">No OsmAnd helper processes are currently running.</span>
+      }
+      @if (processMemory().error) {
+        <span class="offline-map-import-error">Could not read complete helper memory data: {{ processMemory().error }}</span>
+      }
+      <div class="map-cache-actions">
+        <span class="offline-map-status">Automatically refreshes every 2 seconds while the Memory tab is open</span>
+        <button type="button" (click)="refreshProcessMemory()">Refresh</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="download" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
+  <div class="settings-tab-content download-tab">
+    <details class="map-cache-section download-section app-disclosure">
+      <summary class="map-cache-heading">Download sources</summary>
+      <div class="map-cache-actions">
+        <span class="offline-map-status">Configure the catalogue URLs used to discover offline maps.</span>
+        <button type="button" (click)="addDownloadSource()">Add URL</button>
+      </div>
+      <div class="mbtiles-map-table-wrap download-source-table-wrap">
+        <table class="mbtiles-map-table download-source-table">
+          <thead><tr><th>URL</th><th>Filetype</th><th>Use for updates</th><th></th></tr></thead>
+          <tbody>
+            @for (source of downloadSources(); track $index; let i = $index) {
+              <tr>
+                <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
+                <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
+                <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
+                <td><button type="button" class="file-path-copy-button" (click)="copyFilePath(source.url)" title="Copy URL" aria-label="Copy URL">⧉</button><button type="button" class="gpx-open-button" (click)="openDownloadSource(source.url)" [disabled]="!isValidDownloadUrl(source.url)" title="Open download source" aria-label="Open download source">↗</button><button type="button" class="mbtiles-remove-button" (click)="removeDownloadSource(i)" aria-label="Remove download source" title="Remove download source">×</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="offline-map-status">These URLs are saved in application settings. Only entries enabled under “Use for updates” are checked by the Offline update checker.</p>
+    </details>
+
+    <details class="map-cache-section download-section app-disclosure">
+      <summary class="map-cache-heading">Updates</summary>
+      <div class="map-cache-actions offline-catalogue-toolbar">
+        <span class="offline-map-status">Check configured catalogues for available offline-map updates.</span>
+        <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
+      </div>
+      <p class="offline-map-status" role="status">{{ offlineMapCatalogueSummary() }}</p>
+      @if (offlineMapCatalogueFiles().length > 0) {
+        <div class="mbtiles-map-table-wrap offline-catalogue-table-wrap">
+          <table class="mbtiles-map-table offline-catalogue-table">
+            <thead><tr><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th><th></th></tr></thead>
+            <tbody>
+              @for (file of offlineMapCatalogueFiles(); track file.url) {
+                <tr [class.offline-catalogue-matched]="file.matched">
+                  <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
+                  <td>{{ file.fileType.toUpperCase() }}</td>
+                  <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
+                  <td>{{ file.source }}</td>
+                  <td><button type="button" (click)="openDownloadSource(file.url)">Open</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="offline-map-status">No catalogue files listed yet. Run “Check for updates” to download and parse the configured catalogue pages.</p>
+      }
+    </details>
+
+
+  </div>
+</div>
+<div class="settings-tab-panel" data-settings-tab="errors" role="tabpanel" [hidden]="activeSettingsTab() !== 'errors'">
+  <div class="map-error-panel">
+    <div class="map-cache-actions">
+      <div>
+        <div class="map-cache-heading">Map and rendering errors</div>
+        <span class="offline-map-status">{{ mapErrors().length }} error entr{{ mapErrors().length === 1 ? 'y' : 'ies' }} recorded in this session</span>
+      </div>
+      <button type="button" (click)="clearMapErrors()" [disabled]="mapErrors().length === 0">Clear</button>
+    </div>
+    @if (mapErrors().length > 0) {
+      <div class="map-error-list">
+        @for (error of mapErrors(); track error.id) {
+          <article class="map-error-entry">
+            <div class="map-error-entry-heading"><strong>{{ error.source }}</strong><time>{{ error.timestamp }}</time>@if (error.occurrences > 1) { <span>{{ error.occurrences }} occurrences</span> }</div>
+            <div class="map-error-context"><span>Renderer: <strong>{{ error.renderer }}</strong></span><span>Style: <strong>{{ error.style }}</strong></span></div>
+            <pre>{{ error.message }}</pre>
+          </article>
+        }
+      </div>
+    } @else {
+      <span class="offline-map-status">No errors recorded.</span>
+    }
+  </div>
+</div>
+</div>
+        </div>
+      }
+      <div class="map-content">
+        @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+          <div class="map-display-notice" role="alert">
+            <button type="button" class="map-display-notice-close" (click)="mapDisplayNotice.set('')" title="Dismiss map notice" aria-label="Dismiss map notice">×</button>
+            <strong>Map cannot be displayed</strong>
+            <span>{{ mapDisplayNotice() }}</span>
+            <button type="button" (click)="settingsOpen.set(true); selectSettingsTab('offlineMaps')">Open Offline tab</button>
+          </div>
+        }
+        @if (settingsOpen() && offlineMapListMounted()) {
+          <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
+            <div class="mbtiles-map-list">
+              @if (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
+                <table class="mbtiles-map-table">
+                  <thead><tr><th class="mbtiles-inuse-column"><span class="table-sort-button" (click)="sortOfflineMaps('inUse')">InUse {{ offlineMapSortIndicator('inUse') }}</span></th><th class="mbtiles-enabled-column"><span class="table-sort-button" (click)="sortOfflineMaps('enabled')">Active {{ offlineMapSortIndicator('enabled') }}</span></th><th class="mbtiles-type-column"><span class="table-sort-button" (click)="sortOfflineMaps('type')">Type {{ offlineMapSortIndicator('type') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('name')">File {{ offlineMapSortIndicator('name') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('path')">Path {{ offlineMapSortIndicator('path') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('fileSize')">Size {{ offlineMapSortIndicator('fileSize') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('lastModified')">Last modified {{ offlineMapSortIndicator('lastModified') }}</span></th><th class="offline-file-status-column">Status</th><th class="mbtiles-updates-column"><span class="table-sort-button" (click)="sortOfflineMaps('updates')">Updates {{ offlineMapSortIndicator('updates') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('bounds')">Bounds {{ offlineMapSortIndicator('bounds') }}</span></th><th><span class="table-sort-button" (click)="sortOfflineMaps('zoom')">Zoom {{ offlineMapSortIndicator('zoom') }}</span></th><th class="offline-row-actions-column"></th></tr></thead>
+                  <tbody>
+                    @let duplicateIds = offlineMapDuplicateIds();
+                    @let hillshadeDuplicateSet = hillshadeDuplicateIds();
+                    @for (map of sortedOffline().filter(map => map.type === 'obf'); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }@if (map.obfMetadataAvailable) { <span>{{ map.obfSectionCount ?? 0 }} map section(s)@if (map.obfIsBasemap) { · Basemap }</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds" [attr.title]="obfMetadataTooltip(map)">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable && map.minZoom > 0 && map.maxZoom > 0 ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'osmand-resources'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'"><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (map of sortedOffline().filter(map => map.type === 'mapsforge'); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'mapsforge-theme'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'"><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (map of sortedOffline().filter(map => map.type !== 'obf' && map.type !== 'mapsforge'); track map.id) {
+                      @let inUse = isOfflineMapInUse(map);
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (database of sortedHillshadeDatabases(); track database.id) {
+                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
+                        <td class="mbtiles-map-file" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
+                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!database.available || !database.path.trim() ? 'Missing' : database.enabled ? 'Active' : 'Inactive') + (hillshadeDuplicateSet.has(database.id) ? ' · Duplicate' : '') }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(database.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === database.path" [attr.aria-label]="'Actions for ' + database.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === database.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(database.path, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(database.path, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(database.path); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                    @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'valhalla'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        <td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === entry.path) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(entry.path, true); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(entry.sourcePath); offlineRowActionMenuOpen.set(null)" [disabled]="entry.type === 'osmand-resources'"><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else { <span class="offline-map-status">No offline files loaded. Use “Open resource package…” to discover files.</span> }
+              @for (error of offlineMapImportErrors(); track $index) { <span class="offline-map-import-error">{{ error }}</span> }
+            </div>
+            @if (obfBoundsPreview(); as preview) {
+              <section class="obf-bounds-preview" aria-label="Activated OBF map bounds preview">
+                <div class="obf-bounds-preview-heading">
+                  <strong>Activated OBF bounds · {{ preview.name }}</strong>
+                  <span>{{ preview.bounds || preview.error || 'Bounds unavailable' }}@if (preview.zoom) { · Zoom {{ preview.zoom }} }</span>
+                </div>
+                <div class="obf-bounds-map-grid">
+                  <div class="obf-bounds-map-panel">
+                    <strong>World</strong>
+                    <svg class="obf-bounds-world-map" [class.is-panning]="boundsMapIsPanning('world')" [attr.viewBox]="boundsMapViewBox('world')" role="img" [attr.aria-label]="'World map showing bounds for ' + preview.name"
+                         (wheel)="zoomBoundsMap($event, 'world')" (pointerdown)="startBoundsMapPan($event, 'world')"
+                         (pointermove)="moveBoundsMapPan($event)" (pointerup)="endBoundsMapPan($event)" (pointercancel)="endBoundsMapPan($event)">
+                      <image href="world-map.svg" x="0" y="0" width="360" height="180" preserveAspectRatio="none"></image>
+                      @for (rectangle of preview.rectangles; track $index) {
+                        <rect [attr.x]="rectangle.x" [attr.y]="rectangle.y" [attr.width]="rectangle.width" [attr.height]="rectangle.height"
+                              fill="#ffad33" fill-opacity=".34" stroke="#ffad33" stroke-width="1.4"></rect>
+                      }
+                    </svg>
+                  </div>
+                  <div class="obf-bounds-map-panel">
+                    <strong>Europe</strong>
+                    <svg class="obf-bounds-europe-map" [class.is-panning]="boundsMapIsPanning('europe')" [attr.viewBox]="boundsMapViewBox('europe')" role="img" [attr.aria-label]="'Europe map showing bounds for ' + preview.name"
+                         (wheel)="zoomBoundsMap($event, 'europe')" (pointerdown)="startBoundsMapPan($event, 'europe')"
+                         (pointermove)="moveBoundsMapPan($event)" (pointerup)="endBoundsMapPan($event)" (pointercancel)="endBoundsMapPan($event)">
+                      <image href="world-map.svg" x="0" y="0" width="2000" height="1001" preserveAspectRatio="none"></image>
+                      @for (rectangle of preview.rectangles; track $index) {
+                        <rect [attr.x]="rectangle.x * 5.5555556" [attr.y]="rectangle.y * 5.5611111"
+                              [attr.width]="rectangle.width * 5.5555556" [attr.height]="rectangle.height * 5.5611111"
+                              fill="#ffad33" fill-opacity=".34" stroke="#ffad33" stroke-width="1.8"></rect>
+                      }
+                    </svg>
+                  </div>
+                </div>
+              </section>
+            }
+              <details class="map-cache-section offline-map-updates-section app-disclosure">
+                <summary class="map-cache-heading">Checks</summary>
+                <div class="map-cache-actions offline-map-update-actions">
+                  <button type="button" class="offline-map-add-button" (click)="checkOffline()" [disabled]="offlineFilesCheckBusy() || resourcePackageScanBusy()">{{ offlineFilesCheckBusy() ? 'Checking…' : 'Check' }}</button>
+                  <span class="offline-map-status" role="status">{{ offlineFilesCheckStatus() || 'Check file availability, missing files, duplicates and active selections.' }}</span>
+                </div>
+                <div class="map-cache-actions offline-map-update-actions">
+                  <button type="button" class="offline-map-add-button" (click)="checkForOfflineMapUpdates()" [disabled]="offlineMaps().length === 0 || offlineMapUpdateCheckBusy()">{{ offlineMapUpdateCheckBusy() ? 'Checking…' : 'Check for updates' }}</button>
+                  <span class="offline-map-status" role="status">{{ offlineMapUpdateCheckStatus() || offlineMapCatalogueSummary() }}</span>
+                </div>
+                <div class="map-cache-actions offline-map-update-actions">
+                <span class="offline-map-status" role="status">{{ offlineMaps().length + hillshadeDatabases().length + resourcePackageEntries().length + ' offline file(s) loaded · ' + (activeOfflineMapCount() + activeHillshadeDatabaseCount()) + ' active · ' + inUseOfflineMapCount() + ' in use · ' + (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length) + ' filtered' }}@if (offlineMapMissingCount() + hillshadeMissingCount() > 0) { · {{ offlineMapMissingCount() + hillshadeMissingCount() }} missing - FILES MISSING }@if (offlineMapDuplicateCount() + hillshadeDuplicateCount() > 0) { · {{ offlineMapDuplicateCount() + hillshadeDuplicateCount() }} duplicate - FILES DUPLICATE }
+                @if (coordinatesAvailable() && mapSource() === 'offline' && !activeOfflineMapId()) { · No offline map covers this location; using the online map }
+                </span>
+                </div>
+              </details>
+          </div>
+        }
+        <div class="map-viewport" [class.map-hidden]="settingsOpen() && activeSettingsTab() === 'offlineMaps'">
+          <div #map class="map" [style.opacity]="overlayMode ? overlayOpacity() / 100 : 1"></div>
+          @if (gpxVisible() && gpxSpeedLegendTracks().length > 0) {
+            <div class="gpx-speed-map-legend" aria-label="GPX track color legends">
+              @for (track of gpxSpeedLegendTracks(); track track.path) {
+                <div class="gpx-speed-legend">
+                  <strong>{{ track.name }}</strong>
+                  <span class="gpx-speed-gradient" [style.background]="gpxPreviewGradient(track)"></span>
+                  <span>{{ track.colorMode === 'elevation' ? (track.elevationMinM ?? 0) + '–' + (track.elevationMaxM ?? 3000) + ' m' : (track.speedMinKmh ?? 0) + '–' + (track.speedMaxKmh ?? 120) + ' km/h' }}</span><span class="gpx-speed-no-data" [title]="track.colorMode === 'elevation' ? 'Segments without elevation data' : 'Segments without usable timestamps'">{{ track.colorMode === 'elevation' ? 'No elevation' : 'No time' }}</span>
+                </div>
+              }
+            </div>
+          }
+          @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+        </div>
+        @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
+          <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
+        }
+      </div>
+      @if (overlayMode) {
+        <div class="overlay-resize-handle resize-n" (pointerdown)="startOverlayResize($event, 'n')"></div>
+        <div class="overlay-resize-handle resize-e" (pointerdown)="startOverlayResize($event, 'e')"></div>
+        <div class="overlay-resize-handle resize-s" (pointerdown)="startOverlayResize($event, 's')"></div>
+        <div class="overlay-resize-handle resize-w" (pointerdown)="startOverlayResize($event, 'w')"></div>
+        <div class="overlay-resize-handle resize-ne" (pointerdown)="startOverlayResize($event, 'ne')"></div>
+        <div class="overlay-resize-handle resize-se" (pointerdown)="startOverlayResize($event, 'se')"></div>
+        <div class="overlay-resize-handle resize-sw" (pointerdown)="startOverlayResize($event, 'sw')"></div>
+        <div class="overlay-resize-handle resize-nw" (pointerdown)="startOverlayResize($event, 'nw')"></div>
+      }
+    </main>
+  
