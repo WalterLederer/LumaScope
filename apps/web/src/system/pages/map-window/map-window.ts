@@ -27,6 +27,8 @@ interface MapInstance {
   getZoom(): number;
   setZoom(zoom: number): MapInstance;
   containerPointToLatLng(point: [number, number]): { lat: number; lng: number };
+  project(latlng: [number, number], zoom?: number): { x: number; y: number };
+  unproject(point: [number, number], zoom?: number): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
   on(event: 'contextmenu', callback: (event: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void): MapInstance;
   createPane(name: string): HTMLElement;
@@ -66,7 +68,7 @@ interface RouteCalculationResult {
 interface TimeSliderSymbolSettings { rotation: number; flipHorizontal: boolean; }
 
 
-interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed' | 'elevation'; speedPalette?: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1?: string; customColor2?: string; customColor3?: string; speedMinKmh?: number; speedMaxKmh?: number; elevationMinM?: number; elevationMaxM?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionIntervalMeters?: number; directionArrowSizePx?: number; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
+interface GpxTrackFile { path: string; name: string; sizeBytes: number; lastModified: number; databasePath?: string; missing?: boolean; readError?: boolean; active?: boolean; color?: string; colorMode?: 'fixed' | 'speed' | 'elevation'; speedPalette?: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1?: string; customColor2?: string; customColor3?: string; speedMinKmh?: number; speedMaxKmh?: number; elevationMinM?: number; elevationMaxM?: number; lineStyle?: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth?: number; showDirection?: boolean; directionIntervalPx?: number; directionArrowSizePx?: number; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; }
 
 interface RenderTimingSummary {
   count: number;
@@ -464,7 +466,7 @@ interface MapErrorEntry {
             <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
             <label>Direction arrows<select [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">Off</option><option value="classic">➤ Classic</option><option value="chevron">❯ Chevron</option><option value="triangle">▶ Triangle</option><option value="thin">➜ Thin</option><option value="large-classic">➤ Large classic</option><option value="large-chevron">❯ Large chevron</option><option value="large-triangle">▶ Large triangle</option></select></label>
             @if (gpxTrackSettingsDraft().showDirection) {
-              <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalMeters }} m</strong><ui-slider [min]="40" [max]="1000" [step]="20" [value]="gpxTrackSettingsDraft().directionIntervalMeters" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalMeters: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
+              <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="30" [max]="500" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
               <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
             }
           </div>
@@ -2397,7 +2399,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
-  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalMeters: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalMeters: 160, directionArrowSizePx: 16, directionStyle: 'classic' });
+  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionStyle: 'classic' });
   protected readonly routePointActionMenuOpen = signal<number | null>(null);
   protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
@@ -2470,9 +2472,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxPreviewDash = (style?: GpxTrackFile['lineStyle']): string => style === 'dashed' ? '8 5' : style === 'dotted' ? '2 5' : style === 'long-dashed' ? '14 5' : style === 'short-dashed' ? '4 4' : style === 'dash-dot' ? '9 4 2 4' : style === 'dash-dot-dot' ? '9 3 2 3 2 3' : '';
   protected readonly openGpxTrackSettings = (track: GpxTrackFile): void => {
     this.gpxTrackSettingsTrack.set(track);
-    this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: track.color || this.gpxColor(), speedPalette: track.speedPalette || 'spectrum', customColor1: track.customColor1 || '#2878ff', customColor2: track.customColor2 || '#18c99a', customColor3: track.customColor3 || '#f04444', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, elevationMinM: track.elevationMinM ?? 0, elevationMaxM: track.elevationMaxM ?? 3000, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionIntervalMeters: track.directionIntervalMeters ?? 160, directionArrowSizePx: track.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16), directionStyle: track.directionStyle || 'classic' });
+    this.gpxTrackSettingsDraft.set({ colorMode: track.colorMode || 'fixed', color: track.color || this.gpxColor(), speedPalette: track.speedPalette || 'spectrum', customColor1: track.customColor1 || '#2878ff', customColor2: track.customColor2 || '#18c99a', customColor3: track.customColor3 || '#f04444', speedMinKmh: track.speedMinKmh ?? 0, speedMaxKmh: track.speedMaxKmh ?? 120, elevationMinM: track.elevationMinM ?? 0, elevationMaxM: track.elevationMaxM ?? 3000, lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 3, showDirection: track.showDirection ?? false, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? ((track.directionStyle || 'classic').startsWith('large-') ? 24 : 16), directionStyle: track.directionStyle || 'classic' });
   };
-  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalMeters: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
+  protected readonly updateGpxTrackSettingsDraft = (patch: Partial<{ colorMode: 'fixed' | 'speed' | 'elevation'; color: string; speedPalette: 'spectrum' | 'cool-warm' | 'custom-2' | 'custom-3'; customColor1: string; customColor2: string; customColor3: string; speedMinKmh: number; speedMaxKmh: number; elevationMinM: number; elevationMaxM: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionIntervalPx: number; directionArrowSizePx: number; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>): void => this.gpxTrackSettingsDraft.update(current => ({ ...current, ...patch }));
   protected readonly cancelGpxTrackSettings = (): void => this.gpxTrackSettingsTrack.set(null);
   protected readonly saveGpxTrackSettings = (): void => {
     const track = this.gpxTrackSettingsTrack(); if (!track) return;
@@ -2481,7 +2483,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const max = Math.max(min + 1, Math.min(300, Math.round(Number(draft.speedMaxKmh) || 120)));
     const elevationMinM = Math.max(-12000, Math.min(100000, Math.round(Number(draft.elevationMinM) || 0)));
     const elevationMaxM = Math.max(elevationMinM + 1, Math.min(100001, Math.round(Number(draft.elevationMaxM) || 3000)));
-    this.changeGpxListTrack(track.path, { ...draft, directionIntervalMeters: Math.max(40, Math.min(1000, Math.round(Number(draft.directionIntervalMeters) / 20) * 20)), directionArrowSizePx: Math.max(8, Math.min(40, Math.round(Number(draft.directionArrowSizePx) || 16))), speedMinKmh: min, speedMaxKmh: max, elevationMinM, elevationMaxM, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) });
+    this.changeGpxListTrack(track.path, { ...draft, directionIntervalPx: Math.max(30, Math.min(500, Math.round(Number(draft.directionIntervalPx) / 10) * 10)), directionArrowSizePx: Math.max(8, Math.min(40, Math.round(Number(draft.directionArrowSizePx) || 16))), speedMinKmh: min, speedMaxKmh: max, elevationMinM, elevationMaxM, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) });
     this.gpxTrackSettingsTrack.set(null);
   };
   protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
@@ -2573,7 +2575,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxVisible = signal(true);
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
-  private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalMeters' | 'directionArrowSizePx' | 'directionStyle'>>>();
+  private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionStyle'>>>();
   private gpxDatabaseTrackSettingsLoaded = false;
   private gpxDatabaseSettingsWriteQueue: Promise<void> = Promise.resolve();
   protected readonly gpxSpeedLegendTracks = computed(() => (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => track.active !== false && (track.colorMode === 'speed' || track.colorMode === 'elevation')));
@@ -2762,7 +2764,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineAddressSearchError = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
-  protected readonly gpxColors = [
+  protected readonly gpxColors: Array<{ name: string; value: string; textColor?: string }> = [
     { name: 'Red', value: '#ff3b30' }, { name: 'Orange', value: '#ff9500' },
     { name: 'Amber', value: '#ffb000' }, { name: 'Yellow', value: '#ffd60a' },
     { name: 'Lime', value: '#a8d600' }, { name: 'Green', value: '#34c759' },
@@ -4574,7 +4576,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
-    const syncZoom = (): void => this.persistZoom(map.getZoom());
+    const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
     map.on('zoomend', syncZoom);
     (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
       .on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
@@ -6679,30 +6681,35 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     this.gpxTrackDirectionMenuOpen.set(null);
   };
-  private gpxDirectionArrows(segment: [number, number][], intervalMeters = 160): Array<{ position: [number, number]; bearing: number }> {
+  private gpxDirectionArrows(segment: [number, number][], intervalPx = 120): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
-    intervalMeters = Math.max(40, Math.min(1000, intervalMeters));
+    if (!this.map || segment.length < 2) return arrows;
+    intervalPx = Math.max(30, Math.min(500, intervalPx));
+    const zoom = this.map.getZoom();
     let distanceSinceArrow = 0;
     for (let i = 1; i < segment.length; i++) {
       const [lat1, lon1] = segment[i - 1];
       const [lat2, lon2] = segment[i];
-      const radians = Math.PI / 180;
-      const dLat = (lat2 - lat1) * radians;
-      const dLon = (lon2 - lon1) * radians;
-      const meanLat = ((lat1 + lat2) / 2) * radians;
-      const length = 6371000 * Math.hypot(dLat, dLon * Math.cos(meanLat));
+      const start = this.map.project([lat1, lon1], zoom);
+      const finish = this.map.project([lat2, lon2], zoom);
+      const dx = finish.x - start.x;
+      const dy = finish.y - start.y;
+      const length = Math.hypot(dx, dy);
       if (!Number.isFinite(length) || length <= 0) continue;
+      const radians = Math.PI / 180;
+      const dLon = (lon2 - lon1) * radians;
       const y = Math.sin(dLon) * Math.cos(lat2 * radians);
       const x = Math.cos(lat1 * radians) * Math.sin(lat2 * radians) -
         Math.sin(lat1 * radians) * Math.cos(lat2 * radians) * Math.cos(dLon);
       const bearing = (Math.atan2(y, x) / radians + 360) % 360;
-      let remaining = intervalMeters - distanceSinceArrow;
+      let remaining = intervalPx - distanceSinceArrow;
       while (remaining <= length) {
         const fraction = remaining / length;
-        arrows.push({ position: [lat1 + (lat2 - lat1) * fraction, lon1 + (lon2 - lon1) * fraction], bearing });
-        remaining += intervalMeters;
+        const point = this.map.unproject([start.x + dx * fraction, start.y + dy * fraction], zoom);
+        arrows.push({ position: [point.lat, point.lng], bearing });
+        remaining += intervalPx;
       }
-      distanceSinceArrow = (distanceSinceArrow + length) % intervalMeters;
+      distanceSinceArrow = (distanceSinceArrow + length) % intervalPx;
     }
     return arrows;
   }
@@ -8358,7 +8365,7 @@ ${points}
         };
         const arrowStyle = arrowStyles[track.directionStyle || 'classic'];
         const arrowSize = Math.max(8, Math.min(40, track.directionArrowSizePx ?? arrowStyle.size));
-        for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalMeters ?? 160)) {
+        for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalPx ?? 120)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
             html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.color || this.gpxColor()) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + arrowStyle.glyph + '</span>',
