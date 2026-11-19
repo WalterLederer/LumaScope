@@ -683,7 +683,7 @@ app-map-window {
     .offline-row-action-menu,
     .gpx-track-color-menu-floating{position:fixed!important;top:auto;right:auto;left:auto;z-index:2147483005;max-height:calc(100vh - 16px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
     .gpx-toolbar{width:100%;min-width:0}
-    .gpx-toolbar .gpx-toolbar-help{margin-left:auto!important;flex:0 0 30px!important}
+    .gpx-toolbar .gpx-toolbar-help{margin-left:auto!important;margin-right:0!important;align-self:center;flex:0 0 30px!important}
     .time-slider-no-data-row{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
     .time-slider-no-data-row .time-slider-help{flex:1 1 auto;min-width:0}
     .time-slider-no-data-row .time-slider-inline-help{margin-left:auto!important;flex:0 0 30px!important}
