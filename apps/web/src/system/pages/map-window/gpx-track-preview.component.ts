@@ -27,6 +27,7 @@ export interface GpxTrackPreviewData {
 @Component({
   selector: 'app-gpx-track-preview',
   standalone: true,
+  styles: [':host{display:block;min-width:0;}'],
   template: `
     <div class="gpx-track-style-preview" [class.gpx-track-settings-preview]="variant() === 'settings'">
       <svg viewBox="0 0 150 24" aria-hidden="true">
