@@ -475,7 +475,7 @@ interface MapErrorEntry {
             <label class="gpx-direction-density-control"><span>Arrow shadow strength</span><strong>{{ gpxTrackSettingsDraft().arrowShadowStrength }}%</strong><ui-slider [min]="0" [max]="100" [step]="5" [value]="gpxTrackSettingsDraft().arrowShadowStrength" (valueChange)="updateGpxTrackSettingsDraft({ arrowShadowStrength: $event })" [color]="themeService.sliderColor()" aria-label="Arrow shadow strength" /></label>
               </div>
             </details>
-          </div>
+          </section>
           <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()" (keydown)="onGpxTrackSettingsFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button></footer>
         </section>
       </div>
@@ -1338,7 +1338,6 @@ interface MapErrorEntry {
   </div>
 </div>
 </div>
-</section>
       }
       <div class="map-content">
         @if (mapDisplayNotice() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
