@@ -6437,6 +6437,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxDatabaseQueryStatus.set('');
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    void this.refreshLatestGpxElevationProfile();
   };
 
   protected readonly selectAllGpxTracks = (): void => {
@@ -6445,6 +6446,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.persistGpxTracks(tracks);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    void this.refreshLatestGpxElevationProfile();
   };
 
   protected readonly deselectAllGpxTracks = (): void => {
@@ -6453,6 +6455,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.persistGpxTracks(tracks);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    void this.refreshLatestGpxElevationProfile();
   };
 
   protected readonly deleteAllGpxTracks = async (): Promise<void> => {
@@ -6463,6 +6466,8 @@ export class MapWindow implements OnInit, OnDestroy {
     await this.persistGpxTracks([]);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    this.gpxElevationProfiles.set([]);
+    this.latestGpxElevationProfileError.set('No active GPX tracks with local cache paths are available.');
   };
 
   protected readonly importGpxTrack = (): void => {
