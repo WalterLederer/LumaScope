@@ -2365,7 +2365,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
-  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed'; color: string; speedPalette: 'spectrum' | 'cool-warm'; speedMinKmh: number; speedMaxKmh: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionStyle: NonNullable<GpxTrackFile['directionStyle'] }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', speedMinKmh: 0, speedMaxKmh: 120, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionStyle: 'classic' });
+  protected readonly gpxTrackSettingsDraft = signal<{ colorMode: 'fixed' | 'speed'; color: string; speedPalette: 'spectrum' | 'cool-warm'; speedMinKmh: number; speedMaxKmh: number; lineStyle: NonNullable<GpxTrackFile['lineStyle']>; lineWidth: number; showDirection: boolean; directionStyle: NonNullable<GpxTrackFile['directionStyle']> }>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', speedMinKmh: 0, speedMaxKmh: 120, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionStyle: 'classic' });
   protected readonly routePointActionMenuOpen = signal<number | null>(null);
   protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
