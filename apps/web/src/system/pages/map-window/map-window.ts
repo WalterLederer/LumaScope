@@ -420,7 +420,8 @@ interface MapErrorEntry {
             }
           </div>
         }
-      </div>= 'database') {
+      </div>
+    } @else if (gpxListMode() === 'database') {
       <div class="gpx-database-empty">No GPX track points from the database are visible in the current map viewport and time range.</div>
     } @else {
       <div class="gpx-database-empty">No GPX tracks are loaded.</div>
