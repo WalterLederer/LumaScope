@@ -82,6 +82,13 @@ export class ImageGridComponent {
     } catch { return 'thumbnails'; }
   };
 
+  private readonly readStoredDetailFontSize = (): number => {
+    try {
+      const stored = Number(this.document.defaultView?.localStorage.getItem('galleryDetailFontSize'));
+      return Number.isFinite(stored) && stored >= 10 && stored <= 24 ? Math.round(stored) : 12;
+    } catch { return 12; }
+  };
+
   readonly viewMode = signal<GalleryViewMode>(this.readStoredViewMode());
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
@@ -225,8 +232,8 @@ export class ImageGridComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly thumbSizeSlider = new FormControl(0, { nonNullable: true });
-  protected readonly detailFontSizeSlider = new FormControl(12, { nonNullable: true });
-  readonly detailFontSize = signal(12);
+  readonly detailFontSize = signal(this.readStoredDetailFontSize());
+  protected readonly detailFontSizeSlider = new FormControl(this.detailFontSize(), { nonNullable: true });
   protected readonly detailFontSizeMin = 10;
   protected readonly detailFontSizeMax = 24;
 
@@ -404,6 +411,11 @@ export class ImageGridComponent {
           this.detailFontSizeSlider.setValue(value, { emitEvent: false });
         }
         this.detailFontSize.set(value);
+        try {
+          this.document.defaultView?.localStorage.setItem('galleryDetailFontSize', String(value));
+        } catch {
+          /* Keep the selected font size for the current session if storage is unavailable. */
+        }
       });
 
     this.thumbSizeSlider.valueChanges
