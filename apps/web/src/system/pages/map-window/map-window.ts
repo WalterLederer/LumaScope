@@ -519,7 +519,7 @@ interface MapErrorEntry {
             @for (series of chart.series; track series.key) {
               <polyline class="gpx-elevation-line" [attr.points]="series.polyline" [style.stroke]="series.color" [style.strokeWidth]="series.lineWidth" [style.strokeDasharray]="series.dash" />
               @for (arrow of series.arrows; track $index) {
-                <path [attr.d]="series.arrowPath" [attr.fill]="series.arrowFilled ? series.color : 'none'" [attr.stroke]="series.color" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="'translate(' + arrow.x + ' ' + arrow.y + ') rotate(' + arrow.angle + ') scale(' + series.arrowScale + ')'" />
+                <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central" [attr.x]="arrow.x" [attr.y]="arrow.y" [attr.font-size]="series.arrowSize" [attr.fill]="series.color" [attr.opacity]=".92 * gpxOpacity() / 100" [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ series.arrowGlyph }}</text>
               }
             }
             <text class="gpx-elevation-axis-title" x="18" y="118" text-anchor="middle" transform="rotate(-90 18 118)">Elevation (m)</text>
@@ -2740,9 +2740,9 @@ export class MapWindow implements OnInit, OnDestroy {
       return {
         key: track.path, name: track.name, color: track.color || this.gpxColor(),
         lineWidth: track.lineWidth ?? 3, dash: this.gpxPreviewDash(track.lineStyle),
-        polyline, arrows, arrowPath: this.gpxPreviewArrow(track.directionStyle),
-        arrowFilled: this.gpxPreviewArrowFilled(track.directionStyle),
-        arrowScale: (track.directionArrowSizePx ?? 16) / 16,
+        polyline, arrows,
+        arrowGlyph: this.gpxDirectionGlyph(track.directionStyle),
+        arrowSize: this.gpxDirectionArrowSize(track.directionArrowSizePx, track.directionStyle),
         lineStyle: this.gpxLineStyleName(track.lineStyle ?? 'solid'),
         colorMode: track.colorMode === 'speed' ? 'Speed-based' : track.colorMode === 'elevation' ? 'Elevation-based' : 'Fixed color',
         palette: track.speedPalette ?? 'spectrum',
