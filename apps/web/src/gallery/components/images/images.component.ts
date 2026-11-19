@@ -406,19 +406,22 @@ export class ImagesComponent {
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
       let images = this.images() ?? [];
+      let reconciledRecords = 0;
       const folder = directory?.trim() || this.folderPath();
       if (folder) {
         this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
         const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
         if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
         images = result.data;
-        if (this.verifyCacheFiles()) {
+        if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
-          const removed = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
-          await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${removed} stale records in ${folder}`);
+          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
         }
       }
       await this.runCacheForImages(images, true, controller.signal);
+      if (folder && this.verifyCacheFiles() && !controller.signal.aborted) {
+        await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
+      }
     } catch (error) {
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -549,14 +552,17 @@ export class ImagesComponent {
 
       if (!controller.signal.aborted) {
         const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
+        let reconciledRecords: number | null = null;
         if (this.verifyCacheFiles() && enumerationComplete) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records under ${rootPath}`);
-          const removed = await this.cacheManager.reconcilePhotoRecords(rootPath, uniqueImages.map(image => image.path), true);
-          await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removed} stale records under ${rootPath}`);
+          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(rootPath, uniqueImages.map(image => image.path), true);
         } else if (this.verifyCacheFiles() && !enumerationComplete) {
           await this.cacheManager.appendBuildLog('Recursive photo database reconciliation skipped because one or more folders could not be fully enumerated.');
         }
         await this.runCacheForImages(uniqueImages, true, controller.signal);
+        if (reconciledRecords !== null && !controller.signal.aborted) {
+          await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
+        }
       }
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
