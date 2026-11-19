@@ -112,6 +112,8 @@
     > th,
     > .detail-column-heading {
       background: var(--color-accent-default, #8a5a12) !important;
+      background-color: var(--color-accent-default, #8a5a12) !important;
+      background-image: none !important;
       color: var(--color-content-on-accent, #fff) !important;
     }
 
@@ -398,6 +400,14 @@
   vertical-align: top;
 }
 .detail-native-table thead tr { height: 100%; }
+/* The native table header has an opaque Canvas background by default. Override it
+   explicitly while a folder cache run is active so every header cell is highlighted. */
+.detail-native-table thead tr.detail-header.cache-build-active > th {
+  background: var(--color-accent-default, #8a5a12) !important;
+  background-color: var(--color-accent-default, #8a5a12) !important;
+  background-image: none !important;
+  color: var(--color-content-on-accent, #fff) !important;
+}
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
 .detail-native-table th > button {
