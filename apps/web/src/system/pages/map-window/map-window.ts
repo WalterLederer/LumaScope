@@ -6884,6 +6884,25 @@ ${points}
     this.fitMapToCoordinates(points, 24, 16);
   };
 
+  protected readonly canCenterSelectedImageLocation = (): boolean =>
+    this.currentImageHasGps()
+    && this.currentLatitude !== null && Number.isFinite(this.currentLatitude)
+    && this.currentLongitude !== null && Number.isFinite(this.currentLongitude)
+    && (!!this.offlineRenderer || !!this.map);
+
+  protected readonly centerSelectedImageLocation = (): void => {
+    if (!this.currentImageHasGps()) return;
+    const latitude = this.currentLatitude;
+    const longitude = this.currentLongitude;
+    if (latitude === null || longitude === null
+      || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    if (this.offlineRenderer) {
+      this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+    } else if (this.map) {
+      this.map.setView([latitude, longitude], this.map.getZoom());
+    }
+  };
+
   protected readonly fitSelectedImagesToMap = (): void => {
     const points = this.directoryPhotoMarkers
       .filter(marker => Number.isFinite(marker.latitude) && Number.isFinite(marker.longitude)
