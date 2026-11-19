@@ -32,7 +32,7 @@
             <small class="column-count">{{ cacheStats().total }}</small>
             <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
             @if (cacheRunActive()) {
-              <small class="worker-progress" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
+              <small class="worker-progress cache-folder-action-progress" aria-live="polite">Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</small>
             }
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)"></span>
           </th>
