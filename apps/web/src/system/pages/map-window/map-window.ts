@@ -468,9 +468,9 @@ interface MapErrorEntry {
               <label>Maximum elevation (m)<input type="number" step="1" [value]="gpxTrackSettingsDraft().elevationMaxM" (change)="updateGpxTrackSettingsDraft({ elevationMaxM: +$any($event.target).value })"></label>
             }
             <div class="gpx-track-settings-divider" role="separator"></div>
-            <label>Line style<select class="gpx-line-style-select" [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">━━━━━━  Solid</option><option value="dashed">━ ━ ━  Dashed</option><option value="dotted">······  Dotted</option><option value="long-dashed">━━━━ ━  Long dash</option><option value="short-dashed">━ ━ ━  Short dash</option><option value="dash-dot">━ · ━ ·  Dash-dot</option><option value="dash-dot-dot">━ · · ━  Dash-dot-dot</option></select></label>
+            <label>Line style<select class="gpx-line-style-select" [value]="gpxTrackSettingsDraft().lineStyle" (change)="updateGpxTrackSettingsDraft({ lineStyle: $any($event.target).value })"><option value="solid">━━━━━━&#160;&#160;&#160;&#160;Solid</option><option value="dashed">━ ━ ━&#160;&#160;&#160;&#160;&#160;Dashed</option><option value="dotted">······&#160;&#160;&#160;&#160;Dotted</option><option value="long-dashed">━━━━ ━&#160;&#160;&#160;Long dash</option><option value="short-dashed">━ ━ ━&#160;&#160;&#160;&#160;Short dash</option><option value="dash-dot">━ · ━ ·&#160;&#160;&#160;Dash-dot</option><option value="dash-dot-dot">━ · · ━&#160;&#160;Dash-dot-dot</option></select></label>
             <label>Line width<select [value]="gpxTrackSettingsDraft().lineWidth" (change)="updateGpxTrackSettingsDraft({ lineWidth: +$any($event.target).value })">@for (width of [1, 2, 3, 4, 5, 6, 8, 10]; track width) { <option [value]="width">{{ width }} px</option> }</select></label>
-            <label>Direction arrows<select class="gpx-direction-style-select" [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">—  Off</option><option value="classic">➤  Classic</option><option value="chevron">❯  Chevron</option><option value="triangle">▶  Triangle</option><option value="thin">➜  Thin</option><option value="large-classic">➤  Large classic</option><option value="large-chevron">❯  Large chevron</option><option value="large-triangle">▶  Large triangle</option></select></label>
+            <label>Direction arrows<select class="gpx-direction-style-select" [value]="gpxTrackSettingsDraft().showDirection ? gpxTrackSettingsDraft().directionStyle : 'off'" (change)="updateGpxTrackSettingsDraft({ showDirection: $any($event.target).value !== 'off', directionStyle: $any($event.target).value === 'off' ? gpxTrackSettingsDraft().directionStyle : $any($event.target).value })"><option value="off">—&#160;&#160;&#160;&#160;&#160;&#160;&#160;Off</option><option value="classic">➤&#160;&#160;&#160;&#160;&#160;&#160;Classic</option><option value="chevron">❯&#160;&#160;&#160;&#160;&#160;&#160;Chevron</option><option value="triangle">▶&#160;&#160;&#160;&#160;&#160;Triangle</option><option value="thin">➜&#160;&#160;&#160;&#160;&#160;&#160;Thin</option><option value="large-classic">➤&#160;&#160;&#160;&#160;&#160;&#160;Large classic</option><option value="large-chevron">❯&#160;&#160;&#160;&#160;&#160;&#160;Large chevron</option><option value="large-triangle">▶&#160;&#160;&#160;&#160;&#160;&#160;Large triangle</option></select></label>
             @if (gpxTrackSettingsDraft().showDirection) {
               <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="30" [max]="500" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
               <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
@@ -2535,26 +2535,22 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly onGpxTrackSettingsKeydown = (event: KeyboardEvent): void => {
     const dialog = event.currentTarget as HTMLElement;
-    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
-      .filter(element => element.offsetParent !== null);
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.key === 'Tab') {
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus();
-      }
-      return;
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), ui-slider, [tabindex="0"]'))
+      .filter(element => element.offsetParent !== null && getComputedStyle(element).visibility !== 'hidden');
+    if (event.key === 'Tab' && focusable.length) {
+      const active = document.activeElement as HTMLElement | null;
+      const index = focusable.findIndex(element => element === active || element.contains(active));
+      const next = event.shiftKey
+        ? (index <= 0 ? focusable.length - 1 : index - 1)
+        : (index < 0 || index === focusable.length - 1 ? 0 : index + 1);
+      event.preventDefault(); event.stopPropagation(); focusable[next].focus(); return;
     }
-    if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
-      && (event.target as HTMLElement).closest('footer')) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('footer button:not([disabled])'));
       const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
       if (index >= 0) {
-        event.preventDefault();
-        buttons[Math.max(0, Math.min(buttons.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)))].focus();
+        event.preventDefault(); event.stopPropagation();
+        buttons[event.key === 'ArrowRight' ? Math.min(buttons.length - 1, index + 1) : Math.max(0, index - 1)].focus();
       }
     }
   };
