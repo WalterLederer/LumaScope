@@ -330,7 +330,14 @@ export class GalleryPage {
   protected readonly selectLocation = (node: TreeNode<string>) =>
     this.galleryState
       .navigateTo(node.id)
-      .subscribe(() => this.locationSelected.emit());
+      .subscribe(() => {
+        this.locationSelected.emit();
+        // Automatically cache every image in the selected favorite folder.
+        void this.galleryCacheBuild.startCacheBuild(node.id, true).catch(error => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
+        });
+      });
 
   protected readonly onImageSelected = (file: FileInfo) => {
     console.trace('[GalleryNavigationTrace] GalleryPage received thumbnail selection:', file.path);
