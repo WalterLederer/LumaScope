@@ -64,7 +64,7 @@
                         aria-label="Folder path actions"
                         [cdkMenuTriggerFor]="folderPathMenu"
                         uiStopPropagation>
-        <ui-icon icon="menu" [inherit]="true" />
+        <ui-icon icon="moreVertical" [inherit]="true" />
       </ui-action-button>
     </div>
 
@@ -107,7 +107,7 @@
     <button type="button" class="gallery-menu-item" cdkMenuItem
             [disabled]="!selectedLocation()"
             (click)="$event.stopPropagation(); copySelectedFolderPath()">
-      <ui-icon icon="copy" [inherit]="true" />
+      <ui-text [inherit]="true">⧉</ui-text>
       <ui-text [inherit]="true">Copy path</ui-text>
     </button>
   </ui-popup-menu>
