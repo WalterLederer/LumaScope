@@ -82,7 +82,7 @@ export class GalleryCacheBuild {
     catch { /* Keep the session setting. */ }
   };
 
-  readonly startCacheBuild = async (directory: string, importGpx: boolean): Promise<void> => {
+  readonly startCacheBuild = async (directory: string, importGpx = true): Promise<void> => {
     const controller = this.controller();
     if (!controller) throw new Error('The Cache folder action is not available. Please try again from the Cache tab.');
     await controller.start(directory, importGpx);
