@@ -89,6 +89,13 @@ ui-toolbar {
     box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
   }
 
+  .zoom-step-buttons {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+  }
+
   .zoom-label {
     flex: 0 0 auto;
     color: var(--color-content-default-medium);
