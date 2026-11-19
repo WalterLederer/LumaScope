@@ -410,6 +410,22 @@
 }
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
+/* Keep the column title on its own visual line and separate it from
+   the statistics row beneath it. */
+.detail-native-table thead th > button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 0 5px;
+  margin: 0 0 5px;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+}
+.detail-native-table thead th.thumb-column-heading > span:first-child {
+  display: block;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+}
 .detail-native-table th > button {
   min-width: 0;
   padding: 0;
