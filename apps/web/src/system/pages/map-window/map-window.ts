@@ -4600,6 +4600,11 @@ export class MapWindow implements OnInit, OnDestroy {
       console.warn('[OfflineMap] Could not open folder:', error);
     }
   };
+  protected readonly offlineCatalogueLocalFilePath = (file: import('internal-api').OfflineMapCatalogueFile): string => {
+    const catalogueName = file.fileName.trim().toLocaleLowerCase();
+    if (!catalogueName) return '';
+    return this.offlineMaps().find(map => map.filePath.trim() && [map.fileName, map.name].some(name => name.trim().toLocaleLowerCase() === catalogueName))?.filePath ?? '';
+  };
   protected readonly openOfflineFileWith = async (filePath: string): Promise<void> => {
     if (!this.desktop || !filePath.trim()) return;
     try {
