@@ -435,7 +435,7 @@ interface MapErrorEntry {
           </div>
           <div class="gpx-track-settings-grid">
             <label>Settings favorites<select [value]="gpxTrackSettingsFavoriteSelection()" (change)="applyGpxTrackSettingsFavorite($any($event.target).value)"><option value="">Select favorite…</option>@for (favorite of gpxTrackSettingsFavorites(); track favorite.name) { <option [value]="favorite.name">{{ favorite.name }}</option> }</select></label>
-            <div class="gpx-track-settings-favorite-add"><input type="text" maxlength="60" placeholder="Favorite name" [value]="gpxTrackSettingsFavoriteName()" (input)="gpxTrackSettingsFavoriteName.set($any($event.target).value)"><button type="button" (click)="addGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteName().trim()">Add settings to favorites</button></div>
+            <div class="gpx-track-settings-favorite-add"><input type="text" maxlength="60" placeholder="Favorite name" [value]="gpxTrackSettingsFavoriteName()" (input)="gpxTrackSettingsFavoriteName.set($any($event.target).value)"><button type="button" (click)="addGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteName().trim()">Add settings to favorites</button><button type="button" class="gpx-track-settings-favorite-remove" (click)="removeGpxTrackSettingsFavorite()" [disabled]="!gpxTrackSettingsFavoriteSelection()">Remove favorite</button></div>
             <div class="gpx-track-settings-divider" role="separator"></div>
             <label>Color mode<select [value]="gpxTrackSettingsDraft().colorMode" (change)="updateGpxTrackSettingsDraft({ colorMode: $any($event.target).value })"><option value="fixed">Fixed color</option><option value="speed">Speed-based</option><option value="elevation">Elevation-based</option></select></label>
             @if (gpxTrackSettingsDraft().colorMode === 'fixed') {
@@ -2544,6 +2544,14 @@ export class MapWindow implements OnInit, OnDestroy {
     if (existingIndex >= 0) favorites[existingIndex] = favorite; else favorites.push(favorite);
     this.gpxTrackSettingsFavorites.set(favorites);
     this.gpxTrackSettingsFavoriteSelection.set(name);
+    this.configuration.updateSystemConfig({ gpxTrackSettingsFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
+  };
+  protected readonly removeGpxTrackSettingsFavorite = (): void => {
+    const selectedName = this.gpxTrackSettingsFavoriteSelection();
+    if (!selectedName) return;
+    const favorites = this.gpxTrackSettingsFavorites().filter(item => item.name !== selectedName);
+    this.gpxTrackSettingsFavorites.set(favorites);
+    this.gpxTrackSettingsFavoriteSelection.set('');
     this.configuration.updateSystemConfig({ gpxTrackSettingsFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
   };
   protected readonly saveGpxTrackSettings = (): void => {

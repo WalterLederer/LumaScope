@@ -786,3 +786,6 @@ app-map-window {
 .gpx-elevation-profile-legend-item>div{display:flex;flex-direction:column;gap:1px;min-width:0}
 .gpx-elevation-profile-legend-item strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-primary-high)}
 .gpx-elevation-profile-legend-item span{color:var(--color-content-default-medium);overflow-wrap:anywhere}
+
+.gpx-track-settings-favorite-add .gpx-track-settings-favorite-remove{background:var(--color-surface-secondary,#e8e8e8);border:1px solid var(--color-border-default,#999);color:var(--color-content-primary-high,#222)}
+.gpx-track-settings-favorite-add .gpx-track-settings-favorite-remove:disabled{opacity:.45;cursor:not-allowed}
