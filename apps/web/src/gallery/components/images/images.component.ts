@@ -349,7 +349,7 @@ export class ImagesComponent {
     event.stopPropagation();
     const handle = event.currentTarget as HTMLElement;
     const header = handle.closest('.detail-header') as HTMLElement | null;
-    const table = header?.closest('.detail-table') as HTMLElement | null;
+    const table = header?.closest('.detail-native-table') as HTMLTableElement | null;
     const cell = header?.children.item(columnIndex) as HTMLElement | null;
     if (!table || !cell) return;
     const startX = event.clientX;
