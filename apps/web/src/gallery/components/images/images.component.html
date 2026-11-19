@@ -77,9 +77,9 @@
           <th scope="col">
             <small class="column-count">{{ cacheStats().total }}</small>
             <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
-            @if (cacheRunActive()) {
+            @if (cacheFolderActionActive()) {
               <small class="worker-progress cache-folder-action-progress" aria-live="polite">
-                <span>Cache folder action is running · {{ cacheRunProgress().completed }} / {{ cacheRunProgress().total }}</span>
+                <span>Cache folder action is running · {{ cacheFolderActionProgress().completed }} / {{ cacheFolderActionProgress().total }}</span>
                 <button type="button" class="cache-folder-action-stop" (click)="stopCacheFolderAction()" aria-label="Stop cache folder action" title="Stop cache folder action">Stop</button>
               </small>
             }
