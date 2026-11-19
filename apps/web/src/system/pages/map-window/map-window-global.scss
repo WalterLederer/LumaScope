@@ -759,8 +759,8 @@ app-map-window {
   .gpx-track-style-preview span{flex:0 0 auto;font-size:10px;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}
   .gpx-track-settings-preview{margin:4px 0 10px;padding:6px 8px;border:1px solid var(--color-content-default-low,#666);border-radius:5px;background:var(--color-surface-default-medium,#303236)}
   .gpx-track-edit-button{width:28px;height:27px;margin-right:3px;border:1px solid var(--color-content-default-low,#555);border-radius:4px;background:var(--color-surface-default-medium,#454545);color:var(--color-content-default-high,#eee);cursor:pointer}
-  .gpx-track-settings-backdrop{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.58)}
-  .gpx-track-settings-dialog{width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;padding:16px;border:1px solid var(--color-content-default-low,#666);border-radius:9px;background:var(--color-surface-default-low,#252629);color:var(--color-content-default-high,#eee);box-shadow:0 12px 42px rgba(0,0,0,.5)}
+  .gpx-track-settings-backdrop{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px;background:rgba(0,0,0,.58);box-sizing:border-box}
+  .gpx-track-settings-dialog{width:min(520px,calc(100vw - 32px));max-height:none;overflow:visible;margin:0 auto;padding:16px;border:1px solid var(--color-content-default-low,#666);border-radius:9px;background:var(--color-surface-default-low,#252629);color:var(--color-content-default-high,#eee);box-shadow:0 12px 42px rgba(0,0,0,.5)}
   .gpx-track-settings-dialog header{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;padding-bottom:10px;border-bottom:1px solid var(--color-content-default-low,#666)}
   .gpx-track-settings-dialog header strong{font-size:16px}
   .gpx-track-settings-dialog header span{font-size:12px;color:var(--color-content-default-medium,#aaa);overflow-wrap:anywhere}
@@ -773,7 +773,11 @@ app-map-window {
   .gpx-settings-choice-options{position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:2147483602;max-height:260px;overflow:auto;padding:4px;border:1px solid var(--color-content-default-low,#666);border-radius:6px;background:var(--color-surface-default-low,#252629);box-shadow:0 8px 24px rgba(0,0,0,.5)}
   .gpx-settings-choice-options>button{display:grid;grid-template-columns:82px minmax(0,1fr);align-items:center;gap:8px;width:100%;min-height:30px;padding:5px 7px;border:0;border-radius:4px;background:transparent;color:var(--color-content-default-high,#eee);text-align:left;cursor:pointer}
   .gpx-settings-choice-options>button:hover,.gpx-settings-choice-options>button:focus-visible{background:var(--color-accent,#2878d0);color:#fff;outline:none}
+  .gpx-settings-choice-options>button[aria-selected="true"]{background:#245f9e;color:#fff;box-shadow:inset 0 0 0 1px #8fc5ff}
+  .gpx-settings-choice-options>button[aria-selected="true"] .gpx-settings-choice-sample{color:#fff}
   .gpx-settings-choice-options>button .gpx-settings-choice-sample{color:inherit}
+  .gpx-track-settings-dialog select option{background:#fff;color:#202124}
+  .gpx-track-settings-dialog select option:checked{background:#245f9e;color:#fff}
   .gpx-track-settings-divider{grid-column:1 / -1;height:1px;margin:2px 0;background:var(--color-content-default-low,#666)}
   .gpx-track-settings-grid label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px;color:var(--color-content-default-medium,#bbb)}
   .gpx-track-settings-grid label.gpx-direction-density-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:5px}.gpx-track-settings-grid .gpx-direction-density-control>span{grid-column:1;grid-row:1;white-space:nowrap}.gpx-track-settings-grid .gpx-direction-density-control>strong{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-size:12px;color:var(--color-content-default-high,#eee)}.gpx-track-settings-grid .gpx-direction-density-control>ui-slider{grid-column:1/-1;grid-row:2;min-width:0}
