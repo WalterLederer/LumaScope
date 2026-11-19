@@ -5,7 +5,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, SliderComponent } from '@light-matter/ui';
 import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
-import { catchError, distinctUntilChanged, filter, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
+import { catchError, distinctUntilChanged, filter, firstValueFrom, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
 import { ProcessManager } from '../../../ipc/process-manager';
@@ -221,7 +221,7 @@ export class ImageView {
       return;
     }
 
-    const selectedImage = await this.selectedImage$.pipe(take(1)).toPromise();
+    const selectedImage = await firstValueFrom(this.selectedImage$.pipe(take(1)));
     const directory = this.gallerySelectedLocation() || (selectedImage ? await this.fileSystem.dirname(selectedImage.path) : '');
     if (directory) {
       try {
@@ -232,7 +232,6 @@ export class ImageView {
             title: 'Photo database incomplete',
             description: `${completeness.missing.length} of ${completeness.total} images in the current folder are missing database records or have changed since caching. Run “Cache folder” now before opening the Location window?`,
             confirmLabel: 'Cache folder',
-            cancelLabel: 'Cancel',
             defaultAction: 'confirm'
           }).pipe(take(1)).subscribe(() => {
             void this.openLocationWindowAfterCache(directory, previousTab);
