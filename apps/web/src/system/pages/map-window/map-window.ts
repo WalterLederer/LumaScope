@@ -2499,7 +2499,7 @@ export class MapWindow implements OnInit, OnDestroy {
           inferno: [{ offset: '0%', color: '#000004' }, { offset: '25%', color: '#57106e' }, { offset: '50%', color: '#bc3754' }, { offset: '75%', color: '#f98e09' }, { offset: '100%', color: '#fcffa4' }],
           terrain: [{ offset: '0%', color: '#183a8f' }, { offset: '25%', color: '#27a9c2' }, { offset: '50%', color: '#4caf50' }, { offset: '75%', color: '#d8c66a' }, { offset: '100%', color: '#8c4b2d' }],
           spectrum: [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]
-        } as Record<string, Array<{ offset: string; color: string }>>)[track.speedPalette ?? 'spectrum'] ?? [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }]);
+        } as Record<string, Array<{ offset: string; color: string }>>)[track.speedPalette ?? 'spectrum'] ?? [{ offset: '0%', color: '#285adc' }, { offset: '25%', color: '#00bedc' }, { offset: '50%', color: '#28be5a' }, { offset: '75%', color: '#ffd200' }, { offset: '100%', color: '#eb2d23' }];
   protected readonly gpxSettingsPreviewTrack = (track: GpxTrackFile): GpxTrackFile => ({ ...track, ...this.gpxTrackSettingsDraft() });
   protected readonly gpxPreviewGradient = (track: GpxTrackFile): string => 'linear-gradient(90deg, ' + this.gpxPreviewStops(track).map(stop => stop.color + ' ' + stop.offset).join(', ') + ')';
   protected readonly gpxPreviewId = (path: string): string => { let hash = 0; for (let i = 0; i < path.length; i++) hash = (hash * 31 + path.charCodeAt(i)) | 0; return Math.abs(hash).toString(36); };
@@ -2572,9 +2572,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly onGpxTrackSettingsDialogClick = (event: MouseEvent): void => {
     const dialog = event.currentTarget as HTMLElement;
     const clickedChoice = (event.target as HTMLElement | null)?.closest('details.gpx-settings-choice') ?? null;
-    for (const choice of dialog.querySelectorAll<HTMLDetailsElement>('details.gpx-settings-choice')) {
+    dialog.querySelectorAll<HTMLDetailsElement>('details.gpx-settings-choice').forEach(choice => {
       if (choice !== clickedChoice) choice.removeAttribute('open');
-    }
+    });
   };
   protected readonly onGpxTrackSettingsFooterKeydown = (event: KeyboardEvent): void => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
