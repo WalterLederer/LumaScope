@@ -391,3 +391,11 @@ ui-side-panel {
   margin: 0;
   flex: 0 0 auto;
 }
+
+
+/* Separate the Add action from the remaining My PC favourite options. */
+:host ::ng-deep .gallery-folder-tree .gallery-location-menu-separator {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--color-content-default-low, rgb(128 128 128 / 45%));
+}
