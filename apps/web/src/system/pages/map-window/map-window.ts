@@ -479,7 +479,7 @@ interface MapErrorEntry {
 <button type="button" role="option" (click)="selectGpxTrackDirectionFromDialog('large-triangle', $event)" [attr.aria-selected]="gpxTrackSettingsDraft().showDirection && gpxTrackSettingsDraft().directionStyle === 'large-triangle'"><span class="gpx-settings-choice-sample">▶</span><span>Large triangle</span></button>
 </div></details></label>
             @if (gpxTrackSettingsDraft().showDirection) {
-              <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="30" [max]="500" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
+              <label class="gpx-direction-density-control"><span>Arrow spacing</span><strong>{{ gpxTrackSettingsDraft().directionIntervalPx }} px</strong><ui-slider [min]="20" [max]="200" [step]="10" [value]="gpxTrackSettingsDraft().directionIntervalPx" (valueChange)="updateGpxTrackSettingsDraft({ directionIntervalPx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow spacing" /></label>
               <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
             }
           </div>
@@ -1681,7 +1681,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private directoryMarkerGroup: MapMarkerGroup | null = null;
   private readonly directoryMarkers: MapMarker[] = [];
   private currentImagePath: string | null = null;
-  get currentImageDatabaseKey(): string | undefined { return this.currentImagePath?.slice(0, 2); }
+  private currentFolderPath: string | null = null;
+  get currentImageDatabaseKey(): string | undefined { return (this.currentImagePath ?? this.currentFolderPath)?.slice(0, 2); }
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
   private leaflet: LeafletMapApi | null = null;
@@ -2505,7 +2506,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxPreviewArrowPositions = (intervalPx = 120): Array<{ x: number; y: number; angle: number }> => {
     const points: Array<[number, number]> = [[3, 17], [22, 6], [42, 14], [62, 5], [82, 16], [102, 7], [122, 15], [147, 5]];
     const total = points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point[0] - points[index][0], point[1] - points[index][1]), 0);
-    const spacing = Math.max(30, Math.min(500, intervalPx));
+    const spacing = Math.max(20, Math.min(200, intervalPx));
     const result: Array<{ x: number; y: number; angle: number }> = [];
     for (let distance = spacing; distance < total - 2; distance += spacing) {
       let remaining = distance;
@@ -2591,7 +2592,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const max = Math.max(min + 1, Math.min(300, Math.round(Number(draft.speedMaxKmh) || 120)));
     const elevationMinM = Math.max(-12000, Math.min(100000, Math.round(Number(draft.elevationMinM) || 0)));
     const elevationMaxM = Math.max(elevationMinM + 1, Math.min(100001, Math.round(Number(draft.elevationMaxM) || 3000)));
-    this.changeGpxListTrack(track.path, { ...draft, directionIntervalPx: Math.max(30, Math.min(500, Math.round(Number(draft.directionIntervalPx) / 10) * 10)), directionArrowSizePx: Math.max(8, Math.min(40, Math.round(Number(draft.directionArrowSizePx) || 16))), speedMinKmh: min, speedMaxKmh: max, elevationMinM, elevationMaxM, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) });
+    this.changeGpxListTrack(track.path, { ...draft, directionIntervalPx: Math.max(20, Math.min(200, Math.round(Number(draft.directionIntervalPx) / 10) * 10)), directionArrowSizePx: Math.max(8, Math.min(40, Math.round(Number(draft.directionArrowSizePx) || 16))), speedMinKmh: min, speedMaxKmh: max, elevationMinM, elevationMaxM, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) });
     this.gpxTrackSettingsTrack.set(null);
   };
   protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
@@ -2713,7 +2714,7 @@ export class MapWindow implements OnInit, OnDestroy {
       const polyline = points.map(point => point.x.toFixed(1) + ',' + point.y.toFixed(1)).join(' ');
       const arrows: Array<{ x: number; y: number; angle: number }> = [];
       if (track.showDirection && points.length > 1) {
-        const interval = Math.max(30, Math.min(500, track.directionIntervalPx ?? 120));
+        const interval = Math.max(20, Math.min(200, track.directionIntervalPx ?? 120));
         let nextArrowAt = interval, travelled = 0;
         for (let index = 1; index < points.length; index++) {
           const a = points[index - 1], b = points[index];
@@ -6850,7 +6851,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private gpxDirectionArrows(segment: [number, number][], intervalPx = 120): Array<{ position: [number, number]; bearing: number }> {
     const arrows: Array<{ position: [number, number]; bearing: number }> = [];
     if (!this.map || segment.length < 2) return arrows;
-    intervalPx = Math.max(30, Math.min(500, intervalPx));
+    intervalPx = Math.max(20, Math.min(200, intervalPx));
     const zoom = this.map.getZoom();
     let distanceSinceArrow = 0;
     for (let i = 1; i < segment.length; i++) {
