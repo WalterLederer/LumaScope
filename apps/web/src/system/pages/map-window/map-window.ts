@@ -470,7 +470,7 @@ interface MapErrorEntry {
               <label class="gpx-direction-density-control"><span>Arrow size</span><strong>{{ gpxTrackSettingsDraft().directionArrowSizePx }} px</strong><ui-slider [min]="8" [max]="40" [step]="1" [value]="gpxTrackSettingsDraft().directionArrowSizePx" (valueChange)="updateGpxTrackSettingsDraft({ directionArrowSizePx: $event })" [color]="themeService.sliderColor()" aria-label="Direction arrow size" /></label>
             }
           </div>
-          <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()">OK</button></footer>
+          <footer><button type="button" class="gpx-track-settings-cancel" (click)="cancelGpxTrackSettings()">Cancel</button><button type="button" class="gpx-track-settings-ok" (click)="saveGpxTrackSettings()" autofocus aria-keyshortcuts="Enter">OK</button></footer>
         </section>
       </div>
     }
