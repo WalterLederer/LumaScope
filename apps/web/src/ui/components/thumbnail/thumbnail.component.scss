@@ -190,25 +190,23 @@
 
 
 
-/* ThumbnailComponent host rows share the parent table's explicit grid tracks. */
+/* Detail rows use the native table row and colgroup layout. */
 :host(.view-details),
 :host(.view-details-no-thumbnails) {
-  display: grid;
-  grid-template-columns: var(--detail-grid-columns);
-  grid-column: 1 / -1;
-  width: max-content;
-  min-width: 100%;
+  display: table-row !important;
+  width: auto;
+  min-width: 0;
   height: auto;
   min-height: 0;
   padding: 0;
   background: transparent !important;
 }
-/* Center every detail-row value vertically within the tallest cell.
-   Status-oriented columns are centered horizontally as well. */
+/* Keep every cell in the native table column model. */
 :host(.view-details) > td,
 :host(.view-details-no-thumbnails) > td {
-  display: flex !important;
-  align-items: center;
+  display: table-cell !important;
+  box-sizing: border-box;
+  vertical-align: middle;
 }
 
 :host(.view-details) > .detail-date,
@@ -225,7 +223,6 @@
 :host(.view-details-no-thumbnails) > .detail-thumb-status,
 :host(.view-details) > .detail-full-size,
 :host(.view-details-no-thumbnails) > .detail-full-size {
-  justify-content: center;
   text-align: center;
 }
 :host(.view-details) > td,
