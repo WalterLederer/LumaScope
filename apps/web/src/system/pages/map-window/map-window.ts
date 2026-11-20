@@ -3108,6 +3108,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+    this.updateCrosshairCoordinates();
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -3250,6 +3251,7 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+    this.updateCrosshairCoordinates();
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
@@ -3335,6 +3337,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
       renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+    this.updateCrosshairCoordinates();
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -3452,6 +3455,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
     renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+    this.updateCrosshairCoordinates();
     let obfViewportTimer: number | null = null;
     let previousObfZoom = renderer.map.getZoom();
     let obfZoomChanged = false;
