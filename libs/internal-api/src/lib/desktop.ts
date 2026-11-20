@@ -211,6 +211,7 @@ export interface DesktopCacheManager {
   readonly registerGalleryFiles: (directory: string, files: FileInfo[]) => Promise<number>;
   readonly removeGalleryFile: (sourceName: string) => Promise<boolean>;
   readonly getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<FileInfo[]>;
+  readonly getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number) => Promise<GalleryFilesPage>;
   readonly getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => Promise<{ count: number; suffixes: string[] }>;
   readonly onGalleryFilesChanged: (callback: (directory: string) => void) => () => void;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
@@ -220,6 +221,13 @@ export interface DesktopCacheManager {
   readonly getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => Promise<PhotoLocation[]>;
   readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
   readonly resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => Promise<string | null>;
+}
+
+export interface GalleryFilesPage {
+  files: FileInfo[];
+  totalCount: number;
+  offset: number;
+  limit: number;
 }
 
 export interface PhotoLocation {
