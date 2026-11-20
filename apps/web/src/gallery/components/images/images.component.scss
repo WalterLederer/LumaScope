@@ -347,8 +347,7 @@
     var(--detail-col-7-width, 65px)
     var(--detail-col-8-width, 65px)
     var(--detail-col-9-width, 150px)
-    var(--detail-col-10-width, 150px)
-    var(--detail-col-11-width, 240px)
+    var(--detail-col-10-width, 150px)    var(--detail-col-11-width, 240px)
     28px;
   display: block;
   width: max-content;
@@ -697,8 +696,7 @@
   overflow: visible !important;
   text-overflow: clip !important;
   white-space: normal !important;
-  overflow-wrap: anywhere !important;
-  word-break: normal !important;
+  overflow-wrap: anywhere !important;  word-break: normal !important;
   min-width: 0;
 }
 
@@ -848,4 +846,27 @@
   flex: 0 0 auto;
   width: 100%;
   text-align: center;
+}
+
+/* Round only the four outer corners of the thumbnail details table.
+   Applying the radius to the corner cells preserves sticky headers,
+   column resizing, horizontal scrolling and row action menus. */
+.detail-native-table {
+  border-radius: 10px;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th:first-child {
+  border-top-left-radius: 10px;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th:last-child {
+  border-top-right-radius: 10px;
+}
+
+.detail-native-table > tbody.images.details-list > tr:last-child > td:first-child {
+  border-bottom-left-radius: 10px;
+}
+
+.detail-native-table > tbody.images.details-list > tr:last-child > td:last-child {
+  border-bottom-right-radius: 10px;
 }
