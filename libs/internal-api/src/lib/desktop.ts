@@ -124,6 +124,7 @@ export interface FixPhotoLocationsProgress {
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
+  readonly refreshGpsMetadata: (path: string) => Promise<ApiResponse<{ latitude: number | null; longitude: number | null }>>;
   readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => Promise<ApiResponse<FixPhotoLocationsResult>>;
   readonly cancelFixFolderLocations: (operationId: string) => void;
   readonly onFixFolderLocationsProgress: (callback: (progress: FixPhotoLocationsProgress) => void) => () => void;
@@ -382,7 +383,7 @@ export interface DesktopOfflineMap {
 export interface DesktopMapWindow {
   readonly getZoom: () => Promise<number>;
   readonly setZoom: (zoom: number) => Promise<void>;
-  readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean) => Promise<boolean>;
+  readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean, focusWindow?: boolean) => Promise<boolean>;
   readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null; recursive: boolean }>;
   readonly getImagePreview: (imagePath: string) => Promise<string | null>;
   readonly close: () => Promise<void>;
