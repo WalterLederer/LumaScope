@@ -1491,7 +1491,9 @@ export class CacheManager {
     const filterParams: Record<string, string | number> = {
       folder, recursive: recursive ? 1 : 0, folderPrefix
     };
-    supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
+    if (!includeUnsupported) {
+      supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
+    }
     const where = scope + supportedFilter;
     const countRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
     const sortColumn = sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE';
