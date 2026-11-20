@@ -354,7 +354,7 @@ export class ImageGridComponent {
 
   protected readonly updateNameFilter = (value: string): void => {
     this.nameFilter.set(value);
-    this.nameFilterActive.set(true);
+    this.nameFilterActive.set(value.trim().length > 0);
   };
 
   /* Constructor */
