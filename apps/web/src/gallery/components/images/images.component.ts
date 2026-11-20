@@ -832,6 +832,7 @@ export class ImagesComponent {
     try {
       let images = this.images() ?? [];
       let reconciledRecords = 0;
+      let indexedFilePaths: string[] | null = null;
       const gpxFiles: string[] = [];
       const folder = directory?.trim() || this.folderPath();
       if (folder) {
@@ -839,11 +840,12 @@ export class ImagesComponent {
         const entries = await this.fileSystem.readDir(folder);
         const files = entries.filter(entry => !entry.isDirectory);
         await this.cacheManager.registerGalleryFiles(folder, files);
+        indexedFilePaths = files.map(file => file.path);
         images = files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
         if (importGpx) gpxFiles.push(...files.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
-          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
+          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, indexedFilePaths ?? images.map(image => image.path), false);
         }
       }
       await this.runCacheForImages(images, true, controller.signal);
