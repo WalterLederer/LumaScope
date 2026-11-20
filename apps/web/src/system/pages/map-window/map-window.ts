@@ -2306,10 +2306,9 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
     if (!this.fixLocationEnabled() || !this.currentImagePath || (!this.map && !this.offlineRenderer) || !this.desktop || this.gpsSaveBusy()) return;
-    const center = this.offlineRenderer
-      ? this.offlineRenderer.map.getCenter()
-      : this.map!.getCenter();
-    if (!Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
+    const center = this.currentMapCenter();
+    if (!center) return;
+    this.updateCrosshairCoordinates();
 
     if (this.coordinatesAvailable()) {
       const oldPosition = this.currentLatitude !== null && this.currentLongitude !== null
@@ -2331,16 +2330,21 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.Exif.writeGpsPosition(this.currentImagePath, center.lat, center.lng);
       if (!result.success) throw new Error(result.errorMessage || 'Could not write GPS metadata to the image file.');
-      this.currentLatitude = center.lat; this.currentLongitude = center.lng;
-      this.coordinatesAvailable.set(true);
-      this.coordinateLabel.set(this.formatCoordinates(center.lat, center.lng));
-      this.photoCoordinateLabel.set(this.formatCoordinates(center.lat, center.lng).replace(/^Coordinates: /, 'Photo: '));
-      this.locationAddress.set('Looking up address…');
-      void this.lookupLocationAddress(center.lat, center.lng);
-      this.marker?.setLatLng([center.lat, center.lng]);
-      this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
-
-      this.gpsSaveStatus.set('GPS position saved to image file.');
+      const refreshed = await this.refreshGpsPosition(false);
+      if (!refreshed || refreshed.latitude === null || refreshed.longitude === null) {
+        throw new Error('The image was written, but its GPS position could not be verified from the file.');
+      }
+      const radians = Math.PI / 180;
+      const dLat = (refreshed.latitude - center.lat) * radians;
+      const dLon = (refreshed.longitude - center.lng) * radians;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(center.lat * radians) * Math.cos(refreshed.latitude * radians) * Math.sin(dLon / 2) ** 2;
+      const deviationMeters = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+      const selectedText = this.formatManualGpsPosition(center.lat, center.lng);
+      const storedText = this.formatManualGpsPosition(refreshed.latitude, refreshed.longitude);
+      this.gpsSaveStatus.set(deviationMeters <= 0.01
+        ? 'GPS position saved and verified. File position matches the crosshair (' + deviationMeters.toFixed(3) + ' m deviation).'
+        : 'GPS position saved, but differs from the crosshair by ' + deviationMeters.toFixed(2) + ' m. Selected: ' + selectedText + ' | File: ' + storedText);
+      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     } catch (error) {
       this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
@@ -2453,8 +2457,9 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly showCrosshairAddress = (): void => {
     if (!this.fixLocationEnabled()) return;
-    const center = this.offlineRenderer?.map?.getCenter();
+    const center = this.currentMapCenter();
     if (!center) { this.crosshairAddress.set('Map center is not available.'); return; }
+    this.updateCrosshairCoordinates();
     this.crosshairAddress.set('Looking up address…');
     void (async () => {
       try {
