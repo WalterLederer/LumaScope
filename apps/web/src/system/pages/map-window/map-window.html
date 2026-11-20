@@ -1177,8 +1177,9 @@
         <button type="button" (click)="addDownloadSource()">Add URL</button>
       </div>
       <div class="mbtiles-map-table-wrap download-source-table-wrap">
-        <table class="mbtiles-map-table download-source-table">
-          <thead><tr><th></th><th>URL</th><th>Filetype</th><th>Use for updates</th></tr></thead>
+        <table class="mbtiles-map-table download-source-table offline-column-resizable">
+          <colgroup><col style="width:var(--offline-col-0,44px)"><col style="width:var(--offline-col-1,480px)"><col style="width:var(--offline-col-2,130px)"><col style="width:var(--offline-col-3,120px)"></colgroup>
+          <thead><tr><th><span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize row actions column" (pointerdown)="startOfflineColumnResize($event, 0)"></span></th><th>URL<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize URL column" (pointerdown)="startOfflineColumnResize($event, 1)"></span></th><th>Filetype<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize filetype column" (pointerdown)="startOfflineColumnResize($event, 2)"></span></th><th>Use for updates<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize updates column" (pointerdown)="startOfflineColumnResize($event, 3)"></span></th></tr></thead>
           <tbody>
             @for (source of downloadSources(); track $index; let i = $index) {
               <tr><td class="offline-row-actions download-source-row-actions">
@@ -1213,8 +1214,9 @@
       <p class="offline-map-status" role="status">{{ offlineMapCatalogueSummary() }}</p>
       @if (offlineMapCatalogueFiles().length > 0) {
         <div class="mbtiles-map-table-wrap offline-catalogue-table-wrap">
-          <table class="mbtiles-map-table offline-catalogue-table">
-            <thead><tr><th></th><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th></tr></thead>
+          <table class="mbtiles-map-table offline-catalogue-table offline-column-resizable">
+            <colgroup><col style="width:var(--offline-col-0,44px)"><col style="width:var(--offline-col-1,260px)"><col style="width:var(--offline-col-2,100px)"><col style="width:var(--offline-col-3,160px)"><col style="width:var(--offline-col-4,360px)"></colgroup>
+            <thead><tr><th><span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize row actions column" (pointerdown)="startOfflineColumnResize($event, 0)"></span></th><th>File name<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file name column" (pointerdown)="startOfflineColumnResize($event, 1)"></span></th><th>Type<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize type column" (pointerdown)="startOfflineColumnResize($event, 2)"></span></th><th>Catalogue date<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize catalogue date column" (pointerdown)="startOfflineColumnResize($event, 3)"></span></th><th>Source<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize source column" (pointerdown)="startOfflineColumnResize($event, 4)"></span></th></tr></thead>
             <tbody>
               @for (file of offlineMapCatalogueFiles(); track file.url) {
                 <tr [class.offline-catalogue-matched]="file.matched"><td class="offline-row-actions offline-catalogue-row-actions">
