@@ -670,7 +670,7 @@
 .detail-native-table > tbody.images.details-list > tr.selected-image > td {
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #ffffff)) !important;
 }
-.detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 22%, var(--color-surface-default-low)) !important; }
+.detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 22%, var(--detail-odd-row-color, #ffffff)) !important; }
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
