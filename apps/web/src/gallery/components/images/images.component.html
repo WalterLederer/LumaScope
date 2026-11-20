@@ -175,8 +175,8 @@
             <input type="range" min="10" max="24" step="1" [value]="detailFontSize()" (input)="detailFontSizeChanged.emit(+$any($event.target).value)" aria-label="Table font size" />
           </label>
         </div>
-        <div class="detail-preferences-section">
-          <h3>Progress Bars</h3>
+        <details class="detail-preferences-section detail-preferences-disclosure" open>
+          <summary>Progress Bars</summary>
           <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
           <div class="detail-preferences-colors">
             <label class="detail-preference-color">
@@ -204,10 +204,10 @@
             <span>Progress bar transparency <strong>{{ detailPreferenceDraft().progressTransparency }}%</strong></span>
             <input type="range" min="0" max="100" step="1" [value]="detailPreferenceDraft().progressTransparency" (input)="updateDetailProgressTransparency(+$any($event.target).value)" />
           </label>
-        </div>
+        </details>
 
-        <div class="detail-preferences-section">
-          <h3>Row Backgrounds</h3>
+        <details class="detail-preferences-section detail-preferences-disclosure" open>
+          <summary>Row Backgrounds</summary>
           <label class="detail-preference-toggle">
             <input type="checkbox" [checked]="detailPreferenceDraft().alternateRows" (change)="updateDetailPreferenceToggle('alternateRows', $any($event.target).checked)" />
             <span>Use alternating odd and even row colors</span>
@@ -230,7 +230,7 @@
               <input type="color" [value]="detailPreferenceDraft().selectedRow" (input)="updateDetailPreferenceColor('selectedRow', $any($event.target).value)" />
             </label>
           </div>
-        </div>
+        </details>
         <footer class="detail-preferences-actions">
           <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()">Cancel</button>
           <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()">OK</button>
