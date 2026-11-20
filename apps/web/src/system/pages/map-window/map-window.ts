@@ -151,6 +151,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly directoryMarkers: MapMarker[] = [];
   protected currentImagePath: string | null = null;
   protected currentFolderPath: string | null = null;
+  protected currentFolderRecursive = false;
   get currentImageDatabaseKey(): string | undefined { return (this.currentImagePath ?? this.currentFolderPath)?.slice(0, 2); }
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
@@ -1776,6 +1777,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyAlwaysOnTop();
     this.currentImagePath = this.route.snapshot.queryParamMap.get('imagePath');
     this.currentFolderPath = this.route.snapshot.queryParamMap.get('folderPath');
+    this.currentFolderRecursive = this.route.snapshot.queryParamMap.get('recursive') === 'true';
     if (this.fixLocationEnabled() && !this.coordinatesAvailable()) {
       void this.initializeFixLocationMap();
     }
@@ -1917,12 +1919,14 @@ export class MapWindow implements OnInit, OnDestroy {
     const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }): void => {
       const previousImagePath = this.currentImagePath;
       const previousFolderPath = this.currentFolderPath;
+      const previousFolderRecursive = this.currentFolderRecursive;
       this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
       this.currentFolderPath = location.folderPath ?? null;
+      this.currentFolderRecursive = location.recursive === true;
       if (this.currentFolderPath) {
         this.markerSourceFolder.set(this.currentFolderPath);
-        if (previousFolderPath?.toLowerCase() !== this.currentFolderPath.toLowerCase()) void this.validateCurrentPhotoDatabase(this.currentFolderPath);
+        if (previousFolderPath?.toLowerCase() !== this.currentFolderPath.toLowerCase() || previousFolderRecursive !== this.currentFolderRecursive) void this.validateCurrentPhotoDatabase(this.currentFolderPath);
       } else {
         this.photoDatabaseCheckGeneration++;
         this.photoDatabaseReady.set(false);
@@ -1934,7 +1938,7 @@ export class MapWindow implements OnInit, OnDestroy {
         && location.longitude! >= -180 && location.longitude! <= 180);
       void this.loadCurrentImagePreview(this.currentImagePath);
       this.applyCurrentPhotoVisibility();
-      if (this.directoryMarkersEnabled() && (previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase() || previousFolderPath?.toLowerCase() !== this.currentFolderPath?.toLowerCase())) void this.scanDirectoryMarkers();
+      if (this.directoryMarkersEnabled() && (previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase() || previousFolderPath?.toLowerCase() !== this.currentFolderPath?.toLowerCase() || previousFolderRecursive !== this.currentFolderRecursive)) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
@@ -2740,10 +2744,10 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private async checkPhotoDatabaseCompleteness(directory: string): Promise<{ total: number; missing: string[] }> {
+  private async checkPhotoDatabaseCompleteness(directory: string, recursive = this.currentFolderRecursive): Promise<{ total: number; missing: string[] }> {
     const desktop = this.desktop;
     if (!desktop) throw new Error('The desktop file system is unavailable.');
-    const result = await desktop.FileSystem.readImages(directory, 'name', 'asc');
+    const result = await desktop.FileSystem.readImages(directory, 'name', 'asc', false, recursive);
     if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
     const images = result.data.filter(image => !image.isDirectory);
     const missing: string[] = [];
@@ -2824,7 +2828,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.markerSourceFolder.set(directory);
         [records, imageFiles] = await Promise.all([
           desktop.CacheManager.getDirectoryPhotoLocations(directory),
-          desktop.FileSystem.readImages(directory, 'name', 'asc')
+          desktop.FileSystem.readImages(directory, 'name', 'asc', false, this.currentFolderRecursive)
         ]);
       }
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
