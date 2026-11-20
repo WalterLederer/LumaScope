@@ -894,10 +894,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxTrackSettingsSections = signal({ favorites: false, track: false, arrows: false });
   protected readonly gpxTrackSettingsFavorites = signal<GpxTrackSettingsFavorite[]>([]);
-  private readonly defaultGpxTrackSettingsFavorites: GpxTrackSettingsFavorite[] = [{
-    name: 'Default',
-    settings: { colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionArrowOutlineWidthPx: 2, trackShadowStrength: 0, arrowShadowStrength: 0, trackOutlineStrength: 0, directionStyle: 'classic' }
-  }];
   protected readonly gpxTrackSettingsHoveredLineStyle = signal<NonNullable<GpxTrackFile['lineStyle']> | null>(null);
   protected readonly gpxTrackSettingsHoveredDirection = signal<'off' | NonNullable<GpxTrackFile['directionStyle']> | null>(null);
   protected readonly gpxTrackSettingsLineStyleMenuVisible = signal(false);
@@ -1032,7 +1028,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly openGpxTrackSettings = async (track: GpxTrackFile): Promise<void> => {
     await this.mapWindowConfigRestore;
     await this.ensureGpxDatabaseTrackSettingsLoaded();
-    this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? this.defaultGpxTrackSettingsFavorites) as unknown as GpxTrackSettingsFavorite[]));
+    this.configuration.config().pipe(take(1)).subscribe(config => this.gpxTrackSettingsFavorites.set((config.system.gpxTrackSettingsFavorites ?? []) as unknown as GpxTrackSettingsFavorite[]));
     this.gpxTrackSettingsFavoriteName.set('');
     this.gpxTrackSettingsFavoriteSelection.set('');
     this.gpxTrackSettingsHoveredLineStyle.set(null);
