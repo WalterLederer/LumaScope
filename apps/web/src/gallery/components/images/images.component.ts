@@ -904,7 +904,7 @@ export class ImagesComponent {
   };
 
   readonly cacheDisplayedFiles = async (): Promise<void> => {
-    const images = this.displayedImages();
+    const images = this.displayedImages().filter(image => supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', '')));
     if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || images.length === 0) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
@@ -935,11 +935,12 @@ export class ImagesComponent {
   };
 
   private readonly reCacheImages = async (images: FileInfo[]): Promise<void> => {
-    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || images.length === 0) return;
+    const cacheImages = images.filter(image => supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', '')));
+    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || cacheImages.length === 0) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
-    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheRunProgress.set({ completed: 0, total: cacheImages.length });
     this.cacheRunCurrentOperation.set('Removing existing cache entries...');
     const releaseActivity = this.galleryCacheBuild.trackActivity({
       active: this.cacheRunActive,
@@ -948,15 +949,15 @@ export class ImagesComponent {
       cancel: this.cancelCacheRun
     });
     try {
-      for (let index = 0; index < images.length; index++) {
+      for (let index = 0; index < cacheImages.length; index++) {
         if (controller.signal.aborted) break;
-        const image = images[index];
-        this.cacheRunCurrentOperation.set(`Removing cache entries for file ${index + 1} / ${images.length}: ${image.name}`);
+        const image = cacheImages[index];
+        this.cacheRunCurrentOperation.set(`Removing cache entries for file ${index + 1} / ${cacheImages.length}: ${image.name}`);
         await this.cacheManager.deleteImage(image.path);
-        this.cacheRunProgress.set({ completed: index + 1, total: images.length });
+        this.cacheRunProgress.set({ completed: index + 1, total: cacheImages.length });
       }
       if (!controller.signal.aborted) {
-        await this.runCacheForImages(images, true, controller.signal);
+        await this.runCacheForImages(cacheImages, true, controller.signal);
       } else {
         this.cacheRunCurrentOperation.set('Cache rebuild cancelled while removing existing entries.');
       }
@@ -966,6 +967,7 @@ export class ImagesComponent {
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
+      this.manualRefresh.update(value => value + 1);
       releaseActivity();
       this.cacheUpdated.emit('');
     }
