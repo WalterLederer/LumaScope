@@ -123,7 +123,7 @@ html body :is(button, span, ui-action-button).file-row-menu-trigger[aria-expande
 /* Shared table grid: the Offline list is the reference for every data table. */
 :root {
   /* Subtle default shadow for cards, tables and rounded controls. */
-  --lumascope-surface-shadow: 0 1px 4px rgb(0 0 0 / 10%);
+  --lumascope-surface-shadow: 0 2px 6px rgb(0 0 0 / 14%);
   --lumascope-table-line-width: 1px;
   --lumascope-table-line-color: var(--color-content-default-low, #454545);
 }
