@@ -395,7 +395,7 @@ export class ImageGridComponent {
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
         start: (directory, importGpx) => images.cacheAllImages(directory, importGpx),
-        startRecursive: (directory, importGpx) => { void images.cacheAllImagesRecursive(directory, importGpx); },
+        startRecursive: (directory, importGpx) => images.cacheAllImagesRecursive(directory, importGpx),
         cancel: () => images.cancelCacheRun(),
         refreshDetailCacheStatus: () => {
           if (this.viewMode() === 'details') images.refreshGallery();
