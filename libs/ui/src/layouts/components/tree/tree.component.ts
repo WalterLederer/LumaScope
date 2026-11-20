@@ -42,7 +42,9 @@ export class TreeComponent<T> {
       ...incoming,
       isOpen: current.isOpen ?? incoming.isOpen,
       isLoading: current.isLoading ?? incoming.isLoading,
-      isSelected: incoming.isSelected ?? current.isSelected,
+      // Keep the tree's current single-selection state; regenerated parent data
+      // must not resurrect an older selected row after resetNodeSelection().
+      isSelected: current.isSelected ?? incoming.isSelected,
       children,
       hasChildren: incoming.hasChildren ?? current.hasChildren
     };
