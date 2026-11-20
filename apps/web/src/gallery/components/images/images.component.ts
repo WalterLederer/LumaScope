@@ -200,6 +200,8 @@ export class ImagesComponent {
   readonly images = input.required<FileInfo[] | null>();
   readonly nameFilter = input('');
   readonly nameFilterActive = input(false);
+  readonly nameFilterChanged = output<string>();
+  readonly nameFilterActiveChanged = output<boolean>();
   readonly detailFontSize = input(12);
   readonly detailFontSizeChanged = output<number>();
   readonly selectedImagePath = input<string | null>(null);
