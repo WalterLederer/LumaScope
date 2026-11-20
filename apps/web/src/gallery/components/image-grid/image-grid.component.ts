@@ -241,19 +241,17 @@ export class ImageGridComponent {
       for (const [parent, paths] of filesByParent.entries()) {
         for (let offset = 0; offset < paths.length; offset += 500) {
           const batch = paths.slice(offset, offset + 500);
-          console.info('[GalleryDB] WAIT getDirectoryCacheStats', {
-            directory: parent,
-            reason: 'Read thumbnail/full-size cache flags and GPS, HDR and location metadata for this batch.',
-            batchOffset: offset,
+          console.info('[GalleryDB] WAIT cache stats', {
+            batch: Math.floor(offset / 500) + 1,
             batchSize: batch.length,
             verifyCacheFiles: this.verifyCacheFiles()
           });
           const statsStartedAt = Date.now();
           const stats = await this.cacheManager.getDirectoryCacheStats(batch, this.verifyCacheFiles());
-          console.info('[GalleryDB] DONE getDirectoryCacheStats', {
+          console.info('[GalleryDB] DONE cache stats', {
             batchSize: batch.length,
             thumbnails: stats.thumbnails,
-            fullSizeConversions: stats.fullSizeConversions,
+            fullSize: stats.fullSizeConversions,
             durationMs: Date.now() - statsStartedAt
           });
           if (request !== this.cacheStatsRequest) return;
