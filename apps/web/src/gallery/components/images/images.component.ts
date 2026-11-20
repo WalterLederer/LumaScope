@@ -361,36 +361,56 @@ export class ImagesComponent {
     this.folderActionsMenuOpen.set(false);
     const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
     if (!table) return;
-    const context = table.ownerDocument.createElement('canvas').getContext('2d');
-    if (!context) return;
 
-    const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead tr.detail-header-labels > th'));
-    const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody.images > tr'));
-    const widths: Record<number, number> = {};
-    widths[0] = 0;
-
+    const widths: Record<number, number> = { 0: 0 };
     for (let column = 1; column <= 11; column++) {
-      let maximum = 40;
-      const cells = [headers[column], ...rows.map(row => row.children.item(column) as HTMLElement | null)];
-      for (const cell of cells) {
-        if (!cell) continue;
-        const style = table.ownerDocument.defaultView?.getComputedStyle(cell);
-        context.font = style?.font ?? '12px sans-serif';
-        // Measure visible cell content only. Tooltip titles can contain entire
-        // inventories (for example every suffix in the folder) and must not
-        // dictate the actual column width.
-        const text = (cell.textContent ?? '').replace(/\\s+/g, ' ').trim();
-        if (text) maximum = Math.max(maximum, context.measureText(text).width + 24);
-      }
-
-      // Compact metadata columns should remain compact even when a status
-      // label or an unusually long suffix is present.
-      const maximumWidth = column === 6 ? 100 : column === 8 ? 110 : 1600;
-      widths[column] = Math.min(maximumWidth, Math.ceil(maximum));
+      const width = this.measureDetailColumnWidth(table, column);
+      if (width !== null) widths[column] = width;
     }
 
     this.detailColumnWidths.set(widths);
     this.saveDetailColumnWidths();
+  }
+
+  protected autofitDetailColumn(event: MouseEvent, columnIndex: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
+    if (!table || columnIndex < 0 || columnIndex > 11) return;
+
+    // The thumbnail column follows the current thumbnail zoom level. Reset
+    // only its manual width adjustment rather than changing the zoom setting.
+    const width = columnIndex === 0 ? 0 : this.measureDetailColumnWidth(table, columnIndex);
+    if (width === null) return;
+
+    this.detailColumnWidths.update(current => ({ ...current, [columnIndex]: width }));
+    this.saveDetailColumnWidths();
+  }
+
+  private measureDetailColumnWidth(table: HTMLTableElement, column: number): number | null {
+    const context = table.ownerDocument.createElement('canvas').getContext('2d');
+    if (!context) return null;
+
+    const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead tr.detail-header-labels > th'));
+    const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody.images > tr'));
+    let maximum = 40;
+    const cells = [headers[column], ...rows.map(row => row.children.item(column) as HTMLElement | null)];
+    for (const cell of cells) {
+      if (!cell) continue;
+      const style = table.ownerDocument.defaultView?.getComputedStyle(cell);
+      context.font = style?.font ?? '12px sans-serif';
+      // Measure visible cell content only. Tooltip titles can contain entire
+      // inventories (for example every suffix in the folder) and must not
+      // dictate the actual column width.
+      const text = (cell.textContent ?? '').replace(/\\s+/g, ' ').trim();
+      if (text) maximum = Math.max(maximum, context.measureText(text).width + 24);
+    }
+
+    // Compact metadata columns should remain compact even when a status
+    // label or an unusually long suffix is present.
+    const maximumWidth = column === 6 ? 100 : column === 8 ? 110 : 1600;
+    return Math.min(maximumWidth, Math.ceil(maximum));
   }
 
   private saveDetailColumnWidths(): void {
