@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
-import { SliderComponent } from '@light-matter/ui';
+import { SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { Keyboard } from '../../../system/services/keyboard/keyboard';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CaptureFormat, CaptureMonitor, CapturePreview, CaptureTarget, CaptureWindow } from 'internal-api';
@@ -46,7 +46,9 @@ type CaptureSourceRow = {
 
 @Component({
   selector: 'app-capture-panel',
-  imports: [SliderComponent],
+  imports: [SliderComponent ,
+    ButtonTooltipDirective
+  ],
   templateUrl: './capture-panel.component.html',
   styleUrl: './capture-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
