@@ -162,23 +162,18 @@ export class GalleryState {
         take(1),
         switchMap(sortMode => defer(() => {
           const startedAt = Date.now();
-          console.info('[GalleryDB] WAIT selectDatabaseForDirectory', { directory: path, reason: 'Open the drive-specific SQLite database and run its migrations if required.' });
+          console.info('[GalleryDB] WAIT open database', { directory: path });
           return this.cacheManager.selectDatabaseForDirectory(path).then(() => {
-            console.info('[GalleryDB] DONE selectDatabaseForDirectory', { directory: path, durationMs: Date.now() - startedAt });
-            console.info('[GalleryDB] WAIT getGalleryFilesPage', {
-              directory: path,
-              reason: 'Read the first 250 matching photo records from SQLite; thumbnail generation is not awaited.',
+            console.info('[GalleryDB] DONE open database', { durationMs: Date.now() - startedAt });
+            console.info('[GalleryDB] WAIT first page', {
               recursive: this.includeFilesRecursive$.value,
               includeUnsupported: this.includeUnsupportedFiles$.value,
-              sortBy: sortMode.sortBy,
-              sortDir: sortMode.sortDir,
-              offset: 0,
+              sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
               limit: this.galleryPageSize
             });
             return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryPageSize);
           }).then(page => {
-            console.info('[GalleryDB] DONE getGalleryFilesPage', {
-              directory: path,
+            console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
               durationMs: Date.now() - startedAt,
               morePagesPossible: page.files.length === this.galleryPageSize
@@ -208,17 +203,12 @@ export class GalleryState {
     const offset = this.galleryLoadedCount;
     const sort = this.sortMode$.value;
     this.galleryPageLoading = true;
-    console.info('[GalleryDB] WAIT next gallery page', {
-      directory,
-      reason: 'Fetch the next visible page because the gallery viewport is approaching the loaded rows.',
-      offset,
-      limit: this.galleryPageSize
-    });
+    console.info('[GalleryDB] WAIT next page', { offset, limit: this.galleryPageSize });
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
       sort.sortBy, sort.sortDir, offset, this.galleryPageSize
     ).then(page => {
-      console.info('[GalleryDB] DONE next gallery page', { directory, offset, rows: page.files.length });
+      console.info('[GalleryDB] DONE next page', { offset, rows: page.files.length });
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       this.galleryLoadedCount = offset + page.files.length;
       if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
