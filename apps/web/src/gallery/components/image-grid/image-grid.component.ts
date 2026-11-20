@@ -229,8 +229,8 @@ export class ImageGridComponent {
       let hdr = 0;
       let location = 0;
       for (const paths of filesByParent.values()) {
-        for (let offset = 0; offset < paths.length; offset += 10000) {
-          const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(offset, offset + 10000), this.verifyCacheFiles());
+        for (let offset = 0; offset < paths.length; offset += 500) {
+          const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(offset, offset + 500), this.verifyCacheFiles());
           if (request !== this.cacheStatsRequest) return;
           if (pathUpdateRevision !== this.cachePathUpdateRevision) {
             void this.refreshDirectoryCacheStats();
