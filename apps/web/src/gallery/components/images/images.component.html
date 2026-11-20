@@ -143,8 +143,6 @@
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
               [refreshToken]="thumbnailRefreshToken()"
               (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
-              (openFolderPathRequested)="openFolderPathRequested.emit()"
-              (copyFolderPathRequested)="copyFolderPathRequested.emit()"
               (cacheFolderRequested)="cacheDisplayedFiles()"
               (reCacheFileRequested)="reCacheFile($event)"
               (reCacheFolderRequested)="reCacheDisplayedFiles()"
