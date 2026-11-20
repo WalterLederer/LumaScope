@@ -1522,6 +1522,16 @@
   min-height: 30px !important;
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
 }
+/* Header cells must remain native table-cells. Earlier legacy Grid styling
+   assigns display:flex !important to each TH; that overrides table-row layout
+   and makes the browser stack the header cells in the first column. */
+.detail-native-table > thead > tr.detail-header-labels > th,
+.detail-native-table > thead > tr.detail-header-statistics > th {
+  display: table-cell !important;
+  width: auto !important;
+  min-width: 0 !important;
+  vertical-align: middle !important;
+}
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
   height: 92px !important;
   min-height: 92px !important;
