@@ -11,6 +11,7 @@
   <app-gallery [showFolderTree]="false" [showImageGrid]="true" [style.display]="'none'" />
 }
 
+@if (browseWorkspaceInitialized()) {
 <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="activeImageSidebarTab() === 'gallery' ? 'grid' : 'none'" [style.--browse-sidebar-width.px]="controlsSidebarVisible() ? sidebarWidth() : 0" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'">
   @if (activeImageSidebarTab() === 'gallery') {
     <app-gallery class="gallery-tab-content"
@@ -34,6 +35,7 @@
     <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleSidebarVisibility()">⚙</button>
   }
 </div>
+}
 
 @if (activeImageSidebarTab() !== 'gallery') {
   @if (selected !== null) {
