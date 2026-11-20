@@ -474,9 +474,11 @@ export class ImagesComponent {
     return Math.round(24 + ((width - 96) / (512 - 96)) * 296);
   });
   readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
-  readonly detailVirtualRowHeight = computed(() => this.viewMode() === 'details-no-thumbnails'
-    ? 34
-    : Math.max(34, this.detailThumbnailHeight() + 10));
+  readonly detailVirtualRowHeight = computed(() => Math.max(
+    34,
+    Math.ceil(this.detailFontSize() * 1.25 + 10),
+    this.viewMode() === 'details-no-thumbnails' ? 0 : this.detailThumbnailHeight() + 10
+  ));
   private readonly detailVirtualOverscan = 12;
   readonly detailVirtualCount = computed(() =>
     Math.max(1, Math.ceil(Math.max(200, this.detailViewportHeight()) / this.detailVirtualRowHeight()) + this.detailVirtualOverscan * 2)
