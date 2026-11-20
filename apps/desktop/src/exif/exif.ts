@@ -90,10 +90,11 @@ export class Exif {
       await this.exifTool.write(path, {
         GPSLatitude: null, GPSLatitudeRef: null, GPSLongitude: null, GPSLongitudeRef: null,
         GPSAltitude: null, GPSAltitudeRef: null, GPSDateStamp: null, GPSTimeStamp: null,
-        GPSImgDirection: null, GPSImgDirectionRef: null, GPSProcessingMethod: null,
-        'XMP:GPSLatitude': null, 'XMP:GPSLongitude': null, 'XMP:GPSAltitude': null,
-        'XMP:GPSImgDirection': null, 'XMP:GPSDateTime': null
-      });
+        GPSImgDirection: null, GPSImgDirectionRef: null, GPSProcessingMethod: null
+      }, [
+        '-XMP:GPSLatitude=', '-XMP:GPSLongitude=', '-XMP:GPSAltitude=',
+        '-XMP:GPSImgDirection=', '-XMP:GPSDateTime='
+      ]);
 
       const gps = await this.readPhotoMetadata(path, true);
       if (gps.latitude !== null || gps.longitude !== null) {
