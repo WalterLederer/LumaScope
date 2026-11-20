@@ -6545,7 +6545,7 @@ export class MapWindow implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     const handle = event.currentTarget as HTMLElement;
-    const table = handle.closest('table.offline-files-resizable-table') as HTMLTableElement | null;
+    const table = handle.closest('table.offline-column-resizable') as HTMLTableElement | null;
     if (!table) return;
     const cell = handle.closest('th') as HTMLElement | null;
     if (!cell) return;
