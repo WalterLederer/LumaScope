@@ -1168,7 +1168,32 @@ export class CacheManager {
     } catch (error) {
       console.warn('[CacheManager] Could not write image GPS reference debug log:', error);
     }
-    if (!before || !after || deviationSeconds === null) return null;
+    if (deviationSeconds === null || !nearest) return null;
+    // A single cached geotagged image is still a useful anchor. Do not invent
+    // interpolation: use its exact coordinates and let the caller enforce the
+    // configured maximum time difference before accepting the candidate.
+    if (!before || !after) {
+      const singleReference = before ?? after!;
+      const diagnosticLine = `[Photo GPS reference] Single image anchor used for ${targetFile}: ${singleReference.file_name} (${deviationSeconds} s)`;
+      console.info(diagnosticLine, {
+        databaseKey,
+        reference: resolve(databaseKey + '\\\\', singleReference.relative_folder_path, singleReference.file_name),
+        latitude: singleReference.latitude,
+        longitude: singleReference.longitude
+      });
+      try {
+        await this.appendGpsAutoFixDebug(
+          `[${formatOsDateTime(new Date())}] Image GPS ${databaseKey}: single reference ${singleReference.file_name}; exact position used without interpolation; deviation ${deviationSeconds} s`
+        );
+      } catch (error) {
+        console.warn('[CacheManager] Could not write single image GPS reference diagnostic:', error);
+      }
+      return {
+        latitude: singleReference.latitude,
+        longitude: singleReference.longitude,
+        deviationSeconds
+      };
+    }
     const span = after.gps_timestamp - before.gps_timestamp;
     if (span < 0 || span > 172_800) return null;
     if (span === 0) return { latitude: before.latitude, longitude: before.longitude, deviationSeconds };
