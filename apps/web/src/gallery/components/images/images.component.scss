@@ -688,7 +688,13 @@
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
 .detail-native-table .detail-actions { width:var(--detail-actions-width,44px); min-width:44px; padding:2px; overflow:visible; text-align:center; background:var(--detail-odd-row-color,#fff) !important; }
-.detail-native-table .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
+.detail-native-table .detail-actions .detail-row-menu-trigger {
+  position: absolute !important;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  margin: 0 !important;
+}
 .detail-native-table .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
 .detail-native-table .detail-thumb { width: var(--detail-thumb-width, 36px); padding: 2px; text-align: center; }
 .detail-native-table .detail-thumb img { display: block; max-width: 100%; max-height: var(--detail-thumb-height, 27px); object-fit: contain; margin: 0 auto; }
@@ -806,9 +812,11 @@
 
 /* Align the folder hamburger to the right edge like the row action controls. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .folder-actions-menu-trigger {
-  /* Match the row buttons: identical right inset from the action-column edge. */
-  margin: 0 8px 0 auto !important;
-  align-self: flex-start;
+  /* Anchor to the cell edge so the inset matches every body-row action button. */
+  position: absolute !important;
+  top: 10px;
+  right: 8px;
+  margin: 0 !important;
 }
 
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
