@@ -22,7 +22,7 @@
     </td>
   }
   <td class="detail-name" [title]="image().name">{{ image().name }}</td>
-  <td>{{ formatDetailDateTime(image().modifiedAt) }}</td>
+  <td class="detail-date">{{ formatDetailDateTime(image().modifiedAt) }}</td>
   <td class="detail-gps-date">{{ gpsDateLabel() }}</td>
   <td [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
   <td>{{ formattedFileSize() }}</td>
