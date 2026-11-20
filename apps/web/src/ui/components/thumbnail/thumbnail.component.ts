@@ -70,6 +70,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
+  readonly rowNumber = input<number | null>(null);
   readonly detailProgress = input<{ date: number | null; gpsDate: number | null; dimensions: number | null; size: number | null } | null>(null);
   readonly metadataLoaded = output<ExifTags>();
 
