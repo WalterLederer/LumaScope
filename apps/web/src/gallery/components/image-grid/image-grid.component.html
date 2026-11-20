@@ -78,15 +78,6 @@
           <span class="zoom-factor" aria-live="polite">{{ detailFontSize() }} px</span>
         </div>
       }
-      <span class="file-row-menu-trigger folder-path-menu-trigger"
-            [cdkMenuTriggerFor]="folderPathMenu"
-            role="button"
-            tabindex="0"
-            aria-label="Folder path actions"
-            title="Folder path actions"
-            uiStopPropagation>
-        ☰
-      </span>
     </div>
 
   </aside>
@@ -104,8 +95,10 @@
               [verifyCacheFiles]="verifyCacheFiles()"
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
-              (selected)="selected.emit($event)"  (folderRefreshRequested)="folderRefreshRequested.emit($event)"
-              />
+              (selected)="selected.emit($event)"
+              (folderRefreshRequested)="folderRefreshRequested.emit($event)"
+              (openFolderPathRequested)="openSelectedFolderPath()"
+              (copyFolderPathRequested)="copySelectedFolderPath()" />
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
@@ -117,23 +110,6 @@
   </div>
   <ui-text [title]="hoverStatusText()">{{ hoverStatusText() }}</ui-text>
 </ui-toolbar>
-
-<ng-template #folderPathMenu>
-  <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
-    <button type="button" class="gallery-menu-item" cdkMenuItem
-            [disabled]="!selectedLocation()"
-            (click)="$event.stopPropagation(); openSelectedFolderPath()">
-      <ui-icon icon="folder" [inherit]="true" />
-      <ui-text [inherit]="true">Open path</ui-text>
-    </button>
-    <button type="button" class="gallery-menu-item" cdkMenuItem
-            [disabled]="!selectedLocation()"
-            (click)="$event.stopPropagation(); copySelectedFolderPath()">
-      <ui-text [inherit]="true">⧉</ui-text>
-      <ui-text [inherit]="true">Copy path</ui-text>
-    </button>
-  </ui-popup-menu>
-</ng-template>
 
 <ng-template #viewModeMenu>
   <ui-popup-menu class="gallery-dropdown-menu" cdkMenu>
