@@ -1,6 +1,5 @@
 import { CdkMenuTrigger } from '@angular/cdk/menu';
 import { ChangeDetectionStrategy, Component, computed, input, output, TemplateRef } from '@angular/core';
-import { ActionButtonComponent } from '../../../actions';
 import { IconComponent, TextComponent } from '../../../content';
 import { StopPropagation } from '../../../dom';
 import { TreeNode } from './tree-node.component.types';
@@ -8,7 +7,6 @@ import { TreeNode } from './tree-node.component.types';
 @Component({
   selector: 'ui-tree-node',
   imports: [
-    ActionButtonComponent,
     IconComponent,
     StopPropagation,
     CdkMenuTrigger,
