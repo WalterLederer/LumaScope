@@ -3,9 +3,7 @@
 
 @if ((currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) || (inlineActions() && level() <= 1 && currentMenu === null)) {
   <span class="tree-row-actions-column">
-    @if (rowNumber() !== null) {
-      <span class="tree-row-number" aria-hidden="true">{{ rowNumber() }}</span>
-    }
+    <span class="tree-row-number" aria-hidden="true">{{ rowNumber() ?? '' }}</span>
     @if (currentMenu !== null) {
       <button type="button"
               class="file-row-menu-trigger tree-row-menu-trigger"
