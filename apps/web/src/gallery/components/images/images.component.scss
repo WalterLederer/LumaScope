@@ -625,13 +625,11 @@
   background-color: #f5f5f5 !important;
 }
 .detail-native-table > tbody.images.details-list > tr > td {
-  background: #ffffff !important;
   background-color: #ffffff !important;
   background-image: none !important;
   color: #202020 !important;
 }
 .detail-native-table > tbody.images.details-list > tr:nth-child(even) > td {
-  background: #f5f5f5 !important;
   background-color: #f5f5f5 !important;
 }
 
@@ -662,7 +660,6 @@
 }
 .detail-native-table > tbody.images.details-list > tr.selected-image,
 .detail-native-table > tbody.images.details-list > tr.selected-image > td {
-  background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
 }
 .detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 22%, var(--color-surface-default-low)) !important; }
@@ -969,8 +966,7 @@
 /* The final-row surface must not override the active selection highlight. */
 .detail-native-table > tbody.images.details-list > tr:last-child.selected-image,
 .detail-native-table > tbody.images.details-list > tr:last-child.selected-image > td {
-  background: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
-  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
 }
 
 
