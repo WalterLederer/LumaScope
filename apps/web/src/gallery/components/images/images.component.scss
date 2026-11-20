@@ -703,6 +703,10 @@
   min-width: 0;
 }
 
+.detail-native-table > thead > tr.detail-header-labels.folder-actions-open {
+  z-index: 30;
+}
+
 .detail-native-table > thead > tr.detail-header-labels {
   display: grid;
   grid-template-columns: var(--detail-grid-columns);
