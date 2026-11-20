@@ -3,12 +3,6 @@
   outline: none;
 }
 
-:host(:focus-visible) .detail-table {
-  outline: 2px solid var(--color-accent-default, var(--color-content-primary-high));
-  outline-offset: -2px;
-  border-radius: 3px;
-}
-
 .gallery-layout {
   display: flex;
   gap: var(--dim-large);
