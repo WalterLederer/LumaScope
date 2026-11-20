@@ -651,6 +651,11 @@ app-map-window {
     .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
     .fix-location-crosshair-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
     .fix-location-address{min-width:0;flex:1 1 180px;overflow-wrap:anywhere}
+    .fix-location-coordinate-value,.fix-location-photo-coordinates{min-width:0;overflow-wrap:anywhere;font-family:Consolas,monospace;font-size:11px;line-height:1.45;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
+    .fix-location-coordinate-value{flex:1 1 100%;padding:2px 0}
+    .fix-location-photo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+    .fix-location-photo-coordinates{flex:1 1 280px}
+    .fix-location-photo-actions .offline-map-status{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere}
     .fix-location-controls .fix-location-toggle{margin:0}
     .fix-location-controls .location-actions{margin:0;align-items:flex-start}
     .fix-location-help{display:block;width:100%;max-width:none;box-sizing:border-box;margin-top:2px;white-space:normal;line-height:1.35}
