@@ -376,12 +376,17 @@ export class ImagesComponent {
         if (!cell) continue;
         const style = table.ownerDocument.defaultView?.getComputedStyle(cell);
         context.font = style?.font ?? '12px sans-serif';
-        const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim();
+        // Measure visible cell content only. Tooltip titles can contain entire
+        // inventories (for example every suffix in the folder) and must not
+        // dictate the actual column width.
+        const text = (cell.textContent ?? '').replace(/\\s+/g, ' ').trim();
         if (text) maximum = Math.max(maximum, context.measureText(text).width + 24);
-        const title = cell.getAttribute('title') ?? '';
-        if (title) maximum = Math.max(maximum, context.measureText(title).width + 24);
       }
-      widths[column] = Math.min(1600, Math.ceil(maximum));
+
+      // Compact metadata columns should remain compact even when a status
+      // label or an unusually long suffix is present.
+      const maximumWidth = column === 6 ? 100 : column === 8 ? 110 : 1600;
+      widths[column] = Math.min(maximumWidth, Math.ceil(maximum));
     }
 
     this.detailColumnWidths.set(widths);
