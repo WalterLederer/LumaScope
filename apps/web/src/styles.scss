@@ -14,7 +14,7 @@ html body app-map-window .map-window .offline-row-action-menu {
   background: var(--color-surface-default-highest, #303238) !important;
   background-color: var(--color-surface-default-highest, #303238) !important;
   border: 1px solid var(--color-content-default-low, #666) !important;
-  border-radius: 7px !important; box-shadow: 0 5px 16px rgba(0, 0, 0, .5) !important;
+  border-radius: 7px !important; box-shadow: 0 1px 2px rgb(0 0 0 / 8%) !important;
 }
 html body .gpx-row-action-menu button,
 html body .detail-row-action-menu button,
