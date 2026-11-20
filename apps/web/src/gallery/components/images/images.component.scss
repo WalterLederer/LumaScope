@@ -804,6 +804,13 @@
   line-height: 1.2;
 }
 
+/* Align the folder hamburger to the right edge like the row action controls. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .folder-actions-menu-trigger {
+  margin-left: auto !important;
+  margin-right: 8px !important;
+  align-self: flex-start;
+}
+
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
   /* The action column spans the same two 46px header tiers as its neighbours. */
   height: 92px !important;
