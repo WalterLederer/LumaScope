@@ -948,6 +948,7 @@ export class ImagesComponent {
       currentOperation: this.cacheRunCurrentOperation,
       cancel: this.cancelCacheRun
     });
+    let cacheBuildStarted = false;
     try {
       for (let index = 0; index < cacheImages.length; index++) {
         if (controller.signal.aborted) break;
@@ -957,6 +958,7 @@ export class ImagesComponent {
         this.cacheRunProgress.set({ completed: index + 1, total: cacheImages.length });
       }
       if (!controller.signal.aborted) {
+        cacheBuildStarted = true;
         await this.runCacheForImages(cacheImages, true, controller.signal);
       } else {
         this.cacheRunCurrentOperation.set('Cache rebuild cancelled while removing existing entries.');
@@ -967,7 +969,7 @@ export class ImagesComponent {
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
-      this.manualRefresh.update(value => value + 1);
+      if (!cacheBuildStarted) this.manualRefresh.update(value => value + 1);
       releaseActivity();
       this.cacheUpdated.emit('');
     }
