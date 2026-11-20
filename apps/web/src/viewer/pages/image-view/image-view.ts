@@ -2255,7 +2255,14 @@ export class ImageView {
       )
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
-        this.setActiveImageSidebarTab(image ? 'image' : 'gallery');
+        // Browse can emit the current selection again while its directory tree and
+        // thumbnail grid are initializing. Only an explicit Gallery imageSelected
+        // event should leave Browse; background selection updates must not do so.
+        if (!image) {
+          this.setActiveImageSidebarTab('gallery');
+        } else if (this.activeImageSidebarTab() !== 'gallery') {
+          this.setActiveImageSidebarTab('image');
+        }
         if (image && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
         this.traceDebugSwitching(`selected ${image?.path?.split(/[\\/]/).pop() ?? 'none'}`);
