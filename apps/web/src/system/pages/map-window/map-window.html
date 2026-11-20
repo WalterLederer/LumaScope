@@ -260,7 +260,7 @@
             <col style="width:250px">
           </colgroup>
           <thead>
-            <tr class="gpx-database-header"><th scope="col"></th>
+            <tr class="gpx-database-header"><th scope="col"><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'actions')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('active')">Active <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('active') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('name')">File <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('name') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('points')">Points <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('points') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
