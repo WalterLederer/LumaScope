@@ -71,15 +71,11 @@ export class Exif {
       }
 
       // Keep the Browse tab's database-backed GPS data in sync immediately.
-      // Thumbnail generation is not guaranteed to run again after the EXIF write.
-      try {
-        const injector = Injector.getInstance();
-        const cacheManager = injector.inject('CacheManager');
-        const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
-        await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
-      } catch (cacheError) {
-        console.warn('[Exif] GPS and its EXIF provenance marker were written, but the photo database could not be synchronized:', path, cacheError);
-      }
+      // A successful manual correction requires both the file marker and DB flag.
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+      await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
 
       return { success: true, data: undefined };
     } catch (error) {
