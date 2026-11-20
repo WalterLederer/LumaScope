@@ -2152,6 +2152,10 @@
   overflow: hidden;
 }
 
+:host(.browse-layout) .browse-workspace.sidebar-left {
+  grid-template-columns: var(--browse-sidebar-width, 0px) minmax(0, 1fr);
+}
+
 :host(.browse-layout) app-gallery.gallery-tab-content {
   position: relative !important;
   inset: auto !important;
@@ -2164,8 +2168,8 @@
   min-width: 0;
   min-height: 0;
   margin: 0 !important;
-  overflow: hidden;
-  z-index: 0;
+  overflow: visible;
+  z-index: 2;
   box-sizing: border-box;
 }
 
