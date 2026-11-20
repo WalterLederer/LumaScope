@@ -871,6 +871,9 @@
 }
 
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  position: sticky;
+  right: 0;
+  z-index: 45;
   padding: 0 !important;
   background: var(--color-surface-default-low, #fff) !important;
 }
@@ -971,6 +974,9 @@
 
 /* Folder-wide actions live in the first header row, not in individual file menus. */
 .detail-header-labels > .folder-actions-heading {
+  position: sticky;
+  right: 0;
+  z-index: 45;
   background: var(--color-surface-default-low, #fff) !important;
   position: relative;
   display: flex;
@@ -1312,4 +1318,13 @@
 .detail-native-table thead .detail-name-filter input[type="search"]::placeholder {
   color: #999;
   opacity: 1;
+}
+
+
+/* The pinned hamburger column must cover every column passing underneath it. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  opacity: 1 !important;
+  background-color: var(--color-surface-default-low, #fff) !important;
+  isolation: isolate;
 }
