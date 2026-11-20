@@ -1,4 +1,4 @@
-import { SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
+import { SliderComponent } from '@light-matter/ui';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
@@ -157,9 +157,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
 
 @Component({
   selector: 'app-markdown-viewer',
-  imports: [SliderComponent ,
-    ButtonTooltipDirective
-  ],
+  imports: [SliderComponent],
   templateUrl: './markdown-viewer.component.html',
   styleUrl: './markdown-viewer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
