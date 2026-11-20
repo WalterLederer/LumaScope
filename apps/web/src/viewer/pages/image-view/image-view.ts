@@ -230,7 +230,7 @@ export class ImageView {
     const directory = this.gallerySelectedLocation() || (selectedImage ? await this.fileSystem.dirname(selectedImage.path) : '');
     if (directory) {
       try {
-        const completeness = await this.checkLocationPhotoDatabase(directory);
+        const completeness = await this.checkLocationPhotoDatabase(directory, this.galleryState.includeFilesRecursiveValue());
         if (completeness.missing.length > 0) {
           const previousTab = this.activeImageSidebarTab();
           ConfirmationDialogComponent.open(this.dialog, {
@@ -259,7 +259,7 @@ export class ImageView {
     if (!api) return;
     if (open) {
       this.selectedImage$.pipe(take(1)).subscribe(image => {
-        void api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, image?.path ?? null);
+        void api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, image?.path ?? null, this.gallerySelectedLocation() ?? null, this.galleryState.includeFilesRecursiveValue());
       });
       this.detachedMapWindowOpen.set(true);
     } else {
