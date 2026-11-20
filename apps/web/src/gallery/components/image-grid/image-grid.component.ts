@@ -193,6 +193,7 @@ export class ImageGridComponent {
   private readonly cacheManager = inject(CacheManager);
   private readonly galleryState = inject(GalleryState);
   readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
+  readonly galleryLoading = toSignal(this.galleryState.galleryLoading(), { initialValue: false });
   readonly includeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
 
   protected readonly setIncludeUnsupportedFiles = (value: boolean): void => {
