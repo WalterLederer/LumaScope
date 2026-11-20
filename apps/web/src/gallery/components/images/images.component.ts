@@ -354,6 +354,7 @@ export class ImagesComponent {
 
   private cacheStatusFolderKey = '';
   private cacheStatusImagesRef: FileInfo[] | null = null;
+  private cacheStatusRefreshToken = -1;
 
   readonly detailValueRanges = computed(() => {
     const images = this.images() ?? [];
@@ -1214,6 +1215,7 @@ export class ImagesComponent {
         if (this.cacheAbortController?.signal === signal) this.cacheAbortController = null;
         this.cacheRunActive.set(false);
       }
+      this.manualRefresh.update(value => value + 1);
       this.cacheUpdated.emit('');
     }
   };
@@ -1355,12 +1357,15 @@ export class ImagesComponent {
     effect(() => {
       const folder = this.folderPath() ?? '';
       const images = this.images() ?? [];
+      const refreshToken = this.manualRefresh();
       // GalleryState replaces the array whenever the indexed DB contents change.
       // Comparing array identity avoids sorting/joining 100k paths just to detect a refresh.
-      if (folder === this.cacheStatusFolderKey && images === this.cacheStatusImagesRef) return;
+      if (folder === this.cacheStatusFolderKey && images === this.cacheStatusImagesRef && refreshToken === this.cacheStatusRefreshToken) return;
       const folderChanged = folder !== this.cacheStatusFolderKey;
+      const forceReload = folderChanged || refreshToken !== this.cacheStatusRefreshToken;
       this.cacheStatusFolderKey = folder;
       this.cacheStatusImagesRef = images;
+      this.cacheStatusRefreshToken = refreshToken;
 
       const request = ++this.cacheStatusRequest;
       if (!folder || images.length === 0) {
@@ -1371,10 +1376,10 @@ export class ImagesComponent {
       }
 
       const currentPaths = new Set(images.map(image => image.path));
-      const updatedStatuses = folderChanged ? new Map<string, CacheImageStatus>() : new Map(
+      const updatedStatuses = forceReload ? new Map<string, CacheImageStatus>() : new Map(
         [...this.cacheStatuses()].filter(([path]) => currentPaths.has(path))
       );
-      const updatedComparisons = folderChanged ? new Map<string, boolean | null>() : new Map(
+      const updatedComparisons = forceReload ? new Map<string, boolean | null>() : new Map(
         [...this.gpsDateComparisons()].filter(([path]) => currentPaths.has(path))
       );
       const isSupported = (image: FileInfo): boolean =>
@@ -1417,7 +1422,7 @@ export class ImagesComponent {
       }).finally(() => {
         if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
       });
-    });;
+    });
 
     effect(() => {
       const isDate = this.isDateSorted();
