@@ -2,10 +2,11 @@
 @let menuRef = menu();
 
 @if (rootNode !== null) {
-  <ng-template #nodeTemplate let-node="node" let-level="level">
+  <ng-template #nodeTemplate let-node="node" let-level="level" let-rowNumber="rowNumber">
     <div class="tree-branch" [class.root-folder]="level === 1">
       <ui-tree-node [node]="node"
                     [level]="level"
+                    [rowNumber]="rowNumber ?? null"
                     [menu]="menuRef"
                     [inlineActions]="inlineActions()"
                     [reorderActions]="reorderActions()"
@@ -18,12 +19,12 @@
           <div class="wrapper">
             @for (child of node.children; track child.id) {
               <ng-template [ngTemplateOutlet]="nodeTemplate"
-                           [ngTemplateOutletContext]="{ node: child, level: level + 1 }" />
+                           [ngTemplateOutletContext]="{ node: child, level: level + 1, rowNumber: level === 0 ? $index + 1 : null }" />
             }
           </div>
         </div>
       }
     </div>
   </ng-template>
-  <ng-template [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ node: rootNode, level: 0 }" />
+  <ng-template [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ node: rootNode, level: 0, rowNumber: null }" />
 }
