@@ -380,3 +380,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+
+/* Virtual table rows use their absolute list index rather than the DOM's
+   local nth-child index, so alternating colors remain stable while scrolling. */
+:host(.view-details.detail-alternate-rows.detail-virtual-even) > .detail-actions,
+:host(.view-details-no-thumbnails.detail-alternate-rows.detail-virtual-even) > .detail-actions,
+:host(.view-details.detail-alternate-rows.detail-virtual-even) > td,
+:host(.view-details-no-thumbnails.detail-alternate-rows.detail-virtual-even) > td {
+  background-color: var(--detail-even-row-color, #f5f5f5) !important;
+}
