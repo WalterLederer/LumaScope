@@ -193,6 +193,11 @@ export class GalleryState {
       return false;
     }
 
+    try {
+      await this.cacheManager.removeGalleryFile(path);
+    } catch (error) {
+      console.error('Failed to remove deleted gallery file from the cache database', path, error);
+    }
     this.images$.next(this.images$.value.filter(image => image.path !== path));
     return true;
   };
