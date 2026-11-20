@@ -819,21 +819,33 @@
 
 
 /* Keep sort glyphs visibly legible regardless of the global button/span typography. */
+.detail-native-table > thead > tr.detail-header-labels > th > button {
+  flex-direction: column;
+  gap: 0;
+}
+
 .detail-native-table > thead > tr.detail-header-labels > th > button > .sort-indicator {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  flex: 0 0 24px;
+  flex: 0 0 16px;
   width: 24px;
   min-width: 24px;
-  height: 26px;
-  margin-left: 6px;
+  height: 16px;
+  margin: 0;
   color: var(--color-content-primary-high) !important;
   font-family: Arial, sans-serif !important;
   font-size: 14px !important;
   font-weight: 900 !important;
-  line-height: 26px !important;
+  line-height: 16px !important;
   vertical-align: middle;
   opacity: 1 !important;
   transform: none !important;
+}
+
+.detail-native-table > thead > tr.detail-header-labels > th > button > .sort-label {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  text-align: center;
 }
