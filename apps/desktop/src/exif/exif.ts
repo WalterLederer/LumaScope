@@ -26,6 +26,21 @@ export class Exif {
     }
   };
 
+  @IpcHandler({ name: 'Exif.refreshGpsMetadata' })
+  readonly refreshGpsMetadata = async (_: IpcMainInvokeEvent, path: string): Promise<ApiResponse<{ latitude: number | null; longitude: number | null }>> => {
+    try {
+      if (typeof path !== 'string' || !path.trim()) throw new Error('A valid image path is required.');
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+      const gps = await this.readPhotoMetadata(path);
+      await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
+      return { success: true, data: { latitude: gps.latitude, longitude: gps.longitude } };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
   @IpcHandler({ name: 'Exif.writeGpsPosition' })
   readonly writeGpsPosition = async (
     _: IpcMainInvokeEvent, path: string, latitude: number, longitude: number
