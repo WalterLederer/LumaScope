@@ -92,7 +92,7 @@ export class ImageGridComponent {
 
   readonly viewMode = signal<GalleryViewMode>(this.readStoredViewMode());
   readonly detailScrollTop = signal(0);
-  readonly detailViewportHeight = signal(800);
+  readonly detailViewportHeight = signal(1200);
   readonly detailHeaderHeight = signal(0);
 
   protected readonly onGalleryScroll = (event: Event): void => {
