@@ -275,6 +275,23 @@
 :host(.view-details-no-thumbnails) > .detail-thumb-empty { width: var(--detail-thumb-width, 36px); min-width: 36px; padding: 0; }
 :host(.view-details) > .detail-actions,
 :host(.view-details-no-thumbnails) > .detail-actions { position: relative; width: 28px; padding: 2px; overflow: visible; text-align: center; }
+/* Pin each row's hamburger cell to the right edge during horizontal scrolling. */
+:host(.view-details) > .detail-actions,
+:host(.view-details-no-thumbnails) > .detail-actions {
+  position: sticky;
+  right: 0;
+  z-index: 8;
+  background: var(--detail-odd-row-color, #fff) !important;
+  box-shadow: -5px 0 7px -6px rgb(0 0 0 / 55%);
+}
+:host(.view-details.detail-alternate-rows:nth-child(even)) > .detail-actions,
+:host(.view-details-no-thumbnails.detail-alternate-rows:nth-child(even)) > .detail-actions {
+  background: var(--detail-even-row-color, #f5f5f5) !important;
+}
+:host(.view-details.selected-image) > .detail-actions,
+:host(.view-details-no-thumbnails.selected-image) > .detail-actions {
+  background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #fff)) !important;
+}
 :host(.view-details) > .detail-actions .detail-row-action-menu,
 :host(.view-details-no-thumbnails) > .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
 :host(.view-details) > .detail-actions .detail-row-menu-trigger,
