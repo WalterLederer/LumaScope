@@ -1916,7 +1916,7 @@ export class MapWindow implements OnInit, OnDestroy {
         void this.initialize(48.2082, 16.3738);
       }
     }
-    const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }): void => {
+    const applyLocation = (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null; recursive?: boolean }): void => {
       const previousImagePath = this.currentImagePath;
       const previousFolderPath = this.currentFolderPath;
       const previousFolderRecursive = this.currentFolderRecursive;
