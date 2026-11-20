@@ -322,7 +322,14 @@
   max-width: none;
   min-width: 0;
   max-height: none;
-  overflow: visible;
+  /* Clip scrolling rows at all four rounded table corners without creating a
+     new scrolling ancestor, so the sticky header keeps following the real
+     image-list viewport. */
+  position: relative;
+  isolation: isolate;
+  border-radius: 10px;
+  overflow: clip;
+  clip-path: inset(0 round 10px);
   padding: 0 12px;
   box-sizing: border-box;
 }
