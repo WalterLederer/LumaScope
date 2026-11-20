@@ -38,7 +38,6 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location';
 
 type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow';
-type DetailTableProgressKey = 'date' | 'gpsDate' | 'dimensions' | 'size';
 interface DetailTablePreferences {
   date: string;
   gpsDate: string;
@@ -87,10 +86,10 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--thumb-height.px]': 'dimensions().height',
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
     '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
-    '[style.--detail-date-progress-color]': 'detailPreferenceColors().date',
-    '[style.--detail-gps-date-progress-color]': 'detailPreferenceColors().gpsDate',
-    '[style.--detail-dimensions-progress-color]': 'detailPreferenceColors().dimensions',
-    '[style.--detail-size-progress-color]': 'detailPreferenceColors().size',
+    '[style.--detail-date-progress-color]': 'detailPreferenceDraft().date',
+    '[style.--detail-gps-date-progress-color]': 'detailPreferenceDraft().gpsDate',
+    '[style.--detail-dimensions-progress-color]': 'detailPreferenceDraft().dimensions',
+    '[style.--detail-size-progress-color]': 'detailPreferenceDraft().size',
     '[style.--detail-selected-row-color]': 'detailPreferenceDraft().selectedRow',
     '[style.--detail-odd-row-color]': 'detailPreferenceDraft().oddRow',
     '[style.--detail-even-row-color]': 'detailPreferenceDraft().evenRow',
