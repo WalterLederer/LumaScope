@@ -849,11 +849,12 @@
   text-align: center;
 }
 
-/* Keep the wrapper transparent so the table does not create a full-width
-   backdrop. Give the table a clearly visible, soft shadow of its own. */
+/* Apply the table elevation to the outer wrapper so the shadow is not
+   visually lost against the table's own clipped surface. */
 .detail-table {
   border-radius: 10px;
   background: transparent;
+  filter: drop-shadow(0 3px 8px rgb(0 0 0 / 20%));
 }
 
 .detail-native-table {
@@ -862,7 +863,7 @@
   border-radius: 10px;
   overflow: hidden;
   background: var(--color-surface-default-low, #fff);
-  box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%));
+  box-shadow: none;
 }
 
 .detail-native-table > thead {
