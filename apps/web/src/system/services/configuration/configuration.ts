@@ -155,6 +155,7 @@ export class Configuration {
         galleryDetailSelectedRowColor: '#d18b24',
         galleryDetailOddRowColor: '#ffffff',
         galleryDetailEvenRowColor: '#f5f5f5',
+        galleryDetailFilteredRowColor: '#e8f1fb',
         galleryDetailAlternateRowColors: true,
         galleryDetailDateProgressEnabled: true,
         galleryDetailGpsDateProgressEnabled: true,
