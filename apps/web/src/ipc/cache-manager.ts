@@ -60,6 +60,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly getInterpolatedGpxPosition = (folder: string, timestampMs: number, maxDifferenceSeconds = 120, databaseKey?: string) =>
     window.desktop.CacheManager.getInterpolatedGpxPosition(folder, timestampMs, maxDifferenceSeconds, databaseKey);
 
+  readonly getInterpolatedPhotoGpsPosition = (sourceName: string, timestampMs: number, databaseKey: string) =>
+    window.desktop.CacheManager.getInterpolatedPhotoGpsPosition(sourceName, timestampMs, databaseKey);
+
   readonly getOsmAndTileCacheSummary = () => window.desktop.CacheManager.getOsmAndTileCacheSummary();
 
   readonly clearOsmAndTileCache = (): Promise<CacheClearResult> =>
