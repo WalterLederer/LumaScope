@@ -150,14 +150,19 @@ export class ThumbnailComponent implements OnDestroy {
       ThumbnailComponent.activeRowActionMenu.rowActionMenuOpen.set(false);
     }
     ThumbnailComponent.activeRowActionMenu = this;
-    const trigger = event.currentTarget as HTMLElement;
-    const table = trigger.closest('table.detail-native-table');
-    const rect = table?.getBoundingClientRect() ?? trigger.getBoundingClientRect();
-    // Center the popup over the complete table, not beside the clicked row.
-    const top = Math.max(8, Math.min(rect.top + rect.height / 2, window.innerHeight - 8));
-    const left = Math.max(8, Math.min(rect.left + rect.width / 2, window.innerWidth - 8));
-    this.rowActionMenuPosition.set({ top, left });
+    const pointer = { top: event.clientY, left: event.clientX };
+    this.rowActionMenuPosition.set(pointer);
     this.rowActionMenuOpen.set(true);
+    requestAnimationFrame(() => {
+      if (!this.rowActionMenuOpen()) return;
+      const menu = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>('.detail-row-action-menu');
+      if (!menu) return;
+      const rect = menu.getBoundingClientRect();
+      this.rowActionMenuPosition.set({
+        top: Math.max(8, Math.min(pointer.top, window.innerHeight - rect.height - 8)),
+        left: Math.max(8, Math.min(pointer.left, window.innerWidth - rect.width - 8))
+      });
+    });
   };
 
   readonly copyImagePath = async (): Promise<void> => {
