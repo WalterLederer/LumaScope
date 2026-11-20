@@ -60,7 +60,7 @@ export interface AppConfigV1Gallery {
   autoSortFavorites?: boolean;
   thumbWidth?: number;
   thumbHeight?: number;
-  sortBy?: 'date' | 'name' | 'size';
+  sortBy?: 'date' | 'name' | 'path' | 'size';
   sortDir?: 'asc' | 'desc';
   selectedLocation?: string;
 }
@@ -159,7 +159,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.autoSortFavorites || 'boolean' === typeof input.autoSortFavorites)
     && (undefined === input.thumbWidth || 'number' === typeof input.thumbWidth)
     && (undefined === input.thumbHeight || 'number' === typeof input.thumbHeight)
-    && (undefined === input.sortBy || 'date' === input.sortBy || 'name' === input.sortBy || 'size' === input.sortBy)
+    && (undefined === input.sortBy || 'date' === input.sortBy || 'name' === input.sortBy || 'path' === input.sortBy || 'size' === input.sortBy)
     && (undefined === input.sortDir || 'asc' === input.sortDir || 'desc' === input.sortDir)
     && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation);
   const _io2 = (input: any): boolean =>
