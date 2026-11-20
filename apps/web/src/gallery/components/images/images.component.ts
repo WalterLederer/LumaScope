@@ -88,6 +88,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--thumb-height.px]': 'dimensions().height',
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
     '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
+    '[style.--detail-row-height.px]': 'detailVirtualRowHeight()',
     '[style.--detail-date-progress-color]': 'detailPreferenceValues().date',
     '[style.--detail-gps-date-progress-color]': 'detailPreferenceValues().gpsDate',
     '[style.--detail-dimensions-progress-color]': 'detailPreferenceValues().dimensions',
@@ -201,6 +202,9 @@ export class ImagesComponent {
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
+  readonly detailScrollTop = input(0);
+  readonly detailViewportHeight = input(800);
+  readonly detailHeaderHeight = input(0);
 
   // Detail headers expose the current gallery sort initially, then own sorting after a header is clicked.
   readonly detailSortColumn = signal<DetailSortColumn | null>(null);
@@ -214,6 +218,10 @@ export class ImagesComponent {
     const images = (this.images() ?? []).filter(image =>
       !filter || image.name.toLocaleLowerCase().includes(filter)
     );
+    // GalleryState supplies the selected global sort directly from SQLite.
+    // Avoid sorting the complete 100k+ file list again unless a detail header
+    // has explicitly selected a different sort column.
+    if (this.detailSortColumn() === null) return images;
     const column = this.activeDetailSortColumn();
     const direction = this.activeDetailSortDirection() === 'asc' ? 1 : -1;
     const valueFor = (image: FileInfo): string | number | null => {
@@ -464,6 +472,25 @@ export class ImagesComponent {
     return Math.round(24 + ((width - 96) / (512 - 96)) * 296);
   });
   readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
+  readonly detailVirtualRowHeight = computed(() => this.viewMode() === 'details-no-thumbnails'
+    ? 34
+    : Math.max(34, this.detailThumbnailHeight() + 10));
+  private readonly detailVirtualOverscan = 12;
+  readonly detailVirtualCount = computed(() =>
+    Math.max(1, Math.ceil(Math.max(200, this.detailViewportHeight()) / this.detailVirtualRowHeight()) + this.detailVirtualOverscan * 2)
+  );
+  readonly detailVirtualStart = computed(() => {
+    const bodyOffset = Math.max(0, this.detailScrollTop() - this.detailHeaderHeight());
+    const requested = Math.max(0, Math.floor(bodyOffset / this.detailVirtualRowHeight()) - this.detailVirtualOverscan);
+    return Math.min(requested, Math.max(0, this.sortedDetailImages().length - this.detailVirtualCount()));
+  });
+  readonly visibleDetailImages = computed(() =>
+    this.sortedDetailImages().slice(this.detailVirtualStart(), this.detailVirtualStart() + this.detailVirtualCount())
+  );
+  readonly detailVirtualTopSpacer = computed(() => this.detailVirtualStart() * this.detailVirtualRowHeight());
+  readonly detailVirtualBottomSpacer = computed(() => Math.max(0,
+    this.sortedDetailImages().length - this.detailVirtualStart() - this.visibleDetailImages().length
+  ) * this.detailVirtualRowHeight());
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
   readonly groupedImages = computed<YearGroup[]>(() => {
     if (!this.isDateSorted()) {
