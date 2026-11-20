@@ -29,6 +29,7 @@ export class GalleryState {
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
   private navigationRequest = 0;
+  private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
 
@@ -43,11 +44,18 @@ export class GalleryState {
       const changed = normalize(changedDirectory);
       const inScope = changed === root || (this.includeFilesRecursive$.value && changed.startsWith(root + '\\\\'));
       if (!inScope) return;
-      const request = ++this.navigationRequest;
-      const sort = this.sortMode$.value;
-      void this.cacheManager.getGalleryFiles(selected, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir)
-        .then(images => { if (request === this.navigationRequest) this.images$.next(images); })
-        .catch(error => console.error('Failed to refresh database-backed gallery files', selected, error));
+      // Coalesce a burst of folder notifications into one database read.
+      if (this.galleryFilesRefreshTimer !== null) clearTimeout(this.galleryFilesRefreshTimer);
+      this.galleryFilesRefreshTimer = setTimeout(() => {
+        this.galleryFilesRefreshTimer = null;
+        const currentFolder = this.selectedLocation$.value;
+        if (!currentFolder) return;
+        const request = ++this.navigationRequest;
+        const sort = this.sortMode$.value;
+        void this.cacheManager.getGalleryFiles(currentFolder, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir)
+          .then(images => { if (request === this.navigationRequest) this.images$.next(images); })
+          .catch(error => console.error('Failed to refresh database-backed gallery files', currentFolder, error));
+      }, 150);
     });
     this.configuration.config()
       .pipe(take(1))
