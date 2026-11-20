@@ -1356,9 +1356,9 @@ export class ImagesComponent {
       const folder = this.folderPath() ?? '';
       const images = this.images() ?? [];
       // GalleryState replaces the array whenever the indexed DB contents change.
-      // Comparing array identity avoids sorting/joining 100k paths just to detect
-      // a refresh.
+      // Comparing array identity avoids sorting/joining 100k paths just to detect a refresh.
       if (folder === this.cacheStatusFolderKey && images === this.cacheStatusImagesRef) return;
+      const folderChanged = folder !== this.cacheStatusFolderKey;
       this.cacheStatusFolderKey = folder;
       this.cacheStatusImagesRef = images;
 
@@ -1370,33 +1370,46 @@ export class ImagesComponent {
         return;
       }
 
-      this.cacheStatuses.set(new Map());
-      this.gpsDateComparisons.set(new Map());
+      const currentPaths = new Set(images.map(image => image.path));
+      const updatedStatuses = folderChanged ? new Map<string, CacheImageStatus>() : new Map(
+        [...this.cacheStatuses()].filter(([path]) => currentPaths.has(path))
+      );
+      const updatedComparisons = folderChanged ? new Map<string, boolean | null>() : new Map(
+        [...this.gpsDateComparisons()].filter(([path]) => currentPaths.has(path))
+      );
+      const isSupported = (image: FileInfo): boolean =>
+        supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', ''));
+      const missingImages = images.filter(image => isSupported(image) && !updatedStatuses.has(image.path));
+      for (const image of images) {
+        if (!isSupported(image) && !updatedComparisons.has(image.path)) updatedComparisons.set(image.path, null);
+      }
+      this.cacheStatuses.set(updatedStatuses);
+      this.gpsDateComparisons.set(updatedComparisons);
+      if (missingImages.length === 0) {
+        this.cacheStatusLoading.set(false);
+        return;
+      }
+
       this.cacheStatusLoading.set(true);
       const pathRequestVersions = new Map(this.cacheStatusPathRequests);
       void (async (): Promise<void> => {
-        for (let offset = 0; offset < images.length; offset += 500) {
+        for (let offset = 0; offset < missingImages.length; offset += 500) {
           if (request !== this.cacheStatusRequest) return;
-          const batch = images.slice(offset, offset + 500);
-          const supportedBatch = batch.filter(image =>
-            supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\./, ''))
-          );
-          const statuses = supportedBatch.length
-            ? await this.cacheManager.getImageCacheStatuses(supportedBatch.map(image => image.path))
-            : [];
+          const batch = missingImages.slice(offset, offset + 500);
+          const statuses = await this.cacheManager.getImageCacheStatuses(batch.map(image => image.path));
           if (request !== this.cacheStatusRequest) return;
-          const updated = new Map(this.cacheStatuses());
           const batchStatuses = new Map(statuses.map(status => [status.sourceName, status]));
+          const nextStatuses = new Map(this.cacheStatuses());
           for (const [sourceName, status] of batchStatuses) {
             const requestVersion = this.cacheStatusPathRequests.get(sourceName) ?? 0;
-            const currentStatus = updated.get(sourceName);
+            const currentStatus = nextStatuses.get(sourceName);
             if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && currentStatus) continue;
-            updated.set(sourceName, status);
+            nextStatuses.set(sourceName, status);
           }
-          this.cacheStatuses.set(updated);
-          const comparisons = new Map(this.gpsDateComparisons());
-          this.createGpsDateComparisons(batch, batchStatuses).forEach((value, path) => comparisons.set(path, value));
-          this.gpsDateComparisons.set(comparisons);
+          this.cacheStatuses.set(nextStatuses);
+          const nextComparisons = new Map(this.gpsDateComparisons());
+          this.createGpsDateComparisons(batch, batchStatuses).forEach((value, path) => nextComparisons.set(path, value));
+          this.gpsDateComparisons.set(nextComparisons);
         }
       })().catch(error => {
         if (request !== this.cacheStatusRequest) return;
@@ -1404,7 +1417,7 @@ export class ImagesComponent {
       }).finally(() => {
         if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
       });
-    });
+    });;
 
     effect(() => {
       const isDate = this.isDateSorted();
