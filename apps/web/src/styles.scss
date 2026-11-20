@@ -63,8 +63,8 @@ html body .gpx-row-action-menu .gpx-row-action-delete-all:hover:not(:disabled) {
 }
 
 
-/* Detail-row popups are centered on the containing table midpoint. */
-html body .detail-row-action-menu { transform: translate(-50%, -50%) !important; }
+/* Detail-row popups use their fixed viewport coordinates, anchored at the pointer. */
+html body .detail-row-action-menu { transform: none !important; }
 
 /* All row menus are viewport overlays: opening one must never change row layout. */
 html body .detail-row-action-menu,
