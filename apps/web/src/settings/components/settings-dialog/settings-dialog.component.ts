@@ -1,3 +1,4 @@
+import { ButtonTooltipDirective } from '@light-matter/ui';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
 import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats, formatOsDateTime } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
@@ -10,6 +11,7 @@ import { GalleryLocations } from '../../../gallery/services/gallery-locations/ga
   selector: 'app-settings-panel',
   imports: [
     ByteSizePipe,
+    ButtonTooltipDirective
   ],
   templateUrl: './settings-dialog.component.html',
   styleUrl: './settings-dialog.component.scss',
