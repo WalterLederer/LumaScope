@@ -468,7 +468,7 @@ export class ImagesComponent {
 
     const startX = event.clientX;
     const startWidth = cell.getBoundingClientRect().width;
-    const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
+    const minimumWidth = columnIndex === 0 ? 24 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
     const initialThumbWidth = this.detailThumbnailWidth();
@@ -477,7 +477,7 @@ export class ImagesComponent {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
       const storedWidth = columnIndex === 0
-        ? width - Math.max(84, initialThumbWidth + 16)
+        ? width - initialThumbWidth
         : width;
       this.detailColumnWidths.update(current => ({ ...current, [columnIndex]: storedWidth }));
       this.saveDetailColumnWidths();
