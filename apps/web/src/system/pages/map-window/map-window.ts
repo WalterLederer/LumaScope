@@ -6540,6 +6540,44 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly sortGpxDatabase = (key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'): void => this.gpxDatabaseSort.update(sort => ({ key, direction: sort.key === key && sort.direction === 'asc' ? 'desc' : 'asc' }));
   protected readonly gpxDatabaseSortIndicator = (key: 'active' | 'name' | 'points' | 'time' | 'size' | 'modified' | 'path' | 'color' | 'line' | 'width' | 'arrows'): string => this.gpxDatabaseSort().key === key ? (this.gpxDatabaseSort().direction === 'asc' ? '▲' : '▼') : '↕';
+  protected readonly startOfflineColumnResize = (event: PointerEvent, columnIndex: number): void => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const handle = event.currentTarget as HTMLElement;
+    const table = handle.closest('table.offline-files-resizable-table') as HTMLTableElement | null;
+    if (!table) return;
+    const cell = handle.closest('th') as HTMLElement | null;
+    if (!cell) return;
+    const startX = event.clientX;
+    const startWidth = cell.getBoundingClientRect().width;
+    const minimum = columnIndex === 0 ? 44 : columnIndex === 3 ? 64 : columnIndex === 5 ? 180 : 42;
+    const pointerId = event.pointerId;
+    const document = table.ownerDocument;
+    const onMove = (moveEvent: PointerEvent): void => {
+      if (moveEvent.pointerId !== pointerId) return;
+      const width = Math.max(minimum, Math.min(1200, Math.round(startWidth + moveEvent.clientX - startX)));
+      table.style.setProperty(`--offline-col-${columnIndex}`, `${width}px`);
+    };
+    const cleanup = (): void => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+    };
+    const onUp = (upEvent: PointerEvent): void => {
+      if (upEvent.pointerId !== pointerId) return;
+      const widths: Record<string, number> = {};
+      for (let index = 0; index < 12; index++) {
+        const value = Number.parseFloat(getComputedStyle(table).getPropertyValue(`--offline-col-${index}`));
+        if (Number.isFinite(value) && value > 0) widths[index] = value;
+      }
+      this.saveSetting('offlineFilesColumnWidths', JSON.stringify(widths));
+      cleanup();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  };
   protected readonly startGpxColumnResize = (event: PointerEvent, key: string): void => {
     event.preventDefault();
     event.stopPropagation();
