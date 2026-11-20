@@ -150,14 +150,12 @@ export class ThumbnailComponent implements OnDestroy {
       ThumbnailComponent.activeRowActionMenu.rowActionMenuOpen.set(false);
     }
     ThumbnailComponent.activeRowActionMenu = this;
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const width = Math.min(190, window.innerWidth - 16);
-    const height = 260;
-    const top = rect.bottom + height + 8 > window.innerHeight
-      ? Math.max(8, rect.top - height - 3)
-      : rect.bottom + 3;
-    // Align the popup's right edge with the hamburger at the far-right column.
-    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+    const trigger = event.currentTarget as HTMLElement;
+    const table = trigger.closest('table.detail-native-table');
+    const rect = table?.getBoundingClientRect() ?? trigger.getBoundingClientRect();
+    // Center the popup over the complete table, not beside the clicked row.
+    const top = Math.max(8, Math.min(rect.top + rect.height / 2, window.innerHeight - 8));
+    const left = Math.max(8, Math.min(rect.left + rect.width / 2, window.innerWidth - 8));
     this.rowActionMenuPosition.set({ top, left });
     this.rowActionMenuOpen.set(true);
   };
