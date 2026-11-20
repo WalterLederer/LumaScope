@@ -1385,7 +1385,7 @@ export class CacheManager {
         ext: extname(row.file_name), createdAt: row.modified_at,
         size: row.file_size, modifiedAt: row.modified_at
       } satisfies FileInfo;
-    }).filter(file => includeUnsupported || supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+    }).filter(file => includeUnsupported || supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
     const direction = sortDir === 'desc' ? -1 : 1;
     data.sort((a, b) => {
       const comparison = sortBy === 'date' ? a.modifiedAt - b.modifiedAt
