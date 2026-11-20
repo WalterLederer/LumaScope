@@ -1283,12 +1283,22 @@ export class ImagesComponent {
       };
       void refreshUnsupportedSummary();
       const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+      let refreshTimer: ReturnType<typeof setTimeout> | null = null;
       const unsubscribe = this.cacheManager.onGalleryFilesChanged(changedDirectory => {
         const root = normalize(folder);
         const changed = normalize(changedDirectory);
-        if (changed === root || (recursive && changed.startsWith(root + '\\\\'))) void refreshUnsupportedSummary();
+        if (changed !== root && !(recursive && changed.startsWith(root + '\\\\'))) return;
+        if (refreshTimer !== null) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = null;
+          void refreshUnsupportedSummary();
+        }, 150);
       });
-      onCleanup(() => { active = false; unsubscribe(); });
+      onCleanup(() => {
+        active = false;
+        if (refreshTimer !== null) clearTimeout(refreshTimer);
+        unsubscribe();
+      });
     });
 
     effect(() => {
