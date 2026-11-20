@@ -185,7 +185,8 @@ export class GalleryState {
     ).then(page => {
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       this.galleryLoadedCount = offset + page.files.length;
-      this.galleryTotalCount = page.files.length === 0 ? offset : page.totalCount;
+      if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
+      else if (page.files.length < this.galleryPageSize) this.galleryTotalCount = this.galleryLoadedCount;
       if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
     }).catch(error => {
       console.error('Failed to load the next gallery database page', directory, error);
