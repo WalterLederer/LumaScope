@@ -516,7 +516,7 @@ export default class App {
     return App.focusWindow(App.mapWindow);
   }
 
-  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean): boolean {
+  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean, focusWindow = true): boolean {
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
@@ -540,7 +540,7 @@ export default class App {
 
     if (App.isMapWindowOpen()) {
       App.mapWindow.webContents.send('MapWindow.locationChanged', location);
-      App.focusWindow(App.mapWindow);
+      if (focusWindow) App.focusWindow(App.mapWindow);
       return true;
     }
 
