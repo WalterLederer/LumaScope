@@ -233,6 +233,7 @@ export class ImageGridComponent {
 
   protected readonly thumbSizeSlider = new FormControl(0, { nonNullable: true });
   readonly detailFontSize = signal(this.readStoredDetailFontSize());
+  readonly nameFilter = signal('');
   protected readonly detailFontSizeSlider = new FormControl(this.detailFontSize(), { nonNullable: true });
   protected readonly detailFontSizeMin = 10;
   protected readonly detailFontSizeMax = 24;
@@ -342,6 +343,11 @@ export class ImageGridComponent {
 
   protected readonly adjustDetailFontSize = (direction: -1 | 1): void => {
     const next = Math.max(this.detailFontSizeMin, Math.min(this.detailFontSizeMax, this.detailFontSizeSlider.value + direction));
+    this.detailFontSizeSlider.setValue(next);
+  };
+
+  protected readonly setDetailFontSize = (value: number): void => {
+    const next = Math.max(this.detailFontSizeMin, Math.min(this.detailFontSizeMax, Math.round(value)));
     this.detailFontSizeSlider.setValue(next);
   };
 
