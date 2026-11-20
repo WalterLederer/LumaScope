@@ -157,6 +157,7 @@ const api: Desktop = {
     getLatestGpxElevationProfile: (sourcePath?: string) => ipcRenderer.invoke('CacheManager.getLatestGpxElevationProfile', sourcePath),
     getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getGpxFilesInBounds', bounds, databaseKey),
     getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => ipcRenderer.invoke('CacheManager.getInterpolatedGpxPosition', folder, timestampMs, maxDifferenceSeconds, databaseKey),
+    getInterpolatedPhotoGpsPosition: (timestampMs: number, databaseKey: string) => ipcRenderer.invoke('CacheManager.getInterpolatedPhotoGpsPosition', timestampMs, databaseKey),
     getOsmAndTileCacheSummary: () => ipcRenderer.invoke('CacheManager.getOsmAndTileCacheSummary')
   },
 
