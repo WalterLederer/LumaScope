@@ -90,10 +90,13 @@
                     aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
             @if (folderActionsMenuOpen()) {
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" (click)="$event.stopPropagation()">
-                <button type="button" role="menuitem" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="cacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
-                <button type="button" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="reCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="cacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="reCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
               </div>
             }
           </th>
@@ -140,6 +143,8 @@
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
               [refreshToken]="thumbnailRefreshToken()"
               (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
+              (openFolderPathRequested)="openFolderPathRequested.emit()"
+              (copyFolderPathRequested)="copyFolderPathRequested.emit()"
               (cacheFolderRequested)="cacheDisplayedFiles()"
               (reCacheFileRequested)="reCacheFile($event)"
               (reCacheFolderRequested)="reCacheDisplayedFiles()"
