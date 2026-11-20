@@ -84,7 +84,7 @@
   </aside>
 </ui-toolbar>
 
-<div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox>
+<div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox (scroll)="onGalleryScroll($event)">
   <app-images [images]="images()" [selectedImagePath]="selectedImagePath()"
               [cacheStats]="cacheStats()"
               [folderPath]="selectedLocation()"
@@ -94,6 +94,9 @@
               [sortDirection]="sortDirection()"
               [thumbSize]="thumbSize()"
               [viewMode]="viewMode()"
+              [detailScrollTop]="detailScrollTop()"
+              [detailViewportHeight]="detailViewportHeight()"
+              [detailHeaderHeight]="detailHeaderHeight()"
               [style.--detail-font-size.px]="detailFontSize()"
               [nameFilter]="nameFilter()"
               [nameFilterActive]="nameFilterActive()"
