@@ -1386,7 +1386,7 @@ export class ImagesComponent {
       const currentMetadata = new Map(images.map(image => [
         image.path,
         `${image.size}|${image.modifiedAt ?? image.createdAt}`
-      ]));
+      ] as const));
       const changedPaths = new Set(images
         .filter(image => this.cacheStatusImageMetadata.get(image.path) !== currentMetadata.get(image.path))
         .map(image => image.path));
