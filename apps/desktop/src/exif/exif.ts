@@ -36,7 +36,8 @@ export class Exif {
       const gps = await this.readPhotoMetadata(path, true);
       const databaseMatchesFile = !!existingRecord
         && (existingRecord.latitude ?? null) === gps.latitude
-        && (existingRecord.longitude ?? null) === gps.longitude;
+        && (existingRecord.longitude ?? null) === gps.longitude
+        && Number(existingRecord.gps_manually_corrected ?? 0) === (gps.gpsManuallyCorrected ? 1 : 0);
       if (!databaseMatchesFile) {
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       }
@@ -59,7 +60,8 @@ export class Exif {
         GPSLatitude: Math.abs(latitude),
         GPSLatitudeRef: latitude < 0 ? 'South' : 'North',
         GPSLongitude: Math.abs(longitude),
-        GPSLongitudeRef: longitude < 0 ? 'West' : 'East'
+        GPSLongitudeRef: longitude < 0 ? 'West' : 'East',
+        GPSProcessingMethod: 'LumaScope manual correction'
       });
 
       // Keep the Browse tab's database-backed GPS data in sync immediately.
@@ -386,8 +388,9 @@ export class Exif {
     gpsTimestampCandidates: Array<{ tag: string; raw: string; timestamp: number | null }>;
     directionDeg: number | null;
     coordinateSourceId: number | null;
+    gpsManuallyCorrected: boolean;
   }> => {
-    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, gpsTimestampSource: null, gpsTimestampRaw: null, gpsTimestampCandidates: [], directionDeg: null, coordinateSourceId: null };
+    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, gpsTimestampSource: null, gpsTimestampRaw: null, gpsTimestampCandidates: [], directionDeg: null, coordinateSourceId: null, gpsManuallyCorrected: false };
     try {
       const tags = await this.exifTool.read(path) as unknown as Record<string, unknown>;
       const first = (...values: unknown[]) => values.find(value => value !== undefined && value !== null);
@@ -495,6 +498,8 @@ export class Exif {
       const selectedTimestamp = gpsTimestampCandidates.find(candidate => candidate.timestamp !== null);
       const gpsTimestamp = selectedTimestamp?.timestamp ?? null;
       const directionDeg = numeric(first(tags['GPSImgDirection'], tags['XMP:GPSImgDirection']));
+      const gpsProcessingMethod = String(tags['GPSProcessingMethod'] ?? '').toLowerCase();
+      const gpsManuallyCorrected = gpsProcessingMethod.includes('lumascope') && gpsProcessingMethod.includes('manual');
       return {
         latitude: latitude !== null && latitude >= -90 && latitude <= 90 ? latitude : null,
         longitude: longitude !== null && longitude >= -180 && longitude <= 180 ? longitude : null,
@@ -504,6 +509,7 @@ export class Exif {
         gpsTimestampRaw: selectedTimestamp?.raw ?? null,
         gpsTimestampCandidates,
         directionDeg: directionDeg !== null && directionDeg >= 0 && directionDeg < 360 ? directionDeg : null,
+        gpsManuallyCorrected,
         coordinateSourceId
       };
     } catch (error) {
