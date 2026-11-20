@@ -1339,7 +1339,7 @@ export class CacheManager {
           if (file.isDirectory) continue;
           const absolute = resolve(file.path);
           if (dirname(absolute).toLocaleLowerCase() !== root.toLocaleLowerCase()) continue;
-          this.ensurePhoto(absolute, Math.max(0, Math.trunc(file.size)), Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0, db);
+          this.ensurePhoto(absolute, Math.max(0, Math.trunc(file.size)), typeof file.modifiedAt === 'number' && Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0, db);
           registered++;
         }
         db.exec('COMMIT;');
