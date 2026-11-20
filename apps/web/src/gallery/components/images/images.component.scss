@@ -1008,6 +1008,7 @@
     list-style: none;
     user-select: none;
   }
+  > summary::marker { content: ""; }
   > summary::-webkit-details-marker { display: none; }
   > summary::before {
     content: "›";
