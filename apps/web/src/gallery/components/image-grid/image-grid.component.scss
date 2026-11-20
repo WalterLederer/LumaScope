@@ -71,7 +71,8 @@ ui-toolbar {
 .thumbnail-size-control {
   display: flex;
   flex: 0 0 auto;
-  margin-top: 4px;
+  margin-top: 8px;
+  margin-bottom: 4px;
   min-width: max-content;
   align-items: center;
   gap: var(--dim-small);
