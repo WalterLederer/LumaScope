@@ -1462,6 +1462,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly crosshairAddress = signal('');
   protected readonly crosshairCoordinates = signal('—');
+  protected readonly photoGpsCoordinates = signal('Photo GPS position unavailable');
   protected readonly gpsRefreshBusy = signal(false);
   protected readonly offlineAddressQuery = signal('');
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
@@ -1955,6 +1956,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.coordinatesAvailable.set(false);
         this.currentImageHasGps.set(false);
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
+        this.photoGpsCoordinates.set('Photo GPS position unavailable');
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('');
         this.marker?.setOpacity(0);
@@ -1967,6 +1969,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('lastLongitude', nextLongitude!);
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
+      this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
@@ -2249,6 +2252,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!available) {
       this.coordinateLabel.set('GPS coordinates unavailable');
       this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
+      this.photoGpsCoordinates.set('Photo GPS position unavailable');
       this.locationAddress.set('');
       this.marker?.setOpacity(0);
       this.offlineRenderer?.setCurrentOpacity(0);
@@ -2256,6 +2260,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.coordinateLabel.set(this.formatCoordinates(latitude!, longitude!));
     this.photoCoordinateLabel.set(this.formatCoordinates(latitude!, longitude!).replace(/^Coordinates: /, 'Photo: '));
+    this.photoGpsCoordinates.set(this.formatManualGpsPosition(latitude!, longitude!));
     this.marker?.setLatLng([latitude!, longitude!]);
     this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
     this.offlineRenderer?.updateCurrentLocation(latitude!, longitude!);
