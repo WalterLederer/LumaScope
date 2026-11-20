@@ -238,11 +238,11 @@ export class ImageGridComponent {
       let gps = 0;
       let hdr = 0;
       let location = 0;
-      for (const paths of filesByParent.values()) {
+      for (const [parent, paths] of filesByParent.entries()) {
         for (let offset = 0; offset < paths.length; offset += 500) {
           const batch = paths.slice(offset, offset + 500);
           console.info('[GalleryDB] WAIT getDirectoryCacheStats', {
-            directory: filesByParent.keys().next().value,
+            directory: parent,
             reason: 'Read thumbnail/full-size cache flags and GPS, HDR and location metadata for this batch.',
             batchOffset: offset,
             batchSize: batch.length,
