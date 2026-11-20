@@ -64,19 +64,21 @@ export class Exif {
         GPSProcessingMethod: 'LumaScope manual correction'
       });
 
+      // Verify the provenance marker from the file before reporting a successful correction.
+      const gps = await this.readPhotoMetadata(path, true);
+      if (!gps.gpsManuallyCorrected) {
+        throw new Error('The GPS position was written, but the EXIF manual-correction marker could not be verified.');
+      }
+
       // Keep the Browse tab's database-backed GPS data in sync immediately.
       // Thumbnail generation is not guaranteed to run again after the EXIF write.
       try {
         const injector = Injector.getInstance();
         const cacheManager = injector.inject('CacheManager');
         const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
-        const gps = await this.readPhotoMetadata(path, true);
-        if (!gps.gpsManuallyCorrected) {
-          throw new Error('The GPS position was written, but the EXIF manual-correction marker could not be verified.');
-        }
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       } catch (cacheError) {
-        console.warn('[Exif] GPS was written, but the photo database could not be synchronized:', path, cacheError);
+        console.warn('[Exif] GPS and its EXIF provenance marker were written, but the photo database could not be synchronized:', path, cacheError);
       }
 
       return { success: true, data: undefined };
