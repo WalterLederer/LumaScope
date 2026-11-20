@@ -14,11 +14,13 @@ import {
   signal
 } from '@angular/core';
 import { TextComponent, TitleComponent } from '@light-matter/ui';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
+import { Configuration } from '../../../system/services/configuration/configuration';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
   allSortTypes,
@@ -34,6 +36,22 @@ import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location';
+
+type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow';
+interface DetailTableColors {
+  date: string;
+  gpsDate: string;
+  dimensions: string;
+  size: string;
+  selectedRow: string;
+}
+const defaultDetailTableColors: DetailTableColors = {
+  date: '#d18b24',
+  gpsDate: '#287fc4',
+  dimensions: '#16a085',
+  size: '#8e63ce',
+  selectedRow: '#d18b24'
+};
 
 @Component({
   selector: 'app-images',
@@ -51,7 +69,12 @@ type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 's
     '[style.--thumb-width.px]': 'dimensions().width',
     '[style.--thumb-height.px]': 'dimensions().height',
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
-    '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()'
+    '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
+    '[style.--detail-date-progress-color]': 'detailPreferenceColors().date',
+    '[style.--detail-gps-date-progress-color]': 'detailPreferenceColors().gpsDate',
+    '[style.--detail-dimensions-progress-color]': 'detailPreferenceColors().dimensions',
+    '[style.--detail-size-progress-color]': 'detailPreferenceColors().size',
+    '[style.--detail-selected-row-color]': 'detailPreferenceColors().selectedRow'
   }
 })
 export class ImagesComponent {
@@ -62,6 +85,21 @@ export class ImagesComponent {
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
+  private readonly configuration = inject(Configuration);
+  readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
+  readonly detailPreferenceColors = computed<DetailTableColors>(() => {
+    const preferences = this.appConfig()?.preferences;
+    return {
+      date: preferences?.galleryDetailDateProgressColor ?? defaultDetailTableColors.date,
+      gpsDate: preferences?.galleryDetailGpsDateProgressColor ?? defaultDetailTableColors.gpsDate,
+      dimensions: preferences?.galleryDetailDimensionsProgressColor ?? defaultDetailTableColors.dimensions,
+      size: preferences?.galleryDetailSizeProgressColor ?? defaultDetailTableColors.size,
+      selectedRow: preferences?.galleryDetailSelectedRowColor ?? defaultDetailTableColors.selectedRow
+    };
+  });
+  readonly detailPreferencesOpen = signal(false);
+  readonly detailPreferenceDraft = signal<DetailTableColors>({ ...defaultDetailTableColors });
+
   private cacheStatusRequest = 0;
   private cacheAbortController: AbortController | null = null;
   private readonly cacheStatusPathRequests = new Map<string, number>();
@@ -268,9 +306,11 @@ export class ImagesComponent {
   readonly detailValueRanges = computed(() => {
     const images = this.images() ?? [];
     const statuses = this.cacheStatuses();
+    const metadata = this.metadata();
     let minDate = Infinity, maxDate = -Infinity;
     let minGpsDate = Infinity, maxGpsDate = -Infinity;
     let minSize = Infinity, maxSize = -Infinity;
+    let minDimensionArea = Infinity, maxDimensionArea = -Infinity;
 
     for (const image of images) {
       const date = image.modifiedAt;
@@ -288,11 +328,20 @@ export class ImagesComponent {
         minSize = Math.min(minSize, size);
         maxSize = Math.max(maxSize, size);
       }
+      const tags = metadata.get(image.path);
+      const width = Number(tags?.ImageWidth) || 0;
+      const height = Number(tags?.ImageHeight) || 0;
+      if (width > 0 && height > 0) {
+        const area = width * height;
+        minDimensionArea = Math.min(minDimensionArea, area);
+        maxDimensionArea = Math.max(maxDimensionArea, area);
+      }
     }
 
     return {
       date: Number.isFinite(minDate) ? [minDate, maxDate] as const : null,
       gpsDate: Number.isFinite(minGpsDate) ? [minGpsDate, maxGpsDate] as const : null,
+      dimensions: Number.isFinite(minDimensionArea) ? [minDimensionArea, maxDimensionArea] as const : null,
       size: Number.isFinite(minSize) ? [minSize, maxSize] as const : null
     };
   });
@@ -300,6 +349,7 @@ export class ImagesComponent {
   readonly detailProgressByPath = computed(() => {
     const images = this.images() ?? [];
     const statuses = this.cacheStatuses();
+    const metadata = this.metadata();
     const ranges = this.detailValueRanges();
     const percentage = (value: number | null | undefined, range: readonly [number, number] | null): number | null => {
       if (typeof value !== 'number' || !Number.isFinite(value) || !range) return null;
@@ -307,12 +357,17 @@ export class ImagesComponent {
       return max === min ? 50 : Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
     };
 
-    const result = new Map<string, { date: number | null; gpsDate: number | null; size: number | null }>();
+    const result = new Map<string, { date: number | null; gpsDate: number | null; dimensions: number | null; size: number | null }>();
     for (const image of images) {
       const gpsDate = statuses.get(image.path)?.gpsTimestamp;
+      const tags = metadata.get(image.path);
+      const width = Number(tags?.ImageWidth) || 0;
+      const height = Number(tags?.ImageHeight) || 0;
+      const area = width > 0 && height > 0 ? width * height : null;
       result.set(image.path, {
         date: percentage(image.modifiedAt, ranges.date),
         gpsDate: percentage(gpsDate, ranges.gpsDate),
+        dimensions: percentage(area, ranges.dimensions),
         size: percentage(image.size, ranges.size)
       });
     }
@@ -396,6 +451,34 @@ export class ImagesComponent {
   };
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
+
+
+  protected openDetailPreferences(): void {
+    this.folderActionsMenuOpen.set(false);
+    this.detailPreferenceDraft.set({ ...this.detailPreferenceColors() });
+    this.detailPreferencesOpen.set(true);
+  }
+
+  protected updateDetailPreference(key: DetailTableColorKey, value: string): void {
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) return;
+    this.detailPreferenceDraft.update(current => ({ ...current, [key]: value }));
+  }
+
+  protected cancelDetailPreferences(): void {
+    this.detailPreferencesOpen.set(false);
+  }
+
+  protected saveDetailPreferences(): void {
+    const colors = this.detailPreferenceDraft();
+    this.configuration.updatePreferencesConfig({
+      galleryDetailDateProgressColor: colors.date,
+      galleryDetailGpsDateProgressColor: colors.gpsDate,
+      galleryDetailDimensionsProgressColor: colors.dimensions,
+      galleryDetailSizeProgressColor: colors.size,
+      galleryDetailSelectedRowColor: colors.selectedRow
+    });
+    this.detailPreferencesOpen.set(false);
+  }
 
   readonly folderActionsMenuOpen = signal(false);
   readonly folderActionsMenuPosition = signal({ top: 8, left: 8 });
