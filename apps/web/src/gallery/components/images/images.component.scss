@@ -806,8 +806,8 @@
 
 /* Align the folder hamburger to the right edge like the row action controls. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .folder-actions-menu-trigger {
-  margin-left: auto !important;
-  margin-right: 8px !important;
+  /* Match the row buttons: identical right inset from the action-column edge. */
+  margin: 0 8px 0 auto !important;
   align-self: flex-start;
 }
 
