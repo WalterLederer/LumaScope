@@ -202,7 +202,10 @@
                         </tr>
                       </tbody>
                     </table>
-                    <button type="button" class="map-toolbar-button fix-location-save-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy() || gpsRefreshBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
+                    <div class="fix-location-gps-file-actions">
+                      <button type="button" class="map-toolbar-button fix-location-save-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy() || gpsRefreshBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
+                      <button type="button" class="map-toolbar-button fix-location-remove-button" (click)="removeGpsInfosFromFile()" [disabled]="!fixLocationEnabled() || !currentImagePath || gpsSaveBusy() || gpsRefreshBusy()">{{ gpsSaveBusy() ? 'Processing…' : 'Remove GPS infos from file...' }}</button>
+                    </div>
                     @if (gpsSaveStatus()) { <span class="offline-map-status fix-location-save-status" role="status">{{ gpsSaveStatus() }}</span> }
                   </div>
                   <div class="fix-photo-preview">
