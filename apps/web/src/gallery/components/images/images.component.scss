@@ -944,3 +944,10 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* The final-row surface must not override the active selection highlight. */
+.detail-native-table > tbody.images.details-list > tr:last-child.selected-image,
+.detail-native-table > tbody.images.details-list > tr:last-child.selected-image > td {
+  background: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+}
