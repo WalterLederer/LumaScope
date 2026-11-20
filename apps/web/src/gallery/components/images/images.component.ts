@@ -355,13 +355,19 @@ export class ImagesComponent {
       return;
     }
 
-    const trigger = event.currentTarget as HTMLElement;
-    const table = trigger.closest('table.detail-native-table');
-    const rect = table?.getBoundingClientRect() ?? trigger.getBoundingClientRect();
-    const left = Math.max(8, Math.min(rect.left + rect.width / 2, window.innerWidth - 8));
-    const top = Math.max(8, Math.min(rect.top + rect.height / 2, window.innerHeight - 8));
-    this.folderActionsMenuPosition.set({ top, left });
+    const pointer = { top: event.clientY, left: event.clientX };
+    this.folderActionsMenuPosition.set(pointer);
     this.folderActionsMenuOpen.set(true);
+    requestAnimationFrame(() => {
+      if (!this.folderActionsMenuOpen()) return;
+      const menu = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>('.folder-actions-menu');
+      if (!menu) return;
+      const rect = menu.getBoundingClientRect();
+      this.folderActionsMenuPosition.set({
+        top: Math.max(8, Math.min(pointer.top, window.innerHeight - rect.height - 8)),
+        left: Math.max(8, Math.min(pointer.left, window.innerWidth - rect.width - 8))
+      });
+    });
   }
 
   private readonly closeFolderActionsMenuOnPointerDown = (event: PointerEvent): void => {
