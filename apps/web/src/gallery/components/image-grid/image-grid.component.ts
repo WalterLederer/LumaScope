@@ -1,7 +1,7 @@
 import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { distinctUntilChanged, fromEvent, map } from 'rxjs';
 import {
@@ -32,6 +32,7 @@ import { ProcessManager } from '../../../ipc/process-manager';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { GalleryViewMode } from '../images/images.component.types';
+import { GalleryState } from '../../services/gallery-state/gallery-state';
 
 @Component({
   selector: 'app-image-grid',
@@ -170,6 +171,17 @@ export class ImageGridComponent {
   private readonly exif = inject(ExifService);
 
   private readonly cacheManager = inject(CacheManager);
+  private readonly galleryState = inject(GalleryState);
+  readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
+  readonly includeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
+
+  protected readonly setIncludeUnsupportedFiles = (value: boolean): void => {
+    this.galleryState.setIncludeUnsupportedFiles(value);
+  };
+
+  protected readonly setIncludeFilesRecursive = (value: boolean): void => {
+    this.galleryState.setIncludeFilesRecursive(value);
+  };
   private readonly processManager = inject(ProcessManager);
 
   readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
