@@ -210,6 +210,7 @@ export interface DesktopCacheManager {
   readonly appendBuildLog: (line: string) => Promise<void>;
   readonly registerGalleryFiles: (directory: string, files: FileInfo[]) => Promise<number>;
   readonly getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<FileInfo[]>;
+  readonly getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => Promise<{ count: number; suffixes: string[] }>;
   readonly onGalleryFilesChanged: (callback: (directory: string) => void) => () => void;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => Promise<number>;
