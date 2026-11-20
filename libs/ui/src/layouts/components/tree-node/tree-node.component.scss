@@ -87,7 +87,19 @@
   border-top: 2px solid color-mix(in srgb, var(--color-content-default-medium, currentColor) 55%, transparent);
 }
 
-/* Browse favourite numbering and hamburger actions form the first row column. */
+/* Browse favorite hamburger actions occupy a fixed left-hand column.
+   The negative level offset keeps that column aligned while the folder label
+   and expand controls retain their normal tree indentation. */
+.tree-row-actions-column {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  margin-left: calc(-1 * var(--level-offset, 0px));
+}
 .tree-row-number {
   display: inline-flex;
   align-items: center;
