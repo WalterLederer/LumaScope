@@ -240,7 +240,22 @@ export class ImageGridComponent {
       let location = 0;
       for (const paths of filesByParent.values()) {
         for (let offset = 0; offset < paths.length; offset += 500) {
-          const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(offset, offset + 500), this.verifyCacheFiles());
+          const batch = paths.slice(offset, offset + 500);
+          console.info('[GalleryDB] WAIT getDirectoryCacheStats', {
+            directory: filesByParent.keys().next().value,
+            reason: 'Read thumbnail/full-size cache flags and GPS, HDR and location metadata for this batch.',
+            batchOffset: offset,
+            batchSize: batch.length,
+            verifyCacheFiles: this.verifyCacheFiles()
+          });
+          const statsStartedAt = Date.now();
+          const stats = await this.cacheManager.getDirectoryCacheStats(batch, this.verifyCacheFiles());
+          console.info('[GalleryDB] DONE getDirectoryCacheStats', {
+            batchSize: batch.length,
+            thumbnails: stats.thumbnails,
+            fullSizeConversions: stats.fullSizeConversions,
+            durationMs: Date.now() - statsStartedAt
+          });
           if (request !== this.cacheStatsRequest) return;
           if (pathUpdateRevision !== this.cachePathUpdateRevision) {
             void this.refreshDirectoryCacheStats();
