@@ -130,6 +130,7 @@ const api: Desktop = {
     registerGalleryFiles: (directory: string, files: import('internal-api').FileInfo[]) => ipcRenderer.invoke('CacheManager.registerGalleryFiles', directory, files),
     removeGalleryFile: (sourceName: string) => ipcRenderer.invoke('CacheManager.removeGalleryFile', sourceName),
     getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => ipcRenderer.invoke('CacheManager.getGalleryFiles', directory, recursive, includeUnsupported, sortBy, sortDir),
+    getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number) => ipcRenderer.invoke('CacheManager.getGalleryFilesPage', directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit),
     getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => ipcRenderer.invoke('CacheManager.getGalleryUnsupportedSummary', directory, recursive),
     onGalleryFilesChanged: (callback: (directory: string) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, directory: string): void => callback(directory);
