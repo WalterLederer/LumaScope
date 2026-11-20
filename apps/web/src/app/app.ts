@@ -58,7 +58,9 @@ export class App {
             location?.latitude ?? null,
             location?.longitude ?? null,
             location?.bearing ?? undefined,
-            location?.imagePath ?? null
+            location?.imagePath ?? null,
+            location?.folderPath ?? null,
+            location?.recursive ?? false
           )
         ).catch(() => window.desktop.MapWindow.open(null, null));
       } else {
