@@ -137,6 +137,8 @@ export interface AppConfigV1System {
   imageSidebarSections?: Record<string, boolean>;
   /** Reusable GPX track appearance presets shown in the Track Settings dialog. */
   gpxTrackSettingsFavorites?: Array<{ name: string; settings: Record<string, unknown> }>;
+  /** Reusable gallery detail-table appearance presets shown in the Preferences dialog. */
+  galleryDetailPreferencesFavorites?: Array<{ name: string; settings: Record<string, unknown> }>;
   bounds?: {
     x: number;
     y: number;
@@ -172,6 +174,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.gallerySidebarSections || 'object' === typeof input.gallerySidebarSections && null !== input.gallerySidebarSections && Object.values(input.gallerySidebarSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.imageSidebarSections || 'object' === typeof input.imageSidebarSections && null !== input.imageSidebarSections && Object.values(input.imageSidebarSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.gpxTrackSettingsFavorites || Array.isArray(input.gpxTrackSettingsFavorites) && input.gpxTrackSettingsFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
+    && (undefined === input.galleryDetailPreferencesFavorites || Array.isArray(input.galleryDetailPreferencesFavorites) && input.galleryDetailPreferencesFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
     && (undefined === input.bounds || 'object' === typeof input.bounds && null !== input.bounds && _io3(input.bounds));
   const _io3 = (input: any): boolean =>
     'number' === typeof input.x && 'number' === typeof input.y && 'number' === typeof input.width
