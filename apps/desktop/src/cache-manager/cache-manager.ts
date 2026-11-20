@@ -1469,15 +1469,26 @@ export class CacheManager {
     }
     if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
     const folder = dirname(sourceNames[0]);
+    const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(sourceNames[0]);
-    const requestedNames = new Set(sourceNames.filter(sourceName => dirname(sourceName) === folder).map(sourceName => basename(sourceName).toLowerCase()));
-    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path,
+    const requestedNames = [...new Set(sourceNames
+      .filter(sourceName => dirname(sourceName) === folder)
+      .map(sourceName => basename(sourceName).toLowerCase()))];
+    if (requestedNames.length === 0) {
+      return { total: sourceNames.length, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
+    }
+    const nameParameters = requestedNames.map((_, index) => `:name${index}`).join(', ');
+    const parameters: Record<string, string> = {
+      folder: this.toRelativeFolderPath(folder, databaseKey) ?? ''
+    };
+    requestedNames.forEach((name, index) => { parameters[`name${index}`] = name; });
+    const matching = db.prepare(`SELECT photos.*, paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE paths.relative_folder_path = :folder COLLATE NOCASE`)
-      .all({ folder: this.toRelativeFolderPath(folder, this.databaseKeyForPath(folder)) ?? '' }) as unknown as Array<PhotoRow & { relative_folder_path: string; location_display_name: string | null }>;
-    const matching = rows.filter(row => requestedNames.has(row.file_name.toLowerCase()));
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        AND photos.file_name COLLATE NOCASE IN (${nameParameters})`)
+      .all(parameters) as unknown as Array<PhotoRow & { relative_folder_path: string; location_display_name: string | null }>;
     const gps = matching.filter(row => row.latitude !== null && row.longitude !== null).length;
     const hdr = matching.filter(row => row.is_hdr === 1).length;
     const location = matching.filter(row => !!row.location_display_name?.trim()).length;
