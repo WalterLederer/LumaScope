@@ -1221,3 +1221,47 @@
 .detail-alternate-rows .detail-native-table > tbody.images.details-list > tr.selected-image > td {
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-even-row-color, #f5f5f5)) !important;
 }
+
+
+/* Name filtering lives directly below the Name column heading. */
+.detail-native-table thead .name-filter-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 5px;
+}
+.detail-native-table thead .detail-name-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.detail-native-table thead .detail-name-filter input[type="checkbox"] {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--color-accent-default, #287fc4);
+  cursor: pointer;
+}
+.detail-native-table thead .detail-name-filter input[type="search"] {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  height: 25px;
+  box-sizing: border-box;
+  padding: 3px 7px;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+  border-radius: var(--border-radius-small, 6px);
+  outline: none;
+  background: var(--color-surface-default-high, #fff);
+  color: var(--color-content-default-highest, #222);
+  font: inherit;
+  font-size: 11px;
+}
+.detail-native-table thead .detail-name-filter input[type="search"]:focus {
+  border-color: var(--color-accent-default, #287fc4);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-default, #287fc4) 18%, transparent);
+}
