@@ -213,23 +213,48 @@ export class ImageGridComponent {
       return;
     }
     try {
-      const stats = await this.cacheManager.getDirectoryCacheStats(images.map(image => image.path), this.verifyCacheFiles());
+      // The database statistics endpoint is scoped to one parent folder and
+      // accepts bounded batches. Group recursive results by parent and query
+      // in chunks so large folders never exceed the IPC/SQLite request limit.
+      this.thumbnailCachePaths.clear();
+      this.fullSizeCachePaths.clear();
+      const filesByParent = new Map<string, string[]>();
+      for (const image of images) {
+        const parent = image.parent;
+        const paths = filesByParent.get(parent) ?? [];
+        paths.push(image.path);
+        filesByParent.set(parent, paths);
+      }
+      let gps = 0;
+      let hdr = 0;
+      let location = 0;
+      for (const paths of filesByParent.values()) {
+        for (let offset = 0; offset < paths.length; offset += 10000) {
+          const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(offset, offset + 10000), this.verifyCacheFiles());
+          if (request !== this.cacheStatsRequest) return;
+          if (pathUpdateRevision !== this.cachePathUpdateRevision) {
+            void this.refreshDirectoryCacheStats();
+            return;
+          }
+          gps += stats.gps;
+          hdr += stats.hdr;
+          location += stats.location;
+          stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
+          stats.fullSizePaths.forEach(path => this.fullSizeCachePaths.add(path));
+        }
+      }
       if (request !== this.cacheStatsRequest) return;
       if (pathUpdateRevision !== this.cachePathUpdateRevision) {
         void this.refreshDirectoryCacheStats();
         return;
       }
-      this.thumbnailCachePaths.clear();
-      this.fullSizeCachePaths.clear();
-      stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
-      stats.fullSizePaths.forEach(path => this.fullSizeCachePaths.add(path));
       this.cacheStats.set({
-        total: stats.total,
+        total: images.length,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
-        gps: stats.gps,
-        hdr: stats.hdr,
-        location: stats.location,
+        gps,
+        hdr,
+        location,
         thumbnailPaths: [],
         fullSizePaths: []
       });
