@@ -12,8 +12,7 @@ import {
   StopPropagation,
   TextComponent,
   TitleComponent,
-  ToolbarComponent
-} from '@light-matter/ui';
+  ToolbarComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { CacheDirectoryStats, ExifTags, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import {
   allSortDirections,
@@ -50,6 +49,7 @@ import { GalleryViewMode } from '../images/images.component.types';
     TextComponent,
     SliderComponent,
     ReactiveFormsModule,
+    ButtonTooltipDirective
   ],
   templateUrl: './image-grid.component.html',
   styleUrl: './image-grid.component.scss',
