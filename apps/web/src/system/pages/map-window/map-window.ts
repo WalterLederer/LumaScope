@@ -3102,7 +3102,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyHillshadeSettings(renderer);
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
-    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+    renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -3244,7 +3244,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }, 180);
     });
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
-    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+    renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
     renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
@@ -3329,7 +3329,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyMapOpacity();
       this.applyHillshadeSettings(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
-      renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+      renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
@@ -3446,7 +3446,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapOpacity();
     this.applyHillshadeSettings(renderer);
     renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
-    renderer.map.on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+    renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
     let obfViewportTimer: number | null = null;
     let previousObfZoom = renderer.map.getZoom();
     let obfZoomChanged = false;
@@ -3520,9 +3520,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
     map.on('zoomend', syncZoom);
     (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
-      .on('moveend', () => this.scheduleGpxDatabaseViewportRefresh());
+      .on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
     this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
+    this.updateCrosshairCoordinates();
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
       iconCreateFunction: cluster => {
