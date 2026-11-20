@@ -65,11 +65,6 @@
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
       @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-        <label class="thumbnail-name-filter">
-          <span class="zoom-label">Filter</span>
-          <input type="checkbox" class="thumbnail-name-filter-toggle" [checked]="nameFilterActive()" [disabled]="!nameFilter().trim()" (change)="nameFilterActive.set($any($event.target).checked)" aria-label="Enable name filter" />
-          <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Enter name..." />
-        </label>
         <button type="button" class="thumbnail-preferences-button"
                 title="Preferences" aria-label="Preferences"
                 (click)="openDetailPreferences()">
