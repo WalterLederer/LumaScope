@@ -101,6 +101,10 @@ export class ImageGridComponent {
     this.detailScrollTop.set(viewport.scrollTop);
     this.detailViewportHeight.set(viewport.clientHeight);
     this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
+    if ((this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
+      && viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
+      this.galleryState.loadNextGalleryPage();
+    }
   };
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
