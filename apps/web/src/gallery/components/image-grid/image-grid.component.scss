@@ -9,6 +9,12 @@
 
 ui-toolbar {
   margin-bottom: var(--dim-medium);
+  /* The shared toolbar component fixes its host to 40px. That prevents
+     vertical padding/margins on wrapped controls from increasing the
+     toolbar's layout height, so the controls visually overlap adjacent
+     content instead of creating real space. Let this gallery toolbar grow. */
+  height: auto !important;
+  min-height: var(--height, 40px);
 
   aside {
     margin-right: 0;
@@ -71,10 +77,9 @@ ui-toolbar {
 .thumbnail-size-control {
   display: flex;
   flex: 0 0 auto;
-  /* Add real outer spacing around the complete control row. Margins on
-     the inner zoom boxes were absorbed by the toolbar's flex layout. */
-  margin: 12px 0 !important;
-  padding: 0 !important;
+  /* The toolbar host can now grow to include this vertical padding. */
+  margin: 0 !important;
+  padding: 8px 0 !important;
   box-sizing: border-box;
   min-width: max-content;
   align-items: center;
