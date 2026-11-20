@@ -74,6 +74,25 @@ ui-toolbar {
   }
 }
 
+
+.gallery-file-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--color-accent-default, #287fc4);
+    cursor: pointer;
+  }
+}
 .thumbnail-size-control {
   display: flex;
   flex: 0 0 auto;
