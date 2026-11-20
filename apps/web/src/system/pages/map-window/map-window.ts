@@ -2284,7 +2284,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpsRefreshBusy.set(true);
     try {
       const result = await this.desktop.Exif.refreshGpsMetadata(this.currentImagePath);
-      if (!result.success || !result.data) throw new Error(result.errorMessage || 'Could not read GPS metadata from the image file.');
+      if (!result.success) throw new Error(result.errorMessage || 'Could not read GPS metadata from the image file.');
+      if (!result.data) throw new Error('Could not read GPS metadata from the image file.');
       this.updatePhotoGpsPosition(result.data.latitude, result.data.longitude);
       if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
       if (showStatus) this.gpsSaveStatus.set(result.data.latitude !== null && result.data.longitude !== null
