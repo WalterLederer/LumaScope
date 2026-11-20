@@ -95,7 +95,11 @@ export class Configuration {
 
   private readonly init = async () => {
     const paths = await this.processManager.getSystemPaths();
-    this._defaultConfig = this.defaultConfig(paths);
+    const defaultSettings = await this.processManager.getAppSettings();
+    const defaultSystem = defaultSettings['system'] && typeof defaultSettings['system'] === 'object'
+      ? defaultSettings['system'] as Partial<AppConfigV1System>
+      : {};
+    this._defaultConfig = this.defaultConfig(paths, defaultSystem);
     this._configPath = paths.appConfig;
     const existing = await this.fileSystem.readJson<AppConfigV1 | unknown>(this._configPath);
 
@@ -126,7 +130,7 @@ export class Configuration {
     });
   };
 
-  private readonly defaultConfig = (paths: SystemPathMapping): AppConfigV1 => {
+  private readonly defaultConfig = (paths: SystemPathMapping, defaultSystem: Partial<AppConfigV1System> = {}): AppConfigV1 => {
     return {
       version: 1,
       gallery: {
@@ -138,27 +142,7 @@ export class Configuration {
       system: {
         minimiseOnStart: false,
         theme: 'light',
-        gpxTrackSettingsFavorites: [{
-          name: 'Default',
-          settings: {
-            colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum',
-            customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444',
-            speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000,
-            lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120,
-            directionArrowSizePx: 16, directionArrowOutlineWidthPx: 2,
-            trackShadowStrength: 0, arrowShadowStrength: 0, trackOutlineStrength: 0,
-            directionStyle: 'classic'
-          }
-        }],
-        galleryDetailPreferencesFavorites: [{
-          name: 'Default',
-          settings: {
-            date: '#d18b24', gpsDate: '#287fc4', dimensions: '#16a085', size: '#8e63ce',
-            selectedRow: '#d18b24', oddRow: '#ffffff', evenRow: '#f5f5f5', filteredRow: '#e8f1fb',
-            alternateRows: true, dateProgressEnabled: true, gpsDateProgressEnabled: true,
-            dimensionsProgressEnabled: true, sizeProgressEnabled: true, progressTransparency: 78
-          }
-        }]
+        ...defaultSystem
       },
       preferences: {
         buttonStyle: 'blue',
