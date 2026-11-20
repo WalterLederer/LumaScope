@@ -274,14 +274,16 @@
 }
 :host(.view-details-no-thumbnails) > .detail-thumb-empty { width: var(--detail-thumb-width, 36px); min-width: 36px; padding: 0; }
 :host(.view-details) > .detail-actions,
-:host(.view-details-no-thumbnails) > .detail-actions { position: relative; width: 28px; padding: 2px; overflow: visible; text-align: center; }
+:host(.view-details-no-thumbnails) > .detail-actions { position: relative; width: 28px; min-width: 28px; padding: 2px; overflow: visible; text-align: center; }
 /* Pin each row's hamburger cell to the right edge during horizontal scrolling. */
 :host(.view-details) > .detail-actions,
 :host(.view-details-no-thumbnails) > .detail-actions {
   position: sticky;
   right: 0;
   z-index: 8;
-  background: var(--detail-odd-row-color, #fff) !important;
+  min-width: 28px;
+  isolation: isolate;
+  background-color: var(--detail-odd-row-color, #fff) !important;
   box-shadow: -5px 0 7px -6px rgb(0 0 0 / 55%);
 }
 :host(.view-details.detail-alternate-rows:nth-child(even)) > .detail-actions,
@@ -368,4 +370,13 @@
 :host(.view-details) > .detail-size,
 :host(.view-details-no-thumbnails) > .detail-size {
   --detail-progress-color: var(--detail-size-progress-color, #8e63ce);
+}
+
+
+:host(.view-details) > .detail-path,
+:host(.view-details-no-thumbnails) > .detail-path {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
