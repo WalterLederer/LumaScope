@@ -203,7 +203,7 @@ export class ImagesComponent {
   readonly viewMode = input<GalleryViewMode>('thumbnails');
   readonly sortDirection = input<'asc' | 'desc'>('desc');
   readonly detailScrollTop = input(0);
-  readonly detailViewportHeight = input(800);
+  readonly detailViewportHeight = input(1200);
   readonly detailHeaderHeight = input(0);
 
   // Detail headers expose the current gallery sort initially, then own sorting after a header is clicked.
