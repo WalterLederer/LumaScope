@@ -40,6 +40,12 @@ export class ExifService implements DesktopExif {
     return result;
   };
 
+  readonly removeGpsMetadata = async (path: string): Promise<ApiResponse<undefined>> => {
+    const result = await window.desktop.Exif.removeGpsMetadata(path);
+    if (result.success) this.metadataCache.delete(path);
+    return result;
+  };
+
   readonly fixFolderLocations = async (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string): Promise<ApiResponse<FixPhotoLocationsResult>> => {
     const result = await window.desktop.Exif.fixFolderLocations(folder, checkOnly, maxDifferenceSeconds, operationId);
     if (result.success && !checkOnly) this.metadataCache.clear();
