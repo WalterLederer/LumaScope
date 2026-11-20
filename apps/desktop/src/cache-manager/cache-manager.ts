@@ -1462,6 +1462,57 @@ export class CacheManager {
     return data;
   };
 
+  @IpcHandler({ name: 'CacheManager.getGalleryFilesPage' })
+  readonly getGalleryFilesPage = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false,
+    includeUnsupported = false,
+    sortBy: SortType = 'name',
+    sortDir: SortDirection = 'asc',
+    offset = 0,
+    limit = 250
+  ): Promise<{ files: FileInfo[]; totalCount: number; offset: number; limit: number }> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
+    const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(500, Math.trunc(limit))) : 250;
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    this.activeDatabaseKey = databaseKey;
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE (
+        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      )`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const filterParams: Record<string, string | number> = {
+      folder, recursive: recursive ? 1 : 0, folderPrefix
+    };
+    supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
+    const where = scope + supportedFilter;
+    const countRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
+    const sortColumn = sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE';
+    const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
+    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+      ${where}
+      ORDER BY ${sortColumn} ${direction}, photos.file_name COLLATE NOCASE ASC
+      LIMIT :limit OFFSET :offset`)
+      .all({ ...filterParams, limit: safeLimit, offset: safeOffset }) as Array<{
+        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+      }>;
+    const files = rows.map(row => {
+      const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
+      return {
+        path: join(parent, row.file_name), name: row.file_name, parent, isDirectory: false,
+        ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
+      } satisfies FileInfo;
+    });
+    return { files, totalCount: Number(countRow.totalCount) || 0, offset: safeOffset, limit: safeLimit };
+  };
+
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
   readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> => {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
