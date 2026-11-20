@@ -72,8 +72,8 @@ const api: Desktop = {
     readGalleryLocation: (path: string) => ipcRenderer.invoke('FileSystem.readGalleryLocation', path),
     readDirectories: (path: string) => ipcRenderer.invoke('FileSystem.readDirectories', path),
     prepareGalleryLocation: (path: string) => ipcRenderer.invoke('FileSystem.prepareGalleryLocation', path),
-    readImages: (path: string, sortBy: SortType, sortDir: SortDirection) =>
-      ipcRenderer.invoke('FileSystem.readImages', path, sortBy, sortDir),
+    readImages: (path: string, sortBy: SortType, sortDir: SortDirection, includeUnsupported = false, recursive = false) =>
+      ipcRenderer.invoke('FileSystem.readImages', path, sortBy, sortDir, includeUnsupported, recursive),
     deleteFile: (path: string) => ipcRenderer.invoke('FileSystem.deleteFile', path),
     copyFile: (sourcePath: string, destinationDirectory: string) =>
       ipcRenderer.invoke('FileSystem.copyFile', sourcePath, destinationDirectory)
