@@ -324,7 +324,7 @@ export class Exif {
           for (const databaseKey of databaseKeys) {
             const [trackCandidate, imageCandidate] = await Promise.all([
               cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey),
-              cacheManager.getInterpolatedPhotoGpsPosition(undefined as never, photoTimestamp * 1000, databaseKey)
+              cacheManager.getInterpolatedPhotoGpsPosition(undefined as never, path, photoTimestamp * 1000, databaseKey)
             ]);
             if (trackCandidate && (!position || trackCandidate.deviationSeconds < position.deviationSeconds)) {
               position = { ...trackCandidate, source: `GPX track points (${databaseKey})` };
