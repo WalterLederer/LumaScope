@@ -98,6 +98,8 @@
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" class="gallery-menu-item" role="menuitem" (click)="openDetailPreferences()"><span aria-hidden="true">⚙</span> Preferences</button>
               </div>
             }
           </th>
@@ -157,6 +159,44 @@
       </tbody>
     </table>
   </div>
+
+  @if (detailPreferencesOpen()) {
+    <div class="detail-preferences-backdrop" (click)="cancelDetailPreferences()">
+      <section class="detail-preferences-dialog" role="dialog" aria-modal="true" aria-labelledby="detail-preferences-title" (click)="$event.stopPropagation()" (keydown.escape)="cancelDetailPreferences()">
+        <header class="detail-preferences-header">
+          <h2 id="detail-preferences-title">Preferences</h2>
+          <button type="button" class="detail-preferences-close" aria-label="Close preferences" (click)="cancelDetailPreferences()">×</button>
+        </header>
+        <p class="detail-preferences-description">Choose the colors used by progress bars and the selected row in the image details table.</p>
+        <div class="detail-preferences-colors">
+          <label class="detail-preference-color">
+            <span>Date</span>
+            <input type="color" [value]="detailPreferenceDraft().date" (input)="updateDetailPreference('date', $any($event.target).value)" />
+          </label>
+          <label class="detail-preference-color">
+            <span>GPS Date</span>
+            <input type="color" [value]="detailPreferenceDraft().gpsDate" (input)="updateDetailPreference('gpsDate', $any($event.target).value)" />
+          </label>
+          <label class="detail-preference-color">
+            <span>Dimensions</span>
+            <input type="color" [value]="detailPreferenceDraft().dimensions" (input)="updateDetailPreference('dimensions', $any($event.target).value)" />
+          </label>
+          <label class="detail-preference-color">
+            <span>File Size</span>
+            <input type="color" [value]="detailPreferenceDraft().size" (input)="updateDetailPreference('size', $any($event.target).value)" />
+          </label>
+          <label class="detail-preference-color">
+            <span>Selected Row</span>
+            <input type="color" [value]="detailPreferenceDraft().selectedRow" (input)="updateDetailPreference('selectedRow', $any($event.target).value)" />
+          </label>
+        </div>
+        <footer class="detail-preferences-actions">
+          <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()">Cancel</button>
+          <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()">OK</button>
+        </footer>
+      </section>
+    </div>
+  }
 } @else if (isDateSorted()) {
   <div class="gallery-layout">
     <div class="groups-container">
