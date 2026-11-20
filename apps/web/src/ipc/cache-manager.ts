@@ -103,6 +103,15 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly appendBuildLog = (line: string): Promise<void> => window.desktop.CacheManager.appendBuildLog(line);
 
+  readonly registerGalleryFiles = (directory: string, files: import('internal-api').FileInfo[]): Promise<number> =>
+    window.desktop.CacheManager.registerGalleryFiles(directory, files);
+
+  readonly getGalleryFiles = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc') =>
+    window.desktop.CacheManager.getGalleryFiles(directory, recursive, includeUnsupported, sortBy, sortDir);
+
+  readonly onGalleryFilesChanged = (callback: (directory: string) => void): (() => void) =>
+    window.desktop.CacheManager.onGalleryFilesChanged(callback);
+
   readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> =>
     window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles);
 
