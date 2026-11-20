@@ -34,7 +34,12 @@ export class Exif {
       const cacheManager = injector.inject('CacheManager');
       const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
       const gps = await this.readPhotoMetadata(path);
-      await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
+      const databaseMatchesFile = !!existingRecord
+        && (existingRecord.latitude ?? null) === gps.latitude
+        && (existingRecord.longitude ?? null) === gps.longitude;
+      if (!databaseMatchesFile) {
+        await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
+      }
       return { success: true, data: { latitude: gps.latitude, longitude: gps.longitude } };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
