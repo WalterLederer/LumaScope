@@ -70,6 +70,7 @@ export class ThumbnailComponent implements OnDestroy {
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
   readonly detailProgress = input<{ date: number | null; gpsDate: number | null; dimensions: number | null; size: number | null } | null>(null);
+  readonly metadataLoaded = output<ExifTags>();
 
 
   readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
@@ -374,6 +375,9 @@ export class ThumbnailComponent implements OnDestroy {
             this.imageInfoError.set(result.errorMessage || 'ExifTool returned no metadata.');
           } else {
             this.imageTags.set(result.data);
+            if (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails') {
+              this.metadataLoaded.emit(result.data);
+            }
           }
         } catch (error) {
           if (request !== this.infoRequest || this.image().path !== image.path) return;
