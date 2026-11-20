@@ -2827,7 +2827,7 @@ export class MapWindow implements OnInit, OnDestroy {
         if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
         this.markerSourceFolder.set(directory);
         [records, imageFiles] = await Promise.all([
-          desktop.CacheManager.getDirectoryPhotoLocations(directory),
+          desktop.CacheManager.getDirectoryPhotoLocations(directory, this.currentFolderRecursive),
           desktop.FileSystem.readImages(directory, 'name', 'asc', false, this.currentFolderRecursive)
         ]);
       }
