@@ -1309,7 +1309,28 @@ export class CacheManager {
     }
     const root = resolve(directory);
     const db = this.databaseForPath(root);
+    const databaseKey = this.databaseKeyForPath(root);
+    const relativeFolder = this.toRelativeFolderPath(root, databaseKey) ?? '';
+    const currentNames = new Set(files.filter(file => !file.isDirectory
+      && dirname(resolve(file.path)).toLocaleLowerCase() === root.toLocaleLowerCase())
+      .map(file => basename(file.path).toLocaleLowerCase()));
+    db.prepare('INSERT OR IGNORE INTO paths (relative_folder_path) VALUES (:folder)').run({ folder: relativeFolder });
+    const pathRow = db.prepare('SELECT id FROM paths WHERE relative_folder_path = :folder COLLATE NOCASE')
+      .get({ folder: relativeFolder }) as { id: number };
     let registered = 0;
+    const existingRows = db.prepare('SELECT id, file_name FROM photos WHERE path_id = :pathId')
+      .all({ pathId: pathRow.id }) as Array<{ id: number; file_name: string }>;
+    const deletePhoto = db.prepare('DELETE FROM photos WHERE id = :id');
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      for (const row of existingRows) {
+        if (!currentNames.has(row.file_name.toLocaleLowerCase())) deletePhoto.run({ id: row.id });
+      }
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
+      throw error;
+    }
     for (let offset = 0; offset < files.length; offset += 500) {
       const batch = files.slice(offset, offset + 500);
       db.exec('BEGIN IMMEDIATE;');
@@ -1328,7 +1349,8 @@ export class CacheManager {
       }
       if (offset + 500 < files.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
     }
-    if (registered > 0) this.notifyGalleryFilesChanged(root);
+    db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
+    this.notifyGalleryFilesChanged(root);
     return registered;
   };
 
