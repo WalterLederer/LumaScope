@@ -95,8 +95,8 @@
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="cacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="reCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
               </div>
             }
           </th>
