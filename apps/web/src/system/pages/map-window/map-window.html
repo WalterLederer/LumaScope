@@ -192,19 +192,19 @@
                           <th scope="row">Crosshair</th>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
                           <td><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
-                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()">Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
+                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
                         </tr>
                         <tr>
                           <th scope="row">Image</th>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
-                          <td><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()">Center on image</button></td>
-                          <td><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()">{{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></td>
+                          <td><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button></td>
+                          <td><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></td>
                         </tr>
                       </tbody>
                     </table>
                     <div class="fix-location-gps-file-actions">
-                      <button type="button" class="map-toolbar-button fix-location-save-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy() || gpsRefreshBusy()">{{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
-                      <button type="button" class="map-toolbar-button fix-location-remove-button" (click)="removeGpsInfosFromFile()" [disabled]="!fixLocationEnabled() || !currentImagePath || gpsSaveBusy() || gpsRefreshBusy()">{{ gpsSaveBusy() ? 'Processing…' : 'Remove GPS infos from file...' }}</button>
+                      <button type="button" class="map-toolbar-button fix-location-save-button" (click)="saveGpsPosition()" [disabled]="!fixLocationEnabled() || !canSaveGpsPosition() || gpsSaveBusy() || gpsRefreshBusy()"><span aria-hidden="true">⬆</span> {{ gpsSaveBusy() ? 'Saving…' : 'Update GPS infos in file...' }}</button>
+                      <button type="button" class="map-toolbar-button fix-location-remove-button" (click)="removeGpsInfosFromFile()" [disabled]="!fixLocationEnabled() || !currentImagePath || gpsSaveBusy() || gpsRefreshBusy()"><span aria-hidden="true">⊖</span> {{ gpsSaveBusy() ? 'Processing…' : 'Remove GPS infos from file...' }}</button>
                     </div>
                     @if (gpsSaveStatus()) { <span class="offline-map-status fix-location-save-status" role="status">{{ gpsSaveStatus() }}</span> }
                   </div>
