@@ -410,6 +410,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_gpx_files_content_hash_unique
   ON gpx_files(content_hash)
   WHERE content_hash IS NOT NULL AND content_hash <> '';
 `
+  },
+  {
+    name: 'trackManualGpsCorrectionsV20',
+    query: `
+ALTER TABLE photos ADD COLUMN gps_manually_corrected INTEGER NOT NULL DEFAULT 0 CHECK (gps_manually_corrected IN (0, 1));
+ALTER TABLE photos ADD COLUMN gps_manual_corrected_at INTEGER;
+`
   }
 ];
 // @formatter:on
