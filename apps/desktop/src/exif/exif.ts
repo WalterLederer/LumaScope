@@ -83,6 +83,33 @@ export class Exif {
     }
   };
 
+  @IpcHandler({ name: 'Exif.removeGpsMetadata' })
+  readonly removeGpsMetadata = async (_: IpcMainInvokeEvent, path: string): Promise<ApiResponse<undefined>> => {
+    try {
+      if (typeof path !== 'string' || !path.trim()) throw new Error('A valid image path is required.');
+      await this.exifTool.write(path, {
+        GPSLatitude: null, GPSLatitudeRef: null, GPSLongitude: null, GPSLongitudeRef: null,
+        GPSAltitude: null, GPSAltitudeRef: null, GPSDateStamp: null, GPSTimeStamp: null,
+        GPSImgDirection: null, GPSImgDirectionRef: null, GPSProcessingMethod: null,
+        'XMP:GPSLatitude': null, 'XMP:GPSLongitude': null, 'XMP:GPSAltitude': null,
+        'XMP:GPSImgDirection': null, 'XMP:GPSDateTime': null
+      });
+
+      const gps = await this.readPhotoMetadata(path, true);
+      if (gps.latitude !== null || gps.longitude !== null) {
+        throw new Error('GPS coordinates remain in the image file; the database was not changed.');
+      }
+
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+      await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
+      return { success: true, data: undefined };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
   @IpcHandler({ name: 'Exif.cancelFixFolderLocations' })
   readonly cancelFixFolderLocations = (_event: IpcMainInvokeEvent, operationId: string): void => {
     if (typeof operationId === 'string' && operationId) this.cancelledLocationFixes.add(operationId);
