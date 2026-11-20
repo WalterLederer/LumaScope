@@ -168,7 +168,9 @@ export class GalleryState {
         tap(page => {
           if (request !== this.navigationRequest) return;
           this.galleryLoadedCount = page.files.length;
-          this.galleryTotalCount = page.totalCount;
+          this.galleryTotalCount = page.totalCount >= 0
+            ? page.totalCount
+            : page.files.length < this.galleryPageSize ? page.files.length : -1;
           this.images$.next(page.files);
         }),
         map(() => true),
