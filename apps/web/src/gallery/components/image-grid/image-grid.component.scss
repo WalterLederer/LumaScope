@@ -134,6 +134,25 @@ ui-toolbar {
     color: var(--color-content-default-medium);
   }
 
+  .thumbnail-preferences-button {
+    display: inline-flex;
+    flex: 0 0 30px;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+    border-radius: var(--border-radius-small, 6px);
+    background: var(--color-surface-default-low);
+    color: var(--color-content-primary-high);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-surface-default-medium);
+    }
+  }
+
   .thumbnail-name-filter {
     display: inline-flex;
     flex: 0 1 auto;
