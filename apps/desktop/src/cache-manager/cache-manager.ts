@@ -1607,7 +1607,9 @@ export class CacheManager {
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
-      : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
+      : sortBy === 'gpsDate'
+        ? `photos.gps_timestamp IS NULL ASC, photos.gps_timestamp ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+        : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
     const sql = `SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       ${where}
       ORDER BY ${orderBy}
