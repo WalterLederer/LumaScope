@@ -108,7 +108,7 @@
   background: transparent !important;
 
   .thumbnail-preview {
-    grid-column: 1;
+    grid-column: 2;
     width: var(--detail-thumb-width, 36px);
     height: 100%;
     min-height: 100%;
@@ -129,7 +129,7 @@
     padding-bottom: 0;
 
     .detail-name {
-      grid-column: 2;
+      grid-column: 3;
     }
   }
 
@@ -187,14 +187,6 @@
   }
 }
 
-
-
-:host(.view-details) .detail-row-menu-trigger,
-:host(.view-details-no-thumbnails) .detail-row-menu-trigger {
-  grid-column: 13;
-  justify-self: center;
-  align-self: center;
-}
 
 
 /* ThumbnailComponent host rows share the parent table's explicit grid tracks. */
