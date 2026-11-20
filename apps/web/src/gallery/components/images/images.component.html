@@ -4,7 +4,20 @@
   <p>No images found in this folder.</p>
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
-    <table class="detail-native-table" aria-label="Image details">
+    <table class="detail-native-table" aria-label="Image details"
+      [style.--detail-col-0-delta.px]="detailColumnWidths()[0] ?? null"
+      [style.--detail-col-1-width.px]="detailColumnWidths()[1] ?? null"
+      [style.--detail-col-2-width.px]="detailColumnWidths()[2] ?? null"
+      [style.--detail-col-3-width.px]="detailColumnWidths()[3] ?? null"
+      [style.--detail-col-4-width.px]="detailColumnWidths()[4] ?? null"
+      [style.--detail-col-5-width.px]="detailColumnWidths()[5] ?? null"
+      [style.--detail-col-6-width.px]="detailColumnWidths()[6] ?? null"
+      [style.--detail-col-7-width.px]="detailColumnWidths()[7] ?? null"
+      [style.--detail-col-8-width.px]="detailColumnWidths()[8] ?? null"
+      [style.--detail-col-9-width.px]="detailColumnWidths()[9] ?? null"
+      [style.--detail-col-10-width.px]="detailColumnWidths()[10] ?? null"
+      [style.--detail-col-11-width.px]="detailColumnWidths()[11] ?? null">
+
       <colgroup>
         <col style="width:max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))">
         <col style="width:var(--detail-col-1-width,210px)">
