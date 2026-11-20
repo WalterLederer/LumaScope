@@ -118,6 +118,10 @@ export class ImagesComponent {
   readonly detailPreferenceDraft = signal<DetailTablePreferences>({ ...defaultDetailTablePreferences });
   readonly detailPreferencesOpen = signal(false);
   readonly detailPreferenceFavorites = signal<Array<{ name: string; settings: DetailTablePreferences }>>([]);
+  private readonly defaultDetailPreferenceFavorite = {
+    name: 'Default',
+    settings: { ...defaultDetailTablePreferences }
+  };
   readonly detailPreferenceFavoriteName = signal('');
   readonly detailPreferenceFavoriteSelection = signal('');
   readonly detailPreferenceValues = computed<DetailTablePreferences>(() => {
@@ -503,7 +507,7 @@ export class ImagesComponent {
   protected openDetailPreferences(): void {
     this.folderActionsMenuOpen.set(false);
     this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
-    const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [];
+    const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [this.defaultDetailPreferenceFavorite];
     this.detailPreferenceFavorites.set(favorites as Array<{ name: string; settings: DetailTablePreferences }>);
     this.detailPreferenceFavoriteName.set('');
     this.detailPreferenceFavoriteSelection.set('');
