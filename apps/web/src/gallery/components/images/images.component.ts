@@ -504,7 +504,7 @@ export class ImagesComponent {
   readonly detailColumnWidths = signal<Record<number, number>>({});
 
 
-  protected openDetailPreferences(): void {
+  openDetailPreferences(): void {
     this.folderActionsMenuOpen.set(false);
     this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
     const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [this.defaultDetailPreferenceFavorite];
