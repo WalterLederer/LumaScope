@@ -559,7 +559,8 @@ export class ImagesComponent {
     this.detailPreferenceFavoriteSelection.set('');
     this.detailPreferencesOpen.set(true);
     requestAnimationFrame(() => {
-      const dialog = this.elementRef.nativeElement.querySelector<HTMLElement>('.detail-preferences-dialog');
+      const host = this.elementRef.nativeElement as HTMLElement;
+      const dialog = host.querySelector<HTMLElement>('.detail-preferences-dialog');
       const okButton = dialog?.querySelector<HTMLButtonElement>('.detail-preferences-ok');
       okButton?.focus();
     });
