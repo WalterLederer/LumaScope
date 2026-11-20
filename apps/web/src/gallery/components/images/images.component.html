@@ -16,7 +16,8 @@
       [style.--detail-col-8-width.px]="detailColumnWidths()[8]"
       [style.--detail-col-9-width.px]="detailColumnWidths()[9]"
       [style.--detail-col-10-width.px]="detailColumnWidths()[10]"
-      [style.--detail-col-11-width.px]="detailColumnWidths()[11]">
+      [style.--detail-col-11-width.px]="detailColumnWidths()[11]"
+      [style.--detail-col-12-width.px]="detailColumnWidths()[12]">
 
       <colgroup>
         <col style="width:max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))">
@@ -31,6 +32,7 @@
         <col style="width:var(--detail-col-9-width,150px)">
         <col style="width:var(--detail-col-10-width,150px)">
         <col style="width:var(--detail-col-11-width,240px)">
+        <col style="width:var(--detail-col-12-width,220px)">
         <col style="width:28px">
       </colgroup>
       <thead>
@@ -82,6 +84,10 @@
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('location')">
             <button type="button" (click)="sortDetailBy('location')">@if (detailSortAriaSort('location') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('location') }}</span>}<span class="sort-label">Location</span></button>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)" (dblclick)="autofitDetailColumn($event, 11)"></span>
+          </th>
+          <th class="detail-column-heading detail-path-heading" scope="col">
+            <button type="button" (click)="sortDetailBy('path')">@if (detailSortAriaSort('path') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('path') }}</span>}<span class="sort-label">Path</span></button>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize path column" (pointerdown)="startColumnResize($event, 12)" (dblclick)="autofitDetailColumn($event, 12)"></span>
           </th>
           <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
@@ -141,6 +147,7 @@
               <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
             }
           </th>
+          <th scope="col"></th>
           <th class="detail-actions-statistics" scope="col"></th>
         </tr>
       </thead>
@@ -152,6 +159,7 @@
               (metadataLoaded)="onDetailMetadataLoaded(image.path, $event)"
               [cacheStatusLoading]="cacheStatusLoading()"
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
+              [detailPath]="relativeDetailPath(image)"
               [refreshToken]="thumbnailRefreshToken()"
               (cacheUpdated)="refreshCacheStatus($event); cacheUpdated.emit($event)"
               (cacheFolderRequested)="cacheDisplayedFiles()"
