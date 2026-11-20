@@ -396,6 +396,11 @@ export class ImagesComponent {
     this.reCacheDisplayedFiles();
   }
 
+  protected requestRefreshFolder(): void {
+    this.folderActionsMenuOpen.set(false);
+    void this.refreshGallery();
+  }
+
   protected autofitDetailColumns(): void {
     this.folderActionsMenuOpen.set(false);
     const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
