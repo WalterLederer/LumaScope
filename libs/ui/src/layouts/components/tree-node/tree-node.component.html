@@ -1,10 +1,10 @@
 @let currentNode = node();
 @let currentMenu = menu();
 
-@if ((currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) || (inlineActions() && level() <= 1 && currentMenu === null)) {
+@if (inlineActions() || (currentMenu !== null && currentNode.hideMenu !== true)) {
   <span class="tree-row-actions-column">
     <span class="tree-row-number" aria-hidden="true">{{ rowNumber() ?? '' }}</span>
-    @if (currentMenu !== null) {
+    @if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
       <button type="button"
               class="file-row-menu-trigger tree-row-menu-trigger"
               [cdkMenuTriggerFor]="currentMenu"
@@ -13,7 +13,7 @@
               aria-haspopup="menu"
               title="Actions"
               uiStopPropagation>☰</button>
-    } @else {
+    } @else if (inlineActions() && level() <= 1 && currentMenu === null) {
       <button type="button"
               class="tree-inline-action"
               [attr.aria-label]="isRootNode() ? 'Add location' : 'Remove favourite'"
