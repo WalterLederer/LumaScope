@@ -33,7 +33,7 @@ export class Exif {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
-      const gps = await this.readPhotoMetadata(path);
+      const gps = await this.readPhotoMetadata(path, true);
       const databaseMatchesFile = !!existingRecord
         && (existingRecord.latitude ?? null) === gps.latitude
         && (existingRecord.longitude ?? null) === gps.longitude;
@@ -376,7 +376,7 @@ export class Exif {
     }
   };
 
-  readonly readPhotoMetadata = async (path: string): Promise<{
+  readonly readPhotoMetadata = async (path: string, throwOnError = false): Promise<{
     latitude: number | null;
     longitude: number | null;
     altitudeM: number | null;
@@ -508,6 +508,7 @@ export class Exif {
       };
     } catch (error) {
       console.warn('[Exif] Could not read photo GPS metadata:', path, error);
+      if (throwOnError) throw error;
       return empty;
     }
   };
