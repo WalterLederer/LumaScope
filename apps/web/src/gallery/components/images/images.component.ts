@@ -66,7 +66,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   gpsDateProgressEnabled: true,
   dimensionsProgressEnabled: true,
   sizeProgressEnabled: true,
-  progressTransparency: 22
+  progressTransparency: 78
 };
 
 @Component({
@@ -128,7 +128,7 @@ export class ImagesComponent {
       gpsDateProgressEnabled: preferences?.galleryDetailGpsDateProgressEnabled ?? defaultDetailTablePreferences.gpsDateProgressEnabled,
       dimensionsProgressEnabled: preferences?.galleryDetailDimensionsProgressEnabled ?? defaultDetailTablePreferences.dimensionsProgressEnabled,
       sizeProgressEnabled: preferences?.galleryDetailSizeProgressEnabled ?? defaultDetailTablePreferences.sizeProgressEnabled,
-      progressTransparency: preferences?.galleryDetailProgressOpacity ?? defaultDetailTablePreferences.progressTransparency
+      progressTransparency: preferences?.galleryDetailProgressTransparency ?? defaultDetailTablePreferences.progressTransparency
     };
   });
 
@@ -523,7 +523,7 @@ export class ImagesComponent {
       galleryDetailGpsDateProgressEnabled: preferences.gpsDateProgressEnabled,
       galleryDetailDimensionsProgressEnabled: preferences.dimensionsProgressEnabled,
       galleryDetailSizeProgressEnabled: preferences.sizeProgressEnabled,
-      galleryDetailProgressOpacity: preferences.progressTransparency
+      galleryDetailProgressTransparency: preferences.progressTransparency
     });
     this.detailPreferencesOpen.set(false);
   }
