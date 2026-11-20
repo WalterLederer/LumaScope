@@ -108,6 +108,8 @@ export interface AppConfigV1Preferences {
   /** Background colors for odd and even gallery detail rows. */
   galleryDetailOddRowColor?: string;
   galleryDetailEvenRowColor?: string;
+  /** Background color used for gallery detail rows while the name filter is active. */
+  galleryDetailFilteredRowColor?: string;
   /** Whether the gallery detail table alternates odd/even row colors. */
   galleryDetailAlternateRowColors?: boolean;
   /** Per-column visibility switches for gallery detail progress bars. */
@@ -191,6 +193,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.galleryDetailSelectedRowColor || typeof input.galleryDetailSelectedRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailSelectedRowColor))
     && (undefined === input.galleryDetailOddRowColor || typeof input.galleryDetailOddRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailOddRowColor))
     && (undefined === input.galleryDetailEvenRowColor || typeof input.galleryDetailEvenRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailEvenRowColor))
+    && (undefined === input.galleryDetailFilteredRowColor || typeof input.galleryDetailFilteredRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailFilteredRowColor))
     && (undefined === input.galleryDetailAlternateRowColors || typeof input.galleryDetailAlternateRowColors === 'boolean')
     && (undefined === input.galleryDetailDateProgressEnabled || typeof input.galleryDetailDateProgressEnabled === 'boolean')
     && (undefined === input.galleryDetailGpsDateProgressEnabled || typeof input.galleryDetailGpsDateProgressEnabled === 'boolean')
