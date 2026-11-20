@@ -938,7 +938,9 @@
      and folder action menus must be able to escape the table's rounded surface. */
   overflow: visible;
   background: var(--color-surface-default-low, #fff);
-  box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
+  /* The surrounding scrollport owns the visible elevation; a shadow on this
+     element is clipped by that scrollport during horizontal/vertical scrolling. */
+  box-shadow: none;
 }
 
 .detail-native-table > thead {
