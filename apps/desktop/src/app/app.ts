@@ -529,9 +529,10 @@ export default class App {
       && previousLocation.longitude! >= -180 && previousLocation.longitude! <= 180;
     // Opening Location without a selected image must retain the last known map
     // position instead of resetting the detached map to its default center.
+    const keepPreviousPosition = focusWindow && !hasCoordinates && hasPreviousCoordinates;
     App.mapWindowLocation = hasCoordinates
       ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive }
-      : hasPreviousCoordinates
+      : keepPreviousPosition
         ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive }
         : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive };
     const location = App.mapWindowLocation;
