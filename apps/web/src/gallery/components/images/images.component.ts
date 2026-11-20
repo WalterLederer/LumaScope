@@ -46,6 +46,7 @@ interface DetailTablePreferences {
   selectedRow: string;
   oddRow: string;
   evenRow: string;
+  filteredRow: string;
   alternateRows: boolean;
   dateProgressEnabled: boolean;
   gpsDateProgressEnabled: boolean;
@@ -61,6 +62,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   selectedRow: '#d18b24',
   oddRow: '#ffffff',
   evenRow: '#f5f5f5',
+  filteredRow: '#e8f1fb',
   alternateRows: true,
   dateProgressEnabled: true,
   gpsDateProgressEnabled: true,
@@ -93,6 +95,8 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--detail-selected-row-color]': 'detailPreferenceValues().selectedRow',
     '[style.--detail-odd-row-color]': 'detailPreferenceValues().oddRow',
     '[style.--detail-even-row-color]': 'detailPreferenceValues().evenRow',
+    '[style.--detail-filtered-row-color]': 'detailPreferenceValues().filteredRow',
+    '[class.detail-filter-active]': 'nameFilterActive()',
     '[style.--detail-progress-opacity]': '(100 - detailPreferenceValues().progressTransparency) + "%"',
     '[class.detail-alternate-rows]': 'detailPreferenceValues().alternateRows',
     '[class.detail-progress-date-disabled]': '!detailPreferenceValues().dateProgressEnabled',
@@ -123,6 +127,7 @@ export class ImagesComponent {
       selectedRow: preferences?.galleryDetailSelectedRowColor ?? defaultDetailTablePreferences.selectedRow,
       oddRow: preferences?.galleryDetailOddRowColor ?? defaultDetailTablePreferences.oddRow,
       evenRow: preferences?.galleryDetailEvenRowColor ?? defaultDetailTablePreferences.evenRow,
+      filteredRow: preferences?.galleryDetailFilteredRowColor ?? defaultDetailTablePreferences.filteredRow,
       alternateRows: preferences?.galleryDetailAlternateRowColors ?? defaultDetailTablePreferences.alternateRows,
       dateProgressEnabled: preferences?.galleryDetailDateProgressEnabled ?? defaultDetailTablePreferences.dateProgressEnabled,
       gpsDateProgressEnabled: preferences?.galleryDetailGpsDateProgressEnabled ?? defaultDetailTablePreferences.gpsDateProgressEnabled,
@@ -186,6 +191,7 @@ export class ImagesComponent {
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
   readonly nameFilter = input('');
+  readonly nameFilterActive = input(false);
   readonly detailFontSize = input(12);
   readonly detailFontSizeChanged = output<number>();
   readonly selectedImagePath = input<string | null>(null);
@@ -524,6 +530,7 @@ export class ImagesComponent {
       galleryDetailSelectedRowColor: preferences.selectedRow,
       galleryDetailOddRowColor: preferences.oddRow,
       galleryDetailEvenRowColor: preferences.evenRow,
+      galleryDetailFilteredRowColor: preferences.filteredRow,
       galleryDetailAlternateRowColors: preferences.alternateRows,
       galleryDetailDateProgressEnabled: preferences.dateProgressEnabled,
       galleryDetailGpsDateProgressEnabled: preferences.gpsDateProgressEnabled,
