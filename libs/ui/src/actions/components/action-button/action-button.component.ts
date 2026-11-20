@@ -6,9 +6,7 @@ import { allButtonTypes, ButtonType } from '../../types/button.types';
 
 @Component({
   selector: 'ui-action-button',
-  imports: [ ,
-    ButtonTooltipDirective
-  ],
+  imports: [ButtonTooltipDirective],
   templateUrl: './action-button.component.html',
   styleUrl: './action-button.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
