@@ -12,7 +12,7 @@ import {
   signal
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { CaptionComponent } from '@light-matter/ui';
+import { CaptionComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatGpsCoordinates, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
@@ -28,7 +28,8 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 @Component({
   selector: 'app-thumbnail, tr[app-thumbnail]',
   imports: [
-    CaptionComponent
+    CaptionComponent ,
+    ButtonTooltipDirective
   ],
   templateUrl: './thumbnail.component.html',
   styleUrl: './thumbnail.component.scss',
