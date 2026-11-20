@@ -8,7 +8,7 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } 
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, PhotoLocation, ResolveLocationNamesResult, formatOsDateTime } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, FileInfo, PhotoLocation, ResolveLocationNamesResult, SortDirection, SortType, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import type { Exif } from '../exif/exif';
 import { abortReverseGeocoding, isReverseGeocodingPaused, lookupReverseGeocoding, pauseReverseGeocoding, resumeReverseGeocoding } from 'internal-api';
 import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigrationRecord } from './cache-manager.migration';
@@ -110,6 +110,10 @@ export class CacheManager {
 
   private readonly notifyReverseGeocodingStatusChanged = (): void => {
     this.broadcastCacheEvent('CacheManager.reverseGeocodingStatusChanged');
+  };
+
+  private readonly notifyGalleryFilesChanged = (directory: string): void => {
+    this.broadcastCacheEvent('CacheManager.galleryFilesChanged', directory);
   };
 
   private readonly notifyDirectoryPhotoLocationsChanged = (directory: string): void => {
@@ -1289,6 +1293,85 @@ export class CacheManager {
       }
       return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null, verification };
     }));
+  };
+
+  @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
+  readonly registerGalleryFiles = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    files: FileInfo[]
+  ): Promise<number> => {
+    if (typeof directory !== 'string' || !directory.trim()
+      || !Array.isArray(files) || files.length > 500000
+      || files.some(file => !file || typeof file.path !== 'string' || typeof file.name !== 'string'
+        || typeof file.size !== 'number' || typeof file.modifiedAt !== 'number')) {
+      throw new Error('A valid folder and file metadata list are required.');
+    }
+    const root = resolve(directory);
+    const db = this.databaseForPath(root);
+    let registered = 0;
+    for (let offset = 0; offset < files.length; offset += 500) {
+      const batch = files.slice(offset, offset + 500);
+      db.exec('BEGIN IMMEDIATE;');
+      try {
+        for (const file of batch) {
+          if (file.isDirectory) continue;
+          const absolute = resolve(file.path);
+          if (dirname(absolute).toLocaleLowerCase() !== root.toLocaleLowerCase()) continue;
+          this.ensurePhoto(absolute, Math.max(0, Math.trunc(file.size)), Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0, db);
+          registered++;
+        }
+        db.exec('COMMIT;');
+      } catch (error) {
+        try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
+        throw error;
+      }
+      if (offset + 500 < files.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
+    }
+    if (registered > 0) this.notifyGalleryFilesChanged(root);
+    return registered;
+  };
+
+  @IpcHandler({ name: 'CacheManager.getGalleryFiles' })
+  readonly getGalleryFiles = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false,
+    includeUnsupported = false,
+    sortBy: SortType = 'name',
+    sortDir: SortDirection = 'asc'
+  ): Promise<FileInfo[]> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    this.activeDatabaseKey = databaseKey;
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`)
+      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
+        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+      }>;
+    const data = rows.map(row => {
+      const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
+      const path = join(parent, row.file_name);
+      return {
+        path, name: row.file_name, parent, isDirectory: false,
+        ext: extname(row.file_name), createdAt: row.modified_at,
+        size: row.file_size, modifiedAt: row.modified_at
+      } satisfies FileInfo;
+    }).filter(file => includeUnsupported || supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+    const direction = sortDir === 'desc' ? -1 : 1;
+    data.sort((a, b) => {
+      const comparison = sortBy === 'date' ? a.modifiedAt - b.modifiedAt
+        : sortBy === 'size' ? a.size - b.size
+          : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      return comparison * direction;
+    });
+    return data;
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
