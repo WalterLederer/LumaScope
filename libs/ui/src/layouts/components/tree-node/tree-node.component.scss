@@ -86,3 +86,26 @@
   right: var(--dim-medium);
   border-top: 2px solid color-mix(in srgb, var(--color-content-default-medium, currentColor) 55%, transparent);
 }
+
+/* Browse favourite numbering and hamburger actions form the first row column. */
+.tree-row-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 16px;
+  width: 16px;
+  color: var(--color-content-default-medium, #aaa);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tree-row-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  margin: 0 2px 0 0 !important;
+}
