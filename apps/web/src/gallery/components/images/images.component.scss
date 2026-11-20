@@ -331,8 +331,8 @@
      Avoid native table auto-layout, which previously reassigned resize deltas
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
-    28px
-    max(24px, calc(var(--detail-thumb-width, 36px) + var(--detail-col-0-delta, 0px)))
+    var(--detail-actions-width, 44px)
+    max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
     var(--detail-col-3-width, 150px)
@@ -612,9 +612,8 @@
 }
 .detail-native-table .column-resizer:hover { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 35%, transparent); }
 .detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 17px; font-weight: 900; line-height: 1; vertical-align: -1px; }
-.detail-native-table .detail-actions-heading { width: 44px; min-width:44px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:2px 0!important; }
-.detail-native-table .detail-actions-heading-label { display:block; font-size:9px; line-height:1.1; font-weight:500; color:var(--color-content-default-medium,#888); white-space:nowrap; }
-.detail-native-table .detail-actions-heading > .column-resizer { position:absolute; top:0; right:-6px; bottom:0; width:12px; margin:0; z-index:60; }
+.detail-native-table .detail-actions-heading { width:var(--detail-actions-width,44px); min-width:44px; position:relative; display:flex; align-items:center; justify-content:center; padding:2px 0!important; }
+.detail-native-table .detail-actions-heading > .column-resizer { position:absolute; top:0; right:-6px; bottom:0; width:12px; margin:0; z-index:60; cursor:col-resize; pointer-events:auto; }
 
 /* Folder-wide actions occupy the first column; no horizontal sticky layer is needed. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
@@ -701,7 +700,7 @@
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
-.detail-native-table .detail-actions { width: 28px; min-width: 28px; padding: 2px; overflow: visible; text-align: center; background: var(--color-surface-default-low, #fff) !important; }
+.detail-native-table .detail-actions { width:var(--detail-actions-width,44px); min-width:44px; padding:2px; overflow:visible; text-align:center; background:var(--detail-odd-row-color,#fff) !important; }
 .detail-native-table .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
 .detail-native-table .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
 .detail-native-table .detail-thumb { width: var(--detail-thumb-width, 36px); padding: 2px; text-align: center; }
@@ -1376,4 +1375,10 @@
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
+}
+
+/* Keep the row selection visible across the full row, including the action cell. */
+.detail-native-table > tbody.images.details-list > tr.selected-image > td.detail-actions,
+.detail-alternate-rows .detail-native-table > tbody.images.details-list > tr.selected-image > td.detail-actions {
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #ffffff)) !important;
 }
