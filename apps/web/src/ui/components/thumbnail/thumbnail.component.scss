@@ -271,7 +271,7 @@
 :host(.view-details) > .detail-actions,
 :host(.view-details-no-thumbnails) > .detail-actions {
   position: relative;
-  min-width: 28px;
+  min-width: 56px;
   isolation: isolate;
   background-color: var(--detail-odd-row-color, #fff) !important;
 }
@@ -279,8 +279,7 @@
 :host(.view-details-no-thumbnails.detail-alternate-rows:nth-child(even)) > .detail-actions {
   background: var(--detail-even-row-color, #f5f5f5) !important;
 }
-:host(.view-details.selected-image) > .detail-actions,
-:host(.view-details-no-thumbnails.selected-image) > .detail-actions {
+:host(.selected-image) > .detail-actions {
   background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #fff)) !important;
 }
 :host(.view-details) > .detail-actions .detail-row-action-menu,
