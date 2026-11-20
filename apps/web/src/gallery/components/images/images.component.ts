@@ -1261,32 +1261,34 @@ export class ImagesComponent {
 
     effect(onCleanup => {
       const folder = this.folderPath();
+      const recursive = this.includeFilesRecursive();
       if (!folder) {
         this.unsupportedSuffixCount.set(0);
         this.unsupportedSuffixes.set([]);
         return;
       }
       let active = true;
-      void this.fileSystem.readDir(folder).then(entries => {
-        if (!active || this.folderPath() !== folder) return;
-        const normalizeExtension = (extension: string): string => {
-          const normalized = extension.trim().toLowerCase();
-          return normalized.startsWith('.') ? normalized.slice(1) : normalized;
-        };
-        const unsupported = entries.filter(entry =>
-          !entry.isDirectory && !supportedFileExtensions.includes(normalizeExtension(entry.ext))
-        );
-        this.unsupportedSuffixCount.set(unsupported.length);
-        this.unsupportedSuffixes.set([...new Set(unsupported.map(entry =>
-          normalizeExtension(entry.ext) || '(no extension)'
-        ))].sort((a, b) => a.localeCompare(b)));
-      }).catch(error => {
-        if (!active || this.folderPath() !== folder) return;
-        console.error('Failed to count unsupported image suffixes', error);
-        this.unsupportedSuffixCount.set(0);
-        this.unsupportedSuffixes.set([]);
+      const refreshUnsupportedSummary = async (): Promise<void> => {
+        try {
+          const summary = await this.cacheManager.getGalleryUnsupportedSummary(folder, recursive);
+          if (!active || this.folderPath() !== folder || this.includeFilesRecursive() !== recursive) return;
+          this.unsupportedSuffixCount.set(summary.count);
+          this.unsupportedSuffixes.set(summary.suffixes);
+        } catch (error) {
+          if (!active || this.folderPath() !== folder) return;
+          console.error('Failed to read unsupported-file summary from the cache database', error);
+          this.unsupportedSuffixCount.set(0);
+          this.unsupportedSuffixes.set([]);
+        }
+      };
+      void refreshUnsupportedSummary();
+      const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+      const unsubscribe = this.cacheManager.onGalleryFilesChanged(changedDirectory => {
+        const root = normalize(folder);
+        const changed = normalize(changedDirectory);
+        if (changed === root || (recursive && changed.startsWith(root + '\\\\'))) void refreshUnsupportedSummary();
       });
-      onCleanup(() => { active = false; });
+      onCleanup(() => { active = false; unsubscribe(); });
     });
 
     effect(() => {
