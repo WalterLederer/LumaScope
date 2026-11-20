@@ -101,8 +101,9 @@ export class ImageGridComponent {
     this.detailScrollTop.set(viewport.scrollTop);
     this.detailViewportHeight.set(viewport.clientHeight);
     this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
-    if ((this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
-      && viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
+    // Keep every gallery view incrementally populated; the detail view then
+    // combines these bounded pages with its virtual row renderer.
+    if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
       this.galleryState.loadNextGalleryPage();
     }
   };
