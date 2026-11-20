@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { TreeNode, updateSubject } from '@light-matter/ui';
 import { FileInfo, getThumbnailSize, thumbnailDimensions, ThumbnailSize } from 'internal-api';
-import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
+import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, finalize, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { Configuration } from '../../../system/services/configuration/configuration';
@@ -28,6 +28,7 @@ export class GalleryState {
   private readonly selectedLocation$ = new BehaviorSubject<string | null>(null);
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
+  private readonly galleryLoading$ = new BehaviorSubject(false);
   private navigationRequest = 0;
   private readonly galleryPageSize = 250;
   private galleryLoadedCount = 0;
@@ -120,6 +121,7 @@ export class GalleryState {
   readonly thumbSize = () => this.thumbSize$;
 
   readonly images = () => this.images$.asObservable();
+  readonly galleryLoading = () => this.galleryLoading$.asObservable();
   readonly includeUnsupportedFiles = () => this.includeUnsupportedFiles$.asObservable();
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
   readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
@@ -148,6 +150,7 @@ export class GalleryState {
   readonly navigateTo = (path: string): Observable<boolean> => {
     const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
+    this.galleryLoading$.next(true);
     this.galleryLoadedCount = 0;
     this.galleryTotalCount = 0;
     this.galleryPageLoading = false;
@@ -168,7 +171,10 @@ export class GalleryState {
           this.galleryTotalCount = page.totalCount;
           this.images$.next(page.files);
         }),
-        map(() => true)
+        map(() => true),
+        finalize(() => {
+          if (request === this.navigationRequest) this.galleryLoading$.next(false);
+        })
       );
   };
 
