@@ -83,7 +83,20 @@
             <button type="button" (click)="sortDetailBy('location')">@if (detailSortAriaSort('location') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('location') }}</span>}<span class="sort-label">Location</span></button>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)"></span>
           </th>
-          <th class="detail-actions-heading" scope="col" aria-label="Actions"></th>
+          <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
+            <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
+                    (click)="toggleFolderActionsMenu($event)"
+                    [attr.aria-expanded]="folderActionsMenuOpen()"
+                    aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
+            @if (folderActionsMenuOpen()) {
+              <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" (click)="$event.stopPropagation()">
+                <button type="button" role="menuitem" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="cacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
+                <button type="button" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="reCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+              </div>
+            }
+          </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
