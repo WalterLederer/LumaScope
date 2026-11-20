@@ -197,7 +197,11 @@ export class ImageView {
       this.setActiveImageSidebarTab('cache');
       // Let Angular mount the hidden Gallery/Cache controller before starting its registered action.
       await new Promise<void>(resolve => this.document.defaultView?.setTimeout(resolve, 0) ?? resolve());
-      await this.galleryCacheBuild.startCacheBuild(directory);
+      if (this.galleryState.includeFilesRecursiveValue()) {
+        await this.galleryCacheBuild.startRecursiveCacheBuild(directory, true);
+      } else {
+        await this.galleryCacheBuild.startCacheBuild(directory);
+      }
       const completeness = await this.checkLocationPhotoDatabase(directory, this.galleryState.includeFilesRecursiveValue());
       if (completeness.missing.length > 0) {
         this.document.defaultView?.alert(
