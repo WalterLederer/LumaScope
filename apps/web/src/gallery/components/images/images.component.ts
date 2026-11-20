@@ -51,7 +51,7 @@ interface DetailTablePreferences {
   gpsDateProgressEnabled: boolean;
   dimensionsProgressEnabled: boolean;
   sizeProgressEnabled: boolean;
-  progressOpacity: number;
+  progressTransparency: number;
 }
 const defaultDetailTablePreferences: DetailTablePreferences = {
   date: '#d18b24',
@@ -66,7 +66,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   gpsDateProgressEnabled: true,
   dimensionsProgressEnabled: true,
   sizeProgressEnabled: true,
-  progressOpacity: 22
+  progressTransparency: 22
 };
 
 @Component({
@@ -93,7 +93,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--detail-selected-row-color]': 'detailPreferenceValues().selectedRow',
     '[style.--detail-odd-row-color]': 'detailPreferenceValues().oddRow',
     '[style.--detail-even-row-color]': 'detailPreferenceValues().evenRow',
-    '[style.--detail-progress-opacity]': 'detailPreferenceValues().progressOpacity + "%"',
+    '[style.--detail-progress-opacity]': '(100 - detailPreferenceValues().progressTransparency) + "%"',
     '[class.detail-alternate-rows]': 'detailPreferenceValues().alternateRows',
     '[class.detail-progress-date-disabled]': '!detailPreferenceValues().dateProgressEnabled',
     '[class.detail-progress-gps-date-disabled]': '!detailPreferenceValues().gpsDateProgressEnabled',
@@ -128,7 +128,7 @@ export class ImagesComponent {
       gpsDateProgressEnabled: preferences?.galleryDetailGpsDateProgressEnabled ?? defaultDetailTablePreferences.gpsDateProgressEnabled,
       dimensionsProgressEnabled: preferences?.galleryDetailDimensionsProgressEnabled ?? defaultDetailTablePreferences.dimensionsProgressEnabled,
       sizeProgressEnabled: preferences?.galleryDetailSizeProgressEnabled ?? defaultDetailTablePreferences.sizeProgressEnabled,
-      progressOpacity: preferences?.galleryDetailProgressOpacity ?? defaultDetailTablePreferences.progressOpacity
+      progressTransparency: preferences?.galleryDetailProgressOpacity ?? defaultDetailTablePreferences.progressTransparency
     };
   });
 
@@ -500,8 +500,8 @@ export class ImagesComponent {
     this.detailPreferenceDraft.update(current => ({ ...current, [key]: value }));
   }
 
-  protected updateDetailProgressOpacity(value: number): void {
-    this.detailPreferenceDraft.update(current => ({ ...current, progressOpacity: Math.max(0, Math.min(100, value)) }));
+  protected updateDetailProgressTransparency(value: number): void {
+    this.detailPreferenceDraft.update(current => ({ ...current, progressTransparency: Math.max(0, Math.min(100, value)) }));
   }
 
   protected cancelDetailPreferences(): void {
@@ -523,7 +523,7 @@ export class ImagesComponent {
       galleryDetailGpsDateProgressEnabled: preferences.gpsDateProgressEnabled,
       galleryDetailDimensionsProgressEnabled: preferences.dimensionsProgressEnabled,
       galleryDetailSizeProgressEnabled: preferences.sizeProgressEnabled,
-      galleryDetailProgressOpacity: preferences.progressOpacity
+      galleryDetailProgressOpacity: preferences.progressTransparency
     });
     this.detailPreferencesOpen.set(false);
   }
