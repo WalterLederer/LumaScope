@@ -217,7 +217,7 @@
   display: flex;
   align-items: center;
 }
-/* Relative folder-value bars use the per-column colors configured in Gallery Preferences. */
+
 :host(.view-details) > .detail-date,
 :host(.view-details-no-thumbnails) > .detail-date {
   --detail-progress-color: var(--detail-date-progress-color, #d18b24);
