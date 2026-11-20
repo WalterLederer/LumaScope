@@ -2,17 +2,19 @@
 @let currentMenu = menu();
 
 @if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
-  @if (rowNumber() !== null) {
-    <span class="tree-row-number" aria-hidden="true">{{ rowNumber() }}</span>
-  }
-  <button type="button"
-          class="file-row-menu-trigger tree-row-menu-trigger"
-          [cdkMenuTriggerFor]="currentMenu"
-          [cdkMenuTriggerData]="{ data: currentNode }"
-          [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
-          aria-haspopup="menu"
-          title="Actions"
-          uiStopPropagation>☰</button>
+  <span class="tree-row-actions-column">
+    @if (rowNumber() !== null) {
+      <span class="tree-row-number" aria-hidden="true">{{ rowNumber() }}</span>
+    }
+    <button type="button"
+            class="file-row-menu-trigger tree-row-menu-trigger"
+            [cdkMenuTriggerFor]="currentMenu"
+            [cdkMenuTriggerData]="{ data: currentNode }"
+            [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
+            aria-haspopup="menu"
+            title="Actions"
+            uiStopPropagation>☰</button>
+  </span>
 }
 
 @if (currentNode.hasChildren === true) {
