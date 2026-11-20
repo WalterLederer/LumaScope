@@ -1295,7 +1295,7 @@
           <div class="offline-map-list-view" [style.display]="activeSettingsTab() === 'offlineMaps' ? '' : 'none'">
             <div class="mbtiles-map-list">
               @if (filteredOffline().length + filteredHillshadeDatabases().length + filteredResourcePackageEntries().length > 0) {
-                <table class="mbtiles-map-table offline-files-resizable-table">
+                <table class="mbtiles-map-table offline-files-resizable-table offline-column-resizable">
                   <colgroup>
                     <col style="width:var(--offline-col-0,44px)"><col style="width:var(--offline-col-1,52px)"><col style="width:var(--offline-col-2,52px)"><col style="width:var(--offline-col-3,90px)"><col style="width:var(--offline-col-4,240px)"><col style="width:var(--offline-col-5,320px)"><col style="width:var(--offline-col-6,92px)"><col style="width:var(--offline-col-7,150px)"><col style="width:var(--offline-col-8,150px)"><col style="width:var(--offline-col-9,76px)"><col style="width:var(--offline-col-10,280px)"><col style="width:var(--offline-col-11,64px)">
                   </colgroup>
