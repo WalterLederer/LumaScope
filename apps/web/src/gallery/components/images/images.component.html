@@ -38,7 +38,7 @@
       </colgroup>
       <thead>
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()" [class.folder-actions-open]="folderActionsMenuOpen()">
-          <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
+          <th class="detail-actions-heading folder-actions-heading" scope="col" rowspan="2" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
                     (click)="toggleFolderActionsMenu($event)"
                     [attr.aria-expanded]="folderActionsMenuOpen()"
@@ -113,7 +113,6 @@
           </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
-          <th class="detail-actions-statistics" scope="col"></th>
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
             <small class="column-count">{{ cacheStats().total }}</small>
