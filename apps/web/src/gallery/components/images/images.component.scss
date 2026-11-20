@@ -1567,3 +1567,67 @@
   max-width: none !important;
   padding: 2px;
 }
+
+/* Keep the details view on one consistent CSS-grid layout. The native-table
+   override above conflicts with the grid-based virtualized Angular row host
+   and can collapse both header and data cells into a single column. */
+.detail-native-table {
+  display: block !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: separate;
+}
+.detail-native-table > colgroup {
+  display: none !important;
+}
+.detail-native-table > thead {
+  display: block !important;
+  width: max-content;
+  min-width: 100%;
+}
+.detail-native-table > thead > tr.detail-header-labels,
+.detail-native-table > thead > tr.detail-header-statistics {
+  display: grid !important;
+  grid-template-columns: var(--detail-grid-columns) !important;
+  width: max-content;
+  min-width: 100%;
+}
+.detail-native-table > thead > tr > th {
+  display: flex !important;
+  box-sizing: border-box;
+  min-width: 0;
+  align-items: center;
+}
+.detail-native-table > tbody.images.details-list {
+  display: block !important;
+  width: max-content;
+  min-width: 100%;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
+  display: grid !important;
+  grid-template-columns: var(--detail-grid-columns) !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  height: var(--detail-row-height, 44px) !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td {
+  display: flex !important;
+  box-sizing: border-box;
+  min-width: 0;
+  height: var(--detail-row-height, 44px) !important;
+  max-height: var(--detail-row-height, 44px);
+  align-items: center;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer {
+  display: grid !important;
+  grid-template-columns: var(--detail-grid-columns) !important;
+  width: max-content !important;
+  min-width: 100% !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer > td {
+  display: block !important;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
