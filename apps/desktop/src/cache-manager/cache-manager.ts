@@ -1331,6 +1331,24 @@ export class CacheManager {
       try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
       throw error;
     }
+    const upsertFile = db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
+      VALUES (:pathId, :file, :size, :modified, 0)
+      ON CONFLICT(path_id, file_name) DO UPDATE SET
+        is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
+        thumbnail_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_id END,
+        thumbnail_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_version END,
+        fullsize_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_id END,
+        fullsize_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_version END,
+        latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
+        longitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.longitude END,
+        altitude_m = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.altitude_m END,
+        gps_timestamp = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_timestamp END,
+        direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
+        location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
+        coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        file_name = excluded.file_name,
+        file_size = excluded.file_size,
+        modified_at = excluded.modified_at`);
     for (let offset = 0; offset < files.length; offset += 500) {
       const batch = files.slice(offset, offset + 500);
       db.exec('BEGIN IMMEDIATE;');
@@ -1339,7 +1357,12 @@ export class CacheManager {
           if (file.isDirectory) continue;
           const absolute = resolve(file.path);
           if (dirname(absolute).toLocaleLowerCase() !== root.toLocaleLowerCase()) continue;
-          this.ensurePhoto(absolute, Math.max(0, Math.trunc(file.size)), typeof file.modifiedAt === 'number' && Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0, db);
+          upsertFile.run({
+            pathId: pathRow.id,
+            file: basename(absolute),
+            size: Math.max(0, Math.trunc(file.size)),
+            modified: typeof file.modifiedAt === 'number' && Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0
+          });
           registered++;
         }
         db.exec('COMMIT;');
@@ -1347,6 +1370,7 @@ export class CacheManager {
         try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
         throw error;
       }
+      if (registered > 0 && registered % 5000 === 0) this.notifyGalleryFilesChanged(root);
       if (offset + 500 < files.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
     }
     db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
