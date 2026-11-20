@@ -381,7 +381,7 @@ export interface DesktopMapWindow {
   readonly onHelpDocument: (callback: (fileName: string) => void) => () => void;
   readonly onImageSelected: (callback: (path: string) => void) => () => void;
   readonly onStateChanged: (callback: (open: boolean) => void) => () => void;
-  readonly onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }) => void) => () => void;
+  readonly onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null; recursive?: boolean }) => void) => () => void;
 }
 
 export interface DesktopMapOverlayWindow {
