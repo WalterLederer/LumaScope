@@ -116,7 +116,7 @@ export interface AppConfigV1Preferences {
   galleryDetailDimensionsProgressEnabled?: boolean;
   galleryDetailSizeProgressEnabled?: boolean;
   /** Progress-bar background opacity in percent (0-100). */
-  galleryDetailProgressOpacity?: number;
+  galleryDetailProgressTransparency?: number;
 }
 
 export interface AppConfigV1System {
@@ -196,7 +196,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.galleryDetailGpsDateProgressEnabled || typeof input.galleryDetailGpsDateProgressEnabled === 'boolean')
     && (undefined === input.galleryDetailDimensionsProgressEnabled || typeof input.galleryDetailDimensionsProgressEnabled === 'boolean')
     && (undefined === input.galleryDetailSizeProgressEnabled || typeof input.galleryDetailSizeProgressEnabled === 'boolean')
-    && (undefined === input.galleryDetailProgressOpacity || typeof input.galleryDetailProgressOpacity === 'number' && input.galleryDetailProgressOpacity >= 0 && input.galleryDetailProgressOpacity <= 100)
+    && (undefined === input.galleryDetailProgressTransparency || typeof input.galleryDetailProgressTransparency === 'number' && input.galleryDetailProgressTransparency >= 0 && input.galleryDetailProgressTransparency <= 100)
     && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle)
     && (undefined === input.tabBarStyle || 'classic' === input.tabBarStyle || 'underline' === input.tabBarStyle || 'pills' === input.tabBarStyle || 'segmented' === input.tabBarStyle || 'boxed' === input.tabBarStyle || 'minimal' === input.tabBarStyle || 'flat' === input.tabBarStyle || 'contrast' === input.tabBarStyle || 'soft' === input.tabBarStyle || 'rounded' === input.tabBarStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
