@@ -185,6 +185,9 @@ export class ImagesComponent {
 
   /* Inputs */
   readonly images = input.required<FileInfo[] | null>();
+  readonly nameFilter = input('');
+  readonly detailFontSize = input(12);
+  readonly detailFontSizeChanged = output<number>();
   readonly selectedImagePath = input<string | null>(null);
   readonly activeSelectionPath = signal<string | null>(null);
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
@@ -202,7 +205,10 @@ export class ImagesComponent {
     this.detailSortColumn() === null ? this.sortDirection() : this.detailSortDirection()
   );
   readonly sortedDetailImages = computed(() => {
-    const images = [...(this.images() ?? [])];
+    const filter = this.nameFilter().trim().toLocaleLowerCase();
+    const images = (this.images() ?? []).filter(image =>
+      !filter || image.name.toLocaleLowerCase().includes(filter)
+    );
     const column = this.activeDetailSortColumn();
     const direction = this.activeDetailSortDirection() === 'asc' ? 1 : -1;
     const valueFor = (image: FileInfo): string | number | null => {
