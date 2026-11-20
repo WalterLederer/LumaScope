@@ -168,6 +168,24 @@
           <button type="button" class="detail-preferences-close" aria-label="Close preferences" (click)="cancelDetailPreferences()">×</button>
         </header>
         <p class="detail-preferences-description">Customize detail-table row backgrounds, progress-bar colors, visibility and opacity.</p>
+        <details class="detail-preferences-section detail-preferences-disclosure detail-preferences-favorites" open>
+          <summary>Favorites</summary>
+          <div class="detail-preferences-favorite-controls">
+            <label>Settings favorites
+              <select [value]="detailPreferenceFavoriteSelection()" (change)="applyDetailPreferenceFavorite($any($event.target).value)">
+                <option value="">Select favorite…</option>
+                @for (favorite of detailPreferenceFavorites(); track favorite.name) {
+                  <option [value]="favorite.name">{{ favorite.name }}</option>
+                }
+              </select>
+            </label>
+            <div class="detail-preferences-favorite-add">
+              <input type="text" maxlength="60" placeholder="Favorite name" [value]="detailPreferenceFavoriteName()" (input)="detailPreferenceFavoriteName.set($any($event.target).value)" />
+              <button type="button" (click)="addDetailPreferenceFavorite()" [disabled]="!detailPreferenceFavoriteName().trim()">Add settings to favorites</button>
+              <button type="button" class="detail-preferences-favorite-remove" (click)="removeDetailPreferenceFavorite()" [disabled]="!detailPreferenceFavoriteSelection()">Remove favorite</button>
+            </div>
+          </div>
+        </details>
         <div class="detail-preferences-section">
           <h3>Table Font Size</h3>
           <label class="detail-preference-range">
