@@ -2,7 +2,26 @@
 @let error = hasError();
 
 @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-  @if (viewMode() === 'details-no-thumbnails') {
+  <td class="detail-actions" [attr.data-row-number]="rowNumber()">
+    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
+            (click)="toggleRowActionMenu($event)"
+            [attr.aria-expanded]="rowActionMenuOpen()"
+            aria-haspopup="menu"
+            [attr.aria-label]="'File actions for ' + image().name"
+            title="File actions">☰</button>
+    @if (rowActionMenuOpen()) {
+      <div class="gpx-row-action-menu detail-row-action-menu" role="menu" [style.top.px]="rowActionMenuPosition().top" [style.left.px]="rowActionMenuPosition().left" (click)="$event.stopPropagation()">
+        <button type="button" role="menuitem" (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
+        <button type="button" role="menuitem" (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
+        <button type="button" role="menuitem" (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
+        <div class="gpx-row-action-menu-separator" role="separator"></div>
+        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
+        <div class="gpx-row-action-menu-separator" role="separator"></div>
+        <button type="button" role="menuitem" (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
+      </div>
+    }
+  </td>
+    @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
   } @else {
     <td class="thumbnail-preview detail-thumb" [title]="image().name" (click)="$event.stopPropagation(); clicked.emit(image())">
@@ -33,25 +52,7 @@
   <td class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</td>
   <td class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</td>
   <td class="detail-path" [title]="detailPath()">{{ detailPath() || '.' }}</td>
-  <td class="detail-actions">
-    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
-            (click)="toggleRowActionMenu($event)"
-            [attr.aria-expanded]="rowActionMenuOpen()"
-            aria-haspopup="menu"
-            [attr.aria-label]="'File actions for ' + image().name"
-            title="File actions">☰</button>
-    @if (rowActionMenuOpen()) {
-      <div class="gpx-row-action-menu detail-row-action-menu" role="menu" [style.top.px]="rowActionMenuPosition().top" [style.left.px]="rowActionMenuPosition().left" (click)="$event.stopPropagation()">
-        <button type="button" role="menuitem" (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
-        <button type="button" role="menuitem" (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
-        <button type="button" role="menuitem" (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
-        <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
-        <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
-      </div>
-    }
-  </td>
+
 } @else {
   @if (viewMode() !== 'details-no-thumbnails') {
     <div class="thumbnail-preview">
