@@ -152,8 +152,11 @@
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
-        @for (image of sortedDetailImages(); track image.path) {
-          <tr app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()"
+        @if (detailVirtualTopSpacer() > 0) {
+          <tr class="detail-virtual-spacer" aria-hidden="true" [style.height.px]="detailVirtualTopSpacer()"><td colspan="14"></td></tr>
+        }
+        @for (image of visibleDetailImages(); track image.path) {
+          <tr app-thumbnail class="detail-virtual-row" [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()"
               [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                [detailProgress]="detailProgressByPath().get(image.path) ?? null"
               (metadataLoaded)="onDetailMetadataLoaded(image.path, $event)"
@@ -168,6 +171,9 @@
               (hovered)="hovered.emit($event)"
               (rowSelected)="onDetailRowSelected($event)"
               (clicked)="selectThumbnail($event)"></tr>
+        }
+        @if (detailVirtualBottomSpacer() > 0) {
+          <tr class="detail-virtual-spacer" aria-hidden="true" [style.height.px]="detailVirtualBottomSpacer()"><td colspan="14"></td></tr>
         }
       </tbody>
     </table>
