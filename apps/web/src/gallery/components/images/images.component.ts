@@ -1344,18 +1344,36 @@ export class ImagesComponent {
         const host = this.elementRef.nativeElement as HTMLElement;
         const elements = host.querySelectorAll<HTMLElement>('[data-image-path]');
         const rendered = Array.from(elements).find(element => element.dataset['imagePath'] === selectedPath);
-        if (rendered) {
-          rendered.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-          return;
-        }
-        if (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails') {
-          const index = this.sortedDetailImages().findIndex(image => image.path === selectedPath);
+        const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
+        if (isDetails) {
           const viewport = host.closest<HTMLElement>('.wrapper');
-          if (index >= 0 && viewport) {
-            const headerHeight = viewport.querySelector<HTMLElement>('.detail-native-table thead')?.getBoundingClientRect().height ?? 0;
+          if (!viewport) return;
+          const header = viewport.querySelector<HTMLElement>('.detail-native-table thead');
+          const headerBottom = header?.getBoundingClientRect().bottom ?? viewport.getBoundingClientRect().top;
+          const viewportBottom = viewport.getBoundingClientRect().bottom;
+          if (rendered) {
+            // scrollIntoView({ block: 'nearest' }) treats the sticky table header
+            // as part of the visible area, so a row hidden underneath it is not
+            // scrolled. Compare against the header's bottom edge explicitly.
+            const rowRect = rendered.getBoundingClientRect();
+            if (rowRect.top < headerBottom) {
+              viewport.scrollTop -= headerBottom - rowRect.top;
+            } else if (rowRect.bottom > viewportBottom) {
+              viewport.scrollTop += rowRect.bottom - viewportBottom;
+            }
+            return;
+          }
+          // The target may be outside the currently rendered virtual window.
+          // Move the scrollport to its sorted row position; the virtual window
+          // will then render that row on the next scroll update.
+          const index = this.sortedDetailImages().findIndex(image => image.path === selectedPath);
+          if (index >= 0) {
+            const headerHeight = header?.getBoundingClientRect().height ?? 0;
             viewport.scrollTop = headerHeight + index * this.detailVirtualRowHeight();
           }
+          return;
         }
+        if (rendered) rendered.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }, { injector: this.injector });
     });
 
