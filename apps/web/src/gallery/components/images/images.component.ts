@@ -807,9 +807,18 @@ export class ImagesComponent {
       const next = images[nextIndex];
       this.activeSelectionPath.set(next.path);
       queueMicrotask(() => {
-        const elements = (this.elementRef.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-image-path]');
-        Array.from(elements).find(element => element.dataset['imagePath'] === next.path)
-          ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        const host = this.elementRef.nativeElement as HTMLElement;
+        const elements = host.querySelectorAll<HTMLElement>('[data-image-path]');
+        const rendered = Array.from(elements).find(element => element.dataset['imagePath'] === next.path);
+        if (rendered) {
+          rendered.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          return;
+        }
+        const viewport = host.closest<HTMLElement>('.wrapper');
+        if (viewport && (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')) {
+          const headerHeight = viewport.querySelector<HTMLElement>('.detail-native-table thead')?.getBoundingClientRect().height ?? 0;
+          viewport.scrollTop = headerHeight + nextIndex * this.detailVirtualRowHeight();
+        }
       });
       return;
     }
@@ -976,7 +985,7 @@ export class ImagesComponent {
       await this.cacheManager.registerGalleryFiles(rootPath, rootFiles);
       const allFiles: FileInfo[] = [...rootFiles];
       const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
-      const gpxFiles: string[] = importGpx ? rootFiles.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path) : [];
+      const gpxFiles: string[] = [];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
       let enumerationComplete = true;
