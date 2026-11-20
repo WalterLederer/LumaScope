@@ -14,7 +14,7 @@ html body app-map-window .map-window .offline-row-action-menu {
   background: var(--color-surface-default-highest, #303238) !important;
   background-color: var(--color-surface-default-highest, #303238) !important;
   border: 1px solid var(--color-content-default-low, #666) !important;
-  border-radius: 7px !important; box-shadow: 0 2px 7px rgb(0 0 0 / 15%) !important;
+  border-radius: 7px !important; box-shadow: var(--lumascope-surface-shadow) !important;
 }
 html body .gpx-row-action-menu button,
 html body .detail-row-action-menu button,
@@ -117,6 +117,7 @@ html body :is(button, span, ui-action-button).file-row-menu-trigger[aria-expande
 
 /* Shared table grid: the Offline list is the reference for every data table. */
 :root {
+  --lumascope-surface-shadow: 0 2px 7px rgb(0 0 0 / 15%);
   --lumascope-table-line-width: 1px;
   --lumascope-table-line-color: var(--color-content-default-low, #454545);
 }
