@@ -115,7 +115,8 @@
     align-self: stretch;
     box-sizing: border-box;
     justify-self: center;
-    border-right: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+    /* The native table cell owns the column divider; do not draw a second,
+       independently positioned divider around the thumbnail preview. */
     border-radius: 3px;
     background: var(--color-surface-default-medium);
   }
