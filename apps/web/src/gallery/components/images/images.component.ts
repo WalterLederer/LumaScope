@@ -86,19 +86,19 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--thumb-height.px]': 'dimensions().height',
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
     '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
-    '[style.--detail-date-progress-color]': 'detailPreferenceDraft().date',
-    '[style.--detail-gps-date-progress-color]': 'detailPreferenceDraft().gpsDate',
-    '[style.--detail-dimensions-progress-color]': 'detailPreferenceDraft().dimensions',
-    '[style.--detail-size-progress-color]': 'detailPreferenceDraft().size',
-    '[style.--detail-selected-row-color]': 'detailPreferenceDraft().selectedRow',
-    '[style.--detail-odd-row-color]': 'detailPreferenceDraft().oddRow',
-    '[style.--detail-even-row-color]': 'detailPreferenceDraft().evenRow',
-    '[style.--detail-progress-opacity]': 'detailPreferenceDraft().progressOpacity + "%"',
-    '[class.detail-alternate-rows]': 'detailPreferenceDraft().alternateRows',
-    '[class.detail-progress-date-disabled]': '!detailPreferenceDraft().dateProgressEnabled',
-    '[class.detail-progress-gps-date-disabled]': '!detailPreferenceDraft().gpsDateProgressEnabled',
-    '[class.detail-progress-dimensions-disabled]': '!detailPreferenceDraft().dimensionsProgressEnabled',
-    '[class.detail-progress-size-disabled]': '!detailPreferenceDraft().sizeProgressEnabled'
+    '[style.--detail-date-progress-color]': 'detailPreferenceValues().date',
+    '[style.--detail-gps-date-progress-color]': 'detailPreferenceValues().gpsDate',
+    '[style.--detail-dimensions-progress-color]': 'detailPreferenceValues().dimensions',
+    '[style.--detail-size-progress-color]': 'detailPreferenceValues().size',
+    '[style.--detail-selected-row-color]': 'detailPreferenceValues().selectedRow',
+    '[style.--detail-odd-row-color]': 'detailPreferenceValues().oddRow',
+    '[style.--detail-even-row-color]': 'detailPreferenceValues().evenRow',
+    '[style.--detail-progress-opacity]': 'detailPreferenceValues().progressOpacity + "%"',
+    '[class.detail-alternate-rows]': 'detailPreferenceValues().alternateRows',
+    '[class.detail-progress-date-disabled]': '!detailPreferenceValues().dateProgressEnabled',
+    '[class.detail-progress-gps-date-disabled]': '!detailPreferenceValues().gpsDateProgressEnabled',
+    '[class.detail-progress-dimensions-disabled]': '!detailPreferenceValues().dimensionsProgressEnabled',
+    '[class.detail-progress-size-disabled]': '!detailPreferenceValues().sizeProgressEnabled'
   }
 })
 export class ImagesComponent {
