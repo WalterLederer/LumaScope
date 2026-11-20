@@ -696,7 +696,16 @@
   margin: 0 !important;
 }
 .detail-native-table .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
-.detail-native-table .detail-thumb { width: var(--detail-thumb-width, 36px); padding: 2px; text-align: center; }
+/* The thumbnail cell must fill its grid track. A fixed image-width on the
+   cell itself pulled its right border left of the header's Thumb boundary. */
+.detail-native-table .detail-thumb {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 2px;
+  text-align: center;
+}
 .detail-native-table .detail-thumb img { display: block; max-width: 100%; max-height: var(--detail-thumb-height, 27px); object-fit: contain; margin: 0 auto; }
 .detail-native-table .detail-thumb-empty { padding: 0; }
 .detail-native-table .detail-name { color: var(--color-content-primary-high); font-weight: 600; }
