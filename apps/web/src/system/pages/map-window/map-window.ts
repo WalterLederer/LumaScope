@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { SliderComponent } from '@light-matter/ui';
+import { SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { GpxDatabaseImportComponent } from './gpx-database-import.component';
 import { GpxTrackPreviewComponent } from './gpx-track-preview.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
@@ -113,7 +113,9 @@ interface MapErrorEntry {
 @Component({
   selector: 'app-map-window',
   standalone: true,
-  imports: [SliderComponent, GpxDatabaseImportComponent, GpxTrackPreviewComponent],
+  imports: [SliderComponent, GpxDatabaseImportComponent, GpxTrackPreviewComponent ,
+    ButtonTooltipDirective
+  ],
   host: { '[class.overlay-mode]': 'overlayMode' },
   templateUrl: './map-window.html',
   changeDetection: ChangeDetectionStrategy.OnPush
