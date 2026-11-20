@@ -804,7 +804,8 @@ export class ImageView {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     if (tab === 'gallery') this.browseWorkspaceInitialized.set(true);
     this.activeImageSidebarTab.set(tab);
-    if (tab === 'gallery') this.galleryCacheBuild.refreshDetailCacheStatus();
+    // Browse stays mounted after first use; its cache statistics already react to
+    // image and cache revisions, so reopening the tab must not force a full refresh.
     if (tab === 'image' && this.activeImageSubTab() === 'cache') {
       this.refreshCurrentImageCache();
       void this.loadPhotoDatabaseRecord();
