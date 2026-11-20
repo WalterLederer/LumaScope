@@ -918,13 +918,13 @@
 /* Keep the final row opaque so the table surface shows through the rounded
    lower corners instead of exposing a transparent gap at the bottom-right. */
 .detail-native-table > tbody.images.details-list > tr:last-child {
-  background: #fff !important;
-  background-color: #fff !important;
+  background: var(--detail-odd-row-color, #fff) !important;
+  background-color: var(--detail-odd-row-color, #fff) !important;
 }
 
-.detail-native-table > tbody.images.details-list > tr:last-child:nth-child(even) {
-  background: #f5f5f5 !important;
-  background-color: #f5f5f5 !important;
+.detail-alternate-rows .detail-native-table > tbody.images.details-list > tr:last-child:nth-child(even) {
+  background: var(--detail-even-row-color, #f5f5f5) !important;
+  background-color: var(--detail-even-row-color, #f5f5f5) !important;
 }
 
 .detail-native-table > tbody.images.details-list > tr:last-child > td:first-child {
