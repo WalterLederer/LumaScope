@@ -99,12 +99,12 @@
   font-weight: 700;
 
   &.cache-build-active {
-    background: color-mix(in srgb, var(--color-accent-default, #8a5a12) 88%, black);
+    background: #2b0508;
 
     > th,
     > .detail-column-heading {
-      background: color-mix(in srgb, var(--color-accent-default, #8a5a12) 88%, black) !important;
-      background-color: color-mix(in srgb, var(--color-accent-default, #8a5a12) 88%, black) !important;
+      background: #2b0508 !important;
+      background-color: #2b0508 !important;
       background-image: none !important;
       color: var(--color-content-on-accent, #fff) !important;
     }
@@ -454,8 +454,8 @@
 /* The native table header has an opaque Canvas background by default. Override it
    explicitly while a folder cache run is active so every header cell is highlighted. */
 .detail-native-table thead tr.detail-header.cache-build-active > th {
-  background: color-mix(in srgb, var(--color-accent-default, #8a5a12) 88%, black) !important;
-  background-color: color-mix(in srgb, var(--color-accent-default, #8a5a12) 88%, black) !important;
+  background: #2b0508 !important;
+  background-color: #2b0508 !important;
   background-image: none !important;
   color: var(--color-content-on-accent, #fff) !important;
 }
