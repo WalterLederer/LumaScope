@@ -26,6 +26,8 @@ export class GalleryState {
   private readonly selectedLocation$ = new BehaviorSubject<string | null>(null);
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
+  private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
+  private readonly includeFilesRecursive$ = new BehaviorSubject(false);
 
   private readonly sortMode$ = new BehaviorSubject<SortMode>(defaultSortMode());
 
@@ -93,6 +95,22 @@ export class GalleryState {
   readonly thumbSize = () => this.thumbSize$;
 
   readonly images = () => this.images$.asObservable();
+  readonly includeUnsupportedFiles = () => this.includeUnsupportedFiles$.asObservable();
+  readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
+
+  readonly setIncludeUnsupportedFiles = (value: boolean): void => {
+    if (this.includeUnsupportedFiles$.value === value) return;
+    this.includeUnsupportedFiles$.next(value);
+    const path = this.selectedLocation$.value;
+    if (path) this.navigateTo(path).subscribe();
+  };
+
+  readonly setIncludeFilesRecursive = (value: boolean): void => {
+    if (this.includeFilesRecursive$.value === value) return;
+    this.includeFilesRecursive$.next(value);
+    const path = this.selectedLocation$.value;
+    if (path) this.navigateTo(path).subscribe();
+  };
 
   readonly galleryRoot = () => this.galleryRoot$;
 
@@ -109,7 +127,7 @@ export class GalleryState {
       .pipe(
         take(1),
         switchMap(sortMode => {
-          return defer(() => this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir));
+          return defer(() => this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir, this.includeUnsupportedFiles$.value, this.includeFilesRecursive$.value));
         }),
         tap(response => {
           this.images$.next(response.success ? response.data : []);
