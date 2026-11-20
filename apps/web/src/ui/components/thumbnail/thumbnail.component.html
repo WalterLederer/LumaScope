@@ -32,6 +32,7 @@
   <td class="detail-full-size" [class.cache-valid]="fullSizeConversionLabel() === '✓'">{{ fullSizeConversionLabel() }}</td>
   <td class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</td>
   <td class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</td>
+  <td class="detail-path" [title]="detailPath()">{{ detailPath() || '.' }}</td>
   <td class="detail-actions">
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             (click)="toggleRowActionMenu($event)"
