@@ -2331,7 +2331,6 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpsSaveStatus.set(deviationMeters <= 0.01
         ? 'GPS position saved and verified. File position matches the crosshair (' + deviationMeters.toFixed(3) + ' m deviation).'
         : 'GPS position saved, but differs from the crosshair by ' + deviationMeters.toFixed(2) + ' m. Selected: ' + selectedText + ' | File: ' + storedText);
-      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     } catch (error) {
       this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
