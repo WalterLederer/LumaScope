@@ -699,7 +699,7 @@
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
-.detail-native-table .detail-actions { width: 28px; padding: 2px; overflow: visible; text-align: center; }
+.detail-native-table .detail-actions { width: 28px; min-width: 28px; padding: 2px; overflow: visible; text-align: center; background: var(--color-surface-default-low, #fff) !important; }
 .detail-native-table .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
 .detail-native-table .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
 .detail-native-table .detail-thumb { width: var(--detail-thumb-width, 36px); padding: 2px; text-align: center; }
@@ -708,7 +708,9 @@
 .detail-native-table .detail-name { color: var(--color-content-primary-high); font-weight: 600; }
 .detail-native-table .detail-suffix { margin-left: 0; }
 .detail-native-table .detail-gps,
-.detail-native-table .detail-location { overflow: hidden; text-overflow: ellipsis; }
+.detail-native-table .detail-location,
+.detail-native-table .detail-path { overflow: hidden; text-overflow: ellipsis; }
+.detail-native-table .detail-path { white-space: nowrap; }
 
 .detail-native-table .detail-header {
   display: grid;
@@ -870,6 +872,7 @@
 
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   padding: 0 !important;
+  background: var(--color-surface-default-low, #fff) !important;
 }
 
 
@@ -968,6 +971,7 @@
 
 /* Folder-wide actions live in the first header row, not in individual file menus. */
 .detail-header-labels > .folder-actions-heading {
+  background: var(--color-surface-default-low, #fff) !important;
   position: relative;
   display: flex;
   align-items: center;
