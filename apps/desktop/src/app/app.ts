@@ -15,7 +15,7 @@ export default class App {
   static mainWindow: Electron.BrowserWindow;
   static mapWindow: Electron.BrowserWindow | null = null;
   static mapOverlayWindow: Electron.BrowserWindow | null = null;
-  static mapWindowLocation: { latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null } = { latitude: null, longitude: null, bearing: null, imagePath: null, folderPath: null };
+  static mapWindowLocation: { latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null; recursive: boolean } = { latitude: null, longitude: null, bearing: null, imagePath: null, folderPath: null, recursive: false };
   static capturePreviewWindow: Electron.BrowserWindow | null = null;
   private static mapBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -516,7 +516,7 @@ export default class App {
     return App.focusWindow(App.mapWindow);
   }
 
-  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null): boolean {
+  static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean): boolean {
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
@@ -530,10 +530,10 @@ export default class App {
     // Opening Location without a selected image must retain the last known map
     // position instead of resetting the detached map to its default center.
     App.mapWindowLocation = hasCoordinates
-      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath }
+      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive }
       : hasPreviousCoordinates
-        ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath }
-        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath };
+        ? { latitude: previousLocation.latitude, longitude: previousLocation.longitude, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive }
+        : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: folderPath === undefined ? previousLocation.folderPath : folderPath, recursive: recursive === undefined ? previousLocation.recursive : recursive };
     const location = App.mapWindowLocation;
     const hasResolvedCoordinates = Number.isFinite(location.latitude) && Number.isFinite(location.longitude);
     if (App.isMapOverlayWindowOpen()) App.mapOverlayWindow.webContents.send('MapWindow.locationChanged', location);
@@ -578,7 +578,8 @@ export default class App {
       ...(hasResolvedCoordinates ? [`lat=${encodeURIComponent(location.latitude!)}`, `lon=${encodeURIComponent(location.longitude!)}`] : []),
       ...(Number.isFinite(location.bearing) ? [`bearing=${encodeURIComponent(location.bearing!)}`] : []),
       ...(imagePath ? [`imagePath=${encodeURIComponent(imagePath)}`] : []),
-      ...(location.folderPath ? [`folderPath=${encodeURIComponent(location.folderPath)}`] : [])
+      ...(location.folderPath ? [`folderPath=${encodeURIComponent(location.folderPath)}`] : []),
+      ...(location.recursive ? ['recursive=true'] : [])
     ].join('&');
     const hash = `/map${query ? `?${query}` : ''}`;
     if (!App.application.isPackaged) {
