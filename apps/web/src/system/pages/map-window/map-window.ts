@@ -2261,10 +2261,20 @@ export class MapWindow implements OnInit, OnDestroy {
     this.coordinateLabel.set(this.formatCoordinates(latitude!, longitude!));
     this.photoCoordinateLabel.set(this.formatCoordinates(latitude!, longitude!).replace(/^Coordinates: /, 'Photo: '));
     this.photoGpsCoordinates.set(this.formatManualGpsPosition(latitude!, longitude!));
-    this.marker?.setLatLng([latitude!, longitude!]);
-    this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
-    this.offlineRenderer?.updateCurrentLocation(latitude!, longitude!);
-    this.offlineRenderer?.setCurrentOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
+    const markerOpacity = this.locationVisible() ? this.locationOpacity() / 100 : 0;
+    if (this.offlineRenderer) {
+      // updateCurrentLocation only moves an existing overlay; setCurrentLocation
+      // also creates the marker when the previous image had no GPS position.
+      this.offlineRenderer.setCurrentLocation(latitude!, longitude!, this.currentMarkerColor(), markerOpacity, this.currentMarkerShape());
+    } else if (this.map && this.leaflet) {
+      if (this.marker) {
+        this.marker.setLatLng([latitude!, longitude!]);
+      } else {
+        this.marker = this.leaflet.marker([latitude!, longitude!], { icon: this.createCurrentLocationIcon() }).addTo(this.map);
+      }
+      this.marker.setOpacity(markerOpacity);
+    }
+    this.applyCurrentPhotoVisibility();
     this.locationAddress.set('Looking up address…');
     void this.lookupLocationAddress(latitude!, longitude!);
   }
