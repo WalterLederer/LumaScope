@@ -142,7 +142,17 @@ ui-toolbar {
     gap: 8px;
     margin-left: 4px;
 
-    input {
+    input[type="checkbox"] {
+      width: 16px;
+      min-width: 16px;
+      height: 16px;
+      margin: 0;
+      flex: 0 0 16px;
+      accent-color: var(--color-accent-default, #287fc4);
+      cursor: pointer;
+    }
+
+    input[type="search"] {
       width: 190px;
       min-width: 120px;
       height: 30px;
