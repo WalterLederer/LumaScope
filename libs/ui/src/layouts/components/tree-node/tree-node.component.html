@@ -1,6 +1,20 @@
 @let currentNode = node();
 @let currentMenu = menu();
 
+@if (currentMenu !== null && (inlineActions() || currentNode.hideMenu !== true)) {
+  @if (rowNumber() !== null) {
+    <span class="tree-row-number" aria-hidden="true">{{ rowNumber() }}</span>
+  }
+  <button type="button"
+          class="file-row-menu-trigger tree-row-menu-trigger"
+          [cdkMenuTriggerFor]="currentMenu"
+          [cdkMenuTriggerData]="{ data: currentNode }"
+          [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
+          aria-haspopup="menu"
+          title="Actions"
+          uiStopPropagation>☰</button>
+}
+
 @if (currentNode.hasChildren === true) {
   <span class="expand-indicator" [class.expanded]="currentNode.isOpen === true" aria-hidden="true"></span>
 } @else {
@@ -16,20 +30,7 @@
 @if (inlineActions() && level() === 1 && reorderActions()) {
   <button type="button" class="tree-reorder-action" [disabled]="currentNode.canMoveUp === false" aria-label="Move favorite up" title="Move up" (click)="onMove($event, 'up')" uiStopPropagation>↑</button>
   <button type="button" class="tree-reorder-action" [disabled]="currentNode.canMoveDown === false" aria-label="Move favorite down" title="Move down" (click)="onMove($event, 'down')" uiStopPropagation>↓</button>
-  @if (currentMenu !== null) {
-    <button type="button" class="file-row-menu-trigger" [cdkMenuTriggerFor]="currentMenu" [cdkMenuTriggerData]="{ data: currentNode }" [attr.aria-label]="'Favourite actions for ' + currentNode.label" aria-haspopup="menu" title="Actions" uiStopPropagation>☰</button>
-  }
 } @else if (inlineActions() && level() <= 1 && currentMenu !== null) {
-  <button type="button"
-          class="file-row-menu-trigger"
-          [cdkMenuTriggerFor]="currentMenu"
-          [cdkMenuTriggerData]="{ data: currentNode }"
-          [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
-          aria-haspopup="menu"
-          title="Actions"
-          uiStopPropagation>
-    ☰
-  </button>
 } @else if (inlineActions() && level() <= 1) {
   <button type="button"
           class="tree-inline-action"
@@ -38,10 +39,4 @@
           (click)="onAction($event)"
           uiStopPropagation>{{ isRootNode() ? '+' : 'x' }}</button>
 } @else if (currentMenu !== null && currentNode.hideMenu !== true) {
-  <ui-action-button class="action file-row-menu-trigger"
-                    [cdkMenuTriggerFor]="currentMenu"
-                    [cdkMenuTriggerData]="{ data: currentNode }"
-                    uiStopPropagation>
-    <ui-icon icon="moreVertical" [inherit]="true" />
-  </ui-action-button>
 }
