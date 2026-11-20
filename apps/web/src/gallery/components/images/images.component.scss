@@ -1265,3 +1265,9 @@
   border-color: var(--color-accent-default, #287fc4);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-default, #287fc4) 18%, transparent);
 }
+
+
+.detail-native-table thead .detail-name-filter input[type="search"]::placeholder {
+  color: #999;
+  opacity: 1;
+}
