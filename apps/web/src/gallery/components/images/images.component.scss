@@ -1511,6 +1511,10 @@
   content: none !important;
   display: none !important;
 }
+.detail-native-table > thead > tr > th {
+  display: table-cell !important;
+  vertical-align: middle !important;
+}
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   height: 46px !important;
