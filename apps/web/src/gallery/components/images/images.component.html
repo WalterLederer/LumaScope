@@ -92,7 +92,8 @@
             <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
             @if (cacheFolderActionActive()) {
               <small class="worker-progress cache-folder-action-progress" aria-live="polite">
-                <span>Cache folder action is running · {{ cacheFolderActionProgress().completed }} / {{ cacheFolderActionProgress().total }}</span>
+                <span class="cache-folder-action-label">Cache folder action is running</span>
+                <span class="cache-folder-action-count">{{ cacheFolderActionProgress().completed }} / {{ cacheFolderActionProgress().total }}</span>
                 <button type="button" class="cache-folder-action-stop" (click)="stopCacheFolderAction()" aria-label="Stop cache folder action" title="Stop cache folder action">Stop</button>
               </small>
             }
