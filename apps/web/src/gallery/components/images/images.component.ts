@@ -345,6 +345,49 @@ export class ImagesComponent {
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
 
+  readonly folderActionsMenuOpen = signal(false);
+
+  protected toggleFolderActionsMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.folderActionsMenuOpen.update(open => !open);
+  }
+
+  @HostListener('document:click')
+  protected closeFolderActionsMenu(): void {
+    this.folderActionsMenuOpen.set(false);
+  }
+
+  protected autofitDetailColumns(): void {
+    this.folderActionsMenuOpen.set(false);
+    const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
+    if (!table) return;
+    const context = table.ownerDocument.createElement('canvas').getContext('2d');
+    if (!context) return;
+
+    const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead tr.detail-header-labels > th'));
+    const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody.images > tr'));
+    const widths: Record<number, number> = {};
+    widths[0] = 0;
+
+    for (let column = 1; column <= 11; column++) {
+      let maximum = 40;
+      const cells = [headers[column], ...rows.map(row => row.children.item(column) as HTMLElement | null)];
+      for (const cell of cells) {
+        if (!cell) continue;
+        const style = table.ownerDocument.defaultView?.getComputedStyle(cell);
+        context.font = style?.font ?? '12px sans-serif';
+        const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim();
+        if (text) maximum = Math.max(maximum, context.measureText(text).width + 24);
+        const title = cell.getAttribute('title') ?? '';
+        if (title) maximum = Math.max(maximum, context.measureText(title).width + 24);
+      }
+      widths[column] = Math.min(1600, Math.ceil(maximum));
+    }
+
+    this.detailColumnWidths.set(widths);
+    this.saveDetailColumnWidths();
+  }
+
   private saveDetailColumnWidths(): void {
     try {
       if (typeof localStorage !== 'undefined') {
