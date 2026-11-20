@@ -299,6 +299,21 @@
 :host(.view-details) > .detail-actions .detail-row-menu-trigger,
 :host(.view-details-no-thumbnails) > .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
 
+/* Show the absolute list position above each row's hamburger menu.
+   The row number comes from the virtual-list index, so scrolling does not
+   restart numbering at the first rendered row. */
+:host(.view-details) > .detail-actions::before,
+:host(.view-details-no-thumbnails) > .detail-actions::before {
+  content: attr(data-row-number);
+  display: block;
+  margin: 0 auto 1px;
+  color: var(--color-content-default-medium, #555);
+  font-size: 10px;
+  line-height: 11px;
+  font-weight: 400;
+  text-align: center;
+}
+
 /* The row must rise above following rows while its fixed menu is open. */
 :host(.view-details.row-action-menu-open),
 :host(.view-details-no-thumbnails.row-action-menu-open) {
