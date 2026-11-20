@@ -1023,11 +1023,18 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    list-style: none;
+    list-style: none !important;
+    -webkit-appearance: none;
+    appearance: none;
     user-select: none;
   }
-  > summary::marker { content: ""; }
-  > summary::-webkit-details-marker { display: none; }
+  /* Hide the browser's native disclosure marker; the custom chevron below
+     is the only open/close indicator for every preferences section. */
+  > summary::marker {
+    content: "";
+    display: none;
+  }
+  > summary::-webkit-details-marker { display: none !important; }
   > summary::before {
     content: "›";
     display: inline-block;
