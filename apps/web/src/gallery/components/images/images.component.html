@@ -20,6 +20,7 @@
       [style.--detail-col-12-width.px]="detailColumnWidths()[12]">
 
       <colgroup>
+        <col style="width:28px">
         <col style="width:max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))">
         <col style="width:var(--detail-col-1-width,210px)">
         <col style="width:var(--detail-col-2-width,150px)">
@@ -33,10 +34,29 @@
         <col style="width:var(--detail-col-10-width,150px)">
         <col style="width:var(--detail-col-11-width,240px)">
         <col style="width:var(--detail-col-12-width,220px)">
-        <col style="width:28px">
       </colgroup>
       <thead>
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()" [class.folder-actions-open]="folderActionsMenuOpen()">
+          <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
+            <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
+                    (click)="toggleFolderActionsMenu($event)"
+                    [attr.aria-expanded]="folderActionsMenuOpen()"
+                    aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
+            @if (folderActionsMenuOpen()) {
+              <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
+                <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+                <div class="gpx-row-action-menu-separator" role="separator"></div>
+                <button type="button" class="gallery-menu-item" role="menuitem" (click)="openDetailPreferences()"><span aria-hidden="true">⚙</span> Preferences</button>
+              </div>
+            }
+          </th>
           <th class="thumb-column-heading" scope="col">
             <span>Thumb</span>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail column" (pointerdown)="startColumnResize($event, 0)" (dblclick)="autofitDetailColumn($event, 0)"></span>
@@ -89,28 +109,9 @@
             <button type="button" (click)="sortDetailBy('path')">@if (detailSortAriaSort('path') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('path') }}</span>}<span class="sort-label">Path</span></button>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize path column" (pointerdown)="startColumnResize($event, 12)" (dblclick)="autofitDetailColumn($event, 12)"></span>
           </th>
-          <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
-            <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
-                    (click)="toggleFolderActionsMenu($event)"
-                    [attr.aria-expanded]="folderActionsMenuOpen()"
-                    aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
-            @if (folderActionsMenuOpen()) {
-              <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
-                <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
-                <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
-                <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
-                <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" (click)="openDetailPreferences()"><span aria-hidden="true">⚙</span> Preferences</button>
-              </div>
-            }
-          </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
+          <th class="detail-actions-statistics" scope="col"></th>
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
             <small class="column-count">{{ cacheStats().total }}</small>
@@ -148,7 +149,6 @@
             }
           </th>
           <th scope="col"></th>
-          <th class="detail-actions-statistics" scope="col"></th>
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
@@ -159,6 +159,7 @@
           <tr app-thumbnail class="detail-virtual-row" [attr.data-image-path]="image.path" [attr.data-row-number]="detailVirtualStart() + rowIndex + 1" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-virtual-even]="(detailVirtualStart() + rowIndex) % 2 === 1" [class.detail-virtual-odd]="(detailVirtualStart() + rowIndex) % 2 === 0" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()"
               [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                [detailProgress]="detailProgressByPath().get(image.path) ?? null"
+              [rowNumber]="detailVirtualStart() + rowIndex + 1"
               (metadataLoaded)="onDetailMetadataLoaded(image.path, $event)"
               [cacheStatusLoading]="cacheStatusLoading()"
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
