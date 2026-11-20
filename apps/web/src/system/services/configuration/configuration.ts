@@ -160,7 +160,7 @@ export class Configuration {
         galleryDetailGpsDateProgressEnabled: true,
         galleryDetailDimensionsProgressEnabled: true,
         galleryDetailSizeProgressEnabled: true,
-        galleryDetailProgressTransparency: 22
+        galleryDetailProgressTransparency: 78
       }
     };
   };
