@@ -368,6 +368,16 @@ export class ImagesComponent {
     this.copyFolderPathRequested.emit();
   }
 
+  protected requestCacheDisplayedFiles(): void {
+    this.folderActionsMenuOpen.set(false);
+    void this.cacheDisplayedFiles();
+  }
+
+  protected requestReCacheDisplayedFiles(): void {
+    this.folderActionsMenuOpen.set(false);
+    this.reCacheDisplayedFiles();
+  }
+
   protected autofitDetailColumns(): void {
     this.folderActionsMenuOpen.set(false);
     const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
