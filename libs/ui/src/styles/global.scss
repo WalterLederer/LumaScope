@@ -515,6 +515,35 @@ details.app-disclosure,
   color: var(--color-content-default-high);
 }
 
+/* Force native summaries to use only the single application-drawn marker. */
+details > summary,
+details.app-disclosure > summary,
+.app-disclosure > summary {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  list-style: none !important;
+}
+details > summary::-webkit-details-marker,
+details.app-disclosure > summary::-webkit-details-marker,
+.app-disclosure > summary::-webkit-details-marker {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  font-size: 0 !important;
+}
+details > summary::marker,
+details.app-disclosure > summary::marker,
+.app-disclosure > summary::marker {
+  content: "" !important;
+  display: none !important;
+  font-size: 0 !important;
+}
+details > summary::after,
+details.app-disclosure > summary::after,
+.app-disclosure > summary::after {
+  content: none !important;
+}
+
 /* Use one CSS-drawn disclosure marker for consistent size across browsers. */
 details > summary,
 details.app-disclosure > summary,
