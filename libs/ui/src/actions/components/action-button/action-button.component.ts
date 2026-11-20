@@ -1,3 +1,4 @@
+import { ButtonTooltipDirective } from '../../../dom/directives/button-tooltip.directive';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { allSizes, Size } from '../../../content/types/size.types';
 import { allVariants, Variant } from '../../../content/types/variant.types';
@@ -5,7 +6,9 @@ import { allButtonTypes, ButtonType } from '../../types/button.types';
 
 @Component({
   selector: 'ui-action-button',
-  imports: [],
+  imports: [ ,
+    ButtonTooltipDirective
+  ],
   templateUrl: './action-button.component.html',
   styleUrl: './action-button.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
