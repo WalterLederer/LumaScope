@@ -217,6 +217,10 @@
   display: flex;
   align-items: center;
 }
+:host(.view-details) > .detail-date,
+:host(.view-details-no-thumbnails) > .detail-date,
+:host(.view-details) > .detail-gps-date,
+:host(.view-details-no-thumbnails) > .detail-gps-date,
 :host(.view-details) > .detail-suffix,
 :host(.view-details-no-thumbnails) > .detail-suffix,
 :host(.view-details) > .detail-dynamic-range,
