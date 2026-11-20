@@ -1104,17 +1104,21 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getInterpolatedPhotoGpsPosition' })
   readonly getInterpolatedPhotoGpsPosition = async (
-    _event: IpcMainInvokeEvent, timestampMs: number, requestedDatabaseKey: string
+    _event: IpcMainInvokeEvent, sourceName: string, timestampMs: number, requestedDatabaseKey: string
   ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
-    if (!Number.isFinite(timestampMs) || !/^[a-z]:$/i.test(requestedDatabaseKey)) return null;
+    if (!sourceName || !Number.isFinite(timestampMs) || !/^[a-z]:$/i.test(requestedDatabaseKey)) return null;
     const databaseKey = requestedDatabaseKey.toUpperCase();
     const db = this.databaseForPath(databaseKey + '\\');
+    const targetFolder = this.toRelativeFolderPath(dirname(sourceName), databaseKey) ?? '';
+    const targetFile = basename(sourceName);
     const timestamp = Math.floor(timestampMs / 1000);
     const windowSeconds = 86_400;
     const parameters = {
       timestamp,
       minimum: timestamp - windowSeconds,
-      maximum: timestamp + windowSeconds
+      maximum: timestamp + windowSeconds,
+      targetFolder,
+      targetFile
     };
     const before = db.prepare(`SELECT photos.gps_timestamp, photos.latitude, photos.longitude,
         photos.file_name, paths.relative_folder_path
@@ -1122,6 +1126,7 @@ export class CacheManager {
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.gps_timestamp IS NOT NULL
         AND photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND NOT (paths.relative_folder_path = :targetFolder COLLATE NOCASE AND photos.file_name = :targetFile COLLATE NOCASE)
         AND photos.gps_timestamp BETWEEN :minimum AND :timestamp
       ORDER BY photos.gps_timestamp DESC, photos.id DESC
       LIMIT 1`).get(parameters) as {
@@ -1134,6 +1139,7 @@ export class CacheManager {
       JOIN paths ON paths.id = photos.path_id
       WHERE photos.gps_timestamp IS NOT NULL
         AND photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND NOT (paths.relative_folder_path = :targetFolder COLLATE NOCASE AND photos.file_name = :targetFile COLLATE NOCASE)
         AND photos.gps_timestamp BETWEEN :timestamp AND :maximum
       ORDER BY photos.gps_timestamp ASC, photos.id ASC
       LIMIT 1`).get(parameters) as typeof before;
