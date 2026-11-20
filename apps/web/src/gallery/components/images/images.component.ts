@@ -37,20 +37,37 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
 
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location';
 
-type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow';
-interface DetailTableColors {
+type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow';
+type DetailTableProgressKey = 'date' | 'gpsDate' | 'dimensions' | 'size';
+interface DetailTablePreferences {
   date: string;
   gpsDate: string;
   dimensions: string;
   size: string;
   selectedRow: string;
+  oddRow: string;
+  evenRow: string;
+  alternateRows: boolean;
+  dateProgressEnabled: boolean;
+  gpsDateProgressEnabled: boolean;
+  dimensionsProgressEnabled: boolean;
+  sizeProgressEnabled: boolean;
+  progressOpacity: number;
 }
-const defaultDetailTableColors: DetailTableColors = {
+const defaultDetailTablePreferences: DetailTablePreferences = {
   date: '#d18b24',
   gpsDate: '#287fc4',
   dimensions: '#16a085',
   size: '#8e63ce',
-  selectedRow: '#d18b24'
+  selectedRow: '#d18b24',
+  oddRow: '#ffffff',
+  evenRow: '#f5f5f5',
+  alternateRows: true,
+  dateProgressEnabled: true,
+  gpsDateProgressEnabled: true,
+  dimensionsProgressEnabled: true,
+  sizeProgressEnabled: true,
+  progressOpacity: 22
 };
 
 @Component({
@@ -74,7 +91,15 @@ const defaultDetailTableColors: DetailTableColors = {
     '[style.--detail-gps-date-progress-color]': 'detailPreferenceColors().gpsDate',
     '[style.--detail-dimensions-progress-color]': 'detailPreferenceColors().dimensions',
     '[style.--detail-size-progress-color]': 'detailPreferenceColors().size',
-    '[style.--detail-selected-row-color]': 'detailPreferenceColors().selectedRow'
+    '[style.--detail-selected-row-color]': 'detailPreferenceDraft().selectedRow',
+    '[style.--detail-odd-row-color]': 'detailPreferenceDraft().oddRow',
+    '[style.--detail-even-row-color]': 'detailPreferenceDraft().evenRow',
+    '[style.--detail-progress-opacity]': 'detailPreferenceDraft().progressOpacity + "%"',
+    '[class.detail-alternate-rows]': 'detailPreferenceDraft().alternateRows',
+    '[class.detail-progress-date-disabled]': '!detailPreferenceDraft().dateProgressEnabled',
+    '[class.detail-progress-gps-date-disabled]': '!detailPreferenceDraft().gpsDateProgressEnabled',
+    '[class.detail-progress-dimensions-disabled]': '!detailPreferenceDraft().dimensionsProgressEnabled',
+    '[class.detail-progress-size-disabled]': '!detailPreferenceDraft().sizeProgressEnabled'
   }
 })
 export class ImagesComponent {
@@ -87,18 +112,26 @@ export class ImagesComponent {
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
   private readonly configuration = inject(Configuration);
   readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
-  readonly detailPreferenceColors = computed<DetailTableColors>(() => {
+  readonly detailPreferenceDraft = signal<DetailTablePreferences>({ ...defaultDetailTablePreferences });
+  readonly detailPreferencesOpen = signal(false);
+  readonly detailPreferenceValues = computed<DetailTablePreferences>(() => {
     const preferences = this.appConfig()?.preferences;
     return {
-      date: preferences?.galleryDetailDateProgressColor ?? defaultDetailTableColors.date,
-      gpsDate: preferences?.galleryDetailGpsDateProgressColor ?? defaultDetailTableColors.gpsDate,
-      dimensions: preferences?.galleryDetailDimensionsProgressColor ?? defaultDetailTableColors.dimensions,
-      size: preferences?.galleryDetailSizeProgressColor ?? defaultDetailTableColors.size,
-      selectedRow: preferences?.galleryDetailSelectedRowColor ?? defaultDetailTableColors.selectedRow
+      date: preferences?.galleryDetailDateProgressColor ?? defaultDetailTablePreferences.date,
+      gpsDate: preferences?.galleryDetailGpsDateProgressColor ?? defaultDetailTablePreferences.gpsDate,
+      dimensions: preferences?.galleryDetailDimensionsProgressColor ?? defaultDetailTablePreferences.dimensions,
+      size: preferences?.galleryDetailSizeProgressColor ?? defaultDetailTablePreferences.size,
+      selectedRow: preferences?.galleryDetailSelectedRowColor ?? defaultDetailTablePreferences.selectedRow,
+      oddRow: preferences?.galleryDetailOddRowColor ?? defaultDetailTablePreferences.oddRow,
+      evenRow: preferences?.galleryDetailEvenRowColor ?? defaultDetailTablePreferences.evenRow,
+      alternateRows: preferences?.galleryDetailAlternateRowColors ?? defaultDetailTablePreferences.alternateRows,
+      dateProgressEnabled: preferences?.galleryDetailDateProgressEnabled ?? defaultDetailTablePreferences.dateProgressEnabled,
+      gpsDateProgressEnabled: preferences?.galleryDetailGpsDateProgressEnabled ?? defaultDetailTablePreferences.gpsDateProgressEnabled,
+      dimensionsProgressEnabled: preferences?.galleryDetailDimensionsProgressEnabled ?? defaultDetailTablePreferences.dimensionsProgressEnabled,
+      sizeProgressEnabled: preferences?.galleryDetailSizeProgressEnabled ?? defaultDetailTablePreferences.sizeProgressEnabled,
+      progressOpacity: preferences?.galleryDetailProgressOpacity ?? defaultDetailTablePreferences.progressOpacity
     };
   });
-  readonly detailPreferencesOpen = signal(false);
-  readonly detailPreferenceDraft = signal<DetailTableColors>({ ...defaultDetailTableColors });
 
   private cacheStatusRequest = 0;
   private cacheAbortController: AbortController | null = null;
@@ -455,13 +488,21 @@ export class ImagesComponent {
 
   protected openDetailPreferences(): void {
     this.folderActionsMenuOpen.set(false);
-    this.detailPreferenceDraft.set({ ...this.detailPreferenceColors() });
+    this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
     this.detailPreferencesOpen.set(true);
   }
 
-  protected updateDetailPreference(key: DetailTableColorKey, value: string): void {
+  protected updateDetailPreferenceColor(key: DetailTableColorKey, value: string): void {
     if (!/^#[0-9a-fA-F]{6}$/.test(value)) return;
     this.detailPreferenceDraft.update(current => ({ ...current, [key]: value }));
+  }
+
+  protected updateDetailPreferenceToggle(key: 'alternateRows' | 'dateProgressEnabled' | 'gpsDateProgressEnabled' | 'dimensionsProgressEnabled' | 'sizeProgressEnabled', value: boolean): void {
+    this.detailPreferenceDraft.update(current => ({ ...current, [key]: value }));
+  }
+
+  protected updateDetailProgressOpacity(value: number): void {
+    this.detailPreferenceDraft.update(current => ({ ...current, progressOpacity: Math.max(0, Math.min(100, value)) }));
   }
 
   protected cancelDetailPreferences(): void {
@@ -469,16 +510,25 @@ export class ImagesComponent {
   }
 
   protected saveDetailPreferences(): void {
-    const colors = this.detailPreferenceDraft();
+    const preferences = this.detailPreferenceDraft();
     this.configuration.updatePreferencesConfig({
-      galleryDetailDateProgressColor: colors.date,
-      galleryDetailGpsDateProgressColor: colors.gpsDate,
-      galleryDetailDimensionsProgressColor: colors.dimensions,
-      galleryDetailSizeProgressColor: colors.size,
-      galleryDetailSelectedRowColor: colors.selectedRow
+      galleryDetailDateProgressColor: preferences.date,
+      galleryDetailGpsDateProgressColor: preferences.gpsDate,
+      galleryDetailDimensionsProgressColor: preferences.dimensions,
+      galleryDetailSizeProgressColor: preferences.size,
+      galleryDetailSelectedRowColor: preferences.selectedRow,
+      galleryDetailOddRowColor: preferences.oddRow,
+      galleryDetailEvenRowColor: preferences.evenRow,
+      galleryDetailAlternateRowColors: preferences.alternateRows,
+      galleryDetailDateProgressEnabled: preferences.dateProgressEnabled,
+      galleryDetailGpsDateProgressEnabled: preferences.gpsDateProgressEnabled,
+      galleryDetailDimensionsProgressEnabled: preferences.dimensionsProgressEnabled,
+      galleryDetailSizeProgressEnabled: preferences.sizeProgressEnabled,
+      galleryDetailProgressOpacity: preferences.progressOpacity
     });
     this.detailPreferencesOpen.set(false);
   }
+
 
   readonly folderActionsMenuOpen = signal(false);
   readonly folderActionsMenuPosition = signal({ top: 8, left: 8 });
