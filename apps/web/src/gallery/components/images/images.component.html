@@ -182,7 +182,7 @@
 
   @if (detailPreferencesOpen()) {
     <div class="detail-preferences-backdrop" (click)="cancelDetailPreferences()">
-      <section class="detail-preferences-dialog" role="dialog" aria-modal="true" aria-labelledby="detail-preferences-title" (click)="$event.stopPropagation()" (keydown.escape)="cancelDetailPreferences()">
+      <section class="detail-preferences-dialog" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="detail-preferences-title" (click)="$event.stopPropagation()" (keydown.escape)="cancelDetailPreferences()">
         <header class="detail-preferences-header">
           <h2 id="detail-preferences-title">Preferences</h2>
           <button type="button" class="detail-preferences-close" aria-label="Close preferences" (click)="cancelDetailPreferences()">×</button>
@@ -270,8 +270,8 @@
           </div>
         </details>
         <footer class="detail-preferences-actions">
-          <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()">Cancel</button>
-          <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()">OK</button>
+          <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()" (keydown)="onDetailPreferencesFooterKeydown($event)">Cancel</button>
+          <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()" (keydown)="onDetailPreferencesFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button>
         </footer>
       </section>
     </div>
