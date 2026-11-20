@@ -285,7 +285,10 @@
 :host(.view-details) > .detail-actions .detail-row-action-menu,
 :host(.view-details-no-thumbnails) > .detail-actions .detail-row-action-menu { position: fixed; z-index: 1000; }
 :host(.view-details) > .detail-actions .detail-row-menu-trigger,
-:host(.view-details-no-thumbnails) > .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
+:host(.view-details-no-thumbnails) > .detail-actions .detail-row-menu-trigger {
+  /* Keep the row hamburger on the same right inset as the column header. */
+  margin: 0 8px 0 auto !important;
+}
 
 /* Show the absolute list position above each row's hamburger menu.
    The row number comes from the virtual-list index, so scrolling does not
