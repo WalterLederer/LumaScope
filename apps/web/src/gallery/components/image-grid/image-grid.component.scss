@@ -79,7 +79,7 @@ ui-toolbar {
   flex: 0 0 auto;
   /* The toolbar host can now grow to include this vertical padding. */
   margin: 0 !important;
-  padding: 8px 0 !important;
+  padding: 8px 0 4px !important;
   box-sizing: border-box;
   min-width: max-content;
   align-items: center;
