@@ -1125,7 +1125,19 @@
 
 .detail-preferences-colors {
   display: grid;
+  width: 100%;
   gap: 10px;
+}
+
+.detail-preferences-colors > .detail-preference-color {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.detail-preferences-colors > .detail-preference-color input[type="color"] {
+  flex: 0 0 54px;
+  width: 54px;
+  margin-left: auto;
 }
 
 .detail-preferences-favorite-controls {
