@@ -88,27 +88,31 @@
   border-top: 2px solid color-mix(in srgb, var(--color-content-default-medium, currentColor) 55%, transparent);
 }
 
-/* Browse favorite hamburger actions occupy a fixed left-hand column.
-   The negative level offset keeps that column aligned while the folder label
-   and expand controls retain their normal tree indentation. */
+/* Keep the action controls in a real, fixed first column.
+   The negative/positive margins cancel the tree indentation for this column
+   while restoring that indentation before the expand and folder icons. */
 .tree-row-actions-column {
-  position: absolute;
-  left: calc(-1 * var(--level-offset, 0px));
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
+  inset: auto;
+  transform: none;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  width: 56px;
-  min-width: 56px;
+  justify-content: space-between;
+  flex: 0 0 72px;
+  width: 72px;
+  min-width: 72px;
+  box-sizing: border-box;
+  margin-left: calc(-1 * var(--level-offset, 0px));
+  margin-right: var(--level-offset, 0px);
+  padding-right: 8px;
+  gap: 4px;
 }
 .tree-row-number {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  flex: 0 0 16px;
-  width: 16px;
+  flex: 0 0 22px;
+  width: 22px;
   color: var(--color-content-default-medium, #aaa);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -122,5 +126,5 @@
   width: 24px;
   min-width: 24px;
   height: 24px;
-  margin: 0 2px 0 0 !important;
+  margin: 0 !important;
 }
