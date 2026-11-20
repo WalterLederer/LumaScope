@@ -1307,9 +1307,21 @@ export class ImagesComponent {
       if (!selectedPath || !images.some(image => image.path === selectedPath)) return;
       afterNextRender(() => {
         if (this.selectedImagePath() !== selectedPath) return;
-        const elements = (this.elementRef.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('[data-image-path]');
-        const selected = Array.from(elements).find(element => element.dataset['imagePath'] === selectedPath);
-        selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        const host = this.elementRef.nativeElement as HTMLElement;
+        const elements = host.querySelectorAll<HTMLElement>('[data-image-path]');
+        const rendered = Array.from(elements).find(element => element.dataset['imagePath'] === selectedPath);
+        if (rendered) {
+          rendered.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+          return;
+        }
+        if (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails') {
+          const index = this.sortedDetailImages().findIndex(image => image.path === selectedPath);
+          const viewport = host.closest<HTMLElement>('.wrapper');
+          if (index >= 0 && viewport) {
+            const headerHeight = viewport.querySelector<HTMLElement>('.detail-native-table thead')?.getBoundingClientRect().height ?? 0;
+            viewport.scrollTop = headerHeight + index * this.detailVirtualRowHeight();
+          }
+        }
       }, { injector: this.injector });
     });
 
