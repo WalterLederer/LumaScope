@@ -1407,25 +1407,32 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
-  readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string): Promise<PhotoLocation[]> => {
+  readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string, recursive = false): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
-    const entries = await readdir(directory, { withFileTypes: true });
-    const sourceNames = entries
-      .filter(entry => entry.isFile() || entry.isSymbolicLink())
-      .map(entry => join(directory, entry.name));
-    this.reconcilePhotoRecordsInScope(directory, sourceNames, false);
+    if (!recursive) {
+      const entries = await readdir(directory, { withFileTypes: true });
+      const sourceNames = entries
+        .filter(entry => entry.isFile() || entry.isSymbolicLink())
+        .map(entry => join(directory, entry.name));
+      this.reconcilePhotoRecordsInScope(directory, sourceNames, false);
+    }
     const db = this.databaseForPath(directory);
-    this.activeDatabaseKey = this.databaseKeyForPath(directory);
+    const databaseKey = this.databaseKeyForPath(directory);
+    this.activeDatabaseKey = databaseKey;
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + '\\\\' : '';
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
+        paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-        lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-      ORDER BY photos.file_name COLLATE NOCASE`)
-      .all({ folder: this.toRelativeFolderPath(directory, this.databaseKeyForPath(directory)) ?? '' }) as unknown as Array<{ file_name: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
+      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Array<{ file_name: string; relative_folder_path: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
-      path: join(directory, row.file_name),
+      path: join(directory, relative(folder, row.relative_folder_path), row.file_name),
       fileName: row.file_name,
       latitude: row.latitude,
       longitude: row.longitude,
