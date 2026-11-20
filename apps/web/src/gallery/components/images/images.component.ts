@@ -265,6 +265,48 @@ export class ImagesComponent {
   private cacheStatusFolderKey = '';
   private cacheStatusImageKey = '';
 
+  readonly detailProgressByPath = computed(() => {
+    const images = this.images() ?? [];
+    const statuses = this.cacheStatuses();
+    let minDate = Infinity, maxDate = -Infinity;
+    let minGpsDate = Infinity, maxGpsDate = -Infinity;
+    let minSize = Infinity, maxSize = -Infinity;
+
+    for (const image of images) {
+      const date = image.modifiedAt;
+      if (typeof date === 'number' && Number.isFinite(date)) {
+        minDate = Math.min(minDate, date);
+        maxDate = Math.max(maxDate, date);
+      }
+      const gpsDate = statuses.get(image.path)?.gpsTimestamp;
+      if (typeof gpsDate === 'number' && Number.isFinite(gpsDate)) {
+        minGpsDate = Math.min(minGpsDate, gpsDate);
+        maxGpsDate = Math.max(maxGpsDate, gpsDate);
+      }
+      const size = image.size;
+      if (typeof size === 'number' && Number.isFinite(size)) {
+        minSize = Math.min(minSize, size);
+        maxSize = Math.max(maxSize, size);
+      }
+    }
+
+    const percentage = (value: number | null | undefined, min: number, max: number): number | null => {
+      if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) return null;
+      return max === min ? 50 : Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+    };
+
+    const result = new Map<string, { date: number | null; gpsDate: number | null; size: number | null }>();
+    for (const image of images) {
+      const gpsDate = statuses.get(image.path)?.gpsTimestamp;
+      result.set(image.path, {
+        date: percentage(image.modifiedAt, minDate, maxDate),
+        gpsDate: percentage(gpsDate, minGpsDate, maxGpsDate),
+        size: percentage(image.size, minSize, maxSize)
+      });
+    }
+    return result;
+  });
+
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
     const dates = images.map(image => image.modifiedAt).filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
