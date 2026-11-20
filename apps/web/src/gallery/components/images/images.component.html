@@ -91,6 +91,7 @@
             @if (folderActionsMenuOpen()) {
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
                 <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <button type="button" class="gallery-menu-item" role="menuitem" (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
                 <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
