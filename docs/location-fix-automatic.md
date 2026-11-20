@@ -3,13 +3,13 @@
 
 During a normal GPS Auto Fix run (not **Check only**), the selected timestamp is also written to the photo's `gps_timestamp` field in the drive's SQLite cache database. This database update is performed for every scanned photo, including photos that already have GPS coordinates or cannot be matched to a GPX track. The same timestamp priority applies: GPSDateTime, XMP GPSDateTime, camera filename timestamp, DateTimeOriginal, XMP DateCreated, CreateDate, then filesystem last-modified time.
 
-The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinates to photos by matching their capture timestamps against GPX track points stored in the drive-local LumaScope cache database.
+The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinates to photos by matching their capture timestamps against GPX track points and GPS positions from already geotagged images stored in the drive-local LumaScope cache databases.
 
 ## Prerequisites
 
 - In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The section lists cache databases for favorite drives and shows each database file path, cache size/entries, and GPX file/segment/point totals, including timestamped points. The same shared importer is also available under **Track → Advanced**.
 - Auto Fix searches the selected photo folder's drive first, followed by every drive referenced by a Gallery favorite. Import GPX data into any of these drive-local cache databases; a favorite drive is included even when no image from it is open.
-- After the folder is selected and enumerated, but before photo metadata is processed, Auto Fix checks all candidate cache databases and stops with an error if none contains timestamped GPX track points. The candidate drives are the selected photo folder's drive and every drive represented by a Gallery favorite.
+- Auto Fix searches both timestamped GPX track points and timestamped GPS positions from geotagged images in the selected photo folder's drive and every drive represented by a Gallery favorite. A GPX import is no longer mandatory when suitable geotagged image references are already cached.
 - GPX track points must have timestamps. Matching uses points within an individual GPX segment.
 
 ## Workflow
@@ -27,9 +27,10 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 - The photo timestamp is selected in this priority order: EXIF `GPSDateTime`, XMP `GPSDateTime`, a camera timestamp in the filename, EXIF `DateTimeOriginal`, XMP `DateCreated`, and EXIF `CreateDate`. If none of these is usable, the filesystem last-modified timestamp is the final fallback.
 - Samsung-style filenames such as `IMG_20261009_093728.jpg` are recognized as `YYYYMMDD_HHmmss`. The date and time are validated (including calendar values) and interpreted as camera-local time in the computer's local timezone, like EXIF capture dates without an explicit timezone.
 - This filename fallback is particularly useful for photos copied from Android devices with `adb pull`: the Windows Created/Modified timestamps may reflect the copy time rather than the original capture time. In that case, the timestamp embedded in the camera-generated filename takes precedence over those filesystem dates.
-- A photo needs a usable capture timestamp and a pair of GPX points bracketing that timestamp in the **same track segment**.
-- The location is linearly interpolated between the bracketing points.
-- The candidate time deviation is the smaller absolute time distance from the photo timestamp to either bracketing GPX point.
+- A photo needs a usable capture timestamp and either a pair of GPX points bracketing that timestamp in the **same track segment**, or a pair of cached geotagged images bracketing that timestamp.
+- The location is linearly interpolated between the bracketing GPX points or image GPS positions.
+- The candidate time deviation is the smaller absolute time distance from the photo timestamp to either bracketing reference.
+- Auto Fix compares the valid GPX and image-reference candidates across all searched cache databases and uses the candidate with the smallest time deviation. Existing geotagged images are never modified; their cached coordinates are references only.
 - Candidates whose deviation is greater than the configured maximum are rejected and counted as **Ignored (time difference too high)**. Their files are not changed.
 - The candidate search considers track points within ±24 hours of the photo timestamp. Interpolation intervals wider than 48 hours are rejected. A missing timestamp or missing same-segment bracketing pair is reported as **No GPX match**, not as a time-limit rejection.
 
@@ -40,8 +41,8 @@ The report includes:
 - Selected start folder.
 - Total folders and files processed, plus the number of photo files checked.
 - Photos with GPS and photos without GPS.
-- GPX matches within the configured time limit.
-- Photos with no usable GPX match.
+- Matches within the configured time limit.
+- Photos with no usable GPX or geotagged-image reference match.
 - Candidates ignored because their time deviation exceeds the limit.
 - Minimum, mean and maximum candidate deviation in seconds.
 - Number of files updated and any errors.
@@ -56,7 +57,7 @@ The min/mean/max deviation statistics include all usable GPX candidates, includi
 
 **GPS availability** refers only to coordinates embedded directly in the photo file's metadata (EXIF/XMP). It does not refer to GPS records stored in the LumaScope cache database. Photos whose files already contain GPS coordinates are counted separately and skipped; their coordinates are not overwritten.
 
-A usable GPX match requires track points both before and after the photo timestamp, with both points belonging to the same track segment. **No usable GPX match** means that no such bracketing pair was found within the candidate search window. **Rejected by the time limit** counts candidates for which a valid pair was found, but whose nearest track point was farther from the photo timestamp than the configured maximum time difference.
+A usable GPX match requires track points both before and after the photo timestamp, with both points belonging to the same track segment. An image-reference match requires cached geotagged images before and after the target timestamp. When both reference types are available, the candidate with the smallest time deviation is selected. **No usable match** means that neither source supplied a valid bracketing pair within the search window. **Rejected by the time limit** counts candidates whose nearest reference was farther from the photo timestamp than the configured maximum time difference.
 
 **Check only** reports the scan and matching results without writing changes to photo files. EXIF timestamps that do not contain an explicit timezone are interpreted in the computer's local timezone.
 
@@ -66,7 +67,7 @@ In addition to the on-screen status report, GPS Auto Fix writes its diagnostic i
 
 `%APPDATA%\LumaScope\gps-auto-fix-debug.log`
 
-The log contains detailed information about photo timestamps, EXIF date candidates, GPX track-point comparisons, matching results and processing errors. It is recreated for each GPS Auto Fix run. Use it when investigating photos that are not matched to a GPX track.
+The log contains detailed information about photo timestamps, EXIF date candidates, GPX track-point and geotagged-image reference comparisons, selected matching sources, matching results and processing errors. It is recreated for each GPS Auto Fix run. Use it when investigating photos that are not matched to a GPX track.
 
 ## Timestamp and timezone considerations
 
@@ -76,6 +77,6 @@ Photo timestamps are selected using the priority described above. Filename times
 
 - **Check only** runs the scan and matching logic without writing GPS metadata.
 - In normal mode, accepted positions are written to the original photo files' GPS EXIF metadata; the operation does not create backup copies.
-- Matching requires two bracketing points in one segment. A lone nearby track point is not sufficient.
-- Photos with no usable capture timestamp, and photos for which no valid same-segment pair is found, remain unchanged.
-- The GPX import is a prerequisite; this operation does not automatically search arbitrary GPX files on disk or import them.
+- Matching requires two bracketing references: GPX points from one segment or cached geotagged images. A lone nearby reference is not sufficient.
+- Photos with no usable capture timestamp, and photos for which no valid bracketing pair is found, remain unchanged.
+- GPX import is optional when suitable geotagged image references are already cached. The operation does not automatically search arbitrary GPX files on disk or import them.
