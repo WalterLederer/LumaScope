@@ -299,6 +299,13 @@
 :host(.view-details) > .detail-actions .detail-row-menu-trigger,
 :host(.view-details-no-thumbnails) > .detail-actions .detail-row-menu-trigger { margin: 0 auto; }
 
+/* The row must rise above following rows while its fixed menu is open. */
+:host(.view-details.row-action-menu-open),
+:host(.view-details-no-thumbnails.row-action-menu-open) {
+  position: relative;
+  z-index: 1002;
+}
+
 
 /* Detail-table preferences are applied inside this component because its
    table cells belong to ThumbnailComponent's view-encapsulation boundary. */
