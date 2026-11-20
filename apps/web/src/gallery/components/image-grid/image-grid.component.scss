@@ -71,18 +71,19 @@ ui-toolbar {
 .thumbnail-size-control {
   display: flex;
   flex: 0 0 auto;
-  margin-top: 8px;
-  margin-bottom: 4px;
+  /* Put the vertical breathing room on the whole control row so it
+     affects the toolbar layout, not just the inline flex children. */
+  margin: 0;
+  padding: 8px 0 !important;
+  box-sizing: border-box;
   min-width: max-content;
   align-items: center;
   gap: var(--dim-small);
-  padding: 0;
   white-space: nowrap;
 
   .thumbnail-zoom-box {
     display: inline-flex;
-    margin-top: 4px;
-    margin-bottom: 4px;
+    margin: 0;
     flex: 0 0 auto;
     align-items: center;
     gap: var(--dim-small);
