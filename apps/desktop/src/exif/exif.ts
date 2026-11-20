@@ -70,7 +70,10 @@ export class Exif {
         const injector = Injector.getInstance();
         const cacheManager = injector.inject('CacheManager');
         const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
-        const gps = await this.readPhotoMetadata(path);
+        const gps = await this.readPhotoMetadata(path, true);
+        if (!gps.gpsManuallyCorrected) {
+          throw new Error('The GPS position was written, but the EXIF manual-correction marker could not be verified.');
+        }
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       } catch (cacheError) {
         console.warn('[Exif] GPS was written, but the photo database could not be synchronized:', path, cacheError);
