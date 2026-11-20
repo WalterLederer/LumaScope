@@ -851,7 +851,7 @@ export type ExifTags =
     ChromaFormat?: string;
   };
 
-export const allSortTypes = [ 'date', 'name', 'size' ] as const;
+export const allSortTypes = [ 'date', 'name', 'path', 'size' ] as const;
 export type SortType = typeof allSortTypes[number];
 
 export const allSortDirections = [ 'desc', 'asc' ] as const;
