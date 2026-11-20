@@ -864,7 +864,7 @@
   border-radius: 10px;
   overflow: hidden;
   background: var(--color-surface-default-low, #fff);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+  box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%));
 }
 
 .detail-native-table > thead {
