@@ -13,7 +13,7 @@ import {
   output,
   signal
 } from '@angular/core';
-import { TextComponent, TitleComponent } from '@light-matter/ui';
+import { TextComponent, TitleComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
@@ -77,7 +77,8 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     ThumbnailComponent,
     TitleComponent,
     TimelineIndicatorsComponent,
-    TextComponent
+    TextComponent ,
+    ButtonTooltipDirective
   ],
   templateUrl: './images.component.html',
   styleUrl: './images.component.scss',
