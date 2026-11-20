@@ -255,6 +255,9 @@ ui-toolbar {
     /* The scrollport clips the table at all four corners while retaining its
        native horizontal scrollbar and sticky header. */
     background-color: var(--color-surface-default-low, #fff);
+    /* The wrapper is the scrollport, so its shadow stays outside the clipped
+       table content and remains visible on all four sides. */
+    box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
   }
 }
 
