@@ -24,11 +24,11 @@
         </ui-action-button>
   
         <ui-action-button class="action"
-                          [title]="'Sort by ' + (sortType === 'date' ? 'date' : sortType === 'name' ? 'name' : 'size') + ', ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
+                          [title]="'Sort by ' + (sortType === 'date' ? 'date' : sortType === 'gpsDate' ? 'GPS date' : sortType === 'name' ? 'name' : 'size') + ', ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
                           [cdkMenuTriggerFor]="sortMenu"
                           uiStopPropagation>
-          <ui-icon [icon]="sortType === 'date' ? 'calendar' : sortType === 'name' ? 'text' : 'save'" [inherit]="true" />
-          <ui-text [inherit]="true">{{ sortType === 'date' ? 'Date' : sortType === 'name' ? 'Name' : 'Size' }}</ui-text>
+          <ui-icon [icon]="sortType === 'date' || sortType === 'gpsDate' ? 'calendar' : sortType === 'name' ? 'text' : 'save'" [inherit]="true" />
+          <ui-text [inherit]="true">{{ sortType === 'date' ? 'Date' : sortType === 'gpsDate' ? 'GPS Date' : sortType === 'name' ? 'Name' : 'Size' }}</ui-text>
           <ui-icon icon="chevronDown" [inherit]="true" size="small" />
         </ui-action-button>
       }
@@ -161,6 +161,13 @@
       <ui-icon [icon]="sortType === 'date' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="calendar" [inherit]="true" />
       <ui-text [inherit]="true">Date</ui-text>
+    </button>
+
+    <button type="button" class="gallery-menu-item" cdkMenuItem
+                      (click)="$event.stopPropagation(); sortByChanged.emit('gpsDate')">
+      <ui-icon [icon]="sortType === 'gpsDate' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
+      <ui-icon icon="calendar" [inherit]="true" />
+      <ui-text [inherit]="true">GPS Date</ui-text>
     </button>
 
     <button type="button" class="gallery-menu-item" cdkMenuItem
