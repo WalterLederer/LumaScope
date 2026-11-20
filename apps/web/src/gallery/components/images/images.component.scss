@@ -1437,3 +1437,26 @@
 .detail-alternate-rows .detail-native-table > tbody.images.details-list > tr.selected-image > td.detail-actions {
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #ffffff)) !important;
 }
+
+/* The action header is made of two real header cells, one in each header
+   row. Do not let the first cell overflow across the statistics row: that
+   hides the second tier and its divider. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  align-self: stretch !important;
+  padding: 5px 0 !important;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
+  content: none !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  align-self: stretch !important;
+  padding: 0 !important;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
+}
