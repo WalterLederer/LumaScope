@@ -337,7 +337,7 @@
      Avoid native table auto-layout, which previously reassigned resize deltas
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
-    max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
+    max(24px, calc(var(--detail-thumb-width, 36px) + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
     var(--detail-col-3-width, 150px)
