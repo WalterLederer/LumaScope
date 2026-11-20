@@ -25,7 +25,7 @@
     "galleryDetailGpsDateProgressEnabled": true,
     "galleryDetailDimensionsProgressEnabled": true,
     "galleryDetailSizeProgressEnabled": true,
-    "galleryDetailProgressOpacity": 22
+    "galleryDetailProgressTransparency": 78
   },
   "mapWindow": {
     "renderWorkerCount": 2,
