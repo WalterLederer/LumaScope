@@ -1420,7 +1420,7 @@ export class CacheManager {
     const databaseKey = this.databaseKeyForPath(directory);
     this.activeDatabaseKey = databaseKey;
     const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
-    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + '\\\\' : '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
         paths.relative_folder_path,
         location_names.display_name AS location_display_name
