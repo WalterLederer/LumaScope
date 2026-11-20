@@ -628,8 +628,8 @@ export default class App {
     if ((latitude !== null || longitude !== null) && !hasCoordinates) throw new Error('The map overlay received invalid GPS coordinates.');
     const previousLocation = App.mapWindowLocation;
     const nextLocation = hasCoordinates
-      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: previousLocation.folderPath }
-      : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: previousLocation.folderPath };
+      ? { latitude, longitude, bearing: Number.isFinite(bearing) ? bearing! : null, imagePath: imagePath ?? null, folderPath: previousLocation.folderPath, recursive: previousLocation.recursive }
+      : { latitude: null, longitude: null, bearing: null, imagePath: imagePath ?? null, folderPath: previousLocation.folderPath, recursive: previousLocation.recursive };
     const locationChanged = previousLocation.latitude !== nextLocation.latitude
       || previousLocation.longitude !== nextLocation.longitude
       || previousLocation.bearing !== nextLocation.bearing
