@@ -281,8 +281,8 @@
   app-thumbnail.selected-image {
     /* Highlight the complete row without the heavy outline that looked like a black bar. */
     outline: none;
-    background: color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 22%, var(--color-surface-default-low)) !important;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 58%, transparent), inset 3px 0 0 color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 75%, transparent);
+    background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 22%, var(--color-surface-default-low)) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 58%, transparent), inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent);
     border-radius: 3px;
   }
 
@@ -636,11 +636,11 @@
 }
 .detail-native-table > tbody.images.details-list > tr.selected-image,
 .detail-native-table > tbody.images.details-list > tr.selected-image > td {
-  background: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
-  background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+  background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
 }
 .detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 22%, var(--color-surface-default-low)) !important; }
-.detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 75%, transparent); }
+.detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
 .detail-native-table .detail-actions { width: 28px; padding: 2px; overflow: visible; text-align: center; }
@@ -854,7 +854,7 @@
 .detail-table {
   border-radius: 10px;
   background: transparent;
-  filter: drop-shadow(0 3px 8px rgb(0 0 0 / 20%));
+  box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
 }
 
 .detail-native-table {
@@ -945,4 +945,123 @@
 .detail-native-table > tbody.images.details-list > tr:last-child.selected-image > td {
   background: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
   background-color: color-mix(in srgb, var(--color-accent-default, #d18b24) 24%, #ffffff) !important;
+}
+
+
+/* Gallery detail-table color preferences dialog. */
+.detail-preferences-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(0 0 0 / 48%);
+}
+
+.detail-preferences-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(440px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+  border-radius: 12px;
+  background: var(--color-surface-default-high, #fff);
+  color: var(--color-content-default-highest, #222);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 28%);
+}
+
+.detail-preferences-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+}
+
+.detail-preferences-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover { background: var(--color-surface-default-low); }
+}
+
+.detail-preferences-description {
+  margin: 0;
+  color: var(--color-content-default-medium);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.detail-preferences-colors {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-preference-color {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 38px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 22%));
+  font-size: 13px;
+  font-weight: 600;
+
+  input[type="color"] {
+    width: 54px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--color-border-default, rgb(128 128 128 / 45%));
+    border-radius: 6px;
+    background: var(--color-surface-default-low);
+    cursor: pointer;
+  }
+}
+
+.detail-preferences-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+
+  button {
+    min-width: 88px;
+    min-height: 34px;
+    padding: 5px 14px;
+    border: 1px solid var(--color-border-default, rgb(128 128 128 / 40%));
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .detail-preferences-cancel {
+    background: var(--color-surface-default-low);
+    color: var(--color-content-default-highest);
+  }
+
+  .detail-preferences-ok {
+    border-color: var(--color-accent-default, #287fc4);
+    background: var(--color-accent-default, #287fc4);
+    color: white;
+  }
 }
