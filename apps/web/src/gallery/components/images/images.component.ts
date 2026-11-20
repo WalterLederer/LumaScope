@@ -16,7 +16,6 @@ import {
 import { TextComponent, TitleComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions, formatOsDateTime } from 'internal-api';
-import { ExifService } from '../../../ipc/exif';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
@@ -110,7 +109,6 @@ export class ImagesComponent {
   private readonly elementRef = inject(ElementRef);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly exif = inject(ExifService);
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
