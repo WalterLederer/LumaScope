@@ -379,6 +379,7 @@ export class ImagesComponent {
         ? width - Math.max(84, initialThumbWidth + 16)
         : width;
       this.detailColumnWidths.update(current => ({ ...current, [columnIndex]: storedWidth }));
+      this.saveDetailColumnWidths();
     };
     const cleanup = (): void => {
       document.removeEventListener('pointermove', onMove);
