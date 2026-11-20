@@ -634,12 +634,38 @@
   background: #f5f5f5 !important;
   background-color: #f5f5f5 !important;
 }
+
+/* Preserve the progress fills over the opaque detail-cell surfaces. */
+.detail-native-table > tbody.images.details-list > tr > td.detail-date,
+.detail-native-table > tbody.images.details-list > tr > td.detail-gps-date,
+.detail-native-table > tbody.images.details-list > tr > td.detail-dimensions,
+.detail-native-table > tbody.images.details-list > tr > td.detail-size {
+  background-image: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--detail-progress-color) 22%, transparent) 0,
+    color-mix(in srgb, var(--detail-progress-color) 22%, transparent) var(--detail-progress, 0%),
+    transparent var(--detail-progress, 0%),
+    transparent 100%
+  ) !important;
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-date {
+  --detail-progress-color: var(--detail-date-progress-color, #d18b24);
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-gps-date {
+  --detail-progress-color: var(--detail-gps-date-progress-color, #287fc4);
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-dimensions {
+  --detail-progress-color: var(--detail-dimensions-progress-color, #16a085);
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-size {
+  --detail-progress-color: var(--detail-size-progress-color, #8e63ce);
+}
 .detail-native-table > tbody.images.details-list > tr.selected-image,
 .detail-native-table > tbody.images.details-list > tr.selected-image > td {
   background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--color-surface-default-low, #ffffff)) !important;
 }
-.detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--color-accent-default, var(--color-content-primary-high)) 22%, var(--color-surface-default-low)) !important; }
+.detail-native-table tbody tr.selected-image { background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 22%, var(--color-surface-default-low)) !important; }
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
