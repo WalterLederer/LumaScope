@@ -214,6 +214,7 @@ export class GalleryState {
         if (page.files.length < this.galleryPageSize) break;
       }
       if (request !== this.navigationRequest) return;
+      if (pages.length < requestedCount) totalCount = pages.length;
       this.galleryLoadedCount = pages.length;
       this.galleryTotalCount = totalCount;
       this.images$.next(pages);
