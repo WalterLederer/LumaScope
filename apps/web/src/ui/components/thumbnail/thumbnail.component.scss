@@ -210,6 +210,24 @@
   padding: 0;
   background: transparent !important;
 }
+/* Center every detail-row value vertically within the tallest cell.
+   Status-oriented columns are centered horizontally as well. */
+:host(.view-details) > td,
+:host(.view-details-no-thumbnails) > td {
+  display: flex;
+  align-items: center;
+}
+:host(.view-details) > .detail-suffix,
+:host(.view-details-no-thumbnails) > .detail-suffix,
+:host(.view-details) > .detail-dynamic-range,
+:host(.view-details-no-thumbnails) > .detail-dynamic-range,
+:host(.view-details) > .detail-thumb-status,
+:host(.view-details-no-thumbnails) > .detail-thumb-status,
+:host(.view-details) > .detail-full-size,
+:host(.view-details-no-thumbnails) > .detail-full-size {
+  justify-content: center;
+  text-align: center;
+}
 :host(.view-details) > td,
 :host(.view-details-no-thumbnails) > td {
   font-size: var(--detail-font-size, 12px);
