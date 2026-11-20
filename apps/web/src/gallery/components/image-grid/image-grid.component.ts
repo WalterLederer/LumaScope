@@ -105,6 +105,10 @@ export class ImageGridComponent {
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
+    const viewport = this.scrollBox()?.nativeElement;
+    if (viewport) viewport.scrollTop = 0;
+    this.detailScrollTop.set(0);
+    this.detailHeaderHeight.set(0);
     try { this.document.defaultView?.localStorage.setItem('galleryViewMode', mode); }
     catch { /* Keep the selected view for the current session. */ }
   };
