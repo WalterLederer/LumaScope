@@ -66,7 +66,8 @@
         @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
           <label class="thumbnail-name-filter">
             <span class="zoom-label">Filter</span>
-            <input type="search" [value]="nameFilter()" (input)="nameFilter.set($any($event.target).value)" aria-label="Filter by file name" placeholder="Enter name..." />
+            <input type="checkbox" class="thumbnail-name-filter-toggle" [checked]="nameFilterActive()" (change)="nameFilterActive.set($any($event.target).checked)" aria-label="Enable name filter" />
+            <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Enter name..." />
           </label>
         }
       </div>
@@ -86,6 +87,7 @@
               [viewMode]="viewMode()"
               [style.--detail-font-size.px]="detailFontSize()"
               [nameFilter]="nameFilter()"
+              [nameFilterActive]="nameFilterActive()"
               [detailFontSize]="detailFontSize()"
               (detailFontSizeChanged)="setDetailFontSize($event)"
               [verifyCacheFiles]="verifyCacheFiles()"
