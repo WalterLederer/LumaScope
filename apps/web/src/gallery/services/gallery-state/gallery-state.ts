@@ -26,6 +26,7 @@ export class GalleryState {
   private readonly selectedLocation$ = new BehaviorSubject<string | null>(null);
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
+  private navigationRequest = 0;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
 
@@ -121,6 +122,7 @@ export class GalleryState {
 
   /* Modifiers */
   readonly navigateTo = (path: string): Observable<boolean> => {
+    const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
     this.configuration.updateGalleryConfig({ selectedLocation: path });
 
@@ -131,7 +133,7 @@ export class GalleryState {
           return defer(() => this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir, this.includeUnsupportedFiles$.value, this.includeFilesRecursive$.value));
         }),
         tap(response => {
-          this.images$.next(response.success ? response.data : []);
+          if (request === this.navigationRequest) this.images$.next(response.success ? response.data : []);
         }),
         map(() => true)
       );
