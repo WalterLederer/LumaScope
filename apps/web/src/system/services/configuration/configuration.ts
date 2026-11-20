@@ -147,7 +147,12 @@ export class Configuration {
         themeTotalBrightness: 100,
         themeBackgroundBrightness: 100,
         disclosureStyle: 'classic',
-        tabBarStyle: 'classic'
+        tabBarStyle: 'classic',
+        galleryDetailDateProgressColor: '#d18b24',
+        galleryDetailGpsDateProgressColor: '#287fc4',
+        galleryDetailDimensionsProgressColor: '#16a085',
+        galleryDetailSizeProgressColor: '#8e63ce',
+        galleryDetailSelectedRowColor: '#d18b24'
       }
     };
   };
