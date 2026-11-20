@@ -907,3 +907,34 @@
   background-clip: padding-box;
   overflow: hidden;
 }
+
+
+/* Folder-wide actions live in the first header row, not in individual file menus. */
+.detail-header-labels > .folder-actions-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  width: 28px;
+  padding: 2px;
+  overflow: visible;
+}
+
+.folder-actions-heading .folder-actions-menu-trigger {
+  margin: 0 auto;
+}
+
+.folder-actions-heading .folder-actions-menu {
+  position: fixed;
+  z-index: 1001;
+  top: auto;
+  right: 12px;
+  left: auto;
+  min-width: 190px;
+}
+
+.folder-actions-menu button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
