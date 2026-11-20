@@ -167,28 +167,58 @@
           <h2 id="detail-preferences-title">Preferences</h2>
           <button type="button" class="detail-preferences-close" aria-label="Close preferences" (click)="cancelDetailPreferences()">×</button>
         </header>
-        <p class="detail-preferences-description">Choose the colors used by progress bars and the selected row in the image details table.</p>
-        <div class="detail-preferences-colors">
-          <label class="detail-preference-color">
-            <span>Date</span>
-            <input type="color" [value]="detailPreferenceDraft().date" (input)="updateDetailPreference('date', $any($event.target).value)" />
+        <p class="detail-preferences-description">Customize detail-table row backgrounds, progress-bar colors, visibility and opacity.</p>
+        <div class="detail-preferences-section">
+          <h3>Progress Bars</h3>
+          <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
+          <div class="detail-preferences-colors">
+            <label class="detail-preference-color">
+              <span>Date</span>
+              <input type="checkbox" [checked]="detailPreferenceDraft().dateProgressEnabled" (change)="updateDetailPreferenceToggle('dateProgressEnabled', $any($event.target).checked)" aria-label="Show Date progress bar" />
+              <input type="color" [value]="detailPreferenceDraft().date" (input)="updateDetailPreferenceColor('date', $any($event.target).value)" aria-label="Date progress color" />
+            </label>
+            <label class="detail-preference-color">
+              <span>GPS Date</span>
+              <input type="checkbox" [checked]="detailPreferenceDraft().gpsDateProgressEnabled" (change)="updateDetailPreferenceToggle('gpsDateProgressEnabled', $any($event.target).checked)" aria-label="Show GPS Date progress bar" />
+              <input type="color" [value]="detailPreferenceDraft().gpsDate" (input)="updateDetailPreferenceColor('gpsDate', $any($event.target).value)" aria-label="GPS Date progress color" />
+            </label>
+            <label class="detail-preference-color">
+              <span>Dimensions</span>
+              <input type="checkbox" [checked]="detailPreferenceDraft().dimensionsProgressEnabled" (change)="updateDetailPreferenceToggle('dimensionsProgressEnabled', $any($event.target).checked)" aria-label="Show Dimensions progress bar" />
+              <input type="color" [value]="detailPreferenceDraft().dimensions" (input)="updateDetailPreferenceColor('dimensions', $any($event.target).value)" aria-label="Dimensions progress color" />
+            </label>
+            <label class="detail-preference-color">
+              <span>File Size</span>
+              <input type="checkbox" [checked]="detailPreferenceDraft().sizeProgressEnabled" (change)="updateDetailPreferenceToggle('sizeProgressEnabled', $any($event.target).checked)" aria-label="Show File Size progress bar" />
+              <input type="color" [value]="detailPreferenceDraft().size" (input)="updateDetailPreferenceColor('size', $any($event.target).value)" aria-label="File Size progress color" />
+            </label>
+          </div>
+          <label class="detail-preference-range">
+            <span>Progress bar opacity <strong>{{ detailPreferenceDraft().progressOpacity }}%</strong></span>
+            <input type="range" min="0" max="100" step="1" [value]="detailPreferenceDraft().progressOpacity" (input)="updateDetailProgressOpacity(+$any($event.target).value)" />
           </label>
-          <label class="detail-preference-color">
-            <span>GPS Date</span>
-            <input type="color" [value]="detailPreferenceDraft().gpsDate" (input)="updateDetailPreference('gpsDate', $any($event.target).value)" />
+        </div>
+
+        <div class="detail-preferences-section">
+          <h3>Row Backgrounds</h3>
+          <label class="detail-preference-toggle">
+            <input type="checkbox" [checked]="detailPreferenceDraft().alternateRows" (change)="updateDetailPreferenceToggle('alternateRows', $any($event.target).checked)" />
+            <span>Use alternating odd and even row colors</span>
           </label>
-          <label class="detail-preference-color">
-            <span>Dimensions</span>
-            <input type="color" [value]="detailPreferenceDraft().dimensions" (input)="updateDetailPreference('dimensions', $any($event.target).value)" />
-          </label>
-          <label class="detail-preference-color">
-            <span>File Size</span>
-            <input type="color" [value]="detailPreferenceDraft().size" (input)="updateDetailPreference('size', $any($event.target).value)" />
-          </label>
-          <label class="detail-preference-color">
-            <span>Selected Row</span>
-            <input type="color" [value]="detailPreferenceDraft().selectedRow" (input)="updateDetailPreference('selectedRow', $any($event.target).value)" />
-          </label>
+          <div class="detail-preferences-colors">
+            <label class="detail-preference-color">
+              <span>Odd Rows</span>
+              <input type="color" [value]="detailPreferenceDraft().oddRow" (input)="updateDetailPreferenceColor('oddRow', $any($event.target).value)" />
+            </label>
+            <label class="detail-preference-color" [class.detail-preference-disabled]="!detailPreferenceDraft().alternateRows">
+              <span>Even Rows</span>
+              <input type="color" [disabled]="!detailPreferenceDraft().alternateRows" [value]="detailPreferenceDraft().evenRow" (input)="updateDetailPreferenceColor('evenRow', $any($event.target).value)" />
+            </label>
+            <label class="detail-preference-color">
+              <span>Selected Row</span>
+              <input type="color" [value]="detailPreferenceDraft().selectedRow" (input)="updateDetailPreferenceColor('selectedRow', $any($event.target).value)" />
+            </label>
+          </div>
         </div>
         <footer class="detail-preferences-actions">
           <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()">Cancel</button>
