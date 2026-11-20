@@ -343,7 +343,7 @@ export class ImagesComponent {
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
   };
 
-  private readonly detailColumnWidths = signal<Record<number, number>>({});
+  readonly detailColumnWidths = signal<Record<number, number>>({});
 
   private saveDetailColumnWidths(): void {
     try {
