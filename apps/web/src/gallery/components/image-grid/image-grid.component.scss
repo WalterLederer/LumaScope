@@ -364,3 +364,40 @@ ui-toolbar {
 }
 
 
+
+
+/* Keep folder navigation visible while the initial SQLite page is being read.
+   This status is independent of thumbnail generation, which continues in the background. */
+.gallery-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 8px 14px;
+  box-sizing: border-box;
+  color: var(--color-content-default-medium, #666);
+  background: var(--color-surface-default-low, #f5f5f5);
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
+  font-size: 13px;
+}
+
+.gallery-loading-spinner {
+  display: inline-block;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid var(--color-border-default, rgb(128 128 128 / 35%));
+  border-top-color: var(--color-accent-default, #287fc4);
+  border-radius: 50%;
+  animation: gallery-loading-spin 0.8s linear infinite;
+}
+
+@keyframes gallery-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-loading-spinner { animation: none; }
+}
