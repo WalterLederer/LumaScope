@@ -60,6 +60,8 @@ interface PhotoRow {
   latitude: number | null;
   longitude: number | null;
   location_name_id: number | null;
+  gps_manually_corrected: number;
+  gps_manual_corrected_at: number | null;
 }
 
 
@@ -1360,6 +1362,8 @@ export class CacheManager {
         direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
         location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
         coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        gps_manually_corrected = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.gps_manually_corrected END,
+        gps_manual_corrected_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_manual_corrected_at END,
         file_name = excluded.file_name,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`);
@@ -1828,7 +1832,13 @@ export class CacheManager {
       location_lookup_attempted_at = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_attempted_at END,
       latitude = :latitude, longitude = :longitude,
       altitude_m = :altitude, gps_timestamp = :gpsTimestamp, direction_deg = :direction,
-      coordinate_source_id = :sourceId WHERE id = :id`)
+      coordinate_source_id = :sourceId,
+      gps_manually_corrected = :gpsManuallyCorrected,
+      gps_manual_corrected_at = CASE
+        WHEN :gpsManuallyCorrected = 0 THEN NULL
+        WHEN gps_manually_corrected = 1 AND gps_manual_corrected_at IS NOT NULL THEN gps_manual_corrected_at
+        ELSE :gpsManualCorrectedAt
+      END WHERE id = :id`)
       .run({
         isHdr: isHdr ? 1 : 0,
         latitude: hasCoordinates ? gps.latitude : null,
@@ -1843,6 +1853,8 @@ export class CacheManager {
         gpsTimestamp: gps.gpsTimestamp ?? Math.floor(Number(sourceStats.mtimeMs) / 1000),
         direction: hasCoordinates ? gps.directionDeg : null,
         sourceId: hasCoordinates ? gps.coordinateSourceId : null,
+        gpsManuallyCorrected: gps.gpsManuallyCorrected && hasCoordinates ? 1 : 0,
+        gpsManualCorrectedAt: Math.floor(Date.now() / 1000),
         id: row.id
       });
     if (hasCoordinates) {
@@ -1984,6 +1996,8 @@ export class CacheManager {
         direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
         location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
         coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        gps_manually_corrected = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.gps_manually_corrected END,
+        gps_manual_corrected_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_manual_corrected_at END,
         file_name = excluded.file_name,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`)
