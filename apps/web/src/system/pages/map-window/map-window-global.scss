@@ -555,7 +555,7 @@ app-map-window {
     .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
     .map-fix-crosshair:before{left:16px;top:0;width:2px;height:34px}
     .map-fix-crosshair:after{left:0;top:16px;width:34px;height:2px}
-    .map-fix-crosshair span{position:absolute;z-index:1;left:11px;top:11px;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff3030}
+    .map-fix-crosshair span{position:absolute;z-index:1;left:11px;top:11px;box-sizing:border-box;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff3030}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
