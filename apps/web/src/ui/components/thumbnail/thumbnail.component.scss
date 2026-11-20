@@ -390,3 +390,15 @@
 :host(.view-details-no-thumbnails.detail-alternate-rows.detail-virtual-even) > td {
   background-color: var(--detail-even-row-color, #f5f5f5) !important;
 }
+
+
+:host(.view-details.detail-filter-active) > td,
+:host(.view-details-no-thumbnails.detail-filter-active) > td {
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+}
+:host(.view-details.selected-image) > .detail-actions,
+:host(.view-details-no-thumbnails.selected-image) > .detail-actions,
+:host(.view-details.selected-image) > td,
+:host(.view-details-no-thumbnails.selected-image) > td {
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #ffffff)) !important;
+}
