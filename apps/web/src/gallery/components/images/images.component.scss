@@ -1329,3 +1329,47 @@
   background-color: var(--color-surface-default-low, #fff) !important;
   isolation: isolate;
 }
+
+
+/* Virtual detail rows keep a deterministic height so only the viewport and a
+   small overscan window need Angular components. */
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
+  height: var(--detail-row-height, 44px);
+  min-height: var(--detail-row-height, 44px);
+  max-height: var(--detail-row-height, 44px);
+  overflow: hidden;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td {
+  height: var(--detail-row-height, 44px);
+  max-height: var(--detail-row-height, 44px);
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row app-thumbnail {
+  height: var(--detail-row-height, 44px);
+  min-height: 0;
+  max-height: var(--detail-row-height, 44px);
+  overflow: hidden;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer {
+  display: grid;
+  grid-template-columns: var(--detail-grid-columns);
+  width: max-content;
+  min-width: 100%;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  border: 0;
+  pointer-events: none;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer > td {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
