@@ -272,6 +272,10 @@ export class ImageGridComponent {
     this.imagesComponent()?.refreshGallery();
   };
 
+  protected readonly openDetailPreferences = (): void => {
+    this.imagesComponent()?.openDetailPreferences();
+  };
+
   readonly openSelectedFolderPath = async (): Promise<void> => {
     const folder = this.selectedLocation()?.trim();
     if (!folder) return;
