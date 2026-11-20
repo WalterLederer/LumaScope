@@ -343,6 +343,18 @@ export class ImagesComponent {
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
   };
 
+  private readonly detailColumnWidths = signal<Record<number, number>>({});
+
+  private saveDetailColumnWidths(): void {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('lumascope.thumbnail-list.detail-column-widths', JSON.stringify(this.detailColumnWidths()));
+      }
+    } catch (error) {
+      console.warn('Could not save thumbnail-list column widths', error);
+    }
+  }
+
   protected startColumnResize(event: PointerEvent, columnIndex: number): void {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -353,9 +365,6 @@ export class ImagesComponent {
     const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
     if (!table || !cell) return;
 
-    // Header and body now share one CSS Grid track definition. Resize that track
-    // directly instead of relying on native table COL sizing (which browsers may
-    // redistribute between cells when the table is intrinsically sized).
     const startX = event.clientX;
     const startWidth = cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
@@ -366,11 +375,10 @@ export class ImagesComponent {
     const onMove = (moveEvent: PointerEvent): void => {
       if (moveEvent.pointerId !== pointerId) return;
       const width = Math.max(minimumWidth, Math.round(startWidth + moveEvent.clientX - startX));
-      if (columnIndex === 0) {
-        table.style.setProperty('--detail-col-0-delta', `${width - Math.max(84, initialThumbWidth + 16)}px`);
-      } else {
-        table.style.setProperty(`--detail-col-${columnIndex}-width`, `${width}px`);
-      }
+      const storedWidth = columnIndex === 0
+        ? width - Math.max(84, initialThumbWidth + 16)
+        : width;
+      this.detailColumnWidths.update(current => ({ ...current, [columnIndex]: storedWidth }));
     };
     const cleanup = (): void => {
       document.removeEventListener('pointermove', onMove);
@@ -378,7 +386,9 @@ export class ImagesComponent {
       document.removeEventListener('pointercancel', onUp);
     };
     const onUp = (upEvent: PointerEvent): void => {
-      if (upEvent.pointerId === pointerId) cleanup();
+      if (upEvent.pointerId !== pointerId) return;
+      this.saveDetailColumnWidths();
+      cleanup();
     };
 
     document.addEventListener('pointermove', onMove);
@@ -815,6 +825,29 @@ export class ImagesComponent {
 
 
   constructor() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const savedWidths = localStorage.getItem('lumascope.thumbnail-list.detail-column-widths');
+        if (savedWidths) {
+          const parsed: unknown = JSON.parse(savedWidths);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            const validWidths: Record<number, number> = {};
+            for (const [key, value] of Object.entries(parsed)) {
+              const index = Number(key);
+              if (Number.isInteger(index) && index >= 0 && index <= 11
+                && typeof value === 'number' && Number.isFinite(value)
+                && (index === 0 ? value >= -1000 && value <= 3000 : value >= 40 && value <= 3000)) {
+                validWidths[index] = value;
+              }
+            }
+            this.detailColumnWidths.set(validWidths);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not restore thumbnail-list column widths', error);
+    }
+
     const refreshReverseGeocodingStatus = (): void => {
       void this.cacheManager.getBackgroundReverseGeocodingStatus().then(status => {
         this.reverseGeocodingStatus.set(status);
