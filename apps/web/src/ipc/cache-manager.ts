@@ -106,6 +106,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly registerGalleryFiles = (directory: string, files: import('internal-api').FileInfo[]): Promise<number> =>
     window.desktop.CacheManager.registerGalleryFiles(directory, files);
 
+  readonly removeGalleryFile = (sourceName: string): Promise<boolean> =>
+    window.desktop.CacheManager.removeGalleryFile(sourceName);
+
   readonly getGalleryFiles = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc') =>
     window.desktop.CacheManager.getGalleryFiles(directory, recursive, includeUnsupported, sortBy, sortDir);
 
