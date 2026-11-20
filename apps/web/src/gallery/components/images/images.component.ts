@@ -188,7 +188,6 @@ export class ImagesComponent {
     this.cacheUpdated.emit('');
   };
   private observer: IntersectionObserver | null = null;
-  private metadataRequest = 0;
   private readonly metadata = signal<Map<string, ExifTags>>(new Map());
   readonly locationDisplayNames = signal<Map<string, string>>(new Map());
   readonly reverseGeocodingStatus = signal<BackgroundReverseGeocodingStatus>({
@@ -492,6 +491,15 @@ export class ImagesComponent {
       ? this.sortedDetailImages()
       : (this.images() ?? [])
   );
+
+  protected onDetailMetadataLoaded(path: string, tags: ExifTags): void {
+    this.metadata.update(current => {
+      if (current.get(path) === tags) return current;
+      const next = new Map(current);
+      next.set(path, tags);
+      return next;
+    });
+  }
 
   protected readonly selectThumbnail = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
@@ -1257,30 +1265,6 @@ export class ImagesComponent {
         const selected = Array.from(elements).find(element => element.dataset['imagePath'] === selectedPath);
         selected?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }, { injector: this.injector });
-    });
-
-    effect(() => {
-      const images = this.images() ?? [];
-      const isDetails = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
-      if (!isDetails || images.length === 0) return;
-      const request = ++this.metadataRequest;
-      const missing = images.filter(image => !this.metadata().has(image.path));
-      if (missing.length === 0) return;
-      void Promise.all(missing.map(async image => {
-        try {
-          const result = await this.exif.read(image.path);
-          return result.success ? [image.path, result.data] as const : null;
-        } catch {
-          return null;
-        }
-      })).then(results => {
-        if (request !== this.metadataRequest) return;
-        this.metadata.update(current => {
-          const next = new Map(current);
-          for (const result of results) if (result) next.set(result[0], result[1]);
-          return next;
-        });
-      });
     });
 
     effect(onCleanup => {
