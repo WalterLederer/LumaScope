@@ -1505,13 +1505,33 @@ export class CacheManager {
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
       : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
-    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+    const sql = `SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       ${where}
       ORDER BY ${orderBy}
-      LIMIT :limit OFFSET :offset`)
-      .all({ ...filterParams, limit: safeLimit, offset: safeOffset }) as Array<{
-        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
-      }>;
+      LIMIT :limit OFFSET :offset`;
+    const queryParameters = { ...filterParams, limit: safeLimit, offset: safeOffset };
+    const queryStartedAt = Date.now();
+    console.info('[GalleryDB] QUERY START getGalleryFilesPage', {
+      database: databaseKey,
+      directory,
+      recursive,
+      includeUnsupported,
+      sortBy,
+      sortDir,
+      sql,
+      parameters: queryParameters
+    });
+    const rows = db.prepare(sql).all(queryParameters) as Array<{
+      file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+    }>;
+    console.info('[GalleryDB] QUERY END getGalleryFilesPage', {
+      database: databaseKey,
+      directory,
+      offset: safeOffset,
+      limit: safeLimit,
+      rows: rows.length,
+      durationMs: Date.now() - queryStartedAt
+    });
     const files = rows.map(row => {
       const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
       return {
@@ -1542,13 +1562,31 @@ export class CacheManager {
       folder: this.toRelativeFolderPath(folder, databaseKey) ?? ''
     };
     requestedNames.forEach((name, index) => { parameters[`name${index}`] = name; });
-    const matching = db.prepare(`SELECT photos.*, paths.relative_folder_path,
+    const sql = `SELECT photos.*, paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
-        AND photos.file_name COLLATE NOCASE IN (${nameParameters})`)
-      .all(parameters) as unknown as Array<PhotoRow & { relative_folder_path: string; location_display_name: string | null }>;
+        AND photos.file_name COLLATE NOCASE IN (${nameParameters})`;
+    const queryStartedAt = Date.now();
+    console.info('[GalleryDB] QUERY START getDirectoryCacheStats', {
+      database: databaseKey,
+      folder,
+      requestedFiles: requestedNames.length,
+      verifyCacheFiles,
+      sql,
+      parameters
+    });
+    const matching = db.prepare(sql).all(parameters) as unknown as Array<PhotoRow & {
+      relative_folder_path: string; location_display_name: string | null
+    }>;
+    console.info('[GalleryDB] QUERY END getDirectoryCacheStats', {
+      database: databaseKey,
+      folder,
+      requestedFiles: requestedNames.length,
+      matchedRows: matching.length,
+      durationMs: Date.now() - queryStartedAt
+    });
     const gps = matching.filter(row => row.latitude !== null && row.longitude !== null).length;
     const hdr = matching.filter(row => row.is_hdr === 1).length;
     const location = matching.filter(row => !!row.location_display_name?.trim()).length;
