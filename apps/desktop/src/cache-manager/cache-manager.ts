@@ -1624,15 +1624,14 @@ export class CacheManager {
       LIMIT :limit OFFSET :offset`;
     const queryParameters = { ...filterParams, limit: safeLimit, offset: safeOffset };
     const queryStartedAt = Date.now();
-    console.info('[GalleryDB] QUERY START getGalleryFilesPage', {
-      database: databaseKey,
+    console.info('[GalleryDB] QUERY getGalleryFilesPage', {
       directory,
       recursive,
       includeUnsupported,
-      sortBy,
-      sortDir,
-      sql,
-      parameters: queryParameters
+      sort: `${sortBy} ${sortDir}`,
+      limit: safeLimit,
+      offset: safeOffset,
+      sql
     });
     const rows = db.prepare(sql).all(queryParameters) as Array<{
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
@@ -1682,13 +1681,11 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         AND photos.file_name COLLATE NOCASE IN (${nameParameters})`;
     const queryStartedAt = Date.now();
-    console.info('[GalleryDB] QUERY START getDirectoryCacheStats', {
-      database: databaseKey,
+    console.info('[GalleryDB] QUERY getDirectoryCacheStats', {
       folder,
-      requestedFiles: requestedNames.length,
+      fileCount: requestedNames.length,
       verifyCacheFiles,
-      sql,
-      parameters
+      sql
     });
     const matching = db.prepare(sql).all(parameters) as unknown as Array<PhotoRow & {
       relative_folder_path: string; location_display_name: string | null
