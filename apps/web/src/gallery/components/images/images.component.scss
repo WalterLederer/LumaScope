@@ -888,12 +888,11 @@
   text-align: center;
 }
 
-/* Apply the table elevation to the outer wrapper so the shadow is not
-   visually lost against the table's own clipped surface. */
+/* Keep the wrapper visually neutral; the elevation belongs to the table itself. */
 .detail-table {
-  border-radius: 10px;
+  border-radius: 0;
   background: transparent;
-  box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
+  box-shadow: none;
 }
 
 .detail-native-table {
@@ -902,7 +901,7 @@
   border-radius: 10px;
   overflow: hidden;
   background: var(--color-surface-default-low, #fff);
-  box-shadow: none;
+  box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
 }
 
 .detail-native-table > thead {
