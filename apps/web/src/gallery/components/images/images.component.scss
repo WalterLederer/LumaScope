@@ -331,7 +331,7 @@
      Avoid native table auto-layout, which previously reassigned resize deltas
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
-    var(--detail-actions-width, 56px)
+    var(--detail-actions-width, 44px)
     max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
@@ -596,7 +596,8 @@
 }
 .detail-native-table .column-resizer:hover { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 35%, transparent); }
 .detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 17px; font-weight: 900; line-height: 1; vertical-align: -1px; }
-.detail-native-table .detail-actions-heading { width:var(--detail-actions-width,56px); min-width:56px; position:relative; display:flex; align-items:center; justify-content:center; padding:2px 0!important; }
+.detail-native-table .detail-actions-heading { width:var(--detail-actions-width,44px); min-width:44px; height:96px !important; min-height:96px !important; max-height:96px !important; position:relative; z-index:46; display:flex; align-items:flex-start; justify-content:center; padding:10px 0 0!important; }
+.detail-native-table .detail-actions-heading::after { content:""; position:absolute; left:0; right:0; top:46px; height:1px; background:var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))); pointer-events:none; }
 .detail-native-table .detail-actions-heading > .column-resizer { position:absolute; top:0; right:-6px; bottom:0; width:12px; margin:0; z-index:60; cursor:col-resize; pointer-events:auto; }
 
 /* Folder-wide actions occupy the first column; no horizontal sticky layer is needed. */
@@ -1228,15 +1229,16 @@
   }
 
   .detail-preferences-ok {
-    border: 1px solid #1769aa;
-    background: #287fc4;
-    color: #fff;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 28%);
+    border: 2px solid #064b82 !important;
+    background: #0878c9 !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 28%), 0 2px 5px rgb(0 0 0 / 42%) !important;
+    font-weight: 800 !important;
   }
 
   .detail-preferences-ok:hover {
-    border-color: #12558b;
-    background: #1f70b5;
+    border-color: #043d6b !important;
+    background: #0567ad !important;
   }
 
   .detail-preferences-ok:focus-visible,
