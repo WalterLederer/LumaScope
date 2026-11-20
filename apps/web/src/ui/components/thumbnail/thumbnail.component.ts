@@ -68,7 +68,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
-  readonly detailProgress = input<{ date: number | null; gpsDate: number | null; size: number | null } | null>(null);
+  readonly detailProgress = input<{ date: number | null; gpsDate: number | null; dimensions: number | null; size: number | null } | null>(null);
 
 
   readonly formatOsDateTime = (value: number | Date | null | undefined): string => {
