@@ -249,8 +249,8 @@ const api: Desktop = {
   MapWindow: {
     getZoom: () => ipcRenderer.invoke('MapWindow.getZoom') as Promise<number>,
     setZoom: (zoom: number) => ipcRenderer.invoke('MapWindow.setZoom', zoom) as Promise<void>,
-    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath, folderPath),
-    getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null }>,
+    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath, folderPath, recursive),
+    getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null; recursive: boolean }>,
     getImagePreview: (imagePath: string) => ipcRenderer.invoke('MapWindow.getImagePreview', imagePath) as Promise<string | null>,
     close: () => ipcRenderer.invoke('MapWindow.close'),
     isOpen: () => ipcRenderer.invoke('MapWindow.isOpen'),
