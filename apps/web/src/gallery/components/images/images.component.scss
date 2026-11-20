@@ -1460,3 +1460,108 @@
   padding: 0 !important;
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
 }
+
+
+/* Detail view: use one native HTML table layout for header and every data row.
+   The colgroup is the single source of column widths; no CSS Grid tracks. */
+.detail-native-table {
+  display: table !important;
+  width: max-content !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+.detail-native-table > colgroup {
+  display: table-column-group !important;
+}
+.detail-native-table > colgroup > col {
+  display: table-column !important;
+}
+.detail-native-table > thead {
+  display: table-header-group !important;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.detail-native-table > thead > tr,
+.detail-native-table > tbody.images.details-list > tr {
+  display: table-row !important;
+  width: auto !important;
+  min-width: 0 !important;
+  grid-template-columns: none !important;
+}
+.detail-native-table > tbody.images.details-list {
+  display: table-row-group !important;
+}
+.detail-native-table > thead > tr > th,
+.detail-native-table > tbody.images.details-list > tr > td {
+  display: table-cell !important;
+  width: auto !important;
+  min-width: 0 !important;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.detail-native-table > thead > tr.detail-header-labels {
+  height: 46px !important;
+  min-height: 46px !important;
+  border: 0 !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics {
+  height: auto !important;
+  min-height: 30px !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: none !important;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th {
+  height: auto !important;
+  min-height: 30px !important;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
+  height: 92px !important;
+  min-height: 92px !important;
+  max-height: none !important;
+  padding: 8px 2px !important;
+  vertical-align: top !important;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
+  content: none !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  display: none !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
+  display: table-row !important;
+  height: var(--detail-row-height, 44px) !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer {
+  display: table-row !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer > td {
+  display: table-cell !important;
+  height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+.detail-native-table .detail-actions-heading {
+  width: var(--detail-actions-width, 44px) !important;
+  min-width: 0 !important;
+  position: relative;
+}
+.detail-native-table .detail-thumb,
+.detail-native-table .detail-thumb-empty {
+  width: auto !important;
+  min-width: 0 !important;
+}
