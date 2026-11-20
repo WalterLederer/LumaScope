@@ -251,8 +251,9 @@ ui-toolbar {
     width: 100%;
     max-width: none;
     overflow-x: auto;
-    /* Paint the viewport gutter beside the sticky hamburger column.
-       The blank area is outside the table cells, so cell backgrounds cannot cover it. */
+    border-radius: 10px;
+    /* The scrollport clips the table at all four corners while retaining its
+       native horizontal scrollbar and sticky header. */
     background-color: var(--color-surface-default-low, #fff);
   }
 }
