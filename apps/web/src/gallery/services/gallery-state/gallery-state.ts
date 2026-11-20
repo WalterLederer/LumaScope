@@ -97,6 +97,7 @@ export class GalleryState {
   readonly images = () => this.images$.asObservable();
   readonly includeUnsupportedFiles = () => this.includeUnsupportedFiles$.asObservable();
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
+  readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
 
   readonly setIncludeUnsupportedFiles = (value: boolean): void => {
     if (this.includeUnsupportedFiles$.value === value) return;
