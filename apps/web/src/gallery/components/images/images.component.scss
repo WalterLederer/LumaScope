@@ -1243,9 +1243,25 @@
   }
 
   .detail-preferences-ok {
-    border-color: var(--color-accent-default, #287fc4);
-    background: var(--color-accent-default, #287fc4);
-    color: white;
+    border: 1px solid #1769aa;
+    background: #287fc4;
+    color: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 28%);
+  }
+
+  .detail-preferences-ok:hover {
+    border-color: #12558b;
+    background: #1f70b5;
+  }
+
+  .detail-preferences-ok:focus-visible,
+  .detail-preferences-cancel:focus-visible {
+    outline: 2px solid var(--color-accent-default, #287fc4);
+    outline-offset: 3px;
+  }
+
+  .detail-preferences-ok:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, #287fc4 24%, transparent);
   }
 }
 
