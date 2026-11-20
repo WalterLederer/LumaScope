@@ -831,14 +831,22 @@ export class ImagesComponent {
         const host = this.elementRef.nativeElement as HTMLElement;
         const elements = host.querySelectorAll<HTMLElement>('[data-image-path]');
         const rendered = Array.from(elements).find(element => element.dataset['imagePath'] === next.path);
-        if (rendered) {
-          rendered.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-          return;
-        }
         const viewport = host.closest<HTMLElement>('.wrapper');
         if (viewport && (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')) {
-          const headerHeight = viewport.querySelector<HTMLElement>('.detail-native-table thead')?.getBoundingClientRect().height ?? 0;
-          viewport.scrollTop = headerHeight + nextIndex * this.detailVirtualRowHeight();
+          const header = viewport.querySelector<HTMLElement>('.detail-native-table thead');
+          const headerBottom = header?.getBoundingClientRect().bottom ?? viewport.getBoundingClientRect().top;
+          const viewportRect = viewport.getBoundingClientRect();
+          if (rendered) {
+            const rowRect = rendered.getBoundingClientRect();
+            if (rowRect.top < headerBottom) {
+              viewport.scrollTop -= headerBottom - rowRect.top;
+            } else if (rowRect.bottom > viewportRect.bottom) {
+              viewport.scrollTop += rowRect.bottom - viewportRect.bottom;
+            }
+          } else {
+            const headerHeight = header?.getBoundingClientRect().height ?? 0;
+            viewport.scrollTop = headerHeight + nextIndex * this.detailVirtualRowHeight();
+          }
         }
       });
       return;
