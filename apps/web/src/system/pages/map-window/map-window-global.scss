@@ -394,11 +394,11 @@ app-map-window {
     .mbtiles-map-table th{position:sticky;top:0;z-index:1;font-size:12px;font-weight:600;color:var(--color-content-default-medium,#aaa);background-color:var(--color-surface-default-medium,#343943)!important}
     .mbtiles-map-table th .table-sort-button{background-color:transparent!important;color:inherit!important;border:0!important;box-shadow:none!important}
     .mbtiles-map-table .mbtiles-enabled-column{width:42px;text-align:center}
-    .mbtiles-map-table .mbtiles-type-column{width:176px;min-width:176px;box-sizing:border-box}
+    .mbtiles-map-table .mbtiles-type-column{width:90px;min-width:76px;max-width:110px;box-sizing:border-box}
     .mbtiles-enabled-column input{margin:0;accent-color:var(--theme-button-color,#287fc4);vertical-align:middle}
     .mbtiles-enabled-column input.obf-preset-locked{appearance:none;width:14px;height:14px;box-sizing:border-box;border:1px solid #777;border-radius:2px;background:#858585;opacity:.9;cursor:not-allowed}
     .mbtiles-enabled-column input.obf-preset-locked:checked::after{content:"";display:block;width:6px;height:3px;margin:3px 0 0 3px;border:solid #f2f2f2;border-width:0 0 2px 2px;transform:rotate(-45deg)}
-    .mbtiles-map-table th:nth-child(4),.mbtiles-map-table td:nth-child(4){width:360px}.mbtiles-map-table th:nth-child(5),.mbtiles-map-table td:nth-child(5){width:92px}.mbtiles-map-table th:nth-child(6),.mbtiles-map-table td:nth-child(6){width:132px}.mbtiles-map-table th:nth-child(8),.mbtiles-map-table td:nth-child(8){width:150px}.mbtiles-map-table th:nth-child(10),.mbtiles-map-table td:nth-child(10){width:440px;min-width:360px;max-width:440px}
+    .mbtiles-map-table th:nth-child(4),.mbtiles-map-table td:nth-child(4){width:90px}.mbtiles-map-table th:nth-child(5),.mbtiles-map-table td:nth-child(5){width:240px}.mbtiles-map-table th:nth-child(6),.mbtiles-map-table td:nth-child(6){width:320px;min-width:180px}.mbtiles-map-table th:nth-child(8),.mbtiles-map-table td:nth-child(8){width:150px}.mbtiles-map-table th:nth-child(10),.mbtiles-map-table td:nth-child(10){width:440px;min-width:360px;max-width:440px}
      .mbtiles-map-file{min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.4;font-size:13px;background:#e8ebef;color:#000}
     .mbtiles-map-file strong,.mbtiles-map-file span{display:inline;vertical-align:baseline;margin-right:8px;max-width:none;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;color:#000;font-weight:700}
     
@@ -1018,3 +1018,10 @@ app-map-window {
       transform: none !important;
       box-sizing: border-box !important;
     }
+
+
+/* Resizable columns in the offline files table. */
+.offline-files-resizable-table{width:100%;table-layout:fixed}
+.offline-files-resizable-table th{position:relative;overflow:visible}
+.offline-files-resizable-table .offline-column-resizer{position:absolute;top:0;right:-4px;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}
+.offline-files-resizable-table .offline-column-resizer:hover{background:color-mix(in srgb,#2688e8 45%,transparent)}
