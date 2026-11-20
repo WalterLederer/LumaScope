@@ -92,19 +92,6 @@
   font-size: 14px;
   font-weight: 700;
 
-  &.cache-build-active {
-    background: #2b0508;
-
-    > th,
-    > .detail-column-heading {
-      background: #2b0508 !important;
-      background-color: #2b0508 !important;
-      background-image: none !important;
-      color: var(--color-content-on-accent, #fff) !important;
-    }
-
-  }
-
   > :not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
     display: flex;
     align-self: stretch;
@@ -611,11 +598,6 @@
   background: var(--color-surface-default-low, #fff) !important;
   background-color: var(--color-surface-default-low, #fff) !important;
   box-shadow: none;
-}
-.detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading,
-.detail-native-table > thead > tr.detail-header-statistics.cache-build-active > th.detail-actions-statistics {
-  background: #2b0508 !important;
-  background-color: #2b0508 !important;
 }
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
 /* Use near-white opaque surfaces on every detail-list cell. The row host
@@ -1521,6 +1503,17 @@
   height: auto !important;
   min-height: 30px !important;
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
+}
+
+/* Cache activity is indicated by a subtle red header tint, not by changing
+   header text to white or darkening the folder-actions column. */
+.detail-native-table > thead > tr.detail-header-labels.cache-build-active > th,
+.detail-native-table > thead > tr.detail-header-statistics.cache-build-active > th {
+  color: var(--color-content-default-highest, #202020) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading {
+  background: var(--color-surface-default-low, #fff) !important;
+  background-color: var(--color-surface-default-low, #fff) !important;
 }
 /* Header cells must remain native table-cells. Earlier legacy Grid styling
    assigns display:flex !important to each TH; that overrides table-row layout
