@@ -207,8 +207,11 @@
    Status-oriented columns are centered horizontally as well. */
 :host(.view-details) > td,
 :host(.view-details-no-thumbnails) > td {
-  display: flex;
-  align-items: center;
+  /* These cells are direct children of the native table-row host. Keeping
+     them as table-cells is essential: display:flex turns each cell into an
+     anonymous table row and collapses the complete row into one column. */
+  display: table-cell !important;
+  vertical-align: middle;
 }
 
 :host(.view-details) > .detail-date,
