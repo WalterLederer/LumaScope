@@ -32,7 +32,7 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 - The candidate time deviation is the smaller absolute time distance to the bracketing references, or the absolute time distance to the single image anchor. The configured **Maximum time difference** is applied to either candidate type, so a lone image reference is only accepted when it is sufficiently close in time.
 - Auto Fix compares the valid GPX and image-reference candidates across all searched cache databases and uses the candidate with the smallest time deviation. Existing geotagged images are never modified; their cached coordinates are references only.
 - Candidates whose deviation is greater than the configured maximum are rejected and counted as **Ignored (time difference too high)**. Their files are not changed.
-- The candidate search considers track points within ±24 hours of the photo timestamp. Interpolation intervals wider than 48 hours are rejected. A missing timestamp or missing same-segment bracketing pair is reported as **No GPX match**, not as a time-limit rejection.
+- The candidate search considers track points within ±24 hours of the photo timestamp. Interpolation intervals wider than 48 hours are rejected. A missing timestamp or absence of any valid GPX/image-reference candidate is reported as **No GPX match**, not as a time-limit rejection.
 
 ## Status report
 
@@ -78,5 +78,5 @@ Photo timestamps are selected using the priority described above. Filename times
 - **Check only** runs the scan and matching logic without writing GPS metadata.
 - In normal mode, accepted positions are written to the original photo files' GPS EXIF metadata; the operation does not create backup copies.
 - GPX matching requires two bracketing points from one segment. Image matching can use two bracketing references or one nearby cached geotagged image; a single image anchor is used without interpolation and remains subject to the configured time-difference limit.
-- Photos with no usable capture timestamp, and photos for which no valid bracketing pair is found, remain unchanged.
+- Photos with no usable capture timestamp, and photos for which no valid GPX pair or image-reference anchor/pair is found, remain unchanged.
 - GPX import is optional when suitable geotagged image references are already cached. The operation does not automatically search arbitrary GPX files on disk or import them.
