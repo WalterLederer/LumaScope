@@ -1542,31 +1542,35 @@ export class CacheManager {
     this.activeDatabaseKey = databaseKey;
     const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
-    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, photos.gps_timestamp, paths.relative_folder_path
       FROM photos JOIN paths ON paths.id = photos.path_id
       WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
           lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
         OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
-        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+        file_name: string; file_size: number; modified_at: number; gps_timestamp: number | null; relative_folder_path: string;
       }>;
     const data = rows.map(row => {
       const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
       const path = join(parent, row.file_name);
       return {
-        path, name: row.file_name, parent, isDirectory: false,
-        ext: extname(row.file_name), createdAt: row.modified_at,
-        size: row.file_size, modifiedAt: row.modified_at
-      } satisfies FileInfo;
-    }).filter(file => includeUnsupported || supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
+        file: {
+          path, name: row.file_name, parent, isDirectory: false,
+          ext: extname(row.file_name), createdAt: row.modified_at,
+          size: row.file_size, modifiedAt: row.modified_at
+        } satisfies FileInfo,
+        gpsTimestamp: row.gps_timestamp
+      };
+    }).filter(entry => includeUnsupported || supportedFileExtensions.includes(entry.file.ext.toLowerCase().replace(/^\\./, '')));
     const direction = sortDir === 'desc' ? -1 : 1;
     data.sort((a, b) => {
-      const comparison = sortBy === 'date' ? a.modifiedAt - b.modifiedAt
-        : sortBy === 'size' ? a.size - b.size
-          : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      const comparison = sortBy === 'date' ? a.file.modifiedAt - b.file.modifiedAt
+        : sortBy === 'gpsDate' ? (a.gpsTimestamp ?? Number.POSITIVE_INFINITY) - (b.gpsTimestamp ?? Number.POSITIVE_INFINITY)
+          : sortBy === 'size' ? a.file.size - b.file.size
+            : a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: 'base' });
       return comparison * direction;
     });
-    return data;
+    return data.map(entry => entry.file);
   };
 
   @IpcHandler({ name: 'CacheManager.getGalleryFilesPage' })
