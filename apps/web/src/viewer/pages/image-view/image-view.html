@@ -35,7 +35,8 @@
   }
 </div>
 
-@if (activeImageSidebarTab() !== 'gallery' && selected !== null) {
+@if (activeImageSidebarTab() !== 'gallery') {
+  @if (selected !== null) {
   <app-image-renderer [url]="selected.url"
                       [style.margin-right.px]="!fullScreen && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
                       [style.margin-left.px]="!fullScreen && controlsSidebarVisible() && sidebarOnLeft() ? sidebarWidth() + 16 : 0"
@@ -696,5 +697,6 @@
     </aside>
   } @else {
     <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleSidebarVisibility()">⚙</button>
+  }
   }
 }
