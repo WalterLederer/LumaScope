@@ -34,7 +34,7 @@ import { TimelineIndicatorsComponent } from '../timeline-indicators/timeline-ind
 import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
-type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location';
+type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location' | 'path';
 
 type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow' | 'filteredRow';
 interface DetailTablePreferences {
@@ -246,6 +246,7 @@ export class ImagesComponent {
         case 'fullSize': return status ? (status.fullSizeRequired ? status.fullSize?.status ?? 'missing' : 'not required') : null;
         case 'gps': return status?.latitude != null && status.longitude != null ? status.latitude * 1000 + status.longitude : null;
         case 'location': return this.locationDisplayNames().get(image.path) ?? null;
+        case 'path': return this.relativeDetailPath(image);
       }
     };
     return images.sort((a, b) => {
@@ -512,6 +513,19 @@ export class ImagesComponent {
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
 
+  protected readonly relativeDetailPath = (image: FileInfo): string => {
+    const root = (this.folderPath() ?? '').replace(/[\\/]+$/, '');
+    const parent = (image.parent ?? '').replace(/[\\/]+$/, '');
+    if (!root || !parent) return parent || '';
+    const normalizedRoot = root.replace(/\\/g, '/').toLocaleLowerCase();
+    const normalizedParent = parent.replace(/\\/g, '/');
+    if (normalizedParent.toLocaleLowerCase() === normalizedRoot) return '.';
+    if (normalizedParent.toLocaleLowerCase().startsWith(normalizedRoot + '/')) {
+      return normalizedParent.slice(normalizedRoot.length + 1).replace(/\//g, '\\');
+    }
+    return parent;
+  };
+
 
   openDetailPreferences(): void {
     this.folderActionsMenuOpen.set(false);
@@ -652,7 +666,7 @@ export class ImagesComponent {
     if (!table) return;
 
     const widths: Record<number, number> = { 0: 0 };
-    for (let column = 1; column <= 11; column++) {
+    for (let column = 1; column <= 12; column++) {
       const width = this.measureDetailColumnWidth(table, column);
       if (width !== null) widths[column] = width;
     }
@@ -666,7 +680,7 @@ export class ImagesComponent {
     event.stopPropagation();
 
     const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
-    if (!table || columnIndex < 0 || columnIndex > 11) return;
+    if (!table || columnIndex < 0 || columnIndex > 12) return;
 
     // The thumbnail column follows the current thumbnail zoom level. Reset
     // only its manual width adjustment rather than changing the zoom setting.
