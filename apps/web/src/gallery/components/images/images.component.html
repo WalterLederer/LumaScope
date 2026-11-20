@@ -191,13 +191,13 @@
             </div>
           </div>
         </details>
-        <div class="detail-preferences-section">
-          <h3>Table Font Size</h3>
+        <details class="detail-preferences-section detail-preferences-disclosure" open>
+          <summary>Table Font Size</summary>
           <label class="detail-preference-range">
             <span>Font size <strong>{{ detailFontSize() }} px</strong></span>
             <input type="range" min="10" max="24" step="1" [value]="detailFontSize()" (input)="detailFontSizeChanged.emit(+$any($event.target).value)" aria-label="Table font size" />
           </label>
-        </div>
+        </details>
         <details class="detail-preferences-section detail-preferences-disclosure" open>
           <summary>Progress Bars</summary>
           <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
