@@ -222,6 +222,10 @@
               <input type="color" [disabled]="!detailPreferenceDraft().alternateRows" [value]="detailPreferenceDraft().evenRow" (input)="updateDetailPreferenceColor('evenRow', $any($event.target).value)" />
             </label>
             <label class="detail-preference-color">
+              <span>Filtered Rows</span>
+              <input type="color" [value]="detailPreferenceDraft().filteredRow" (input)="updateDetailPreferenceColor('filteredRow', $any($event.target).value)" />
+            </label>
+            <label class="detail-preference-color">
               <span>Selected Row</span>
               <input type="color" [value]="detailPreferenceDraft().selectedRow" (input)="updateDetailPreferenceColor('selectedRow', $any($event.target).value)" />
             </label>
