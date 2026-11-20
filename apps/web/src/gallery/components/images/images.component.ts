@@ -173,7 +173,7 @@ export class ImagesComponent {
     const folder = this.folderPath();
     if (folder) {
       try {
-        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
+        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection(), this.includeUnsupportedFiles(), this.includeFilesRecursive());
         if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
         if (this.folderPath() !== folder) return;
         await this.cacheManager.reconcilePhotoRecords(folder, result.data.map(image => image.path), false);
@@ -205,6 +205,8 @@ export class ImagesComponent {
   readonly activeSelectionPath = signal<string | null>(null);
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly folderPath = input<string | null>(null);
+  readonly includeUnsupportedFiles = input(false);
+  readonly includeFilesRecursive = input(false);
   readonly sortBy = input<SortType>(allSortTypes[0]);
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
   readonly viewMode = input<GalleryViewMode>('thumbnails');
