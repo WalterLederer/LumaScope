@@ -863,9 +863,7 @@
   z-index: 0;
   border-radius: 10px;
   background: var(--color-surface-default-low, #fff);
-  box-shadow:
-    0 3px 10px rgb(0 0 0 / 18%),
-    0 0 0 1px var(--color-border-default, rgb(128 128 128 / 22%));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .detail-native-table > thead {
