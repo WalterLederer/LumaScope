@@ -1,13 +1,10 @@
-import { ButtonTooltipDirective } from '@light-matter/ui';
 import { SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { YearGroup } from '../images/images.component.types';
 
 @Component({
   selector: 'app-timeline-indicators',
-  imports: [ SlicePipe ,
-    ButtonTooltipDirective
-  ],
+  imports: [SlicePipe],
   templateUrl: './timeline-indicators.component.html',
   styleUrl: './timeline-indicators.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
