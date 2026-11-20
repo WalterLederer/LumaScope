@@ -1564,10 +1564,14 @@ export class CacheManager {
     }).filter(entry => includeUnsupported || supportedFileExtensions.includes(entry.file.ext.toLowerCase().replace(/^\\./, '')));
     const direction = sortDir === 'desc' ? -1 : 1;
     data.sort((a, b) => {
+      if (sortBy === 'gpsDate') {
+        if (a.gpsTimestamp === null) return b.gpsTimestamp === null ? 0 : 1;
+        if (b.gpsTimestamp === null) return -1;
+        return (a.gpsTimestamp - b.gpsTimestamp) * direction;
+      }
       const comparison = sortBy === 'date' ? a.file.modifiedAt - b.file.modifiedAt
-        : sortBy === 'gpsDate' ? (a.gpsTimestamp ?? Number.POSITIVE_INFINITY) - (b.gpsTimestamp ?? Number.POSITIVE_INFINITY)
-          : sortBy === 'size' ? a.file.size - b.file.size
-            : a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: 'base' });
+        : sortBy === 'size' ? a.file.size - b.file.size
+          : a.file.name.localeCompare(b.file.name, undefined, { numeric: true, sensitivity: 'base' });
       return comparison * direction;
     });
     return data.map(entry => entry.file);
