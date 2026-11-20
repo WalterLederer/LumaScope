@@ -807,12 +807,12 @@
         <span class="range-value">{{ gpxOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
+        <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         <span class="range-value">{{ markerOpacity() }}%</span>
       </div>
       <div class="range-setting">
-        <label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label>
+        <div class="opacity-row-label"><label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
         <span class="range-value">{{ locationOpacity() }}%</span>
       </div>
