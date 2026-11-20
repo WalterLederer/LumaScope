@@ -3,7 +3,7 @@ import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ConfirmationDialogComponent, SliderComponent } from '@light-matter/ui';
+import { ConfirmationDialogComponent, SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, firstValueFrom, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
@@ -129,7 +129,8 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
     DecimalPipe,
       ExifInfoComponent,
     GalleryPage,
-    MarkdownViewerComponent
+    MarkdownViewerComponent ,
+    ButtonTooltipDirective
   ],
   templateUrl: './image-view.html',
   styleUrl: './image-view.scss',
