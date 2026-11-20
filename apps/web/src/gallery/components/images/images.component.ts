@@ -355,6 +355,7 @@ export class ImagesComponent {
   private cacheStatusFolderKey = '';
   private cacheStatusImagesRef: FileInfo[] | null = null;
   private cacheStatusRefreshToken = -1;
+  private cacheStatusImageMetadata = new Map<string, string>();
 
   readonly detailValueRanges = computed(() => {
     const images = this.images() ?? [];
@@ -1380,15 +1381,24 @@ export class ImagesComponent {
       }
 
       const currentPaths = new Set(images.map(image => image.path));
+      const currentMetadata = new Map(images.map(image => [
+        image.path,
+        `${image.size}|${image.modifiedAt ?? image.createdAt}`
+      ]));
+      const changedPaths = new Set(images
+        .filter(image => this.cacheStatusImageMetadata.get(image.path) !== currentMetadata.get(image.path))
+        .map(image => image.path));
       const updatedStatuses = forceReload ? new Map<string, CacheImageStatus>() : new Map(
-        [...this.cacheStatuses()].filter(([path]) => currentPaths.has(path))
+        [...this.cacheStatuses()].filter(([path]) => currentPaths.has(path) && !changedPaths.has(path))
       );
       const updatedComparisons = forceReload ? new Map<string, boolean | null>() : new Map(
-        [...this.gpsDateComparisons()].filter(([path]) => currentPaths.has(path))
+        [...this.gpsDateComparisons()].filter(([path]) => currentPaths.has(path) && !changedPaths.has(path))
       );
+      this.cacheStatusImageMetadata = currentMetadata;
       const isSupported = (image: FileInfo): boolean =>
         supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', ''));
-      const missingImages = images.filter(image => isSupported(image) && !updatedStatuses.has(image.path));
+      const missingImages = images.filter(image => isSupported(image)
+        && (!updatedStatuses.has(image.path) || changedPaths.has(image.path)));
       for (const image of images) {
         if (!isSupported(image) && !updatedComparisons.has(image.path)) updatedComparisons.set(image.path, null);
       }
