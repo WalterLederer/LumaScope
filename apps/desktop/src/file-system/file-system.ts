@@ -19,15 +19,20 @@ export class FileSystem {
     const result: FileInfo[] = [];
     for (let offset = 0; offset < entries.length; offset += 256) {
       const batch = await Promise.all(entries.slice(offset, offset + 256).map(async entry => {
-        const filePath = join(path, entry.name);
-        const stats = await stat(filePath);
-        return {
-          path: filePath, name: entry.name, parent: path,
-          isDirectory: entry.isDirectory(), ext: extname(entry.name),
-          createdAt: stats.birthtimeMs, size: stats.size, modifiedAt: stats.mtimeMs
-        } satisfies FileInfo;
+        try {
+          const filePath = join(path, entry.name);
+          const stats = await stat(filePath);
+          return {
+            path: filePath, name: entry.name, parent: path,
+            isDirectory: entry.isDirectory(), ext: extname(entry.name),
+            createdAt: stats.birthtimeMs, size: stats.size, modifiedAt: stats.mtimeMs
+          } satisfies FileInfo;
+        } catch {
+          // Files can disappear or become inaccessible while a large folder is scanned.
+          return null;
+        }
       }));
-      result.push(...batch);
+      result.push(...batch.filter((entry): entry is FileInfo => entry !== null));
       if (offset + 256 < entries.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
     }
     return result;
@@ -275,15 +280,19 @@ export class FileSystem {
       const files: FileInfo[] = [];
       for (let offset = 0; offset < fileEntries.length; offset += 256) {
         const batch = await Promise.all(fileEntries.slice(offset, offset + 256).map(async file => {
-          const filePath = join(file.parent, file.name);
-          const stats = await stat(filePath);
-          return {
-            path: filePath, name: file.name, parent: file.parent, isDirectory: false,
-            ext: extname(file.name), createdAt: stats.birthtimeMs,
-            size: stats.size, modifiedAt: stats.mtimeMs
-          } satisfies FileInfo;
+          try {
+            const filePath = join(file.parent, file.name);
+            const stats = await stat(filePath);
+            return {
+              path: filePath, name: file.name, parent: file.parent, isDirectory: false,
+              ext: extname(file.name), createdAt: stats.birthtimeMs,
+              size: stats.size, modifiedAt: stats.mtimeMs
+            } satisfies FileInfo;
+          } catch {
+            return null;
+          }
         }));
-        files.push(...batch);
+        files.push(...batch.filter((file): file is FileInfo => file !== null));
         if (offset + 256 < fileEntries.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
       }
 
