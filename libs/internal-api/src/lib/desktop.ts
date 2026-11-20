@@ -125,6 +125,7 @@ export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
   readonly refreshGpsMetadata: (path: string) => Promise<ApiResponse<{ latitude: number | null; longitude: number | null }>>;
+  readonly removeGpsMetadata: (path: string) => Promise<ApiResponse<undefined>>;
   readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => Promise<ApiResponse<FixPhotoLocationsResult>>;
   readonly cancelFixFolderLocations: (operationId: string) => void;
   readonly onFixFolderLocationsProgress: (callback: (progress: FixPhotoLocationsProgress) => void) => () => void;
