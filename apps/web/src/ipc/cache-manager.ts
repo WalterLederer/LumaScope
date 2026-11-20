@@ -109,6 +109,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly getGalleryFiles = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc') =>
     window.desktop.CacheManager.getGalleryFiles(directory, recursive, includeUnsupported, sortBy, sortDir);
 
+  readonly getGalleryUnsupportedSummary = (directory: string, recursive = false) =>
+    window.desktop.CacheManager.getGalleryUnsupportedSummary(directory, recursive);
+
   readonly onGalleryFilesChanged = (callback: (directory: string) => void): (() => void) =>
     window.desktop.CacheManager.onGalleryFilesChanged(callback);
 
