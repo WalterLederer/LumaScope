@@ -274,7 +274,10 @@
           </thead>
           <tbody class="gpx-database-file-list">
             @for (track of gpxDatabaseVisibleTracks(); track track.path) {
-              <tr class="gpx-file-row gpx-database-file-row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path">
+              <tr class="gpx-file-row gpx-database-file-row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path"><td class="gpx-row-actions">
+                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
+                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                </td>
                 <td class="gpx-active-toggle" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></td>
                 <td class="gpx-file-name" [title]="track.databasePath || track.path">{{ track.name }}</td>
                 <td class="gpx-waypoint-count">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</td>
@@ -283,10 +286,7 @@
                 <td>{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</td>
                 <td class="gpx-file-name" [title]="gpxTrackDirectoryPath(track)">{{ gpxTrackDirectoryPath(track) }}</td>
                 <td class="gpx-track-preview-cell"><app-gpx-track-preview [track]="track" variant="list" /></td>
-                <td class="gpx-row-actions">
-                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
-                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
-                </td>
+                
               </tr>
             }
           </tbody>
@@ -1181,11 +1181,7 @@
           <thead><tr><th></th><th>URL</th><th>Filetype</th><th>Use for updates</th></tr></thead>
           <tbody>
             @for (source of downloadSources(); track $index; let i = $index) {
-              <tr>
-                <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
-                <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
-                <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
-                <td class="offline-row-actions download-source-row-actions">
+              <tr><td class="offline-row-actions download-source-row-actions">
                   <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('download-source:' + i, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'download-source:' + i" [attr.aria-label]="'Actions for download source ' + (i + 1)" title="Download source actions">☰</button>
                   @if (offlineRowActionMenuOpen() === 'download-source:' + i) {
                     <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1196,6 +1192,10 @@
                     </div>
                   }
                 </td>
+                <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
+                <td><select [value]="source.fileType" (change)="updateDownloadSource(i, { fileType: $any($event.target).value })" aria-label="Download source filetype"><option value="obf">OBF</option><option value="mbtiles">MBTiles</option><option value="mapsforge">MapsForge</option><option value="android">Android</option><option value="others">Others</option></select></td>
+                <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="source.useForUpdates" (change)="updateDownloadSource(i, { useForUpdates: $any($event.target).checked })" aria-label="Use for updates"></td>
+                
               </tr>
             }
           </tbody>
@@ -1217,12 +1217,7 @@
             <thead><tr><th></th><th>File name</th><th>Type</th><th>Catalogue date</th><th>Source</th></tr></thead>
             <tbody>
               @for (file of offlineMapCatalogueFiles(); track file.url) {
-                <tr [class.offline-catalogue-matched]="file.matched">
-                  <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
-                  <td>{{ file.fileType.toUpperCase() }}</td>
-                  <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
-                  <td>{{ file.source }}</td>
-                  <td class="offline-row-actions offline-catalogue-row-actions">
+                <tr [class.offline-catalogue-matched]="file.matched"><td class="offline-row-actions offline-catalogue-row-actions">
                     <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('catalogue:' + file.url, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'catalogue:' + file.url" [attr.aria-label]="'Actions for ' + file.fileName" title="Update file actions">☰</button>
                     @if (offlineRowActionMenuOpen() === 'catalogue:' + file.url) {
                       <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1231,6 +1226,11 @@
                       </div>
                     }
                   </td>
+                  <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
+                  <td>{{ file.fileType.toUpperCase() }}</td>
+                  <td class="mbtiles-map-number">{{ file.dateMs === null ? '—' : formatOfflineMapDate(file.dateMs) }}</td>
+                  <td>{{ file.source }}</td>
+                  
                 </tr>
               }
             </tbody>
@@ -1300,7 +1300,21 @@
                     @let hillshadeDuplicateSet = hillshadeDuplicateIds();
                     @for (map of sortedOffline().filter(map => map.type === 'obf'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
+                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
+                          @if (offlineRowActionMenuOpen() === map.filePath) {
+                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
+                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
+                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
+                              <div class="gpx-row-action-menu-separator" role="separator"></div>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
+                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
+                            </div>
+                          }
+                        </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
                         <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
                         <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
@@ -1310,35 +1324,11 @@
                         <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
                         <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
                         <td class="mbtiles-map-bounds" [attr.title]="obfMetadataTooltip(map)">{{ map.bounds || '—' }}</td><td class="mbtiles-map-number">{{ map.obfMetadataAvailable && map.minZoom > 0 && map.maxZoom > 0 ? map.minZoom + '–' + map.maxZoom : '—' }}</td>
-                        <td class="offline-row-actions">
-                          <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
-                          @if (offlineRowActionMenuOpen() === map.filePath) {
-                            <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
-                              <button type="button" role="menuitem" (click)="copyOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">⧉</span> Copy folder path</button>
-                              <button type="button" role="menuitem" (click)="openOfflineFolder(map.filePath, false); offlineRowActionMenuOpen.set(null)"><span aria-hidden="true">📂</span> Open path</button>
-                              <button type="button" role="menuitem" (click)="openOfflineFileWith(map.filePath); offlineRowActionMenuOpen.set(null)" ><span aria-hidden="true">↗</span> Open file</button>
-                              <div class="gpx-row-action-menu-separator" role="separator"></div>
-                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">✓</span> Activate visible files</button>
-                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasVisibleOfflineFiles()"><span aria-hidden="true">×</span> Deactivate visible files</button>
-                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(true, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">✓✓</span> Activate all files</button>
-                              <button type="button" role="menuitem" (click)="setAllOfflineEnabled(false, false); offlineRowActionMenuOpen.set(null)" [disabled]="!hasAllOfflineFiles()"><span aria-hidden="true">××</span> Deactivate all files</button>
-                            </div>
-                          }
-                        </td>
+                        
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'osmand-resources'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
-                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
-                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
-                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
-                        <td class="mbtiles-map-number">—</td>
-                        <td class="offline-file-status-cell">External resource</td>
-                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === entry.path) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1353,21 +1343,21 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        
                       </tr>
                     }
                     @for (map of sortedOffline().filter(map => map.type === 'mapsforge'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
-                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
-                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
-                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                        <td class="offline-row-actions">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === map.filePath) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1382,20 +1372,20 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'mapsforge-theme'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
-                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
-                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
-                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
-                        <td class="mbtiles-map-number">—</td>
-                        <td class="offline-file-status-cell">External resource</td>
-                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === entry.path) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1410,21 +1400,21 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        
                       </tr>
                     }
                     @for (map of sortedOffline().filter(map => map.type !== 'obf' && map.type !== 'mapsforge'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
-                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
-                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
-                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
-                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
-                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
-                        <td class="offline-row-actions">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === map.filePath) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1439,18 +1429,20 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="map.enabled" [disabled]="!map.available" [title]="'Preselect offline map ' + map.name" (change)="setOfflineMapEnabled(map.id, $any($event.target).checked)" [attr.aria-label]="'Active offline map ' + map.name"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag" [class.obf-format-tag]="map.type === 'obf'" [class.mbtiles-format-tag]="map.type === 'mbtiles' || !map.type" [class.mapsforge-format-tag]="map.type === 'mapsforge'">{{ offlineMapTypeLabel(map.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="map.filePath"><strong>{{ map.name }}</strong>@if (map.fileName !== map.name) { <span>{{ map.fileName }}</span> }</td>
+                        <td class="offline-map-path-cell" [title]="map.filePath">{{ map.filePath || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(map.fileSize) }}</td><td class="mbtiles-map-number">{{ formatOfflineMapDate(map.lastModified) }}</td>
+                        <td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!map.available || !map.filePath.trim() ? 'Missing' : map.enabled ? 'Active' : 'Inactive') + (duplicateIds.has(map.id) ? ' · Duplicate' : '') }}</td>
+                        <td class="mbtiles-updates-column"><span class="mbtiles-update-symbol" [class.update-available]="map.updateAvailable === true" [class.update-current]="map.updateAvailable === false" [class.update-unknown]="map.updateChecked && map.updateAvailable === null && map.updateMatched !== false" [class.update-no-match]="map.updateChecked && map.updateMatched === false" [attr.title]="map.updateAvailable === true ? 'Update available' : map.updateAvailable === false ? 'No newer version listed' : map.updateChecked ? 'No matching catalogue file' : 'Not checked yet'">{{ map.updateAvailable === true ? '↑' : map.updateAvailable === false ? '✓' : map.updateChecked && map.updateMatched === false ? '?' : '—' }}</span></td>
+                        <td class="mbtiles-map-bounds">{{ map.bounds }}</td><td class="mbtiles-map-number">{{ map.minZoom }}–{{ map.maxZoom }}</td>
+                        
                       </tr>
                     }
                     @for (database of sortedHillshadeDatabases(); track database.id) {
-                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
-                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
-                        <td class="mbtiles-map-file" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
-                        <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
-                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
-                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!database.available || !database.path.trim() ? 'Missing' : database.enabled ? 'Active' : 'Inactive') + (hillshadeDuplicateSet.has(database.id) ? ' · Duplicate' : '') }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td class="offline-row-actions">
+                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(database.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === database.path" [attr.aria-label]="'Actions for ' + database.path" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === database.path) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1465,20 +1457,18 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column"><input type="checkbox" [checked]="database.enabled" [disabled]="!database.available" (change)="setHillshadeDatabaseEnabled(database.id, $any($event.target).checked)" [attr.aria-label]="'Active Hillshade database ' + database.path"></td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag hillshade-format-tag">Hillshade (.sqlitedb)</i></td>
+                        <td class="mbtiles-map-file" [title]="database.path"><strong>{{ hillshadeDatabaseFileName(database.path) }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="database.path">{{ database.path || '—' }}</td>
+                        <td class="mbtiles-map-number">{{ database.sizeBytes === null ? '—' : formatOfflineMapSize(database.sizeBytes) }}</td>
+                        <td>{{ formatHillshadeLastModified(database.lastModified) }}</td><td class="offline-file-status-cell">{{ !offlineFilesChecked() ? 'Not checked' : (!database.available || !database.path.trim() ? 'Missing' : database.enabled ? 'Active' : 'Inactive') + (hillshadeDuplicateSet.has(database.id) ? ' · Duplicate' : '') }}</td><td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        
                       </tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'valhalla'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'">
-                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
-                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
-                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
-                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
-                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
-                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
-                        <td class="mbtiles-map-number">—</td>
-                        <td class="offline-file-status-cell">External resource</td>
-                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
-                        <td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                           @if (offlineRowActionMenuOpen() === entry.path) {
                             <div class="gpx-row-action-menu offline-row-action-menu" role="menu" [style.top.px]="offlineRowActionMenuPosition().top" [style.left.px]="offlineRowActionMenuPosition().left" (click)="$event.stopPropagation()">
@@ -1493,6 +1483,16 @@
                             </div>
                           }
                         </td>
+                        <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
+                        <td class="mbtiles-enabled-column">@if (entry.type === 'valhalla') { <input type="checkbox" [checked]="resourcePackageEntryActive(entry)" [disabled]="!resourcePackageEntryAvailable(entry) || routeConfigBusy()" (change)="$any($event.target).checked ? setActiveValhallaConfig(entry.sourcePath) : null" [attr.aria-label]="'Use ' + entry.fileName + ' as active routing configuration'"> } @else { — }</td>
+                        <td class="mbtiles-type-column"><i class="offline-map-format-tag resource-package-format-tag" [class.resource-valhalla-tag]="entry.type === 'valhalla'" [class.resource-osmand-tag]="entry.type === 'osmand-resources'" [class.resource-mapsforge-tag]="entry.type === 'mapsforge-theme'">{{ resourcePackageEntryTypeLabel(entry.type) }}</i></td>
+                        <td class="mbtiles-map-file" [title]="entry.fileName"><strong>{{ entry.fileName }}</strong></td>
+                        <td class="offline-map-path-cell" [title]="entry.path">{{ entry.path }}</td>
+                        <td class="mbtiles-map-number">{{ formatOfflineMapSize(entry.fileSize) }}</td>
+                        <td class="mbtiles-map-number">—</td>
+                        <td class="offline-file-status-cell">External resource</td>
+                        <td class="mbtiles-updates-column">—</td><td class="mbtiles-map-bounds">—</td><td class="mbtiles-map-number">—</td>
+                        
                       </tr>
                     }
                   </tbody>
