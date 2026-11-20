@@ -1495,12 +1495,16 @@ export class CacheManager {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
     const where = scope + supportedFilter;
-    const countRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
+    // The total is needed for the initial page and refreshes only. Avoid
+    // repeating a full COUNT(*) scan for every subsequent scroll page.
+    const countRow = safeOffset === 0
+      ? db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number }
+      : null;
     const sortColumn = sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE';
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       ${where}
-      ORDER BY ${sortColumn} ${direction}, photos.file_name COLLATE NOCASE ASC
+      ORDER BY ${sortColumn} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC
       LIMIT :limit OFFSET :offset`)
       .all({ ...filterParams, limit: safeLimit, offset: safeOffset }) as Array<{
         file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
@@ -1512,7 +1516,7 @@ export class CacheManager {
         ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
       } satisfies FileInfo;
     });
-    return { files, totalCount: Number(countRow.totalCount) || 0, offset: safeOffset, limit: safeLimit };
+    return { files, totalCount: countRow ? Number(countRow.totalCount) || 0 : -1, offset: safeOffset, limit: safeLimit };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
