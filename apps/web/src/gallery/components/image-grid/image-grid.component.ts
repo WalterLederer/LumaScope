@@ -91,6 +91,17 @@ export class ImageGridComponent {
   };
 
   readonly viewMode = signal<GalleryViewMode>(this.readStoredViewMode());
+  readonly detailScrollTop = signal(0);
+  readonly detailViewportHeight = signal(800);
+  readonly detailHeaderHeight = signal(0);
+
+  protected readonly onGalleryScroll = (event: Event): void => {
+    const viewport = event.currentTarget as HTMLElement;
+    const header = viewport.querySelector<HTMLElement>('.detail-native-table thead');
+    this.detailScrollTop.set(viewport.scrollTop);
+    this.detailViewportHeight.set(viewport.clientHeight);
+    this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
+  };
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
