@@ -29,6 +29,10 @@ export class GalleryState {
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
   private navigationRequest = 0;
+  private readonly galleryPageSize = 250;
+  private galleryLoadedCount = 0;
+  private galleryTotalCount = 0;
+  private galleryPageLoading = false;
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
@@ -50,11 +54,7 @@ export class GalleryState {
         this.galleryFilesRefreshTimer = null;
         const currentFolder = this.selectedLocation$.value;
         if (!currentFolder) return;
-        const request = ++this.navigationRequest;
-        const sort = this.sortMode$.value;
-        void this.cacheManager.getGalleryFiles(currentFolder, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir)
-          .then(images => { if (request === this.navigationRequest) this.images$.next(images); })
-          .catch(error => console.error('Failed to refresh database-backed gallery files', currentFolder, error));
+        this.refreshLoadedGalleryPages(currentFolder);
       }, 150);
     });
     this.configuration.config()
@@ -148,6 +148,10 @@ export class GalleryState {
   readonly navigateTo = (path: string): Observable<boolean> => {
     const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
+    this.galleryLoadedCount = 0;
+    this.galleryTotalCount = 0;
+    this.galleryPageLoading = false;
+    this.images$.next([]);
     this.configuration.updateGalleryConfig({ selectedLocation: path });
 
     return this.sortMode$
@@ -155,14 +159,65 @@ export class GalleryState {
         take(1),
         switchMap(sortMode => defer(() =>
           this.cacheManager.selectDatabaseForDirectory(path).then(() =>
-            this.cacheManager.getGalleryFiles(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir)
+            this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryPageSize)
           )
         )),
-        tap(images => {
-          if (request === this.navigationRequest) this.images$.next(images);
+        tap(page => {
+          if (request !== this.navigationRequest) return;
+          this.galleryLoadedCount = page.files.length;
+          this.galleryTotalCount = page.totalCount;
+          this.images$.next(page.files);
         }),
         map(() => true)
       );
+  };
+
+  readonly loadNextGalleryPage = (): void => {
+    const directory = this.selectedLocation$.value;
+    if (!directory || this.galleryPageLoading || this.galleryLoadedCount >= this.galleryTotalCount) return;
+    const request = this.navigationRequest;
+    const offset = this.galleryLoadedCount;
+    const sort = this.sortMode$.value;
+    this.galleryPageLoading = true;
+    void this.cacheManager.getGalleryFilesPage(
+      directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+      sort.sortBy, sort.sortDir, offset, this.galleryPageSize
+    ).then(page => {
+      if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
+      this.galleryLoadedCount = offset + page.files.length;
+      this.galleryTotalCount = page.totalCount;
+      if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
+    }).catch(error => {
+      console.error('Failed to load the next gallery database page', directory, error);
+    }).finally(() => {
+      if (request === this.navigationRequest) this.galleryPageLoading = false;
+    });
+  };
+
+  private readonly refreshLoadedGalleryPages = async (directory: string): Promise<void> => {
+    const request = ++this.navigationRequest;
+    const sort = this.sortMode$.value;
+    const requestedCount = Math.max(this.galleryPageSize, this.galleryLoadedCount);
+    try {
+      const pages: FileInfo[] = [];
+      let totalCount = 0;
+      for (let offset = 0; offset < requestedCount; offset += this.galleryPageSize) {
+        const page = await this.cacheManager.getGalleryFilesPage(
+          directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+          sort.sortBy, sort.sortDir, offset, this.galleryPageSize
+        );
+        if (request !== this.navigationRequest) return;
+        pages.push(...page.files);
+        totalCount = page.totalCount;
+        if (page.files.length < this.galleryPageSize) break;
+      }
+      if (request !== this.navigationRequest) return;
+      this.galleryLoadedCount = pages.length;
+      this.galleryTotalCount = totalCount;
+      this.images$.next(pages);
+    } catch (error) {
+      console.error('Failed to refresh database-backed gallery files', directory, error);
+    }
   };
 
   readonly changeSorting = (sortMode: Partial<SortMode>) =>
