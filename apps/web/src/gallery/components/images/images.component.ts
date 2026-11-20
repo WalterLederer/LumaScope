@@ -1096,11 +1096,11 @@ export class ImagesComponent {
       const statuses: CacheImageStatus[] = [];
       const imagePaths = images.map(image => image.path);
       const sourceMetadata = images.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }));
-      for (let offset = 0; offset < imagePaths.length; offset += 10000) {
+      for (let offset = 0; offset < imagePaths.length; offset += 500) {
         statuses.push(...await this.cacheManager.getImageCacheStatuses(
-          imagePaths.slice(offset, offset + 10000),
+          imagePaths.slice(offset, offset + 500),
           this.verifyCacheFiles(),
-          sourceMetadata.slice(offset, offset + 10000)
+          sourceMetadata.slice(offset, offset + 500)
         ));
       }
       const verificationTimeMs = Math.round(performance.now() - statusPreparationStartedAt);
