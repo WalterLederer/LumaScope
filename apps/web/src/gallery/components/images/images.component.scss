@@ -1543,17 +1543,21 @@
   max-height: none !important;
   overflow: visible !important;
 }
+/* The virtual spacer rows carry their height as an inline pixel value from
+   detailVirtualTopSpacer()/detailVirtualBottomSpacer(). Never force them to
+   zero: doing so collapses the scroll offset and makes the rendered rows start
+   at the wrong vertical position. */
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer {
   display: table-row !important;
-  height: 0 !important;
   min-height: 0 !important;
   max-height: none !important;
 }
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer > td {
   display: table-cell !important;
-  height: 0 !important;
   padding: 0 !important;
   border: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
 }
 .detail-native-table .detail-actions-heading {
   width: var(--detail-actions-width, 44px) !important;
