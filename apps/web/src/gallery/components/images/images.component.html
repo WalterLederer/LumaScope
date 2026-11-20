@@ -105,7 +105,9 @@
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col">
             <small class="column-count">{{ cacheStats().total }}</small>
-            <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
+            @if (unsupportedSuffixCount() > 0) {
+              <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
+            }
             @if (cacheFolderActionActive()) {
               <small class="worker-progress cache-folder-action-progress" aria-live="polite">
                 <span class="cache-folder-action-label">Cache folder action is running</span>
