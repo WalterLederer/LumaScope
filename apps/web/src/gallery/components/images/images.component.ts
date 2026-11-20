@@ -877,7 +877,7 @@ export class ImagesComponent {
         const files = entries.filter(entry => !entry.isDirectory);
         await this.cacheManager.registerGalleryFiles(folder, files);
         indexedFilePaths = files.map(file => file.path);
-        images = files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+        images = files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
         if (importGpx) gpxFiles.push(...files.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
@@ -984,7 +984,7 @@ export class ImagesComponent {
       const rootFiles = rootEntries.filter(entry => !entry.isDirectory);
       await this.cacheManager.registerGalleryFiles(rootPath, rootFiles);
       const allFiles: FileInfo[] = [...rootFiles];
-      const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+      const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
       const gpxFiles: string[] = [];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
@@ -1007,7 +1007,7 @@ export class ImagesComponent {
         if (directory.toLocaleLowerCase() !== rootPath.toLocaleLowerCase()) {
           await this.cacheManager.registerGalleryFiles(directory, directoryFiles);
           allFiles.push(...directoryFiles);
-          allImages.push(...directoryFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, ''))));
+          allImages.push(...directoryFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, ''))));
         }
         if (importGpx) gpxFiles.push(...directoryFiles.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
         if (controller.signal.aborted) break;
