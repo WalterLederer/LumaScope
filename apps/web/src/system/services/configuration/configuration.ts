@@ -152,7 +152,15 @@ export class Configuration {
         galleryDetailGpsDateProgressColor: '#287fc4',
         galleryDetailDimensionsProgressColor: '#16a085',
         galleryDetailSizeProgressColor: '#8e63ce',
-        galleryDetailSelectedRowColor: '#d18b24'
+        galleryDetailSelectedRowColor: '#d18b24',
+        galleryDetailOddRowColor: '#ffffff',
+        galleryDetailEvenRowColor: '#f5f5f5',
+        galleryDetailAlternateRowColors: true,
+        galleryDetailDateProgressEnabled: true,
+        galleryDetailGpsDateProgressEnabled: true,
+        galleryDetailDimensionsProgressEnabled: true,
+        galleryDetailSizeProgressEnabled: true,
+        galleryDetailProgressOpacity: 22
       }
     };
   };
