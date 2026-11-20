@@ -417,6 +417,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_gpx_files_content_hash_unique
 ALTER TABLE photos ADD COLUMN gps_manually_corrected INTEGER NOT NULL DEFAULT 0 CHECK (gps_manually_corrected IN (0, 1));
 ALTER TABLE photos ADD COLUMN gps_manual_corrected_at INTEGER;
 `
+  },
+  {
+    name: 'indexGeotaggedPhotoTimestampsV21',
+    query: `
+CREATE INDEX IF NOT EXISTS idx_photos_gps_reference_timestamp
+  ON photos(gps_timestamp, id)
+  WHERE gps_timestamp IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL;
+`
   }
 ];
 // @formatter:on
