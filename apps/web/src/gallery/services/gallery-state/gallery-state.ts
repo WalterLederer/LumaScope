@@ -209,7 +209,7 @@ export class GalleryState {
         );
         if (request !== this.navigationRequest) return;
         pages.push(...page.files);
-        totalCount = page.totalCount;
+        if (page.totalCount >= 0) totalCount = page.totalCount;
         if (page.files.length < this.galleryPageSize) break;
       }
       if (request !== this.navigationRequest) return;
