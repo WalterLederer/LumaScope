@@ -418,3 +418,15 @@
 :host(.view-details-no-thumbnails.selected-image) > td {
   background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-odd-row-color, #ffffff)) !important;
 }
+
+/* Paint the selection above per-cell progress-bar gradients so keyboard
+   Up/Down selection remains visible across the complete row. */
+:host(.view-details.selected-image) > td,
+:host(.view-details-no-thumbnails.selected-image) > td {
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, transparent);
+}
+:host(.view-details.selected-image) > td:first-child,
+:host(.view-details-no-thumbnails.selected-image) > td:first-child {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent),
+              inset 0 0 0 999px color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, transparent);
+}
