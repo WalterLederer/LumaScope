@@ -1,3 +1,4 @@
+import { ButtonTooltipDirective } from '@light-matter/ui';
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
 import { CacheImageStatus, ExifTags, formatOsDateTime } from 'internal-api';
@@ -8,7 +9,9 @@ import { CacheManager } from '../../../ipc/cache-manager';
 
 @Component({
   selector: 'app-exif-info',
-  imports: [ DecimalPipe, ByteSizePipe ],
+  imports: [ DecimalPipe, ByteSizePipe ,
+    ButtonTooltipDirective
+  ],
   templateUrl: './exif-info.component.html',
   styleUrl: './exif-info.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
