@@ -96,7 +96,7 @@ ui-toolbar {
     border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
     border-radius: 9px;
     background: var(--color-surface-default-low);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+    box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%));
   }
 
   .zoom-step-buttons {
