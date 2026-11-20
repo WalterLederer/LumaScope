@@ -2300,6 +2300,29 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  protected readonly removeGpsInfosFromFile = async (): Promise<void> => {
+    if (!this.fixLocationEnabled() || !this.currentImagePath || !this.desktop || this.gpsSaveBusy() || this.gpsRefreshBusy()) return;
+    const confirmed = window.confirm(
+      'Remove all GPS location information from this image file and its LumaScope database record?\n\n' +
+      'The image location marker will also be disabled. This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    this.gpsSaveBusy.set(true);
+    this.gpsSaveStatus.set('');
+    try {
+      const result = await this.desktop.Exif.removeGpsMetadata(this.currentImagePath);
+      if (!result.success) throw new Error(('errorMessage' in result && result.errorMessage) || 'Could not remove GPS information from the image file.');
+      this.updatePhotoGpsPosition(null, null);
+      if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
+      this.gpsSaveStatus.set('GPS information removed from the image file and database. The image location marker is disabled.');
+    } catch (error) {
+      this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.gpsSaveBusy.set(false);
+    }
+  };
+
   protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!(this.map || this.offlineRenderer) && !!this.desktop;
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
