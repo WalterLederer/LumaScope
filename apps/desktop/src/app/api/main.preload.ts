@@ -275,8 +275,8 @@ const api: Desktop = {
       ipcRenderer.on('MapWindow.stateChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.stateChanged', listener);
     },
-    onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }) => void) => {
-      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null }): void => callback(location);
+    onLocationChanged: (callback: (location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null; recursive?: boolean }) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, location: { latitude: number | null; longitude: number | null; bearing?: number | null; imagePath?: string | null; folderPath?: string | null; recursive?: boolean }): void => callback(location);
       ipcRenderer.on('MapWindow.locationChanged', listener);
       return () => ipcRenderer.removeListener('MapWindow.locationChanged', listener);
     }
