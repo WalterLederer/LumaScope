@@ -88,6 +88,13 @@
   </aside>
 </ui-toolbar>
 
+@if (galleryLoading()) {
+  <div class="gallery-loading-indicator" role="status" aria-live="polite">
+    <span class="gallery-loading-spinner" aria-hidden="true"></span>
+    <span>Loading folder contents from the photo database…</span>
+  </div>
+}
+
 <div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox (scroll)="onGalleryScroll($event)">
   <app-images [images]="images()" [selectedImagePath]="selectedImagePath()"
               [cacheStats]="cacheStats()"
