@@ -231,25 +231,41 @@ export class FileSystem {
     _: IpcMainInvokeEvent,
     path: string,
     sortBy: SortType,
-    sortDir: SortDirection
+    sortDir: SortDirection,
+    includeUnsupported = false,
+    recursive = false
   ): Promise<ApiResponse<FileInfo[]>> => {
     const startedAt = Date.now();
-    console.log('[FileSystem.readImages] START', JSON.stringify({ path, sortBy, sortDir }));
+    console.log('[FileSystem.readImages] START', JSON.stringify({ path, sortBy, sortDir, includeUnsupported, recursive }));
     try {
-      const entries = (await readdir(path, { withFileTypes: true }))
-        .filter(file =>
-          file.isFile() && supportedFileExtensions.includes(extname(file.name).toLowerCase().replace('.', ''))
-        );
+      const pendingDirectories = [path];
+      const fileEntries: Array<{ name: string; parent: string }> = [];
+      while (pendingDirectories.length > 0) {
+        const currentDirectory = pendingDirectories.pop()!;
+        const entries = await readdir(currentDirectory, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            if (recursive && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) {
+              pendingDirectories.push(join(currentDirectory, entry.name));
+            }
+            continue;
+          }
+          if (!entry.isFile()) continue;
+          const extension = extname(entry.name).toLowerCase().replace('.', '');
+          if (includeUnsupported || supportedFileExtensions.includes(extension)) {
+            fileEntries.push({ name: entry.name, parent: currentDirectory });
+          }
+        }
+      }
 
       // Do not block Electron's main process with thousands of synchronous statSync calls.
-      const files = await Promise.all(entries.map(async file => {
-        const filePath = join(path, file.name);
+      const files = await Promise.all(fileEntries.map(async file => {
+        const filePath = join(file.parent, file.name);
         const stats = await stat(filePath);
-
         return {
           path: filePath,
           name: file.name,
-          parent: path,
+          parent: file.parent,
           isDirectory: false,
           ext: extname(file.name),
           createdAt: stats.birthtimeMs,
@@ -260,9 +276,7 @@ export class FileSystem {
 
       const data = files.sort(this.sortFiles(sortBy, sortDir));
       console.log('[FileSystem.readImages] DONE', JSON.stringify({
-        path,
-        count: data.length,
-        durationMs: Date.now() - startedAt
+        path, count: data.length, durationMs: Date.now() - startedAt
       }));
       return { success: true, data };
     } catch (error) {
