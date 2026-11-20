@@ -1,7 +1,7 @@
 @let currentNode = node();
 @let currentMenu = menu();
 
-@if (currentMenu !== null && (inlineActions() || currentNode.hideMenu !== true)) {
+@if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
   @if (rowNumber() !== null) {
     <span class="tree-row-number" aria-hidden="true">{{ rowNumber() }}</span>
   }
