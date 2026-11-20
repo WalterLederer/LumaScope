@@ -13,18 +13,17 @@
 
 @if (browseWorkspaceInitialized()) {
 <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="activeImageSidebarTab() === 'gallery' ? 'grid' : 'none'" [style.--browse-sidebar-width.px]="controlsSidebarVisible() ? sidebarWidth() : 0" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'">
-  @if (activeImageSidebarTab() === 'gallery') {
-    <app-gallery class="gallery-tab-content"
+  <app-gallery class="gallery-tab-content"
                  [selectedImagePath]="selected?.path ?? null"
                  [showFolderTree]="false"
                  [showImageGrid]="true"
+                 [style.display]="activeImageSidebarTab() === 'gallery' ? 'block' : 'none'"
                  [style.grid-row]="'1'"
                  [style.width]="'100%'"
                  [style.min-width]="'0'"
                  [style.margin-right.px]="0"
                  (imageSelected)="onGalleryImageSelected()"
                  (locationSelected)="onGalleryFolderSelected()" />
-  }
   @if (controlsSidebarVisible()) {
     <aside class="image-controls-sidebar gallery-shell-sidebar" [class.sidebar-left]="sidebarOnLeft()" aria-label="Image controls" [style.position]="'relative'" [style.width]="'100%'" [style.min-width]="'0'">
       <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [class.tabs-right-start]="tab.id === 'general'" [attr.aria-selected]="activeImageSidebarTab() === tab.id" (click)="setActiveImageSidebarTab(tab.id)">{{tab.label}}</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleSidebarVisibility()">×</button><button class="sidebar-side-toggle" type="button" [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" (click)="toggleSidebarSide()">⇄</button></nav>
