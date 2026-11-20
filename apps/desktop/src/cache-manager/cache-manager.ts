@@ -1499,11 +1499,8 @@ export class CacheManager {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
     const where = scope + supportedFilter;
-    // The total is needed for the initial page and refreshes only. Avoid
-    // repeating a full COUNT(*) scan for every subsequent scroll page.
-    const countRow = safeOffset === 0
-      ? db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number }
-      : null;
+    // Do not count the entire folder before returning the first visible rows.
+    // The gallery discovers the end of the result set as subsequent pages are loaded.
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
@@ -1522,7 +1519,7 @@ export class CacheManager {
         ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
       } satisfies FileInfo;
     });
-    return { files, totalCount: countRow ? Number(countRow.totalCount) || 0 : -1, offset: safeOffset, limit: safeLimit };
+    return { files, totalCount: -1, offset: safeOffset, limit: safeLimit };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
