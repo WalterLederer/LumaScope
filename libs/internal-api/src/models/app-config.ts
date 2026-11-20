@@ -98,6 +98,13 @@ export interface AppConfigV1Preferences {
   themeBackgroundBrightness?: number;
   /** Legacy total-brightness setting retained for existing configuration files. */
   themeColorBrightness?: number;
+  /** Progress-bar fill colors used by the gallery detail table. */
+  galleryDetailDateProgressColor?: string;
+  galleryDetailGpsDateProgressColor?: string;
+  galleryDetailDimensionsProgressColor?: string;
+  galleryDetailSizeProgressColor?: string;
+  /** Background tint used for the selected gallery detail row. */
+  galleryDetailSelectedRowColor?: string;
 }
 
 export interface AppConfigV1System {
@@ -165,6 +172,11 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.themeTotalBrightness || 'number' === typeof input.themeTotalBrightness && input.themeTotalBrightness >= 50 && input.themeTotalBrightness <= 150)
     && (undefined === input.themeBackgroundBrightness || 'number' === typeof input.themeBackgroundBrightness && input.themeBackgroundBrightness >= 50 && input.themeBackgroundBrightness <= 150)
     && (undefined === input.themeColorBrightness || 'number' === typeof input.themeColorBrightness && input.themeColorBrightness >= 50 && input.themeColorBrightness <= 150)
+    && (undefined === input.galleryDetailDateProgressColor || typeof input.galleryDetailDateProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailDateProgressColor))
+    && (undefined === input.galleryDetailGpsDateProgressColor || typeof input.galleryDetailGpsDateProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailGpsDateProgressColor))
+    && (undefined === input.galleryDetailDimensionsProgressColor || typeof input.galleryDetailDimensionsProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailDimensionsProgressColor))
+    && (undefined === input.galleryDetailSizeProgressColor || typeof input.galleryDetailSizeProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailSizeProgressColor))
+    && (undefined === input.galleryDetailSelectedRowColor || typeof input.galleryDetailSelectedRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailSelectedRowColor))
     && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle)
     && (undefined === input.tabBarStyle || 'classic' === input.tabBarStyle || 'underline' === input.tabBarStyle || 'pills' === input.tabBarStyle || 'segmented' === input.tabBarStyle || 'boxed' === input.tabBarStyle || 'minimal' === input.tabBarStyle || 'flat' === input.tabBarStyle || 'contrast' === input.tabBarStyle || 'soft' === input.tabBarStyle || 'rounded' === input.tabBarStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
