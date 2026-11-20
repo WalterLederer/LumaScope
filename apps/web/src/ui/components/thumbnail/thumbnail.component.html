@@ -24,7 +24,7 @@
   <td class="detail-name" [title]="image().name">{{ image().name }}</td>
   <td class="detail-date" [style.--detail-progress]="(detailProgress()?.date ?? 0) + '%'">{{ formatDetailDateTime(image().modifiedAt) }}</td>
   <td class="detail-gps-date" [style.--detail-progress]="(detailProgress()?.gpsDate ?? 0) + '%'">{{ gpsDateLabel() }}</td>
-  <td class="detail-dimensions" [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
+  <td class="detail-dimensions" [style.--detail-progress]="(detailProgress()?.dimensions ?? 0) + '%'" [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
   <td class="detail-size" [style.--detail-progress]="(detailProgress()?.size ?? 0) + '%'">{{ formattedFileSize() }}</td>
   <td class="detail-suffix">{{ imageSuffix() }}</td>
   <td class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</td>
