@@ -5,9 +5,7 @@ import { allButtonTypes, ButtonType } from '../../types/button.types';
 
 @Component({
   selector: 'ui-flat-button',
-  imports: [ ,
-    ButtonTooltipDirective
-  ],
+  imports: [ButtonTooltipDirective],
   templateUrl: './flat-button.component.html',
   styleUrl: './flat-button.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
