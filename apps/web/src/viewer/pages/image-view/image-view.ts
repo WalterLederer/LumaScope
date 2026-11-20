@@ -171,8 +171,8 @@ export class ImageView {
     this.overlayMapWindowOpen.set(true);
   };
 
-  private readonly checkLocationPhotoDatabase = async (directory: string): Promise<{ total: number; missing: string[] }> => {
-    const result = await this.fileSystem.readImages(directory, 'name', 'asc');
+  private readonly checkLocationPhotoDatabase = async (directory: string, recursive = false): Promise<{ total: number; missing: string[] }> => {
+    const result = await this.fileSystem.readImages(directory, 'name', 'asc', false, recursive);
     if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
     const images = result.data.filter(image => !image.isDirectory);
     const missing: string[] = [];
@@ -198,7 +198,7 @@ export class ImageView {
       // Let Angular mount the hidden Gallery/Cache controller before starting its registered action.
       await new Promise<void>(resolve => this.document.defaultView?.setTimeout(resolve, 0) ?? resolve());
       await this.galleryCacheBuild.startCacheBuild(directory);
-      const completeness = await this.checkLocationPhotoDatabase(directory);
+      const completeness = await this.checkLocationPhotoDatabase(directory, this.galleryState.includeFilesRecursiveValue());
       if (completeness.missing.length > 0) {
         this.document.defaultView?.alert(
           `The photo database is still incomplete: ${completeness.missing.length} of ${completeness.total} images are missing current records. The Location window was not opened.`
@@ -2126,7 +2126,7 @@ export class ImageView {
       const coordinates = this.gpsCoordinates();
       const imagePath = this.debugSelectedImagePath === 'unknown' || this.debugSelectedImagePath === 'none' ? null : this.debugSelectedImagePath;
       if (this.detachedMapWindowOpen()) {
-        void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath, this.gallerySelectedLocation() ?? null);
+        void this.desktopApi?.MapWindow.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, imagePath, this.gallerySelectedLocation() ?? null, this.galleryState.includeFilesRecursiveValue());
       }
     });
 
