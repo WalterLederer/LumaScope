@@ -171,18 +171,8 @@ export class ImagesComponent {
   readonly folderRefreshRequested = output<string>();
   readonly refreshGallery = async (): Promise<void> => {
     const folder = this.folderPath();
-    if (folder) {
-      try {
-        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection(), this.includeUnsupportedFiles(), this.includeFilesRecursive());
-        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
-        if (this.folderPath() !== folder) return;
-        await this.cacheManager.reconcilePhotoRecords(folder, result.data.map(image => image.path), false);
-      } catch (error) {
-        console.error('Failed to reconcile Browse photo database before refreshing thumbnails', folder, error);
-      }
-    }
     this.manualRefresh.update(value => value + 1);
-    if (folder && this.folderPath() === folder) this.folderRefreshRequested.emit(folder);
+    if (folder) this.folderRefreshRequested.emit(folder);
     this.cacheUpdated.emit('');
   };
   private observer: IntersectionObserver | null = null;
@@ -846,17 +836,11 @@ export class ImagesComponent {
       const folder = directory?.trim() || this.folderPath();
       if (folder) {
         this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
-        const result = await this.fileSystem.readImages(folder, this.sortBy(), this.sortDirection());
-        if (!result.success) throw new Error(result.errorMessage || `Could not read folder: ${folder}`);
-        images = result.data;
-        if (importGpx) {
-          try {
-            const entries = await this.fileSystem.readDir(folder);
-            gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
-          } catch (error) {
-            await this.cacheManager.appendBuildLog(`GPX enumeration skipped for ${folder}: ${error instanceof Error ? error.message : String(error)}`);
-          }
-        }
+        const entries = await this.fileSystem.readDir(folder);
+        const files = entries.filter(entry => !entry.isDirectory);
+        await this.cacheManager.registerGalleryFiles(folder, files);
+        images = files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+        if (importGpx) gpxFiles.push(...files.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
           reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, images.map(image => image.path), false);
@@ -958,10 +942,12 @@ export class ImagesComponent {
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
-      const rootImages = await this.fileSystem.readImages(rootPath, this.sortBy(), this.sortDirection());
-      if (!rootImages.success) throw new Error(rootImages.errorMessage || `Could not read folder: ${rootPath}`);
-      const allImages: FileInfo[] = [...rootImages.data];
-      const gpxFiles: string[] = [];
+      const rootEntries = await this.fileSystem.readDir(rootPath);
+      const rootFiles = rootEntries.filter(entry => !entry.isDirectory);
+      await this.cacheManager.registerGalleryFiles(rootPath, rootFiles);
+      const allFiles: FileInfo[] = [...rootFiles];
+      const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+      const gpxFiles: string[] = importGpx ? rootFiles.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path) : [];
       const visitedDirectories = new Set<string>([rootPath]);
       const pendingDirectories = [rootPath];
       let enumerationComplete = true;
@@ -979,9 +965,13 @@ export class ImagesComponent {
           enumerationComplete = false;
           continue;
         }
-        if (importGpx) {
-          gpxFiles.push(...entries.filter(entry => !entry.isDirectory && entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+        const directoryFiles = entries.filter(entry => !entry.isDirectory);
+        if (directory.toLocaleLowerCase() !== rootPath.toLocaleLowerCase()) {
+          await this.cacheManager.registerGalleryFiles(directory, directoryFiles);
+          allFiles.push(...directoryFiles);
+          allImages.push(...directoryFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, ''))));
         }
+        if (importGpx) gpxFiles.push(...directoryFiles.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
         if (controller.signal.aborted) break;
         const childDirectories = entries.filter(entry => entry.isDirectory && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase()));
 
@@ -992,16 +982,7 @@ export class ImagesComponent {
           }
         }
 
-        for (const child of childDirectories) {
-          if (controller.signal.aborted) break;
-          const imagesResult = await this.fileSystem.readImages(child.path, this.sortBy(), this.sortDirection());
-          if (controller.signal.aborted) break;
-          if (imagesResult.success) allImages.push(...imagesResult.data);
-          else {
-            console.warn('Failed to read images in gallery subfolder', child.path, imagesResult.errorMessage);
-            enumerationComplete = false;
-          }
-        }
+
       }
 
       if (!controller.signal.aborted) {
@@ -1009,7 +990,7 @@ export class ImagesComponent {
         let reconciledRecords: number | null = null;
         if (this.verifyCacheFiles() && enumerationComplete) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records under ${rootPath}`);
-          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(rootPath, uniqueImages.map(image => image.path), true);
+          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(rootPath, allFiles.map(file => file.path), true);
         } else if (this.verifyCacheFiles() && !enumerationComplete) {
           await this.cacheManager.appendBuildLog('Recursive photo database reconciliation skipped because one or more folders could not be fully enumerated.');
         }
