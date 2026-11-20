@@ -194,8 +194,8 @@
             </label>
           </div>
           <label class="detail-preference-range">
-            <span>Progress bar opacity <strong>{{ detailPreferenceDraft().progressOpacity }}%</strong></span>
-            <input type="range" min="0" max="100" step="1" [value]="detailPreferenceDraft().progressOpacity" (input)="updateDetailProgressOpacity(+$any($event.target).value)" />
+            <span>Progress bar transparency <strong>{{ detailPreferenceDraft().progressTransparency }}%</strong></span>
+            <input type="range" min="0" max="100" step="1" [value]="detailPreferenceDraft().progressTransparency" (input)="updateDetailProgressTransparency(+$any($event.target).value)" />
           </label>
         </div>
 
