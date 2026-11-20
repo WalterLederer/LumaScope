@@ -331,6 +331,7 @@
      Avoid native table auto-layout, which previously reassigned resize deltas
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
+    28px
     max(24px, calc(var(--detail-thumb-width, 36px) + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
@@ -342,8 +343,7 @@
     var(--detail-col-8-width, 65px)
     var(--detail-col-9-width, 150px)
     var(--detail-col-10-width, 150px)    var(--detail-col-11-width, 240px)
-    var(--detail-col-12-width, 220px)
-    28px;
+    var(--detail-col-12-width, 220px);
   display: block;
   width: max-content;
   min-width: 0;
@@ -614,16 +614,15 @@
 .detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 17px; font-weight: 900; line-height: 1; vertical-align: -1px; }
 .detail-native-table .detail-actions-heading { width: 28px; }
 
-/* Keep the folder-wide hamburger column pinned to the right edge while
-   the detail table is scrolled horizontally. Both header rows stay aligned. */
+/* Folder-wide actions occupy the first column; no horizontal sticky layer is needed. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  position: sticky;
-  right: 0;
+  position: relative;
+  left: auto;
   z-index: 45;
   background: var(--color-surface-default-low, #fff) !important;
   background-color: var(--color-surface-default-low, #fff) !important;
-  box-shadow: -5px 0 7px -6px rgb(0 0 0 / 55%);
+  box-shadow: none;
 }
 .detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading,
 .detail-native-table > thead > tr.detail-header-statistics.cache-build-active > th.detail-actions-statistics {
@@ -872,8 +871,8 @@
 }
 
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  position: sticky;
-  right: 0;
+  position: relative;
+  left: auto;
   z-index: 45;
   padding: 0 !important;
   background: var(--color-surface-default-low, #fff) !important;
@@ -973,10 +972,10 @@
 }
 
 
-/* Folder-wide actions live in the first header row, not in individual file menus. */
+/* Folder-wide actions share the first column with the row action menus. */
 .detail-header-labels > .folder-actions-heading {
-  position: sticky;
-  right: 0;
+  position: relative;
+  left: auto;
   z-index: 45;
   background: var(--color-surface-default-low, #fff) !important;
   display: flex;
