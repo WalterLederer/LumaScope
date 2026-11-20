@@ -17,10 +17,11 @@
       [style.--detail-col-9-width.px]="detailColumnWidths()[9]"
       [style.--detail-col-10-width.px]="detailColumnWidths()[10]"
       [style.--detail-col-11-width.px]="detailColumnWidths()[11]"
-      [style.--detail-col-12-width.px]="detailColumnWidths()[12]">
+      [style.--detail-col-12-width.px]="detailColumnWidths()[12]"
+      [style.--detail-actions-width.px]="detailColumnWidths()[-1] ?? 44">
 
       <colgroup>
-        <col style="width:28px">
+        <col style="width:var(--detail-actions-width,44px)">
         <col style="width:max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))">
         <col style="width:var(--detail-col-1-width,210px)">
         <col style="width:var(--detail-col-2-width,150px)">
@@ -42,6 +43,8 @@
                     (click)="toggleFolderActionsMenu($event)"
                     [attr.aria-expanded]="folderActionsMenuOpen()"
                     aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
+            <small class="detail-actions-heading-label">Actions</small>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize actions column" (pointerdown)="startColumnResize($event, -1)"></span>
             @if (folderActionsMenuOpen()) {
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
                 <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
