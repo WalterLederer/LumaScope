@@ -18,7 +18,7 @@
       [style.--detail-col-10-width.px]="detailColumnWidths()[10]"
       [style.--detail-col-11-width.px]="detailColumnWidths()[11]"
       [style.--detail-col-12-width.px]="detailColumnWidths()[12]"
-      [style.--detail-actions-width.px]="detailColumnWidths()[-1] ?? 56">
+      [style.--detail-actions-width.px]="detailColumnWidths()[-1] ?? 44">
 
       <colgroup>
         <col style="width:var(--detail-actions-width,56px)">
@@ -273,7 +273,7 @@
         </details>
         <footer class="detail-preferences-actions">
           <button type="button" class="detail-preferences-cancel" (click)="cancelDetailPreferences()" (keydown)="onDetailPreferencesFooterKeydown($event)">Cancel</button>
-          <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()" (keydown)="onDetailPreferencesFooterKeydown($event)" autofocus aria-keyshortcuts="Enter">OK</button>
+          <button type="button" class="detail-preferences-ok" (click)="saveDetailPreferences()" (keydown)="onDetailPreferencesFooterKeydown($event)" autofocus aria-keyshortcuts="Enter" title="Save preferences (default action)">✓ OK</button>
         </footer>
       </section>
     </div>
