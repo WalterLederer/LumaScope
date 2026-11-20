@@ -106,8 +106,12 @@
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
-          <th scope="col">
+          <th scope="col" class="name-filter-header">
             <small class="column-count">{{ cacheStats().total }}</small>
+            <label class="detail-name-filter">
+              <input type="checkbox" [checked]="nameFilterActive()" [disabled]="!nameFilter().trim()" (change)="nameFilterActiveChanged.emit($any($event.target).checked)" aria-label="Enable name filter" />
+              <input type="search" [value]="nameFilter()" (input)="nameFilterChanged.emit($any($event.target).value)" aria-label="Filter by file name" placeholder="Filter names..." />
+            </label>
             @if (unsupportedSuffixCount() > 0) {
               <small class="column-summary">Unsupported: {{ unsupportedSuffixCount() }} ({{ unsupportedSuffixes().join(", ") }})</small>
             }
