@@ -196,6 +196,7 @@ export class GalleryState {
 
   private readonly refreshLoadedGalleryPages = async (directory: string): Promise<void> => {
     const request = ++this.navigationRequest;
+    this.galleryPageLoading = false;
     const sort = this.sortMode$.value;
     const requestedCount = Math.max(this.galleryPageSize, this.galleryLoadedCount);
     try {
