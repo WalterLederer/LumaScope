@@ -1500,11 +1500,13 @@ export class CacheManager {
     const countRow = safeOffset === 0
       ? db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number }
       : null;
-    const sortColumn = sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : sortBy === 'path' ? 'paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE' : 'photos.file_name COLLATE NOCASE';
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
+    const orderBy = sortBy === 'path'
+      ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
+      : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
     const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       ${where}
-      ORDER BY ${sortColumn} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC
+      ORDER BY ${orderBy}
       LIMIT :limit OFFSET :offset`)
       .all({ ...filterParams, limit: safeLimit, offset: safeOffset }) as Array<{
         file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
