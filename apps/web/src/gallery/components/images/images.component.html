@@ -43,7 +43,6 @@
                     (click)="toggleFolderActionsMenu($event)"
                     [attr.aria-expanded]="folderActionsMenuOpen()"
                     aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
-            <small class="detail-actions-heading-label">Actions</small>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize actions column" (pointerdown)="startColumnResize($event, -1)"></span>
             @if (folderActionsMenuOpen()) {
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
