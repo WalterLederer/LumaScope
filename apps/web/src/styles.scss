@@ -74,7 +74,7 @@ html body app-map-window .map-window .offline-row-action-menu {
 
 /* Shared hamburger menu trigger. Apply the same compact, theme-aware icon
    surface to native buttons, plain span triggers and ui-action-button hosts. */
-html body :is(button, span, ui-action-button).file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-header button):not([type="submit"]) {
+html body :is(button, span, ui-action-button).file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-column-heading > button):not([type="submit"]) {
   appearance: none !important;
   -webkit-appearance: none !important;
   display: inline-flex !important;
