@@ -1374,7 +1374,7 @@ export class CacheManager {
     const suffixes = new Set<string>();
     let count = 0;
     for (const row of rows) {
-      const extension = extname(row.file_name).toLowerCase().replace(/^\\./, '');
+      const extension = extname(row.file_name).toLowerCase().replace(/^\./, '');
       if (supportedFileExtensions.includes(extension)) continue;
       count++;
       suffixes.add(extension || '(no extension)');
