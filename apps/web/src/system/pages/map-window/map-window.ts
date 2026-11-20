@@ -1461,6 +1461,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly locationAddress = signal('');
 
   protected readonly crosshairAddress = signal('');
+  protected readonly crosshairCoordinates = signal('—');
+  protected readonly gpsRefreshBusy = signal(false);
   protected readonly offlineAddressQuery = signal('');
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
   protected readonly offlineAddressSearchBusy = signal(false);
@@ -2222,6 +2224,81 @@ export class MapWindow implements OnInit, OnDestroy {
       this.autoFixStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
       this.autoFixBusy.set(false);
+    }
+  };
+
+
+  private currentMapCenter(): { lat: number; lng: number } | null {
+    const center = this.offlineRenderer?.map?.getCenter() ?? this.map?.getCenter() ?? null;
+    return center && Number.isFinite(center.lat) && Number.isFinite(center.lng) ? center : null;
+  }
+
+  private formatManualGpsPosition(latitude: number, longitude: number): string {
+    const dms = (value: number, positive: string, negative: string, digits: number): string => {
+      const absolute = Math.abs(value);
+      const degrees = Math.floor(absolute);
+      const minutesFloat = (absolute - degrees) * 60;
+      const minutes = Math.floor(minutesFloat);
+      const seconds = (minutesFloat - minutes) * 60;
+      return String(degrees).padStart(digits, '0') + '° ' + String(minutes).padStart(2, '0') + '′ ' + seconds.toFixed(2).padStart(5, '0') + '″ ' + (value < 0 ? negative : positive);
+    };
+    const decimal = (value: number, positive: string, negative: string): string => Math.abs(value).toFixed(5) + '° ' + (value < 0 ? negative : positive);
+    return dms(latitude, 'N', 'S', 2) + ', ' + dms(longitude, 'E', 'W', 3) + ' | Decimal: ' + decimal(latitude, 'N', 'S') + ', ' + decimal(longitude, 'E', 'W');
+  }
+
+  private updateCrosshairCoordinates(): void {
+    const center = this.currentMapCenter();
+    this.crosshairCoordinates.set(center ? this.formatManualGpsPosition(center.lat, center.lng) : '—');
+  }
+
+  protected readonly centerMapOnPhoto = (): void => {
+    if (!this.coordinatesAvailable() || this.currentLatitude === null || this.currentLongitude === null) return;
+    if (this.offlineRenderer) this.offlineRenderer.map.easeTo({ center: [this.currentLongitude, this.currentLatitude] });
+    else if (this.map) this.map.setView([this.currentLatitude, this.currentLongitude], this.map.getZoom());
+    this.updateCrosshairCoordinates();
+  };
+
+  private updatePhotoGpsPosition(latitude: number | null, longitude: number | null): void {
+    const available = latitude !== null && longitude !== null && Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    this.currentLatitude = available ? latitude : null;
+    this.currentLongitude = available ? longitude : null;
+    this.coordinatesAvailable.set(available);
+    this.currentImageHasGps.set(available);
+    if (!available) {
+      this.coordinateLabel.set('GPS coordinates unavailable');
+      this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
+      this.locationAddress.set('');
+      this.marker?.setOpacity(0);
+      this.offlineRenderer?.setCurrentOpacity(0);
+      return;
+    }
+    this.coordinateLabel.set(this.formatCoordinates(latitude!, longitude!));
+    this.photoCoordinateLabel.set(this.formatCoordinates(latitude!, longitude!).replace(/^Coordinates: /, 'Photo: '));
+    this.marker?.setLatLng([latitude!, longitude!]);
+    this.marker?.setOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
+    this.offlineRenderer?.updateCurrentLocation(latitude!, longitude!);
+    this.offlineRenderer?.setCurrentOpacity(this.locationVisible() ? this.locationOpacity() / 100 : 0);
+    this.locationAddress.set('Looking up address…');
+    void this.lookupLocationAddress(latitude!, longitude!);
+  }
+
+  protected readonly refreshGpsPosition = async (showStatus = true): Promise<{ latitude: number | null; longitude: number | null } | null> => {
+    if (!this.currentImagePath || !this.desktop || this.gpsRefreshBusy()) return null;
+    this.gpsRefreshBusy.set(true);
+    try {
+      const result = await this.desktop.Exif.refreshGpsMetadata(this.currentImagePath);
+      if (!result.success || !result.data) throw new Error(result.errorMessage || 'Could not read GPS metadata from the image file.');
+      this.updatePhotoGpsPosition(result.data.latitude, result.data.longitude);
+      if (showStatus) this.gpsSaveStatus.set(result.data.latitude !== null && result.data.longitude !== null
+        ? 'GPS position refreshed from file and database.'
+        : 'No GPS coordinates found in the image file; database and marker updated.');
+      return result.data;
+    } catch (error) {
+      if (showStatus) this.gpsSaveStatus.set(error instanceof Error ? error.message : String(error));
+      return null;
+    } finally {
+      this.gpsRefreshBusy.set(false);
     }
   };
 
