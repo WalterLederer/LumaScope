@@ -3,6 +3,7 @@ import { TreeNode, updateSubject } from '@light-matter/ui';
 import { FileInfo, getThumbnailSize, thumbnailDimensions, ThumbnailSize } from 'internal-api';
 import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
 import { FileSystem } from '../../../ipc/file-system';
+import { CacheManager } from '../../../ipc/cache-manager';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { GalleryLocations } from '../gallery-locations/gallery-locations';
 import { defaultSortMode, formatCompactPath, galleryRoot, SortMode, treeNode } from './gallery-state.types';
@@ -15,6 +16,7 @@ export class GalleryState {
   private readonly configuration = inject(Configuration);
 
   private readonly fileSystem = inject(FileSystem);
+  private readonly cacheManager = inject(CacheManager);
 
   /* State */
   private readonly locations$ = this.galleryLocations.locations();
@@ -33,6 +35,20 @@ export class GalleryState {
   private readonly sortMode$ = new BehaviorSubject<SortMode>(defaultSortMode());
 
   constructor() {
+    this.cacheManager.onGalleryFilesChanged(changedDirectory => {
+      const selected = this.selectedLocation$.value;
+      if (!selected) return;
+      const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+      const root = normalize(selected);
+      const changed = normalize(changedDirectory);
+      const inScope = changed === root || (this.includeFilesRecursive$.value && changed.startsWith(root + '\\\\'));
+      if (!inScope) return;
+      const request = ++this.navigationRequest;
+      const sort = this.sortMode$.value;
+      void this.cacheManager.getGalleryFiles(selected, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir)
+        .then(images => { if (request === this.navigationRequest) this.images$.next(images); })
+        .catch(error => console.error('Failed to refresh database-backed gallery files', selected, error));
+    });
     this.configuration.config()
       .pipe(take(1))
       .subscribe(config => {
@@ -129,11 +145,13 @@ export class GalleryState {
     return this.sortMode$
       .pipe(
         take(1),
-        switchMap(sortMode => {
-          return defer(() => this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir, this.includeUnsupportedFiles$.value, this.includeFilesRecursive$.value));
-        }),
-        tap(response => {
-          if (request === this.navigationRequest) this.images$.next(response.success ? response.data : []);
+        switchMap(sortMode => defer(() =>
+          this.cacheManager.selectDatabaseForDirectory(path).then(() =>
+            this.cacheManager.getGalleryFiles(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir)
+          )
+        )),
+        tap(images => {
+          if (request === this.navigationRequest) this.images$.next(images);
         }),
         map(() => true)
       );
