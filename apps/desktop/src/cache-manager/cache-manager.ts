@@ -267,6 +267,20 @@ export class CacheManager {
     return { entries, bytes };
   };
 
+  @IpcHandler({ name: 'CacheManager.removeGalleryFile' })
+  readonly removeGalleryFile = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<boolean> => {
+    if (!sourceName || !sourceName.trim()) throw new Error('A valid gallery file path is required.');
+    const db = this.databaseForPath(sourceName);
+    const row = this.getPhoto(sourceName, db);
+    if (!row) return false;
+    await this.deleteImageEntries(sourceName);
+    db.prepare('DELETE FROM photos WHERE id = :id').run({ id: row.id });
+    db.prepare('DELETE FROM paths WHERE id = :pathId AND NOT EXISTS (SELECT 1 FROM photos WHERE path_id = :pathId)')
+      .run({ pathId: row.path_id });
+    this.notifyGalleryFilesChanged(dirname(sourceName));
+    return true;
+  };
+
   @IpcHandler({ name: 'CacheManager.clearFullSize' })
   readonly clearFullSize = async (_event: IpcMainInvokeEvent, directory?: string, recursive = false, operationId?: string): Promise<CacheClearResult> =>
     this.runClearOperation(operationId, async () => {
