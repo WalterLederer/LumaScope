@@ -392,6 +392,12 @@
 }
 
 
+:host(.view-details.detail-alternate-rows.detail-virtual-odd) > .detail-actions,
+:host(.view-details-no-thumbnails.detail-alternate-rows.detail-virtual-odd) > .detail-actions,
+:host(.view-details.detail-alternate-rows.detail-virtual-odd) > td,
+:host(.view-details-no-thumbnails.detail-alternate-rows.detail-virtual-odd) > td {
+  background-color: var(--detail-odd-row-color, #ffffff) !important;
+}
 :host(.view-details.detail-filter-active) > td,
 :host(.view-details-no-thumbnails.detail-filter-active) > td {
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
