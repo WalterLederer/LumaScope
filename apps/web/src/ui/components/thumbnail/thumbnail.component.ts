@@ -39,6 +39,7 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
     '[class.view-tiles]': "viewMode() === 'tiles'",
     '[class.view-details]': "viewMode() === 'details'",
     '[class.view-details-no-thumbnails]': "viewMode() === 'details-no-thumbnails'",
+    '[class.row-action-menu-open]': 'rowActionMenuOpen()',
     '(mouseenter)': 'hovered.emit(image())',
     '(mouseleave)': 'hovered.emit(null)',
     '(click)': 'rowSelected.emit(image())'
