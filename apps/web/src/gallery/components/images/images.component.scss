@@ -448,25 +448,9 @@
 /* The native table header has an opaque Canvas background by default. Override it
    explicitly while a folder cache run is active so every header cell is highlighted. */
 .detail-native-table thead tr.detail-header.cache-build-active > th {
-  background: #2b0508 !important;
-  background-color: #2b0508 !important;
+  background: rgb(220 65 65 / 14%) !important;
+  background-color: rgb(220 65 65 / 14%) !important;
   background-image: none !important;
-  color: var(--color-content-on-accent, #fff) !important;
-}
-/* Explicit child colors on summaries, counts and progress labels must not
-   override the readable foreground while the cache-running header is active. */
-.detail-native-table thead tr.detail-header.cache-build-active > th,
-.detail-native-table thead tr.detail-header.cache-build-active > th *:not(.column-resizer) {
-  color: var(--color-content-on-accent, #fff) !important;
-}
-/* Keep count badges distinct from the active header background. The dark
-   translucent badge makes white values readable in every column; red
-   incomplete/error badges retain their existing warning treatment. */
-.detail-native-table thead tr.detail-header.cache-build-active .column-count:not(.incomplete):not(.worker-error) {
-  color: #fff !important;
-  background: rgb(0 0 0 / 38%) !important;
-  font-weight: 700 !important;
-  border: 1px solid rgb(255 255 255 / 35%);
 }
 .detail-native-table thead th .column-count,
 .detail-native-table thead th .column-summary,
