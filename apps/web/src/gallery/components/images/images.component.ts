@@ -346,10 +346,22 @@ export class ImagesComponent {
   readonly detailColumnWidths = signal<Record<number, number>>({});
 
   readonly folderActionsMenuOpen = signal(false);
+  readonly folderActionsMenuPosition = signal({ top: 8, left: 8 });
 
   protected toggleFolderActionsMenu(event: MouseEvent): void {
     event.stopPropagation();
-    this.folderActionsMenuOpen.update(open => !open);
+    if (this.folderActionsMenuOpen()) {
+      this.folderActionsMenuOpen.set(false);
+      return;
+    }
+
+    const trigger = event.currentTarget as HTMLElement;
+    const table = trigger.closest('table.detail-native-table');
+    const rect = table?.getBoundingClientRect() ?? trigger.getBoundingClientRect();
+    const left = Math.max(8, Math.min(rect.left + rect.width / 2, window.innerWidth - 8));
+    const top = Math.max(8, Math.min(rect.top + rect.height / 2, window.innerHeight - 8));
+    this.folderActionsMenuPosition.set({ top, left });
+    this.folderActionsMenuOpen.set(true);
   }
 
   private readonly closeFolderActionsMenuOnPointerDown = (event: PointerEvent): void => {
