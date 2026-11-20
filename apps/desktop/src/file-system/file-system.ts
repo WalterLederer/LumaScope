@@ -15,9 +15,22 @@ export class FileSystem {
 
   @IpcHandler({ name: 'FileSystem.readDir' })
   readonly readDir = async (_: IpcMainInvokeEvent, path: string): Promise<FileInfo[]> => {
-    const result = await readdir(path, { withFileTypes: true });
-
-    return result.map(this.toFileInfo);
+    const entries = await readdir(path, { withFileTypes: true });
+    const result: FileInfo[] = [];
+    for (let offset = 0; offset < entries.length; offset += 256) {
+      const batch = await Promise.all(entries.slice(offset, offset + 256).map(async entry => {
+        const filePath = join(path, entry.name);
+        const stats = await stat(filePath);
+        return {
+          path: filePath, name: entry.name, parent: path,
+          isDirectory: entry.isDirectory(), ext: extname(entry.name),
+          createdAt: stats.birthtimeMs, size: stats.size, modifiedAt: stats.mtimeMs
+        } satisfies FileInfo;
+      }));
+      result.push(...batch);
+      if (offset + 256 < entries.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
+    }
+    return result;
   };
 
   @IpcHandler({ name: 'FileSystem.readText' })
@@ -259,20 +272,20 @@ export class FileSystem {
       }
 
       // Do not block Electron's main process with thousands of synchronous statSync calls.
-      const files = await Promise.all(fileEntries.map(async file => {
-        const filePath = join(file.parent, file.name);
-        const stats = await stat(filePath);
-        return {
-          path: filePath,
-          name: file.name,
-          parent: file.parent,
-          isDirectory: false,
-          ext: extname(file.name),
-          createdAt: stats.birthtimeMs,
-          size: stats.size,
-          modifiedAt: stats.mtimeMs
-        } satisfies FileInfo;
-      }));
+      const files: FileInfo[] = [];
+      for (let offset = 0; offset < fileEntries.length; offset += 256) {
+        const batch = await Promise.all(fileEntries.slice(offset, offset + 256).map(async file => {
+          const filePath = join(file.parent, file.name);
+          const stats = await stat(filePath);
+          return {
+            path: filePath, name: file.name, parent: file.parent, isDirectory: false,
+            ext: extname(file.name), createdAt: stats.birthtimeMs,
+            size: stats.size, modifiedAt: stats.mtimeMs
+          } satisfies FileInfo;
+        }));
+        files.push(...batch);
+        if (offset + 256 < fileEntries.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
+      }
 
       const data = files.sort(this.sortFiles(sortBy, sortDir));
       console.log('[FileSystem.readImages] DONE', JSON.stringify({
