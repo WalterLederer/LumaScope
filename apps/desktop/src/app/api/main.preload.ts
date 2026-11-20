@@ -87,6 +87,7 @@ const api: Desktop = {
   Exif: {
     read: (path: string) => ipcRenderer.invoke('Exif.read', path),
     writeGpsPosition: (path: string, latitude: number, longitude: number) => ipcRenderer.invoke('Exif.writeGpsPosition', path, latitude, longitude),
+    refreshGpsMetadata: (path: string) => ipcRenderer.invoke('Exif.refreshGpsMetadata', path),
     fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => ipcRenderer.invoke('Exif.fixFolderLocations', folder, checkOnly, maxDifferenceSeconds, operationId, databaseKeys),
     cancelFixFolderLocations: (operationId: string) => ipcRenderer.invoke('Exif.cancelFixFolderLocations', operationId),
     onFixFolderLocationsProgress: (callback: (progress: { scanned: number; total: number; withGps: number; withoutGps: number; matched: number; unmatched: number; ignoredTooFar: number; updated: number; errors: number; totalFilesProcessed: number; totalFoldersProcessed: number; minDeviationSeconds: number | null; meanDeviationSeconds: number | null; maxDeviationSeconds: number | null; elapsedMilliseconds: number; rootFolder: string; currentFolder: string; gpxFromTimestamp: number | null; gpxToTimestamp: number | null; photoFromTimestamp: number | null; photoToTimestamp: number | null; databaseKeys: string[] }) => void) => {
@@ -259,7 +260,7 @@ const api: Desktop = {
   MapWindow: {
     getZoom: () => ipcRenderer.invoke('MapWindow.getZoom') as Promise<number>,
     setZoom: (zoom: number) => ipcRenderer.invoke('MapWindow.setZoom', zoom) as Promise<void>,
-    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath, folderPath, recursive),
+    open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean, focusWindow?: boolean) => ipcRenderer.invoke('MapWindow.open', latitude, longitude, bearing, imagePath, folderPath, recursive, focusWindow),
     getLocation: () => ipcRenderer.invoke('MapWindow.getLocation') as Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null; recursive: boolean }>,
     getImagePreview: (imagePath: string) => ipcRenderer.invoke('MapWindow.getImagePreview', imagePath) as Promise<string | null>,
     close: () => ipcRenderer.invoke('MapWindow.close'),
