@@ -1,10 +1,13 @@
+import { ButtonTooltipDirective } from '../../../dom/directives/button-tooltip.directive';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { allSizes, allVariants, Size, Variant } from '../../../content';
 import { allButtonTypes, ButtonType } from '../../types/button.types';
 
 @Component({
   selector: 'ui-flat-button',
-  imports: [],
+  imports: [ ,
+    ButtonTooltipDirective
+  ],
   templateUrl: './flat-button.component.html',
   styleUrl: './flat-button.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
