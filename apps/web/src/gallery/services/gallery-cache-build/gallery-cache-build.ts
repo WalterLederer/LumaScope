@@ -18,7 +18,7 @@ interface GalleryCacheBuildController {
   readonly cacheRunProgress: Signal<CacheBuildProgress>;
   readonly cacheRunCurrentOperation: Signal<string>;
   readonly start: (directory: string, importGpx: boolean) => Promise<void>;
-  readonly startRecursive: (directory: string, importGpx: boolean) => void;
+  readonly startRecursive: (directory: string, importGpx: boolean) => Promise<void>;
   readonly cancel: () => void;
   readonly refreshDetailCacheStatus: () => void;
 }
@@ -121,7 +121,7 @@ export class GalleryCacheBuild {
 
     await this.executeBuild(controller, { directory, importGpx });
   };
-  readonly startRecursiveCacheBuild = (directory: string, importGpx: boolean): void => this.controller()?.startRecursive(directory, importGpx);
+  readonly startRecursiveCacheBuild = async (directory: string, importGpx: boolean): Promise<void> => { await this.controller()?.startRecursive(directory, importGpx); };
   readonly cancelCacheBuild = (): void => {
     this.pendingStarts.length = 0;
     const activity = this.activity();
