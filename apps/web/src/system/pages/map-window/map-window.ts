@@ -2309,15 +2309,30 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateCrosshairCoordinates();
 
     if (this.coordinatesAvailable()) {
-      const oldPosition = this.currentLatitude !== null && this.currentLongitude !== null
-        ? this.formatCoordinates(this.currentLatitude, this.currentLongitude).replace(/^Coordinates: /, '')
-        : 'the existing photo location';
-      const newPosition = formatSystemGpsCoordinates(center.lat, center.lng);
+      const hasExistingPosition = this.currentLatitude !== null && this.currentLongitude !== null
+        && Number.isFinite(this.currentLatitude) && Number.isFinite(this.currentLongitude);
+      const oldPosition = hasExistingPosition
+        ? this.formatManualGpsPosition(this.currentLatitude!, this.currentLongitude!)
+        : 'Existing photo location unavailable';
+      const newPosition = this.formatManualGpsPosition(center.lat, center.lng);
+      let positionComparison = 'POSITION COMPARISON: Could not determine the difference.';
+      if (hasExistingPosition) {
+        const radians = Math.PI / 180;
+        const latitudeDelta = (center.lat - this.currentLatitude!) * radians;
+        const longitudeDelta = (center.lng - this.currentLongitude!) * radians;
+        const a = Math.sin(latitudeDelta / 2) ** 2
+          + Math.cos(this.currentLatitude! * radians) * Math.cos(center.lat * radians)
+          * Math.sin(longitudeDelta / 2) ** 2;
+        const distanceMeters = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+        positionComparison = distanceMeters <= 0.01
+          ? 'POSITION COMPARISON: SAME POSITION (within 1 cm).'
+          : 'POSITION COMPARISON: DIFFERENT POSITIONS — approximately ' + distanceMeters.toFixed(2) + ' m apart.';
+      }
       const confirmed = window.confirm(
         'This image already contains GPS information.\n\n' +
-        'Check both positions on the map before continuing:\n' +
-        '• Red crosshair: the newly selected position (' + newPosition + ')\n' +
-        '• Location marker: the existing position from the image (' + oldPosition + ')\n\n' +
+        positionComparison + '\n\n' +
+        'NEW POSITION — Red crosshair:\n' + newPosition + '\n\n' +
+        'EXISTING POSITION — Location marker:\n' + oldPosition + '\n\n' +
         'Updating the GPS information will replace the existing position. Continue?'
       );
       if (!confirmed) return;
