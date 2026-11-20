@@ -215,7 +215,7 @@ export class Exif {
         stats.files > 0 && stats.segments > 0 && stats.points > 0 && stats.timestampedPoints > 0
       );
       if (!hasTimestampedGpxData) {
-        throw new Error('No timestamped GPX track points were found in the cache databases for the selected photo drive and favorite folders. Import GPX tracks into a favorite folder first.');
+        console.info('[Exif] No timestamped GPX track points found; GPS Auto Fix will still use cached geotagged images as reference positions.');
       }
       sendProgress();
       try {
@@ -320,11 +320,25 @@ export class Exif {
           };
           console.info('[Exif GPX time debug] Photo timestamp:', photoTimestampDetails);
           await writeGpsDebug('Photo: ' + basename(path), { time: photoTimestampDetails.timestampLocal, source: photoTimestampSource || '—' });
-          let position: { latitude: number; longitude: number; deviationSeconds: number } | null = null;
+          let position: { latitude: number; longitude: number; deviationSeconds: number; source: string } | null = null;
           for (const databaseKey of databaseKeys) {
-            const candidate = await cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey);
-            if (candidate && (!position || candidate.deviationSeconds < position.deviationSeconds)) position = candidate;
+            const [trackCandidate, imageCandidate] = await Promise.all([
+              cacheManager.getInterpolatedGpxPosition(undefined as never, root, photoTimestamp * 1000, maxDifferenceSeconds, databaseKey),
+              cacheManager.getInterpolatedPhotoGpsPosition(undefined as never, photoTimestamp * 1000, databaseKey)
+            ]);
+            if (trackCandidate && (!position || trackCandidate.deviationSeconds < position.deviationSeconds)) {
+              position = { ...trackCandidate, source: `GPX track points (${databaseKey})` };
+            }
+            if (imageCandidate && (!position || imageCandidate.deviationSeconds < position.deviationSeconds)) {
+              position = { ...imageCandidate, source: `geotagged images (${databaseKey})` };
+            }
           }
+          await writeGpsDebug('Reference comparison: ' + basename(path), {
+            selectedSource: position?.source ?? 'none',
+            selectedDeviationSeconds: position?.deviationSeconds ?? null,
+            searchedDatabaseKeys: databaseKeys,
+            sources: ['GPX track points', 'cached image GPS positions']
+          });
           if (!position) {
             result.unmatched++;
             continue;
