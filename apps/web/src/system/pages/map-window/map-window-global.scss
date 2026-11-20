@@ -1025,3 +1025,8 @@ app-map-window {
 .offline-files-resizable-table th{position:relative;overflow:visible}
 .offline-files-resizable-table .offline-column-resizer{position:absolute;top:0;right:-4px;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}
 .offline-files-resizable-table .offline-column-resizer:hover{background:color-mix(in srgb,#2688e8 45%,transparent)}
+
+.offline-column-resizable{table-layout:fixed}
+.offline-column-resizable th{position:relative;overflow:visible}
+.offline-column-resizable .offline-column-resizer{position:absolute;top:0;right:-4px;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}
+.offline-column-resizable .offline-column-resizer:hover{background:color-mix(in srgb,#2688e8 45%,transparent)}
