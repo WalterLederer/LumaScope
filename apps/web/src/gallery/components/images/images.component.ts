@@ -37,7 +37,7 @@ import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.
 
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location';
 
-type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow';
+type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow' | 'filteredRow';
 interface DetailTablePreferences {
   date: string;
   gpsDate: string;
