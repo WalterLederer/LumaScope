@@ -20,7 +20,7 @@ export class ButtonTooltipDirective {
     if (accessibleName) return accessibleName;
 
     const visibleText = (button.innerText || button.textContent || '')
-      .replace(/\\s+/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim();
     return visibleText || 'Button action';
   }
