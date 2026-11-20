@@ -169,6 +169,13 @@
         </header>
         <p class="detail-preferences-description">Customize detail-table row backgrounds, progress-bar colors, visibility and opacity.</p>
         <div class="detail-preferences-section">
+          <h3>Table Font Size</h3>
+          <label class="detail-preference-range">
+            <span>Font size <strong>{{ detailFontSize() }} px</strong></span>
+            <input type="range" min="10" max="24" step="1" [value]="detailFontSize()" (input)="detailFontSizeChanged.emit(+$any($event.target).value)" aria-label="Table font size" />
+          </label>
+        </div>
+        <div class="detail-preferences-section">
           <h3>Progress Bars</h3>
           <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
           <div class="detail-preferences-colors">
