@@ -149,6 +149,7 @@
           <tr app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()"
               [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                [detailProgress]="detailProgressByPath().get(image.path) ?? null"
+              (metadataLoaded)="onDetailMetadataLoaded(image.path, $event)"
               [cacheStatusLoading]="cacheStatusLoading()"
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
               [refreshToken]="thumbnailRefreshToken()"
