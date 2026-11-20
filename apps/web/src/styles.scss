@@ -9,13 +9,14 @@ html body app-map-window .map-window .gpx-row-action-menu,
 html body app-map-window .map-window .offline-row-action-menu {
   box-sizing: border-box !important; display: flex !important; flex-direction: column !important;
   gap: 2px !important; width: max-content !important; min-width: 190px !important;
-  max-width: calc(100vw - 16px) !important; padding: 8px 12px !important; overflow-x: hidden !important;
+  max-width: calc(100vw - 16px) !important; max-height: calc(100vh - 16px) !important;
+  padding: 8px 12px !important; overflow: auto !important;
   color: var(--color-content-default, #eee) !important;
   background: var(--color-surface-default-highest, #303238) !important;
   background-color: var(--color-surface-default-highest, #303238) !important;
   border: 1px solid var(--color-content-default-low, #666) !important;
   border-radius: 7px !important;
-  box-shadow: var(--lumascope-popup-shadow, 0 3px 10px rgb(0 0 0 / 32%), 0 1px 3px rgb(0 0 0 / 22%)) !important;
+  box-shadow: var(--lumascope-surface-shadow) !important;
 }
 html body .gpx-row-action-menu button,
 html body .detail-row-action-menu button,
@@ -61,6 +62,9 @@ html body .gpx-row-action-menu .gpx-row-action-delete-all:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-status-danger, #ff6b6b) 14%, transparent) !important;
 }
 
+
+/* Detail-row popups are centered on the containing table midpoint. */
+html body .detail-row-action-menu { transform: translate(-50%, -50%) !important; }
 
 /* All row menus are viewport overlays: opening one must never change row layout. */
 html body .detail-row-action-menu,
@@ -120,8 +124,6 @@ html body :is(button, span, ui-action-button).file-row-menu-trigger[aria-expande
 :root {
   /* Subtle default shadow for cards, tables and rounded controls. */
   --lumascope-surface-shadow: 0 1px 4px rgb(0 0 0 / 10%);
-  /* Popups need a separate, stronger shadow to remain visibly elevated. */
-  --lumascope-popup-shadow: 0 3px 10px rgb(0 0 0 / 32%), 0 1px 3px rgb(0 0 0 / 22%);
   --lumascope-table-line-width: 1px;
   --lumascope-table-line-color: var(--color-content-default-low, #454545);
 }
