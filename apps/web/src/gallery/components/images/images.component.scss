@@ -1038,23 +1038,10 @@
     appearance: none;
     user-select: none;
   }
-  /* Hide the browser's native disclosure marker; the custom chevron below
-     is the only open/close indicator for every preferences section. */
-  > summary::marker {
-    content: "";
-    display: none;
-  }
+  /* The shared global disclosure component owns the single open/close
+     indicator and suppresses the browser-native marker. Do not draw a local one. */
+  > summary::marker { content: ""; display: none; }
   > summary::-webkit-details-marker { display: none !important; }
-  > summary::before {
-    content: "›";
-    display: inline-block;
-    width: 12px;
-    font-size: 18px;
-    line-height: 1;
-    transform: rotate(0deg);
-    transition: transform 120ms ease;
-  }
-  &[open] > summary::before { transform: rotate(90deg); }
   > summary + * { margin-top: 10px; }
 }
 .detail-preferences-hint { margin: -4px 0 0; color: var(--color-content-default-medium); font-size: 12px; }
