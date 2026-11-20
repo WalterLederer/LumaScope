@@ -987,17 +987,18 @@ export class ImagesComponent {
       const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
       const gpxFiles: string[] = [];
       const visitedDirectories = new Set<string>([rootPath]);
-      const pendingDirectories = [rootPath];
+      const pendingDirectories: Array<{ path: string; entries?: FileInfo[] }> = [{ path: rootPath, entries: rootEntries }];
       let enumerationComplete = true;
 
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
-        const directory = pendingDirectories.shift()!;
+        const pendingDirectory = pendingDirectories.shift()!;
+        const directory = pendingDirectory.path;
         this.cacheRunCurrentOperation.set(`Enumerating files and subfolders in ${directory}`);
         let entries: FileInfo[];
         try {
-          // This is the folder enumeration used by the recursive build: collect
-          // GPX files and child folders from the same directory listing.
-          entries = await this.fileSystem.readDir(directory);
+          // Reuse the root listing already read above; every child folder is
+          // enumerated exactly once by this same background scan.
+          entries = pendingDirectory.entries ?? await this.fileSystem.readDir(directory);
         } catch (error) {
           console.warn('Failed to enumerate gallery folder', directory, error);
           enumerationComplete = false;
@@ -1016,7 +1017,7 @@ export class ImagesComponent {
         for (const child of childDirectories) {
           if (!visitedDirectories.has(child.path)) {
             visitedDirectories.add(child.path);
-            pendingDirectories.push(child.path);
+            pendingDirectories.push({ path: child.path });
           }
         }
 
