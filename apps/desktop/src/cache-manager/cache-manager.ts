@@ -1102,6 +1102,78 @@ export class CacheManager {
     };
   };
 
+  @IpcHandler({ name: 'CacheManager.getInterpolatedPhotoGpsPosition' })
+  readonly getInterpolatedPhotoGpsPosition = async (
+    _event: IpcMainInvokeEvent, timestampMs: number, requestedDatabaseKey: string
+  ): Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null> => {
+    if (!Number.isFinite(timestampMs) || !/^[a-z]:$/i.test(requestedDatabaseKey)) return null;
+    const databaseKey = requestedDatabaseKey.toUpperCase();
+    const db = this.databaseForPath(databaseKey + '\\');
+    const timestamp = Math.floor(timestampMs / 1000);
+    const windowSeconds = 86_400;
+    const parameters = {
+      timestamp,
+      minimum: timestamp - windowSeconds,
+      maximum: timestamp + windowSeconds
+    };
+    const before = db.prepare(`SELECT photos.gps_timestamp, photos.latitude, photos.longitude,
+        photos.file_name, paths.relative_folder_path
+      FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      WHERE photos.gps_timestamp IS NOT NULL
+        AND photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND photos.gps_timestamp BETWEEN :minimum AND :timestamp
+      ORDER BY photos.gps_timestamp DESC, photos.id DESC
+      LIMIT 1`).get(parameters) as {
+        gps_timestamp: number; latitude: number; longitude: number;
+        file_name: string; relative_folder_path: string
+      } | undefined;
+    const after = db.prepare(`SELECT photos.gps_timestamp, photos.latitude, photos.longitude,
+        photos.file_name, paths.relative_folder_path
+      FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      WHERE photos.gps_timestamp IS NOT NULL
+        AND photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL
+        AND photos.gps_timestamp BETWEEN :timestamp AND :maximum
+      ORDER BY photos.gps_timestamp ASC, photos.id ASC
+      LIMIT 1`).get(parameters) as typeof before;
+    const nearest = [before, after].filter((point): point is NonNullable<typeof point> => !!point)
+      .sort((a, b) => Math.abs(a.gps_timestamp - timestamp) - Math.abs(b.gps_timestamp - timestamp))[0];
+    const deviationSeconds = nearest ? Math.abs(nearest.gps_timestamp - timestamp) : null;
+    const diagnostic = {
+      databaseKey,
+      targetTimestamp: timestamp,
+      targetLocal: formatOsDateTime(new Date(timestampMs)),
+      before: before ? {
+        timestamp: before.gps_timestamp, latitude: before.latitude, longitude: before.longitude,
+        file: resolve(databaseKey + '\\\\', before.relative_folder_path, before.file_name)
+      } : null,
+      after: after ? {
+        timestamp: after.gps_timestamp, latitude: after.latitude, longitude: after.longitude,
+        file: resolve(databaseKey + '\\\\', after.relative_folder_path, after.file_name)
+      } : null,
+      deviationSeconds
+    };
+    console.info('[Photo GPS reference] Compare photo time with cached geotagged images:', diagnostic);
+    try {
+      await this.appendGpsAutoFixDebug(
+        `[${formatOsDateTime(new Date())}] Image GPS ${databaseKey}: before ${before ? formatOsDateTime(new Date(before.gps_timestamp * 1000)) : '—'}; after ${after ? formatOsDateTime(new Date(after.gps_timestamp * 1000)) : '—'}; nearest deviation ${deviationSeconds ?? '—'} s`
+      );
+    } catch (error) {
+      console.warn('[CacheManager] Could not write image GPS reference debug log:', error);
+    }
+    if (!before || !after || deviationSeconds === null) return null;
+    const span = after.gps_timestamp - before.gps_timestamp;
+    if (span < 0 || span > 172_800) return null;
+    if (span === 0) return { latitude: before.latitude, longitude: before.longitude, deviationSeconds };
+    const ratio = (timestamp - before.gps_timestamp) / span;
+    return {
+      latitude: before.latitude + (after.latitude - before.latitude) * ratio,
+      longitude: before.longitude + (after.longitude - before.longitude) * ratio,
+      deviationSeconds
+    };
+  };
+
   @IpcHandler({ name: 'CacheManager.getCacheSummary' })
   readonly getCacheSummary = async (_event?: IpcMainInvokeEvent, requestedDatabaseKey?: string): Promise<CacheSummary> => {
     const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
