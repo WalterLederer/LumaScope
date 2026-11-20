@@ -18,7 +18,7 @@ export class FileSystem {
     const entries = await readdir(path, { withFileTypes: true });
     const result: FileInfo[] = [];
     for (let offset = 0; offset < entries.length; offset += 256) {
-      const batch = await Promise.all(entries.slice(offset, offset + 256).map(async entry => {
+      const batch = await Promise.all(entries.slice(offset, offset + 256).map(async (entry): Promise<FileInfo | null> => {
         try {
           const filePath = join(path, entry.name);
           const stats = await stat(filePath);
@@ -279,7 +279,7 @@ export class FileSystem {
       // Do not block Electron's main process with thousands of synchronous statSync calls.
       const files: FileInfo[] = [];
       for (let offset = 0; offset < fileEntries.length; offset += 256) {
-        const batch = await Promise.all(fileEntries.slice(offset, offset + 256).map(async file => {
+        const batch = await Promise.all(fileEntries.slice(offset, offset + 256).map(async (file): Promise<FileInfo | null> => {
           try {
             const filePath = join(file.parent, file.name);
             const stats = await stat(filePath);
@@ -338,6 +338,10 @@ export class FileSystem {
         return sortDir === 'asc' ? this.sortBySizeAsc : this.sortBySizeDesc;
       case 'name':
         return sortDir === 'asc' ? this.sortByNameAsc : this.sortByNameDesc;
+      case 'path':
+        return sortDir === 'asc'
+          ? (a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' })
+          : (a, b) => b.path.localeCompare(a.path, undefined, { numeric: true, sensitivity: 'base' });
     }
   };
 
