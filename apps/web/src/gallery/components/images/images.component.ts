@@ -211,7 +211,7 @@ export class ImagesComponent {
     this.detailSortColumn() === null ? this.sortDirection() : this.detailSortDirection()
   );
   readonly sortedDetailImages = computed(() => {
-    const filter = this.nameFilter().trim().toLocaleLowerCase();
+    const filter = this.nameFilterActive() ? this.nameFilter().trim().toLocaleLowerCase() : '';
     const images = (this.images() ?? []).filter(image =>
       !filter || image.name.toLocaleLowerCase().includes(filter)
     );
