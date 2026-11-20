@@ -852,16 +852,20 @@
 }
 
 /* Keep the wrapper transparent so the table does not create a full-width
-   backdrop. The table itself carries the same subtle shadow as the zoom boxes. */
+   backdrop. Give the table a clearly visible, soft shadow of its own. */
 .detail-table {
   border-radius: 10px;
   background: transparent;
 }
 
 .detail-native-table {
+  position: relative;
+  z-index: 0;
   border-radius: 10px;
   background: var(--color-surface-default-low, #fff);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+  box-shadow:
+    0 3px 10px rgb(0 0 0 / 18%),
+    0 0 0 1px var(--color-border-default, rgb(128 128 128 / 22%));
 }
 
 .detail-native-table > thead {
@@ -882,17 +886,26 @@
   background-clip: padding-box;
 }
 
+/* Keep the final row opaque so the table surface shows through the rounded
+   lower corners instead of exposing a transparent gap at the bottom-right. */
 .detail-native-table > tbody.images.details-list > tr:last-child {
-  background: transparent !important;
-  background-color: transparent !important;
+  background: #fff !important;
+  background-color: #fff !important;
+}
+
+.detail-native-table > tbody.images.details-list > tr:last-child:nth-child(even) {
+  background: #f5f5f5 !important;
+  background-color: #f5f5f5 !important;
 }
 
 .detail-native-table > tbody.images.details-list > tr:last-child > td:first-child {
   border-bottom-left-radius: 10px;
   background-clip: padding-box;
+  overflow: hidden;
 }
 
 .detail-native-table > tbody.images.details-list > tr:last-child > td:last-child {
   border-bottom-right-radius: 10px;
   background-clip: padding-box;
+  overflow: hidden;
 }
