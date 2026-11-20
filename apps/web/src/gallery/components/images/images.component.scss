@@ -916,7 +916,9 @@
   position: relative;
   z-index: 0;
   border-radius: 10px;
-  overflow: hidden;
+  /* clip preserves the rounded table surface without creating a scroll container;
+     sticky action cells therefore track the gallery's horizontal scrollport. */
+  overflow: clip;
   background: var(--color-surface-default-low, #fff);
   box-shadow: 0 3px 8px rgb(0 0 0 / 20%);
 }
