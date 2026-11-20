@@ -142,7 +142,7 @@
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
         @for (image of sortedDetailImages(); track image.path) {
-          <tr app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [image]="image" [viewMode]="viewMode()"
+          <tr app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()"
               [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                [detailProgress]="detailProgressByPath().get(image.path) ?? null"
               [cacheStatusLoading]="cacheStatusLoading()"
@@ -180,23 +180,23 @@
           <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
           <div class="detail-preferences-colors">
             <label class="detail-preference-color">
-              <span>Date</span>
               <input type="checkbox" [checked]="detailPreferenceDraft().dateProgressEnabled" (change)="updateDetailPreferenceToggle('dateProgressEnabled', $any($event.target).checked)" aria-label="Show Date progress bar" />
+              <span>Date</span>
               <input type="color" [value]="detailPreferenceDraft().date" (input)="updateDetailPreferenceColor('date', $any($event.target).value)" aria-label="Date progress color" />
             </label>
             <label class="detail-preference-color">
-              <span>GPS Date</span>
               <input type="checkbox" [checked]="detailPreferenceDraft().gpsDateProgressEnabled" (change)="updateDetailPreferenceToggle('gpsDateProgressEnabled', $any($event.target).checked)" aria-label="Show GPS Date progress bar" />
+              <span>GPS Date</span>
               <input type="color" [value]="detailPreferenceDraft().gpsDate" (input)="updateDetailPreferenceColor('gpsDate', $any($event.target).value)" aria-label="GPS Date progress color" />
             </label>
             <label class="detail-preference-color">
-              <span>Dimensions</span>
               <input type="checkbox" [checked]="detailPreferenceDraft().dimensionsProgressEnabled" (change)="updateDetailPreferenceToggle('dimensionsProgressEnabled', $any($event.target).checked)" aria-label="Show Dimensions progress bar" />
+              <span>Dimensions</span>
               <input type="color" [value]="detailPreferenceDraft().dimensions" (input)="updateDetailPreferenceColor('dimensions', $any($event.target).value)" aria-label="Dimensions progress color" />
             </label>
             <label class="detail-preference-color">
-              <span>File Size</span>
               <input type="checkbox" [checked]="detailPreferenceDraft().sizeProgressEnabled" (change)="updateDetailPreferenceToggle('sizeProgressEnabled', $any($event.target).checked)" aria-label="Show File Size progress bar" />
+              <span>File Size</span>
               <input type="color" [value]="detailPreferenceDraft().size" (input)="updateDetailPreferenceColor('size', $any($event.target).value)" aria-label="File Size progress color" />
             </label>
           </div>
