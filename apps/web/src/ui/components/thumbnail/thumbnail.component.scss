@@ -437,3 +437,32 @@
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent),
               inset 0 0 0 999px color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, transparent);
 }
+
+
+/* Native table row: let the parent table's colgroup size every cell. */
+:host(.view-details),
+:host(.view-details-no-thumbnails) {
+  display: table-row !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: var(--detail-row-height, 44px) !important;
+  grid-template-columns: none !important;
+}
+:host(.view-details) > td,
+:host(.view-details-no-thumbnails) > td {
+  display: table-cell !important;
+  width: auto !important;
+  min-width: 0 !important;
+  vertical-align: middle !important;
+}
+:host(.view-details) > .detail-thumb,
+:host(.view-details-no-thumbnails) > .detail-thumb-empty {
+  width: auto !important;
+  min-width: 0 !important;
+}
+:host(.view-details) > .detail-actions,
+:host(.view-details-no-thumbnails) > .detail-actions {
+  width: auto !important;
+  min-width: 0 !important;
+}
