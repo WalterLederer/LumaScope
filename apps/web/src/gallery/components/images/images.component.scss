@@ -933,9 +933,10 @@
 .folder-actions-heading .folder-actions-menu {
   position: fixed;
   z-index: 1001;
-  top: auto;
-  right: 12px;
-  left: auto;
+  top: 8px;
+  left: 8px;
+  right: auto;
+  transform: translate(-50%, -50%);
   min-width: 190px;
 }
 
