@@ -1308,7 +1308,7 @@
 }
 
 
-/* The pinned hamburger column must cover every column passing underneath it. */
+/* Keep the first hamburger column opaque and visually aligned with the table. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   opacity: 1 !important;
