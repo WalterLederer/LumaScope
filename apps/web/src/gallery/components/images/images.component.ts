@@ -1216,7 +1216,7 @@ export class ImagesComponent {
             const validWidths: Record<number, number> = {};
             for (const [key, value] of Object.entries(parsed)) {
               const index = Number(key);
-              if (Number.isInteger(index) && index >= 0 && index <= 11
+              if (Number.isInteger(index) && index >= 0 && index <= 12
                 && typeof value === 'number' && Number.isFinite(value)
                 && (index === 0 ? value >= -1000 && value <= 3000 : value >= 40 && value <= 3000)) {
                 validWidths[index] = value;
