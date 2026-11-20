@@ -633,6 +633,14 @@
   background-color: var(--detail-even-row-color, #f5f5f5) !important;
 }
 
+/* Highlight filtered results in the table body only; the sticky header is untouched. */
+:host(.detail-filter-active) .detail-native-table > tbody.images.details-list > tr,
+:host(.detail-filter-active) .detail-native-table > tbody.images.details-list > tr > td {
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-image: none !important;
+}
+
 /* Individual progress columns can be hidden without affecting their data or summaries. */
 .detail-progress-date-disabled .detail-native-table > tbody.images.details-list > tr > td.detail-date,
 .detail-progress-gps-date-disabled .detail-native-table > tbody.images.details-list > tr > td.detail-gps-date,
