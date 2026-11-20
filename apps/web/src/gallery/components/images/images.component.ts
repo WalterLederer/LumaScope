@@ -1357,7 +1357,7 @@ export class ImagesComponent {
           if (request !== this.cacheStatusRequest) return;
           const batch = images.slice(offset, offset + 500);
           const supportedBatch = batch.filter(image =>
-            supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\\./, ''))
+            supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\./, ''))
           );
           const statuses = supportedBatch.length
             ? await this.cacheManager.getImageCacheStatuses(supportedBatch.map(image => image.path))
