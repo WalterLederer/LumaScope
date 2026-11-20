@@ -63,21 +63,14 @@
                    [max]="thumbnailSliderMax"
                    aria-label="Thumbnail size" />
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
+        @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
+          <label class="thumbnail-name-filter">
+            <span class="zoom-label">Filter</span>
+            <input type="search" [value]="nameFilter()" (input)="nameFilter.set($any($event.target).value)" aria-label="Filter by file name" placeholder="Enter name..." />
+          </label>
+        }
       </div>
-      @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-        <div class="thumbnail-zoom-box font-size-zoom-box" title="Table font size">
-          <span class="zoom-label">Font size</span>
-          <div class="zoom-step-buttons">
-            <button class="zoom-step-button" type="button" title="Smaller font size" aria-label="Smaller font size"
-                    (click)="adjustDetailFontSize(-1)">−</button>
-            <button class="zoom-step-button" type="button" title="Larger font size" aria-label="Larger font size"
-                    (click)="adjustDetailFontSize(1)">+</button>
-          </div>
-          <ui-slider class="zoom-purpose-slider" [formControl]="detailFontSizeSlider"
-                     [min]="detailFontSizeMin" [max]="detailFontSizeMax" aria-label="Table font size" />
-          <span class="zoom-factor" aria-live="polite">{{ detailFontSize() }} px</span>
-        </div>
-      }
+
     </div>
 
   </aside>
@@ -92,6 +85,9 @@
               [thumbSize]="thumbSize()"
               [viewMode]="viewMode()"
               [style.--detail-font-size.px]="detailFontSize()"
+              [nameFilter]="nameFilter()"
+              [detailFontSize]="detailFontSize()"
+              (detailFontSizeChanged)="setDetailFontSize($event)"
               [verifyCacheFiles]="verifyCacheFiles()"
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
