@@ -683,6 +683,9 @@ export class ImageView {
     catch { return 'gallery'; }
   }
   protected readonly activeImageSidebarTab = signal(this.readActiveImageSidebarTab());
+  // Mount the Browse workspace on first use, then keep its directory tree alive
+  // while other tabs are active so restored paths are not rescanned on every visit.
+  protected readonly browseWorkspaceInitialized = signal(this.activeImageSidebarTab() === 'gallery');
   private readActiveImageSubTab(): string {
     try {
       const stored = this.document.defaultView?.localStorage.getItem('activeImageSubTab');
@@ -799,6 +802,7 @@ export class ImageView {
   };
   protected readonly setActiveImageSidebarTab = (tab: string): void => {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
+    if (tab === 'gallery') this.browseWorkspaceInitialized.set(true);
     this.activeImageSidebarTab.set(tab);
     if (tab === 'gallery') this.galleryCacheBuild.refreshDetailCacheStatus();
     if (tab === 'image' && this.activeImageSubTab() === 'cache') {
