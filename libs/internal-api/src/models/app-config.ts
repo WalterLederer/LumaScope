@@ -105,6 +105,18 @@ export interface AppConfigV1Preferences {
   galleryDetailSizeProgressColor?: string;
   /** Background tint used for the selected gallery detail row. */
   galleryDetailSelectedRowColor?: string;
+  /** Background colors for odd and even gallery detail rows. */
+  galleryDetailOddRowColor?: string;
+  galleryDetailEvenRowColor?: string;
+  /** Whether the gallery detail table alternates odd/even row colors. */
+  galleryDetailAlternateRowColors?: boolean;
+  /** Per-column visibility switches for gallery detail progress bars. */
+  galleryDetailDateProgressEnabled?: boolean;
+  galleryDetailGpsDateProgressEnabled?: boolean;
+  galleryDetailDimensionsProgressEnabled?: boolean;
+  galleryDetailSizeProgressEnabled?: boolean;
+  /** Progress-bar background opacity in percent (0-100). */
+  galleryDetailProgressOpacity?: number;
 }
 
 export interface AppConfigV1System {
@@ -177,6 +189,14 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.galleryDetailDimensionsProgressColor || typeof input.galleryDetailDimensionsProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailDimensionsProgressColor))
     && (undefined === input.galleryDetailSizeProgressColor || typeof input.galleryDetailSizeProgressColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailSizeProgressColor))
     && (undefined === input.galleryDetailSelectedRowColor || typeof input.galleryDetailSelectedRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailSelectedRowColor))
+    && (undefined === input.galleryDetailOddRowColor || typeof input.galleryDetailOddRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailOddRowColor))
+    && (undefined === input.galleryDetailEvenRowColor || typeof input.galleryDetailEvenRowColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(input.galleryDetailEvenRowColor))
+    && (undefined === input.galleryDetailAlternateRowColors || typeof input.galleryDetailAlternateRowColors === 'boolean')
+    && (undefined === input.galleryDetailDateProgressEnabled || typeof input.galleryDetailDateProgressEnabled === 'boolean')
+    && (undefined === input.galleryDetailGpsDateProgressEnabled || typeof input.galleryDetailGpsDateProgressEnabled === 'boolean')
+    && (undefined === input.galleryDetailDimensionsProgressEnabled || typeof input.galleryDetailDimensionsProgressEnabled === 'boolean')
+    && (undefined === input.galleryDetailSizeProgressEnabled || typeof input.galleryDetailSizeProgressEnabled === 'boolean')
+    && (undefined === input.galleryDetailProgressOpacity || typeof input.galleryDetailProgressOpacity === 'number' && input.galleryDetailProgressOpacity >= 0 && input.galleryDetailProgressOpacity <= 100)
     && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle)
     && (undefined === input.tabBarStyle || 'classic' === input.tabBarStyle || 'underline' === input.tabBarStyle || 'pills' === input.tabBarStyle || 'segmented' === input.tabBarStyle || 'boxed' === input.tabBarStyle || 'minimal' === input.tabBarStyle || 'flat' === input.tabBarStyle || 'contrast' === input.tabBarStyle || 'soft' === input.tabBarStyle || 'rounded' === input.tabBarStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
