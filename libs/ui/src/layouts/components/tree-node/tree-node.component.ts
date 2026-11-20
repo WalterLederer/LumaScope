@@ -32,6 +32,7 @@ export class TreeNodeComponent<T> {
   readonly level = input.required<number>();
 
   readonly menu = input<TemplateRef<unknown> | null>(null);
+  readonly rowNumber = input<number | null>(null);
 
   readonly inlineActions = input(false);
   readonly reorderActions = input(false);
