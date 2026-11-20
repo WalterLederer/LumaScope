@@ -13,8 +13,7 @@ import {
   TreeComponent,
   TreeLoadRequest,
   TreeNode,
-  VerticalStackComponent
-} from '@light-matter/ui';
+  VerticalStackComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { defaultThumbnailSize, Desktop, FileInfo, SortDirection, SortType, ThumbnailSize } from 'internal-api';
 import { combineLatest, map, shareReplay, switchMap, take } from 'rxjs';
 import { ImageGridComponent } from '../../../gallery/components/image-grid/image-grid.component';
@@ -42,6 +41,7 @@ import { Keyboard } from '../../../system/services/keyboard/keyboard';
     TextComponent,
     DefaultPipe,
     VerticalStackComponent,
+    ButtonTooltipDirective
   ],
   templateUrl: './gallery.page.html',
   styleUrl: './gallery.page.scss',
