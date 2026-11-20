@@ -352,9 +352,20 @@ export class ImagesComponent {
     this.folderActionsMenuOpen.update(open => !open);
   }
 
-  @HostListener('document:click')
-  protected closeFolderActionsMenu(): void {
+  private readonly closeFolderActionsMenuOnPointerDown = (event: PointerEvent): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('.folder-actions-menu, .folder-actions-menu-trigger')) return;
     this.folderActionsMenuOpen.set(false);
+  };
+
+  protected requestOpenFolderPath(): void {
+    this.folderActionsMenuOpen.set(false);
+    this.openFolderPathRequested.emit();
+  }
+
+  protected requestCopyFolderPath(): void {
+    this.folderActionsMenuOpen.set(false);
+    this.copyFolderPathRequested.emit();
   }
 
   protected autofitDetailColumns(): void {
@@ -504,6 +515,8 @@ export class ImagesComponent {
   readonly hovered = output<FileInfo | null>();
 
   readonly cacheUpdated = output<string>();
+  readonly openFolderPathRequested = output<void>();
+  readonly copyFolderPathRequested = output<void>();
   private readonly importGpxFilesFoundDuringCacheBuild = async (filePaths: string[], signal: AbortSignal, enabled: boolean): Promise<void> => {
     if (!enabled) return;
     const uniquePaths = [...new Map(filePaths.map(path => [path.toLocaleLowerCase(), path])).values()];
@@ -894,6 +907,12 @@ export class ImagesComponent {
 
 
   constructor() {
+    // Close the header menu before another list hamburger handles its pointer event.
+    document.addEventListener('pointerdown', this.closeFolderActionsMenuOnPointerDown, true);
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('pointerdown', this.closeFolderActionsMenuOnPointerDown, true);
+    });
+
     try {
       if (typeof localStorage !== 'undefined') {
         const savedWidths = localStorage.getItem('lumascope.thumbnail-list.detail-column-widths');
