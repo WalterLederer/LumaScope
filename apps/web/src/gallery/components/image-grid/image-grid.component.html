@@ -87,6 +87,8 @@
               [style.--detail-font-size.px]="detailFontSize()"
               [nameFilter]="nameFilter()"
               [nameFilterActive]="nameFilterActive()"
+              (nameFilterChanged)="updateNameFilter($event)"
+              (nameFilterActiveChanged)="nameFilterActive.set($event)"
               [detailFontSize]="detailFontSize()"
               (detailFontSizeChanged)="setDetailFontSize($event)"
               [verifyCacheFiles]="verifyCacheFiles()"
