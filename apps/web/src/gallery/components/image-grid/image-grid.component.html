@@ -71,6 +71,14 @@
           <ui-icon icon="settings" [inherit]="true" />
         </button>
       }
+      <label class="gallery-file-option" title="Show files with unsupported formats">
+        <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
+        <span>Include unsupported files</span>
+      </label>
+      <label class="gallery-file-option" title="Include files from all subfolders">
+        <input type="checkbox" [checked]="includeFilesRecursive()" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
+        <span>Include files recursive</span>
+      </label>
     </div>
 
   </aside>
