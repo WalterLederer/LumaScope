@@ -848,25 +848,48 @@
   text-align: center;
 }
 
-/* Round only the four outer corners of the thumbnail details table.
-   Applying the radius to the corner cells preserves sticky headers,
-   column resizing, horizontal scrolling and row action menus. */
+/* Round the four visible outer corners. The table's contrasting
+   surface must remain visible behind the rounded corner cells; otherwise
+   the radius is hidden by the opaque thead/row backgrounds. */
+.detail-table {
+  border-radius: 10px;
+  background: var(--color-surface-default-medium, #e8e8e8);
+}
+
 .detail-native-table {
   border-radius: 10px;
+  background: var(--color-surface-default-medium, #e8e8e8);
+}
+
+.detail-native-table > thead {
+  background: transparent !important;
+}
+
+.detail-native-table > thead > tr.detail-header-labels {
+  background: transparent !important;
 }
 
 .detail-native-table > thead > tr.detail-header-labels > th:first-child {
   border-top-left-radius: 10px;
+  background-clip: padding-box;
 }
 
 .detail-native-table > thead > tr.detail-header-labels > th:last-child {
   border-top-right-radius: 10px;
+  background-clip: padding-box;
+}
+
+.detail-native-table > tbody.images.details-list > tr:last-child {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .detail-native-table > tbody.images.details-list > tr:last-child > td:first-child {
   border-bottom-left-radius: 10px;
+  background-clip: padding-box;
 }
 
 .detail-native-table > tbody.images.details-list > tr:last-child > td:last-child {
   border-bottom-right-radius: 10px;
+  background-clip: padding-box;
 }
