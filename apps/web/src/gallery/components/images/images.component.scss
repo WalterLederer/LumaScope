@@ -805,7 +805,24 @@
 }
 
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  padding: 0 !important;
+  /* The action column spans the same two 46px header tiers as its neighbours. */
+  height: 92px !important;
+  min-height: 92px !important;
+  max-height: 92px !important;
+  align-self: start;
+  padding: 10px 0 0 !important;
+  position: relative;
+  overflow: visible;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46px;
+  height: 1px;
+  background: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%)));
+  pointer-events: none;
 }
 
 .detail-native-table > thead > tr.detail-header-statistics {
