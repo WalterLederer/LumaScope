@@ -37,51 +37,51 @@
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()" [class.folder-actions-open]="folderActionsMenuOpen()">
           <th class="thumb-column-heading" scope="col">
             <span>Thumb</span>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail column" (pointerdown)="startColumnResize($event, 0)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail column" (pointerdown)="startColumnResize($event, 0)" (dblclick)="autofitDetailColumn($event, 0)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('name')">
             <button type="button" (click)="sortDetailBy('name')">@if (detailSortAriaSort('name') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('name') }}</span>}<span class="sort-label">Name</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize name column" (pointerdown)="startColumnResize($event, 1)" (dblclick)="autofitDetailColumn($event, 1)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('date')">
             <button type="button" (click)="sortDetailBy('date')">@if (detailSortAriaSort('date') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('date') }}</span>}<span class="sort-label">Date</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize date column" (pointerdown)="startColumnResize($event, 2)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize date column" (pointerdown)="startColumnResize($event, 2)" (dblclick)="autofitDetailColumn($event, 2)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gpsDate')">
             <button type="button" (click)="sortDetailBy('gpsDate')">@if (detailSortAriaSort('gpsDate') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gpsDate') }}</span>}<span class="sort-label">GPS Date</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS date column" (pointerdown)="startColumnResize($event, 3)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS date column" (pointerdown)="startColumnResize($event, 3)" (dblclick)="autofitDetailColumn($event, 3)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('dimensions')">
             <button type="button" (click)="sortDetailBy('dimensions')">@if (detailSortAriaSort('dimensions') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('dimensions') }}</span>}<span class="sort-label">Dimensions</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize dimensions column" (pointerdown)="startColumnResize($event, 4)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize dimensions column" (pointerdown)="startColumnResize($event, 4)" (dblclick)="autofitDetailColumn($event, 4)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('size')">
             <button type="button" (click)="sortDetailBy('size')">@if (detailSortAriaSort('size') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('size') }}</span>}<span class="sort-label">File size</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file size column" (pointerdown)="startColumnResize($event, 5)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file size column" (pointerdown)="startColumnResize($event, 5)" (dblclick)="autofitDetailColumn($event, 5)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.title]="distinctSuffixTooltip()" [attr.aria-sort]="detailSortAriaSort('suffix')">
             <button type="button" (click)="sortDetailBy('suffix')">@if (detailSortAriaSort('suffix') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('suffix') }}</span>}<span class="sort-label">Suffix</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize suffix column" (pointerdown)="startColumnResize($event, 6)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize suffix column" (pointerdown)="startColumnResize($event, 6)" (dblclick)="autofitDetailColumn($event, 6)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('hdr')">
             <button type="button" (click)="sortDetailBy('hdr')">@if (detailSortAriaSort('hdr') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('hdr') }}</span>}<span class="sort-label">HDR</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize HDR column" (pointerdown)="startColumnResize($event, 7)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize HDR column" (pointerdown)="startColumnResize($event, 7)" (dblclick)="autofitDetailColumn($event, 7)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('thumb')">
             <button type="button" (click)="sortDetailBy('thumb')">@if (detailSortAriaSort('thumb') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('thumb') }}</span>}<span class="sort-label">Thumb</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail status column" (pointerdown)="startColumnResize($event, 8)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail status column" (pointerdown)="startColumnResize($event, 8)" (dblclick)="autofitDetailColumn($event, 8)"></span>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('fullSize')">
             <button type="button" (click)="sortDetailBy('fullSize')">@if (detailSortAriaSort('fullSize') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('fullSize') }}</span>}<span class="sort-label">Full-Size Conversion</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize full-size column" (pointerdown)="startColumnResize($event, 9)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize full-size column" (pointerdown)="startColumnResize($event, 9)" (dblclick)="autofitDetailColumn($event, 9)"></span>
           </th>
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gps')">
             <button type="button" (click)="sortDetailBy('gps')">@if (detailSortAriaSort('gps') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gps') }}</span>}<span class="sort-label">GPS coordinates</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS column" (pointerdown)="startColumnResize($event, 10)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS column" (pointerdown)="startColumnResize($event, 10)" (dblclick)="autofitDetailColumn($event, 10)"></span>
           </th>
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('location')">
             <button type="button" (click)="sortDetailBy('location')">@if (detailSortAriaSort('location') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('location') }}</span>}<span class="sort-label">Location</span></button>
-            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)"></span>
+            <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize location column" (pointerdown)="startColumnResize($event, 11)" (dblclick)="autofitDetailColumn($event, 11)"></span>
           </th>
           <th class="detail-actions-heading folder-actions-heading" scope="col" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
