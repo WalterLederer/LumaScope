@@ -70,8 +70,12 @@ export class TreeComponent<T> {
     const target = this.findTreeNode([root], node.id);
     if (target === null) return;
     this.resetNodeSelection([root]);
-    target.isSelected = true;
-    this.selected.emit(target);
+    // The My PC root is a navigation container, not a selectable favourite.
+    const isRootNode = String(target.id) === '';
+    if (!isRootNode) {
+      target.isSelected = true;
+      this.selected.emit(target);
+    }
     this.toggleNode(target, root);
     this.treeRoot.set(root);
   };
