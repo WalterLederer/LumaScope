@@ -353,7 +353,7 @@ export class ImagesComponent {
   }
 
   private cacheStatusFolderKey = '';
-  private cacheStatusImageKey = '';
+  private cacheStatusImagesRef: FileInfo[] | null = null;
 
   readonly detailValueRanges = computed(() => {
     const images = this.images() ?? [];
@@ -1333,14 +1333,12 @@ export class ImagesComponent {
     effect(() => {
       const folder = this.folderPath() ?? '';
       const images = this.images() ?? [];
-      const imagePaths = images.map(image => image.path).sort((a, b) => a.localeCompare(b));
-      const imageKey = imagePaths.join('\\0');
-
-      // Ignore view-mode changes and list reordering. Refresh only for a new
-      // folder or a changed set of files (for example, after deleting files).
-      if (folder === this.cacheStatusFolderKey && imageKey === this.cacheStatusImageKey) return;
+      // GalleryState replaces the array whenever the indexed DB contents change.
+      // Comparing array identity avoids sorting/joining 100k paths just to detect
+      // a refresh.
+      if (folder === this.cacheStatusFolderKey && images === this.cacheStatusImagesRef) return;
       this.cacheStatusFolderKey = folder;
-      this.cacheStatusImageKey = imageKey;
+      this.cacheStatusImagesRef = images;
 
       const request = ++this.cacheStatusRequest;
       if (!folder || images.length === 0) {
@@ -1354,22 +1352,33 @@ export class ImagesComponent {
       this.gpsDateComparisons.set(new Map());
       this.cacheStatusLoading.set(true);
       const pathRequestVersions = new Map(this.cacheStatusPathRequests);
-      void this.cacheManager.getImageCacheStatuses(images.map(image => image.path)).then(statuses => {
-        if (request !== this.cacheStatusRequest) return;
-        const updated = new Map(statuses.map(status => [status.sourceName, status]));
-        for (const [sourceName, requestVersion] of this.cacheStatusPathRequests) {
-          if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && updated.has(sourceName)) {
-            const currentStatus = this.cacheStatuses().get(sourceName);
-            if (currentStatus) updated.set(sourceName, currentStatus);
+      void (async (): Promise<void> => {
+        for (let offset = 0; offset < images.length; offset += 500) {
+          if (request !== this.cacheStatusRequest) return;
+          const batch = images.slice(offset, offset + 500);
+          const supportedBatch = batch.filter(image =>
+            supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\\./, ''))
+          );
+          const statuses = supportedBatch.length
+            ? await this.cacheManager.getImageCacheStatuses(supportedBatch.map(image => image.path))
+            : [];
+          if (request !== this.cacheStatusRequest) return;
+          const updated = new Map(this.cacheStatuses());
+          const batchStatuses = new Map(statuses.map(status => [status.sourceName, status]));
+          for (const [sourceName, status] of batchStatuses) {
+            const requestVersion = this.cacheStatusPathRequests.get(sourceName) ?? 0;
+            const currentStatus = updated.get(sourceName);
+            if (requestVersion > (pathRequestVersions.get(sourceName) ?? 0) && currentStatus) continue;
+            updated.set(sourceName, status);
           }
+          this.cacheStatuses.set(updated);
+          const comparisons = new Map(this.gpsDateComparisons());
+          this.createGpsDateComparisons(batch, batchStatuses).forEach((value, path) => comparisons.set(path, value));
+          this.gpsDateComparisons.set(comparisons);
         }
-        this.cacheStatuses.set(updated);
-        this.gpsDateComparisons.set(this.createGpsDateComparisons(images, updated));
-      }).catch(error => {
+      })().catch(error => {
         if (request !== this.cacheStatusRequest) return;
         console.error('Failed to retrieve gallery cache statuses', error);
-        this.cacheStatuses.set(new Map());
-        this.gpsDateComparisons.set(new Map());
       }).finally(() => {
         if (request === this.cacheStatusRequest) this.cacheStatusLoading.set(false);
       });
