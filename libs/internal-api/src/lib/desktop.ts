@@ -188,6 +188,7 @@ export interface DesktopCacheManager {
   readonly getLatestGpxElevationProfile: (sourcePath?: string) => Promise<GpxElevationProfile | null>;
   readonly getGpxFilesInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey?: string) => Promise<Array<{ id: number; path: string; name: string; sizeBytes: number; lastModified: number; matchingPoints: number; segments: Array<Array<{ latitude: number; longitude: number; timestamp: number | null; inViewport: boolean }>> }>>;
   readonly getInterpolatedGpxPosition: (folder: string, timestampMs: number, maxDifferenceSeconds?: number, databaseKey?: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
+  readonly getInterpolatedPhotoGpsPosition: (timestampMs: number, databaseKey: string) => Promise<{ latitude: number; longitude: number; deviationSeconds: number } | null>;
   readonly clearOsmAndTileCache: () => Promise<CacheClearResult>;
   readonly clear: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
   readonly clearFullSize: (directory?: string, recursive?: boolean, operationId?: string) => Promise<CacheClearResult>;
