@@ -265,7 +265,7 @@ export class ImagesComponent {
   private cacheStatusFolderKey = '';
   private cacheStatusImageKey = '';
 
-  readonly detailProgressByPath = computed(() => {
+  readonly detailValueRanges = computed(() => {
     const images = this.images() ?? [];
     const statuses = this.cacheStatuses();
     let minDate = Infinity, maxDate = -Infinity;
@@ -290,8 +290,20 @@ export class ImagesComponent {
       }
     }
 
-    const percentage = (value: number | null | undefined, min: number, max: number): number | null => {
-      if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) return null;
+    return {
+      date: Number.isFinite(minDate) ? [minDate, maxDate] as const : null,
+      gpsDate: Number.isFinite(minGpsDate) ? [minGpsDate, maxGpsDate] as const : null,
+      size: Number.isFinite(minSize) ? [minSize, maxSize] as const : null
+    };
+  });
+
+  readonly detailProgressByPath = computed(() => {
+    const images = this.images() ?? [];
+    const statuses = this.cacheStatuses();
+    const ranges = this.detailValueRanges();
+    const percentage = (value: number | null | undefined, range: readonly [number, number] | null): number | null => {
+      if (typeof value !== 'number' || !Number.isFinite(value) || !range) return null;
+      const [min, max] = range;
       return max === min ? 50 : Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
     };
 
@@ -299,9 +311,9 @@ export class ImagesComponent {
     for (const image of images) {
       const gpsDate = statuses.get(image.path)?.gpsTimestamp;
       result.set(image.path, {
-        date: percentage(image.modifiedAt, minDate, maxDate),
-        gpsDate: percentage(gpsDate, minGpsDate, maxGpsDate),
-        size: percentage(image.size, minSize, maxSize)
+        date: percentage(image.modifiedAt, ranges.date),
+        gpsDate: percentage(gpsDate, ranges.gpsDate),
+        size: percentage(image.size, ranges.size)
       });
     }
     return result;
@@ -309,9 +321,7 @@ export class ImagesComponent {
 
   readonly detailSummary = computed(() => {
     const images = this.images() ?? [];
-    const dates = images.map(image => image.modifiedAt).filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-    const gpsDates = images.map(image => this.cacheStatuses().get(image.path)?.gpsTimestamp).filter((value): value is number => Number.isFinite(value));
-    const sizes = images.map(image => image.size).filter(value => Number.isFinite(value));
+    const ranges = this.detailValueRanges();
     const dimensionValues = images.map(image => {
       const tags = this.metadata().get(image.path);
       const width = Number(tags?.ImageWidth) || 0;
@@ -319,8 +329,6 @@ export class ImagesComponent {
       return { width, height, area: width * height };
     }).filter(value => value.width > 0 && value.height > 0);
 
-    const minDate = dates.length ? formatOsDateTime(dates.reduce((min, value) => Math.min(min, value), Infinity)) : '—';
-    const maxDate = dates.length ? formatOsDateTime(dates.reduce((max, value) => Math.max(max, value), -Infinity)) : '—';
     const formatSize = (bytes: number) => {
       if (bytes < 1024) return `${bytes} B`;
       const units = ['KB', 'MB', 'GB', 'TB'];
@@ -329,8 +337,6 @@ export class ImagesComponent {
       while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
       return `${value.toFixed(1)} ${units[unit]}`;
     };
-    const minSize = sizes.length ? formatSize(sizes.reduce((min, value) => Math.min(min, value), Infinity)) : '—';
-    const maxSize = sizes.length ? formatSize(sizes.reduce((max, value) => Math.max(max, value), -Infinity)) : '—';
     const minDimensions = dimensionValues.length
       ? dimensionValues.reduce((min, value) => value.area < min.area ? value : min)
       : null;
@@ -338,11 +344,15 @@ export class ImagesComponent {
       ? dimensionValues.reduce((max, value) => value.area > max.area ? value : max)
       : null;
     return {
-      date: [minDate, maxDate],
-      gpsDate: gpsDates.length
-        ? [formatOsDateTime(gpsDates.reduce((min, value) => Math.min(min, value), Infinity) * 1000), formatOsDateTime(gpsDates.reduce((max, value) => Math.max(max, value), -Infinity) * 1000)]
+      date: ranges.date
+        ? [formatOsDateTime(ranges.date[0]), formatOsDateTime(ranges.date[1])]
         : ['—', '—'],
-      size: [minSize, maxSize],
+      gpsDate: ranges.gpsDate
+        ? [formatOsDateTime(ranges.gpsDate[0] * 1000), formatOsDateTime(ranges.gpsDate[1] * 1000)]
+        : ['—', '—'],
+      size: ranges.size
+        ? [formatSize(ranges.size[0]), formatSize(ranges.size[1])]
+        : ['—', '—'],
       dimensions: [
         minDimensions ? `${minDimensions.width} × ${minDimensions.height}` : '—',
         maxDimensions ? `${maxDimensions.width} × ${maxDimensions.height}` : '—'
