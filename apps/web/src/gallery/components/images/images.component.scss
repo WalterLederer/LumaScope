@@ -1213,3 +1213,11 @@
     color: white;
   }
 }
+
+/* Keep the selection highlight visible on alternating even rows as well.
+   The even-row background rule has higher specificity than the base selection
+   rule, so explicitly override it for selected rows. */
+.detail-alternate-rows .detail-native-table > tbody.images.details-list > tr.selected-image,
+.detail-alternate-rows .detail-native-table > tbody.images.details-list > tr.selected-image > td {
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 24%, var(--detail-even-row-color, #f5f5f5)) !important;
+}
