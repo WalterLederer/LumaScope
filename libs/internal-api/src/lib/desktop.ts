@@ -369,8 +369,8 @@ export interface DesktopOfflineMap {
 export interface DesktopMapWindow {
   readonly getZoom: () => Promise<number>;
   readonly setZoom: (zoom: number) => Promise<void>;
-  readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null) => Promise<boolean>;
-  readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null }>;
+  readonly open: (latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean) => Promise<boolean>;
+  readonly getLocation: () => Promise<{ latitude: number | null; longitude: number | null; bearing: number | null; imagePath: string | null; folderPath: string | null; recursive: boolean }>;
   readonly getImagePreview: (imagePath: string) => Promise<string | null>;
   readonly close: () => Promise<void>;
   readonly isOpen: () => Promise<boolean>;
