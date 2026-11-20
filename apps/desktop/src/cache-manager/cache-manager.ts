@@ -1354,6 +1354,34 @@ export class CacheManager {
     return registered;
   };
 
+  @IpcHandler({ name: 'CacheManager.getGalleryUnsupportedSummary' })
+  readonly getGalleryUnsupportedSummary = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false
+  ): Promise<{ count: number; suffixes: string[] }> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const rows = db.prepare(`SELECT photos.file_name, paths.relative_folder_path
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`)
+      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{ file_name: string; relative_folder_path: string }>;
+    const suffixes = new Set<string>();
+    let count = 0;
+    for (const row of rows) {
+      const extension = extname(row.file_name).toLowerCase().replace(/^\\./, '');
+      if (supportedFileExtensions.includes(extension)) continue;
+      count++;
+      suffixes.add(extension || '(no extension)');
+    }
+    return { count, suffixes: [...suffixes].sort((a, b) => a.localeCompare(b)) };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGalleryFiles' })
   readonly getGalleryFiles = async (
     _event: IpcMainInvokeEvent,
