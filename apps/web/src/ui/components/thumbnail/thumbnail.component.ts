@@ -326,9 +326,9 @@ export class ThumbnailComponent implements OnDestroy {
 
   private readonly closeMenuOnPointerDown = (event: PointerEvent): void => {
     const target = event.target instanceof Element ? event.target : null;
-    // Keep the current detail menu open for clicks inside it or on another
-    // detail hamburger; all other row menus (including Favorites) replace it.
-    if (target?.closest('.detail-row-action-menu, .detail-row-menu-trigger')) return;
+    // Keep this menu open for clicks inside it or on another file-row
+    // hamburger. The folder-wide header hamburger must close every file menu.
+    if (target?.closest('.detail-row-action-menu, .detail-row-menu-trigger:not(.folder-actions-menu-trigger)')) return;
     this.rowActionMenuOpen.set(false);
     if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
   };
