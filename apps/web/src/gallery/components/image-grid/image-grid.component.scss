@@ -81,6 +81,8 @@ ui-toolbar {
 
   .thumbnail-zoom-box {
     display: inline-flex;
+    margin-top: 4px;
+    margin-bottom: 4px;
     flex: 0 0 auto;
     align-items: center;
     gap: var(--dim-small);
