@@ -648,16 +648,17 @@ app-map-window {
 
 
     .fix-location-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:start;gap:12px;margin-top:8px}
-    .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
-    .fix-location-crosshair-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
-    .fix-location-address{min-width:0;flex:1 1 180px;overflow-wrap:anywhere}
+    .fix-location-controls{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0}
+    .fix-location-position-table{width:100%;border-collapse:collapse;table-layout:auto}
+    .fix-location-position-table th,.fix-location-position-table td{padding:6px 8px;border-bottom:1px solid color-mix(in srgb,CanvasText 14%,transparent);text-align:left;vertical-align:middle}
+    .fix-location-position-table th{width:78px;font-weight:600;white-space:nowrap}
+    .fix-location-position-table td:nth-child(3){white-space:nowrap}
     .fix-location-coordinate-value,.fix-location-photo-coordinates{min-width:0;overflow-wrap:anywhere;font-family:Consolas,monospace;font-size:11px;line-height:1.45;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
-    .fix-location-coordinate-value{flex:1 1 100%;padding:2px 0}
-    .fix-location-photo-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
-    .fix-location-photo-coordinates{flex:1 1 280px}
-    .fix-location-photo-actions .offline-map-status{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere}
-    .fix-location-controls .fix-location-toggle{margin:0}
-    .fix-location-controls .location-actions{margin:0;align-items:flex-start}
+    .fix-location-address-cell{min-width:150px}
+    .fix-location-address{display:block;min-width:0;margin-top:3px;overflow-wrap:anywhere;white-space:normal}
+    .fix-location-controls .fix-location-toggle{display:inline-flex;align-items:center;gap:6px;margin:0}
+    .fix-location-save-button{align-self:flex-start;margin-top:2px}
+    .fix-location-save-status{white-space:normal;overflow-wrap:anywhere}
     .fix-location-help{display:block;width:100%;max-width:none;box-sizing:border-box;margin-top:2px;white-space:normal;line-height:1.35}
     .fix-location-layout .fix-photo-preview{margin:0;min-width:0}
     @media(max-width:560px){.fix-location-layout{grid-template-columns:minmax(0,1fr)}.fix-location-layout .fix-photo-preview{max-width:100%}}
