@@ -180,7 +180,7 @@ export class GalleryState {
 
   readonly loadNextGalleryPage = (): void => {
     const directory = this.selectedLocation$.value;
-    if (!directory || this.galleryPageLoading || this.galleryLoadedCount >= this.galleryTotalCount) return;
+    if (!directory || this.galleryPageLoading || (this.galleryTotalCount >= 0 && this.galleryLoadedCount >= this.galleryTotalCount)) return;
     const request = this.navigationRequest;
     const offset = this.galleryLoadedCount;
     const sort = this.sortMode$.value;
@@ -217,6 +217,8 @@ export class GalleryState {
         if (request !== this.navigationRequest) return;
         pages.push(...page.files);
         if (page.totalCount >= 0) totalCount = page.totalCount;
+        else if (page.files.length < this.galleryPageSize) totalCount = pages.length;
+        else totalCount = -1;
         if (page.files.length < this.galleryPageSize) break;
       }
       if (request !== this.navigationRequest) return;
