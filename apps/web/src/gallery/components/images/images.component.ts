@@ -558,7 +558,23 @@ export class ImagesComponent {
     this.detailPreferenceFavoriteName.set('');
     this.detailPreferenceFavoriteSelection.set('');
     this.detailPreferencesOpen.set(true);
+    requestAnimationFrame(() => {
+      const dialog = this.elementRef.nativeElement.querySelector<HTMLElement>('.detail-preferences-dialog');
+      const okButton = dialog?.querySelector<HTMLButtonElement>('.detail-preferences-ok');
+      okButton?.focus();
+    });
   }
+
+  protected readonly onDetailPreferencesFooterKeydown = (event: KeyboardEvent): void => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    const current = event.currentTarget as HTMLButtonElement;
+    const buttons = Array.from(current.closest('footer')?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? []);
+    const index = buttons.indexOf(current);
+    if (index < 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    buttons[event.key === 'ArrowRight' ? Math.min(buttons.length - 1, index + 1) : Math.max(0, index - 1)].focus();
+  };
 
   protected applyDetailPreferenceFavorite(name: string): void {
     this.detailPreferenceFavoriteSelection.set(name);
