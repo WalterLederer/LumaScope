@@ -1848,6 +1848,7 @@ export class CacheManager {
         direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
         location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
         coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        file_name = excluded.file_name,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`)
       .run({ pathId: path.id, file: basename(sourceName), size, modified });
