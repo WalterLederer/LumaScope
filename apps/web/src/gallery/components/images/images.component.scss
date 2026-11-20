@@ -579,6 +579,9 @@
   letter-spacing: 0.1px;
   text-align: center;
 }
+.detail-native-table .cache-folder-action-progress > .cache-folder-action-label {
+  flex: 0 0 100%;
+}
 .detail-native-table .cache-folder-action-stop {
   flex: 0 0 auto;
   min-height: 28px;
@@ -848,17 +851,17 @@
   text-align: center;
 }
 
-/* Round the four visible outer corners. The table's contrasting
-   surface must remain visible behind the rounded corner cells; otherwise
-   the radius is hidden by the opaque thead/row backgrounds. */
+/* Keep the wrapper transparent so the table does not create a full-width
+   backdrop. The table itself carries the same subtle shadow as the zoom boxes. */
 .detail-table {
   border-radius: 10px;
-  background: var(--color-surface-default-medium, #e8e8e8);
+  background: transparent;
 }
 
 .detail-native-table {
   border-radius: 10px;
-  background: var(--color-surface-default-medium, #e8e8e8);
+  background: var(--color-surface-default-low, #fff);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .detail-native-table > thead {
