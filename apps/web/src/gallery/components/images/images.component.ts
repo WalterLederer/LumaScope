@@ -870,7 +870,7 @@ export class ImagesComponent {
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
-      let images = this.images() ?? [];
+      let images = (this.images() ?? []).filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace('.', '')));
       let reconciledRecords = 0;
       let indexedFilePaths: string[] | null = null;
       const gpxFiles: string[] = [];
