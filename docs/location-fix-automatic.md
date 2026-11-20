@@ -7,15 +7,15 @@ The **Fix location AUTOMATIC** section in the Location tab assigns GPS coordinat
 
 ## Prerequisites
 
-- In **Location → Fix location AUTOMATIC**, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The section lists cache databases for favorite drives and shows each database file path, cache size/entries, and GPX file/segment/point totals, including timestamped points. The same shared importer is also available under **Track → Advanced**.
+- GPX import is optional if the cache databases already contain suitable geotagged image references. Otherwise, use **STEP 1 - Add GPX to search** and expand **GPX → DB** to import the relevant GPX folder. The section lists cache databases for favorite drives and shows each database file path, cache size/entries, and GPX file/segment/point totals, including timestamped points. The same shared importer is also available under **Track → Advanced**.
 - Auto Fix searches the selected photo folder's drive first, followed by every drive referenced by a Gallery favorite. Import GPX data into any of these drive-local cache databases; a favorite drive is included even when no image from it is open.
 - Auto Fix searches both timestamped GPX track points and timestamped GPS positions from geotagged images in the selected photo folder's drive and every drive represented by a Gallery favorite. A GPX import is no longer mandatory when suitable geotagged image references are already cached.
-- GPX track points must have timestamps. Matching uses points within an individual GPX segment.
+- GPX track points must have timestamps and are matched within an individual GPX segment. Geotagged image references must have cached GPS coordinates and a capture timestamp.
 
 ## Workflow
 
 1. Open **Location → Fix location AUTOMATIC**.
-2. Under **STEP 1 - Add GPX to search**, expand **GPX → DB** and import the GPX folder into a drive referenced by the selected photo folder or a Gallery favorite. Check the database file, segment and point totals.
+2. If no suitable geotagged image references are already cached, use **STEP 1 - Add GPX to search** to import the GPX folder into a drive referenced by the selected photo folder or a Gallery favorite.
 3. Under **STEP 2 - Add GPS info from GPX to photos**, select **Check only** first to inspect the proposed results without changing any image files.
 4. Set **Maximum time difference (minutes)**. The default is **2 minutes**; the allowed range is 0–1440 minutes in 0.5-minute steps.
 5. Select **Select folder with photos to fix...** and choose the root folder. Its subfolders are scanned recursively.
