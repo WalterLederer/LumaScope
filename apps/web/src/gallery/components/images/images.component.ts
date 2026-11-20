@@ -117,6 +117,9 @@ export class ImagesComponent {
   readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
   readonly detailPreferenceDraft = signal<DetailTablePreferences>({ ...defaultDetailTablePreferences });
   readonly detailPreferencesOpen = signal(false);
+  readonly detailPreferenceFavorites = signal<Array<{ name: string; settings: DetailTablePreferences }>>([]);
+  readonly detailPreferenceFavoriteName = signal('');
+  readonly detailPreferenceFavoriteSelection = signal('');
   readonly detailPreferenceValues = computed<DetailTablePreferences>(() => {
     const preferences = this.appConfig()?.preferences;
     return {
@@ -500,7 +503,39 @@ export class ImagesComponent {
   protected openDetailPreferences(): void {
     this.folderActionsMenuOpen.set(false);
     this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
+    const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [];
+    this.detailPreferenceFavorites.set(favorites as Array<{ name: string; settings: DetailTablePreferences }>);
+    this.detailPreferenceFavoriteName.set('');
+    this.detailPreferenceFavoriteSelection.set('');
     this.detailPreferencesOpen.set(true);
+  }
+
+  protected applyDetailPreferenceFavorite(name: string): void {
+    this.detailPreferenceFavoriteSelection.set(name);
+    const favorite = this.detailPreferenceFavorites().find(item => item.name === name);
+    if (favorite) this.detailPreferenceDraft.set({ ...defaultDetailTablePreferences, ...favorite.settings });
+  }
+
+  protected addDetailPreferenceFavorite(): void {
+    const name = this.detailPreferenceFavoriteName().trim();
+    if (!name) return;
+    const favorite = { name, settings: { ...this.detailPreferenceDraft() } };
+    const favorites = [...this.detailPreferenceFavorites()];
+    const existingIndex = favorites.findIndex(item => item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (existingIndex >= 0) favorites[existingIndex] = favorite;
+    else favorites.push(favorite);
+    this.detailPreferenceFavorites.set(favorites);
+    this.detailPreferenceFavoriteSelection.set(name);
+    this.configuration.updateSystemConfig({ galleryDetailPreferencesFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
+  }
+
+  protected removeDetailPreferenceFavorite(): void {
+    const selectedName = this.detailPreferenceFavoriteSelection();
+    if (!selectedName) return;
+    const favorites = this.detailPreferenceFavorites().filter(item => item.name !== selectedName);
+    this.detailPreferenceFavorites.set(favorites);
+    this.detailPreferenceFavoriteSelection.set('');
+    this.configuration.updateSystemConfig({ galleryDetailPreferencesFavorites: favorites as unknown as Array<{ name: string; settings: Record<string, unknown> }> });
   }
 
   protected updateDetailPreferenceColor(key: DetailTableColorKey, value: string): void {
