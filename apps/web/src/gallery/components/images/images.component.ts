@@ -778,7 +778,7 @@ export class ImagesComponent {
 
     const startX = event.clientX;
     const startWidth = cell.getBoundingClientRect().width;
-    const minimumWidth = columnIndex === -1 ? 44 : columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
+    const minimumWidth = columnIndex === -1 ? 56 : columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
     const initialThumbWidth = this.detailThumbnailWidth();
@@ -1264,7 +1264,7 @@ export class ImagesComponent {
               const index = Number(key);
               if (Number.isInteger(index) && index >= -1 && index <= 12
                 && typeof value === 'number' && Number.isFinite(value)
-                && (index === 0 ? value >= -1000 && value <= 3000 : value >= 40 && value <= 3000)) {
+                && (index === 0 ? value >= -1000 && value <= 3000 : index === -1 ? value >= 56 && value <= 3000 : value >= 40 && value <= 3000)) {
                 validWidths[index] = value;
               }
             }
