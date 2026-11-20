@@ -88,6 +88,7 @@ export class ThumbnailComponent implements OnDestroy {
   readonly cacheStatus = input<CacheImageStatus | null>(null);
 
   readonly locationDisplayName = input<string | null>(null);
+  readonly detailPath = input<string>('');
 
   readonly gpsDateLabel = computed(() => {
     const timestamp = this.cacheStatus()?.gpsTimestamp;
