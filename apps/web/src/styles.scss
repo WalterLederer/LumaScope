@@ -79,6 +79,35 @@ html body app-map-window .map-window .offline-row-action-menu {
 
 /* Shared hamburger menu trigger. Apply the same compact, theme-aware icon
    surface to native buttons, plain span triggers and ui-action-button hosts. */
+/* Track-list hamburger is intentionally a bare glyph, not a central action button. */
+html body .gpx-track-row-menu-trigger {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 22px !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  font: 14px/1 "Segoe UI Symbol", "Arial Unicode MS", sans-serif !important;
+  cursor: pointer !important;
+}
+html body .gpx-track-row-menu-trigger:hover,
+html body .gpx-track-row-menu-trigger:focus-visible {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--color-content-default-high, currentColor) !important;
+}
+
 html body :is(button, span, ui-action-button).file-row-menu-trigger:not(:disabled):not([role="tab"]):not([role="option"]):not(.app-disclosure-heading):not(.detail-column-heading > button):not([type="submit"]) {
   appearance: none !important;
   -webkit-appearance: none !important;
