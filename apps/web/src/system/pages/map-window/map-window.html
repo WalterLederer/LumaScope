@@ -285,7 +285,7 @@
                 <td class="gpx-track-preview-cell"><app-gpx-track-preview [track]="track" variant="list" /></td>
                 <td class="gpx-row-actions">
                   <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
-                  <button type="button" class="file-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
                 </td>
               </tr>
             }
