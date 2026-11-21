@@ -5521,7 +5521,12 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async persistGpxMapSettings(patch: Record<string, unknown>): Promise<void> {
     if (!this.desktop) return;
-    const settings = await this.desktop.ProcessManager.getAppSettings();
+    const settings = await this.desktop.ProcessManager.getAppSettings().catch(error => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.gpxError.set('Could not restore saved GPX tracks: ' + message);
+      return null;
+    });
+    if (!settings) return;
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
     const mapView = gpx['mapWindow'] && typeof gpx['mapWindow'] === 'object'
