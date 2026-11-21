@@ -502,11 +502,22 @@
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
 
-/* A hidden right-side actions cell can remain the DOM last child. Remove the
-   divider from the actual last visible header cell instead, in both header
-   tiers, so no stray vertical frame remains after the Path column. */
-.detail-native-table > thead > tr > th:not([hidden]):not(:has(~ th:not([hidden]))) {
+/* The final visible metadata column is Path. Remove its right border
+   explicitly in both header tiers; the statistics row has no actions TH
+   because the actions heading spans both rows. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-path-heading,
+.detail-native-table > thead > tr.detail-header-statistics > th:last-child {
   border-right: 0 !important;
+}
+
+/* The actions track is deliberately fixed to the same compact width on
+   either side; stored resize values must never enlarge it. */
+.detail-native-table > colgroup > col:first-child,
+.detail-native-table > colgroup > col:last-child,
+.detail-native-table > thead > tr > th.detail-actions-heading {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
 }
 /* Keep the column title on its own visual line and separate it from
    the statistics row beneath it. */
