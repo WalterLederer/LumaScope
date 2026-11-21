@@ -906,7 +906,6 @@ export class ImageView {
     const viewport = this.hexScrollViewport()?.nativeElement;
     const previousScrollTop = viewport?.scrollTop ?? 0;
     const boundedStart = Math.max(0, Math.min(Math.max(0, this.hexTotalRows() - this.hexRowsPerPage), Math.floor(startRow)));
-    this.hexStartRow.set(boundedStart);
     this.hexLoading.set(true);
     this.hexStatus.set('Reading file…');
     try {
@@ -914,6 +913,7 @@ export class ImageView {
       if (request !== this.hexRequestId || path !== this.hexFilePath()) return;
       if (!result.success) throw new Error(result.errorMessage);
       this.hexFileSize.set(result.data.fileSize);
+      this.hexStartRow.set(boundedStart);
       this.hexRows.set(result.data.rows);
       this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
       // The virtual spacer rows preserve the file's full scroll geometry. A range
@@ -953,10 +953,10 @@ export class ImageView {
     // Keep a 64-row overlap around the viewport. This also handles dragging the
     // scrollbar directly to a distant position instead of loading page by page.
     if (firstVisibleRow < start + overlap && start > 0) {
-      const nextStart = Math.max(0, firstVisibleRow - overlap);
+      const nextStart = Math.max(0, Math.min(start - Math.floor(this.hexRowsPerPage / 2), firstVisibleRow - overlap));
       if (nextStart < start) void this.loadHexRange(nextStart, true);
     } else if (lastVisibleRow > loadedEnd - overlap && loadedEnd < total) {
-      const nextStart = Math.min(this.hexMaxStartRow(), Math.max(start + 1, lastVisibleRow - this.hexRowsPerPage + overlap));
+      const nextStart = Math.min(this.hexMaxStartRow(), Math.max(start + Math.floor(this.hexRowsPerPage / 2), lastVisibleRow - this.hexRowsPerPage + overlap));
       if (nextStart > start) void this.loadHexRange(nextStart, true);
     }
   };
