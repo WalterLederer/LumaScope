@@ -1,3 +1,4 @@
+import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -75,6 +76,9 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   imports: [
     ThumbnailComponent,
     TitleComponent,
+    CdkMenu,
+    CdkMenuItem,
+    CdkMenuTrigger,
     TimelineIndicatorsComponent,
     TextComponent ,
     ButtonTooltipDirective
@@ -551,7 +555,6 @@ export class ImagesComponent {
 
 
   openDetailPreferences(): void {
-    this.folderActionsMenuOpen.set(false);
     this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
     const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [this.defaultDetailPreferenceFavorite];
     this.detailPreferenceFavorites.set(favorites as Array<{ name: string; settings: DetailTablePreferences }>);
@@ -644,64 +647,27 @@ export class ImagesComponent {
   }
 
 
-  readonly folderActionsMenuOpen = signal(false);
-  readonly folderActionsMenuPosition = signal({ top: 8, left: 8 });
-
-  protected toggleFolderActionsMenu(event: MouseEvent): void {
-    event.stopPropagation();
-    if (this.folderActionsMenuOpen()) {
-      this.folderActionsMenuOpen.set(false);
-      return;
-    }
-
-    const pointer = { top: event.clientY, left: event.clientX };
-    this.folderActionsMenuPosition.set(pointer);
-    this.folderActionsMenuOpen.set(true);
-    requestAnimationFrame(() => {
-      if (!this.folderActionsMenuOpen()) return;
-      const menu = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>('.folder-actions-menu');
-      if (!menu) return;
-      const rect = menu.getBoundingClientRect();
-      this.folderActionsMenuPosition.set({
-        top: Math.max(8, Math.min(pointer.top, window.innerHeight - rect.height - 8)),
-        left: Math.max(8, Math.min(pointer.left, window.innerWidth - rect.width - 8))
-      });
-    });
-  }
-
-  private readonly closeFolderActionsMenuOnPointerDown = (event: PointerEvent): void => {
-    const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest('.folder-actions-menu, .folder-actions-menu-trigger')) return;
-    this.folderActionsMenuOpen.set(false);
-  };
-
   protected requestOpenFolderPath(): void {
-    this.folderActionsMenuOpen.set(false);
     this.openFolderPathRequested.emit();
   }
 
   protected requestCopyFolderPath(): void {
-    this.folderActionsMenuOpen.set(false);
     this.copyFolderPathRequested.emit();
   }
 
   protected requestCacheDisplayedFiles(): void {
-    this.folderActionsMenuOpen.set(false);
     void this.cacheDisplayedFiles();
   }
 
   protected requestReCacheDisplayedFiles(): void {
-    this.folderActionsMenuOpen.set(false);
     this.reCacheDisplayedFiles();
   }
 
   protected requestRefreshFolder(): void {
-    this.folderActionsMenuOpen.set(false);
     void this.refreshGallery();
   }
 
   protected autofitDetailColumns(): void {
-    this.folderActionsMenuOpen.set(false);
     const table = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLTableElement>('table.detail-native-table');
     if (!table) return;
 
