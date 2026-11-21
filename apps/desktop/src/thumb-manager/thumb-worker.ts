@@ -1097,9 +1097,14 @@ if (parentPort) {
         const outputHeight = Math.max(180, height > 0 ? height : 900);
         const isFullSize = width === 0 && height === 0;
         const pixels = Buffer.alloc(outputWidth * outputHeight * 3);
-        // Keep the chart canvas genuinely black, including the HDR base layer.
-        // A lifted charcoal base is perceived as grey after Ultra HDR display mapping.
-        pixels.fill(0);
+        if (isFullSize) {
+          // Keep the full-size HDR canvas genuinely black; a lifted charcoal
+          // base is perceived as grey after Ultra HDR display mapping.
+          pixels.fill(0);
+        } else {
+          // Preserve the existing dark SDR thumbnail appearance.
+          for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16; pixels[i + 1] = 18; pixels[i + 2] = 22; }
+        }
         const setPixel = (x: number, y: number, color: [number, number, number]) => {
           if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
           const p = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
