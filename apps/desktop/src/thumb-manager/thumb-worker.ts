@@ -1068,9 +1068,20 @@ if (parentPort) {
       if (sourceExtension === '.ohsp') {
         processingStage = 'reading OHSP spectral measurements';
         const data = await readFile(source);
+        const instrument = data.toString('ascii', 0, 10);
+        if (instrument !== 'OHSP-350SF') throw new Error(`Unsupported OHSP instrument layout: ${instrument || 'unknown'}.`);
         const offset = 0x16c;
         const sampleCount = 601;
-        if (data.length < offset + sampleCount * 4) throw new Error('Invalid OHSP file: spectral sample block is truncated.');
+        const metadataSize = 8;
+        if (data.length < offset + sampleCount * 4 + metadataSize) throw new Error('Invalid OHSP file: spectral sample block or trailing wavelength metadata is truncated.');
+        // The OHSP-350SF file stores the wavelength range as two little-endian
+        // IEEE-754 float values in the final eight bytes: start wavelength, end wavelength.
+        const startWavelength = data.readFloatLE(data.length - metadataSize);
+        const endWavelength = data.readFloatLE(data.length - 4);
+        if (!Number.isFinite(startWavelength) || !Number.isFinite(endWavelength) ||
+          startWavelength < 100 || endWavelength > 2000 || endWavelength <= startWavelength) {
+          throw new Error('Invalid OHSP file: trailing wavelength range is missing or invalid.');
+        }
         const values = Array.from({ length: sampleCount }, (_, index) => data.readFloatLE(offset + index * 4));
         if (values.some(value => !Number.isFinite(value))) throw new Error('Invalid OHSP file: spectral values contain non-finite numbers.');
         const outputWidth = Math.max(320, width > 0 ? width : 1600);
@@ -1124,9 +1135,9 @@ if (parentPort) {
         };
         const gridColor: [number,number,number] = [65,68,74], axisColor: [number,number,number] = [210,214,220], labelColor: [number,number,number] = [190,195,202];
         for (let tick = 0; tick <= 5; tick++) { const value = maximum - tick / 5 * range, y = yFor(value); line(left,y,outputWidth-right,y,gridColor); drawText(value.toPrecision(3), Math.max(2,left-78), y-4, 2, labelColor); }
-        for (const nm of [350,450,550,650,750,850,950]) { const x = left + (nm-350)/600*plotWidth; line(x,top,x,top+plotHeight,gridColor); drawText(String(nm),x-18,top+plotHeight+10,2,labelColor); }
-        for (let x = 0; x < plotWidth; x++) { const index = Math.min(600,Math.round(x/plotWidth*600)), y = Math.round(yFor(values[index])); const color = spectrumColor(350+index); for (let fy = Math.round(Math.min(y,zeroY)); fy <= Math.round(Math.max(y,zeroY)); fy++) setPixel(left+x,fy,color); }
-        for (let index = 1; index < sampleCount; index++) line(left+(index-1)/600*plotWidth,yFor(values[index-1]),left+index/600*plotWidth,yFor(values[index]),[245,245,245]);
+        for (let tick = 0; tick <= 6; tick++) { const nm = startWavelength + (endWavelength - startWavelength) * tick / 6; const x = left + tick / 6 * plotWidth; line(x,top,x,top+plotHeight,gridColor); drawText(String(Math.round(nm)),x-18,top+plotHeight+10,2,labelColor); }
+        for (let x = 0; x < plotWidth; x++) { const index = Math.min(600,Math.round(x/plotWidth*600)), y = Math.round(yFor(values[index])); const wavelength = startWavelength + index / (sampleCount - 1) * (endWavelength - startWavelength); const color = spectrumColor(wavelength); for (let fy = Math.round(Math.min(y,zeroY)); fy <= Math.round(Math.max(y,zeroY)); fy++) setPixel(left+x,fy,color); }
+        for (let index = 1; index < sampleCount; index++) line(left+(index-1)/(sampleCount-1)*plotWidth,yFor(values[index-1]),left+index/(sampleCount-1)*plotWidth,yFor(values[index]),[245,245,245]);
         line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
         const textScale = Math.max(1,Math.floor(outputWidth/1200));
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
