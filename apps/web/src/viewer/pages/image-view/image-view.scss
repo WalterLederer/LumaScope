@@ -2465,6 +2465,27 @@
   color: var(--color-text-secondary);
   font-size: 10px;
 }
+:host .image-hex-font-control {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+:host .image-hex-font-control input {
+  flex: 1 1 auto;
+  min-width: 40px;
+  margin: 0;
+  accent-color: var(--color-accent, #287fc1);
+}
+:host .image-hex-font-control span {
+  flex: 0 0 32px;
+  text-align: right;
+  color: var(--color-text-default);
+  font-variant-numeric: tabular-nums;
+}
 :host .image-hex-search {
   display: flex;
   flex: 0 0 auto;
@@ -2534,7 +2555,14 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--color-surface-default);
+  background-color: #30343b;
+}
+:host .image-hex-table th {
+  background-color: #30343b;
+}
+:host-context(html[data-theme='light']) .image-hex-table thead,
+:host-context(html[data-theme='light']) .image-hex-table th {
+  background-color: #e8eaed;
 }
 :host .image-hex-table th {
   height: 25px;
