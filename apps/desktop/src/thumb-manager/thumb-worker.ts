@@ -1236,8 +1236,8 @@ if (parentPort) {
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
           drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
-        drawText('Wavelength (nm)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.56),axisLabelScale,[235,235,235]);
-        drawVerticalText('Spectral value (uW/cm²/nm)',12,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
+        drawText(isFullSize ? 'Wavelength (nm)' : 'WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*(isFullSize ? .56 : .48)),axisLabelScale,[235,235,235]);
+        drawVerticalText(isFullSize ? 'Spectral value (uW/cm²/nm)' : 'SPECTRAL VALUE (MW/M2/NM)',isFullSize ? 12 : 3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
         if (isFullSize) {
           // The full-size derivative is an Ultra HDR JPEG. The wavelength band
