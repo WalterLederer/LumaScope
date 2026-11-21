@@ -115,6 +115,8 @@
               [style.--detail-font-size.px]="detailFontSize()"
               [nameFilter]="nameFilter()"
               [nameFilterActive]="nameFilterActive()"
+              (sortByChanged)="sortByChanged.emit($event)"
+              (sortDirChanged)="sortDirChanged.emit($event)"
               (nameFilterChanged)="updateNameFilter($event)"
               (nameFilterActiveChanged)="nameFilterActive.set($event)"
               [detailFontSize]="detailFontSize()"
