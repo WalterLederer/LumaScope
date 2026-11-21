@@ -240,6 +240,9 @@
       } @else {
         <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
       }
+      @if (gpxListMode() === 'recent' && gpxTracks().length === 0 && !gpxError()) {
+        <span class="gpx-hover-info" role="status">No GPX tracks are currently loaded. Add GPX files or wait for map initialization to finish.</span>
+      }
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
       @if (gpxDatabaseQueryStatus()) { <span class="gpx-hover-info gpx-database-query-status">{{ gpxDatabaseQueryStatus() }}</span> }
       @if (gpxHoverInfo()) { <span class="gpx-hover-info">{{ gpxHoverInfo() }}</span> }
