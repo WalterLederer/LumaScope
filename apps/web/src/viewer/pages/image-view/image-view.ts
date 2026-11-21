@@ -2527,6 +2527,39 @@ export class ImageView {
       }
     });
 
+    effect(onCleanup => {
+      const viewport = this.hexScrollViewport()?.nativeElement;
+      const fontSize = this.hexFontSize();
+      const rowCount = this.hexRows().length;
+      const firstVisibleOffset = this.hexVisibleRows()[0]?.offset ?? -1;
+      if (!viewport) return;
+
+      const updateGeometry = (): void => {
+        const nextRowHeight = this.getHexRowHeight(viewport);
+        const nextHeaderHeight = this.getHexHeaderHeight(viewport);
+        const oldRowHeight = Math.max(1, this.hexMeasuredRowHeight());
+        const oldHeaderHeight = this.hexHeaderHeight();
+        if (Math.abs(nextRowHeight - oldRowHeight) > 0.1 || Math.abs(nextHeaderHeight - oldHeaderHeight) > 0.1) {
+          const logicalRow = Math.max(0, (viewport.scrollTop - oldHeaderHeight) / oldRowHeight);
+          this.setHexViewportScrollTop(viewport, nextHeaderHeight + logicalRow * nextRowHeight);
+        }
+        this.hexMeasuredRowHeight.set(nextRowHeight);
+        this.hexHeaderHeight.set(nextHeaderHeight);
+        this.hexViewportScrollTop.set(viewport.scrollTop);
+        this.hexViewportHeight.set(viewport.clientHeight);
+      };
+
+      updateGeometry();
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(updateGeometry);
+      observer.observe(viewport);
+      const table = viewport.querySelector('table');
+      if (table) observer.observe(table);
+      const firstRow = viewport.querySelector('tbody tr.hex-data-row');
+      if (firstRow) observer.observe(firstRow);
+      onCleanup(() => observer.disconnect());
+    });
+
     effect(() => {
       const tab = this.activeImageSidebarTab();
       const container = this.locationMapElement()?.nativeElement ?? null;
