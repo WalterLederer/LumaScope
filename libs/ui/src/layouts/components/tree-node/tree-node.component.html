@@ -43,7 +43,7 @@
 
 
 @if (inlineActions() || (currentMenu !== null && currentNode.hideMenu !== true)) {
-  <span class="tree-row-actions-column" [hidden]="actionsColumnPosition() !== 'right'">
+  <span class="tree-row-actions-column tree-row-actions-column-right" [hidden]="actionsColumnPosition() !== 'right'">
     <span class="tree-row-number" aria-hidden="true">{{ rowNumber() ?? '' }}</span>
     @if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
       <button type="button"
