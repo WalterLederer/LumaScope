@@ -93,7 +93,8 @@ const runCaptureProbe = async (
     monitorIndex,
     colorFormat: requestedColorFormat as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
     cursorCapture,
-    // Do not pass drawBorder on systems that do not advertise border-setting support.
+    // Keep the border disabled where supported, but omit the option on older Windows builds.
+    ...(apiSupport.borderSettings ? { drawBorder: false } : {}),
     // Likewise, omit the minimum-update option unless the API explicitly supports it.
     ...(apiSupport.minimumUpdateInterval ? { minimumUpdateIntervalMs: 0 } : {})
   });
