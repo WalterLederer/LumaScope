@@ -300,6 +300,7 @@ export class GalleryState {
       if (pages.length < requestedCount) totalCount = pages.length;
       this.galleryLoadedCount = pages.length;
       this.galleryTotalCount = totalCount;
+      this.totalFileCount.set(totalCount >= 0 ? totalCount : pages.length);
       this.images$.next(pages);
     } catch (error) {
       console.error('Failed to refresh database-backed gallery files', directory, error);
