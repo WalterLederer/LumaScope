@@ -133,6 +133,8 @@ export interface AppConfigV1System {
   comparisonSplit?: number;
   /** Expanded/collapsed sections in the gallery's general-settings sidebar. */
   gallerySidebarSections?: Record<string, boolean>;
+  /** Left/right position of the gallery detail-table and favorites-folder actions column. */
+  galleryDetailActionsColumnPosition?: 'left' | 'right';
   /** Expanded/collapsed sections in the image-view controls sidebar. */
   imageSidebarSections?: Record<string, boolean>;
   /** Reusable GPX track appearance presets shown in the Track Settings dialog. */
