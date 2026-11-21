@@ -148,6 +148,10 @@ export class ImageView {
 
   private readonly galleryState = inject(GalleryState);
   protected readonly gallerySelectedLocation = toSignal(this.galleryState.selectedLocation(), { initialValue: null });
+  private readonly galleryDiagnosticImages = toSignal(this.galleryState.images(), { initialValue: [] });
+  protected readonly galleryDiagnosticLoadedCount = computed(() => this.galleryDiagnosticImages().length);
+  protected readonly galleryDiagnosticTotalCount = this.galleryState.totalFileCount;
+  protected readonly galleryDiagnosticWindowStart = this.galleryState.galleryWindowStart;
 
   private readonly keyboard = inject(Keyboard);
 
