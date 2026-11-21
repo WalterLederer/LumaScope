@@ -116,36 +116,35 @@ export class ImageGridComponent {
     this.detailViewportHeight.set(viewport.clientHeight);
     this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
 
-    const detailMode = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
-    let targetIndex = 0;
-    if (detailMode) {
-      const row = viewport.querySelector<HTMLElement>('.detail-virtual-row');
-      const rowHeight = row?.getBoundingClientRect().height || 44;
-      targetIndex = Math.max(0, Math.floor(Math.max(0, viewport.scrollTop - (header?.getBoundingClientRect().height ?? 0)) / rowHeight));
-    } else {
-      this.updateThumbnailGridGeometry(viewport);
-      const rowHeight = this.thumbnailRowHeight();
-      const columns = this.thumbnailColumns();
-      if ((this.images() ?? []).length > 0) {
-        targetIndex = Math.max(0, Math.floor(viewport.scrollTop / Math.max(1, rowHeight)) * columns);
+    // Details and information tiles retain their complete incremental result
+    // set because their client-side sorting/grouping depends on it. The
+    // thumbnail-only view uses a fixed-size database window.
+    if (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails' || this.viewMode() === 'tiles') {
+      if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
+        this.galleryState.loadNextGalleryPage();
       }
+      return;
     }
 
+    this.updateThumbnailGridGeometry(viewport);
+    const rowHeight = this.thumbnailRowHeight();
+    const columns = this.thumbnailColumns();
+    const targetIndex = Math.max(0, Math.floor(viewport.scrollTop / Math.max(1, rowHeight)) * columns);
     const images = this.images() ?? [];
     const windowStart = this.galleryState.galleryWindowStart();
     const threshold = Math.max(100, Math.floor(images.length * 0.2));
     if (targetIndex < windowStart + threshold || targetIndex > windowStart + images.length - threshold) {
       const desiredStart = Math.max(0, targetIndex - Math.floor(images.length / 2));
-      const alignedStart = detailMode
-        ? desiredStart
-        : Math.floor(desiredStart / Math.max(1, this.thumbnailColumns())) * Math.max(1, this.thumbnailColumns());
+      const alignedStart = Math.floor(desiredStart / Math.max(1, columns)) * Math.max(1, columns);
       this.galleryState.loadGalleryWindow(alignedStart);
     }
   };
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
-    this.galleryState.loadGalleryWindow(0);
+    const folder = this.selectedLocation();
+    if (folder) this.galleryState.navigateTo(folder, false).subscribe();
+    else this.galleryState.loadGalleryWindow(0);
     const viewport = this.scrollBox()?.nativeElement;
     if (viewport) viewport.scrollTop = 0;
     this.detailScrollTop.set(0);
