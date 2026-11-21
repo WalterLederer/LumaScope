@@ -138,6 +138,16 @@
               </select>
             </label>
           </header>
+          <div class="image-hex-search" role="search" aria-label="Search HEX file">
+            <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
+              <option value="ascii">ASCII</option>
+              <option value="hex">Hex bytes</option>
+            </select>
+            <input type="text" [value]="hexSearchTerm()" (input)="onHexSearchTermChange($any($event.target).value)" (keydown.enter)="searchHexFile(1)" [placeholder]="hexSearchMode() === 'ascii' ? 'Search ASCII text…' : 'Search hex bytes…'" aria-label="Search text or hex bytes" />
+            <button type="button" (click)="searchHexFile(-1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find previous">↑</button>
+            <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
+          </div>
+          @if (hexSearchStatus()) { <div class="image-hex-search-status" role="status">{{hexSearchStatus()}}</div> }
           @if (hexTotalRows() > hexRowsPerPage) {
             <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexStartRow()" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
           }
