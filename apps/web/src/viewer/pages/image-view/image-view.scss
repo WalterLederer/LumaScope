@@ -2588,6 +2588,19 @@
   white-space: pre;
   border-bottom: 1px solid var(--color-border-subtle);
 }
+:host .image-hex-table tr.hex-virtual-spacer td {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  line-height: 0;
+  font-size: 0;
+  overflow: hidden;
+}
+:host .image-hex-table tr.hex-data-row td {
+  height: 22px;
+  line-height: 22px;
+}
 :host .image-hex-table .hex-offset { color: var(--color-text-secondary); }
 :host .image-hex-table .hex-bytes { width: 310px; min-width: 310px; color: var(--color-text-default); }
 :host .image-hex-table .hex-bytes-binary { width: 100%; min-width: 100%; }
