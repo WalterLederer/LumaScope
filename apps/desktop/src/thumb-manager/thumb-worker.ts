@@ -1199,8 +1199,39 @@ if (parentPort) {
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),axisLabelScale,[235,235,235]);
         drawVerticalText('SPECTRAL VALUE (MW/M2/NM)',3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
-        using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
-        image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
+        if (isFullSize) {
+          // The full-size derivative is an Ultra HDR JPEG. The wavelength band
+          // below the X axis uses linear scRGB values above reference white so
+          // the spectrum visibly emits light on an HDR-capable display.
+          const hdrPixels = new Float32Array(pixels.length);
+          for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
+          const axisY = Math.round(top + plotHeight);
+          const bandCenterY = axisY + 36;
+          const glowRadius = 16;
+          for (let x = 0; x < plotWidth; x++) {
+            const wavelength = startWavelength + x / Math.max(1, plotWidth - 1) * (endWavelength - startWavelength);
+            const color = spectrumColor(wavelength);
+            for (let y = bandCenterY - glowRadius; y <= bandCenterY + glowRadius; y++) {
+              if (y < 0 || y >= outputHeight) continue;
+              const distance = Math.abs(y - bandCenterY);
+              const halo = 0.85 * Math.exp(-0.5 * (distance / 7) ** 2);
+              const core = distance <= 3 ? 2.5 : 0;
+              const intensity = halo + core;
+              if (intensity < 0.015) continue;
+              const pixelOffset = (y * outputWidth + left + x) * 3;
+              hdrPixels[pixelOffset] = Math.min(4, hdrPixels[pixelOffset] + color[0] / 255 * intensity);
+              hdrPixels[pixelOffset + 1] = Math.min(4, hdrPixels[pixelOffset + 1] + color[1] / 255 * intensity);
+              hdrPixels[pixelOffset + 2] = Math.min(4, hdrPixels[pixelOffset + 2] + color[2] / 255 * intensity);
+            }
+          }
+          using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
+          using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
+          encodeScRgbAsUhdr(scrgb, target, 92);
+          isHdr = true;
+        } else {
+          using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
+          image.jpegsave(target, { Q: 82 });
+        }
       } else if (cameraRawExtensions.has(sourceExtension)) {
         processingStage = 'developing camera RAW with LibRaw';
         using cameraRawImage = await decodeCameraRawToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
