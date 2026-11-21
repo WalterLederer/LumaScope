@@ -503,3 +503,11 @@
   justify-content: center !important;
   margin: 0 auto !important;
 }
+
+
+/* A CDK menu is positioned by its overlay; do not override it with fixed
+   positioning on the menu panel itself. */
+:host(.view-details) > .detail-actions .detail-row-action-menu,
+:host(.view-details-no-thumbnails) > .detail-actions .detail-row-action-menu {
+  position: static !important;
+}
