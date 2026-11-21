@@ -216,51 +216,18 @@ export class ImagesComponent {
   readonly thumbnailColumns = input(1);
   readonly thumbnailRowHeight = input(160);
 
-  // Detail headers expose the current gallery sort initially, then own sorting after a header is clicked.
-  readonly detailSortColumn = signal<DetailSortColumn | null>(null);
-  readonly detailSortDirection = signal<'asc' | 'desc'>('asc');
-  readonly activeDetailSortColumn = computed<DetailSortColumn>(() => this.detailSortColumn() ?? this.sortBy());
-  readonly activeDetailSortDirection = computed<'asc' | 'desc'>(() =>
-    this.detailSortColumn() === null ? this.sortDirection() : this.detailSortDirection()
-  );
-  readonly sortedDetailImages = computed(() => {
-    const images = this.images() ?? [];
-    // GalleryState supplies the selected global sort directly from SQLite.
-    // Avoid sorting the complete 100k+ file list again unless a detail header
-    // has explicitly selected a different sort column.
-    if (this.detailSortColumn() === null) return images;
-    const column = this.activeDetailSortColumn();
-    const direction = this.activeDetailSortDirection() === 'asc' ? 1 : -1;
-    const valueFor = (image: FileInfo): string | number | null => {
-      const status = this.cacheStatuses().get(image.path);
-      switch (column) {
-        case 'name': return image.name;
-        case 'date': return typeof image.modifiedAt === 'number' && Number.isFinite(image.modifiedAt) ? image.modifiedAt : null;
-        case 'gpsDate': return typeof status?.gpsTimestamp === 'number' && Number.isFinite(status.gpsTimestamp) ? status.gpsTimestamp : null;
-        case 'size': return Number.isFinite(image.size) ? image.size : null;
-        case 'suffix': return this.getSuffix(image.name);
-        case 'gps': return status?.latitude != null && status.longitude != null ? status.latitude * 1000 + status.longitude : null;
-        case 'location': return this.locationDisplayNames().get(image.path) ?? null;
-        case 'path': return this.relativeDetailPath(image);
-      }
-    };
-    return images.sort((a, b) => {
-      const left = valueFor(a), right = valueFor(b);
-      if (left === null || right === null) return left === right ? 0 : left === null ? 1 : -1;
-      const comparison = typeof left === 'number' && typeof right === 'number'
-        ? left - right
-        : String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
-      return comparison * direction;
-    });
-  });
+  readonly activeDetailSortColumn = computed<DetailSortColumn>(() => this.sortBy() as DetailSortColumn);
+  readonly activeDetailSortDirection = computed<'asc' | 'desc'>(() => this.sortDirection());
+  readonly sortedDetailImages = computed(() => this.images() ?? []);
+  readonly sortByChanged = output<SortType>();
+  readonly sortDirChanged = output<'asc' | 'desc'>();
 
   protected readonly sortDetailBy = (column: DetailSortColumn): void => {
-    const currentColumn = this.activeDetailSortColumn();
-    const currentDirection = this.activeDetailSortDirection();
-    this.detailSortColumn.set(column);
-    this.detailSortDirection.set(currentColumn === column
-      ? currentDirection === 'asc' ? 'desc' : 'asc'
-      : 'asc');
+    const nextDirection = this.activeDetailSortColumn() === column
+      ? this.activeDetailSortDirection() === 'asc' ? 'desc' : 'asc'
+      : 'asc';
+    this.sortByChanged.emit(column as SortType);
+    this.sortDirChanged.emit(nextDirection);
   };
 
   protected readonly detailSortIndicator = (column: DetailSortColumn): string =>
