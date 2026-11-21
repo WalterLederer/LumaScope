@@ -725,7 +725,6 @@ export class ImageView {
   };
   protected readonly isHexReadableCharacter = (value: string, index: number): boolean =>
     /[A-Za-z0-9]/.test(value[index] ?? '') && /[A-Za-z0-9]{4,}/.test(value);
-  protected readonly hexFontSize = signal(this.readHexFontSize());
   private readonly readHexFontSize = (): number => {
     try {
       const stored = Number(this.document.defaultView?.localStorage.getItem('hexFontSize'));
@@ -734,6 +733,7 @@ export class ImageView {
       return 11;
     }
   };
+  protected readonly hexFontSize = signal(this.readHexFontSize());
   protected readonly setHexFontSize = (value: string): void => {
     const size = Math.max(9, Math.min(22, Math.round(Number(value) || 11)));
     this.hexFontSize.set(size);
