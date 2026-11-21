@@ -208,7 +208,7 @@ export class FileSystem {
           const bytesRead = (await file.read(buffer, 0, readLength, lowerBound)).bytesRead;
           const available = buffer.subarray(0, bytesRead);
           const index = available.lastIndexOf(pattern, upperBound - lowerBound);
-          if (index >= 0 && index >= 0) return { success: true, data: lowerBound + index };
+          if (index >= 0) return { success: true, data: lowerBound + index };
           upperBound = lowerBound - 1;
         }
       }
