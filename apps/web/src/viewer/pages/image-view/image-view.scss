@@ -2522,8 +2522,17 @@
   background: rgb(75 155 105 / 24%);
   color: var(--color-text-default);
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgb(75 155 105 / 18%);
 }
+:host .image-hex-table .hex-byte-cell,
+:host .image-hex-table .hex-ascii span,
+:host .image-hex-table .hex-unicode span { cursor: crosshair; }
+:host .image-hex-table .hex-cursor {
+  background: rgb(55 145 245 / 48%) !important;
+  color: #fff !important;
+  outline: 1px solid rgb(100 175 255 / 90%);
+  border-radius: 2px;
+}
+:host .image-hex-table-scroll:focus { outline: 1px solid var(--color-accent, #287fc1); outline-offset: -1px; }
 :host .image-hex-loading {
   position: absolute;
   right: 14px;
