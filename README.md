@@ -111,6 +111,7 @@ The Help tab in the application displays this README. The detailed reference tab
 - [GPX cache database](docs/gpx-cache.md) — folder import, duplicate detection, SQLite schema, timestamp and spatial indexes, and implementation boundaries.
 - [Supported image formats](docs/image-formats.md) — decoder, HDR support, bit depth and full-size cache behaviour.
 - [OHSP spectral measurement format](docs/ohsp-format.md) — confirmed OHSP-350SF binary layout, wavelength metadata and spectrum rendering.
+- [Dynamic image detail table](docs/image-detail-table.md) — database-backed metadata, virtualized rows and large-collection rendering.
 - [Supported map formats](docs/map-formats.md) — map source, online/offline availability and renderer.
 - [Offline resource package format](docs/resource-package-format.md) — exact folder layout, file discovery rules, downloads and data creation for OfflineFiles.
 - [Key shortcuts](docs/shortcuts.md) — local and global keyboard shortcuts.
