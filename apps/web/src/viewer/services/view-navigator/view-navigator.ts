@@ -26,7 +26,9 @@ export class ViewNavigator {
     this.galleryState.selectedLocation(),
     this.galleryState.sortMode(),
     this.galleryState.includeUnsupportedFiles(),
-    this.galleryState.includeFilesRecursive()
+    this.galleryState.includeFilesRecursive(),
+    this.galleryState.images(),
+    this.totalFileCount$
   ]).pipe(
     switchMap(([path]) => path === null
       ? of(-1)
