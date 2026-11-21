@@ -2453,6 +2453,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+:host .image-hex-format-control {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  white-space: nowrap;
+}
+:host .image-hex-format-control select {
+  max-width: 92px;
+  padding: 3px 5px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 3px;
+  background: var(--color-surface-default);
+  color: var(--color-text-default);
+  font: 11px Arial, sans-serif;
+}
 :host .image-hex-file-info span,
 :host .image-hex-row-count {
   color: var(--color-text-secondary);
@@ -2516,6 +2534,8 @@
 }
 :host .image-hex-table .hex-offset { color: var(--color-text-secondary); }
 :host .image-hex-table .hex-bytes { width: 310px; min-width: 310px; color: var(--color-text-default); }
+:host .image-hex-table .hex-bytes-binary { width: 100%; min-width: 100%; }
+:host .image-hex-table .hex-bytes-binary .hex-byte-cell { min-width: 68px; }
 :host .image-hex-table .hex-ascii { min-width: 135px; }
 :host .image-hex-table .hex-unicode { min-width: 95px; }
 :host .image-hex-table .hex-readable-string {
