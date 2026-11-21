@@ -146,6 +146,7 @@ const api: Desktop = {
     },
     getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles),
     reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => ipcRenderer.invoke('CacheManager.reconcilePhotoRecords', directory, sourceNames, recursive),
+    reconcilePhotoRecordsFromDisk: (directory: string, recursive?: boolean) => ipcRenderer.invoke('CacheManager.reconcilePhotoRecordsFromDisk', directory, recursive),
     selectDatabaseForDirectory: (directory: string) => ipcRenderer.invoke('CacheManager.selectDatabaseForDirectory', directory),
     getDirectoryPhotoLocations: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory, recursive),
     getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => ipcRenderer.invoke('CacheManager.getPhotoLocationsInBounds', bounds, databaseKey),
