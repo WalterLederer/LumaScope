@@ -129,6 +129,12 @@ export class GalleryPage {
   /* State */
   readonly selectedLocation$ = this.galleryState.selectedLocation();
 
+  readonly canNavigateBack = this.galleryState.canNavigateBack;
+  readonly canNavigateForward = this.galleryState.canNavigateForward;
+
+  protected readonly navigateBack = (): void => this.galleryState.navigateBack();
+  protected readonly navigateForward = (): void => this.galleryState.navigateForward();
+
   readonly autoSortFavorites$ = this.galleryLocations.autoSortFavorites();
 
   readonly galleryRoot$ = combineLatest([
