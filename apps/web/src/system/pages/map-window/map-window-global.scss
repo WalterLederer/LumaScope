@@ -1033,3 +1033,37 @@ app-map-window {
 .offline-column-resizable th{position:relative;overflow:visible}
 .offline-column-resizable .offline-column-resizer{position:absolute;top:0;right:-4px;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}
 .offline-column-resizable .offline-column-resizer:hover{background:color-mix(in srgb,#2688e8 45%,transparent)}
+
+/* Action columns are fixed at the first or last table position; hidden cells
+   must not retain layout space when the opposite position is active. */
+.download-source-table col[hidden],
+.download-source-table th[hidden],
+.download-source-table td[hidden],
+.offline-catalogue-table col[hidden],
+.offline-catalogue-table th[hidden],
+.offline-catalogue-table td[hidden],
+.offline-files-resizable-table col[hidden],
+.offline-files-resizable-table th[hidden],
+.offline-files-resizable-table td[hidden] {
+  display: none !important;
+}
+.offline-actions-column-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.offline-actions-column-toggle:hover {
+  background: var(--color-surface-default-high, #454b55);
+}
