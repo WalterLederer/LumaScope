@@ -1775,3 +1775,37 @@
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
   top: 54px !important;
 }
+
+/* Final header-edge cleanup: the header must end at the last visible column,
+   without a second/outer vertical rule beyond it. */
+.detail-native-table > thead,
+.detail-native-table > thead > tr,
+.detail-native-table > thead > tr > th,
+.detail-native-table > thead > tr > th:last-child,
+.detail-native-table > thead > tr > th.detail-path-heading,
+.detail-native-table > thead > tr > th.detail-actions-heading {
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-path-heading,
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]),
+.detail-native-table > thead > tr.detail-header-statistics > th:last-child {
+  border-right: 0 !important;
+}
+
+/* The right-hand actions column uses exactly the same 44px track as the
+   left-hand actions column. Constrain the column, header and body cells. */
+.detail-native-table.actions-column-right > colgroup > col:last-child {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
+.detail-native-table.actions-column-right > thead > tr > th.detail-actions-heading,
+.detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  box-sizing: border-box !important;
+}
