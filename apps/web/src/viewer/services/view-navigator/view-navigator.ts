@@ -41,12 +41,14 @@ export class ViewNavigator {
 
   private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
     this.selectedPath$,
-    this.selectedIndex$,
     this.cacheRevision$
   ]).pipe(
-    switchMap(([path, index, cacheRevision]) => {
-      if (path === null || index < 0) return of(null);
-      return from(this.galleryState.getGalleryFileAtPosition(index + 1)).pipe(
+    switchMap(([path, cacheRevision]) => {
+      if (path === null) return of(null);
+      return from(this.galleryState.getGalleryFilePosition(path)).pipe(
+        switchMap(position => position > 0
+          ? from(this.galleryState.getGalleryFileAtPosition(position))
+          : of(null)),
         map(image => image ? {
           path: image.path,
           url: imageUrl(image.path, cacheRevision),
