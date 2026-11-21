@@ -139,7 +139,7 @@
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
           }
           @if (hexFilePath() && hexTotalRows() > 0) {
-            <div #hexScrollViewport class="image-hex-table-scroll" (scroll)="onHexScroll($event)">
+            <div #hexScrollViewport class="image-hex-table-scroll" tabindex="0" (keydown)="onHexKeyDown($event)" (scroll)="onHexScroll($event)" aria-label="HEX data. Use arrow keys to move the byte cursor.">
               <table class="image-hex-table">
                 <thead>
                   <tr><th>Offset</th><th>Hex bytes</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
@@ -148,10 +148,10 @@
                   @for (row of hexRows(); track row.offset) {
                     <tr>
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
-                      <td class="hex-bytes">{{row.hex}}</td>
-                      <td class="hex-ascii">@for (part of hexStringSegments(row.ascii, true); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
-                      <td class="hex-unicode">@for (part of hexStringSegments(row.utf16); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
-                      <td class="hex-unicode">@for (part of hexStringSegments(row.utf16Shifted); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
+                      <td class="hex-bytes">@for (byteIndex of hexByteIndices; track byteIndex) {<span class="hex-byte-cell" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{row.hex.slice(byteIndex * 3, byteIndex * 3 + 2) || '  '}}</span> }</td>
+                      <td class="hex-ascii">@for (byteIndex of hexByteIndices; track byteIndex) {<span [class.hex-readable-string]="/[A-Za-z0-9]/.test(row.ascii[byteIndex] ?? '') && /[A-Za-z0-9]{4,}/.test(row.ascii)" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{row.ascii[byteIndex] || ' '}}</span>}</td>
+                      <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 0) {<span [class.hex-readable-string]="/[A-Za-z0-9]{4,}/.test(row.utf16) && /[A-Za-z0-9]/.test(row.utf16[Math.floor(byteIndex / 2)] ?? '')" [class.hex-cursor]="hexCursorUtfIndex(row.offset) === byteIndex / 2" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16[Math.floor(byteIndex / 2)] || ' '}}</span>}}</td>
+                      <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 1) {<span [class.hex-readable-string]="/[A-Za-z0-9]{4,}/.test(row.utf16Shifted) && /[A-Za-z0-9]/.test(row.utf16Shifted[Math.floor((byteIndex - 1) / 2)] ?? '')" [class.hex-cursor]="hexCursorUtfIndex(row.offset, true) === Math.floor((byteIndex - 1) / 2)" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16Shifted[Math.floor((byteIndex - 1) / 2)] || ' '}}</span>}}</td>
                     </tr>
                   }
                 </tbody>
