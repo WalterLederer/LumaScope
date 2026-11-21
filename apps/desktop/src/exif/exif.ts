@@ -34,10 +34,19 @@ export class Exif {
       const cacheManager = injector.inject('CacheManager');
       const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
       const gps = await this.readPhotoMetadata(path, true);
+      const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
       const databaseMatchesFile = !!existingRecord
         && (existingRecord.latitude ?? null) === gps.latitude
         && (existingRecord.longitude ?? null) === gps.longitude
-        && Number(existingRecord.gps_manually_corrected ?? 0) === (gps.gpsManuallyCorrected ? 1 : 0);
+        && (existingRecord.altitude_m ?? null) === (hasCoordinates ? gps.altitudeM : null)
+        && (existingRecord.direction_deg ?? null) === (hasCoordinates ? gps.directionDeg : null)
+        && (existingRecord.coordinate_source_id ?? null) === (hasCoordinates ? gps.coordinateSourceId : null)
+        && Number(existingRecord.gps_manually_corrected ?? 0) === (gps.gpsManuallyCorrected && hasCoordinates ? 1 : 0)
+        && (hasCoordinates || (
+          existingRecord.location_name_id == null
+          && existingRecord.location_lookup_error == null
+          && existingRecord.location_lookup_attempted_at == null
+        ));
       if (!databaseMatchesFile) {
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       }
@@ -248,14 +257,11 @@ export class Exif {
         try {
           const metadata = await this.readPhotoMetadata(path);
           if (!checkOnly) {
-            // Add every inspected source image to its drive's cache database.
-            // If the file already contains GPS coordinates, synchronize those too;
-            // keep existing database-only coordinates when the file has no GPS tags.
+            // The image file is the authoritative GPS source. Always synchronize
+            // the database so removed file coordinates clear stale GPS metadata.
             await cacheManager.registerPhotoFile(path);
-            if (metadata.latitude !== null && metadata.longitude !== null) {
-              const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
-              await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, metadata);
-            }
+            const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
+            await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, metadata);
           }
           // Prefer camera-generated filename timestamps over filesystem dates:
           // Android/ADB copies can replace Created/Modified times with copy time.
