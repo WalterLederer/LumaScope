@@ -750,7 +750,8 @@ export class ImagesComponent {
     // tracks; the COL is the authoritative width that this resizer changes.
     const columnElement = table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col').item(cell.cellIndex);
     if (!columnElement) return;
-    const startWidth = columnElement.getBoundingClientRect().width;
+    const measuredColumnWidth = columnElement.getBoundingClientRect().width;
+    const startWidth = measuredColumnWidth > 0 ? measuredColumnWidth : cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === -1 ? 44 : columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
