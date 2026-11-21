@@ -398,9 +398,10 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  height: 24px !important;
   margin: 2px auto 0;
   padding: 0;
   border: 1px solid var(--color-border-default, #888);
@@ -992,9 +993,8 @@
 .detail-native-table {
   position: relative;
   z-index: 0;
-  border-radius: 10px;
-  /* Keep overflow visible: the gallery wrapper is the scrollport, while row
-     and folder action menus must be able to escape the table's rounded surface. */
+  border-radius: 0 !important;
+  /* Keep overflow visible so row and folder action menus can escape the table. */
   overflow: visible;
   background: var(--color-surface-default-low, #fff);
   /* The surrounding scrollport owns the visible elevation; a shadow on this
@@ -1010,14 +1010,12 @@
   background: transparent !important;
 }
 
-.detail-native-table > thead > tr.detail-header-labels > th:first-child {
-  border-top-left-radius: 10px;
-  background-clip: padding-box;
-}
-
-.detail-native-table > thead > tr.detail-header-labels > th:last-child {
-  border-top-right-radius: 10px;
-  background-clip: padding-box;
+.detail-native-table > thead > tr.detail-header-labels > th:first-child,
+.detail-native-table > thead > tr.detail-header-labels > th:last-child,
+.detail-native-table > tbody.images.details-list > tr:last-child > td:first-child,
+.detail-native-table > tbody.images.details-list > tr:last-child > td:last-child {
+  border-radius: 0 !important;
+  background-clip: border-box;
 }
 
 /* Keep the final row opaque so the table surface shows through the rounded
@@ -1032,16 +1030,11 @@
   background-color: var(--detail-even-row-color, #f5f5f5) !important;
 }
 
-.detail-native-table > tbody.images.details-list > tr:last-child > td:first-child {
-  border-bottom-left-radius: 10px;
-  background-clip: padding-box;
-  overflow: hidden;
-}
-
+.detail-native-table > tbody.images.details-list > tr:last-child > td:first-child,
 .detail-native-table > tbody.images.details-list > tr:last-child > td:last-child {
-  border-bottom-right-radius: 10px;
-  background-clip: padding-box;
-  overflow: hidden;
+  border-radius: 0 !important;
+  background-clip: border-box;
+  overflow: visible;
 }
 
 
@@ -1061,9 +1054,9 @@
 }
 
 .folder-actions-heading {
-  width: var(--detail-actions-width, 56px) !important;
-  min-width: var(--detail-actions-width, 56px) !important;
-  max-width: var(--detail-actions-width, 56px) !important;
+  width: var(--detail-actions-width, 44px) !important;
+  min-width: var(--detail-actions-width, 44px) !important;
+  max-width: var(--detail-actions-width, 44px) !important;
   height: 92px !important;
   min-height: 92px !important;
   max-height: 92px !important;
