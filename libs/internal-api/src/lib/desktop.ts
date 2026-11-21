@@ -54,6 +54,7 @@ export interface DesktopFileSystem {
   readonly openDocumentationFile: (fileName: string) => Promise<string>;
   readonly readDocumentationImage: (fileName: string) => Promise<ApiResponse<string>>;
   readonly writeText: (path: string, content: string) => Promise<ApiResponse<undefined>>;
+  readonly exportHex: (sourcePath: string) => Promise<ApiResponse<undefined>>;
   readonly readJson: <T>(path: string) => Promise<ApiResponse<T>>;
   readonly writeJson: <T>(path: string, data: T) => Promise<ApiResponse<undefined>>;
   /**
