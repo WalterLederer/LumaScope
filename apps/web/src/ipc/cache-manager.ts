@@ -121,6 +121,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly getGalleryFilesPage = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc', offset = 0, limit = 250) =>
     window.desktop.CacheManager.getGalleryFilesPage(directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit);
 
+  readonly getGalleryFileAtPosition = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc', position = 1): Promise<FileInfo | null> =>
+    window.desktop.CacheManager.getGalleryFileAtPosition(directory, recursive, includeUnsupported, sortBy, sortDir, position);
+
   readonly getGalleryUnsupportedSummary = (directory: string, recursive = false) =>
     window.desktop.CacheManager.getGalleryUnsupportedSummary(directory, recursive);
 
