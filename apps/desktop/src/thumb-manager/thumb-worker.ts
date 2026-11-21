@@ -2048,43 +2048,17 @@ if (parentPort) {
         }
         processingStage = 'generating thumbnail with libvips';
 
-        if (isHdr && hasUltraHdrGainMap(vips, source)) {
-          // Preserve the source JPEG's Ultra HDR gain map in the thumbnail.
-          // A normal thumbnail() + writeToFile() round-trip keeps only its SDR
-          // base image, which makes HDR photos look SDR in the gallery.
-          using sourceImage = vips.Image.newFromFile(source, { access: 'random' });
-          using hdrImage = sourceImage.uhdr2scRGB();
-          const scale = width > 0 && height > 0
-            ? (preserveAspectRatio
-              ? Math.min(width / hdrImage.width, height / hdrImage.height)
-              : Math.max(width / hdrImage.width, height / hdrImage.height) + 0.0001)
-            : 1;
-          using resized = Math.abs(scale - 1) > 0.0001
-            ? hdrImage.resize(scale, { kernel: vips.Kernel.linear })
-            : hdrImage.copy();
-          using output = width > 0 && height > 0 && !preserveAspectRatio
-            ? resized.extractArea(
-              Math.max(0, Math.floor((resized.width - width) / 2)),
-              Math.max(0, Math.floor((resized.height - height) / 2)),
-              Math.min(width, resized.width),
-              Math.min(height, resized.height)
-            )
-            : resized.copy();
-          using rgb = output.bands >= 3 ? output.extractBand(0, { n: 3 }) : output;
-          using scrgb = rgb.copy({ interpretation: vips.Interpretation.scrgb });
-          encodeScRgbAsUhdr(scrgb, target, 88);
-        } else {
-          using thumb = vips.Image.thumbnail(
-            source,
-            width,
-            {
-              height,
-              size: 2,
-              crop: preserveAspectRatio ? 0 : 1
-            }
-          );
-          thumb.writeToFile(target, { Q: 80 });
-        }
+        using thumb = vips.Image.thumbnail(
+          source,
+          width,
+          {
+            height,
+            size: 2,
+            crop: preserveAspectRatio ? 0 : 1
+          }
+        );
+
+        thumb.writeToFile(target, { Q: 80 });
 
         if (cancelledRequests.has(id)) {
           cancelRequest(id);
