@@ -498,6 +498,7 @@ export class ImageGridComponent {
   constructor() {
     effect(() => {
       this.images();
+      this.thumbSize();
       const viewport = this.scrollBox()?.nativeElement;
       if (viewport && this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') {
         this.updateThumbnailGridGeometry(viewport);
