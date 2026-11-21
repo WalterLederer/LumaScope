@@ -10,6 +10,7 @@
                     [menu]="menuRef"
                     [inlineActions]="inlineActions()"
                     [reorderActions]="reorderActions()"
+                    [actionsColumnPosition]="actionsColumnPosition()"
                     (pressed)="nodeSelected($event)"
                     (action)="action.emit($event)"
                     (move)="move.emit($event)"
