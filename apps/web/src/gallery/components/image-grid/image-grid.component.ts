@@ -220,6 +220,8 @@ export class ImageGridComponent {
 
   private readonly cacheManager = inject(CacheManager);
   private readonly galleryState = inject(GalleryState);
+  readonly galleryWindowStart = this.galleryState.galleryWindowStart;
+  readonly totalFileCount = this.galleryState.totalFileCount;
   readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
   readonly galleryLoading = toSignal(this.galleryState.galleryLoading(), { initialValue: false });
   readonly includeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
