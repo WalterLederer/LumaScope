@@ -224,10 +224,7 @@ export class ImagesComponent {
     this.detailSortColumn() === null ? this.sortDirection() : this.detailSortDirection()
   );
   readonly sortedDetailImages = computed(() => {
-    const filter = this.nameFilterActive() ? this.nameFilter().trim().toLocaleLowerCase() : '';
-    const images = (this.images() ?? []).filter(image =>
-      !filter || image.name.toLocaleLowerCase().includes(filter)
-    );
+    const images = this.images() ?? [];
     // GalleryState supplies the selected global sort directly from SQLite.
     // Avoid sorting the complete 100k+ file list again unless a detail header
     // has explicitly selected a different sort column.
