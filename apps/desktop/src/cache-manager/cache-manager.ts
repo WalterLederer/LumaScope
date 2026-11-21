@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { appendFile, copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, opendir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { DatabaseSync, SQLOutputValue } from 'node:sqlite';
 import { promisify } from 'node:util';
@@ -1420,6 +1420,117 @@ export class CacheManager {
       }
       return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null, verification };
     }));
+  };
+
+  @IpcHandler({ name: 'CacheManager.scanGalleryDirectory' })
+  readonly scanGalleryDirectory = async (
+    _event: IpcMainInvokeEvent,
+    directory: string
+  ): Promise<{ files: number; directories: string[] }> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const root = resolve(directory);
+    const db = this.databaseForPath(root);
+    const databaseKey = this.databaseKeyForPath(root);
+    const relativeFolder = this.toRelativeFolderPath(root, databaseKey) ?? '';
+    db.prepare('INSERT OR IGNORE INTO paths (relative_folder_path) VALUES (:folder)').run({ folder: relativeFolder });
+    const pathRow = db.prepare('SELECT id FROM paths WHERE relative_folder_path = :folder COLLATE NOCASE')
+      .get({ folder: relativeFolder }) as { id: number };
+    db.exec('CREATE TEMP TABLE IF NOT EXISTS lumascope_seen_gallery_files (file_name TEXT PRIMARY KEY COLLATE NOCASE);');
+    db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
+    const markSeen = db.prepare('INSERT OR IGNORE INTO temp.lumascope_seen_gallery_files (file_name) VALUES (:file)');
+    const upsertFile = db.prepare(`INSERT INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
+      VALUES (:pathId, :file, :size, :modified, 0)
+      ON CONFLICT(path_id, file_name) DO UPDATE SET
+        is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
+        thumbnail_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_id END,
+        thumbnail_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_version END,
+        fullsize_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_id END,
+        fullsize_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_version END,
+        latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
+        longitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.longitude END,
+        altitude_m = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.altitude_m END,
+        gps_timestamp = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_timestamp END,
+        direction_deg = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.direction_deg END,
+        location_name_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.location_name_id END,
+        coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
+        gps_manually_corrected = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.gps_manually_corrected END,
+        gps_manual_corrected_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_manual_corrected_at END,
+        file_name = excluded.file_name,
+        file_size = excluded.file_size,
+        modified_at = excluded.modified_at`);
+    const deleteStale = db.prepare(`DELETE FROM photos
+      WHERE path_id = :pathId
+        AND file_name NOT IN (SELECT file_name FROM temp.lumascope_seen_gallery_files)`);
+    const directories: string[] = [];
+    let files = 0;
+    let scanComplete = true;
+    let batch: Array<{ name: string; size: number; modifiedAt: number }> = [];
+    const flushBatch = (): void => {
+      if (batch.length === 0) return;
+      db.exec('BEGIN IMMEDIATE;');
+      try {
+        for (const file of batch) {
+          markSeen.run({ file: file.name });
+          upsertFile.run({
+            pathId: pathRow.id,
+            file: file.name,
+            size: Math.max(0, Math.trunc(file.size)),
+            modified: Number.isFinite(file.modifiedAt) ? file.modifiedAt : 0
+          });
+        }
+        db.exec('COMMIT;');
+      } catch (error) {
+        try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
+        throw error;
+      }
+      batch = [];
+    };
+
+    const handle = await opendir(root);
+    try {
+      for await (const entry of handle) {
+        const entryPath = join(root, entry.name);
+        let metadata;
+        try {
+          metadata = await stat(entryPath);
+        } catch {
+          scanComplete = false;
+          continue;
+        }
+        if (metadata.isDirectory()) {
+          if (!['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) directories.push(entryPath);
+          continue;
+        }
+        if (!metadata.isFile()) continue;
+        batch.push({ name: entry.name, size: metadata.size, modifiedAt: metadata.mtimeMs });
+        files++;
+        if (batch.length >= 500) {
+          flushBatch();
+          await new Promise<void>(resolveYield => setImmediate(resolveYield));
+        }
+      }
+      flushBatch();
+    } catch (error) {
+      scanComplete = false;
+      throw error;
+    } finally {
+      await handle.close().catch(() => undefined);
+    }
+
+    if (scanComplete) {
+      db.exec('BEGIN IMMEDIATE;');
+      try {
+        deleteStale.run({ pathId: pathRow.id });
+        db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
+        db.exec('COMMIT;');
+      } catch (error) {
+        try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
+        throw error;
+      }
+    }
+    db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
+    this.notifyGalleryFilesChanged(root);
+    return { files, directories };
   };
 
   @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
