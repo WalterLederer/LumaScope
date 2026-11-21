@@ -994,7 +994,7 @@ export class ImagesComponent {
     try {
       const result = await this.forEachDisplayedGalleryBatch(async (batch, offset, total, resetLog) => {
         await this.runCacheForImages(batch, true, controller.signal, {
-          resetLog, progressOffset: offset, progressTotal: total
+          resetLog, progressOffset: offset, progressTotal: total, suppressRefresh: true
         });
       }, controller.signal);
       if (result.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to cache.');
@@ -1049,7 +1049,7 @@ export class ImagesComponent {
         await this.cacheManager.appendBuildLog('Existing cache entries removed; rebuilding thumbnails and full-size conversions.');
         await this.forEachDisplayedGalleryBatch(async (batch, offset, count) => {
           await this.runCacheForImages(batch, true, controller.signal, {
-            resetLog: false, progressOffset: count + offset, progressTotal: count * 2
+            resetLog: false, progressOffset: count + offset, progressTotal: count * 2, suppressRefresh: true
           });
         }, controller.signal, total, 2);
       }
@@ -1216,7 +1216,7 @@ export class ImagesComponent {
     images: FileInfo[],
     alreadyActive = false,
     signal?: AbortSignal,
-    batchOptions?: { resetLog?: boolean; progressOffset?: number; progressTotal?: number }
+    batchOptions?: { resetLog?: boolean; progressOffset?: number; progressTotal?: number; suppressRefresh?: boolean }
   ): Promise<void> => {
     if (images.length === 0) {
       this.cacheRunCurrentOperation.set('No images found to cache.');
@@ -1384,8 +1384,10 @@ export class ImagesComponent {
         if (this.cacheAbortController?.signal === signal) this.cacheAbortController = null;
         this.cacheRunActive.set(false);
       }
-      this.manualRefresh.update(value => value + 1);
-      this.cacheUpdated.emit('');
+      if (!batchOptions?.suppressRefresh) {
+        this.manualRefresh.update(value => value + 1);
+        this.cacheUpdated.emit('');
+      }
     }
   };
 
