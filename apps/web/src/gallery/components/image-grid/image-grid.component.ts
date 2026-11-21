@@ -209,45 +209,74 @@ export class ImageGridComponent {
 
   private cacheStatsRequest = 0;
   private cachePathUpdateRevision = 0;
+  private cacheStatsFolder: string | null = null;
+  private cacheStatsVerifyFiles: boolean | null = null;
+  private cacheStatsPaths = new Set<string>();
+  private cacheStatsGps = 0;
+  private cacheStatsHdr = 0;
+  private cacheStatsLocation = 0;
+  private lastCacheRevision: number | null = null;
   private readonly thumbnailCachePaths = new Set<string>();
   private readonly fullSizeCachePaths = new Set<string>();
 
+  private readonly resetDirectoryCacheStats = (): void => {
+    this.cacheStatsRequest++;
+    this.cacheStatsPaths.clear();
+    this.thumbnailCachePaths.clear();
+    this.fullSizeCachePaths.clear();
+    this.cacheStatsGps = 0;
+    this.cacheStatsHdr = 0;
+    this.cacheStatsLocation = 0;
+  };
+
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
     const images = this.images() ?? [];
+    const folder = this.selectedLocation();
+    const verifyCacheFiles = this.verifyCacheFiles();
     const request = ++this.cacheStatsRequest;
     const pathUpdateRevision = this.cachePathUpdateRevision;
+    const currentPaths = new Set(images.map(image => image.path));
+
+    // A folder change, verification-mode change, or removal of previously
+    // counted files invalidates the accumulated snapshot. Appending another
+    // gallery page does not: only its not-yet-queried paths are requested.
+    const mustReset = this.cacheStatsFolder !== folder
+      || this.cacheStatsVerifyFiles !== verifyCacheFiles
+      || [...this.cacheStatsPaths].some(path => !currentPaths.has(path));
+    if (mustReset) this.resetDirectoryCacheStats();
+    this.cacheStatsFolder = folder;
+    this.cacheStatsVerifyFiles = verifyCacheFiles;
+
     if (images.length === 0) {
-      this.thumbnailCachePaths.clear();
-      this.fullSizeCachePaths.clear();
+      this.resetDirectoryCacheStats();
       this.cacheStats.set({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
       return;
     }
+
+    const newImages = images.filter(image => !this.cacheStatsPaths.has(image.path));
+    if (newImages.length === 0) {
+      this.cacheStats.update(current => ({ ...current, total: images.length }));
+      return;
+    }
+
     try {
-      // The database statistics endpoint is scoped to one parent folder and
-      // accepts bounded batches. Group recursive results by parent and query
-      // in chunks so large folders never exceed the IPC/SQLite request limit.
-      this.thumbnailCachePaths.clear();
-      this.fullSizeCachePaths.clear();
       const filesByParent = new Map<string, string[]>();
-      for (const image of images) {
-        const parent = image.parent;
-        const paths = filesByParent.get(parent) ?? [];
+      for (const image of newImages) {
+        const paths = filesByParent.get(image.parent) ?? [];
         paths.push(image.path);
-        filesByParent.set(parent, paths);
+        filesByParent.set(image.parent, paths);
       }
-      let gps = 0;
-      let hdr = 0;
-      let location = 0;
-      for (const [parent, paths] of filesByParent.entries()) {
+
+      for (const paths of filesByParent.values()) {
         for (let offset = 0; offset < paths.length; offset += 500) {
           const batch = paths.slice(offset, offset + 500);
           console.info('[GalleryDB] WAIT cache stats', {
             batch: Math.floor(offset / 500) + 1,
             batchSize: batch.length,
-            verifyCacheFiles: this.verifyCacheFiles()
+            verifyCacheFiles
           });
           const statsStartedAt = Date.now();
-          const stats = await this.cacheManager.getDirectoryCacheStats(batch, this.verifyCacheFiles());
+          const stats = await this.cacheManager.getDirectoryCacheStats(batch, verifyCacheFiles);
           console.info('[GalleryDB] DONE cache stats', {
             batchSize: batch.length,
             thumbnails: stats.thumbnails,
@@ -259,9 +288,10 @@ export class ImageGridComponent {
             void this.refreshDirectoryCacheStats();
             return;
           }
-          gps += stats.gps;
-          hdr += stats.hdr;
-          location += stats.location;
+          batch.forEach(path => this.cacheStatsPaths.add(path));
+          this.cacheStatsGps += stats.gps;
+          this.cacheStatsHdr += stats.hdr;
+          this.cacheStatsLocation += stats.location;
           stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
           stats.fullSizePaths.forEach(path => this.fullSizeCachePaths.add(path));
         }
@@ -275,9 +305,9 @@ export class ImageGridComponent {
         total: images.length,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
-        gps,
-        hdr,
-        location,
+        gps: this.cacheStatsGps,
+        hdr: this.cacheStatsHdr,
+        location: this.cacheStatsLocation,
         thumbnailPaths: [],
         fullSizePaths: []
       });
@@ -288,13 +318,16 @@ export class ImageGridComponent {
 
   readonly onCacheUpdated = (sourceName: string): void => {
     if (!sourceName) {
+      this.cachePathUpdateRevision++;
+      this.resetDirectoryCacheStats();
       void this.refreshDirectoryCacheStats();
       return;
     }
-    if (!(this.images() ?? []).some(image => image.path === sourceName)) return;
-    // Re-read the complete visible folder just like the thumbnail counter:
-    // this keeps HDR, GPS and location totals in sync as metadata is written.
+    if (!this.cacheStatsPaths.has(sourceName)) return;
+    // A metadata/cache write invalidates the affected aggregate. Rebuild once
+    // after the write; ordinary virtual-scroll updates remain incremental.
     this.cachePathUpdateRevision++;
+    this.resetDirectoryCacheStats();
     void this.refreshDirectoryCacheStats();
   };
 
@@ -466,9 +499,14 @@ export class ImageGridComponent {
     });
 
     effect(() => {
+      const revision = this.cacheManager.cacheRevision();
+      if (this.lastCacheRevision !== null && revision !== this.lastCacheRevision) {
+        this.resetDirectoryCacheStats();
+      }
+      this.lastCacheRevision = revision;
       this.images();
       this.selectedLocation();
-      this.cacheManager.cacheRevision();
+      this.verifyCacheFiles();
       void this.refreshDirectoryCacheStats();
     });
 
