@@ -44,7 +44,7 @@ export interface AppConfigV1Gallery {
   locations: string[];
   thumbWidth?: number;
   thumbHeight?: number;
-  sortBy?: 'date' | 'name' | 'size';
+  sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
   sortDir?: 'asc' | 'desc';
 }
 
