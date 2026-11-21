@@ -703,8 +703,9 @@ export class ImageView {
   protected readonly hexLoading = signal(false);
   protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
   private hexRequestId = 0;
-  private hexProgrammaticScrollTop: number | null = null;
   protected readonly hexRowsPerPage = 256;
+  protected readonly hexVirtualTopHeight = computed(() => this.hexStartRow() * 22);
+  protected readonly hexVirtualBottomHeight = computed(() => Math.max(0, this.hexTotalRows() - this.hexStartRow() - this.hexRows().length) * 22);
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
   protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
@@ -847,13 +848,15 @@ export class ImageView {
     return byteIndex >= 0 && byteIndex < 16 ? Math.floor(byteIndex / 2) : -1;
   };
   private readonly setHexViewportScrollTop = (viewport: HTMLElement, value: number): void => {
-    const target = Math.max(0, value);
-    this.hexProgrammaticScrollTop = target;
-    viewport.scrollTop = target;
+    viewport.scrollTop = Math.max(0, value);
   };
   private readonly getHexRowHeight = (viewport: HTMLElement): number => {
-    const measured = viewport.querySelector('tbody tr')?.getBoundingClientRect().height ?? 0;
+    const measured = viewport.querySelector('tbody tr.hex-data-row')?.getBoundingClientRect().height ?? 0;
     return Number.isFinite(measured) && measured > 0 ? measured : 22;
+  };
+  private readonly getHexHeaderHeight = (viewport: HTMLElement): number => {
+    const measured = viewport.querySelector('thead tr')?.getBoundingClientRect().height ?? 0;
+    return Number.isFinite(measured) && measured > 0 ? measured : 25;
   };
   protected readonly setHexCursor = (offset: number): void => {
     const bounded = Math.max(0, Math.min(Math.max(0, this.hexFileSize() - 1), Math.floor(offset)));
@@ -869,7 +872,7 @@ export class ImageView {
     }
     if (viewport) {
       const rowHeight = this.getHexRowHeight(viewport);
-      const rowTop = (row - start) * rowHeight;
+      const rowTop = this.getHexHeaderHeight(viewport) + row * rowHeight;
       if (rowTop < viewport.scrollTop) this.setHexViewportScrollTop(viewport, rowTop);
       else if (rowTop + rowHeight > viewport.scrollTop + viewport.clientHeight) {
         this.setHexViewportScrollTop(viewport, rowTop + rowHeight - viewport.clientHeight);
@@ -892,7 +895,7 @@ export class ImageView {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return value.toFixed(1) + ' ' + units[unit];
   };
-  protected readonly loadHexRange = async (startRow = 0, scrollAdjustment = 0): Promise<void> => {
+  protected readonly loadHexRange = async (startRow = 0, preserveScrollPosition = false): Promise<void> => {
     const path = this.hexFilePath();
     if (!path) {
       this.hexRows.set([]);
@@ -913,14 +916,13 @@ export class ImageView {
       this.hexFileSize.set(result.data.fileSize);
       this.hexRows.set(result.data.rows);
       this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
-      // Restore the viewport only after Angular has rendered the replacement rows.
-      // Applying scrollTop before the DOM update lets the old scrollHeight clamp
-      // the value and can make the virtual window jump backwards.
-      if (viewport && scrollAdjustment) {
-        const targetScrollTop = Math.max(0, previousScrollTop + scrollAdjustment);
+      // The virtual spacer rows preserve the file's full scroll geometry. A range
+      // loaded by scrolling therefore keeps the exact physical scroll position.
+      // Explicit jumps (initial load, slider, cursor) move to the new range start.
+      if (viewport && !preserveScrollPosition) {
         requestAnimationFrame(() => {
           if (request === this.hexRequestId && viewport.isConnected) {
-            this.setHexViewportScrollTop(viewport, targetScrollTop);
+            this.setHexViewportScrollTop(viewport, this.getHexHeaderHeight(viewport) + boundedStart * this.getHexRowHeight(viewport));
           }
         });
       }
@@ -935,29 +937,32 @@ export class ImageView {
   protected readonly hexScrollViewport = viewChild<ElementRef<HTMLElement>>('hexScrollViewport');
   protected readonly onHexScroll = (event: Event): void => {
     const element = event.currentTarget as HTMLElement | null;
-    if (!element) return;
-    if (this.hexProgrammaticScrollTop !== null) {
-      const expected = this.hexProgrammaticScrollTop;
-      this.hexProgrammaticScrollTop = null;
-      if (Math.abs(element.scrollTop - expected) <= 1) return;
-    }
-    if (this.hexLoading()) return;
+    if (!element || this.hexLoading()) return;
     const start = this.hexStartRow();
     const total = this.hexTotalRows();
     const rows = this.hexRows().length;
-    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 48 && start + rows < total) {
-      const nextStart = Math.min(this.hexMaxStartRow(), start + Math.floor(this.hexRowsPerPage / 2));
-      if (nextStart > start) void this.loadHexRange(nextStart, -(nextStart - start) * this.getHexRowHeight(element));
-    } else if (element.scrollTop <= 24 && start > 0) {
-      const nextStart = Math.max(0, start - Math.floor(this.hexRowsPerPage / 2));
-      if (nextStart < start) void this.loadHexRange(nextStart, (start - nextStart) * this.getHexRowHeight(element));
+    if (!total || !rows) return;
+
+    const rowHeight = this.getHexRowHeight(element);
+    const headerHeight = this.getHexHeaderHeight(element);
+    const firstVisibleRow = Math.max(0, Math.floor((element.scrollTop - headerHeight) / rowHeight));
+    const lastVisibleRow = Math.min(total, Math.ceil((element.scrollTop + element.clientHeight - headerHeight) / rowHeight));
+    const loadedEnd = start + rows;
+    const overlap = 64;
+
+    // Keep a 64-row overlap around the viewport. This also handles dragging the
+    // scrollbar directly to a distant position instead of loading page by page.
+    if (firstVisibleRow < start + overlap && start > 0) {
+      const nextStart = Math.max(0, firstVisibleRow - overlap);
+      if (nextStart < start) void this.loadHexRange(nextStart, true);
+    } else if (lastVisibleRow > loadedEnd - overlap && loadedEnd < total) {
+      const nextStart = Math.min(this.hexMaxStartRow(), Math.max(start + 1, lastVisibleRow - this.hexRowsPerPage + overlap));
+      if (nextStart > start) void this.loadHexRange(nextStart, true);
     }
   };
   protected readonly onHexPositionChange = (event: Event): void => {
     const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
     if (!Number.isFinite(value)) return;
-    const viewport = this.hexScrollViewport()?.nativeElement;
-    if (viewport) this.setHexViewportScrollTop(viewport, 0);
     void this.loadHexRange(value);
   };
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
