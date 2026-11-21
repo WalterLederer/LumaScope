@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  HostListener,
   effect,
   ElementRef,
   inject,
@@ -12,6 +11,7 @@ import {
   signal
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import { CaptionComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { CacheImageStatus, ExifTags, FileInfo, thumbnailDimensions, formatGpsCoordinates, formatOsDateTime as formatSystemDateTime } from 'internal-api';
 import { ExifService } from '../../../ipc/exif';
@@ -28,8 +28,11 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 @Component({
   selector: 'app-thumbnail, tr[app-thumbnail]',
   imports: [
-    CaptionComponent ,
-    ButtonTooltipDirective
+    CaptionComponent,
+    ButtonTooltipDirective,
+    CdkMenu,
+    CdkMenuItem,
+    CdkMenuTrigger
   ],
   templateUrl: './thumbnail.component.html',
   styleUrl: './thumbnail.component.scss',
@@ -39,7 +42,6 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
     '[class.view-tiles]': "viewMode() === 'tiles'",
     '[class.view-details]': "viewMode() === 'details'",
     '[class.view-details-no-thumbnails]': "viewMode() === 'details-no-thumbnails'",
-    '[class.row-action-menu-open]': 'rowActionMenuOpen()',
     '(mouseenter)': 'hovered.emit(image())',
     '(mouseleave)': 'hovered.emit(null)',
     '(click)': 'rowSelected.emit(image())'
@@ -47,7 +49,6 @@ import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 })
 export class ThumbnailComponent implements OnDestroy {
   private static startupConstructionCount = 0;
-  private static activeRowActionMenu: ThumbnailComponent | null = null;
 
   /* DI */
   private readonly devicePixelRatioService = inject(DevicePixelRatioService);
@@ -63,10 +64,6 @@ export class ThumbnailComponent implements OnDestroy {
   private readonly processManager = inject(ProcessManager);
 
   private readonly imageFileActions = inject(ImageFileActions);
-
-  readonly rowActionMenuOpen = signal(false);
-
-  readonly rowActionMenuPosition = signal({ top: 8, left: 8 });
 
   /* Inputs/outputs */
   readonly image = input.required<FileInfo>();
@@ -125,51 +122,18 @@ export class ThumbnailComponent implements OnDestroy {
 
   readonly reCacheFolderRequested = output<void>();
 
-  private closeRowActionMenu = (): void => {
-    this.rowActionMenuOpen.set(false);
-    if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
-  };
-
   readonly requestCacheFolder = (): void => {
-    this.closeRowActionMenu();
     this.cacheFolderRequested.emit();
   };
 
   readonly requestReCacheFile = (): void => {
     const image = this.image();
-    this.closeRowActionMenu();
     this.reCacheFileRequested.emit(image);
   };
 
   readonly requestReCacheFolder = (): void => {
     this.closeRowActionMenu();
     this.reCacheFolderRequested.emit();
-  };
-
-  readonly toggleRowActionMenu = (event: MouseEvent): void => {
-    event.stopPropagation();
-    if (this.rowActionMenuOpen()) {
-      this.rowActionMenuOpen.set(false);
-      if (ThumbnailComponent.activeRowActionMenu === this) ThumbnailComponent.activeRowActionMenu = null;
-      return;
-    }
-    if (ThumbnailComponent.activeRowActionMenu && ThumbnailComponent.activeRowActionMenu !== this) {
-      ThumbnailComponent.activeRowActionMenu.rowActionMenuOpen.set(false);
-    }
-    ThumbnailComponent.activeRowActionMenu = this;
-    const pointer = { top: event.clientY, left: event.clientX };
-    this.rowActionMenuPosition.set(pointer);
-    this.rowActionMenuOpen.set(true);
-    requestAnimationFrame(() => {
-      if (!this.rowActionMenuOpen()) return;
-      const menu = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>('.detail-row-action-menu');
-      if (!menu) return;
-      const rect = menu.getBoundingClientRect();
-      this.rowActionMenuPosition.set({
-        top: Math.max(8, Math.min(pointer.top, window.innerHeight - rect.height - 8)),
-        left: Math.max(8, Math.min(pointer.left, window.innerWidth - rect.width - 8))
-      });
-    });
   };
 
   readonly copyImagePath = async (): Promise<void> => {
@@ -199,16 +163,6 @@ export class ThumbnailComponent implements OnDestroy {
     const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
     if (deleted === false) window.alert('The image could not be deleted.');
   };
-
-  @HostListener('document:click')
-  protected closeRowActionMenuOnDocumentClick(): void {
-    this.closeRowActionMenu();
-  }
-
-  @HostListener('document:keydown.escape')
-  protected closeRowActionMenuOnEscape(): void {
-    this.closeRowActionMenu();
-  }
 
   /* State */
   private readonly pixelRatio = toSignal(
