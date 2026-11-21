@@ -204,7 +204,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const isTiff = [ '.tif', '.tiff' ].includes(extension);
-      const tag = extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
+      const tag = extension === '.ohsp' ? 'ohsp-full-spectrum-v3' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
       const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
       if (signal?.aborted) {
