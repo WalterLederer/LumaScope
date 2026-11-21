@@ -74,6 +74,8 @@ export class CacheManager {
   private readonly userData = app.getPath('userData');
   private readonly legacyCacheDir = join(this.userData, 'image-cache');
   private readonly databases = new Map<string, DatabaseSync>();
+  // Counts are stable for a gallery query until its folder is changed; avoid a COUNT(*) scan for every virtual page request.
+  private readonly galleryCountCache = new Map<string, number>();
   private activeDatabaseKey: string | null = null;
   private readonly pendingEntries = new Map<string, Promise<string | null>>();
   private readonly pendingLocationLookups = new Map<string, Promise<string | null>>();
@@ -119,6 +121,8 @@ export class CacheManager {
   };
 
   private readonly notifyGalleryFilesChanged = (directory: string): void => {
+    // Gallery mutations can affect recursive parent queries as well as this folder.
+    this.galleryCountCache.clear();
     this.broadcastCacheEvent('CacheManager.galleryFilesChanged', directory);
   };
 
@@ -1614,11 +1618,15 @@ export class CacheManager {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
     const where = scope + supportedFilter;
-    // Return the complete result count with every page so the renderer can
-    // virtualize the entire database result without loading all FileInfo rows.
+    // Counts are independent of sorting and are reused across page requests.
+    const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0'].join('|');
     const countStartedAt = Date.now();
-    const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
-    const totalCount = Number(totalCountRow.totalCount) || 0;
+    let totalCount = this.galleryCountCache.get(countCacheKey);
+    if (totalCount === undefined) {
+      const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
+      totalCount = Number(totalCountRow.totalCount) || 0;
+      this.galleryCountCache.set(countCacheKey, totalCount);
+    }
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
