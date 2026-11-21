@@ -2404,17 +2404,6 @@
   box-shadow: none !important;
   outline-color: #9a9a9a !important;
 }
-:host .image-controls-sidebar .mode-row button.mode-button.active,
-:host .image-controls-sidebar .mode-row button.mode-button.active:hover,
-:host .image-controls-sidebar .mode-row button.mode-button.active:focus,
-:host .image-controls-sidebar .mode-row button.mode-button.active:focus-visible {
-  background: #d6d6d6 !important;
-  background-color: #d6d6d6 !important;
-  background-image: none !important;
-  color: #202124 !important;
-  border-color: #a8a8a8 !important;
-  box-shadow: inset 0 0 0 1px #b5b5b5 !important;
-}
 :host .image-controls-sidebar .mode-row button.mode-button:disabled {
   opacity: 1;
   cursor: not-allowed;
