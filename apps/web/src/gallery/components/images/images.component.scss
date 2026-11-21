@@ -1653,3 +1653,73 @@
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
   margin-top: 3px !important;
 }
+
+
+/* Detail-table resize handles are real buttons, matching the other data tables.
+   Their hit area is centered exactly on the owning column's right boundary. */
+.detail-native-table .column-resizer {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: -6px !important;
+  bottom: 0 !important;
+  z-index: 70 !important;
+  display: block !important;
+  width: 12px !important;
+  min-width: 12px !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  cursor: col-resize !important;
+  touch-action: none !important;
+}
+.detail-native-table .column-resizer:hover,
+.detail-native-table .column-resizer:focus-visible {
+  background: color-mix(in srgb, var(--color-accent-default, #2688e8) 22%, transparent) !important;
+  outline: none;
+}
+/* The movable actions track is always compact, regardless of which side hosts it. */
+.detail-native-table.actions-column-right {
+  --detail-grid-columns:
+    max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
+    var(--detail-col-1-width, 210px)
+    var(--detail-col-2-width, 150px)
+    var(--detail-col-3-width, 150px)
+    var(--detail-col-4-width, 130px)
+    var(--detail-col-5-width, 100px)
+    var(--detail-col-6-width, 75px)
+    var(--detail-col-7-width, 75px)
+    var(--detail-col-8-width, 75px)
+    var(--detail-col-9-width, 150px)
+    var(--detail-col-10-width, 150px)
+    var(--detail-col-11-width, 240px)
+    var(--detail-col-12-width, 220px)
+    var(--detail-actions-width, 44px);
+}
+.detail-native-table.actions-column-right > thead > tr.detail-header-labels > th.detail-actions-heading,
+.detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  box-sizing: border-box !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .column-resizer {
+  right: -6px !important;
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-actions .detail-row-menu-trigger {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  transform: none !important;
+}
+.detail-native-table .detail-row-action-menu {
+  position: static !important;
+}
