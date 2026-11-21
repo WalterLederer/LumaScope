@@ -261,6 +261,7 @@ export class ImageGridComponent {
 
   private readonly resetDirectoryCacheStats = (): void => {
     this.cacheStatsRequest++;
+    this.cacheStatsScanActive = false;
     this.cacheStatsScanComplete = false;
     this.cacheStatsThumbnails = 0;
     this.cacheStatsFullSize = 0;
