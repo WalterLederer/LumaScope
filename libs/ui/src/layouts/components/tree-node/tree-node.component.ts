@@ -34,6 +34,7 @@ export class TreeNodeComponent<T> {
 
   readonly inlineActions = input(false);
   readonly reorderActions = input(false);
+  readonly actionsColumnPosition = input<'left' | 'right'>('left');
 
   readonly pressed = output<TreeNode<T>>();
 
