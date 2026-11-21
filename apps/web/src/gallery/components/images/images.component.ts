@@ -465,13 +465,35 @@ export class ImagesComponent {
       renderedTotal - this.windowStart() - this.detailVirtualStart() - this.visibleDetailImages().length
     ) * this.detailVirtualRowHeight();
   });
-  readonly thumbnailVirtualTopSpacer = computed(() =>
-    Math.floor(this.windowStart() / Math.max(1, this.thumbnailColumns())) * this.thumbnailRowHeight()
-  );
+  private readonly thumbnailVirtualOverscanRows = 2;
+  readonly thumbnailVirtualStart = computed(() => {
+    const columns = Math.max(1, this.thumbnailColumns());
+    const rowHeight = Math.max(1, this.thumbnailRowHeight());
+    const firstVisibleRow = Math.max(0, Math.floor(this.detailScrollTop() / rowHeight));
+    const firstRenderedRow = Math.max(0, firstVisibleRow - this.thumbnailVirtualOverscanRows);
+    const globalStart = firstRenderedRow * columns;
+    return Math.min(
+      Math.max(0, globalStart - this.windowStart()),
+      Math.max(0, (this.images()?.length ?? 0) - 1)
+    );
+  });
+  readonly visibleThumbnailImages = computed(() => {
+    const images = this.images() ?? [];
+    const columns = Math.max(1, this.thumbnailColumns());
+    const rowsInViewport = Math.ceil(Math.max(200, this.detailViewportHeight()) / Math.max(1, this.thumbnailRowHeight()));
+    const count = (rowsInViewport + this.thumbnailVirtualOverscanRows * 2 + 1) * columns;
+    const start = this.thumbnailVirtualStart();
+    return images.slice(start, start + count);
+  });
+  readonly thumbnailVirtualTopSpacer = computed(() => {
+    const columns = Math.max(1, this.thumbnailColumns());
+    const globalStart = this.windowStart() + this.thumbnailVirtualStart();
+    return Math.floor(globalStart / columns) * this.thumbnailRowHeight();
+  });
   readonly thumbnailVirtualBottomSpacer = computed(() => {
     const columns = Math.max(1, this.thumbnailColumns());
     const totalRows = Math.ceil(this.totalFileCount() / columns);
-    const renderedEndRow = Math.ceil((this.windowStart() + (this.images()?.length ?? 0)) / columns);
+    const renderedEndRow = Math.ceil((this.windowStart() + this.thumbnailVirtualStart() + this.visibleThumbnailImages().length) / columns);
     return Math.max(0, totalRows - renderedEndRow) * this.thumbnailRowHeight();
   });
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
