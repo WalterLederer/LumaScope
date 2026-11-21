@@ -804,7 +804,7 @@ export const supportedFileFormats = [
   {
     name: 'OHSP Spectral Measurement',
     extensions: [ 'ohsp' ],
-    hdr: false,
+    hdr: true,
     fullSizeCache: true,
     bitDepth: '601 IEEE-754 32-bit floating-point spectral samples',
     details: 'OHSP-350SF spectral measurements; wavelength range is read from the file metadata and rendered as a wavelength-coloured spectrum chart.'
