@@ -60,7 +60,7 @@ export interface AppConfigV1Gallery {
   autoSortFavorites?: boolean;
   thumbWidth?: number;
   thumbHeight?: number;
-  sortBy?: 'date' | 'gpsDate' | 'name' | 'path' | 'size';
+  sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
   sortDir?: 'asc' | 'desc';
   selectedLocation?: string;
 }
