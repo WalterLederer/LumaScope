@@ -29,11 +29,13 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'tiff-full-hdr-v6': 17,
   'dng-full-raw-v2': 19,
   'camera-raw-full-v1': 20,
-  'ohsp-full-spectrum-v1': 21
+  'ohsp-full-spectrum-v2': 22
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
-const getThumbnailCacheVersion = (sourceName: string): number =>
-  extname(sourceName).toLowerCase() === '.dng' ? DNG_THUMBNAIL_CACHE_VERSION : THUMBNAIL_CACHE_VERSION;
+const getThumbnailCacheVersion = (sourceName: string): number => {
+  const extension = extname(sourceName).toLowerCase();
+  return extension === '.dng' || extension === '.ohsp' ? DNG_THUMBNAIL_CACHE_VERSION : THUMBNAIL_CACHE_VERSION;
+};
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ]);
 
 export interface CacheSummary {
@@ -1365,7 +1367,7 @@ export class CacheManager {
       // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
-      const expectedFullSizeTag = (extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : `${['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`);
+      const expectedFullSizeTag = (extension === '.ohsp' ? 'ohsp-full-spectrum-v2' : `${['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`);
       const metadata = metadataByPath.get(sourceName);
       const sourceMatches = !metadata || (!!row && row.file_size === metadata.size && row.modified_at === metadata.modifiedAt);
       const getStatus = (kind: 'thumbnail' | 'fullsize') => {
@@ -1708,7 +1710,7 @@ export class CacheManager {
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
         && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
-      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v2' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
       if (!verifyCacheFiles) {
