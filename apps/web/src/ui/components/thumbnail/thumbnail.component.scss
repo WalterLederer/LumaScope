@@ -42,7 +42,6 @@
   cursor: pointer;
   position: relative;
   opacity: 1;
-  transition: opacity 250ms ease-in-out;
 
   img {
     display: block;
@@ -62,13 +61,6 @@
     box-shadow: inset 0 0 16px 4px rgba(255, 255, 240, 0);
   }
 
-  &:hover {
-    opacity: 0.7;
-
-    &::after {
-      box-shadow: inset 0 0 16px 4px rgba(255, 255, 240, 0.3);
-    }
-  }
 }
 
 :host(.view-tiles) {
