@@ -2530,7 +2530,7 @@ export class ImageView {
     effect(onCleanup => {
       const viewport = this.hexScrollViewport()?.nativeElement;
       this.hexFontSize();
-      this.hexRows().length;
+      void this.hexRows().length;
       if (!viewport) return;
 
       const updateGeometry = (): void => {
