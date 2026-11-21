@@ -541,8 +541,13 @@ export class ImagesComponent {
   };
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
-  readonly detailActionsColumnPosition = signal<'left' | 'right'>('left');
-  protected readonly toggleDetailActionsColumnPosition = (): void => this.detailActionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
+  readonly detailActionsColumnPosition = computed<'left' | 'right'>(() =>
+    this.appConfig()?.system.galleryDetailActionsColumnPosition === 'right' ? 'right' : 'left'
+  );
+  protected readonly toggleDetailActionsColumnPosition = (): void => {
+    const nextPosition = this.detailActionsColumnPosition() === 'left' ? 'right' : 'left';
+    this.configuration.updateSystemConfig({ galleryDetailActionsColumnPosition: nextPosition });
+  };
 
   protected readonly relativeDetailPath = (image: FileInfo): string => {
     const root = (this.folderPath() ?? '').replace(/[\\/]+$/, '');
