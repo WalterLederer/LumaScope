@@ -1186,6 +1186,7 @@ if (parentPort) {
         }
         line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
         const textScale = Math.max(1,Math.floor(outputWidth/1200));
+        const axisLabelScale = textScale + 1;
         const headerScale = Math.max(2, Math.floor(outputWidth / 1200));
         const headerColor: [number, number, number] = [235, 239, 245];
         const peakLabelColor: [number, number, number] = [255, 205, 80];
@@ -1195,8 +1196,8 @@ if (parentPort) {
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
           drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
-        drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
-        drawVerticalText('SPECTRAL VALUE',3,Math.round(top + plotHeight / 2),textScale,[235,235,235]);
+        drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),axisLabelScale,[235,235,235]);
+        drawVerticalText('SPECTRAL VALUE',3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
         using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
         image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
