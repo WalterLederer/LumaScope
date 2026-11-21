@@ -124,6 +124,53 @@ export class FileSystem {
     return { success: false, errorMessage: 'Documentation image not found: ' + fileName };
   };
 
+  @IpcHandler({ name: 'FileSystem.readHexRange' })
+  readonly readHexRange = async (_: IpcMainInvokeEvent, sourcePath: string, startOffset: number, rowCount: number): Promise<ApiResponse<{ fileSize: number; rows: Array<{ offset: number; hex: string; ascii: string; utf16: string; utf16Shifted: string }> }>> => {
+    let file: Awaited<ReturnType<typeof open>> | undefined;
+    try {
+      if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Invalid file path.');
+      const offset = Number.isSafeInteger(startOffset) ? Math.max(0, Math.floor(startOffset / 16) * 16) : 0;
+      const count = Number.isSafeInteger(rowCount) ? Math.max(1, Math.min(512, rowCount)) : 256;
+      file = await open(sourcePath, 'r');
+      const info = await file.stat();
+      const totalRows = Math.max(0, Math.ceil(info.size / 16));
+      const actualRows = Math.max(0, Math.min(count, totalRows - offset / 16));
+      const buffer = Buffer.alloc(actualRows * 16 + (actualRows ? 1 : 0));
+      if (buffer.length) {
+        const { bytesRead } = await file.read(buffer, 0, buffer.length, offset);
+        if (bytesRead < buffer.length) buffer.fill(0, bytesRead);
+      }
+      const printable = (value: number): string =>
+        value >= 0x20 && value <= 0x7e ? String.fromCharCode(value) : '.';
+      const unicodeUnit = (low: number | undefined, high: number | undefined): string => {
+        if (low === undefined || high === undefined) return ' ';
+        const code = low | (high << 8);
+        return code < 0x20 || (code >= 0x7f && code <= 0x9f) || (code >= 0xd800 && code <= 0xdfff)
+          ? '·' : String.fromCharCode(code);
+      };
+      const rows = Array.from({ length: actualRows }, (_, rowIndex) => {
+        const rowOffset = offset + rowIndex * 16;
+        const rowStart = rowIndex * 16;
+        const byteCount = Math.min(16, info.size - rowOffset);
+        const values = Array.from({ length: byteCount }, (_, index) => buffer[rowStart + index]);
+        const hex = values.map(value => value.toString(16).padStart(2, '0').toUpperCase()).join(' ').padEnd(47, ' ');
+        const ascii = values.map(printable).join('').padEnd(16, ' ');
+        let utf16 = '';
+        let utf16Shifted = '';
+        for (let index = 0; index < 16; index += 2) {
+          utf16 += unicodeUnit(buffer[rowStart + index], buffer[rowStart + index + 1]);
+          utf16Shifted += unicodeUnit(buffer[rowStart + index + 1], buffer[rowStart + index + 2]);
+        }
+        return { offset: rowOffset, hex, ascii, utf16, utf16Shifted };
+      });
+      return { success: true, data: { fileSize: info.size, rows } };
+    } catch (error) {
+      return { success: false, errorMessage: 'Could not read HEX data: ' + (error instanceof Error ? error.message : String(error)) };
+    } finally {
+      await file?.close().catch(() => undefined);
+    }
+  };
+
   @IpcHandler({ name: 'FileSystem.exportHex' })
   readonly exportHex = async (event: IpcMainInvokeEvent, sourcePath: string): Promise<ApiResponse<undefined>> => {
     try {
