@@ -329,6 +329,7 @@ export class GalleryState {
   private readonly refreshLoadedGalleryPages = async (directory: string): Promise<void> => {
     const request = ++this.navigationRequest;
     this.galleryPageLoading = false;
+    this.pendingGalleryWindowOffset = null;
     const sort = this.sortMode$.value;
     const offset = this.galleryWindowStart();
     try {
