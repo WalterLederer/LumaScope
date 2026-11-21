@@ -1191,7 +1191,7 @@ if (parentPort) {
         const peakLabelColor: [number, number, number] = [255, 205, 80];
         if (isFullSize) {
           drawText(`MODEL ${instrument}${captureTimestamp ? `  ${captureTimestamp}` : ''}`, left, 8, headerScale, headerColor);
-          const formattedPeakValue = peakValue.toFixed(12).replace(/\.?0+$/, '');
+          const formattedPeakValue = peakValue.toFixed(6).replace(/\.?0+$/, '');
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
           drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
