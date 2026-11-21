@@ -710,6 +710,19 @@ export class ImageView {
     ? `Rows ${(this.hexStartRow() + 1).toLocaleString()}–${Math.min(this.hexTotalRows(), this.hexStartRow() + this.hexRows().length).toLocaleString()} of ${this.hexTotalRows().toLocaleString()}`
     : '');
   protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
+  protected readonly hexStringSegments = (value: string, ascii = false): Array<{ text: string; isString: boolean }> => {
+    const pattern = ascii ? /[\\x20-\\x7E]{4,}/g : /[^\\u0000-\\u001F\\u007F·]{4,}/gu;
+    const segments: Array<{ text: string; isString: boolean }> = [];
+    let position = 0;
+    for (const match of value.matchAll(pattern)) {
+      const index = match.index ?? 0;
+      if (index > position) segments.push({ text: value.slice(position, index), isString: false });
+      segments.push({ text: match[0], isString: true });
+      position = index + match[0].length;
+    }
+    if (position < value.length) segments.push({ text: value.slice(position), isString: false });
+    return segments.length ? segments : [{ text: value, isString: false }];
+  };
   protected readonly formatFileSize = (size: number): string => {
     if (size < 1024) return size + ' B';
     const units = ['KB', 'MB', 'GB', 'TB'];
