@@ -1674,6 +1674,54 @@ export class CacheManager {
     return { files, totalCount, offset: safeOffset, limit: safeLimit };
   };
 
+  @IpcHandler({ name: 'CacheManager.getGalleryFilePosition' })
+  readonly getGalleryFilePosition = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    sourcePath: string,
+    recursive = false,
+    includeUnsupported = false,
+    sortBy: SortType = 'name',
+    sortDir: SortDirection = 'asc'
+  ): Promise<number> => {
+    if (typeof directory !== 'string' || !directory.trim() || typeof sourcePath !== 'string' || !sourcePath.trim()) return 0;
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE (
+        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      )`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const parameters: Record<string, string | number> = {
+      folder, recursive: recursive ? 1 : 0, folderPrefix,
+      targetFolder: this.toRelativeFolderPath(dirname(sourcePath), databaseKey) ?? '',
+      targetName: basename(sourcePath).toLocaleLowerCase()
+    };
+    if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => {
+      parameters[`extension${index}`] = `%.${extension.toLowerCase()}`;
+    });
+    const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
+    const orderBy = sortBy === 'path'
+      ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
+      : sortBy === 'gpsDate'
+        ? `photos.gps_timestamp IS NULL ASC, photos.gps_timestamp ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+        : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
+    const row = db.prepare(`SELECT position FROM (
+        SELECT photos.file_name, paths.relative_folder_path,
+          ROW_NUMBER() OVER (ORDER BY ${orderBy}) AS position
+        ${scope}${supportedFilter}
+      )
+      WHERE lower(file_name) = :targetName
+        AND lower(replace(rtrim(relative_folder_path, char(92) || '/'), '/', char(92))) =
+            lower(replace(rtrim(:targetFolder, char(92) || '/'), '/', char(92)))
+      LIMIT 1`).get(parameters) as { position?: number } | undefined;
+    return Number(row?.position) || 0;
+  };
+
   @IpcHandler({ name: 'CacheManager.getGalleryFileAtPosition' })
   readonly getGalleryFileAtPosition = async (
     event: IpcMainInvokeEvent,
