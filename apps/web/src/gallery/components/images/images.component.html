@@ -40,24 +40,23 @@
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()" [class.folder-actions-open]="folderActionsMenuOpen()">
           <th class="detail-actions-heading folder-actions-heading" scope="col" rowspan="2" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
-                    (click)="toggleFolderActionsMenu($event)"
-                    [attr.aria-expanded]="folderActionsMenuOpen()"
-                    aria-haspopup="menu" aria-label="Folder actions" title="Folder actions">☰</button>
+                    [cdkMenuTriggerFor]="folderActionsMenu"
+                    aria-label="Folder actions" title="Folder actions">☰</button>
             <span class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize actions column" (pointerdown)="startColumnResize($event, -1)"></span>
-            @if (folderActionsMenuOpen()) {
-              <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" role="menu" [style.top.px]="folderActionsMenuPosition().top" [style.left.px]="folderActionsMenuPosition().left" (click)="$event.stopPropagation()">
-                <button type="button" class="gallery-menu-item" role="menuitem" aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
+            <ng-template #folderActionsMenu>
+              <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" cdkMenu>
+                <button type="button" class="gallery-menu-item" cdkMenuItem aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="!folderPath()" (click)="requestCopyFolderPath()"><span aria-hidden="true">⧉</span> Copy path</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
-                <button type="button" class="gallery-menu-item" role="menuitem" [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="cacheFolderActionActive()" (click)="requestCacheDisplayedFiles()"><span aria-hidden="true">＋</span> Cache folder</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="cacheFolderActionActive()" (click)="requestReCacheDisplayedFiles()"><span aria-hidden="true">↻</span> Re-Cache folder</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
-                <button type="button" class="gallery-menu-item" role="menuitem" (click)="openDetailPreferences()"><span aria-hidden="true">⚙</span> Preferences</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem (click)="openDetailPreferences()"><span aria-hidden="true">⚙</span> Preferences</button>
               </div>
-            }
+            </ng-template>
           </th>
           <th class="thumb-column-heading" scope="col">
             <span>Thumb</span>
