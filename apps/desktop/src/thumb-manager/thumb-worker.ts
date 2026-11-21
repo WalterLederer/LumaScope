@@ -1172,7 +1172,8 @@ if (parentPort) {
         const peakLabelColor: [number, number, number] = [255, 205, 80];
         if (isFullSize) {
           drawText(`MODEL ${instrument}${captureTimestamp ? `  ${captureTimestamp}` : ''}`, left, 8, headerScale, headerColor);
-          drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${String(peakValue)} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
+          const formattedPeakValue = peakValue.toFixed(12).replace(/\.?0+$/, '');
+          drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
         }
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
         drawText('SPECTRAL VALUE',3,Math.round(outputHeight*.43),textScale,[235,235,235]);
