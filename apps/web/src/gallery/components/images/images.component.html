@@ -6,6 +6,8 @@
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <table class="detail-native-table" [class.actions-column-right]="detailActionsColumnPosition() === 'right'" aria-label="Image details"
       [style.--detail-col-0-delta.px]="detailColumnWidths()[0]"
+      [style.--detail-thumb-width.px]="detailThumbnailWidth()"
+      [style.--detail-thumb-height.px]="detailThumbnailHeight()"
       [style.--detail-col-1-width.px]="detailColumnWidths()[1]"
       [style.--detail-col-2-width.px]="detailColumnWidths()[2]"
       [style.--detail-col-3-width.px]="detailColumnWidths()[3]"
