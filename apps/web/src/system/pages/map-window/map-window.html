@@ -249,7 +249,7 @@
       <div class="gpx-database-table" aria-label="GPX tracks">
         <table class="gpx-database-native-table">
           <colgroup>
-            <col style="width:74px">
+            <col style="width:74px" [hidden]="actionsColumnPosition() !== 'left'">
             <col [style.width.px]="gpxDatabaseColumnWidths()['active']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['name']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['points']">
@@ -258,9 +258,10 @@
             <col [style.width.px]="gpxDatabaseColumnWidths()['size']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['path']">
             <col style="width:250px">
+            <col style="width:74px" [hidden]="actionsColumnPosition() !== 'right'">
           </colgroup>
           <thead>
-            <tr class="gpx-database-header"><th scope="col"><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'actions')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+            <tr class="gpx-database-header"><th scope="col" [hidden]="actionsColumnPosition() !== 'left'"><button type="button" class="actions-column-position-toggle" (click)="toggleActionsColumnPosition()" [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" title="Switch actions column position">⇄</button><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'actions')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('active')">Active <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('active') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('name')">File <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('name') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('points')">Points <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('points') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
@@ -269,12 +270,16 @@
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('size')">Size <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('size') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('path')">Path <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('path') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col">Track preview</th>
-              
+              <th scope="col" [hidden]="actionsColumnPosition() !== 'right'"><button type="button" class="actions-column-position-toggle" (click)="toggleActionsColumnPosition()" [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" title="Switch actions column position">⇄</button></th>
             </tr>
           </thead>
           <tbody class="gpx-database-file-list">
             @for (track of gpxDatabaseVisibleTracks(); track track.path) {
-              <tr class="gpx-file-row gpx-database-file-row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path"><td class="gpx-row-actions">
+              <tr class="gpx-file-row gpx-database-file-row" [class.gpx-hovered]="gpxHoveredTrackPath() === track.path" [class.gpx-missing]="track.missing || track.readError" [class.gpx-color-menu-open]="gpxTrackColorMenuOpen() === track.path"><td class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
+                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
+                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                </td>
+                <td class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'right'">
                   <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
                   <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
                 </td>
@@ -286,7 +291,10 @@
                 <td>{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</td>
                 <td class="gpx-file-name" [title]="gpxTrackDirectoryPath(track)">{{ gpxTrackDirectoryPath(track) }}</td>
                 <td class="gpx-track-preview-cell"><app-gpx-track-preview [track]="track" variant="list" /></td>
-                
+                <td class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'right'">
+                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
+                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
+                </td>
               </tr>
             }
           </tbody>
