@@ -36,7 +36,7 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The spectral curve uses all 601 sample values.
 - The area between the curve and the zero baseline is filled vertically.
 - The fill and curve colour are derived from the corresponding wavelength, using a wavelength-to-colour gradient.
-- The thumbnail is encoded as an Ultra HDR JPEG using linear scRGB pixels, just like the full-size chart.
+- The thumbnail and full-size chart are encoded as Ultra HDR JPEGs using linear scRGB pixels.
 - The full-size chart is encoded as an Ultra HDR JPEG using linear scRGB pixels.
 - The full-size chart identifies the measurement model and includes capture date/time only when valid values can be read from the header.
 - It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
@@ -47,8 +47,8 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The wavelength-coloured band below the X axis uses the same gradient as the spectrum fill, with a substantially brighter HDR core and broader light halo (scRGB peaks up to 12.0).
 - The PEAK annotation also receives a gold HDR halo and a near-white emissive core.
 - All glowing elements exceed reference white and are visibly emissive on HDR-capable displays; SDR displays tone-map them to the available range.
-- Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use an emissive wavelength-coloured gradient beneath the spectral curve. Full-size charts use a brighter saturated HDR gradient beneath the curve, with a stronger coloured curve and wavelength-band glow while keeping the white core restrained.
-- OHSP thumbnails use cache version 8 and the `ohsp-uhdr-v2` derivative tag. The worker reopens each generated thumbnail, verifies that an Ultra HDR gain map exists, decodes it back to scRGB, and checks that the decoded peak exceeds reference white. Previously cached thumbnails are regenerated. The full-size cache tag is `ohsp-full-spectrum-v9` (cache version 29).
+- Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use a strong emissive wavelength-coloured gradient beneath the spectral curve. Full-size charts use a brighter saturated HDR gradient beneath the curve, with a stronger coloured curve and wavelength-band glow while keeping the white core restrained. The full-size chart also contains a large, emissive LumaScope sun/lens mark rasterized directly into the generated image; it is not a viewer overlay.
+- OHSP thumbnails use cache version 9 and the `ohsp-uhdr-v3` derivative tag. The worker reopens each generated thumbnail, verifies that an Ultra HDR gain map exists, decodes it back to scRGB, and checks that the decoded peak exceeds 1.5× reference white. Previously cached thumbnails are regenerated. The full-size cache tag is `ohsp-full-spectrum-v10` (cache version 30).
 - 
 - The source `.ohsp` file is not modified.
 
