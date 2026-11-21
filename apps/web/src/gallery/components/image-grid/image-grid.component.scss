@@ -251,9 +251,8 @@ ui-toolbar {
     width: 100%;
     max-width: none;
     overflow-x: auto;
-    border-radius: 10px;
-    /* The scrollport clips the table at all four corners while retaining its
-       native horizontal scrollbar and sticky header. */
+    border-radius: 0;
+    /* Keep square corners so scrolling rows are never exposed through rounded edges. */
     background-color: var(--color-surface-default-low, #fff);
     /* The wrapper is the scrollport, so its shadow stays outside the clipped
        table content and remains visible on all four sides. */
