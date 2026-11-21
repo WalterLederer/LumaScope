@@ -152,6 +152,26 @@ export class GalleryState {
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
   readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
 
+  readonly getGalleryFilePosition = async (sourcePath: string): Promise<number> => {
+    const directory = this.selectedLocation$.value;
+    if (!directory) return 0;
+    const sort = this.sortMode$.value;
+    return this.cacheManager.getGalleryFilePosition(
+      directory, sourcePath, this.includeFilesRecursive$.value,
+      this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir
+    );
+  };
+
+  readonly getGalleryFileAtPosition = async (position: number): Promise<FileInfo | null> => {
+    const directory = this.selectedLocation$.value;
+    if (!directory || !Number.isFinite(position) || position < 1) return null;
+    const sort = this.sortMode$.value;
+    return this.cacheManager.getGalleryFileAtPosition(
+      directory, this.includeFilesRecursive$.value,
+      this.includeUnsupportedFiles$.value, sort.sortBy, sort.sortDir, position
+    );
+  };
+
   readonly setIncludeUnsupportedFiles = (value: boolean): void => {
     if (this.includeUnsupportedFiles$.value === value) return;
     this.includeUnsupportedFiles$.next(value);
@@ -320,6 +340,8 @@ export class GalleryState {
       console.error('Failed to remove deleted gallery file from the cache database', path, error);
     }
     this.images$.next(this.images$.value.filter(image => image.path !== path));
+    if (this.galleryTotalCount >= 0) this.galleryTotalCount = Math.max(0, this.galleryTotalCount - 1);
+    this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : Math.max(0, this.totalFileCount() - 1));
     return true;
   };
 
