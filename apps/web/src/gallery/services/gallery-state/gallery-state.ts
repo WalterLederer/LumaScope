@@ -291,7 +291,7 @@ export class GalleryState {
     const directory = this.selectedLocation$.value;
     if (!directory) return;
     const total = this.galleryTotalCount >= 0 ? this.galleryTotalCount : this.totalFileCount();
-    const maxOffset = Math.max(0, total - 1);
+    const maxOffset = Math.max(0, total - this.galleryWindowSize);
     const safeOffset = Number.isFinite(requestedOffset) ? Math.trunc(requestedOffset) : 0;
     const offset = Math.max(0, Math.min(maxOffset, safeOffset));
     if (this.galleryPageLoading) {
