@@ -149,9 +149,9 @@
                     <tr>
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
                       <td class="hex-bytes">{{row.hex}}</td>
-                      <td class="hex-ascii">{{row.ascii}}</td>
-                      <td class="hex-unicode">{{row.utf16}}</td>
-                      <td class="hex-unicode">{{row.utf16Shifted}}</td>
+                      <td class="hex-ascii">@for (part of hexStringSegments(row.ascii, true); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
+                      <td class="hex-unicode">@for (part of hexStringSegments(row.utf16); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
+                      <td class="hex-unicode">@for (part of hexStringSegments(row.utf16Shifted); track $index) {<span [class.hex-readable-string]="part.isString">{{part.text}}</span>}</td>
                     </tr>
                   }
                 </tbody>
