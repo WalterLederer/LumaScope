@@ -164,7 +164,7 @@ export class CacheManager {
       const databasePath = join(databaseDirectory, 'LumaScope.cache.sqlite');
       db = new DatabaseSync(databasePath);
       try {
-        db.function('reverse', (value: string) => [...String(value ?? '')].reverse().join(''));
+        db.function('reverse', (value: unknown) => [...String(value ?? '')].reverse().join(''));
         db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
         this.databases.set(key, db);
         this.init(db, key);
