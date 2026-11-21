@@ -2059,7 +2059,7 @@ if (parentPort) {
               ? Math.min(width / hdrImage.width, height / hdrImage.height)
               : Math.max(width / hdrImage.width, height / hdrImage.height) + 0.0001)
             : 1;
-          using resized = scale < 1
+          using resized = Math.abs(scale - 1) > 0.0001
             ? hdrImage.resize(scale, { kernel: vips.Kernel.linear })
             : hdrImage.copy();
           using output = width > 0 && height > 0 && !preserveAspectRatio
