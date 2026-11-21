@@ -1976,9 +1976,9 @@ export class CacheManager {
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
     const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
     db.prepare(`UPDATE photos SET is_hdr = :isHdr,
-      location_name_id = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
-      location_lookup_error = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_error END,
-      location_lookup_attempted_at = CASE WHEN latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_attempted_at END,
+      location_name_id = CASE WHEN :hasCoordinates = 0 OR latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
+      location_lookup_error = CASE WHEN :hasCoordinates = 0 OR latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_error END,
+      location_lookup_attempted_at = CASE WHEN :hasCoordinates = 0 OR latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_lookup_attempted_at END,
       latitude = :latitude, longitude = :longitude,
       altitude_m = :altitude, gps_timestamp = :gpsTimestamp, direction_deg = :direction,
       coordinate_source_id = :sourceId,
@@ -1990,6 +1990,7 @@ export class CacheManager {
       END WHERE id = :id`)
       .run({
         isHdr: isHdr ? 1 : 0,
+        hasCoordinates: hasCoordinates ? 1 : 0,
         latitude: hasCoordinates ? gps.latitude : null,
         longitude: hasCoordinates ? gps.longitude : null,
         altitude: hasCoordinates ? gps.altitudeM : null,
