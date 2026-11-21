@@ -36,6 +36,36 @@ The table's virtualized rendering and the database lookup batching solve differe
 - Column widths can be resized, and the action/menu column can be positioned at the left or right.
 - The thumbnail-free detail mode uses the same virtualized table structure with a smaller row height.
 
+## Dynamic HEX viewer
+
+The **Hex** tab in the Image view displays the raw contents of the file currently selected in the detail list. It follows the selected file automatically; it does not require a separate file picker.
+
+The viewer presents each 16-byte row in five columns:
+
+1. **Offset** – byte offset in hexadecimal.
+2. **Hex bytes** – the 16 byte values in hexadecimal.
+3. **ASCII** – printable ASCII characters; non-printable bytes are shown as dots.
+4. **UTF-16** – the same bytes interpreted as little-endian 16-bit code units.
+5. **UTF-16 +1** – the UTF-16LE interpretation shifted by one byte.
+
+### Large-file handling
+
+The viewer does not read the complete file into memory and does not create a table row for every byte range in advance:
+
+- It requests only a range of bytes from the desktop file service.
+- The visible data is loaded in blocks of **256 rows** (4,096 bytes per request).
+- Scrolling loads overlapping blocks of 128 rows, keeping the visible position continuous.
+- A position slider allows direct navigation through the complete file, including files whose size would make a conventional full-length scrollbar impractical.
+- The file size and byte offsets are displayed, and changing the selected file resets the viewer to the beginning.
+
+Because reads are range-based, the viewer is suitable for files well above **100 MB** without loading the entire file into renderer memory. Actual read speed still depends on the storage device.
+
+### Unsupported file formats
+
+When **Include unsupported files** is enabled in the gallery, files that are not supported by an image decoder can also be selected in the detail list and inspected in the Hex tab.
+
+The HEX viewer works on the original file's bytes and is independent of image-format recognition, thumbnail generation and image decoding. Therefore, an unsupported extension does not prevent HEX inspection. This applies to files included in the gallery list; folders themselves are not treated as file contents.
+
 ## Scalability notes
 
 The table is designed for collections containing many thousands of files and can render substantially larger collections without creating a corresponding number of DOM rows. The total file collection is still held and sorted by the gallery data layer; virtualization reduces DOM and layout work, but it does not mean the entire file inventory is streamed from SQLite one visible page at a time.
