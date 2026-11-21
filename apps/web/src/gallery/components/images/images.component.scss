@@ -333,6 +333,23 @@
     var(--detail-col-9-width, 150px)
     var(--detail-col-10-width, 150px)    var(--detail-col-11-width, 240px)
     var(--detail-col-12-width, 220px);
+.detail-native-table.actions-column-right {
+  --detail-grid-columns:
+    max(84px, calc(var(--detail-thumb-width, 36px) + 16px + var(--detail-col-0-delta, 0px)))
+    var(--detail-col-1-width, 210px)
+    var(--detail-col-2-width, 150px)
+    var(--detail-col-3-width, 150px)
+    var(--detail-col-4-width, 130px)
+    var(--detail-col-5-width, 100px)
+    var(--detail-col-6-width, 75px)
+    var(--detail-col-7-width, 65px)
+    var(--detail-col-8-width, 65px)
+    var(--detail-col-9-width, 150px)
+    var(--detail-col-10-width, 150px)
+    var(--detail-col-11-width, 240px)
+    var(--detail-col-12-width, 220px)
+    var(--detail-actions-width, 44px);
+}
   display: block;
   width: max-content;
   min-width: 0;
@@ -833,6 +850,15 @@
   top: 10px;
   right: 8px;
   margin: 0 !important;
+}
+
+/* Keep the column switch visible below the folder menu, in either position. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .detail-actions-column-toggle {
+  position: absolute !important;
+  top: 54px;
+  right: 8px;
+  margin: 0 !important;
+  z-index: 2;
 }
 
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
