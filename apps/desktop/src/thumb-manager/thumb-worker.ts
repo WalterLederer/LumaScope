@@ -1093,6 +1093,7 @@ if (parentPort) {
         if (values.some(value => !Number.isFinite(value))) throw new Error('Invalid OHSP file: spectral values contain non-finite numbers.');
         const outputWidth = Math.max(320, width > 0 ? width : 1600);
         const outputHeight = Math.max(180, height > 0 ? height : 900);
+        const isFullSize = width === 0 && height === 0;
         const pixels = Buffer.alloc(outputWidth * outputHeight * 3);
         for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16; pixels[i + 1] = 18; pixels[i + 2] = 22; }
         const setPixel = (x: number, y: number, color: [number, number, number]) => {
@@ -1116,8 +1117,10 @@ if (parentPort) {
           'C':['01111','10000','10000','10000','10000','10000','01111'],'D':['11110','10001','10001','10001','10001','10001','11110'],
           'E':['11111','10000','10000','11110','10000','10000','11111'],'F':['11111','10000','10000','11110','10000','10000','10000'],
           'G':['01111','10000','10000','10111','10001','10001','01111'],'H':['10001','10001','10001','11111','10001','10001','10001'],
-          'I':['111','010','010','010','010','010','111'],'L':['10000','10000','10000','10000','10000','10000','11111'],
+          'I':['111','010','010','010','010','010','111'],'K':['10001','10010','10100','11000','10100','10010','10001'],
+          'L':['10000','10000','10000','10000','10000','10000','11111'],
           'M':['10001','11011','10101','10101','10001','10001','10001'],'N':['10001','11001','10101','10011','10001','10001','10001'],
+          'O':['01110','10001','10001','10001','10001','10001','01110'],
           'P':['11110','10001','10001','11110','10000','10000','10000'],'R':['11110','10001','10001','11110','10100','10010','10001'],
           'S':['01111','10000','10000','01110','00001','00001','11110'],'T':['11111','00100','00100','00100','00100','00100','00100'],
           'U':['10001','10001','10001','10001','10001','10001','01110'],'V':['10001','10001','10001','10001','10001','01010','00100'],
@@ -1131,7 +1134,7 @@ if (parentPort) {
           let cursor = x;
           for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
         };
-        const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.13), bottom = Math.round(outputHeight * 0.15);
+        const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * (isFullSize ? 0.13 : 0.07)), bottom = Math.round(outputHeight * 0.15);
         const plotWidth = outputWidth - left - right, plotHeight = outputHeight - top - bottom;
         const minimum = Math.min(0, ...values), maximum = Math.max(0, ...values), range = maximum - minimum || 1;
         const yFor = (value: number) => top + (maximum - value) / range * plotHeight, zeroY = yFor(0);
@@ -1152,19 +1155,23 @@ if (parentPort) {
         const peakX = left + peakIndex / (sampleCount - 1) * plotWidth;
         const peakY = yFor(peakValue);
         const peakLineColor: [number, number, number] = [255, 205, 80];
-        // Draw a dashed guide from the measured peak down to the wavelength axis.
-        for (let y = Math.ceil(peakY); y < top + plotHeight; y += 16) {
-          line(peakX, y, peakX, Math.min(y + 8, top + plotHeight), peakLineColor);
+        if (isFullSize) {
+          // Draw a dashed guide from the measured peak down to the wavelength axis.
+          for (let y = Math.ceil(peakY); y < top + plotHeight; y += 16) {
+            line(peakX, y, peakX, Math.min(y + 8, top + plotHeight), peakLineColor);
+          }
+          line(peakX - 5, peakY, peakX + 5, peakY, peakLineColor);
+          line(peakX, peakY - 5, peakX, peakY + 5, peakLineColor);
         }
-        line(peakX - 5, peakY, peakX + 5, peakY, peakLineColor);
-        line(peakX, peakY - 5, peakX, peakY + 5, peakLineColor);
         line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
         const textScale = Math.max(1,Math.floor(outputWidth/1200));
         const headerScale = Math.max(1, Math.floor(outputWidth / 1200));
         const headerColor: [number, number, number] = [235, 239, 245];
         const peakLabelColor: [number, number, number] = [255, 205, 80];
-        drawText(`MODEL ${instrument}  ${captureDate} ${captureTime}`, left, 8, headerScale, headerColor);
-        drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${String(peakValue)} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
+        if (isFullSize) {
+          drawText(`MODEL ${instrument}  ${captureDate} ${captureTime}`, left, 8, headerScale, headerColor);
+          drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${String(peakValue)} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
+        }
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
         drawText('SPECTRAL VALUE',3,Math.round(outputHeight*.43),textScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
