@@ -147,8 +147,8 @@ const getFullSizeDerivative = async (
   thumbManager: ThumbManager
 ): Promise<string | null> => {
   const extension = extname(fileName).toLowerCase();
-  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.jxl', '.png' ]);
-  const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw' ]);
+  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp', '.jxl', '.png' ]);
+  const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ]);
   if (derivativeExtensions.has(extension)) {
     // Converted files use a shared sibling folder named "jpg", matching the source basename.
     const convertedPath = join(dirname(dirname(fileName)), 'jpg', `${basename(fileName, extname(fileName))}.jpg`);
@@ -204,7 +204,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const isTiff = [ '.tif', '.tiff' ].includes(extension);
-      const tag = ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
+      const tag = extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
       const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
       if (signal?.aborted) {
@@ -351,7 +351,7 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const extension = extname(fileName).toLowerCase();
-      const cacheTag = ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const cacheTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const cacheEntry = cacheManager.exists(fileName, cacheTag);
       let wasCacheHit = false;
       if (cacheEntry && typeof cacheEntry['target_path'] === 'string' && existsSync(cacheEntry['target_path'])) {
