@@ -279,10 +279,6 @@
                   <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
                   <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
                 </td>
-                <td class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'right'">
-                  <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(track)" title="Track Settings">✎</button>
-                  <button type="button" class="gpx-track-row-menu-trigger" (click)="toggleGpxRowActionMenu(track, $event); $event.stopPropagation()" [attr.aria-label]="'Actions for ' + track.name" title="Track actions">☰</button>
-                </td>
                 <td class="gpx-active-toggle" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></td>
                 <td class="gpx-file-name" [title]="track.databasePath || track.path">{{ track.name }}</td>
                 <td class="gpx-waypoint-count">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</td>
