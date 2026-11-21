@@ -755,9 +755,9 @@ export class ImagesComponent {
     };
     const configuredWidth = this.detailColumnWidths()[columnIndex];
     const startWidth = columnIndex === 0
-      ? Math.max(84, this.detailThumbnailWidth() + 16 + (configuredWidth ?? 0))
+      ? Math.max(52, this.detailThumbnailWidth() + 20 + (configuredWidth ?? 0))
       : configuredWidth ?? defaultWidths[columnIndex] ?? cell.getBoundingClientRect().width;
-    const minimumWidth = columnIndex === -1 ? 44 : columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
+    const minimumWidth = columnIndex === -1 ? 44 : columnIndex === 0 ? 52 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
     const initialThumbWidth = this.detailThumbnailWidth();
